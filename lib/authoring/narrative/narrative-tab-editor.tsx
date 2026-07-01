@@ -10,8 +10,12 @@
 
 import { useEffect, useState } from 'react';
 import type { Editor } from '@tiptap/react';
-import { deleteTabAction, upsertTabAction } from '../../bank/wrappers/case-study/actions';
-import type { CaseStudyTabRow, Surface } from '../../bank/wrappers/case-study/types';
+import type {
+  Surface,
+  ChartTabIdentity,
+  TabSaveAction,
+  TabDeleteAction,
+} from '../chart-tab-types';
 import { RichField } from '../rich-field';
 import { RichRender } from '../rich-render';
 import { isEmptyRichDoc, type RichDoc } from '../rich-doc';
@@ -29,18 +33,26 @@ import {
 
 interface Props {
   surface:         Surface;
-  case_id:         string;
-  tab:             CaseStudyTabRow;
+  tab:             ChartTabIdentity;
   draftTitle:      string;
   draftNarrative:  NarrativeTabData;
   onDraftChange:   (next: { title: string; tab: NarrativeTabData }) => void;
   previewPosition: number | null;
+  // Persistence injected by the wrapper; the action adds its own
+  // parent-id field (case_id / trend_id).
+  saveAction:      TabSaveAction;
+  deleteAction:    TabDeleteAction;
+  // Trend has no progressive disclosure — hide the per-entry reveal
+  // dropdown when true (default: shown, for case).
+  hideReveal?:     boolean;
 }
 
 export function NarrativeTabEditorV2({
-  surface, case_id, tab,
+  surface, tab,
   draftTitle, draftNarrative, onDraftChange,
   previewPosition,
+  saveAction, deleteAction,
+  hideReveal = false,
 }: Props) {
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
@@ -96,12 +108,12 @@ export function NarrativeTabEditorV2({
 
   function onSave(fd: FormData) {
     setErr(null); setPending(true);
-    upsertTabAction(fd).then((r) => { if (!r.ok) setErr(r.error); }).finally(() => setPending(false));
+    saveAction(fd).then((r) => { if (!r.ok) setErr(r.error); }).finally(() => setPending(false));
   }
   function onDelete(fd: FormData) {
     if (!window.confirm(`Delete the "${draftTitle || 'Untitled'}" tab? Everything in it will be lost.`)) return;
     setErr(null); setPending(true);
-    deleteTabAction(fd).then((r) => { if (!r.ok) setErr(r.error); }).finally(() => setPending(false));
+    deleteAction(fd).then((r) => { if (!r.ok) setErr(r.error); }).finally(() => setPending(false));
   }
 
   return (
@@ -127,13 +139,11 @@ export function NarrativeTabEditorV2({
         <div className="cs-entries-actions">
           <form action={onDelete}>
             <input type="hidden" name="surface" value={surface} />
-            <input type="hidden" name="case_id" value={case_id} />
             <input type="hidden" name="tab_id"  value={tab.tab_id} />
             <button type="submit" className="cs-btn danger" disabled={pending}>Delete tab</button>
           </form>
           <form action={onSave}>
             <input type="hidden" name="surface"       value={surface} />
-            <input type="hidden" name="case_id"       value={case_id} />
             <input type="hidden" name="tab_id"        value={tab.tab_id} />
             {/* Post the tab's OWN identity, not a hardcoded custom one — a
                 built-in (Nurses' Notes etc.) routed into this v2 editor must
@@ -186,16 +196,18 @@ export function NarrativeTabEditorV2({
                 <button type="button" className="nt-chip-add" onClick={() => addChip(idx)}>+ label</button>
               </div>
               <div className="nt-card-head-right">
-                <select
-                  className={`mt-gutter-vf${entry.visibleFrom > 1 ? ' is-later' : ''}`}
-                  value={entry.visibleFrom}
-                  onChange={(e) => onVF(idx, Number(e.target.value))}
-                  title="Which question this entry first appears at"
-                >
-                  {Array.from({ length: NVF_MAX }, (_, i) => i + 1).map((n) => (
-                    <option key={n} value={n}>Q{n}</option>
-                  ))}
-                </select>
+                {!hideReveal && (
+                  <select
+                    className={`mt-gutter-vf${entry.visibleFrom > 1 ? ' is-later' : ''}`}
+                    value={entry.visibleFrom}
+                    onChange={(e) => onVF(idx, Number(e.target.value))}
+                    title="Which question this entry first appears at"
+                  >
+                    {Array.from({ length: NVF_MAX }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>Q{n}</option>
+                    ))}
+                  </select>
+                )}
                 <button type="button" className="nt-entry-del" onClick={() => onRemoveEntry(idx)} aria-label="Remove entry" title="Remove entry">×</button>
               </div>
             </div>

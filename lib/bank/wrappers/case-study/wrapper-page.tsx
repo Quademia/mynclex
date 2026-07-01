@@ -39,6 +39,8 @@ import {
   saveCaseMetadataAction,
   detachQuestionAction,
   publishCaseWithChildrenAction,
+  upsertTabAction,
+  deleteTabAction,
 } from './actions';
 import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/bank/classifications';
@@ -1258,12 +1260,13 @@ function ActiveChartTabEditor({
     return (
       <MergeTableEditor
         surface={surface}
-        case_id={case_id}
         tab={tab}
         draftTitle={draft.title}
         draftTab={draftTab}
         onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab, columns_def: [] })}
         previewPosition={previewPosition}
+        saveAction={(fd) => { fd.set('case_id', case_id); return upsertTabAction(fd); }}
+        deleteAction={(fd) => { fd.set('case_id', case_id); return deleteTabAction(fd); }}
       />
     );
   }
@@ -1277,12 +1280,13 @@ function ActiveChartTabEditor({
     return (
       <NarrativeTabEditorV2
         surface={surface}
-        case_id={case_id}
         tab={tab}
         draftTitle={draft.title}
         draftNarrative={draftNarrative}
         onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab, columns_def: [] })}
         previewPosition={previewPosition}
+        saveAction={(fd) => { fd.set('case_id', case_id); return upsertTabAction(fd); }}
+        deleteAction={(fd) => { fd.set('case_id', case_id); return deleteTabAction(fd); }}
       />
     );
   }

@@ -31,14 +31,29 @@ import { kindDefaultLabel } from './kind-templates';
 import {
   saveTrendMetadataAction,
   detachQuestionAction,
+  upsertTabAction,
+  deleteTabAction,
 } from './actions';
-import { TrendDataTable } from './data-table';
+import { TrendTabRail } from './tab-rail';
 import { DeleteTrendConfirm } from './delete-trend-confirm';
 import { PublishNeedsDatasetNotice } from './publish-needs-dataset-notice';
+import { MergeTableEditor } from '@/lib/authoring/table/merge-table-editor';
+import { MergeTableView } from '@/lib/authoring/table/merge-table-view';
+import {
+  asMergeTab,
+  type MergeTabData,
+} from '@/lib/authoring/table/merge-table-model';
+import { NarrativeTabEditorV2 } from '@/lib/authoring/narrative/narrative-tab-editor';
+import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
+import {
+  asNarrativeTab,
+  type NarrativeTabData,
+} from '@/lib/authoring/narrative/narrative-model';
 import type {
   SlotEditorInitial,
   SlotRow,
   TrendRow,
+  TrendTabRow,
   WrapperData,
 } from './types';
 import type { PreviewViewMode } from '@/lib/bank/atoms/preview-toggle';
@@ -131,6 +146,27 @@ const FORM_ID_BY_TYPE: Record<string, string> = {
   DRAG_ORDER: 'auth-drag-order-form',
 };
 
+// ── Per-tab in-flight draft (chart tabs, Slice 2) ────────────
+// Trend tabs are always v2 (merge table or narrative). No columns_def
+// editing (the merge editor posts columns_def="[]"), so the draft is
+// just title + entries.
+interface TabDraft {
+  title:   string;
+  entries: MergeTabData | NarrativeTabData;
+}
+function tabToDraft(t: TrendTabRow): TabDraft {
+  return { title: t.title, entries: t.entries };
+}
+function isTabDirty(t: TrendTabRow, d: TabDraft): boolean {
+  if (t.title !== d.title) return true;
+  if (JSON.stringify(t.entries) !== JSON.stringify(d.entries)) return true;
+  return false;
+}
+
+// Show every revealed row/entry — trend has no progressive disclosure,
+// so the read views render at a position past any visibleFrom.
+const TREND_PREVIEW_POSITION = 999;
+
 // Pending navigation while a discard dialog is open.
 type PendingNav =
   | { kind: 'leave-page';   href: string }
@@ -146,7 +182,7 @@ interface CreatingState {
 }
 
 export function TrendWrapperPage({ data, focusItemId = null, authorship = null }: Props) {
-  const { surface, datasetRow, slots } = data;
+  const { surface, datasetRow, slots, tabs } = data;
   const router = useRouter();
 
   const baseUrl =
@@ -196,6 +232,40 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
       : activeSlot?.editor ?? null;
 
   const activeEditorKind: string | null = activeEditor?.kind ?? null;
+
+  // ── Chart-tab draft state (Slice 2) ─────────────────────────
+  const [draftOverrides, setDraftOverrides] = useState<Record<string, TabDraft>>({});
+  const drafts = useMemo<Record<string, TabDraft>>(() => {
+    const out: Record<string, TabDraft> = {};
+    for (const t of tabs) out[t.tab_id] = draftOverrides[t.tab_id] ?? tabToDraft(t);
+    return out;
+  }, [tabs, draftOverrides]);
+  function updateTabDraft(tab_id: string, next: TabDraft) {
+    setDraftOverrides((prev) => ({ ...prev, [tab_id]: next }));
+  }
+  const dirtyTabIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tabs) {
+      const d = drafts[t.tab_id];
+      if (d && isTabDirty(t, d)) set.add(t.tab_id);
+    }
+    return set;
+  }, [tabs, drafts]);
+
+  const [activeChartTabId, setActiveChartTabId] = useState<string | null>(
+    () => tabs[0]?.tab_id ?? null,
+  );
+  // Keep the active tab valid after add/delete/reorder refreshes.
+  if (activeChartTabId && !tabs.some((t) => t.tab_id === activeChartTabId)) {
+    setActiveChartTabId(tabs[0]?.tab_id ?? null);
+  } else if (!activeChartTabId && tabs.length > 0) {
+    setActiveChartTabId(tabs[0].tab_id);
+  }
+  const activeChartTab = useMemo(
+    () => tabs.find((t) => t.tab_id === activeChartTabId) ?? null,
+    [tabs, activeChartTabId],
+  );
+  const activeChartDraft = activeChartTab ? drafts[activeChartTab.tab_id] : null;
 
   // ── Right-pane preview toggle (Student / Answer-key) ───────
   const [questionMode, setQuestionMode] = useState<PreviewViewMode>('student');
@@ -444,7 +514,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   // ── Navigation guards ───────────────────────────────────────
 
   function tryLeavePage(href: string, ev?: MouseEvent) {
-    const dirty = wrapperDirty || editorDirty;
+    const dirty = wrapperDirty || editorDirty || dirtyTabIds.size > 0;
     if (!dirty) return;
     if (ev) {
       ev.preventDefault();
@@ -582,10 +652,6 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
 
   // ── Right-pane in-flight values ─────────────────────────────
   const previewScenario = scenario;
-  const previewKind     = kind;
-  const previewRowLabel = rowLabel;
-  const previewRows     = rows;
-  const previewTps      = timepoints;
 
   // Save-question button visibility + state
   const onQuestionPill = activePill !== 'dataset';
@@ -612,7 +678,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
             </Link>
             <span className="auth-tr-crumb-sep">/</span>
             <code className="auth-tr-crumb-id">{datasetRow.trend_id}</code>
-            {(wrapperDirty || editorDirty) && (
+            {(wrapperDirty || editorDirty || dirtyTabIds.size > 0) && (
               <span className="auth-cs-dirty-dot" title="Unsaved changes">●</span>
             )}
           </span>
@@ -708,28 +774,52 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
 
           <div className="auth-tr-pane-body">
             {activePill === 'dataset' ? (
-              <DatasetView
-                title={title}
-                scenario={scenario}
-                kind={kind}
-                rowLabel={rowLabel}
-                isPublished={isPublished}
-                isFreeSample={isFreeSample}
-                isBuilderVisible={isBuilderVisible}
-                timepoints={timepoints}
-                rows={rows}
-                onTitleChange={setTitle}
-                onScenarioChange={setScenario}
-                onKindChange={setKind}
-                onRowLabelChange={setRowLabel}
-                onIsPublishedChange={setIsPublished}
-                onIsFreeSampleChange={setIsFreeSample}
-                onIsBuilderVisibleChange={setIsBuilderVisible}
-                onDataChange={({ timepoints: tps, rows: rs }) => {
-                  setTimepoints(tps);
-                  setRows(rs);
-                }}
-              />
+              <>
+                <DatasetView
+                  title={title}
+                  scenario={scenario}
+                  kind={kind}
+                  isPublished={isPublished}
+                  isFreeSample={isFreeSample}
+                  isBuilderVisible={isBuilderVisible}
+                  onTitleChange={setTitle}
+                  onScenarioChange={setScenario}
+                  onKindChange={setKind}
+                  onIsPublishedChange={setIsPublished}
+                  onIsFreeSampleChange={setIsFreeSample}
+                  onIsBuilderVisibleChange={setIsBuilderVisible}
+                />
+
+                <section className="auth-tr-section">
+                  <div className="auth-tr-section-label">Chart tabs</div>
+                  <div className="cs-chart-layout">
+                    <TrendTabRail
+                      surface={surface}
+                      trend_id={datasetRow.trend_id}
+                      tabs={tabs}
+                      activeTabId={activeChartTabId}
+                      onSelect={setActiveChartTabId}
+                      dirtyIds={dirtyTabIds}
+                    />
+                    {activeChartTab && activeChartDraft ? (
+                      <ActiveChartTabEditor
+                        surface={surface}
+                        trend_id={datasetRow.trend_id}
+                        tab={activeChartTab}
+                        draft={activeChartDraft}
+                        onDraftChange={(next) => updateTabDraft(activeChartTab.tab_id, next)}
+                      />
+                    ) : (
+                      <div className="cs-entries-pane">
+                        <div className="cs-entries-empty">
+                          <h4>This chart has no tabs yet</h4>
+                          <p>Add a tab from the rail on the left to start building the stimulus.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </>
             ) : activeEditor ? (
               <EditorBodyForKind
                 editor={activeEditor}
@@ -767,17 +857,12 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
 
           <div className="auth-tr-preview-section">
             <div className="auth-tr-preview-section-label">
-              Data table · {kindDefaultLabel(previewKind)}
+              Chart{activeChartTab ? ` · ${activeChartDraft?.title || activeChartTab.title}` : ''}
             </div>
-            {previewRows.length > 0 || previewTps.length > 0 ? (
-              <DataTableReadonly
-                rows={previewRows}
-                timepoints={previewTps}
-                rowLabel={previewRowLabel}
-                showFlags={false}
-              />
+            {activeChartTab && activeChartDraft ? (
+              <ChartTabPreview draft={activeChartDraft} />
             ) : (
-              <p className="auth-tr-empty-msg">No rows or timepoints yet.</p>
+              <p className="auth-tr-empty-msg">No chart tabs yet.</p>
             )}
           </div>
 
@@ -960,35 +1045,25 @@ function DatasetView({
   isPublished,
   isFreeSample,
   isBuilderVisible,
-  timepoints,
-  rows,
-  rowLabel,
   onTitleChange,
   onScenarioChange,
   onKindChange,
-  onRowLabelChange,
   onIsPublishedChange,
   onIsFreeSampleChange,
   onIsBuilderVisibleChange,
-  onDataChange,
 }: {
   title:                    string;
   scenario:                 string;
   kind:                     string;
-  rowLabel:                 string;
   isPublished:              boolean;
   isFreeSample:             boolean;
   isBuilderVisible:         boolean;
-  timepoints:               string[];
-  rows:                     TrendRow[];
   onTitleChange:            (next: string) => void;
   onScenarioChange:         (next: string) => void;
   onKindChange:             (next: string) => void;
-  onRowLabelChange:         (next: string) => void;
   onIsPublishedChange:      (next: boolean) => void;
   onIsFreeSampleChange:     (next: boolean) => void;
   onIsBuilderVisibleChange: (next: boolean) => void;
-  onDataChange:             (next: { timepoints: string[]; rows: TrendRow[] }) => void;
 }) {
   return (
     <div className="auth-tr-dataset-view">
@@ -1029,9 +1104,8 @@ function DatasetView({
         />
         <span className="auth-tr-kind-hint">
           Display label: <strong>{kindDefaultLabel(kind)}</strong>
-          {' '}· presets (vitals / labs / io / neuro / assessment) seed
-          row templates at create time; editing here just renames the
-          stored kind value.
+          {' '}· a short label for this dataset. The stimulus itself is
+          built from the chart tabs below.
         </span>
       </section>
 
@@ -1055,16 +1129,6 @@ function DatasetView({
             hint="No effect on trends — each question sets its own builder visibility."
           />
         </div>
-      </section>
-
-      <section className="auth-tr-section">
-        <TrendDataTable
-          timepoints={timepoints}
-          rows={rows}
-          rowLabel={rowLabel}
-          onChange={onDataChange}
-          onRowLabelChange={onRowLabelChange}
-        />
       </section>
     </div>
   );
@@ -1135,65 +1199,84 @@ function EditorBodyForKind({
 }
 
 // ───────────────────────────────────────────────────────────
-// DataTableReadonly — read-only render of the dataset's data
-// table for the right pane.
+// ActiveChartTabEditor — routes the active chart tab to its shared v2
+// editor by entries shape: MergeTableEditor (custom table) or
+// NarrativeTabEditorV2 (narrative). Injects trend's save/delete actions
+// (which set trend_id) and hides the reveal gutter (trend has no
+// progressive disclosure). Mirror of the case-study dispatch.
 // ───────────────────────────────────────────────────────────
 
-function DataTableReadonly({
-  rows,
-  timepoints,
-  rowLabel,
-  showFlags,
+function ActiveChartTabEditor({
+  surface,
+  trend_id,
+  tab,
+  draft,
+  onDraftChange,
 }: {
-  rows:       TrendRow[];
-  timepoints: string[];
-  rowLabel:   string;
-  showFlags:  boolean;
+  surface:       WrapperData['surface'];
+  trend_id:      string;
+  tab:           TrendTabRow;
+  draft:         TabDraft;
+  onDraftChange: (next: TabDraft) => void;
 }) {
-  const hasRefRange = rows.some((r) => r.ref_range !== undefined && r.ref_range !== '');
-  const hasCols = timepoints.length > 0;
-  const rowLabelDisplay = rowLabel.trim() || 'Metric';
+  const mergeTab = asMergeTab(tab.entries);
+  if (mergeTab) {
+    const draftTab = asMergeTab(draft.entries) ?? mergeTab;
+    return (
+      <MergeTableEditor
+        surface={surface}
+        tab={tab}
+        draftTitle={draft.title}
+        draftTab={draftTab}
+        onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab })}
+        previewPosition={null}
+        hideReveal
+        saveAction={(fd) => { fd.set('trend_id', trend_id); return upsertTabAction(fd); }}
+        deleteAction={(fd) => { fd.set('trend_id', trend_id); return deleteTabAction(fd); }}
+      />
+    );
+  }
 
-  if (!hasCols && rows.length === 0) {
-    return <p className="auth-tr-empty-msg">Empty data table.</p>;
+  const narrativeTab = asNarrativeTab(tab.entries);
+  if (narrativeTab) {
+    const draftNarrative = asNarrativeTab(draft.entries) ?? narrativeTab;
+    return (
+      <NarrativeTabEditorV2
+        surface={surface}
+        tab={tab}
+        draftTitle={draft.title}
+        draftNarrative={draftNarrative}
+        onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab })}
+        previewPosition={null}
+        hideReveal
+        saveAction={(fd) => { fd.set('trend_id', trend_id); return upsertTabAction(fd); }}
+        deleteAction={(fd) => { fd.set('trend_id', trend_id); return deleteTabAction(fd); }}
+      />
+    );
   }
 
   return (
-    <div className="auth-tr-table-scroll">
-      <table className="auth-tr-table">
-        <thead>
-          <tr>
-            <th className="auth-tr-col-metric">{rowLabelDisplay}</th>
-            {timepoints.map((tp, idx) => (
-              <th key={idx} className="auth-tr-col-tp">{tp || `TP${idx + 1}`}</th>
-            ))}
-            {hasRefRange && <th className="auth-tr-col-refrange">Ref range</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, rIdx) => (
-            <tr key={rIdx}>
-              <td className="auth-tr-col-metric">{r.metric || `Row ${rIdx + 1}`}</td>
-              {timepoints.map((_, cIdx) => {
-                const flag = r.flags[cIdx] ?? null;
-                const flagClass = showFlags && flag
-                  ? ` auth-tr-cell-${flag}`
-                  : '';
-                return (
-                  <td key={cIdx} className={`auth-tr-cell${flagClass}`}>
-                    {r.values[cIdx] ?? ''}
-                  </td>
-                );
-              })}
-              {hasRefRange && (
-                <td className="auth-tr-refrange-cell">{r.ref_range ?? ''}</td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="cs-entries-pane">
+      <div className="cs-entries-empty">
+        <h4>Unknown tab type</h4>
+        <p>This tab uses tab_key <code>{tab.tab_key}</code> which the editor doesn&apos;t recognise.</p>
+      </div>
     </div>
   );
+}
+
+// ───────────────────────────────────────────────────────────
+// ChartTabPreview — read-only render of the active chart tab for the
+// right pane, reflecting the live draft. Rendered past any visible_from
+// (TREND_PREVIEW_POSITION) so every row/entry shows (no reveal).
+// ───────────────────────────────────────────────────────────
+
+function ChartTabPreview({ draft }: { draft: TabDraft }) {
+  const mt = asMergeTab(draft.entries);
+  if (mt) return <MergeTableView tab={mt} currentPosition={TREND_PREVIEW_POSITION} />;
+  const nt = asNarrativeTab(draft.entries);
+  if (nt) return <NarrativeView tab={nt} currentPosition={TREND_PREVIEW_POSITION} />;
+  return <p className="auth-tr-empty-msg">Empty tab.</p>;
 }
 
 // ───────────────────────────────────────────────────────────

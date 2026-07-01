@@ -25,6 +25,12 @@ import {
   TUTOR_TREND_ID_PREFIX,
 } from '../../classifications';
 import { kindSeedData } from './kind-templates';
+import {
+  isBuiltIn,
+  isCustomTabKey,
+  customShapeForKey,
+  type CustomShape,
+} from './tab-types';
 import type { Surface, TrendFlag, TrendRow } from './types';
 
 export type SaveResult =
@@ -413,5 +419,224 @@ export async function deleteTrendAction(formData: FormData): Promise<SaveResult>
   if (dsDelErr) return { ok: false, error: `Delete dataset failed: ${dsDelErr.message}` };
 
   revalidatePath(cfg.baseUrl);
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Chart-tab actions (upsert / delete / reorder) — trend rich
+// multi-chart Slice 2. Mirror of the case-study tab actions, keyed to
+// trend_id + nclex_trend_tabs. Trend owns its copy (wrappers stay
+// independent); the injected save/delete from the shared editors call
+// these with the trend_id already set.
+// ─────────────────────────────────────────────────────────────
+
+type TabTable = 'nclex_trend_tabs' | 'nclex_tutor_trend_tabs';
+
+function tabTableFor(surface: Surface): TabTable {
+  return surface === 'tutor' ? 'nclex_tutor_trend_tabs' : 'nclex_trend_tabs';
+}
+
+// Next tab_id for a dataset. Shape: {trend_id}_TAB_{N}. Computes max in
+// TS because N is not zero-padded (lexical sort unreliable).
+async function nextTabId(
+  supabase: ServerSupabaseClient,
+  surface:  Surface,
+  trend_id: string,
+): Promise<string> {
+  const { data, error } = await supabase
+    .from(tabTableFor(surface))
+    .select('tab_id')
+    .eq('trend_id', trend_id);
+
+  if (error) throw error;
+
+  const prefix = `${trend_id}_TAB_`;
+  let next = 1;
+  if (data && data.length > 0) {
+    for (const row of data) {
+      const tab_id = row.tab_id as string;
+      const n = parseInt(tab_id.slice(prefix.length), 10);
+      if (Number.isFinite(n) && n >= next) next = n + 1;
+    }
+  }
+  return `${prefix}${next}`;
+}
+
+export async function upsertTabAction(formData: FormData): Promise<SaveResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireBankCurator(surface);
+  const cfg = configFor(surface);
+
+  const trend_id = String(formData.get('trend_id') ?? '').trim();
+  if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
+
+  const tab_id_raw = String(formData.get('tab_id') ?? '').trim();
+  const isUpdate = tab_id_raw.length > 0;
+
+  const tab_key = String(formData.get('tab_key') ?? '').trim();
+  if (!tab_key) return { ok: false, error: 'Missing tab_key.' };
+
+  const title = String(formData.get('title') ?? '').trim();
+  if (!title) return { ok: false, error: 'Tab title is required.' };
+
+  const display_orderRaw = parseInt(String(formData.get('display_order') ?? '0'), 10);
+  const display_order =
+    Number.isFinite(display_orderRaw) && display_orderRaw >= 0 ? display_orderRaw : 0;
+
+  const is_custom = formData.get('is_custom') === 'true';
+
+  // Validate tab_key/is_custom/custom_shape consistency.
+  let custom_shape: CustomShape | null = null;
+  if (is_custom) {
+    if (!isCustomTabKey(tab_key)) {
+      return {
+        ok: false,
+        error: 'Custom tab must use tab_key custom_narrative or custom_grid.',
+      };
+    }
+    custom_shape = customShapeForKey(tab_key);
+  } else {
+    if (!isBuiltIn(tab_key)) {
+      return { ok: false, error: `Unknown built-in tab_key: ${tab_key}.` };
+    }
+  }
+
+  const columnsRaw = String(formData.get('columns_def') ?? '[]') || '[]';
+  let columns_def: unknown;
+  try {
+    columns_def = JSON.parse(columnsRaw);
+    if (!Array.isArray(columns_def)) throw new Error('not array');
+  } catch {
+    return { ok: false, error: 'Invalid columns_def JSON.' };
+  }
+
+  // entries is always a v2 rich blob (merge table or narrative object)
+  // for trend — a fresh build with no v1 ChartEntry legacy.
+  const entriesRaw = String(formData.get('entries') ?? '[]') || '[]';
+  let entries: unknown;
+  try {
+    entries = JSON.parse(entriesRaw);
+    const ok = Array.isArray(entries) || (entries !== null && typeof entries === 'object');
+    if (!ok) throw new Error('bad shape');
+  } catch {
+    return { ok: false, error: 'Invalid entries JSON.' };
+  }
+
+  const tabTable = tabTableFor(surface);
+
+  if (isUpdate) {
+    const { error } = await supabase
+      .from(tabTable)
+      .update({
+        tab_key,
+        title,
+        display_order,
+        is_custom,
+        custom_shape,
+        columns_def,
+        entries,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('tab_id', tab_id_raw)
+      .eq('trend_id', trend_id);
+
+    if (error) return { ok: false, error: `Tab update failed: ${error.message}` };
+  } else {
+    const tab_id = await nextTabId(supabase, surface, trend_id);
+    const { error } = await supabase.from(tabTable).insert({
+      tab_id,
+      trend_id,
+      tab_key,
+      title,
+      display_order,
+      is_custom,
+      custom_shape,
+      columns_def,
+      entries,
+    });
+
+    if (error) return { ok: false, error: `Tab insert failed: ${error.message}` };
+  }
+
+  revalidatePath(`${cfg.baseUrl}/${trend_id}`);
+  return { ok: true };
+}
+
+export async function deleteTabAction(formData: FormData): Promise<SaveResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireBankCurator(surface);
+  const cfg = configFor(surface);
+
+  const trend_id = String(formData.get('trend_id') ?? '').trim();
+  const tab_id   = String(formData.get('tab_id') ?? '').trim();
+  if (!trend_id || !tab_id) {
+    return { ok: false, error: 'Missing trend_id or tab_id.' };
+  }
+
+  const { error } = await supabase
+    .from(tabTableFor(surface))
+    .delete()
+    .eq('tab_id', tab_id)
+    .eq('trend_id', trend_id);
+
+  if (error) return { ok: false, error: `Tab delete failed: ${error.message}` };
+
+  revalidatePath(`${cfg.baseUrl}/${trend_id}`);
+  return { ok: true };
+}
+
+// Two-pass shift to dodge UNIQUE (trend_id, display_order) mid-reorder:
+// phase 1 negates each row's target order; phase 2 sets each to final.
+export async function reorderTabsAction(formData: FormData): Promise<SaveResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireBankCurator(surface);
+  const cfg = configFor(surface);
+
+  const trend_id = String(formData.get('trend_id') ?? '').trim();
+  if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
+
+  const ordersRaw = String(formData.get('tab_orders') ?? '[]');
+  let orders: { tab_id: string; display_order: number }[];
+  try {
+    const parsed: unknown = JSON.parse(ordersRaw);
+    if (!Array.isArray(parsed)) throw new Error('not array');
+    orders = parsed as { tab_id: string; display_order: number }[];
+  } catch {
+    return { ok: false, error: 'Invalid tab_orders JSON.' };
+  }
+
+  for (const o of orders) {
+    if (typeof o?.tab_id !== 'string' || !o.tab_id) {
+      return { ok: false, error: 'Invalid tab_id in orders.' };
+    }
+    if (typeof o.display_order !== 'number' || o.display_order < 0) {
+      return { ok: false, error: 'Invalid display_order in orders.' };
+    }
+  }
+
+  const tabTable = tabTableFor(surface);
+
+  // Phase 1: shift affected rows into the negative range.
+  for (const o of orders) {
+    const { error } = await supabase
+      .from(tabTable)
+      .update({ display_order: -1 - o.display_order })
+      .eq('tab_id', o.tab_id)
+      .eq('trend_id', trend_id);
+    if (error) return { ok: false, error: `Reorder failed: ${error.message}` };
+  }
+
+  // Phase 2: set each to its target order.
+  const now = new Date().toISOString();
+  for (const o of orders) {
+    const { error } = await supabase
+      .from(tabTable)
+      .update({ display_order: o.display_order, updated_at: now })
+      .eq('tab_id', o.tab_id)
+      .eq('trend_id', trend_id);
+    if (error) return { ok: false, error: `Reorder failed: ${error.message}` };
+  }
+
+  revalidatePath(`${cfg.baseUrl}/${trend_id}`);
   return { ok: true };
 }

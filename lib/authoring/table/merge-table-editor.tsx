@@ -18,8 +18,12 @@
 
 import { useEffect, useState } from 'react';
 import type { Editor } from '@tiptap/react';
-import { deleteTabAction, upsertTabAction } from '../../bank/wrappers/case-study/actions';
-import type { CaseStudyTabRow, Surface } from '../../bank/wrappers/case-study/types';
+import type {
+  Surface,
+  ChartTabIdentity,
+  TabSaveAction,
+  TabDeleteAction,
+} from '../chart-tab-types';
 import { RichField } from '../rich-field';
 import { RichRender } from '../rich-render';
 import { isEmptyRichDoc, type RichDoc } from '../rich-doc';
@@ -55,12 +59,18 @@ import {
 
 interface Props {
   surface:         Surface;
-  case_id:         string;
-  tab:             CaseStudyTabRow;
+  tab:             ChartTabIdentity;
   draftTitle:      string;
   draftTab:        MergeTabData;
   onDraftChange:   (next: { title: string; tab: MergeTabData }) => void;
   previewPosition: number | null;
+  // Persistence is injected by the wrapper (case study / trend). The
+  // action adds its own parent-id field (case_id / trend_id).
+  saveAction:      TabSaveAction;
+  deleteAction:    TabDeleteAction;
+  // Trend has no progressive disclosure — hide the per-row "Appears"
+  // reveal gutter and its legend when true (default: shown, for case).
+  hideReveal?:     boolean;
 }
 
 // Selection carries the table index it belongs to — a range never spans
@@ -68,9 +78,11 @@ interface Props {
 type Sel = { ti: number; a: CellPos; f: CellPos } | null;
 
 export function MergeTableEditor({
-  surface, case_id, tab,
+  surface, tab,
   draftTitle, draftTab, onDraftChange,
   previewPosition,
+  saveAction, deleteAction,
+  hideReveal = false,
 }: Props) {
   const [sel, setSel] = useState<Sel>(null);
   const [dragging, setDragging] = useState(false);
@@ -202,7 +214,7 @@ export function MergeTableEditor({
   function onSave(fd: FormData) {
     setErr(null);
     setPending(true);
-    upsertTabAction(fd)
+    saveAction(fd)
       .then((res) => { if (!res.ok) setErr(res.error); })
       .finally(() => setPending(false));
   }
@@ -210,7 +222,7 @@ export function MergeTableEditor({
     if (!confirmDeleteTab(draftTitle)) return;
     setErr(null);
     setPending(true);
-    deleteTabAction(fd)
+    deleteAction(fd)
       .then((res) => { if (!res.ok) setErr(res.error); })
       .finally(() => setPending(false));
   }
@@ -240,13 +252,11 @@ export function MergeTableEditor({
         <div className="cs-entries-actions">
           <form action={onDelete}>
             <input type="hidden" name="surface" value={surface} />
-            <input type="hidden" name="case_id" value={case_id} />
             <input type="hidden" name="tab_id"  value={tab.tab_id} />
             <button type="submit" className="cs-btn danger" disabled={pending}>Delete tab</button>
           </form>
           <form action={onSave}>
             <input type="hidden" name="surface"       value={surface} />
-            <input type="hidden" name="case_id"       value={case_id} />
             <input type="hidden" name="tab_id"        value={tab.tab_id} />
             {/* Post the tab's OWN identity, not a hardcoded custom one — a
                 built-in (Vital Signs / Lab Results) routed into this v2 editor
@@ -325,6 +335,7 @@ export function MergeTableEditor({
           rect={ti === activeTi ? rect : null}
           activePos={ti === activeTi ? activePos : null}
           previewPosition={previewPosition}
+          hideReveal={hideReveal}
           onCellDown={onCellDown}
           onCellEnter={onCellEnter}
           onCellInput={onCellInput}
@@ -346,7 +357,9 @@ export function MergeTableEditor({
       <div className="mt-legend">
         <span className="mt-legend-item"><span className="mt-swatch is-head" /> Heading cell</span>
         <span className="mt-legend-item"><span className="mt-swatch" /> Data cell</span>
-        <span className="mt-legend-item"><code>Appears</code> = which question the row first shows at · header rows are derived</span>
+        {!hideReveal && (
+          <span className="mt-legend-item"><code>Appears</code> = which question the row first shows at · header rows are derived</span>
+        )}
       </div>
     </div>
   );
@@ -357,7 +370,7 @@ export function MergeTableEditor({
 // ─────────────────────────────────────────────────────────────
 
 function TableBlock({
-  table, index, single, rect, activePos, previewPosition,
+  table, index, single, rect, activePos, previewPosition, hideReveal,
   onCellDown, onCellEnter, onCellInput, onVF, onEditor, onAddRow, onAddCol, onRemove,
 }: {
   table:           MergeTable;
@@ -366,6 +379,7 @@ function TableBlock({
   rect:            SelRect | null;
   activePos:       CellPos | null;
   previewPosition: number | null;
+  hideReveal:      boolean;
   onCellDown:      (e: React.MouseEvent, ti: number, r: number, c: number) => void;
   onCellEnter:     (ti: number, r: number, c: number) => void;
   onCellInput:     (ti: number, r: number, c: number, doc: RichDoc) => void;
@@ -403,24 +417,28 @@ function TableBlock({
               const headerRow = isHeaderRow(t, r);
               const rowHidden = previewPosition !== null && !headerRow && row.visibleFrom > previewPosition;
               const tds: React.ReactNode[] = [];
-              tds.push(
-                <td key="g" className="mt-gutter">
-                  {headerRow ? (
-                    <span className="mt-gutter-auto" title="Header row — visibility is derived from its data rows">auto</span>
-                  ) : (
-                    <select
-                      className={`mt-gutter-vf${row.visibleFrom > 1 ? ' is-later' : ''}`}
-                      value={row.visibleFrom}
-                      onChange={(e) => onVF(index, r, Number(e.target.value))}
-                      title="Which question this row first appears at"
-                    >
-                      {Array.from({ length: VF_MAX }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={n}>Q{n}</option>
-                      ))}
-                    </select>
-                  )}
-                </td>,
-              );
+              // Reveal gutter — omitted entirely when hideReveal (trend has
+              // no progressive disclosure).
+              if (!hideReveal) {
+                tds.push(
+                  <td key="g" className="mt-gutter">
+                    {headerRow ? (
+                      <span className="mt-gutter-auto" title="Header row — visibility is derived from its data rows">auto</span>
+                    ) : (
+                      <select
+                        className={`mt-gutter-vf${row.visibleFrom > 1 ? ' is-later' : ''}`}
+                        value={row.visibleFrom}
+                        onChange={(e) => onVF(index, r, Number(e.target.value))}
+                        title="Which question this row first appears at"
+                      >
+                        {Array.from({ length: VF_MAX }, (_, i) => i + 1).map((n) => (
+                          <option key={n} value={n}>Q{n}</option>
+                        ))}
+                      </select>
+                    )}
+                  </td>,
+                );
+              }
               for (let c = 0; c < t.cols; c++) {
                 const cell = t.grid[r][c];
                 if (cell.covered) continue;
