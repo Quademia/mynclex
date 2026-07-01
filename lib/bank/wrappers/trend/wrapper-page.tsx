@@ -267,6 +267,9 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   );
   const activeChartDraft = activeChartTab ? drafts[activeChartTab.tab_id] : null;
 
+  // Dataset pane sub-tab: Content (metadata) | Charts (the stimulus).
+  const [datasetTab, setDatasetTab] = useState<'content' | 'charts'>('content');
+
   // ── Right-pane preview toggle (Student / Answer-key) ───────
   const [questionMode, setQuestionMode] = useState<PreviewViewMode>('student');
 
@@ -775,23 +778,49 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
           <div className="auth-tr-pane-body">
             {activePill === 'dataset' ? (
               <>
-                <DatasetView
-                  title={title}
-                  scenario={scenario}
-                  kind={kind}
-                  isPublished={isPublished}
-                  isFreeSample={isFreeSample}
-                  isBuilderVisible={isBuilderVisible}
-                  onTitleChange={setTitle}
-                  onScenarioChange={setScenario}
-                  onKindChange={setKind}
-                  onIsPublishedChange={setIsPublished}
-                  onIsFreeSampleChange={setIsFreeSample}
-                  onIsBuilderVisibleChange={setIsBuilderVisible}
-                />
+                <div className="auth-cs-pane-tabs" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={datasetTab === 'content'}
+                    className={`auth-cs-pane-tab${datasetTab === 'content' ? ' active' : ''}`}
+                    onClick={() => setDatasetTab('content')}
+                  >
+                    Content
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={datasetTab === 'charts'}
+                    className={`auth-cs-pane-tab${datasetTab === 'charts' ? ' active' : ''}`}
+                    onClick={() => setDatasetTab('charts')}
+                  >
+                    Charts
+                    {dirtyTabIds.size > 0 && (
+                      <span
+                        className="auth-cs-tab-dot"
+                        title={`${dirtyTabIds.size} tab${dirtyTabIds.size === 1 ? '' : 's'} with unsaved changes`}
+                      />
+                    )}
+                  </button>
+                </div>
 
-                <section className="auth-tr-section">
-                  <div className="auth-tr-section-label">Chart tabs</div>
+                {datasetTab === 'content' ? (
+                  <DatasetView
+                    title={title}
+                    scenario={scenario}
+                    kind={kind}
+                    isPublished={isPublished}
+                    isFreeSample={isFreeSample}
+                    isBuilderVisible={isBuilderVisible}
+                    onTitleChange={setTitle}
+                    onScenarioChange={setScenario}
+                    onKindChange={setKind}
+                    onIsPublishedChange={setIsPublished}
+                    onIsFreeSampleChange={setIsFreeSample}
+                    onIsBuilderVisibleChange={setIsBuilderVisible}
+                  />
+                ) : (
                   <div className="cs-chart-layout">
                     <TrendTabRail
                       surface={surface}
@@ -818,7 +847,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
                       </div>
                     )}
                   </div>
-                </section>
+                )}
               </>
             ) : activeEditor ? (
               <EditorBodyForKind
