@@ -97,6 +97,9 @@ export interface TrendSnapshot {
   row_label_snapshot:       string | null;
   timepoints_snapshot_json: unknown[];
   rows_snapshot_json:       unknown[];
+  // Frozen chart tabs (Slice 3b). Empty [] for legacy trends → the panel
+  // falls back to the flat grid.
+  tabs_snapshot_json:       unknown[];
 }
 
 export type CellFill = 'unanswered' | 'answered' | 'right' | 'wrong' | 'skipped';

@@ -630,6 +630,10 @@ CREATE TABLE nclex_attempt_trend_snapshots (
   row_label_snapshot         TEXT,
   timepoints_snapshot_json   JSONB NOT NULL DEFAULT '[]'::jsonb,
   rows_snapshot_json         JSONB NOT NULL DEFAULT '[]'::jsonb,
+  -- Frozen chart tabs (rich multi-chart, Slice 3b). Mirror of
+  -- nclex_attempt_case_snapshots.tabs_snapshot_json. Empty [] for legacy
+  -- trends with no tabs — the runner falls back to the flat grid.
+  tabs_snapshot_json         JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (attempt_id, trend_id)
 );

@@ -885,11 +885,9 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
           </div>
 
           <div className="auth-tr-preview-section">
-            <div className="auth-tr-preview-section-label">
-              Chart{activeChartTab ? ` · ${activeChartDraft?.title || activeChartTab.title}` : ''}
-            </div>
-            {activeChartTab && activeChartDraft ? (
-              <ChartTabPreview draft={activeChartDraft} />
+            <div className="auth-tr-preview-section-label">Chart</div>
+            {tabs.length > 0 ? (
+              <ChartStimulusPreview tabs={tabs} drafts={drafts} />
             ) : (
               <p className="auth-tr-empty-msg">No chart tabs yet.</p>
             )}
@@ -1295,12 +1293,54 @@ function ActiveChartTabEditor({
 }
 
 // ───────────────────────────────────────────────────────────
-// ChartTabPreview — read-only render of the active chart tab for the
-// right pane, reflecting the live draft. Rendered past any visible_from
-// (TREND_PREVIEW_POSITION) so every row/entry shows (no reveal).
+// ChartStimulusPreview — the combined "as student" stimulus: a tab bar
+// over all chart tabs + the selected tab's body, reflecting the live
+// drafts. Mirrors the student runner's tabbed panel (reuses the runner's
+// rn-case-* styling for a faithful preview), minus reveal — trend shows
+// every tab at once.
 // ───────────────────────────────────────────────────────────
 
-function ChartTabPreview({ draft }: { draft: TabDraft }) {
+function ChartStimulusPreview({
+  tabs,
+  drafts,
+}: {
+  tabs:   TrendTabRow[];
+  drafts: Record<string, TabDraft>;
+}) {
+  const ordered = [...tabs].sort((a, b) => a.display_order - b.display_order);
+  const [activeId, setActiveId] = useState<string>(() => ordered[0]?.tab_id ?? '');
+  const effectiveId = ordered.some((t) => t.tab_id === activeId)
+    ? activeId
+    : ordered[0]?.tab_id ?? '';
+  const activeTab = ordered.find((t) => t.tab_id === effectiveId);
+  const draft = activeTab ? drafts[activeTab.tab_id] : null;
+
+  return (
+    <div className="rn-trend-tabs-preview">
+      <div className="rn-case-tabs" role="tablist">
+        {ordered.map((t) => (
+          <button
+            key={t.tab_id}
+            type="button"
+            role="tab"
+            aria-selected={t.tab_id === effectiveId}
+            className={'rn-case-tab' + (t.tab_id === effectiveId ? ' on' : '')}
+            onClick={() => setActiveId(t.tab_id)}
+          >
+            {drafts[t.tab_id]?.title || t.title}
+          </button>
+        ))}
+      </div>
+      <div className="rn-case-body">
+        {draft ? <ChartTabBody draft={draft} /> : <p className="auth-tr-empty-msg">Empty tab.</p>}
+      </div>
+    </div>
+  );
+}
+
+// One chart tab's read-only body — dispatch by entries shape. Rendered
+// past any visible_from (TREND_PREVIEW_POSITION) so every row/entry shows.
+function ChartTabBody({ draft }: { draft: TabDraft }) {
   const mt = asMergeTab(draft.entries);
   if (mt) return <MergeTableView tab={mt} currentPosition={TREND_PREVIEW_POSITION} />;
   const nt = asNarrativeTab(draft.entries);
