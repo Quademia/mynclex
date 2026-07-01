@@ -7,6 +7,8 @@
 // is_free_sample + is_builder_visible defaults match nclex_bank_items:
 // FALSE / TRUE.
 
+import type { MergeTabData }    from '@/lib/authoring/table/merge-table-model';
+import type { NarrativeTabData } from '@/lib/authoring/narrative/narrative-model';
 import type { McqEditorInitial }      from '../../editors/mcq-row-mapper';
 import type { TfEditorInitial }       from '../../editors/tf-row-mapper';
 import type { SataEditorInitial }     from '../../editors/sata-row-mapper';
@@ -64,6 +66,34 @@ export interface TrendDatasetRow {
 }
 
 // ───────────────────────────────────────────────────────────────
+// Chart-tab shapes (trend rich multi-chart, Slice 1)
+// ───────────────────────────────────────────────────────────────
+
+// Column definition carried on custom_grid tabs. Trend owns its own
+// copy (wrappers stay independent — never imports case-study types).
+export interface TrendTabColumn {
+  id:    string;
+  label: string;
+}
+
+// One nclex_trend_tabs / nclex_tutor_trend_tabs row. Mirrors the case
+// study TabRow, minus the v1 ChartEntry shape — trend is a fresh v2-only
+// build, so `entries` is always a rich v2 blob (a merge-table list or a
+// narrative). Unlike case study, there is no progressive disclosure:
+// entries carry no meaningful visible_from and every tab renders at once.
+export interface TrendTabRow {
+  tab_id:        string;
+  trend_id:      string;
+  tab_key:       string;
+  title:         string;
+  display_order: number;
+  is_custom:     boolean;
+  custom_shape:  'free_text' | 'rows_cols' | null;
+  columns_def:   TrendTabColumn[];
+  entries:       MergeTabData | NarrativeTabData;
+}
+
+// ───────────────────────────────────────────────────────────────
 // Wrapper-page shapes (13b)
 // ───────────────────────────────────────────────────────────────
 
@@ -106,4 +136,5 @@ export interface WrapperData {
   surface:    Surface;
   datasetRow: TrendDatasetRow;
   slots:      SlotRow[];                 // variable length, ordered by created_at ASC
+  tabs:       TrendTabRow[];             // chart tabs, ordered by display_order ASC
 }

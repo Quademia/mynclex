@@ -26,6 +26,7 @@ import type {
   SlotRow,
   Surface,
   TrendDatasetRow,
+  TrendTabRow,
   WrapperData,
 } from './types';
 
@@ -79,6 +80,7 @@ import {
 interface SurfaceConfig {
   datasetTable:  'nclex_trend_datasets' | 'nclex_tutor_trend_datasets';
   questionTable: 'nclex_bank_items' | 'nclex_tutor_questions';
+  tabTable:      'nclex_trend_tabs' | 'nclex_tutor_trend_tabs';
 }
 
 function configFor(surface: Surface): SurfaceConfig {
@@ -86,11 +88,13 @@ function configFor(surface: Surface): SurfaceConfig {
     return {
       datasetTable:  'nclex_tutor_trend_datasets',
       questionTable: 'nclex_tutor_questions',
+      tabTable:      'nclex_tutor_trend_tabs',
     };
   }
   return {
     datasetTable:  'nclex_trend_datasets',
     questionTable: 'nclex_bank_items',
+    tabTable:      'nclex_trend_tabs',
   };
 }
 
@@ -100,6 +104,10 @@ const DATASET_COLUMNS =
   'created_at, updated_at';
 
 const TUTOR_DATASET_COLUMNS = DATASET_COLUMNS + ', tutor_id';
+
+const TAB_COLUMNS =
+  'tab_id, trend_id, tab_key, title, display_order, ' +
+  'is_custom, custom_shape, columns_def, entries';
 
 // ─────────────────────────────────────────────────────────────
 // Row-mapper dispatch — converts a bank-item row to the matching
@@ -173,6 +181,19 @@ export async function loadTrend(
 
   if (qErr) throw qErr;
 
+  // Chart tabs — the rich multi-chart stimulus (Slice 1 loads them;
+  // nothing renders them until Slice 2). Ordered by display_order for
+  // stable rail order. RLS gates by dataset ownership / publish state.
+  const { data: tabData, error: tabErr } = await supabase
+    .from(cfg.tabTable)
+    .select(TAB_COLUMNS)
+    .eq('trend_id', trend_id)
+    .order('display_order', { ascending: true });
+
+  if (tabErr) throw tabErr;
+
+  const tabs = (tabData ?? []) as unknown as TrendTabRow[];
+
   const qRows = (qData ?? []) as unknown as Array<Record<string, unknown>>;
 
   const slots: SlotRow[] = [];
@@ -191,5 +212,5 @@ export async function loadTrend(
     });
   });
 
-  return { surface, datasetRow, slots };
+  return { surface, datasetRow, slots, tabs };
 }

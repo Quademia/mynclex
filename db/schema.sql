@@ -384,6 +384,61 @@ CREATE INDEX idx_nclex_tutor_trend_datasets_tutor
   ON nclex_tutor_trend_datasets(tutor_id);
 
 
+-- Trend chart tabs (rich multi-chart, added 20260712120000). Mirror of
+-- nclex_case_study_tabs — one row per tab per dataset. Trend is a fresh
+-- v2-only build, so `entries` holds the rich v2 blob (merge-table list
+-- or narrative); unlike case study there is no progressive disclosure.
+-- The legacy flat-grid columns (timepoints / rows) on the dataset rows
+-- stay until the Slice-4 conversion.
+CREATE TABLE nclex_trend_tabs (
+  tab_id        TEXT PRIMARY KEY,
+  trend_id      TEXT NOT NULL REFERENCES nclex_trend_datasets(trend_id) ON DELETE CASCADE,
+  tab_key       TEXT NOT NULL,
+  title         TEXT NOT NULL,
+  display_order INTEGER NOT NULL,
+  is_custom     BOOLEAN NOT NULL DEFAULT FALSE,
+  custom_shape  TEXT,
+  columns_def   JSONB NOT NULL DEFAULT '[]'::jsonb,
+  entries       JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (trend_id, display_order),
+  CHECK (tab_key <> ''),
+  CHECK (display_order >= 0),
+  CHECK (
+    (is_custom = FALSE AND custom_shape IS NULL)
+    OR
+    (is_custom = TRUE  AND custom_shape IN ('free_text', 'rows_cols'))
+  )
+);
+
+CREATE INDEX idx_nclex_trend_tabs_trend ON nclex_trend_tabs(trend_id);
+
+CREATE TABLE nclex_tutor_trend_tabs (
+  tab_id        TEXT PRIMARY KEY,
+  trend_id      TEXT NOT NULL REFERENCES nclex_tutor_trend_datasets(trend_id) ON DELETE CASCADE,
+  tab_key       TEXT NOT NULL,
+  title         TEXT NOT NULL,
+  display_order INTEGER NOT NULL,
+  is_custom     BOOLEAN NOT NULL DEFAULT FALSE,
+  custom_shape  TEXT,
+  columns_def   JSONB NOT NULL DEFAULT '[]'::jsonb,
+  entries       JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (trend_id, display_order),
+  CHECK (tab_key <> ''),
+  CHECK (display_order >= 0),
+  CHECK (
+    (is_custom = FALSE AND custom_shape IS NULL)
+    OR
+    (is_custom = TRUE  AND custom_shape IN ('free_text', 'rows_cols'))
+  )
+);
+
+CREATE INDEX idx_nclex_tutor_trend_tabs_trend ON nclex_tutor_trend_tabs(trend_id);
+
+
 -- =========================================================
 -- Added 2026-04-23 in Slice 1.11b — parent_case_id FK on question tables
 -- =========================================================
