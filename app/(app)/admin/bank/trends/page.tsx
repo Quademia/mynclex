@@ -8,7 +8,7 @@
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { kindDefaultLabel } from '@/lib/bank/wrappers/trend/kind-templates';
-import { KindPickerLauncher } from '@/lib/bank/wrappers/trend/kind-picker-modal';
+import { createTrendAction } from '@/lib/bank/wrappers/trend/actions';
 import { loadAuthorship } from '@/lib/audit/authorship';
 import {
   TrendsListClient,
@@ -106,7 +106,7 @@ export default async function AdminTrendsV2ListPage() {
             <h3>No trend datasets yet</h3>
             <p>Click <strong>+ New trend dataset</strong> to create the first one.</p>
             <div style={{ marginTop: 12 }}>
-              <KindPickerLauncher surface="admin" triggerClassName="bl-btn bl-btn-primary" />
+              <NewTrendButton surface="admin" />
             </div>
           </div>
         ) : (
@@ -114,11 +114,29 @@ export default async function AdminTrendsV2ListPage() {
             rows={rows}
             authorship={authorship}
             surface="admin"
-            newButton={<KindPickerLauncher surface="admin" triggerClassName="bl-btn bl-btn-primary" />}
+            newButton={<NewTrendButton surface="admin" />}
           />
         )}
       </div>
     </main>
+  );
+}
+
+// "+ New trend dataset" — a server-action form whose submit creates a
+// draft and redirects to the editor (mirrors the case-study NewCaseButton).
+// No kind picker: `kind` is just an editable label now, set in the editor.
+function NewTrendButton({ surface }: { surface: 'admin' | 'tutor' }) {
+  return (
+    <form
+      action={async (fd: FormData) => {
+        'use server';
+        await createTrendAction(fd);
+      }}
+      style={{ display: 'inline' }}
+    >
+      <input type="hidden" name="surface" value={surface} />
+      <button type="submit" className="bl-btn bl-btn-primary">+ New trend dataset</button>
+    </form>
   );
 }
 

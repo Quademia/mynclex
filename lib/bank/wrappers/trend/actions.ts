@@ -116,38 +116,24 @@ async function nextTrendId(
   return `${cfg.idPrefix}${String(next).padStart(5, '0')}`;
 }
 
-// Insert a new trend dataset row seeded from the chosen kind preset
-// (or empty for 'custom'). Redirects to the wrapper page so the
-// curator lands directly in the editor for renaming + filling out.
-//
-// Form fields:
-//   - surface           : 'admin' | 'tutor'
-//   - kind              : preset key (vitals|labs|io|neuro|assessment) or 'custom'
-//   - custom_kind_name  : freeform string, used only when kind === 'custom'
+// Insert a new draft trend dataset and redirect to the wrapper editor,
+// where the curator sets the title + kind label and builds the chart
+// tabs. No kind picker — a new trend starts as 'custom' (the flat-grid
+// seeds the presets used to drive are gone). Form fields: surface only.
 export async function createTrendAction(formData: FormData): Promise<SaveResult> {
   const surface = readSurface(formData);
   const { supabase, user } = await requireBankCurator(surface);
   const cfg = configFor(surface);
 
-  const kindRaw = String(formData.get('kind') ?? '').trim();
-  const customName = String(formData.get('custom_kind_name') ?? '').trim();
-
-  // Resolve the persisted kind value. Presets pass through verbatim.
-  // 'custom' uses the typed name (or falls back to 'custom' if empty,
-  // since the picker form should disable Create until non-empty).
-  let kind: string;
-  if (kindRaw === 'custom') {
-    kind = customName || 'custom';
-  } else {
-    kind = kindRaw || 'custom';
-  }
-
   const trend_id = await nextTrendId(supabase, surface);
 
+  // No kind picker any more — a new trend is created as a draft and the
+  // curator sets the title + kind label in the editor. `kind` is just a
+  // display label now (the flat-grid seeds it used to drive are gone).
   const row: Record<string, unknown> = {
     trend_id,
     title: 'Untitled trend dataset',
-    kind,
+    kind: 'custom',
   };
   if (surface === 'tutor') {
     row.tutor_id = user.id;

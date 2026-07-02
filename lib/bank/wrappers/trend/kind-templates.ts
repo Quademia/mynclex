@@ -1,32 +1,15 @@
 // mynclex/lib/bank/wrappers/trend/kind-templates.ts
 //
-// Hardcoded registry of the 5 built-in kind presets for trend
-// datasets. `kind` is just a short display label on the dataset row —
-// the stimulus itself is built from the chart tabs. The old flat-grid
-// row/timepoint seeds were retired with the flat grid (Slice 4); only
-// `kind` persists on the DB row.
+// `kind` is just a short display label on a trend dataset row — the
+// stimulus itself is built from the chart tabs. The old flat-grid
+// row/timepoint seeds (and the kind picker that chose them) were retired
+// with the flat grid (Slice 4); a new trend now starts as 'custom' and
+// the curator edits the label in the wrapper. This module keeps only the
+// label helper — the runner/wrapper/list still render `kind` through it.
 
-// The 5 machine-name keys. `kind` on the DB is freeform TEXT, so
-// anything other than these is treated as "custom" at the UI layer.
-export const KIND_PRESETS = [
-  'vitals',
-  'labs',
-  'io',
-  'neuro',
-  'assessment',
-] as const;
-
-export type KindPreset = (typeof KIND_PRESETS)[number];
-
-// Curator-facing label for each kind. Presets render their friendly
-// label; custom kinds render the curator-typed string verbatim
-// (decision: the typed string IS the label — picking Custom and
-// typing "doctor notes" should show "doctor notes" everywhere, not
-// be flattened to a generic "Custom" badge).
-//
-// Empty / literal 'custom' fall back to "Custom" — defensive for
-// legacy rows or any path that bypasses the picker's required-name
-// gate.
+// Curator-facing label for a kind. The old preset keys still map to a
+// friendly label (for any legacy rows); anything else renders verbatim,
+// and empty / literal 'custom' falls back to "Custom".
 export function kindDefaultLabel(kind: string): string {
   switch (kind) {
     case 'vitals':     return 'Vitals';
@@ -36,8 +19,4 @@ export function kindDefaultLabel(kind: string): string {
     case 'assessment': return 'Assessment';
     default:           return kind && kind !== 'custom' ? kind : 'Custom';
   }
-}
-
-export function isKindPreset(kind: string): kind is KindPreset {
-  return (KIND_PRESETS as readonly string[]).includes(kind);
 }
