@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
+import { CaseDetachConfirm } from '@/lib/overlays/bank/case-detach-confirm';
 import { CaseStudyWrapperBulb } from '@/lib/hints/bank/case-study-wrapper-bulb';
 import { CaseStudyEditorBulb } from '@/lib/hints/bank/case-study-editor-bulb';
 import { saveQuestionAction } from '@/lib/bank/actions/save-question';
@@ -352,6 +353,8 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
   } | null>(null);
   const [showDelete, setShowDelete] = useState(false);
   const [detachPending, setDetachPending] = useState<number | null>(null);
+  // Slot being detached (null = the detach-confirm dialog is closed).
+  const [detachTarget, setDetachTarget] = useState<SlotRow | null>(null);
   // Publish-blocked notice — shown when the curator tries to switch
   // Publish on while the case isn't eligible (under 6 questions, or any
   // attached question still a draft). null = closed.
@@ -513,12 +516,17 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     setPickerTargetPos(null);
   }
 
+  // Detach is reversible (the question survives in the bank as a
+  // standalone item), so a lightweight styled <CaseDetachConfirm>
+  // misclick guard — no typed gate. Opened here, run in onConfirmDetach.
   function onDetachSlot(slot: SlotRow) {
     if (slot.item_id === null) return;
-    const ok = window.confirm(
-      `Detach Q${slot.position} from this case? The question survives in the bank as standalone.`,
-    );
-    if (!ok) return;
+    setDetachTarget(slot);
+  }
+
+  function onConfirmDetach() {
+    const slot = detachTarget;
+    if (!slot || slot.item_id === null) return;
     setDetachPending(slot.position);
     const fd = new FormData();
     fd.set('surface', surface);
@@ -538,6 +546,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
         }
         router.refresh();
       }
+      setDetachTarget(null);
     });
   }
 
@@ -877,6 +886,16 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
             setShowDelete(false);
             setError(msg);
           }}
+        />
+      )}
+
+      {detachTarget && (
+        <CaseDetachConfirm
+          position={detachTarget.position}
+          questionType={detachTarget.question_type ?? ''}
+          pending={detachPending === detachTarget.position}
+          onCancel={() => setDetachTarget(null)}
+          onConfirm={onConfirmDetach}
         />
       )}
 

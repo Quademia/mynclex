@@ -1221,6 +1221,62 @@
 }
 
 /* ─────────────────────────────────────────────────────
+ * Detach confirmation — a lightweight misclick guard for
+ * detaching a question from a case/trend wrapper. Detach is
+ * REVERSIBLE (the question survives in the bank), so a NEUTRAL
+ * tone (not the red delete theme) and no typed-DELETE gate.
+ * Shared look for both the trend + case detach dialogs; each
+ * dialog is its own component with its own copy.
+ * ───────────────────────────────────────────────────── */
+.auth-detach-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 70;
+  animation: auth-discard-overlay-in 140ms ease-out;
+}
+.auth-detach-confirm {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: var(--shadow-lg);
+  animation: auth-discard-panel-in 180ms ease-out;
+}
+.auth-detach-confirm-title {
+  font-weight: 700;
+  color: var(--text);
+  font-size: 15px;
+  margin: 0;
+}
+.auth-detach-confirm-type {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.auth-detach-confirm-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+.auth-detach-confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* ─────────────────────────────────────────────────────
  * Discard-changes confirmation panel — fired by the
  * dirty guard when the curator tries to close with
  * unsaved edits.

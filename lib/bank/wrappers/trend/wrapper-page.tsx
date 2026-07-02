@@ -60,6 +60,7 @@ import type {
 import type { PreviewViewMode } from '@/lib/bank/atoms/preview-toggle';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
+import { TrendDetachConfirm } from '@/lib/overlays/bank/trend-detach-confirm';
 import { TrendWrapperBulb } from '@/lib/hints/bank/trend-wrapper-bulb';
 import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
 import { saveQuestionAction } from '@/lib/bank/actions/save-question';
@@ -299,6 +300,11 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   // ── Delete dialog ───────────────────────────────────────────
   const [showDelete, setShowDelete] = useState(false);
 
+  // ── Detach-confirm dialog ───────────────────────────────────
+  // Holds the slot being detached (null = dialog closed). Detach is
+  // reversible, so this is a lightweight styled misclick guard.
+  const [detachTarget, setDetachTarget] = useState<SlotRow | null>(null);
+
   // ── Publish-needs-dataset offer ─────────────────────────────
   // Holds the question's submitted FormData when the curator tries to
   // publish a question while the dataset is still a draft. null = no
@@ -477,21 +483,24 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   }
 
   // Detach: clear trend_id on the active question's row. Question
-  // survives in the bank as standalone. Browser confirm() — no typed
-  // gate since detach is reversible (curator can re-link from the
-  // bank list editor) and the action is non-destructive.
+  // survives in the bank as standalone. No typed gate since detach is
+  // reversible (curator can re-link from the bank list editor) and the
+  // action is non-destructive — a styled <TrendDetachConfirm> misclick
+  // guard (opened here, run in onConfirmDetach).
   function onDetachActive() {
     if (!activeSlot || isCreatingActive) return;
-    const ok = window.confirm(
-      `Detach Q${activeSlot.position} (${activeSlot.question_type}) from this dataset? The question will remain in the bank as a standalone item.`,
-    );
-    if (!ok) return;
+    setDetachTarget(activeSlot);
+  }
+
+  function onConfirmDetach() {
+    const slot = detachTarget;
+    if (!slot) return;
     setQuestionError(null);
     startDetachTransition(async () => {
       const fd = new FormData();
       fd.set('surface', surface);
       fd.set('trend_id', datasetRow.trend_id);
-      fd.set('item_id', activeSlot.item_id);
+      fd.set('item_id', slot.item_id);
       const result = await detachQuestionAction(fd);
       if (!result.ok) {
         setQuestionError(result.error);
@@ -502,6 +511,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
         setActivePill('dataset');
         router.refresh();
       }
+      setDetachTarget(null);
     });
   }
 
@@ -963,6 +973,16 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
             setShowDelete(false);
             setWrapperError(msg);
           }}
+        />
+      )}
+
+      {detachTarget && (
+        <TrendDetachConfirm
+          position={detachTarget.position}
+          questionType={detachTarget.question_type}
+          pending={isDetachPending}
+          onCancel={() => setDetachTarget(null)}
+          onConfirm={onConfirmDetach}
         />
       )}
 
