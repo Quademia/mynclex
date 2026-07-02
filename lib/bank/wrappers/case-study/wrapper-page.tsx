@@ -1014,15 +1014,15 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
           </div>
 
           {/* Selector — Case pill + 6 fixed slot pills (with CJMM badge). */}
-          <div className="auth-cs-pill-strip" role="tablist" aria-label="Case navigator">
+          <div className="auth-cs-nav-pill-strip" role="tablist" aria-label="Case navigator">
             <button
               type="button"
               role="tab"
               aria-selected={!editorMode}
-              className={`auth-cs-pill auth-cs-pill-case${!editorMode ? ' active' : ''}`}
+              className={`auth-cs-nav-pill auth-cs-nav-pill-case${!editorMode ? ' active' : ''}`}
               onClick={onPickCase}
             >
-              <span className="auth-cs-pill-label">Case</span>
+              <span className="auth-cs-nav-pill-label">Case</span>
               {dirty && <span className="auth-cs-dirty-dot" title="Unsaved case edits">●</span>}
             </button>
             {slots.map((s) => (
@@ -1622,24 +1622,24 @@ function SlotPill({
       role="tab"
       aria-selected={active}
       className={
-        'auth-cs-pill auth-cs-slot-pill' +
+        'auth-cs-nav-pill auth-cs-nav-slot-pill' +
         (active ? ' active' : '') +
         (isEmpty ? ' empty' : '')
       }
       onClick={onClick}
       title={isEmpty ? `Add a question at Q${slot.position}` : (slot.stem || `Q${slot.position}`)}
     >
-      <span className="auth-cs-pill-pos">Q{slot.position}</span>
+      <span className="auth-cs-nav-pill-pos">Q{slot.position}</span>
       {isEmpty ? (
-        <span className="auth-cs-pill-plus" aria-label="Empty slot">+</span>
+        <span className="auth-cs-nav-pill-plus" aria-label="Empty slot">+</span>
       ) : (
         <>
-          {slot.question_type && <span className="auth-cs-pill-type">{slot.question_type}</span>}
-          {cjmm && <span className="auth-cs-pill-cjmm" title={cjmm}>{cjmmShort(cjmm)}</span>}
-          <span className="auth-cs-pill-status" aria-hidden="true" />
+          {slot.question_type && <span className="auth-cs-nav-pill-type">{slot.question_type}</span>}
+          {cjmm && <span className="auth-cs-nav-pill-cjmm" title={cjmm}>{cjmmShort(cjmm)}</span>}
+          <span className="auth-cs-nav-pill-status" aria-hidden="true" />
         </>
       )}
-      {dirty && <span className="auth-cs-pill-dirty" title="Unsaved question edits">●</span>}
+      {dirty && <span className="auth-cs-nav-pill-dirty" title="Unsaved question edits">●</span>}
     </button>
   );
 }

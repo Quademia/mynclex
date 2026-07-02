@@ -3324,7 +3324,7 @@
   flex-wrap: wrap;
 }
 
-.auth-cs-pill-strip {
+.auth-cs-nav-pill-strip {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -3335,7 +3335,7 @@
   border-bottom: 1px solid var(--border);
   scrollbar-width: thin;
 }
-.auth-cs-pill {
+.auth-cs-nav-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -3351,32 +3351,32 @@
   flex-shrink: 0;
   transition: background-color 0.1s ease, border-color 0.1s ease, color 0.1s ease;
 }
-.auth-cs-pill:hover:not(.active):not(:disabled) {
+.auth-cs-nav-pill:hover:not(.active):not(:disabled) {
   background: var(--primary-light);
   border-color: #cfe5e1;
 }
-.auth-cs-pill.active {
+.auth-cs-nav-pill.active {
   background: var(--accent);
   border-color: var(--accent);
   color: #ffffff;
 }
-.auth-cs-pill-case {
+.auth-cs-nav-pill-case {
   font-weight: 600;
 }
-.auth-cs-slot-pill.empty {
+.auth-cs-nav-slot-pill.empty {
   border-style: dashed;
   color: var(--accent-dark);
 }
-.auth-cs-pill-pos {
+.auth-cs-nav-pill-pos {
   font-weight: 600;
   font-size: 11px;
   letter-spacing: 0.04em;
 }
-.auth-cs-pill-plus {
+.auth-cs-nav-pill-plus {
   font-weight: 700;
   color: var(--accent-dark);
 }
-.auth-cs-pill-type {
+.auth-cs-nav-pill-type {
   font-size: 10.5px;
   font-weight: 500;
   letter-spacing: 0.04em;
@@ -3384,7 +3384,7 @@
   opacity: 0.85;
 }
 /* CJMM badge — the short code (RC / AC / …) shown on a filled slot pill. */
-.auth-cs-pill-cjmm {
+.auth-cs-nav-pill-cjmm {
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -3394,11 +3394,11 @@
   background: var(--primary-light);
   color: var(--accent-dark);
 }
-.auth-cs-pill.active .auth-cs-pill-cjmm {
+.auth-cs-nav-pill.active .auth-cs-nav-pill-cjmm {
   background: rgba(255, 255, 255, 0.22);
   color: #ffffff;
 }
-.auth-cs-pill-status {
+.auth-cs-nav-pill-status {
   display: inline-block;
   width: 8px;
   height: 8px;
@@ -3407,15 +3407,15 @@
   background: var(--accent);
   border-color: var(--accent);
 }
-.auth-cs-pill.active .auth-cs-pill-status {
+.auth-cs-nav-pill.active .auth-cs-nav-pill-status {
   background: #ffffff;
   border-color: #ffffff;
 }
-.auth-cs-pill-dirty {
+.auth-cs-nav-pill-dirty {
   color: var(--warning, #d97706);
   font-size: 10px;
 }
-.auth-cs-pill.active .auth-cs-pill-dirty {
+.auth-cs-nav-pill.active .auth-cs-nav-pill-dirty {
   color: #ffffff;
 }
 
