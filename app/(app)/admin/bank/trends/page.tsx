@@ -8,7 +8,7 @@
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { kindDefaultLabel } from '@/lib/bank/wrappers/trend/kind-templates';
-import { KindPickerLauncher } from '@/lib/bank/wrappers/trend/kind-picker-modal';
+import { createTrendAction } from '@/lib/bank/wrappers/trend/actions';
 import { loadAuthorship } from '@/lib/audit/authorship';
 import {
   TrendsListClient,
@@ -22,9 +22,6 @@ interface TrendDbRow {
   title:        string;
   kind:         string;
   scenario:     string | null;
-  row_label:    string | null;
-  rows:         unknown;
-  timepoints:   unknown;
   is_published: boolean;
   updated_at:   string;
 }
@@ -36,7 +33,7 @@ export default async function AdminTrendsV2ListPage() {
 
   const { data: trendRows, error: trendErr } = await supabase
     .from('nclex_trend_datasets')
-    .select('trend_id, title, kind, scenario, row_label, rows, timepoints, is_published, updated_at')
+    .select('trend_id, title, kind, scenario, is_published, updated_at')
     .order('updated_at', { ascending: false });
 
   if (trendErr) {
@@ -93,8 +90,8 @@ export default async function AdminTrendsV2ListPage() {
             </div>
             <h1 className="bl-page-title">Trend datasets</h1>
             <p className="bl-page-sub">
-              Time-series data panels (rows × timepoints) that attach to bank
-              questions. A published dataset with no live question reaches nobody.
+              Multi-chart clinical data panels that attach to bank questions.
+              A published dataset with no live question reaches nobody.
             </p>
           </div>
           <div className="bl-head-actions">
@@ -109,7 +106,7 @@ export default async function AdminTrendsV2ListPage() {
             <h3>No trend datasets yet</h3>
             <p>Click <strong>+ New trend dataset</strong> to create the first one.</p>
             <div style={{ marginTop: 12 }}>
-              <KindPickerLauncher surface="admin" triggerClassName="bl-btn bl-btn-primary" />
+              <NewTrendButton surface="admin" />
             </div>
           </div>
         ) : (
@@ -117,7 +114,7 @@ export default async function AdminTrendsV2ListPage() {
             rows={rows}
             authorship={authorship}
             surface="admin"
-            newButton={<KindPickerLauncher surface="admin" triggerClassName="bl-btn bl-btn-primary" />}
+            newButton={<NewTrendButton surface="admin" />}
           />
         )}
       </div>
@@ -125,11 +122,26 @@ export default async function AdminTrendsV2ListPage() {
   );
 }
 
-// Lowercased searchable blob: title + scenario + row label + the dataset
-// rows/timepoints (JSON-flattened — substring search, tiny N).
+// "+ New trend dataset" — a server-action form whose submit creates a
+// draft and redirects to the editor (mirrors the case-study NewCaseButton).
+// No kind picker: `kind` is just an editable label now, set in the editor.
+function NewTrendButton({ surface }: { surface: 'admin' | 'tutor' }) {
+  return (
+    <form
+      action={async (fd: FormData) => {
+        'use server';
+        await createTrendAction(fd);
+      }}
+      style={{ display: 'inline' }}
+    >
+      <input type="hidden" name="surface" value={surface} />
+      <button type="submit" className="bl-btn bl-btn-primary">+ New trend dataset</button>
+    </form>
+  );
+}
+
+// Lowercased searchable blob: title + scenario (substring search, tiny N).
+// The chart-tab stimulus lives in a child table and isn't loaded here.
 function buildTrendSearchText(t: TrendDbRow): string {
-  const parts: string[] = [t.title, t.scenario ?? '', t.row_label ?? ''];
-  if (t.rows) parts.push(JSON.stringify(t.rows));
-  if (t.timepoints) parts.push(JSON.stringify(t.timepoints));
-  return parts.join(' ').toLowerCase();
+  return [t.title, t.scenario ?? ''].join(' ').toLowerCase();
 }

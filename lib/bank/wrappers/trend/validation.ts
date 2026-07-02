@@ -13,7 +13,7 @@
 // save-question action runs the same parser); the panel surfaces
 // wrapper-level shape issues that those per-save errors don't see.
 
-import type { SlotRow, TrendRow } from './types';
+import type { SlotRow } from './types';
 
 export type Severity = 'error' | 'warning';
 
@@ -33,8 +33,6 @@ export interface TrendValidationState {
   title:        string;
   scenario:     string;
   is_published: boolean;
-  timepoints:   string[];
-  rows:         TrendRow[];
   slots:        SlotRow[];
 }
 
@@ -56,49 +54,6 @@ const RULES: readonly Rule[] = [
         message:  'Dataset title is empty.',
         target:   { kind: 'trend' },
       });
-    }
-  },
-
-  (s, out) => {
-    if (s.rows.length === 0) {
-      out.push({
-        id:       'trend.rows.zero',
-        severity: 'error',
-        message:  'Dataset has no rows. Add at least one metric row.',
-        target:   { kind: 'trend' },
-      });
-    }
-  },
-
-  (s, out) => {
-    if (s.timepoints.length === 0) {
-      out.push({
-        id:       'trend.timepoints.zero',
-        severity: 'error',
-        message:  'Dataset has no timepoints. Add at least one column.',
-        target:   { kind: 'trend' },
-      });
-    }
-  },
-
-  // Integrity: every row's values[] must align with timepoints[].
-  // Rare but possible if editor state drifts.
-  (s, out) => {
-    for (let i = 0; i < s.rows.length; i++) {
-      const row = s.rows[i];
-      if (!row) continue;
-      if (row.values.length !== s.timepoints.length) {
-        const label = row.metric.trim() || `row ${i + 1}`;
-        out.push({
-          id:       'trend.row_values_mismatch',
-          severity: 'error',
-          message:
-            `Row "${label}" has ${row.values.length} value(s) but the ` +
-            `dataset has ${s.timepoints.length} timepoint(s). Cell counts ` +
-            `must match.`,
-          target:   { kind: 'trend' },
-        });
-      }
     }
   },
 
@@ -179,24 +134,6 @@ const RULES: readonly Rule[] = [
           `This dataset is published but none of its ${n} question` +
           `${n === 1 ? '' : 's'} are — students won't see anything from it ` +
           `yet. Publish a question to make it live.`,
-        target:   { kind: 'trend' },
-      });
-    }
-  },
-
-  // No flags set anywhere — unusual for a trend dataset (curator
-  // typically marks "red flag" cells for the questions to test).
-  (s, out) => {
-    if (s.rows.length === 0) return;
-    const anyFlag = s.rows.some((r) => r.flags.some((f) => f !== null));
-    if (!anyFlag) {
-      out.push({
-        id:       'trend.flags.none',
-        severity: 'warning',
-        message:
-          'No cells are flagged (abnormal / borderline). Most trend ' +
-          'datasets flag at least one cell so the curator can see ' +
-          "which values they're testing.",
         target:   { kind: 'trend' },
       });
     }

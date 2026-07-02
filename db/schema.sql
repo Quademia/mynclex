@@ -72,7 +72,7 @@ CREATE TABLE nclex_admin_permissions (
 CREATE TABLE nclex_bank_items (
   item_id                   TEXT PRIMARY KEY,
   question_type             TEXT NOT NULL CHECK (question_type IN
-                              ('MCQ','TF','SATA','SELECT_N','MATRIX',
+                              ('MCQ','TF','SATA','SELECT_N','MATRIX','MATRIX_MR',
                                'HIGHLIGHT','CLOZE','DRAG_DROP','DRAG_CLOZE','DRAG_ORDER','BOWTIE')),
 
   -- Common content shell
@@ -213,7 +213,7 @@ CREATE TABLE nclex_tutor_questions (
   item_id                   TEXT PRIMARY KEY,
   tutor_id                  UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
   question_type             TEXT NOT NULL CHECK (question_type IN
-                              ('MCQ','TF','SATA','SELECT_N','MATRIX',
+                              ('MCQ','TF','SATA','SELECT_N','MATRIX','MATRIX_MR',
                                'HIGHLIGHT','CLOZE','DRAG_DROP','DRAG_CLOZE','DRAG_ORDER','BOWTIE')),
 
   stem                      TEXT NOT NULL,
@@ -342,14 +342,13 @@ CREATE INDEX idx_nclex_tutor_case_study_tabs_case ON nclex_tutor_case_study_tabs
 -- trend wrapper-v2 can carry the same three-row Visibility section
 -- as the case-study wrapper. Defaults match nclex_bank_items
 -- (FALSE / TRUE).
+-- The stimulus lives entirely in nclex_trend_tabs — the old flat-grid
+-- columns (row_label / timepoints / rows) were retired in 20260714120000.
 CREATE TABLE nclex_trend_datasets (
   trend_id            TEXT PRIMARY KEY,
   title               TEXT NOT NULL,
   scenario            TEXT,
   kind                TEXT NOT NULL,
-  row_label           TEXT,
-  timepoints          JSONB NOT NULL DEFAULT '[]'::jsonb,
-  rows                JSONB NOT NULL DEFAULT '[]'::jsonb,
   is_published        BOOLEAN NOT NULL DEFAULT FALSE,
   is_free_sample      BOOLEAN NOT NULL DEFAULT FALSE,
   is_builder_visible  BOOLEAN NOT NULL DEFAULT TRUE,
@@ -370,9 +369,6 @@ CREATE TABLE nclex_tutor_trend_datasets (
   title               TEXT NOT NULL,
   scenario            TEXT,
   kind                TEXT NOT NULL,
-  row_label           TEXT,
-  timepoints          JSONB NOT NULL DEFAULT '[]'::jsonb,
-  rows                JSONB NOT NULL DEFAULT '[]'::jsonb,
   is_published        BOOLEAN NOT NULL DEFAULT FALSE,
   is_free_sample      BOOLEAN NOT NULL DEFAULT FALSE,
   is_builder_visible  BOOLEAN NOT NULL DEFAULT TRUE,
@@ -382,6 +378,59 @@ CREATE TABLE nclex_tutor_trend_datasets (
 
 CREATE INDEX idx_nclex_tutor_trend_datasets_tutor
   ON nclex_tutor_trend_datasets(tutor_id);
+
+
+-- Trend chart tabs (rich multi-chart, added 20260712120000). Mirror of
+-- nclex_case_study_tabs — one row per tab per dataset. Trend is a fresh
+-- v2-only build, so `entries` holds the rich v2 blob (merge-table list
+-- or narrative); unlike case study there is no progressive disclosure.
+CREATE TABLE nclex_trend_tabs (
+  tab_id        TEXT PRIMARY KEY,
+  trend_id      TEXT NOT NULL REFERENCES nclex_trend_datasets(trend_id) ON DELETE CASCADE,
+  tab_key       TEXT NOT NULL,
+  title         TEXT NOT NULL,
+  display_order INTEGER NOT NULL,
+  is_custom     BOOLEAN NOT NULL DEFAULT FALSE,
+  custom_shape  TEXT,
+  columns_def   JSONB NOT NULL DEFAULT '[]'::jsonb,
+  entries       JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (trend_id, display_order),
+  CHECK (tab_key <> ''),
+  CHECK (display_order >= 0),
+  CHECK (
+    (is_custom = FALSE AND custom_shape IS NULL)
+    OR
+    (is_custom = TRUE  AND custom_shape IN ('free_text', 'rows_cols'))
+  )
+);
+
+CREATE INDEX idx_nclex_trend_tabs_trend ON nclex_trend_tabs(trend_id);
+
+CREATE TABLE nclex_tutor_trend_tabs (
+  tab_id        TEXT PRIMARY KEY,
+  trend_id      TEXT NOT NULL REFERENCES nclex_tutor_trend_datasets(trend_id) ON DELETE CASCADE,
+  tab_key       TEXT NOT NULL,
+  title         TEXT NOT NULL,
+  display_order INTEGER NOT NULL,
+  is_custom     BOOLEAN NOT NULL DEFAULT FALSE,
+  custom_shape  TEXT,
+  columns_def   JSONB NOT NULL DEFAULT '[]'::jsonb,
+  entries       JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (trend_id, display_order),
+  CHECK (tab_key <> ''),
+  CHECK (display_order >= 0),
+  CHECK (
+    (is_custom = FALSE AND custom_shape IS NULL)
+    OR
+    (is_custom = TRUE  AND custom_shape IN ('free_text', 'rows_cols'))
+  )
+);
+
+CREATE INDEX idx_nclex_tutor_trend_tabs_trend ON nclex_tutor_trend_tabs(trend_id);
 
 
 -- =========================================================
@@ -572,9 +621,10 @@ CREATE TABLE nclex_attempt_trend_snapshots (
   title_snapshot             TEXT NOT NULL,
   scenario_snapshot          TEXT,
   kind_snapshot              TEXT NOT NULL,
-  row_label_snapshot         TEXT,
-  timepoints_snapshot_json   JSONB NOT NULL DEFAULT '[]'::jsonb,
-  rows_snapshot_json         JSONB NOT NULL DEFAULT '[]'::jsonb,
+  -- Frozen chart tabs (rich multi-chart, Slice 3b). Mirror of
+  -- nclex_attempt_case_snapshots.tabs_snapshot_json. The flat-grid
+  -- snapshot columns were retired in 20260714120000.
+  tabs_snapshot_json         JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (attempt_id, trend_id)
 );
@@ -609,7 +659,7 @@ CREATE TABLE nclex_attempt_items (
 
   -- Snapshot — granular columns (queryable / stable shape)
   question_type              TEXT NOT NULL CHECK (question_type IN
-                               ('MCQ','TF','SATA','SELECT_N','MATRIX',
+                               ('MCQ','TF','SATA','SELECT_N','MATRIX','MATRIX_MR',
                                 'HIGHLIGHT','CLOZE','DRAG_DROP','DRAG_CLOZE','DRAG_ORDER','BOWTIE')),
   stem_snapshot              TEXT NOT NULL,
   instruction_snapshot       TEXT,

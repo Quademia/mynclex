@@ -1,59 +1,39 @@
 // mynclex/lib/practice/runner/trend/trend-panel.tsx
 //
-// Sticky left-hand panel for trend questions. Composes:
-//
-//   ┌──────────────────────────────────────────┐
-//   │  Trend data · Vitals                     │  ← head: kind label + title
-//   │  <dataset title>                         │
-//   ├──────────────────────────────────────────┤
-//   │  Scenario  <free-text paragraph>         │  ← scenario (optional)
-//   ├──────────────────────────────────────────┤
-//   │  Metric | tp1 | tp2 | tp3 | (Ref range)  │  ← table head
-//   │  BP     | …   | …   | …   |              │
-//   │  HR     | …   | …   | …   |              │  ← rows × timepoints
-//   └──────────────────────────────────────────┘
+// Sticky left-hand panel for trend questions. The stimulus is a rich
+// multi-chart (Slice 3b): a tab bar + the active tab's body, mirroring
+// the case-study panel. Trends have NO progressive disclosure, so every
+// tab is always shown (the reveal views render past any visible_from).
+// Slice 4 retired the legacy flat grid — every trend is tab-based.
 //
 // Trends are scattered standalones (per attempt-creation §8.3) — there
 // is no progressive disclosure, no answered-count pill, no entry banner.
-// The dataset is shown in full from the moment the student lands on
-// any trend question that uses it.
-//
-// Curator-side flags ('abnormal' / 'borderline') are stored on each
-// cell but NOT rendered here — verified against the real NGN exam:
-// NCSBN provides reference ranges where relevant but never pre-flags
-// values for the test-taker. Pre-cuing answers would defeat the point
-// of the trend item type. The runner shows raw values; the student
-// interprets them against the optional ref-range column.
-//
-// Ref-range column auto-shows when at least one row has a non-empty
-// ref_range — matches the curator editor's behaviour in
-// lib/bank/wrappers/trend/data-table.tsx.
+// The stimulus is shown in full from the moment the student lands on any
+// trend question that uses it.
 
 'use client';
 
+import { useState } from 'react';
 import type { TrendSnapshot } from '@/lib/practice/runner';
-import type { TrendRow } from '@/lib/bank/wrappers/trend/types';
+import type { TrendTabRow } from '@/lib/bank/wrappers/trend/types';
 import { kindDefaultLabel } from '@/lib/bank/wrappers/trend/kind-templates';
+import { asMergeTab } from '@/lib/authoring/table/merge-table-model';
+import { MergeTableView } from '@/lib/authoring/table/merge-table-view';
+import { asNarrativeTab } from '@/lib/authoring/narrative/narrative-model';
+import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
+import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
+import { RichRender } from '@/lib/authoring/rich-render';
 
 interface Props {
   trendSnap: TrendSnapshot;
 }
 
-const ROW_LABEL_FALLBACK = 'Metric';
+// Show every revealed row/entry — trend has no progressive disclosure.
+const SHOW_ALL_POSITION = 999;
 
 export function TrendPanel({ trendSnap }: Props) {
-  // JSONB columns surface as unknown[] in the runner data shape. Coerce
-  // here so the rest of the component leans on TrendRow / string.
-  const timepoints = (trendSnap.timepoints_snapshot_json ?? []) as string[];
-  const rows       = (trendSnap.rows_snapshot_json       ?? []) as TrendRow[];
-  const rowLabel   = (trendSnap.row_label_snapshot ?? '').trim() || ROW_LABEL_FALLBACK;
-  const kindLabel  = kindDefaultLabel(trendSnap.kind_snapshot);
-
-  // Show the ref-range column if any row has it set (matches the editor).
-  const refRangeOn = rows.some((r) => (r.ref_range ?? '').trim() !== '');
-
-  const hasRows = rows.length > 0;
-  const hasCols = timepoints.length > 0;
+  const kindLabel = kindDefaultLabel(trendSnap.kind_snapshot);
+  const tabs = (trendSnap.tabs_snapshot_json ?? []) as TrendTabRow[];
 
   return (
     <aside className="rn-trend" aria-label="Trend dataset panel">
@@ -65,43 +45,66 @@ export function TrendPanel({ trendSnap }: Props) {
         <div className="title">{trendSnap.title_snapshot}</div>
       </div>
 
-      {trendSnap.scenario_snapshot && (
-        <div className="rn-trend-scenario">
-          <div className="label">Scenario</div>
-          <div className="body">{trendSnap.scenario_snapshot}</div>
+      {(() => {
+        // Scenario is rich content (mirrors the case-study scenario).
+        // parseRichDoc reads both a stored rich-doc and a legacy plain string.
+        const scenarioDoc = parseRichDoc(trendSnap.scenario_snapshot ?? '');
+        if (isEmptyRichDoc(scenarioDoc)) return null;
+        return (
+          <div className="rn-trend-scenario">
+            <div className="label">Scenario</div>
+            <RichRender doc={scenarioDoc} className="body" />
+          </div>
+        );
+      })()}
+
+      {tabs.length > 0 ? (
+        <TabbedStimulus tabs={tabs} />
+      ) : (
+        <div className="rn-trend-body">
+          <div className="empty">No data in this dataset.</div>
         </div>
       )}
-
-      <div className="rn-trend-body">
-        {hasRows && hasCols ? (
-          <table className="rn-trend-table">
-            <thead>
-              <tr>
-                <th className="metric-col">{rowLabel}</th>
-                {timepoints.map((tp, c) => (
-                  <th key={c} className="tp-col">{tp || `TP${c + 1}`}</th>
-                ))}
-                {refRangeOn && <th className="refrange-col">Ref range</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={i}>
-                  <td className="metric-col">{r.metric || `${rowLabel.toLowerCase()} ${i + 1}`}</td>
-                  {timepoints.map((_, c) => (
-                    <td key={c} className="tp">{r.values[c] ?? ''}</td>
-                  ))}
-                  {refRangeOn && (
-                    <td className="refrange">{r.ref_range ?? ''}</td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div className="empty">No data in this dataset.</div>
-        )}
-      </div>
     </aside>
   );
+}
+
+// ── Rich multi-chart: tab bar + active tab body ──────────────────
+function TabbedStimulus({ tabs }: { tabs: TrendTabRow[] }) {
+  const ordered = [...tabs].sort((a, b) => a.display_order - b.display_order);
+  const [activeId, setActiveId] = useState<string>(() => ordered[0]?.tab_id ?? '');
+  const effectiveId = ordered.some((t) => t.tab_id === activeId)
+    ? activeId
+    : ordered[0]?.tab_id ?? '';
+  const activeTab = ordered.find((t) => t.tab_id === effectiveId);
+
+  return (
+    <>
+      <div className="rn-case-tabs" role="tablist">
+        {ordered.map((t) => (
+          <button
+            key={t.tab_id}
+            type="button"
+            role="tab"
+            aria-selected={t.tab_id === effectiveId}
+            className={'rn-case-tab' + (t.tab_id === effectiveId ? ' on' : '')}
+            onClick={() => setActiveId(t.tab_id)}
+          >
+            {t.title}
+          </button>
+        ))}
+      </div>
+      <div className="rn-trend-body">
+        {activeTab && <ChartTabBody tab={activeTab} />}
+      </div>
+    </>
+  );
+}
+
+function ChartTabBody({ tab }: { tab: TrendTabRow }) {
+  const mt = asMergeTab(tab.entries);
+  if (mt) return <MergeTableView tab={mt} currentPosition={SHOW_ALL_POSITION} />;
+  const nt = asNarrativeTab(tab.entries);
+  if (nt) return <NarrativeView tab={nt} currentPosition={SHOW_ALL_POSITION} />;
+  return <div className="empty">Nothing on this tab yet.</div>;
 }

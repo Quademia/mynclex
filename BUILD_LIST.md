@@ -8,6 +8,89 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **TREND RICH MULTI-CHART — ✅ Slices 1–4 COMPLETE + Sam-tested + on `main`
+> (Slices 1–3 `2026-07-01`, Slice 4 `2026-07-02`; NOT yet prod; app-layer +
+> three additive migrations `20260712120000` [tables] + `20260713120000`
+> [snapshot + RPC] + `20260714120000` [retire flat grid], all dev-applied; tsc +
+> eslint clean; Slice 4 Sam-tested end-to-end). Since then the
+> wrapper-harmonisation work + the "+ New creates a draft directly" picker
+> removal (`9ec098f`) also landed on `main`. Slice 5 — retire `kind` — is
+> PLANNED (see below).** The deferred half of the bank rich-content relook — the trend
+> **stimulus** goes rich (trend questions were already rich). Trend **adopts
+> the case-study chart engine** (multi-tab rich charts) **minus progressive
+> disclosure**; the old flat grid is retired (timepoints→columns,
+> ref-range→a column, per-cell flags→author cell highlight — flags were never
+> student-visible). **Two wrappers, one engine — COPY not share** (copy the
+> chart-tab engine into `lib/bank/wrappers/trend/`; keep `lib/authoring/`
+> shared). Storage = **Option A** (`nclex_trend_tabs` child table + tutor twin,
+> mirror of `nclex_case_study_tabs`). Full plan + design pass:
+> [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
+> → "Trend wrapper — rich multi-chart".
+> - **Slice 1 — Storage ✅** (`5461592`, mig `20260712120000`): tables + RLS +
+>   loader read; additive.
+> - **Slice 2 — Chart-tab engine in the wrapper ✅** (`bc14cd4` + `47890b8`):
+>   Dataset pane hosts the rich multi-tab editor (**Content | Charts**
+>   sub-tabs). **Shared-editor decoupling (Option A):** `MergeTableEditor` /
+>   `NarrativeTabEditorV2` took injected `saveAction`/`deleteAction` + a neutral
+>   `ChartTabIdentity` (`lib/authoring/chart-tab-types.ts`) + a `hideReveal`
+>   prop; case study injects its own (unchanged). Copied into trend: tab-types
+>   (6 built-ins + 2 customs), tab-rail, tab CRUD (keyed `trend_id`).
+>   Sam-tested `NCLEX_TRD_00002` (3 tabs) in the DB.
+> - **Slice 3 — Runner + preview ✅** (`147763b`, mig `20260713120000`):
+>   wrapper right-pane combined "as-student" preview + froze the tabs into the
+>   attempt snapshot (`tabs_snapshot_json` + `nclex_create_attempt` freeze) so
+>   the runner shows the tabbed stimulus. Sam-tested on dev.
+> - **Slice 4 — retire the flat grid ✅** (`a418780`, mig `20260714120000`).
+>   **Decision (2026-07-02): delete, don't convert** — all legacy flat-grid
+>   trends were unpublished test data (dev + prod), so no conversion was worth
+>   it. Deleted all 16 legacy datasets + 65 questions + 17 orphan attempt rows
+>   on dev (kept the tab-based `NCLEX_TRD_00002`). Removed the flat-grid path
+>   end to end: runner fallback, the vestigial `timepoints`/`rows`/`row_label`
+>   round-trip in the wrapper editor / save action / loader / validation / both
+>   list pages / kind seeds, and the dead `data-table.tsx`. Migration re-points
+>   `nclex_create_attempt` to freeze **tabs only**, drops the 3 flat snapshot
+>   columns, and drops `row_label`/`timepoints`/`rows` off both dataset tables.
+>   `schema.sql` mirrored. **⚠ RELEASE STEP:** before/with the prod release,
+>   delete prod's 2 unpublished test trend datasets (+ 1 question) so prod ends
+>   up as clean as dev.
+> - **Slice 5 — retire `kind` ⬜ PLANNED** (settled 2026-07-02, not built).
+>   Precursor DONE (`9ec098f`): "+ New trend dataset" now creates a **draft
+>   directly** (mirror of case's `NewCaseButton`); the kind picker + presets were
+>   deleted. Remaining = **remove `kind` entirely**: it was a *single-dataset*
+>   descriptor from the flat-grid era, but a trend is now a *group of tabs* and
+>   each tab carries its own title, so a top-level kind is redundant + misleading.
+>   Same shape as Slice 4 — app-layer (editor field · runner header `Trend data ·
+>   {kind}` → just `Trend data` · loader · types · actions · both list pages ·
+>   delete `kind-templates.ts`) + a migration (drop `kind` off both dataset
+>   tables + `kind_snapshot` off the attempt snapshot + update
+>   `nclex_create_attempt` + `schema.sql`). Entity-rename (`trend dataset` →
+>   `trend`) noted but explicitly OUT of scope. Full write-up:
+>   [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
+>   → Trend "Slice plan" → Slice 5.
+>
+> **⏭ NEXT:** Slices 1–4 + the wrapper-harmonisation + picker-removal are on
+> `main`. **Build Slice 5 (retire `kind`) when picked up.** A `main → prod`
+> release is still pending (⚠ carries the trend migrations + the prod
+> trend-dataset delete step above + `PAYSTACK_SECRET_KEY` still not on prod).
+
+> **MATRIX MULTIPLE RESPONSE (`MATRIX_MR`) — ✅ BUILT + Sam-tested on dev
+> (2026-07-01; session branch off `main`; app-layer + ONE additive migration
+> `20260711120000` [dev-applied]; tsc + eslint + 98 vitest clean; NOT merged to
+> `main`, NOT prod).** New self-contained NGN item type — a matrix grid where
+> each row has **one or more** correct columns (checkbox per cell), scored
+> SATA-style per row. Mirror of `MATRIX` (radio, one-per-row); legacy `MATRIX`
+> untouched. Built via the "Adding a new question type — wiring checklist".
+> **4 design Qs settled with Sam** (Q1 grounded in an NCSBN web check): ≥1
+> correct per row · SATA-per-row scoring (`scorePerRowMulti`, max = total
+> correct cells) · hard ≥1-pick-per-row submit gate that names empty rows ·
+> bounds mirror MATRIX (2–10 rows / 2–6 cols) + NGN-norm advisory. New files:
+> `matrix-mr-{editor,row-mapper}` · `parsers/matrix-mr` ·
+> `runner/types/matrix-mr` · `scorePerRowMulti`. Full write-up:
+> [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
+> → "Matrix Multiple Response — new item type". **⏭ NEXT:** (with Sam's
+> approval) merge to `main`; then the trend stimulus rich-content arc → Slice 7
+> media block. ⚠ `PAYSTACK_SECRET_KEY` still not on prod.
+
 > **BANK RICH-CONTENT — SLICE 6: rich text across the QUESTION fields —
 > 🔨 IN PROGRESS (6a + alignment + 6b BUILT + MERGED to `main` 2026-06-29;
 > all app-layer, NO migration; tsc + eslint + 94 vitest clean; Sam-tested on

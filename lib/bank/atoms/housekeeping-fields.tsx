@@ -123,6 +123,8 @@ function formatMarksLabel(questionType: QuestionType, marks: number): string {
       return `Max: ${marks} — count of correct options ticked`;
     case 'MATRIX':
       return `Max: ${marks} — count of rows`;
+    case 'MATRIX_MR':
+      return `Max: ${marks} — count of correct cells across all rows`;
     case 'HIGHLIGHT':
       return `Max: ${marks} — count of correct chunks`;
     case 'CLOZE':

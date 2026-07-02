@@ -10,6 +10,7 @@ import type { TfEditorInitial }       from '../../editors/tf-row-mapper';
 import type { SataEditorInitial }     from '../../editors/sata-row-mapper';
 import type { SelectNEditorInitial }  from '../../editors/select-n-row-mapper';
 import type { MatrixEditorInitial }   from '../../editors/matrix-row-mapper';
+import type { MatrixMrEditorInitial } from '../../editors/matrix-mr-row-mapper';
 import type { BowtieEditorInitial }   from '../../editors/bowtie-row-mapper';
 import type { ClozeEditorInitial }    from '../../editors/cloze-row-mapper';
 import type { HighlightEditorInitial } from '../../editors/highlight-row-mapper';
@@ -27,6 +28,7 @@ export type SlotEditorInitial =
   | { kind: 'SATA';       initial: SataEditorInitial      }
   | { kind: 'SELECT_N';   initial: SelectNEditorInitial   }
   | { kind: 'MATRIX';     initial: MatrixEditorInitial    }
+  | { kind: 'MATRIX_MR';  initial: MatrixMrEditorInitial  }
   | { kind: 'BOWTIE';     initial: BowtieEditorInitial    }
   | { kind: 'CLOZE';      initial: ClozeEditorInitial     }
   | { kind: 'HIGHLIGHT';  initial: HighlightEditorInitial }

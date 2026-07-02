@@ -24,8 +24,13 @@ import {
   TREND_ID_PREFIX,
   TUTOR_TREND_ID_PREFIX,
 } from '../../classifications';
-import { kindSeedData } from './kind-templates';
-import type { Surface, TrendFlag, TrendRow } from './types';
+import {
+  isBuiltIn,
+  isCustomTabKey,
+  customShapeForKey,
+  type CustomShape,
+} from './tab-types';
+import type { Surface } from './types';
 
 export type SaveResult =
   | { ok: true }
@@ -111,41 +116,24 @@ async function nextTrendId(
   return `${cfg.idPrefix}${String(next).padStart(5, '0')}`;
 }
 
-// Insert a new trend dataset row seeded from the chosen kind preset
-// (or empty for 'custom'). Redirects to the wrapper page so the
-// curator lands directly in the editor for renaming + filling out.
-//
-// Form fields:
-//   - surface           : 'admin' | 'tutor'
-//   - kind              : preset key (vitals|labs|io|neuro|assessment) or 'custom'
-//   - custom_kind_name  : freeform string, used only when kind === 'custom'
+// Insert a new draft trend dataset and redirect to the wrapper editor,
+// where the curator sets the title + kind label and builds the chart
+// tabs. No kind picker — a new trend starts as 'custom' (the flat-grid
+// seeds the presets used to drive are gone). Form fields: surface only.
 export async function createTrendAction(formData: FormData): Promise<SaveResult> {
   const surface = readSurface(formData);
   const { supabase, user } = await requireBankCurator(surface);
   const cfg = configFor(surface);
 
-  const kindRaw = String(formData.get('kind') ?? '').trim();
-  const customName = String(formData.get('custom_kind_name') ?? '').trim();
-
-  // Resolve the persisted kind value. Presets pass through verbatim.
-  // 'custom' uses the typed name (or falls back to 'custom' if empty,
-  // since the picker form should disable Create until non-empty).
-  let kind: string;
-  if (kindRaw === 'custom') {
-    kind = customName || 'custom';
-  } else {
-    kind = kindRaw || 'custom';
-  }
-
   const trend_id = await nextTrendId(supabase, surface);
-  const seed = kindSeedData(kindRaw);
 
+  // No kind picker any more — a new trend is created as a draft and the
+  // curator sets the title + kind label in the editor. `kind` is just a
+  // display label now (the flat-grid seeds it used to drive are gone).
   const row: Record<string, unknown> = {
     trend_id,
     title: 'Untitled trend dataset',
-    kind,
-    timepoints: seed.timepoints,
-    rows:       seed.rows,
+    kind: 'custom',
   };
   if (surface === 'tutor') {
     row.tutor_id = user.id;
@@ -168,77 +156,11 @@ export async function createTrendAction(formData: FormData): Promise<SaveResult>
 //   - trend_id, surface
 //   - title, scenario, kind
 //   - is_published, is_free_sample, is_builder_visible
-//   - timepoints (JSON), rows (JSON)
 //
-// Validates rows × timepoints alignment. Returns SaveResult.
-// Does NOT touch attached question rows — those are saved
-// independently via saveQuestionAction in 13d.
+// The stimulus (chart tabs) saves independently via the tab actions;
+// attached questions save via saveQuestionAction. This action only
+// touches the dataset's own metadata + visibility.
 // ─────────────────────────────────────────────────────────────
-
-const VALID_FLAGS = new Set<string>(['abnormal', 'borderline']);
-
-// Normalise + validate rows posted from the data-table editor.
-// Mirrors lib/bank/trend/actions.ts parseRows. Rejects mis-aligned
-// values/flags arrays — the editor always emits aligned arrays, so
-// drift is a real bug worth surfacing rather than silently fixing.
-function parseRows(raw: unknown, timepointCount: number): {
-  ok: true; rows: TrendRow[];
-} | { ok: false; error: string } {
-  if (!Array.isArray(raw)) {
-    return { ok: false, error: 'rows must be an array' };
-  }
-
-  const rows: TrendRow[] = [];
-  for (let i = 0; i < raw.length; i++) {
-    const r = raw[i] as unknown;
-    if (typeof r !== 'object' || r === null) {
-      return { ok: false, error: `Row ${i}: expected object` };
-    }
-    const rec = r as Record<string, unknown>;
-    const metric = typeof rec.metric === 'string' ? rec.metric : '';
-
-    if (!Array.isArray(rec.values)) {
-      return { ok: false, error: `Row ${i}: values must be an array` };
-    }
-    if (!Array.isArray(rec.flags)) {
-      return { ok: false, error: `Row ${i}: flags must be an array` };
-    }
-    if (rec.values.length !== timepointCount) {
-      return {
-        ok:    false,
-        error: `Row ${i}: values length ${rec.values.length} doesn't match ${timepointCount} timepoints`,
-      };
-    }
-    if (rec.flags.length !== timepointCount) {
-      return {
-        ok:    false,
-        error: `Row ${i}: flags length ${rec.flags.length} doesn't match ${timepointCount} timepoints`,
-      };
-    }
-
-    const values = (rec.values as unknown[]).map((v) =>
-      typeof v === 'string' ? v : '',
-    );
-
-    const flags: TrendFlag[] = (rec.flags as unknown[]).map((f) => {
-      if (f === null) return null;
-      if (typeof f === 'string' && VALID_FLAGS.has(f)) {
-        return f as TrendFlag;
-      }
-      return null;
-    });
-
-    const row: TrendRow = { metric, values, flags };
-    const refRangeRaw = typeof rec.ref_range === 'string'
-      ? rec.ref_range.trim()
-      : '';
-    if (refRangeRaw) row.ref_range = refRangeRaw;
-
-    rows.push(row);
-  }
-
-  return { ok: true, rows };
-}
 
 export async function saveTrendMetadataAction(
   formData: FormData,
@@ -253,39 +175,15 @@ export async function saveTrendMetadataAction(
   const title = String(formData.get('title') ?? '').trim();
   if (!title) return { ok: false, error: 'Title is required.' };
 
-  const scenarioRaw = String(formData.get('scenario') ?? '').trim();
-  const scenario = scenarioRaw || null;
+  // Scenario is rich content — the client posts a serialized Tiptap doc.
+  // Store it verbatim (do not trim/normalise the JSON); '' → null.
+  const scenario = String(formData.get('scenario') ?? '') || null;
 
   const kind = String(formData.get('kind') ?? '').trim() || 'custom';
-
-  const rowLabelRaw = String(formData.get('row_label') ?? '').trim();
-  const row_label = rowLabelRaw || null;
 
   const is_published       = formData.get('is_published') === 'on';
   const is_free_sample     = formData.get('is_free_sample') === 'on';
   const is_builder_visible = formData.get('is_builder_visible') === 'on';
-
-  // Parse timepoints (JSON array of strings).
-  const timepointsRaw = String(formData.get('timepoints') ?? '[]') || '[]';
-  let timepoints: string[];
-  try {
-    const parsed: unknown = JSON.parse(timepointsRaw);
-    if (!Array.isArray(parsed)) throw new Error('not array');
-    timepoints = parsed.map((v) => (typeof v === 'string' ? v : String(v)));
-  } catch {
-    return { ok: false, error: 'Invalid timepoints JSON.' };
-  }
-
-  // Parse + validate rows against timepoints length.
-  const rowsRaw = String(formData.get('rows') ?? '[]') || '[]';
-  let rowsParsed: unknown;
-  try {
-    rowsParsed = JSON.parse(rowsRaw);
-  } catch {
-    return { ok: false, error: 'Invalid rows JSON.' };
-  }
-  const parsed = parseRows(rowsParsed, timepoints.length);
-  if (!parsed.ok) return { ok: false, error: parsed.error };
 
   const { error } = await supabase
     .from(cfg.table)
@@ -293,9 +191,6 @@ export async function saveTrendMetadataAction(
       title,
       scenario,
       kind,
-      row_label,
-      timepoints,
-      rows: parsed.rows,
       is_published,
       is_free_sample,
       is_builder_visible,
@@ -413,5 +308,224 @@ export async function deleteTrendAction(formData: FormData): Promise<SaveResult>
   if (dsDelErr) return { ok: false, error: `Delete dataset failed: ${dsDelErr.message}` };
 
   revalidatePath(cfg.baseUrl);
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Chart-tab actions (upsert / delete / reorder) — trend rich
+// multi-chart Slice 2. Mirror of the case-study tab actions, keyed to
+// trend_id + nclex_trend_tabs. Trend owns its copy (wrappers stay
+// independent); the injected save/delete from the shared editors call
+// these with the trend_id already set.
+// ─────────────────────────────────────────────────────────────
+
+type TabTable = 'nclex_trend_tabs' | 'nclex_tutor_trend_tabs';
+
+function tabTableFor(surface: Surface): TabTable {
+  return surface === 'tutor' ? 'nclex_tutor_trend_tabs' : 'nclex_trend_tabs';
+}
+
+// Next tab_id for a dataset. Shape: {trend_id}_TAB_{N}. Computes max in
+// TS because N is not zero-padded (lexical sort unreliable).
+async function nextTabId(
+  supabase: ServerSupabaseClient,
+  surface:  Surface,
+  trend_id: string,
+): Promise<string> {
+  const { data, error } = await supabase
+    .from(tabTableFor(surface))
+    .select('tab_id')
+    .eq('trend_id', trend_id);
+
+  if (error) throw error;
+
+  const prefix = `${trend_id}_TAB_`;
+  let next = 1;
+  if (data && data.length > 0) {
+    for (const row of data) {
+      const tab_id = row.tab_id as string;
+      const n = parseInt(tab_id.slice(prefix.length), 10);
+      if (Number.isFinite(n) && n >= next) next = n + 1;
+    }
+  }
+  return `${prefix}${next}`;
+}
+
+export async function upsertTabAction(formData: FormData): Promise<SaveResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireBankCurator(surface);
+  const cfg = configFor(surface);
+
+  const trend_id = String(formData.get('trend_id') ?? '').trim();
+  if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
+
+  const tab_id_raw = String(formData.get('tab_id') ?? '').trim();
+  const isUpdate = tab_id_raw.length > 0;
+
+  const tab_key = String(formData.get('tab_key') ?? '').trim();
+  if (!tab_key) return { ok: false, error: 'Missing tab_key.' };
+
+  const title = String(formData.get('title') ?? '').trim();
+  if (!title) return { ok: false, error: 'Tab title is required.' };
+
+  const display_orderRaw = parseInt(String(formData.get('display_order') ?? '0'), 10);
+  const display_order =
+    Number.isFinite(display_orderRaw) && display_orderRaw >= 0 ? display_orderRaw : 0;
+
+  const is_custom = formData.get('is_custom') === 'true';
+
+  // Validate tab_key/is_custom/custom_shape consistency.
+  let custom_shape: CustomShape | null = null;
+  if (is_custom) {
+    if (!isCustomTabKey(tab_key)) {
+      return {
+        ok: false,
+        error: 'Custom tab must use tab_key custom_narrative or custom_grid.',
+      };
+    }
+    custom_shape = customShapeForKey(tab_key);
+  } else {
+    if (!isBuiltIn(tab_key)) {
+      return { ok: false, error: `Unknown built-in tab_key: ${tab_key}.` };
+    }
+  }
+
+  const columnsRaw = String(formData.get('columns_def') ?? '[]') || '[]';
+  let columns_def: unknown;
+  try {
+    columns_def = JSON.parse(columnsRaw);
+    if (!Array.isArray(columns_def)) throw new Error('not array');
+  } catch {
+    return { ok: false, error: 'Invalid columns_def JSON.' };
+  }
+
+  // entries is always a v2 rich blob (merge table or narrative object)
+  // for trend — a fresh build with no v1 ChartEntry legacy.
+  const entriesRaw = String(formData.get('entries') ?? '[]') || '[]';
+  let entries: unknown;
+  try {
+    entries = JSON.parse(entriesRaw);
+    const ok = Array.isArray(entries) || (entries !== null && typeof entries === 'object');
+    if (!ok) throw new Error('bad shape');
+  } catch {
+    return { ok: false, error: 'Invalid entries JSON.' };
+  }
+
+  const tabTable = tabTableFor(surface);
+
+  if (isUpdate) {
+    const { error } = await supabase
+      .from(tabTable)
+      .update({
+        tab_key,
+        title,
+        display_order,
+        is_custom,
+        custom_shape,
+        columns_def,
+        entries,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('tab_id', tab_id_raw)
+      .eq('trend_id', trend_id);
+
+    if (error) return { ok: false, error: `Tab update failed: ${error.message}` };
+  } else {
+    const tab_id = await nextTabId(supabase, surface, trend_id);
+    const { error } = await supabase.from(tabTable).insert({
+      tab_id,
+      trend_id,
+      tab_key,
+      title,
+      display_order,
+      is_custom,
+      custom_shape,
+      columns_def,
+      entries,
+    });
+
+    if (error) return { ok: false, error: `Tab insert failed: ${error.message}` };
+  }
+
+  revalidatePath(`${cfg.baseUrl}/${trend_id}`);
+  return { ok: true };
+}
+
+export async function deleteTabAction(formData: FormData): Promise<SaveResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireBankCurator(surface);
+  const cfg = configFor(surface);
+
+  const trend_id = String(formData.get('trend_id') ?? '').trim();
+  const tab_id   = String(formData.get('tab_id') ?? '').trim();
+  if (!trend_id || !tab_id) {
+    return { ok: false, error: 'Missing trend_id or tab_id.' };
+  }
+
+  const { error } = await supabase
+    .from(tabTableFor(surface))
+    .delete()
+    .eq('tab_id', tab_id)
+    .eq('trend_id', trend_id);
+
+  if (error) return { ok: false, error: `Tab delete failed: ${error.message}` };
+
+  revalidatePath(`${cfg.baseUrl}/${trend_id}`);
+  return { ok: true };
+}
+
+// Two-pass shift to dodge UNIQUE (trend_id, display_order) mid-reorder:
+// phase 1 negates each row's target order; phase 2 sets each to final.
+export async function reorderTabsAction(formData: FormData): Promise<SaveResult> {
+  const surface = readSurface(formData);
+  const { supabase } = await requireBankCurator(surface);
+  const cfg = configFor(surface);
+
+  const trend_id = String(formData.get('trend_id') ?? '').trim();
+  if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
+
+  const ordersRaw = String(formData.get('tab_orders') ?? '[]');
+  let orders: { tab_id: string; display_order: number }[];
+  try {
+    const parsed: unknown = JSON.parse(ordersRaw);
+    if (!Array.isArray(parsed)) throw new Error('not array');
+    orders = parsed as { tab_id: string; display_order: number }[];
+  } catch {
+    return { ok: false, error: 'Invalid tab_orders JSON.' };
+  }
+
+  for (const o of orders) {
+    if (typeof o?.tab_id !== 'string' || !o.tab_id) {
+      return { ok: false, error: 'Invalid tab_id in orders.' };
+    }
+    if (typeof o.display_order !== 'number' || o.display_order < 0) {
+      return { ok: false, error: 'Invalid display_order in orders.' };
+    }
+  }
+
+  const tabTable = tabTableFor(surface);
+
+  // Phase 1: shift affected rows into the negative range.
+  for (const o of orders) {
+    const { error } = await supabase
+      .from(tabTable)
+      .update({ display_order: -1 - o.display_order })
+      .eq('tab_id', o.tab_id)
+      .eq('trend_id', trend_id);
+    if (error) return { ok: false, error: `Reorder failed: ${error.message}` };
+  }
+
+  // Phase 2: set each to its target order.
+  const now = new Date().toISOString();
+  for (const o of orders) {
+    const { error } = await supabase
+      .from(tabTable)
+      .update({ display_order: o.display_order, updated_at: now })
+      .eq('tab_id', o.tab_id)
+      .eq('trend_id', trend_id);
+    if (error) return { ok: false, error: `Reorder failed: ${error.message}` };
+  }
+
+  revalidatePath(`${cfg.baseUrl}/${trend_id}`);
   return { ok: true };
 }

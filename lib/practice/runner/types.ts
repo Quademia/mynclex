@@ -94,9 +94,9 @@ export interface TrendSnapshot {
   title_snapshot:           string;
   scenario_snapshot:        string | null;
   kind_snapshot:            string;
-  row_label_snapshot:       string | null;
-  timepoints_snapshot_json: unknown[];
-  rows_snapshot_json:       unknown[];
+  // Frozen chart tabs (Slice 3b). The trend stimulus is entirely
+  // tab-based since Slice 4 retired the flat grid.
+  tabs_snapshot_json:       unknown[];
 }
 
 export type CellFill = 'unanswered' | 'answered' | 'right' | 'wrong' | 'skipped';

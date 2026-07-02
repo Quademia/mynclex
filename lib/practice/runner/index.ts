@@ -35,6 +35,7 @@ export { TfRunner,        isTfComplete }        from './types/tf';
 export { SataRunner,      isSataComplete }      from './types/sata';
 export { SelectNRunner,   isSelectNComplete }   from './types/select-n';
 export { MatrixRunner,    isMatrixComplete }    from './types/matrix';
+export { MatrixMrRunner,  isMatrixMrComplete }  from './types/matrix-mr';
 export { HighlightRunner, isHighlightComplete } from './types/highlight';
 export { ClozeRunner,     isClozeComplete }     from './types/cloze';
 export { DragDropRunner,  isDragDropComplete }  from './types/drag-drop';

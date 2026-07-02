@@ -59,6 +59,12 @@ import {
   type MatrixEditorInitial,
 } from '@/lib/bank/editors/matrix-row-mapper';
 import {
+  emptyMatrixMrInitial,
+  matrixMrRowToInitial,
+  type MatrixMrDbRow,
+  type MatrixMrEditorInitial,
+} from '@/lib/bank/editors/matrix-mr-row-mapper';
+import {
   emptyBowtieInitial,
   bowtieRowToInitial,
   type BowtieDbRow,
@@ -222,6 +228,7 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
   const sataInitialsById:      Record<string, SataEditorInitial>      = {};
   const selectNInitialsById:   Record<string, SelectNEditorInitial>   = {};
   const matrixInitialsById:    Record<string, MatrixEditorInitial>    = {};
+  const matrixMrInitialsById:  Record<string, MatrixMrEditorInitial>  = {};
   const bowtieInitialsById:    Record<string, BowtieEditorInitial>    = {};
   const clozeInitialsById:     Record<string, ClozeEditorInitial>     = {};
   const highlightInitialsById: Record<string, HighlightEditorInitial> = {};
@@ -239,6 +246,8 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
       selectNInitialsById[row.item_id] = selectNRowToInitial(row as unknown as SelectNDbRow, 'admin');
     } else if (row.question_type === 'MATRIX') {
       matrixInitialsById[row.item_id] = matrixRowToInitial(row as unknown as MatrixDbRow, 'admin');
+    } else if (row.question_type === 'MATRIX_MR') {
+      matrixMrInitialsById[row.item_id] = matrixMrRowToInitial(row as unknown as MatrixMrDbRow, 'admin');
     } else if (row.question_type === 'BOWTIE') {
       bowtieInitialsById[row.item_id] = bowtieRowToInitial(row as unknown as BowtieDbRow, 'admin');
     } else if (row.question_type === 'CLOZE') {
@@ -316,6 +325,8 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
           emptySelectNInitial={emptySelectNInitial('admin')}
           matrixInitialsById={matrixInitialsById}
           emptyMatrixInitial={emptyMatrixInitial('admin')}
+          matrixMrInitialsById={matrixMrInitialsById}
+          emptyMatrixMrInitial={emptyMatrixMrInitial('admin')}
           bowtieInitialsById={bowtieInitialsById}
           emptyBowtieInitial={emptyBowtieInitial('admin')}
           clozeInitialsById={clozeInitialsById}

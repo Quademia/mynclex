@@ -257,6 +257,7 @@ export const QTYPE_OPTIONS: { id: string; label: string }[] = [
   { id: 'SATA',      label: 'Select All That Apply' },
   { id: 'SELECT_N',  label: 'Select N' },
   { id: 'MATRIX',    label: 'Matrix grid' },
+  { id: 'MATRIX_MR', label: 'Matrix (multiple response)' },
   { id: 'HIGHLIGHT', label: 'Highlight (Hot spot)' },
   { id: 'CLOZE',     label: 'Fill-in (Cloze)' },
   { id: 'DRAG_DROP', label: 'Drag and drop' },

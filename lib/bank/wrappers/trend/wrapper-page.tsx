@@ -31,19 +31,36 @@ import { kindDefaultLabel } from './kind-templates';
 import {
   saveTrendMetadataAction,
   detachQuestionAction,
+  upsertTabAction,
+  deleteTabAction,
 } from './actions';
-import { TrendDataTable } from './data-table';
+import { TrendTabRail } from './tab-rail';
 import { DeleteTrendConfirm } from './delete-trend-confirm';
 import { PublishNeedsDatasetNotice } from './publish-needs-dataset-notice';
+import { MergeTableEditor } from '@/lib/authoring/table/merge-table-editor';
+import { MergeTableView } from '@/lib/authoring/table/merge-table-view';
+import {
+  asMergeTab,
+  type MergeTabData,
+} from '@/lib/authoring/table/merge-table-model';
+import { NarrativeTabEditorV2 } from '@/lib/authoring/narrative/narrative-tab-editor';
+import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
+import {
+  asNarrativeTab,
+  type NarrativeTabData,
+} from '@/lib/authoring/narrative/narrative-model';
+import { RichField } from '@/lib/authoring/rich-field';
+import { RichRender } from '@/lib/authoring/rich-render';
 import type {
   SlotEditorInitial,
   SlotRow,
-  TrendRow,
+  TrendTabRow,
   WrapperData,
 } from './types';
 import type { PreviewViewMode } from '@/lib/bank/atoms/preview-toggle';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
+import { TrendDetachConfirm } from '@/lib/overlays/bank/trend-detach-confirm';
 import { TrendWrapperBulb } from '@/lib/hints/bank/trend-wrapper-bulb';
 import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
 import { saveQuestionAction } from '@/lib/bank/actions/save-question';
@@ -54,11 +71,19 @@ import { AuthorshipInline } from '@/lib/audit/authorship-line';
 import type { Authorship } from '@/lib/audit/authorship';
 
 import { McqEditorBody, McqPreview }             from '@/lib/bank/editors/mcq-editor';
-import { parseRichDoc, richTextToPlain }         from '@/lib/authoring/rich-doc';
+import {
+  parseRichDoc,
+  serializeRichDoc,
+  isEmptyRichDoc,
+  richTextToPlain,
+  richDocToPlain,
+  type RichDoc,
+}                                                from '@/lib/authoring/rich-doc';
 import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-editor';
 import { SataEditorBody, SataPreview }           from '@/lib/bank/editors/sata-editor';
 import { SelectNEditorBody, SelectNPreview }     from '@/lib/bank/editors/select-n-editor';
 import { MatrixEditorBody, MatrixPreview }       from '@/lib/bank/editors/matrix-editor';
+import { MatrixMrEditorBody, MatrixMrPreview }   from '@/lib/bank/editors/matrix-mr-editor';
 import { BowtieEditorBody, BowtiePreview }       from '@/lib/bank/editors/bowtie-editor';
 import {
   ClozeEditorBody,
@@ -85,6 +110,7 @@ import { emptyTfInitial }        from '@/lib/bank/editors/tf-row-mapper';
 import { emptySataInitial }      from '@/lib/bank/editors/sata-row-mapper';
 import { emptySelectNInitial }   from '@/lib/bank/editors/select-n-row-mapper';
 import { emptyMatrixInitial }    from '@/lib/bank/editors/matrix-row-mapper';
+import { emptyMatrixMrInitial }  from '@/lib/bank/editors/matrix-mr-row-mapper';
 import { emptyBowtieInitial }    from '@/lib/bank/editors/bowtie-row-mapper';
 import { emptyClozeInitial }     from '@/lib/bank/editors/cloze-row-mapper';
 import { emptyHighlightInitial } from '@/lib/bank/editors/highlight-row-mapper';
@@ -120,6 +146,7 @@ const FORM_ID_BY_TYPE: Record<string, string> = {
   SATA:      'auth-sata-form',
   SELECT_N:  'auth-select-n-form',
   MATRIX:    'auth-matrix-form',
+  MATRIX_MR: 'auth-matrix-mr-form',
   BOWTIE:    'auth-bowtie-form',
   CLOZE:     'auth-cloze-form',
   HIGHLIGHT: 'auth-highlight-form',
@@ -127,6 +154,27 @@ const FORM_ID_BY_TYPE: Record<string, string> = {
   DRAG_CLOZE: 'auth-drag-cloze-form',
   DRAG_ORDER: 'auth-drag-order-form',
 };
+
+// ── Per-tab in-flight draft (chart tabs, Slice 2) ────────────
+// Trend tabs are always v2 (merge table or narrative). No columns_def
+// editing (the merge editor posts columns_def="[]"), so the draft is
+// just title + entries.
+interface TabDraft {
+  title:   string;
+  entries: MergeTabData | NarrativeTabData;
+}
+function tabToDraft(t: TrendTabRow): TabDraft {
+  return { title: t.title, entries: t.entries };
+}
+function isTabDirty(t: TrendTabRow, d: TabDraft): boolean {
+  if (t.title !== d.title) return true;
+  if (JSON.stringify(t.entries) !== JSON.stringify(d.entries)) return true;
+  return false;
+}
+
+// Show every revealed row/entry — trend has no progressive disclosure,
+// so the read views render at a position past any visibleFrom.
+const TREND_PREVIEW_POSITION = 999;
 
 // Pending navigation while a discard dialog is open.
 type PendingNav =
@@ -143,7 +191,7 @@ interface CreatingState {
 }
 
 export function TrendWrapperPage({ data, focusItemId = null, authorship = null }: Props) {
-  const { surface, datasetRow, slots } = data;
+  const { surface, datasetRow, slots, tabs } = data;
   const router = useRouter();
 
   const baseUrl =
@@ -151,14 +199,21 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
 
   // ── Wrapper-edit state (the curator's in-flight edits) ─────
   const [title, setTitle] = useState(datasetRow.title);
-  const [scenario, setScenario] = useState(datasetRow.scenario ?? '');
+  // Scenario is rich content (mirrors the case-study scenario). Parse the
+  // stored value once: a JSON rich-doc reads back as itself, a legacy
+  // plain-text scenario wraps as paragraphs. The serialized baseline drives
+  // dirty-tracking (compare docs by stored string, so a no-op load isn't dirty).
+  const [scenario, setScenario] = useState<RichDoc>(() =>
+    parseRichDoc(datasetRow.scenario ?? ''),
+  );
+  const initialScenarioSerialized = useMemo(
+    () => serializeRichDoc(parseRichDoc(datasetRow.scenario ?? '')),
+    [datasetRow.scenario],
+  );
   const [kind, setKind] = useState(datasetRow.kind);
-  const [rowLabel, setRowLabel] = useState(datasetRow.row_label ?? '');
   const [isPublished, setIsPublished] = useState(datasetRow.is_published);
   const [isFreeSample, setIsFreeSample] = useState(datasetRow.is_free_sample);
   const [isBuilderVisible, setIsBuilderVisible] = useState(datasetRow.is_builder_visible);
-  const [timepoints, setTimepoints] = useState<string[]>(datasetRow.timepoints);
-  const [rows, setRows] = useState<TrendRow[]>(datasetRow.rows);
 
   // ── "Creating" state for + Add question flow ──────────────
   const [creating, setCreating] = useState<CreatingState | null>(null);
@@ -194,6 +249,43 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
 
   const activeEditorKind: string | null = activeEditor?.kind ?? null;
 
+  // ── Chart-tab draft state (Slice 2) ─────────────────────────
+  const [draftOverrides, setDraftOverrides] = useState<Record<string, TabDraft>>({});
+  const drafts = useMemo<Record<string, TabDraft>>(() => {
+    const out: Record<string, TabDraft> = {};
+    for (const t of tabs) out[t.tab_id] = draftOverrides[t.tab_id] ?? tabToDraft(t);
+    return out;
+  }, [tabs, draftOverrides]);
+  function updateTabDraft(tab_id: string, next: TabDraft) {
+    setDraftOverrides((prev) => ({ ...prev, [tab_id]: next }));
+  }
+  const dirtyTabIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tabs) {
+      const d = drafts[t.tab_id];
+      if (d && isTabDirty(t, d)) set.add(t.tab_id);
+    }
+    return set;
+  }, [tabs, drafts]);
+
+  const [activeChartTabId, setActiveChartTabId] = useState<string | null>(
+    () => tabs[0]?.tab_id ?? null,
+  );
+  // Keep the active tab valid after add/delete/reorder refreshes.
+  if (activeChartTabId && !tabs.some((t) => t.tab_id === activeChartTabId)) {
+    setActiveChartTabId(tabs[0]?.tab_id ?? null);
+  } else if (!activeChartTabId && tabs.length > 0) {
+    setActiveChartTabId(tabs[0].tab_id);
+  }
+  const activeChartTab = useMemo(
+    () => tabs.find((t) => t.tab_id === activeChartTabId) ?? null,
+    [tabs, activeChartTabId],
+  );
+  const activeChartDraft = activeChartTab ? drafts[activeChartTab.tab_id] : null;
+
+  // Dataset pane sub-tab: Content (metadata) | Charts (the stimulus).
+  const [datasetTab, setDatasetTab] = useState<'content' | 'charts'>('content');
+
   // ── Right-pane preview toggle (Student / Answer-key) ───────
   const [questionMode, setQuestionMode] = useState<PreviewViewMode>('student');
 
@@ -207,6 +299,11 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
 
   // ── Delete dialog ───────────────────────────────────────────
   const [showDelete, setShowDelete] = useState(false);
+
+  // ── Detach-confirm dialog ───────────────────────────────────
+  // Holds the slot being detached (null = dialog closed). Detach is
+  // reversible, so this is a lightweight styled misclick guard.
+  const [detachTarget, setDetachTarget] = useState<SlotRow | null>(null);
 
   // ── Publish-needs-dataset offer ─────────────────────────────
   // Holds the question's submitted FormData when the curator tries to
@@ -228,10 +325,8 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     setValidationIssues(
       validateTrend({
         title,
-        scenario,
+        scenario: richDocToPlain(scenario),
         is_published: isPublished,
-        timepoints,
-        rows,
         slots,
       }),
     );
@@ -246,19 +341,15 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   // ── Wrapper-edit dirty tracking ─────────────────────────────
   const wrapperDirty = useMemo(() => {
     if (title !== datasetRow.title) return true;
-    if ((scenario || null) !== (datasetRow.scenario || null)) return true;
+    if (serializeRichDoc(scenario) !== initialScenarioSerialized) return true;
     if (kind !== datasetRow.kind) return true;
-    if ((rowLabel || null) !== (datasetRow.row_label || null)) return true;
     if (isPublished       !== datasetRow.is_published)       return true;
     if (isFreeSample      !== datasetRow.is_free_sample)     return true;
     if (isBuilderVisible  !== datasetRow.is_builder_visible) return true;
-    if (JSON.stringify(timepoints) !== JSON.stringify(datasetRow.timepoints)) return true;
-    if (JSON.stringify(rows)       !== JSON.stringify(datasetRow.rows))       return true;
     return false;
   }, [
-    title, scenario, kind, rowLabel,
+    title, scenario, initialScenarioSerialized, kind,
     isPublished, isFreeSample, isBuilderVisible,
-    timepoints, rows,
     datasetRow,
   ]);
 
@@ -267,14 +358,11 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   function onCancelChanges() {
     if (!wrapperDirty) return;
     setTitle(datasetRow.title);
-    setScenario(datasetRow.scenario ?? '');
+    setScenario(parseRichDoc(datasetRow.scenario ?? ''));
     setKind(datasetRow.kind);
-    setRowLabel(datasetRow.row_label ?? '');
     setIsPublished(datasetRow.is_published);
     setIsFreeSample(datasetRow.is_free_sample);
     setIsBuilderVisible(datasetRow.is_builder_visible);
-    setTimepoints(datasetRow.timepoints);
-    setRows(datasetRow.rows);
     setWrapperError(null);
   }
 
@@ -283,14 +371,11 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     fd.set('surface', surface);
     fd.set('trend_id', datasetRow.trend_id);
     fd.set('title', title);
-    fd.set('scenario', scenario);
+    fd.set('scenario', serializeRichDoc(scenario));
     fd.set('kind', kind);
-    fd.set('row_label', rowLabel);
     if (isPublished)      fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
-    fd.set('timepoints', JSON.stringify(timepoints));
-    fd.set('rows',       JSON.stringify(rows));
     return fd;
   }
 
@@ -397,22 +482,26 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     if (formEl) formEl.requestSubmit();
   }
 
-  // Detach: clear trend_id on the active question's row. Question
-  // survives in the bank as standalone. Browser confirm() — no typed
-  // gate since detach is reversible (curator can re-link from the
-  // bank list editor) and the action is non-destructive.
+  // Detach: clear trend_id on the active question's row. The question
+  // survives in the bank as a standalone item (it just leaves this
+  // trend). Non-destructive, so no typed gate — a styled
+  // <TrendDetachConfirm> misclick guard (opened here, run in
+  // onConfirmDetach). Note: there's no re-attach flow today, so detach
+  // is effectively one-way.
   function onDetachActive() {
     if (!activeSlot || isCreatingActive) return;
-    const ok = window.confirm(
-      `Detach Q${activeSlot.position} (${activeSlot.question_type}) from this dataset? The question will remain in the bank as a standalone item.`,
-    );
-    if (!ok) return;
+    setDetachTarget(activeSlot);
+  }
+
+  function onConfirmDetach() {
+    const slot = detachTarget;
+    if (!slot) return;
     setQuestionError(null);
     startDetachTransition(async () => {
       const fd = new FormData();
       fd.set('surface', surface);
       fd.set('trend_id', datasetRow.trend_id);
-      fd.set('item_id', activeSlot.item_id);
+      fd.set('item_id', slot.item_id);
       const result = await detachQuestionAction(fd);
       if (!result.ok) {
         setQuestionError(result.error);
@@ -423,6 +512,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
         setActivePill('dataset');
         router.refresh();
       }
+      setDetachTarget(null);
     });
   }
 
@@ -441,7 +531,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   // ── Navigation guards ───────────────────────────────────────
 
   function tryLeavePage(href: string, ev?: MouseEvent) {
-    const dirty = wrapperDirty || editorDirty;
+    const dirty = wrapperDirty || editorDirty || dirtyTabIds.size > 0;
     if (!dirty) return;
     if (ev) {
       ev.preventDefault();
@@ -538,6 +628,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
       case 'SATA':      return { kind: 'SATA',      initial: emptySataInitial(surface)      };
       case 'SELECT_N':  return { kind: 'SELECT_N',  initial: emptySelectNInitial(surface)   };
       case 'MATRIX':    return { kind: 'MATRIX',    initial: emptyMatrixInitial(surface)    };
+      case 'MATRIX_MR': return { kind: 'MATRIX_MR', initial: emptyMatrixMrInitial(surface)  };
       case 'BOWTIE':    return { kind: 'BOWTIE',    initial: emptyBowtieInitial(surface)    };
       case 'CLOZE':     return { kind: 'CLOZE',     initial: emptyClozeInitial(surface)     };
       case 'HIGHLIGHT': return { kind: 'HIGHLIGHT', initial: emptyHighlightInitial(surface) };
@@ -576,13 +667,6 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     setShowTypePicker(false);
   }
 
-  // ── Right-pane in-flight values ─────────────────────────────
-  const previewScenario = scenario;
-  const previewKind     = kind;
-  const previewRowLabel = rowLabel;
-  const previewRows     = rows;
-  const previewTps      = timepoints;
-
   // Save-question button visibility + state
   const onQuestionPill = activePill !== 'dataset';
 
@@ -608,7 +692,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
             </Link>
             <span className="auth-tr-crumb-sep">/</span>
             <code className="auth-tr-crumb-id">{datasetRow.trend_id}</code>
-            {(wrapperDirty || editorDirty) && (
+            {(wrapperDirty || editorDirty || dirtyTabIds.size > 0) && (
               <span className="auth-cs-dirty-dot" title="Unsaved changes">●</span>
             )}
           </span>
@@ -622,77 +706,86 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
             />
           </span>
         </div>
-        <div className="auth-tr-topbar-right">
-          {onQuestionPill ? (
-            <>
-              <button
-                type="button"
-                className={`auth-cs-btn primary tiny${editorDirty ? ' dirty-glow' : ''}`}
-                onClick={onSaveQuestion}
-                disabled={!editorDirty || isQuestionPending}
-                title="Save the active question."
-                form={activeEditorKind ? FORM_ID_BY_TYPE[activeEditorKind] : undefined}
-              >
-                {isQuestionPending ? 'Saving…' : 'Save question'}
-              </button>
-              {/* Detach is only meaningful for existing questions —
-                  hide for the creating pill (nothing to detach yet). */}
-              {!isCreatingActive && activeSlot && (
-                <button
-                  type="button"
-                  className="auth-cs-btn subtle tiny"
-                  onClick={onDetachActive}
-                  disabled={isDetachPending}
-                  title="Detach this question from the dataset. The question survives in the bank as standalone."
-                >
-                  {isDetachPending ? 'Detaching…' : 'Detach'}
-                </button>
-              )}
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className={`auth-cs-btn subtle tiny${wrapperDirty ? ' dirty-glow' : ''}`}
-                onClick={onCancelChanges}
-                disabled={!wrapperDirty || isWrapperPending}
-                title="Discard unsaved title / scenario / kind / visibility / data table edits."
-              >
-                Cancel changes
-              </button>
-              <button
-                type="button"
-                className={`auth-cs-btn primary tiny${wrapperDirty ? ' dirty-glow' : ''}`}
-                onClick={onSaveTrend}
-                disabled={!wrapperDirty || isWrapperPending}
-                title="Save dataset metadata + data table."
-              >
-                {isWrapperPending ? 'Saving…' : 'Save trend'}
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            className="auth-cs-btn subtle tiny"
-            onClick={onValidateClick}
-            title="Run a manual validation pass over the dataset (rows, timepoints, attached questions)."
-          >
-            {validationIssues === null ? 'Validate' : 'Hide validation'}
-          </button>
-          <button
-            type="button"
-            className="auth-cs-btn subtle tiny"
-            onClick={onDeleteDataset}
-            title="Delete this trend dataset."
-          >
-            Delete
-          </button>
-          <TrendWrapperBulb />
-        </div>
       </header>
 
       <div className="auth-tr-grid">
         <div className="auth-tr-pane auth-tr-pane-left">
+          {/* Actions row — wrapper/question actions live on the pane
+              (not the top bar), so both wrappers place actions the same
+              way. Context-aware: Dataset pill vs a question pill. */}
+          <div className="auth-tr-pane-actions">
+            <span className="auth-tr-pane-actions-label">
+              {onQuestionPill ? <>Question · <strong>Q{activePill}</strong></> : 'Dataset'}
+            </span>
+            <span className="auth-tr-pane-actions-btns">
+              {onQuestionPill ? (
+                <>
+                  <button
+                    type="button"
+                    className={`auth-cs-btn primary tiny${editorDirty ? ' dirty-glow' : ''}`}
+                    onClick={onSaveQuestion}
+                    disabled={!editorDirty || isQuestionPending}
+                    title="Save the active question."
+                    form={activeEditorKind ? FORM_ID_BY_TYPE[activeEditorKind] : undefined}
+                  >
+                    {isQuestionPending ? 'Saving…' : 'Save question'}
+                  </button>
+                  {/* Detach is only meaningful for existing questions —
+                      hide for the creating pill (nothing to detach yet). */}
+                  {!isCreatingActive && activeSlot && (
+                    <button
+                      type="button"
+                      className="auth-cs-btn subtle tiny"
+                      onClick={onDetachActive}
+                      disabled={isDetachPending}
+                      title="Detach this question from the dataset. The question survives in the bank as standalone."
+                    >
+                      {isDetachPending ? 'Detaching…' : 'Detach'}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={`auth-cs-btn subtle tiny${wrapperDirty ? ' dirty-glow' : ''}`}
+                    onClick={onCancelChanges}
+                    disabled={!wrapperDirty || isWrapperPending}
+                    title="Discard unsaved title / scenario / kind / visibility edits."
+                  >
+                    Cancel changes
+                  </button>
+                  <button
+                    type="button"
+                    className={`auth-cs-btn primary tiny${wrapperDirty ? ' dirty-glow' : ''}`}
+                    onClick={onSaveTrend}
+                    disabled={!wrapperDirty || isWrapperPending}
+                    title="Save dataset metadata (title, scenario, kind, visibility)."
+                  >
+                    {isWrapperPending ? 'Saving…' : 'Save trend'}
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                className="auth-cs-btn subtle tiny"
+                onClick={onValidateClick}
+                title="Run a manual validation pass over the dataset (title, scenario, attached questions)."
+              >
+                {validationIssues === null ? 'Validate' : 'Hide validation'}
+              </button>
+              <button
+                type="button"
+                className="auth-cs-btn subtle tiny"
+                onClick={onDeleteDataset}
+                title="Delete this trend dataset."
+              >
+                Delete
+              </button>
+              <TrendWrapperBulb />
+            </span>
+          </div>
+
           <PillStrip
             activePill={activePill}
             slots={slots}
@@ -704,28 +797,78 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
 
           <div className="auth-tr-pane-body">
             {activePill === 'dataset' ? (
-              <DatasetView
-                title={title}
-                scenario={scenario}
-                kind={kind}
-                rowLabel={rowLabel}
-                isPublished={isPublished}
-                isFreeSample={isFreeSample}
-                isBuilderVisible={isBuilderVisible}
-                timepoints={timepoints}
-                rows={rows}
-                onTitleChange={setTitle}
-                onScenarioChange={setScenario}
-                onKindChange={setKind}
-                onRowLabelChange={setRowLabel}
-                onIsPublishedChange={setIsPublished}
-                onIsFreeSampleChange={setIsFreeSample}
-                onIsBuilderVisibleChange={setIsBuilderVisible}
-                onDataChange={({ timepoints: tps, rows: rs }) => {
-                  setTimepoints(tps);
-                  setRows(rs);
-                }}
-              />
+              <>
+                <div className="auth-cs-pane-tabs" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={datasetTab === 'content'}
+                    className={`auth-cs-pane-tab${datasetTab === 'content' ? ' active' : ''}`}
+                    onClick={() => setDatasetTab('content')}
+                  >
+                    Content
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={datasetTab === 'charts'}
+                    className={`auth-cs-pane-tab${datasetTab === 'charts' ? ' active' : ''}`}
+                    onClick={() => setDatasetTab('charts')}
+                  >
+                    Charts
+                    {dirtyTabIds.size > 0 && (
+                      <span
+                        className="auth-cs-tab-dot"
+                        title={`${dirtyTabIds.size} tab${dirtyTabIds.size === 1 ? '' : 's'} with unsaved changes`}
+                      />
+                    )}
+                  </button>
+                </div>
+
+                {datasetTab === 'content' ? (
+                  <DatasetView
+                    title={title}
+                    scenario={scenario}
+                    kind={kind}
+                    isPublished={isPublished}
+                    isFreeSample={isFreeSample}
+                    isBuilderVisible={isBuilderVisible}
+                    onTitleChange={setTitle}
+                    onScenarioChange={setScenario}
+                    onKindChange={setKind}
+                    onIsPublishedChange={setIsPublished}
+                    onIsFreeSampleChange={setIsFreeSample}
+                    onIsBuilderVisibleChange={setIsBuilderVisible}
+                  />
+                ) : (
+                  <div className="cs-chart-layout">
+                    <TrendTabRail
+                      surface={surface}
+                      trend_id={datasetRow.trend_id}
+                      tabs={tabs}
+                      activeTabId={activeChartTabId}
+                      onSelect={setActiveChartTabId}
+                      dirtyIds={dirtyTabIds}
+                    />
+                    {activeChartTab && activeChartDraft ? (
+                      <ActiveChartTabEditor
+                        surface={surface}
+                        trend_id={datasetRow.trend_id}
+                        tab={activeChartTab}
+                        draft={activeChartDraft}
+                        onDraftChange={(next) => updateTabDraft(activeChartTab.tab_id, next)}
+                      />
+                    ) : (
+                      <div className="cs-entries-pane">
+                        <div className="cs-entries-empty">
+                          <h4>This chart has no tabs yet</h4>
+                          <p>Add a tab from the rail on the left to start building the stimulus.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             ) : activeEditor ? (
               <EditorBodyForKind
                 editor={activeEditor}
@@ -756,24 +899,17 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
 
           <div className="auth-tr-preview-section">
             <div className="auth-tr-preview-section-label">Scenario</div>
-            {previewScenario
-              ? <p className="auth-tr-preview-scenario">{previewScenario}</p>
+            {!isEmptyRichDoc(scenario)
+              ? <RichRender doc={scenario} className="auth-tr-preview-scenario" />
               : <p className="auth-tr-empty-msg">No scenario yet.</p>}
           </div>
 
           <div className="auth-tr-preview-section">
-            <div className="auth-tr-preview-section-label">
-              Data table · {kindDefaultLabel(previewKind)}
-            </div>
-            {previewRows.length > 0 || previewTps.length > 0 ? (
-              <DataTableReadonly
-                rows={previewRows}
-                timepoints={previewTps}
-                rowLabel={previewRowLabel}
-                showFlags={false}
-              />
+            <div className="auth-tr-preview-section-label">Chart</div>
+            {tabs.length > 0 ? (
+              <ChartStimulusPreview tabs={tabs} drafts={drafts} />
             ) : (
-              <p className="auth-tr-empty-msg">No rows or timepoints yet.</p>
+              <p className="auth-tr-empty-msg">No chart tabs yet.</p>
             )}
           </div>
 
@@ -838,6 +974,16 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
             setShowDelete(false);
             setWrapperError(msg);
           }}
+        />
+      )}
+
+      {detachTarget && (
+        <TrendDetachConfirm
+          position={detachTarget.position}
+          questionType={detachTarget.question_type}
+          pending={isDetachPending}
+          onCancel={() => setDetachTarget(null)}
+          onConfirm={onConfirmDetach}
         />
       )}
 
@@ -956,35 +1102,25 @@ function DatasetView({
   isPublished,
   isFreeSample,
   isBuilderVisible,
-  timepoints,
-  rows,
-  rowLabel,
   onTitleChange,
   onScenarioChange,
   onKindChange,
-  onRowLabelChange,
   onIsPublishedChange,
   onIsFreeSampleChange,
   onIsBuilderVisibleChange,
-  onDataChange,
 }: {
   title:                    string;
-  scenario:                 string;
+  scenario:                 RichDoc;
   kind:                     string;
-  rowLabel:                 string;
   isPublished:              boolean;
   isFreeSample:             boolean;
   isBuilderVisible:         boolean;
-  timepoints:               string[];
-  rows:                     TrendRow[];
   onTitleChange:            (next: string) => void;
-  onScenarioChange:         (next: string) => void;
+  onScenarioChange:         (next: RichDoc) => void;
   onKindChange:             (next: string) => void;
-  onRowLabelChange:         (next: string) => void;
   onIsPublishedChange:      (next: boolean) => void;
   onIsFreeSampleChange:     (next: boolean) => void;
   onIsBuilderVisibleChange: (next: boolean) => void;
-  onDataChange:             (next: { timepoints: string[]; rows: TrendRow[] }) => void;
 }) {
   return (
     <div className="auth-tr-dataset-view">
@@ -1001,14 +1137,12 @@ function DatasetView({
       </section>
 
       <section className="auth-tr-section">
-        <label className="auth-tr-section-label" htmlFor="auth-tr-scenario">Scenario</label>
-        <textarea
-          id="auth-tr-scenario"
-          className="auth-tr-textarea"
-          rows={4}
+        <label className="auth-tr-section-label">Scenario</label>
+        <RichField
           value={scenario}
-          onChange={(e) => onScenarioChange(e.target.value)}
-          placeholder="Brief patient context shown above the data table."
+          onChange={onScenarioChange}
+          placeholder="Brief patient context shown above the chart tabs…"
+          ariaLabel="Scenario"
         />
       </section>
 
@@ -1025,9 +1159,8 @@ function DatasetView({
         />
         <span className="auth-tr-kind-hint">
           Display label: <strong>{kindDefaultLabel(kind)}</strong>
-          {' '}· presets (vitals / labs / io / neuro / assessment) seed
-          row templates at create time; editing here just renames the
-          stored kind value.
+          {' '}· a short label for this dataset. The stimulus itself is
+          built from the chart tabs below.
         </span>
       </section>
 
@@ -1051,16 +1184,6 @@ function DatasetView({
             hint="No effect on trends — each question sets its own builder visibility."
           />
         </div>
-      </section>
-
-      <section className="auth-tr-section">
-        <TrendDataTable
-          timepoints={timepoints}
-          rows={rows}
-          rowLabel={rowLabel}
-          onChange={onDataChange}
-          onRowLabelChange={onRowLabelChange}
-        />
       </section>
     </div>
   );
@@ -1120,6 +1243,7 @@ function EditorBodyForKind({
     case 'SATA':      return <SataEditorBody      initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'SELECT_N':  return <SelectNEditorBody   initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'MATRIX':    return <MatrixEditorBody    initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'MATRIX_MR': return <MatrixMrEditorBody  initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'BOWTIE':    return <BowtieEditorBody    initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'CLOZE':     return <ClozeEditorBody     initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'HIGHLIGHT': return <HighlightEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
@@ -1130,65 +1254,126 @@ function EditorBodyForKind({
 }
 
 // ───────────────────────────────────────────────────────────
-// DataTableReadonly — read-only render of the dataset's data
-// table for the right pane.
+// ActiveChartTabEditor — routes the active chart tab to its shared v2
+// editor by entries shape: MergeTableEditor (custom table) or
+// NarrativeTabEditorV2 (narrative). Injects trend's save/delete actions
+// (which set trend_id) and hides the reveal gutter (trend has no
+// progressive disclosure). Mirror of the case-study dispatch.
 // ───────────────────────────────────────────────────────────
 
-function DataTableReadonly({
-  rows,
-  timepoints,
-  rowLabel,
-  showFlags,
+function ActiveChartTabEditor({
+  surface,
+  trend_id,
+  tab,
+  draft,
+  onDraftChange,
 }: {
-  rows:       TrendRow[];
-  timepoints: string[];
-  rowLabel:   string;
-  showFlags:  boolean;
+  surface:       WrapperData['surface'];
+  trend_id:      string;
+  tab:           TrendTabRow;
+  draft:         TabDraft;
+  onDraftChange: (next: TabDraft) => void;
 }) {
-  const hasRefRange = rows.some((r) => r.ref_range !== undefined && r.ref_range !== '');
-  const hasCols = timepoints.length > 0;
-  const rowLabelDisplay = rowLabel.trim() || 'Metric';
+  const mergeTab = asMergeTab(tab.entries);
+  if (mergeTab) {
+    const draftTab = asMergeTab(draft.entries) ?? mergeTab;
+    return (
+      <MergeTableEditor
+        surface={surface}
+        tab={tab}
+        draftTitle={draft.title}
+        draftTab={draftTab}
+        onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab })}
+        previewPosition={null}
+        hideReveal
+        saveAction={(fd) => { fd.set('trend_id', trend_id); return upsertTabAction(fd); }}
+        deleteAction={(fd) => { fd.set('trend_id', trend_id); return deleteTabAction(fd); }}
+      />
+    );
+  }
 
-  if (!hasCols && rows.length === 0) {
-    return <p className="auth-tr-empty-msg">Empty data table.</p>;
+  const narrativeTab = asNarrativeTab(tab.entries);
+  if (narrativeTab) {
+    const draftNarrative = asNarrativeTab(draft.entries) ?? narrativeTab;
+    return (
+      <NarrativeTabEditorV2
+        surface={surface}
+        tab={tab}
+        draftTitle={draft.title}
+        draftNarrative={draftNarrative}
+        onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab })}
+        previewPosition={null}
+        hideReveal
+        saveAction={(fd) => { fd.set('trend_id', trend_id); return upsertTabAction(fd); }}
+        deleteAction={(fd) => { fd.set('trend_id', trend_id); return deleteTabAction(fd); }}
+      />
+    );
   }
 
   return (
-    <div className="auth-tr-table-scroll">
-      <table className="auth-tr-table">
-        <thead>
-          <tr>
-            <th className="auth-tr-col-metric">{rowLabelDisplay}</th>
-            {timepoints.map((tp, idx) => (
-              <th key={idx} className="auth-tr-col-tp">{tp || `TP${idx + 1}`}</th>
-            ))}
-            {hasRefRange && <th className="auth-tr-col-refrange">Ref range</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, rIdx) => (
-            <tr key={rIdx}>
-              <td className="auth-tr-col-metric">{r.metric || `Row ${rIdx + 1}`}</td>
-              {timepoints.map((_, cIdx) => {
-                const flag = r.flags[cIdx] ?? null;
-                const flagClass = showFlags && flag
-                  ? ` auth-tr-cell-${flag}`
-                  : '';
-                return (
-                  <td key={cIdx} className={`auth-tr-cell${flagClass}`}>
-                    {r.values[cIdx] ?? ''}
-                  </td>
-                );
-              })}
-              {hasRefRange && (
-                <td className="auth-tr-refrange-cell">{r.ref_range ?? ''}</td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="cs-entries-pane">
+      <div className="cs-entries-empty">
+        <h4>Unknown tab type</h4>
+        <p>This tab uses tab_key <code>{tab.tab_key}</code> which the editor doesn&apos;t recognise.</p>
+      </div>
     </div>
   );
+}
+
+// ───────────────────────────────────────────────────────────
+// ChartStimulusPreview — the combined "as student" stimulus: a tab bar
+// over all chart tabs + the selected tab's body, reflecting the live
+// drafts. Mirrors the student runner's tabbed panel (reuses the runner's
+// rn-case-* styling for a faithful preview), minus reveal — trend shows
+// every tab at once.
+// ───────────────────────────────────────────────────────────
+
+function ChartStimulusPreview({
+  tabs,
+  drafts,
+}: {
+  tabs:   TrendTabRow[];
+  drafts: Record<string, TabDraft>;
+}) {
+  const ordered = [...tabs].sort((a, b) => a.display_order - b.display_order);
+  const [activeId, setActiveId] = useState<string>(() => ordered[0]?.tab_id ?? '');
+  const effectiveId = ordered.some((t) => t.tab_id === activeId)
+    ? activeId
+    : ordered[0]?.tab_id ?? '';
+  const activeTab = ordered.find((t) => t.tab_id === effectiveId);
+  const draft = activeTab ? drafts[activeTab.tab_id] : null;
+
+  return (
+    <div className="rn-trend-tabs-preview">
+      <div className="rn-case-tabs" role="tablist">
+        {ordered.map((t) => (
+          <button
+            key={t.tab_id}
+            type="button"
+            role="tab"
+            aria-selected={t.tab_id === effectiveId}
+            className={'rn-case-tab' + (t.tab_id === effectiveId ? ' on' : '')}
+            onClick={() => setActiveId(t.tab_id)}
+          >
+            {drafts[t.tab_id]?.title || t.title}
+          </button>
+        ))}
+      </div>
+      <div className="rn-case-body">
+        {draft ? <ChartTabBody draft={draft} /> : <p className="auth-tr-empty-msg">Empty tab.</p>}
+      </div>
+    </div>
+  );
+}
+
+// One chart tab's read-only body — dispatch by entries shape. Rendered
+// past any visible_from (TREND_PREVIEW_POSITION) so every row/entry shows.
+function ChartTabBody({ draft }: { draft: TabDraft }) {
+  const mt = asMergeTab(draft.entries);
+  if (mt) return <MergeTableView tab={mt} currentPosition={TREND_PREVIEW_POSITION} />;
+  const nt = asNarrativeTab(draft.entries);
+  if (nt) return <NarrativeView tab={nt} currentPosition={TREND_PREVIEW_POSITION} />;
+  return <p className="auth-tr-empty-msg">Empty tab.</p>;
 }
 
 // ───────────────────────────────────────────────────────────
@@ -1277,6 +1462,26 @@ function ActiveQuestionPreview({
     case 'MATRIX':
       return (
         <MatrixPreview
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          rowLabel={parseRichDoc(editor.initial.row_label)}
+          rows={editor.initial.rows.map((r) => ({
+            id: r.id,
+            text: parseRichDoc(r.text),
+            feedback: parseRichDoc(r.feedback),
+          }))}
+          columns={editor.initial.columns.map((c) => ({
+            id: c.id,
+            text: parseRichDoc(c.text),
+          }))}
+          correct={editor.initial.correct}
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
+        />
+      );
+    case 'MATRIX_MR':
+      return (
+        <MatrixMrPreview
           instruction={parseRichDoc(editor.initial.instruction)}
           stem={parseRichDoc(editor.initial.stem)}
           rowLabel={parseRichDoc(editor.initial.row_label)}

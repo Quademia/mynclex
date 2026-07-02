@@ -19,6 +19,7 @@ const ENABLED_TYPES: ReadonlySet<QuestionType> = new Set([
   'SATA',
   'SELECT_N',
   'MATRIX',
+  'MATRIX_MR',
   'BOWTIE',
   'CLOZE',
   'HIGHLIGHT',

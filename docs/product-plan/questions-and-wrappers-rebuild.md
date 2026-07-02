@@ -766,6 +766,274 @@ real design doc + slice plan.
 
 ---
 
+## Trend wrapper — rich multi-chart, locked decisions (2026-07-01)
+
+> **STATUS: DESIGN PASS — decisions LOCKED with Sam, nothing built.**
+> Picks up **Finding 1** above (trend is a single flat grid; real NGN
+> trends are multi-chart) and turns it into a build direction. Settled
+> one-at-a-time with Sam this session. **Next step is a Claude Design
+> pass** for the surface, then a slice plan. The question fields on trend
+> items are *already* rich (Slice 6); this arc is about the **stimulus**
+> — the dataset — which is still the last plain surface in the bank.
+
+### The core decision — trend adopts the case-study chart engine
+
+A trend's stimulus is structurally the same thing as a case study's: **N
+tabs of mixed shapes** (narrative notes, tables, orders lists). The
+case-study wrapper already has the whole machine for that — multi-tab
+chart model, the rich v2 authoring (merge tables + narrative chips +
+rich prose), the built-in tab registry, and a student renderer. Trend
+should **use that engine**, not grow a parallel one, and not keep its
+flat grid.
+
+The two wrappers differ only in what wraps the charts — case = a fixed
+6-question CJMM progression that *unfolds* the chart; trend = a variable
+number of questions read against **one snapshot**. So trend inherits the
+**chart engine**, not the question-progression behaviour.
+
+### The seven locked decisions
+
+1. **Inherit the case chart engine; retire the flat grid.** Trend's
+   stimulus becomes multi-tab rich charts, exactly like a case study's.
+   The current single `timepoints × rows` grid is replaced by the rich
+   chart tabs.
+
+2. **No progressive disclosure.** A trend shows its whole stimulus at
+   once (one snapshot, all tabs visible from the first question). The
+   case engine's per-row / `visible_from` reveal layer is **switched off**
+   for trend — it has no meaning here.
+
+3. **Two wrappers stay independent — COPY the engine, don't share it.**
+   Rather than a shared chart-engine abstraction imported by both
+   wrappers, we **copy** the case-study chart-tab engine into trend and
+   let each wrapper own its copy. Rationale (Sam): they will diverge
+   anyway (trend has no 6-question rule, different question semantics), so
+   a shared abstraction would fight the divergence later. Same
+   "mirror, don't share" playbook as MATRIX_MR and the drag-drop split.
+   - **What gets copied** into `lib/bank/wrappers/trend/`: the chart-tab
+     wrapper engine — tab rail, tab-type registry, per-tab editors /
+     dispatchers, tab CRUD + storage actions, and the render — adapted
+     `case_id → trend_id`.
+   - **What stays shared (NOT copied):** the low-level rich primitives in
+     **`lib/authoring/`** (roving Tiptap toolbar, rich field, rich render,
+     merge table, narrative chips). That folder is cross-cutting
+     foundation — the bank's question editors and the library all depend
+     on it, and it wraps the library's Tiptap engine. Copying it would be
+     duplicating Tiptap with no divergence benefit. So: **each wrapper
+     owns its chart-tab engine; both stand on the one shared rich-text
+     foundation.**
+
+4. **Storage = a `nclex_trend_tabs` child table (Option A — full mirror
+   of `nclex_case_study_tabs`).** New child table (`trend_id` FK,
+   `display_order`, `tab_key`, `title`, `is_custom`, `custom_shape`,
+   `columns_def`, **`entries` JSONB** = the rich v2 blob) **+ a
+   `nclex_tutor_trend_tabs` tutor twin.** Chosen over a JSONB `charts`
+   array on the dataset row because the child-table shape lets us inherit
+   the case study's tab **machinery** (CRUD, ordering, RLS pattern), not
+   just its rich-cell format. Cheapest moment to do this — prod holds only
+   **2 trend datasets**.
+
+5. **Tab-type registry = the case study's, wholesale.** Trend gets the
+   **6 case built-ins** (Nurses' Notes · Vital Signs · Labs · Orders ·
+   History & Physical · Diagnostics) **+ both case custom shapes**
+   (`custom_narrative` free-text · `custom_grid` curator columns). The old
+   trend `kind` presets (vitals / labs / io / neuro / assessment) are
+   **dropped** — the case built-ins solve the same job better. No special
+   trend-only "time-series" preset; time-as-columns is just a table a
+   curator lays out in a Labs / custom-grid tab.
+
+6. **The old trend affordances fold into the rich chart — nothing lost
+   that matters.** They were a *constrained convenience*, and the rich
+   table is a strict superset:
+   - **`timepoints` (time-as-columns)** → a header row of times the
+     curator types into a table. (Verified: the runner already renders
+     timepoints as plain column headers.)
+   - **`ref_range` column** → just a "Ref range" column in the table
+     (shown to students, as today).
+   - **Per-cell `flags` (abnormal / borderline)** → **author-side cell
+     highlight.** Confirmed in the runner
+     ([trend-panel.tsx:20-26](../../lib/practice/runner/trend/trend-panel.tsx)):
+     flags are **never shown to the student** (pre-cuing would defeat the
+     item type) — they are pure curator guidance. A curator who wants to
+     mark a cell "abnormal" for their own eye just highlights it in the
+     rich table, which the engine already supports better than the old
+     two-tone toggle. No separate flag model is carried over.
+
+7. **Build additively; migrate the legacy data separately/later.** The
+   dataset row (`nclex_trend_datasets` / tutor twin) **stays as the
+   container** — its identity (`title`, `scenario`, `kind`, publish /
+   free-sample / builder-visible flags) is unchanged; it just now holds N
+   tabs instead of one inline grid. We **add `nclex_trend_tabs` and build
+   the new multi-chart engine fresh, leaving the old `timepoints` / `rows`
+   columns and their data untouched.** Converting the existing datasets
+   (one seeded "Trend data" tab built from the old grid, via the case
+   Slice-5 `migrate-v1-tabs.ts` converter approach) and eventually
+   dropping the dead columns is its **own later step**, not part of
+   getting the new engine working — the same additive playbook as the
+   drag-drop split and MATRIX_MR (don't disturb what works; migrate once
+   proven).
+
+### Runner
+
+The trend runner render (currently the bespoke sticky table
+[trend-panel.tsx](../../lib/practice/runner/trend/trend-panel.tsx)) is
+**replaced by a copy of the case-study chart renderer**, so trend draws
+its tabs identically to a case study. One renderer shape, per-wrapper
+copy (consistent with decision 3).
+
+### Data-model DDL — cross-reference to bank.md
+
+The exact `nclex_trend_tabs` / `nclex_tutor_trend_tabs` DDL, RLS, and the
+legacy-conversion migration are a **data-model** change and get written
+into [bank.md](bank.md) when this becomes a build (mirroring how the
+case-study tab tables are documented there). This section is the
+authoring-surface / decision half.
+
+### Design pass — done in-repo, no CD needed (2026-07-01)
+
+We evaluated whether this needs a Claude Design prototype and decided
+**no** — the trend surface is a **recombination of two surfaces we've
+already designed and built** (the case-study chart-tab engine + the
+existing trend wrapper page), not a novel layout. A read-through of both
+wrapper pages, the slot/question relationship, the case chart-tab engine,
+and the shared editors confirmed it. Findings:
+
+- **The question/slot relationship is already the right shape.** Trend
+  questions are `nclex_bank_items` rows with `trend_id` set; the wrapper
+  derives `slots: SlotRow[]` (variable N, ordered by creation) and renders
+  them as pills `[Dataset] [Q1] [Q2] … [+ Add]`. Attach = save a question
+  with `trend_id`; detach = clear it; the publish gate (question needs its
+  dataset published) already exists. **None of this changes** — it is
+  already the variable-N model, independent of the 6-step CJMM.
+- **The change is surgical.** The trend wrapper page
+  ([wrapper-page.tsx](../../lib/bank/wrappers/trend/wrapper-page.tsx)) and
+  the case wrapper page are near-identical (same pill strip, editor
+  mounting, preview dispatch, save / discard / validate / delete). The
+  **only** structural difference: on the **Dataset pill**, trend renders
+  the flat `TrendDataTable` where case renders the chart-tab engine (tab
+  rail + per-tab rich editors). So the core change is **replace the flat
+  grid in the Dataset pane with the multi-tab chart editor** — everything
+  around it stays.
+- **The one real adaptation — the reveal gutter.** The shared editors
+  (`MergeTableEditor`, `NarrativeTabEditorV2` in `lib/authoring/`) render
+  the **"Appears from Q1…Q6" reveal gutter hardwired** — it is *not*
+  behind a prop
+  ([merge-table-editor.tsx:411](../../lib/authoring/table/merge-table-editor.tsx),
+  [narrative-tab-editor.tsx:189](../../lib/authoring/narrative/narrative-tab-editor.tsx)).
+  It is meaningless for trend (no progression). Because these editors are
+  the **shared foundation we do not fork**, the fix is a small **additive
+  prop** — `hideReveal` (name TBD) — that suppresses the gutter and pins
+  `visibleFrom = 1`. Case study passes nothing (unchanged); trend passes
+  `hideReveal`. Non-breaking, ~10 lines. This is the single seam where
+  "copy the engine, keep the foundation shared" meets reality. The read
+  **views** (`MergeTableView` / `NarrativeView`) need no change — trend
+  just renders them at the max position so every row shows.
+
+### Copy / share / new — the precise breakdown
+
+- **Copy into `lib/bank/wrappers/trend/`** (adapt `case_id → trend_id`):
+  the tab rail, the tab-type registry (6 built-ins + 2 customs) +
+  built-in seeding, the tab-dispatch logic (merge-table vs narrative
+  branching, currently inline in the case wrapper page), and the tab CRUD
+  + storage actions.
+- **Share — import, do NOT copy; extend with `hideReveal`:**
+  `MergeTableEditor` / `MergeTableView`, `NarrativeTabEditorV2` /
+  `NarrativeView`, the v2 models, and the rich primitives.
+- **New:** `nclex_trend_tabs` + `nclex_tutor_trend_tabs` tables + RLS +
+  the loader read.
+
+### Slice plan
+
+> **STATUS (2026-07-02): Slices 1–4 COMPLETE + Sam-tested + on `main`. Three
+> additive migrations `20260712120000` + `20260713120000` + `20260714120000`,
+> all dev-applied. Slice 4 Sam-tested end-to-end. Since then, the
+> wrapper-harmonisation work + the "+ New creates a draft directly" picker
+> removal (`9ec098f`) also landed on `main` (app-layer). **Slice 5 — retire
+> `kind` — is PLANNED, not built** (see below). A `main → prod` release is
+> still pending (carries the trend migrations + the prod test-dataset delete
+> from Slice 4 + `PAYSTACK_SECRET_KEY`).**
+
+1. **Slice 1 — Storage. ✅ BUILT** (`5461592`, mig `20260712120000`). Added
+   `nclex_trend_tabs` + `nclex_tutor_trend_tabs` (mirror `nclex_case_study_tabs`,
+   `trend_id` FK, `entries` JSONB) + RLS (mirror the case tab policies) + the
+   loader read in `load-trend.ts` (new `TrendTabRow` type on `WrapperData`).
+   **Additive** — old `timepoints` / `rows` columns untouched.
+2. **Slice 2 — Chart-tab engine in the wrapper. ✅ BUILT** (`bc14cd4` +
+   `47890b8`). Copied the tab rail / tab-types registry (6 built-ins + 2
+   customs) / dispatch / built-in seeding + tab CRUD actions (keyed to
+   `trend_id`) into `lib/bank/wrappers/trend/`; swapped the Dataset pane's flat
+   grid for the multi-tab chart editor; **Content | Charts sub-tabs**.
+   **Shared-editor decoupling (Option A):** the `lib/authoring` editors
+   (`MergeTableEditor` / `NarrativeTabEditorV2`) took injected
+   `saveAction` / `deleteAction` + a neutral `ChartTabIdentity`
+   (`lib/authoring/chart-tab-types.ts`) + a `hideReveal` prop (drops the
+   reveal gutter) — case study injects its own actions (unchanged), trend its
+   own. Sam-tested `NCLEX_TRD_00002` (3 tabs) in the DB.
+3. **Slice 3 — Preview + runner. ✅ BUILT + Sam-tested** (`147763b`,
+   mig `20260713120000`). **3a:** the wrapper right-pane shows the combined
+   "as student" view (tab bar + selected body, live drafts). **3b:** froze the
+   tabs into the attempt snapshot (new `tabs_snapshot_json` +
+   `nclex_create_attempt` `jsonb_agg` from `nclex_trend_tabs`, mirror of the
+   case freeze); `trend-panel` renders the tabbed stimulus.
+4. **Slice 4 — retire the flat grid. ✅ BUILT + Sam-tested** (`a418780`, mig
+   `20260714120000`). **Decision (2026-07-02): delete, don't convert.** The
+   original plan was to convert legacy flat-grid datasets → a seeded tab. But
+   every legacy trend (dev + prod) was **unpublished test data reaching no real
+   users**, so conversion bought nothing — we deleted them instead, dropping the
+   converter entirely. **On dev:** deleted all 16 legacy datasets (10 admin + 6
+   tutor = 65 questions) + swept 17 orphan `attempt_items` rows; kept the
+   tab-based `NCLEX_TRD_00002`. **Code:** removed the runner's flat-grid
+   fallback (always renders the tabbed stimulus) + the vestigial
+   `timepoints`/`rows`/`row_label` round-trip in the wrapper editor / save
+   action / loader / validation / both list pages / kind seeds; deleted the dead
+   `data-table.tsx`. **Migration:** re-points `nclex_create_attempt` to freeze
+   **tabs only**, drops the 3 flat snapshot columns off
+   `nclex_attempt_trend_snapshots`, and drops `row_label`/`timepoints`/`rows`
+   off both dataset tables; `schema.sql` mirrored. **⚠ RELEASE STEP:**
+   before/with the prod release, delete prod's 2 unpublished test trend datasets
+   (+ 1 question) so prod lands as clean as dev (the migration drops the columns
+   but leaves the rows — delete them so no tab-less dataset survives).
+
+**Blast-radius mapping (2026-07-02, before the deletes):** the only formal FK
+that blocks a trend-dataset delete is child questions
+(`nclex_bank_items.trend_id` / `nclex_tutor_questions.trend_id`, RESTRICT);
+attempt/embed references are loose (no FK). On dev, `case_study_items` (the one
+RESTRICT on questions) had 0 rows for these, so nothing blocked the cascade.
+
+5. **Slice 5 — retire `kind` (⬜ PLANNED, not built; settled with Sam
+   2026-07-02).** *Precursor DONE* (`9ec098f`): "+ New trend dataset" now
+   creates a **draft directly** (mirror of the case-study `NewCaseButton`) — the
+   kind **picker + presets were deleted**, since with the flat grid gone a kind
+   no longer seeds anything. The remaining step: **remove `kind` entirely.**
+   - **Rationale (Sam):** `kind` was a *single-dataset* descriptor from when a
+     trend was one flat grid. Now a trend is a *group of tabs*, and **each tab
+     carries its own title** (Nurses' Notes / Vital Signs / Labs / …), so a
+     single top-level kind is **redundant with the tab titles and actively
+     misleading** (a 4-tab trend labelled "Vitals"). The per-kind labelling now
+     lives at the tab level, where it belongs.
+   - **Blast radius (same shape as Slice 4):** *app-layer* — the editor "Kind"
+     field (`DatasetView`), the runner header (`Trend data · {kind}` → just
+     `Trend data`), the loader `DATASET_COLUMNS`, `TrendDatasetRow.kind`, the
+     create/save actions, both list pages (`kindLabel` / `TrendListRow`), and
+     delete `kind-templates.ts` (`kindDefaultLabel` becomes unused). *Migration*
+     — drop `kind` from `nclex_trend_datasets` + `nclex_tutor_trend_datasets`,
+     drop `kind_snapshot` from `nclex_attempt_trend_snapshots`, update
+     `nclex_create_attempt` to stop freezing it, mirror `schema.sql`.
+   - **Runner header decision (settled):** drops to **"Trend data"** — the
+     dataset title carries the specifics.
+   - **Naming tension — noted, explicitly NOT in scope:** if a trend is "a group
+     of datasets," calling the entity a *"trend dataset"* (singular) is a mild
+     misnomer. Renaming the whole entity (`trend_id` / `nclex_trend_datasets` /
+     all "trend dataset" copy) is a much bigger job, deliberately deferred — the
+     `kind` removal stands on its own.
+
+**⏭ NEXT: build Slice 5 (retire `kind`) when picked up. Meanwhile the trend
+arc + the wrapper-harmonisation work is on `main`; a `main → prod` release
+(carries the trend-arc migrations `20260712–20260714120000` + the prod
+trend-dataset delete step + the `PAYSTACK_SECRET_KEY` gap) is still pending.**
+
+---
+
 ## Case-study wrapper rebuild — locked decisions (2026-06-27)
 
 > **STATUS: DESIGN PASS — decisions 1–6 LOCKED with Sam, nothing built.**
@@ -1533,7 +1801,44 @@ use a **soft hint/warning** for the merely-unusual (e.g. "NCLEX SATA usually has
   hard-required is arguably a clarity-aid that could be softened to advice — Sam
   flagged it as "the part we'll discuss further"; no change for now.)*
 
-### Matrix Multiple Response — new item type (planned; surfaced during 6c)
+### Matrix Multiple Response — new item type (✅ BUILT 2026-07-01)
+
+**✅ BUILT + Sam-tested on dev** (session branch off `main`; app-layer + ONE
+additive migration `20260711120000`, dev-applied; tsc + eslint + 98 vitest
+clean; NOT yet merged to `main`, NOT prod). New self-contained `MATRIX_MR`
+type, mirrored from `MATRIX` (legacy `MATRIX` untouched). **The 4 open
+questions were settled one-at-a-time with Sam** (Q1 grounded in a web check of
+the NCSBN spec):
+- **Q1 — correct/row:** require **≥1 correct per row** (surfaced as a clear
+  block, not a silent fail). Decider: NCSBN's real Matrix MR *forces* the
+  student to tick ≥1 box per row to proceed, so an all-false row would be
+  unanswerable — real items always have ≥1 correct per row.
+- **Q2 — scoring:** **SATA-style per row.** New `scorePerRowMulti` scores each
+  row with the existing `scorePlusMinus` (+1 correct / −1 wrong, floored at 0
+  within the row), summed across rows. Max marks = total correct cells across
+  all rows (a row with 2/1/3 correct → 6 marks). `is_correct` (full credit)
+  only when every row is exactly right.
+- **Q3 — submit gate:** **hard gate** — the student must pick ≥1 per row; the
+  runner's submit hint **names the still-empty rows**.
+- **Q4 — bounds:** mirror MATRIX exactly (hard **2–10 rows / 2–6 cols**) + an
+  advise > block amber advisory toward the NGN norm (4–10 rows, 2–3 cols).
+
+**Files (mirror of MATRIX, no stem-doc):** `matrix-mr-editor.tsx` (checkbox
+cells), `matrix-mr-row-mapper.ts`, `parsers/matrix-mr.ts`,
+`runner/types/matrix-mr.tsx` + `scorePerRowMulti` in `lib/scoring/functions.ts`.
+Wire-up followed the checklist below: the 4 runtime whitelists, all tsc-caught
+switches/maps, both bank pages, both wrappers (case-study + trend), the 3-CHECK
+migration. CSS reuses `.auth-matrix-*` / `.rn-matrix-*` with a `.multi`
+modifier (square checkbox glyphs vs the radio circle). Correctly left OUT of
+`EMBED_QUESTION_TYPES` (matrix family isn't note-embeddable — mirrors MATRIX).
+**Operational gotcha this build:** a stale `.next` after the many edits threw
+the opaque "Jest worker" 500 on the session route; wiping `.next` then exposed
+a stray `node_modules/.vite` cache (created by `npx vitest` inside the
+worktree) that broke Turbopack's cold root-inference. Removing both fixed it.
+**⏭ remaining:** Sam-tested ✅ → (with approval) merge to `main`. Original
+design write-up kept below for history.
+
+### Matrix Multiple Response — original plan (superseded by the BUILT note above)
 
 The Matrix per-editor "other work" (2026-06-29) surfaced that **NCLEX Matrix
 comes in two distinct NGN item types, and we've only built one:**

@@ -93,6 +93,25 @@ export interface MatrixCorrect {
 }
 
 // ─────────────────────────────────────────────────────────────
+// MATRIX_MR — Matrix Multiple Response. Same rows × columns grid as
+// MATRIX, but each row may have ONE OR MORE correct columns (checkbox
+// per cell), scored SATA-style per row. Own self-contained type — it
+// reuses MatrixRow/MatrixColumn (shared geometry) but its `correct.cells`
+// maps a rowId to an ARRAY of columnIds.
+// ─────────────────────────────────────────────────────────────
+
+export interface MatrixMrContent {
+  row_label: string;
+  rows: MatrixRow[];
+  columns: MatrixColumn[];
+}
+
+export interface MatrixMrCorrect {
+  cells: Record<string, string[]>;            // rowId -> columnId[] (>= 1 each)
+  feedback: Record<string, string>;           // rowId -> per-row feedback
+}
+
+// ─────────────────────────────────────────────────────────────
 // BOWTIE — fixed NGN bow-tie: 2 Left + 1 Centre + 2 Right = 5 correct.
 // Three self-contained wings, each with its own label, tokens, and
 // per-wing correctness rule. Token IDs are globally unique across all
@@ -279,6 +298,7 @@ export type BankItemContent =
   | SataContent
   | SelectNContent
   | MatrixContent
+  | MatrixMrContent
   | BowtieContent
   | ClozeContent
   | HighlightContent
@@ -292,6 +312,7 @@ export type BankItemCorrect =
   | SataCorrect
   | SelectNCorrect
   | MatrixCorrect
+  | MatrixMrCorrect
   | BowtieCorrect
   | ClozeCorrect
   | HighlightCorrect

@@ -382,6 +382,59 @@ CREATE POLICY nclex_tutor_trend_datasets_superadmin ON nclex_tutor_trend_dataset
 
 
 -- ─────────────────────────────────────────────────────────
+-- nclex_trend_tabs + nclex_tutor_trend_tabs
+-- Trend chart tabs (rich multi-chart, Slice 1). Mirror of
+-- nclex_case_study_tabs / nclex_tutor_case_study_tabs.
+-- Admin: any authenticated user reads tabs whose parent dataset is
+--   published; BANK_CURATE holders (SUPER_ADMIN via the helper
+--   short-circuit) get full CRUD.
+-- Tutor: only the owning tutor of the parent dataset, plus a
+--   SUPER_ADMIN bypass. No public-read policy.
+-- Added 2026-07-12 in the trend multi-chart Slice 1.
+-- ─────────────────────────────────────────────────────────
+
+ALTER TABLE nclex_trend_tabs       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nclex_tutor_trend_tabs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_trend_tabs_read_published ON nclex_trend_tabs FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_trend_datasets td
+      WHERE td.trend_id = nclex_trend_tabs.trend_id
+        AND td.is_published = TRUE
+    )
+  );
+
+CREATE POLICY nclex_trend_tabs_curate_all ON nclex_trend_tabs FOR ALL
+  TO authenticated
+  USING (nclex_user_has_permission('BANK_CURATE'))
+  WITH CHECK (nclex_user_has_permission('BANK_CURATE'));
+
+CREATE POLICY nclex_tutor_trend_tabs_tutor_own ON nclex_tutor_trend_tabs FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM nclex_tutor_trend_datasets td
+      WHERE td.trend_id = nclex_tutor_trend_tabs.trend_id
+        AND td.tutor_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM nclex_tutor_trend_datasets td
+      WHERE td.trend_id = nclex_tutor_trend_tabs.trend_id
+        AND td.tutor_id = auth.uid()
+    )
+  );
+
+CREATE POLICY nclex_tutor_trend_tabs_superadmin ON nclex_tutor_trend_tabs FOR ALL
+  TO authenticated
+  USING (nclex_user_has_role('SUPER_ADMIN'))
+  WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- ─────────────────────────────────────────────────────────
 -- Slice 1.12b (2026-04-24) — trend-linked bank items
 -- Added nullable trend_id FK on nclex_bank_items and
 -- nclex_tutor_questions. No new RLS policies: the existing

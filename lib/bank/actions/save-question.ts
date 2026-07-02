@@ -38,6 +38,7 @@ import { parseTf } from '@/lib/bank/parsers/tf';
 import { parseSata } from '@/lib/bank/parsers/sata';
 import { parseSelectN } from '@/lib/bank/parsers/select-n';
 import { parseMatrix } from '@/lib/bank/parsers/matrix';
+import { parseMatrixMr } from '@/lib/bank/parsers/matrix-mr';
 import {
   parseBowtie,
   type BowtieWingInput,
@@ -187,6 +188,7 @@ const SUPPORTED_TYPES = new Set<QuestionType>([
   'SATA',
   'SELECT_N',
   'MATRIX',
+  'MATRIX_MR',
   'BOWTIE',
   'CLOZE',
   'HIGHLIGHT',
@@ -282,6 +284,33 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
         }
         return parseMatrix({
           row_label: String(formData.get('matrix_row_label') ?? ''),
+          rowIds,
+          rowTexts,
+          rowFeedbacks,
+          colIds,
+          colTexts,
+          correctByRow,
+        });
+      }
+      case 'MATRIX_MR': {
+        // Same rows × columns contract as MATRIX, but each row's correct
+        // picks ride as REPEATED checkbox values (matrixmr_correct_<rowId>),
+        // so read them with getAll → columnId[].
+        const rowIds = formData.getAll('matrixmr_row_id').map(String);
+        const rowTexts = formData.getAll('matrixmr_row_text').map(String);
+        const rowFeedbacks = formData.getAll('matrixmr_row_feedback').map(String);
+        const colIds = formData.getAll('matrixmr_col_id').map(String);
+        const colTexts = formData.getAll('matrixmr_col_text').map(String);
+        const correctByRow: Record<string, string[]> = {};
+        for (const rid of rowIds) {
+          const picked = formData
+            .getAll(`matrixmr_correct_${rid}`)
+            .map((v) => String(v).trim())
+            .filter(Boolean);
+          if (picked.length > 0) correctByRow[rid] = picked;
+        }
+        return parseMatrixMr({
+          row_label: String(formData.get('matrixmr_row_label') ?? ''),
           rowIds,
           rowTexts,
           rowFeedbacks,

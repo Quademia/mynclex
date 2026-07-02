@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { DiscardConfirm } from '@/lib/overlays/bank/discard-confirm';
+import { CaseDetachConfirm } from '@/lib/overlays/bank/case-detach-confirm';
 import { CaseStudyWrapperBulb } from '@/lib/hints/bank/case-study-wrapper-bulb';
 import { CaseStudyEditorBulb } from '@/lib/hints/bank/case-study-editor-bulb';
 import { saveQuestionAction } from '@/lib/bank/actions/save-question';
@@ -39,6 +40,8 @@ import {
   saveCaseMetadataAction,
   detachQuestionAction,
   publishCaseWithChildrenAction,
+  upsertTabAction,
+  deleteTabAction,
 } from './actions';
 import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/bank/classifications';
@@ -84,6 +87,7 @@ import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-edi
 import { SataEditorBody, SataPreview }           from '@/lib/bank/editors/sata-editor';
 import { SelectNEditorBody, SelectNPreview }     from '@/lib/bank/editors/select-n-editor';
 import { MatrixEditorBody, MatrixPreview }       from '@/lib/bank/editors/matrix-editor';
+import { MatrixMrEditorBody, MatrixMrPreview }   from '@/lib/bank/editors/matrix-mr-editor';
 import { BowtieEditorBody, BowtiePreview }       from '@/lib/bank/editors/bowtie-editor';
 import {
   ClozeEditorBody,
@@ -110,6 +114,7 @@ import { emptyTfInitial }        from '@/lib/bank/editors/tf-row-mapper';
 import { emptySataInitial }      from '@/lib/bank/editors/sata-row-mapper';
 import { emptySelectNInitial }   from '@/lib/bank/editors/select-n-row-mapper';
 import { emptyMatrixInitial }    from '@/lib/bank/editors/matrix-row-mapper';
+import { emptyMatrixMrInitial }  from '@/lib/bank/editors/matrix-mr-row-mapper';
 import { emptyBowtieInitial }    from '@/lib/bank/editors/bowtie-row-mapper';
 import { emptyClozeInitial }     from '@/lib/bank/editors/cloze-row-mapper';
 import { emptyHighlightInitial } from '@/lib/bank/editors/highlight-row-mapper';
@@ -129,6 +134,7 @@ const FORM_ID_BY_TYPE: Record<string, string> = {
   SATA:      'auth-sata-form',
   SELECT_N:  'auth-select-n-form',
   MATRIX:    'auth-matrix-form',
+  MATRIX_MR: 'auth-matrix-mr-form',
   BOWTIE:    'auth-bowtie-form',
   CLOZE:     'auth-cloze-form',
   HIGHLIGHT: 'auth-highlight-form',
@@ -347,6 +353,8 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
   } | null>(null);
   const [showDelete, setShowDelete] = useState(false);
   const [detachPending, setDetachPending] = useState<number | null>(null);
+  // Slot being detached (null = the detach-confirm dialog is closed).
+  const [detachTarget, setDetachTarget] = useState<SlotRow | null>(null);
   // Publish-blocked notice — shown when the curator tries to switch
   // Publish on while the case isn't eligible (under 6 questions, or any
   // attached question still a draft). null = closed.
@@ -459,6 +467,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
       case 'SATA':      return { kind: 'SATA',      initial: emptySataInitial(surface)      };
       case 'SELECT_N':  return { kind: 'SELECT_N',  initial: emptySelectNInitial(surface)   };
       case 'MATRIX':    return { kind: 'MATRIX',    initial: emptyMatrixInitial(surface)    };
+      case 'MATRIX_MR': return { kind: 'MATRIX_MR', initial: emptyMatrixMrInitial(surface)  };
       case 'BOWTIE':    return { kind: 'BOWTIE',    initial: emptyBowtieInitial(surface)    };
       case 'CLOZE':     return { kind: 'CLOZE',     initial: emptyClozeInitial(surface)     };
       case 'HIGHLIGHT': return { kind: 'HIGHLIGHT', initial: emptyHighlightInitial(surface) };
@@ -466,16 +475,6 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
       case 'DRAG_CLOZE': return { kind: 'DRAG_CLOZE', initial: emptyDragClozeInitial(surface) };
       case 'DRAG_ORDER': return { kind: 'DRAG_ORDER', initial: emptyDragOrderInitial(surface) };
     }
-  }
-
-  function openPickerForFirstEmpty() {
-    const firstEmpty = slots.find((s) => s.item_id === null);
-    if (!firstEmpty) {
-      setError('All 6 slots are populated. Detach a question first to free a slot.');
-      return;
-    }
-    setPickerTargetPos(firstEmpty.position);
-    setShowTypePicker(true);
   }
 
   function openPickerForPosition(pos: number) {
@@ -507,12 +506,19 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     setPickerTargetPos(null);
   }
 
+  // Detach is non-destructive (the question survives in the bank as a
+  // standalone item — it just leaves this case), so a lightweight styled
+  // <CaseDetachConfirm> misclick guard — no typed gate. Opened here, run
+  // in onConfirmDetach. Note: there's no re-attach flow today, so detach
+  // is effectively one-way.
   function onDetachSlot(slot: SlotRow) {
     if (slot.item_id === null) return;
-    const ok = window.confirm(
-      `Detach Q${slot.position} from this case? The question survives in the bank as standalone.`,
-    );
-    if (!ok) return;
+    setDetachTarget(slot);
+  }
+
+  function onConfirmDetach() {
+    const slot = detachTarget;
+    if (!slot || slot.item_id === null) return;
     setDetachPending(slot.position);
     const fd = new FormData();
     fd.set('surface', surface);
@@ -532,6 +538,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
         }
         router.refresh();
       }
+      setDetachTarget(null);
     });
   }
 
@@ -698,19 +705,16 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
       ? creating.editor.kind
       : activeSlotData?.editor?.kind ?? null;
 
-  function onSlotClick(pos: number) {
-    // Wrapper mode: empty slot card → open picker for that position.
-    // Filled slot card → enter editor mode for the question.
-    const slot = slots[pos - 1];
-    if (slot && slot.item_id === null) {
-      openPickerForPosition(pos);
-      return;
-    }
-    setActiveSlot(pos);
-    setEditorMode(true);
-  }
+  // ── Selector navigation (unified — the pill strip) ────────
+  // The wrapper is one always-visible strip: a Case pill + 6 slot pills.
+  // editorMode encodes "a question pill is active" (vs the Case pill);
+  // there is no full-pane mode swap — picking a pill just switches the
+  // pane body. Mirrors the trend wrapper's PillStrip navigation.
 
-  function onCloseEditor() {
+  // Case pill → the wrapper (Content | Chart) view. If the active
+  // question editor is dirty, prompt before leaving it.
+  function onPickCase() {
+    if (!editorMode) return;
     if (activeSlotDirty) {
       setPendingNav({ kind: 'close-editor' });
       return;
@@ -718,21 +722,21 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     setEditorMode(false);
   }
 
-  function onSlotStripClick(pos: number) {
-    if (pos === activeSlot) return;
-    // Editor mode: empty slot pip → open picker for that position.
-    // Filled slot pip → switch active slot (with discard prompt
-    // if the active editor is dirty).
+  // Slot pill → edit that question. Empty slot → open the type picker.
+  // Switching away from a dirty editor prompts first.
+  function onPickSlot(pos: number) {
     const slot = slots[pos - 1];
     if (slot && slot.item_id === null) {
       openPickerForPosition(pos);
       return;
     }
-    if (activeSlotDirty) {
+    if (editorMode && pos === activeSlot) return;   // already editing it
+    if (editorMode && activeSlotDirty) {
       setPendingNav({ kind: 'switch-slot', toPos: pos });
       return;
     }
     setActiveSlot(pos);
+    setEditorMode(true);
   }
 
   // ── Editor body save handler (slice 12c-3) ────────────────
@@ -874,6 +878,16 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
         />
       )}
 
+      {detachTarget && (
+        <CaseDetachConfirm
+          position={detachTarget.position}
+          questionType={detachTarget.question_type ?? ''}
+          pending={detachPending === detachTarget.position}
+          onCancel={() => setDetachTarget(null)}
+          onConfirm={onConfirmDetach}
+        />
+      )}
+
       <div className="auth-cs-page-topbar">
         {(() => {
           const listHref = surface === 'tutor' ? '/tutor/bank/cases' : '/admin/bank/cases';
@@ -911,59 +925,120 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
             />
           </span>
         )}
-        <span className="auth-cs-mode-pill">
-          {editorMode ? `Editor mode · Q${activeSlot}` : 'Wrapper mode'}
-        </span>
         {sandboxMode && <span className="auth-cs-sandbox-pill">SANDBOX</span>}
       </div>
 
       <div className="auth-cs-grid">
 
-        {!editorMode && (
-          <div className="auth-cs-pane auth-cs-pane-left">
-            <div className="auth-cs-pane-label">
-              <span>Wrapper edit{dirty && <span className="auth-cs-dirty-dot" title="Unsaved metadata">●</span>}</span>
-              <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                <button
-                  className={`auth-cs-btn subtle tiny${dirty ? ' dirty-glow' : ''}`}
-                  type="button"
-                  onClick={onCancel}
-                  disabled={isPending || !dirty}
-                  title="Discard unsaved title / scenario / visibility / CJMM edits in this pane. Doesn't touch chart tabs or the question editors."
-                >
-                  Cancel changes
-                </button>
-                <button
-                  className="auth-cs-btn tiny"
-                  type="button"
-                  style={{ color: 'var(--danger)', borderColor: '#fecaca', background: '#fef2f2' }}
-                  onClick={onDeleteCase}
-                  disabled={isPending}
-                  title="Permanently delete this case study. Type-to-confirm gates the destructive paths."
-                >
-                  Delete
-                </button>
-                <button
-                  className="auth-cs-btn tiny"
-                  type="button"
-                  onClick={onValidateClick}
-                  aria-pressed={validationIssues !== null}
-                  title="Run a manual validation pass. Errors first, warnings second. Manual only — never auto-runs."
-                >
-                  Validate
-                </button>
-                <button
-                  className={`auth-cs-btn primary tiny${dirty ? ' dirty-glow' : ''}`}
-                  type="button"
-                  onClick={onSaveCase}
-                  disabled={isPending || !dirty}
-                  title="Save the wrapper metadata only — title, scenario, visibility flags, per-slot CJMM. Chart tabs and questions have their own save buttons."
-                >
-                  {isPending ? 'Saving…' : 'Save case study'}
-                </button>
-                <CaseStudyWrapperBulb />
-              </span>
-            </div>
+        <div className="auth-cs-pane auth-cs-pane-left">
+          {/* Actions row — context-aware (Case vs the active question),
+              placed on the pane like the trend wrapper. */}
+          <div className="auth-cs-pane-actions">
+            {editorMode ? (
+              <>
+                <span className="auth-cs-pane-actions-label">
+                  Question · <strong>Q{activeSlot}</strong>
+                  {activeSlotData?.question_type && <> · {activeSlotData.question_type}</>}
+                </span>
+                <span className="auth-cs-pane-actions-btns">
+                  {activeEditorKind && (
+                    <button
+                      type="submit"
+                      form={FORM_ID_BY_TYPE[activeEditorKind]}
+                      className={`auth-cs-btn primary tiny${activeSlotDirty ? ' dirty-glow' : ''}`}
+                      disabled={activeSlotPending || !activeSlotDirty}
+                      title="Save this question's body. Separate from Save case study — that one saves wrapper metadata."
+                    >
+                      {activeSlotPending ? 'Saving…' : 'Save question'}
+                    </button>
+                  )}
+                  {activeSlotData?.item_id != null && (
+                    <button
+                      type="button"
+                      className="auth-cs-btn subtle tiny"
+                      onClick={() => onDetachSlot(activeSlotData)}
+                      disabled={detachPending === activeSlot}
+                      title="Detach this question from the case. It stays in the bank as a standalone item."
+                    >
+                      {detachPending === activeSlot ? 'Detaching…' : 'Detach'}
+                    </button>
+                  )}
+                  <CaseStudyEditorBulb />
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="auth-cs-pane-actions-label">Case</span>
+                <span className="auth-cs-pane-actions-btns">
+                  <button
+                    className={`auth-cs-btn subtle tiny${dirty ? ' dirty-glow' : ''}`}
+                    type="button"
+                    onClick={onCancel}
+                    disabled={isPending || !dirty}
+                    title="Discard unsaved title / scenario / visibility / CJMM edits. Doesn't touch chart tabs or the question editors."
+                  >
+                    Cancel changes
+                  </button>
+                  <button
+                    className="auth-cs-btn tiny"
+                    type="button"
+                    style={{ color: 'var(--danger)', borderColor: '#fecaca', background: '#fef2f2' }}
+                    onClick={onDeleteCase}
+                    disabled={isPending}
+                    title="Permanently delete this case study. Type-to-confirm gates the destructive paths."
+                  >
+                    Delete
+                  </button>
+                  <button
+                    className="auth-cs-btn tiny"
+                    type="button"
+                    onClick={onValidateClick}
+                    aria-pressed={validationIssues !== null}
+                    title="Run a manual validation pass. Errors first, warnings second. Manual only — never auto-runs."
+                  >
+                    Validate
+                  </button>
+                  <button
+                    className={`auth-cs-btn primary tiny${dirty ? ' dirty-glow' : ''}`}
+                    type="button"
+                    onClick={onSaveCase}
+                    disabled={isPending || !dirty}
+                    title="Save the wrapper metadata — title, scenario, visibility flags, per-slot CJMM. Chart tabs and questions have their own save buttons."
+                  >
+                    {isPending ? 'Saving…' : 'Save case study'}
+                  </button>
+                  <CaseStudyWrapperBulb />
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Selector — Case pill + 6 fixed slot pills (with CJMM badge). */}
+          <div className="auth-cs-nav-pill-strip" role="tablist" aria-label="Case navigator">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!editorMode}
+              className={`auth-cs-nav-pill auth-cs-nav-pill-case${!editorMode ? ' active' : ''}`}
+              onClick={onPickCase}
+            >
+              <span className="auth-cs-nav-pill-label">Case</span>
+              {dirty && <span className="auth-cs-dirty-dot" title="Unsaved case edits">●</span>}
+            </button>
+            {slots.map((s) => (
+              <SlotPill
+                key={s.position}
+                slot={s}
+                active={editorMode && s.position === activeSlot}
+                cjmm={cjmmBySlot[s.position] ?? ''}
+                dirty={!!editorDirtyByPos[s.position]}
+                onClick={() => onPickSlot(s.position)}
+              />
+            ))}
+          </div>
+
+          {!editorMode && (
+            <>
 
             <div className="auth-cs-pane-tabs" role="tablist">
               <button type="button" role="tab" aria-selected={activeTab === 'content'} className={`auth-cs-pane-tab${activeTab === 'content' ? ' active' : ''}`} onClick={() => setActiveTab('content')}>Content</button>
@@ -1036,130 +1111,67 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
               </div>
             )}
 
-            <div className="auth-cs-slot-section">
-              <div className="auth-cs-slot-rail-header">
-                <span className="auth-cs-slot-rail-title">Question slots · {populated} of 6</span>
-                <button className="auth-cs-btn subtle tiny" type="button">Reorder</button>
-              </div>
-              <div className="auth-cs-slot-rail">
-                {slots.map((s) => (
-                  <SlotCard
-                    key={s.position}
-                    slot={s}
-                    active={s.position === activeSlot}
-                    cjmmValue={cjmmBySlot[s.position] ?? ''}
-                    onCjmmChange={(value) => setCjmmBySlot((prev) => ({ ...prev, [s.position]: value }))}
-                    onClick={() => onSlotClick(s.position)}
-                    onDetach={() => onDetachSlot(s)}
-                    detachPending={detachPending === s.position}
-                  />
-                ))}
-              </div>
-              <button
-                className="auth-cs-slot-add"
-                type="button"
-                onClick={openPickerForFirstEmpty}
-                disabled={isPending || populated >= 6}
-              >
-                {populated >= 6 ? 'All 6 slots populated' : '+ Add question (next empty)'}
-              </button>
-            </div>
-          </div>
-        )}
+            </>
+          )}
 
-        {editorMode && (
-          <div className="auth-cs-pane auth-cs-pane-left auth-cs-editor-pane">
-            <div className="auth-cs-editor-header">
-              <button
-                type="button"
-                className="auth-cs-btn subtle tiny"
-                onClick={onCloseEditor}
-                title="Return to wrapper view. If this question has unsaved edits you'll be prompted to keep editing, discard, or save and close."
-              >
-                ← Wrapper view
-              </button>
-              <div className="auth-cs-slot-strip" role="tablist" aria-label="Switch question slot">
-                {slots.map((s) => {
-                  const isEmpty = s.item_id === null;
-                  return (
-                    <button
-                      key={s.position}
-                      type="button"
-                      role="tab"
-                      aria-selected={s.position === activeSlot}
-                      className={
-                        'auth-cs-slot-pip' +
-                        (s.position === activeSlot ? ' active' : '') +
-                        (isEmpty ? ' empty' : '') +
-                        (editorDirtyByPos[s.position] ? ' dirty' : '')
-                      }
-                      onClick={() => onSlotStripClick(s.position)}
-                      title={isEmpty ? `Add a question at Q${s.position}` : `Q${s.position}`}
-                    >
-                      Q{s.position}
-                      {isEmpty && <span className="auth-cs-slot-pip-plus">+</span>}
-                    </button>
-                  );
-                })}
-              </div>
-              <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                {activeEditorKind && (
-                  <button
-                    type="submit"
-                    form={FORM_ID_BY_TYPE[activeEditorKind]}
-                    className={`auth-cs-btn primary tiny${activeSlotDirty ? ' dirty-glow' : ''}`}
-                    disabled={activeSlotPending || !activeSlotDirty}
-                    title="Save this question's body. Separate from Save case study — that one only saves wrapper metadata. Submits the form for the active editor type."
+          {editorMode && (
+            <div className="auth-cs-editor-pane-body">
+              {(activeSlotData?.item_id != null ||
+                (creating !== null && creating.position === activeSlot)) && (
+                <div className="auth-cs-editor-cjmm">
+                  <label className="auth-cs-editor-cjmm-label" htmlFor="auth-cs-active-cjmm">CJMM step</label>
+                  <select
+                    id="auth-cs-active-cjmm"
+                    className="auth-cs-slot-cjmm-select"
+                    value={cjmmBySlot[activeSlot] ?? ''}
+                    onChange={(e) => setCjmmBySlot((prev) => ({ ...prev, [activeSlot]: e.target.value }))}
+                    aria-label={`CJMM step for Q${activeSlot}`}
                   >
-                    {activeSlotPending ? 'Saving…' : 'Save question'}
-                  </button>
-                )}
-                <CaseStudyEditorBulb />
-              </span>
-            </div>
+                    <option value="">—</option>
+                    {CJMM_STEPS.map((step) => (
+                      <option key={step} value={step}>{cjmmShort(step)} — {step}</option>
+                    ))}
+                  </select>
+                  <span className="auth-cs-editor-cjmm-hint">
+                    Saved with the case — use Case → Save case study.
+                  </span>
+                </div>
+              )}
 
-            <div className="auth-cs-editor-title">
-              Q{activeSlot}
-              {activeSlotData?.question_type && (
-                <span className="auth-cs-editor-mounted-label" style={{ marginLeft: 8 }}>
-                  {activeSlotData.question_type} editor
-                </span>
+              {creating && creating.position === activeSlot ? (
+                <ActiveQuestionEditorBody
+                  editor={creating.editor}
+                  error={activeSlotError}
+                  pending={activeSlotPending}
+                  onSubmit={onEditorBodySubmit}
+                  onDirty={onEditorBodyDirty}
+                  onErrorDismiss={() =>
+                    setEditorErrorByPos((prev) => ({ ...prev, [activeSlot]: null }))
+                  }
+                />
+              ) : activeSlotData?.item_id === null ? (
+                <div className="auth-cs-empty-msg" style={{ padding: 22, textAlign: 'center' }}>
+                  Slot Q{activeSlot} is empty. Pick a question type to fill it.
+                </div>
+              ) : activeSlotData?.editor ? (
+                <ActiveQuestionEditorBody
+                  editor={activeSlotData.editor}
+                  error={activeSlotError}
+                  pending={activeSlotPending}
+                  onSubmit={onEditorBodySubmit}
+                  onDirty={onEditorBodyDirty}
+                  onErrorDismiss={() =>
+                    setEditorErrorByPos((prev) => ({ ...prev, [activeSlot]: null }))
+                  }
+                />
+              ) : (
+                <div className="auth-cs-empty-msg" style={{ padding: 22, textAlign: 'center' }}>
+                  Could not load the editor for Q{activeSlot} ({activeSlotData?.question_type}). Refresh and try again.
+                </div>
               )}
             </div>
-
-            {creating && creating.position === activeSlot ? (
-              <ActiveQuestionEditorBody
-                editor={creating.editor}
-                error={activeSlotError}
-                pending={activeSlotPending}
-                onSubmit={onEditorBodySubmit}
-                onDirty={onEditorBodyDirty}
-                onErrorDismiss={() =>
-                  setEditorErrorByPos((prev) => ({ ...prev, [activeSlot]: null }))
-                }
-              />
-            ) : activeSlotData?.item_id === null ? (
-              <div className="auth-cs-empty-msg" style={{ padding: 22, textAlign: 'center' }}>
-                Slot Q{activeSlot} is empty. Click + Add question to fill it.
-              </div>
-            ) : activeSlotData?.editor ? (
-              <ActiveQuestionEditorBody
-                editor={activeSlotData.editor}
-                error={activeSlotError}
-                pending={activeSlotPending}
-                onSubmit={onEditorBodySubmit}
-                onDirty={onEditorBodyDirty}
-                onErrorDismiss={() =>
-                  setEditorErrorByPos((prev) => ({ ...prev, [activeSlot]: null }))
-                }
-              />
-            ) : (
-              <div className="auth-cs-empty-msg" style={{ padding: 22, textAlign: 'center' }}>
-                Could not load the editor for Q{activeSlot} ({activeSlotData?.question_type}). Refresh and try again.
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="auth-cs-pane auth-cs-pane-preview">
           <div className="auth-cs-pane-label">
@@ -1254,12 +1266,13 @@ function ActiveChartTabEditor({
     return (
       <MergeTableEditor
         surface={surface}
-        case_id={case_id}
         tab={tab}
         draftTitle={draft.title}
         draftTab={draftTab}
         onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab, columns_def: [] })}
         previewPosition={previewPosition}
+        saveAction={(fd) => { fd.set('case_id', case_id); return upsertTabAction(fd); }}
+        deleteAction={(fd) => { fd.set('case_id', case_id); return deleteTabAction(fd); }}
       />
     );
   }
@@ -1273,12 +1286,13 @@ function ActiveChartTabEditor({
     return (
       <NarrativeTabEditorV2
         surface={surface}
-        case_id={case_id}
         tab={tab}
         draftTitle={draft.title}
         draftNarrative={draftNarrative}
         onDraftChange={(p) => onDraftChange({ title: p.title, entries: p.tab, columns_def: [] })}
         previewPosition={previewPosition}
+        saveAction={(fd) => { fd.set('case_id', case_id); return upsertTabAction(fd); }}
+        deleteAction={(fd) => { fd.set('case_id', case_id); return deleteTabAction(fd); }}
       />
     );
   }
@@ -1330,6 +1344,8 @@ function ActiveQuestionEditorBody({
       return <SelectNEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'MATRIX':
       return <MatrixEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
+    case 'MATRIX_MR':
+      return <MatrixMrEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'BOWTIE':
       return <BowtieEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;
     case 'CLOZE':
@@ -1435,6 +1451,26 @@ function ActiveQuestionPreview({
     case 'MATRIX':
       return (
         <MatrixPreview
+          instruction={parseRichDoc(editor.initial.instruction)}
+          stem={parseRichDoc(editor.initial.stem)}
+          rowLabel={parseRichDoc(editor.initial.row_label)}
+          rows={editor.initial.rows.map((r) => ({
+            id: r.id,
+            text: parseRichDoc(r.text),
+            feedback: parseRichDoc(r.feedback),
+          }))}
+          columns={editor.initial.columns.map((c) => ({
+            id: c.id,
+            text: parseRichDoc(c.text),
+          }))}
+          correct={editor.initial.correct}
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
+        />
+      );
+    case 'MATRIX_MR':
+      return (
+        <MatrixMrPreview
           instruction={parseRichDoc(editor.initial.instruction)}
           stem={parseRichDoc(editor.initial.stem)}
           rowLabel={parseRichDoc(editor.initial.row_label)}
@@ -1561,89 +1597,49 @@ function VisibilityRow({ label, help, on, onChange }: { label: string; help: str
   );
 }
 
-function SlotCard({
+// Compact selector pill for one of the 6 case slots. Filled slots show
+// the type + a CJMM badge (cjmmShort) + a status dot; empty slots show a
+// "+" to fill. Editing CJMM + detaching now live in the active question's
+// header/actions row, so the pill itself is click-to-select only.
+// Mirrors the trend wrapper's PillStrip pill (fixed-6, no + Add).
+function SlotPill({
   slot,
   active,
-  cjmmValue,
-  onCjmmChange,
+  cjmm,
+  dirty,
   onClick,
-  onDetach,
-  detachPending,
 }: {
-  slot:          SlotRow;
-  active:        boolean;
-  cjmmValue:     string;
-  onCjmmChange:  (next: string) => void;
-  onClick:       () => void;
-  onDetach:      () => void;
-  detachPending: boolean;
+  slot:    SlotRow;
+  active:  boolean;
+  cjmm:    string;
+  dirty:   boolean;
+  onClick: () => void;
 }) {
-  const summary = slot.stem
-    ? slot.stem.length > 80 ? slot.stem.slice(0, 77) + '…' : slot.stem
-    : '';
-  function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    if (e.target !== e.currentTarget) return;
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClick();
-    }
-  }
   const isEmpty = slot.item_id === null;
   return (
-    <div
-      className={'auth-cs-slot-card' + (active ? ' active' : '') + (isEmpty ? ' empty' : '')}
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      className={
+        'auth-cs-nav-pill auth-cs-nav-slot-pill' +
+        (active ? ' active' : '') +
+        (isEmpty ? ' empty' : '')
+      }
       onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={onKeyDown}
-      title={isEmpty ? `Add a question at Q${slot.position}` : undefined}
+      title={isEmpty ? `Add a question at Q${slot.position}` : (slot.stem || `Q${slot.position}`)}
     >
-      <span className="auth-cs-slot-num">Q{slot.position}</span>
-      <span className="auth-cs-slot-summary">
-        {slot.question_type && <span className="auth-cs-type-chip">{slot.question_type}</span>}
-        {isEmpty
-          ? (
-            <span className="auth-cs-slot-empty-hint">
-              <span className="auth-cs-slot-empty-plus">+</span> Add question
-            </span>
-          )
-          : summary
-        }
-      </span>
-      {slot.item_id !== null ? (
-        <select
-          className="auth-cs-slot-cjmm-select"
-          value={cjmmValue}
-          onChange={(e) => onCjmmChange(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          aria-label={`CJMM step for Q${slot.position}`}
-          title={cjmmValue || 'Pick CJMM step'}
-        >
-          <option value="">—</option>
-          {CJMM_STEPS.map((step) => (
-            <option key={step} value={step}>{cjmmShort(step)} — {step}</option>
-          ))}
-        </select>
+      <span className="auth-cs-nav-pill-pos">Q{slot.position}</span>
+      {isEmpty ? (
+        <span className="auth-cs-nav-pill-plus" aria-label="Empty slot">+</span>
       ) : (
-        <span style={{ width: 1 }} />
+        <>
+          {slot.question_type && <span className="auth-cs-nav-pill-type">{slot.question_type}</span>}
+          {cjmm && <span className="auth-cs-nav-pill-cjmm" title={cjmm}>{cjmmShort(cjmm)}</span>}
+          <span className="auth-cs-nav-pill-status" aria-hidden="true" />
+        </>
       )}
-      <span className={`auth-cs-slot-status auth-cs-slot-status-${slot.item_id === null ? 'draft' : 'ok'}`} />
-      {slot.item_id !== null && (
-        <button
-          type="button"
-          className="auth-cs-slot-detach"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDetach();
-          }}
-          disabled={detachPending}
-          aria-label={`Detach Q${slot.position} from this case`}
-          title="Detach question (keeps it in the bank as standalone)"
-        >
-          {detachPending ? '…' : '×'}
-        </button>
-      )}
-    </div>
+      {dirty && <span className="auth-cs-nav-pill-dirty" title="Unsaved question edits">●</span>}
+    </button>
   );
 }

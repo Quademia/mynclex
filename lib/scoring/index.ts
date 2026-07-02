@@ -7,6 +7,7 @@ export {
   scoreAllOrNothing,
   scorePlusMinus,
   scorePerRow,
+  scorePerRowMulti,
   scorePerBlank,
   scorePerSlot,
 } from './functions';
@@ -20,6 +21,7 @@ export type {
   SelectNAnswer,
   HighlightAnswer,
   MatrixAnswer,
+  MatrixMrAnswer,
   ClozeAnswer,
   DragDropAnswer,
   DragClozeAnswer,
