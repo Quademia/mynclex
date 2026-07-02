@@ -75,6 +75,7 @@ import {
   serializeRichDoc,
   isEmptyRichDoc,
   richTextToPlain,
+  richDocToPlain,
   type RichDoc,
 }                                                from '@/lib/authoring/rich-doc';
 import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-editor';
@@ -318,7 +319,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     setValidationIssues(
       validateTrend({
         title,
-        scenario: richTextToPlain(scenario),
+        scenario: richDocToPlain(scenario),
         is_published: isPublished,
         slots,
       }),
