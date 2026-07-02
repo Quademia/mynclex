@@ -694,77 +694,86 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
             />
           </span>
         </div>
-        <div className="auth-tr-topbar-right">
-          {onQuestionPill ? (
-            <>
-              <button
-                type="button"
-                className={`auth-cs-btn primary tiny${editorDirty ? ' dirty-glow' : ''}`}
-                onClick={onSaveQuestion}
-                disabled={!editorDirty || isQuestionPending}
-                title="Save the active question."
-                form={activeEditorKind ? FORM_ID_BY_TYPE[activeEditorKind] : undefined}
-              >
-                {isQuestionPending ? 'Saving…' : 'Save question'}
-              </button>
-              {/* Detach is only meaningful for existing questions —
-                  hide for the creating pill (nothing to detach yet). */}
-              {!isCreatingActive && activeSlot && (
-                <button
-                  type="button"
-                  className="auth-cs-btn subtle tiny"
-                  onClick={onDetachActive}
-                  disabled={isDetachPending}
-                  title="Detach this question from the dataset. The question survives in the bank as standalone."
-                >
-                  {isDetachPending ? 'Detaching…' : 'Detach'}
-                </button>
-              )}
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className={`auth-cs-btn subtle tiny${wrapperDirty ? ' dirty-glow' : ''}`}
-                onClick={onCancelChanges}
-                disabled={!wrapperDirty || isWrapperPending}
-                title="Discard unsaved title / scenario / kind / visibility / data table edits."
-              >
-                Cancel changes
-              </button>
-              <button
-                type="button"
-                className={`auth-cs-btn primary tiny${wrapperDirty ? ' dirty-glow' : ''}`}
-                onClick={onSaveTrend}
-                disabled={!wrapperDirty || isWrapperPending}
-                title="Save dataset metadata + data table."
-              >
-                {isWrapperPending ? 'Saving…' : 'Save trend'}
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            className="auth-cs-btn subtle tiny"
-            onClick={onValidateClick}
-            title="Run a manual validation pass over the dataset (rows, timepoints, attached questions)."
-          >
-            {validationIssues === null ? 'Validate' : 'Hide validation'}
-          </button>
-          <button
-            type="button"
-            className="auth-cs-btn subtle tiny"
-            onClick={onDeleteDataset}
-            title="Delete this trend dataset."
-          >
-            Delete
-          </button>
-          <TrendWrapperBulb />
-        </div>
       </header>
 
       <div className="auth-tr-grid">
         <div className="auth-tr-pane auth-tr-pane-left">
+          {/* Actions row — wrapper/question actions live on the pane
+              (not the top bar), so both wrappers place actions the same
+              way. Context-aware: Dataset pill vs a question pill. */}
+          <div className="auth-tr-pane-actions">
+            <span className="auth-tr-pane-actions-label">
+              {onQuestionPill ? <>Question · <strong>Q{activePill}</strong></> : 'Dataset'}
+            </span>
+            <span className="auth-tr-pane-actions-btns">
+              {onQuestionPill ? (
+                <>
+                  <button
+                    type="button"
+                    className={`auth-cs-btn primary tiny${editorDirty ? ' dirty-glow' : ''}`}
+                    onClick={onSaveQuestion}
+                    disabled={!editorDirty || isQuestionPending}
+                    title="Save the active question."
+                    form={activeEditorKind ? FORM_ID_BY_TYPE[activeEditorKind] : undefined}
+                  >
+                    {isQuestionPending ? 'Saving…' : 'Save question'}
+                  </button>
+                  {/* Detach is only meaningful for existing questions —
+                      hide for the creating pill (nothing to detach yet). */}
+                  {!isCreatingActive && activeSlot && (
+                    <button
+                      type="button"
+                      className="auth-cs-btn subtle tiny"
+                      onClick={onDetachActive}
+                      disabled={isDetachPending}
+                      title="Detach this question from the dataset. The question survives in the bank as standalone."
+                    >
+                      {isDetachPending ? 'Detaching…' : 'Detach'}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={`auth-cs-btn subtle tiny${wrapperDirty ? ' dirty-glow' : ''}`}
+                    onClick={onCancelChanges}
+                    disabled={!wrapperDirty || isWrapperPending}
+                    title="Discard unsaved title / scenario / kind / visibility edits."
+                  >
+                    Cancel changes
+                  </button>
+                  <button
+                    type="button"
+                    className={`auth-cs-btn primary tiny${wrapperDirty ? ' dirty-glow' : ''}`}
+                    onClick={onSaveTrend}
+                    disabled={!wrapperDirty || isWrapperPending}
+                    title="Save dataset metadata (title, scenario, kind, visibility)."
+                  >
+                    {isWrapperPending ? 'Saving…' : 'Save trend'}
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                className="auth-cs-btn subtle tiny"
+                onClick={onValidateClick}
+                title="Run a manual validation pass over the dataset (title, scenario, attached questions)."
+              >
+                {validationIssues === null ? 'Validate' : 'Hide validation'}
+              </button>
+              <button
+                type="button"
+                className="auth-cs-btn subtle tiny"
+                onClick={onDeleteDataset}
+                title="Delete this trend dataset."
+              >
+                Delete
+              </button>
+              <TrendWrapperBulb />
+            </span>
+          </div>
+
           <PillStrip
             activePill={activePill}
             slots={slots}

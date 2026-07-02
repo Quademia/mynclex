@@ -4882,6 +4882,37 @@
   gap: 16px;
 }
 
+/* Actions row — wrapper/question action buttons on the pane (moved off
+ * the top bar so both wrappers place actions the same way). Mirrors the
+ * flex layout of .auth-cs-pane-label: context label on the left, buttons
+ * on the right. */
+.auth-tr-pane-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.auth-tr-pane-actions-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.auth-tr-pane-actions-label strong {
+  color: var(--text);
+}
+.auth-tr-pane-actions-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 /* Pill strip — horizontal navigator at the top of the left pane.
  * One pill per attached question + leading [Dataset] + trailing [+ Add].
  * Overflow scrolls horizontally. */
