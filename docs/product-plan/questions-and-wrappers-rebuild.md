@@ -944,11 +944,13 @@ and the shared editors confirmed it. Findings:
 
 ### Slice plan
 
-> **STATUS (2026-07-01): Slices 1–3 BUILT on the session branch
-> `claude/fervent-shannon-4e168b` (NOT merged to `main`, NOT prod). Two
-> additive migrations `20260712120000` + `20260713120000`, both dev-applied.
-> tsc + eslint + 98 vitest clean. Slices 1+2 Sam-tested (verified in the DB);
-> Slice 3 built but NOT yet Sam-tested. Slice 4 pending.**
+> **STATUS (2026-07-02): Slices 1–4 COMPLETE + Sam-tested. Slices 1–3 are on
+> `main`; Slice 4 is on the session branch (`a418780`), NOT yet merged, NOT
+> prod. Three additive migrations `20260712120000` + `20260713120000` +
+> `20260714120000`, all dev-applied. tsc + eslint clean. Slice 4 Sam-tested
+> end-to-end (built a tab-based trend + 6 questions + ran them in the runner).
+> The arc is done — awaiting a `main` merge + a `main → prod` release (which
+> also needs the prod test-dataset delete noted in Slice 4).**
 
 1. **Slice 1 — Storage. ✅ BUILT** (`5461592`, mig `20260712120000`). Added
    `nclex_trend_tabs` + `nclex_tutor_trend_tabs` (mirror `nclex_case_study_tabs`,
@@ -966,22 +968,39 @@ and the shared editors confirmed it. Findings:
    (`lib/authoring/chart-tab-types.ts`) + a `hideReveal` prop (drops the
    reveal gutter) — case study injects its own actions (unchanged), trend its
    own. Sam-tested `NCLEX_TRD_00002` (3 tabs) in the DB.
-3. **Slice 3 — Preview + runner. ✅ BUILT, not yet Sam-tested** (`147763b`,
+3. **Slice 3 — Preview + runner. ✅ BUILT + Sam-tested** (`147763b`,
    mig `20260713120000`). **3a:** the wrapper right-pane shows the combined
    "as student" view (tab bar + selected body, live drafts). **3b:** froze the
    tabs into the attempt snapshot (new `tabs_snapshot_json` +
    `nclex_create_attempt` `jsonb_agg` from `nclex_trend_tabs`, mirror of the
-   case freeze); `trend-panel` renders the tabbed stimulus when the snapshot
-   carries tabs, **else falls back to the legacy flat grid** (for legacy
-   trends with no tabs). Freeze verified on dev.
-4. **Slice 4 — legacy migration. ⬜ PENDING.** Convert the existing flat-grid
-   datasets → one seeded "Trend data" tab (via the case Slice-5
-   `migrate-v1-tabs.ts` converter approach) and retire the dead
-   `timepoints` / `rows` columns. Own step, once the engine is proven — the
-   additive playbook (build new, migrate legacy once proven). Prod holds only
-   2 trend datasets.
+   case freeze); `trend-panel` renders the tabbed stimulus.
+4. **Slice 4 — retire the flat grid. ✅ BUILT + Sam-tested** (`a418780`, mig
+   `20260714120000`). **Decision (2026-07-02): delete, don't convert.** The
+   original plan was to convert legacy flat-grid datasets → a seeded tab. But
+   every legacy trend (dev + prod) was **unpublished test data reaching no real
+   users**, so conversion bought nothing — we deleted them instead, dropping the
+   converter entirely. **On dev:** deleted all 16 legacy datasets (10 admin + 6
+   tutor = 65 questions) + swept 17 orphan `attempt_items` rows; kept the
+   tab-based `NCLEX_TRD_00002`. **Code:** removed the runner's flat-grid
+   fallback (always renders the tabbed stimulus) + the vestigial
+   `timepoints`/`rows`/`row_label` round-trip in the wrapper editor / save
+   action / loader / validation / both list pages / kind seeds; deleted the dead
+   `data-table.tsx`. **Migration:** re-points `nclex_create_attempt` to freeze
+   **tabs only**, drops the 3 flat snapshot columns off
+   `nclex_attempt_trend_snapshots`, and drops `row_label`/`timepoints`/`rows`
+   off both dataset tables; `schema.sql` mirrored. **⚠ RELEASE STEP:**
+   before/with the prod release, delete prod's 2 unpublished test trend datasets
+   (+ 1 question) so prod lands as clean as dev (the migration drops the columns
+   but leaves the rows — delete them so no tab-less dataset survives).
 
-**⏭ NEXT: Sam tests Slice 3 (runner) → build Slice 4.**
+**Blast-radius mapping (2026-07-02, before the deletes):** the only formal FK
+that blocks a trend-dataset delete is child questions
+(`nclex_bank_items.trend_id` / `nclex_tutor_questions.trend_id`, RESTRICT);
+attempt/embed references are loose (no FK). On dev, `case_study_items` (the one
+RESTRICT on questions) had 0 rows for these, so nothing blocked the cascade.
+
+**⏭ NEXT: (with Sam's approval) merge the session branch → `main`; then a
+`main → prod` release (carries the prod trend-dataset delete step).**
 
 ---
 

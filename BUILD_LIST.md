@@ -8,12 +8,13 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **TREND RICH MULTI-CHART — 🔨 Slices 1–3 BUILT (2026-07-01; session branch
-> `claude/fervent-shannon-4e168b` off `main`; NOT merged to `main`, NOT prod;
-> app-layer + two additive migrations `20260712120000` [tables] +
-> `20260713120000` [snapshot + RPC], both dev-applied; tsc + eslint + 98
-> vitest clean; Slices 1+2 Sam-tested/DB-verified, Slice 3 built but NOT yet
-> Sam-tested).** The deferred half of the bank rich-content relook — the trend
+> **TREND RICH MULTI-CHART — ✅ Slices 1–4 COMPLETE + Sam-tested (Slices 1–3
+> `2026-07-01`, Slice 4 `2026-07-02`; Slices 1–3 on `main`, Slice 4 on the
+> session branch `a418780`; NOT yet prod; app-layer + three additive migrations
+> `20260712120000` [tables] + `20260713120000` [snapshot + RPC] +
+> `20260714120000` [retire flat grid], all dev-applied; tsc + eslint clean;
+> Slice 4 Sam-tested end-to-end — built a tab-based trend + 6 questions + ran
+> them in the runner).** The deferred half of the bank rich-content relook — the trend
 > **stimulus** goes rich (trend questions were already rich). Trend **adopts
 > the case-study chart engine** (multi-tab rich charts) **minus progressive
 > disclosure**; the old flat grid is retired (timepoints→columns,
@@ -34,20 +35,28 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   prop; case study injects its own (unchanged). Copied into trend: tab-types
 >   (6 built-ins + 2 customs), tab-rail, tab CRUD (keyed `trend_id`).
 >   Sam-tested `NCLEX_TRD_00002` (3 tabs) in the DB.
-> - **Slice 3 — Runner + preview ✅ built, NOT yet tested** (`147763b`, mig
->   `20260713120000`): wrapper right-pane combined "as-student" preview + froze
->   the tabs into the attempt snapshot (`tabs_snapshot_json` +
->   `nclex_create_attempt` freeze) so the runner shows the tabbed stimulus,
->   with a fallback to the legacy flat grid.
-> - **Slice 4 — legacy migration ⬜ PENDING:** convert the 2 legacy flat-grid
->   trends → a seeded "Trend data" tab + retire the dead `timepoints`/`rows`
->   columns.
+> - **Slice 3 — Runner + preview ✅** (`147763b`, mig `20260713120000`):
+>   wrapper right-pane combined "as-student" preview + froze the tabs into the
+>   attempt snapshot (`tabs_snapshot_json` + `nclex_create_attempt` freeze) so
+>   the runner shows the tabbed stimulus. Sam-tested on dev.
+> - **Slice 4 — retire the flat grid ✅** (`a418780`, mig `20260714120000`).
+>   **Decision (2026-07-02): delete, don't convert** — all legacy flat-grid
+>   trends were unpublished test data (dev + prod), so no conversion was worth
+>   it. Deleted all 16 legacy datasets + 65 questions + 17 orphan attempt rows
+>   on dev (kept the tab-based `NCLEX_TRD_00002`). Removed the flat-grid path
+>   end to end: runner fallback, the vestigial `timepoints`/`rows`/`row_label`
+>   round-trip in the wrapper editor / save action / loader / validation / both
+>   list pages / kind seeds, and the dead `data-table.tsx`. Migration re-points
+>   `nclex_create_attempt` to freeze **tabs only**, drops the 3 flat snapshot
+>   columns, and drops `row_label`/`timepoints`/`rows` off both dataset tables.
+>   `schema.sql` mirrored. **⚠ RELEASE STEP:** before/with the prod release,
+>   delete prod's 2 unpublished test trend datasets (+ 1 question) so prod ends
+>   up as clean as dev.
 >
-> **⏭ NEXT:** Sam tests Slice 3 (publish `NCLEX_TRD_00002` + its MATRIX
-> question, build a practice quiz, confirm the runner shows the 3 tabs) →
-> build Slice 4. Then this arc + MATRIX_MR + the unreleased stack await a
-> `main` merge + `main → prod` release. ⚠ `PAYSTACK_SECRET_KEY` still not on
-> prod.
+> **⏭ NEXT:** (with Sam's approval) merge the session branch → `main` (adds
+> Slice 4). Then this whole arc + MATRIX_MR + the large unreleased stack await a
+> `main → prod` release (⚠ carries the prod trend-dataset delete step above +
+> `PAYSTACK_SECRET_KEY` still not on prod).
 
 > **MATRIX MULTIPLE RESPONSE (`MATRIX_MR`) — ✅ BUILT + Sam-tested on dev
 > (2026-07-01; session branch off `main`; app-layer + ONE additive migration
