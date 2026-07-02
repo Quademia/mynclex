@@ -23,7 +23,6 @@ const ENABLED_TYPES: ReadonlySet<QuestionType> = new Set([
   'BOWTIE',
   'CLOZE',
   'HIGHLIGHT',
-  'DRAG_DROP',
   'DRAG_CLOZE',
   'DRAG_ORDER',
 ]);

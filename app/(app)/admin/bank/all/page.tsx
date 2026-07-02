@@ -83,12 +83,6 @@ import {
   type HighlightEditorInitial,
 } from '@/lib/bank/editors/highlight-row-mapper';
 import {
-  emptyDragDropInitial,
-  dragDropRowToInitial,
-  type DragDropDbRow,
-  type DragDropEditorInitial,
-} from '@/lib/bank/editors/drag-drop-row-mapper';
-import {
   emptyDragClozeInitial,
   dragClozeRowToInitial,
   type DragClozeDbRow,
@@ -232,7 +226,6 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
   const bowtieInitialsById:    Record<string, BowtieEditorInitial>    = {};
   const clozeInitialsById:     Record<string, ClozeEditorInitial>     = {};
   const highlightInitialsById: Record<string, HighlightEditorInitial> = {};
-  const dragDropInitialsById:  Record<string, DragDropEditorInitial>  = {};
   const dragClozeInitialsById: Record<string, DragClozeEditorInitial> = {};
   const dragOrderInitialsById: Record<string, DragOrderEditorInitial> = {};
   for (const row of fullRows) {
@@ -254,8 +247,6 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
       clozeInitialsById[row.item_id] = clozeRowToInitial(row as unknown as ClozeDbRow, 'admin');
     } else if (row.question_type === 'HIGHLIGHT') {
       highlightInitialsById[row.item_id] = highlightRowToInitial(row as unknown as HighlightDbRow, 'admin');
-    } else if (row.question_type === 'DRAG_DROP') {
-      dragDropInitialsById[row.item_id] = dragDropRowToInitial(row as unknown as DragDropDbRow, 'admin');
     } else if (row.question_type === 'DRAG_CLOZE') {
       dragClozeInitialsById[row.item_id] = dragClozeRowToInitial(row as unknown as DragClozeDbRow, 'admin');
     } else if (row.question_type === 'DRAG_ORDER') {
@@ -333,8 +324,6 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
           emptyClozeInitial={emptyClozeInitial('admin')}
           highlightInitialsById={highlightInitialsById}
           emptyHighlightInitial={emptyHighlightInitial('admin')}
-          dragDropInitialsById={dragDropInitialsById}
-          emptyDragDropInitial={emptyDragDropInitial('admin')}
           dragClozeInitialsById={dragClozeInitialsById}
           emptyDragClozeInitial={emptyDragClozeInitial('admin')}
           dragOrderInitialsById={dragOrderInitialsById}

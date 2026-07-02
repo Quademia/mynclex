@@ -17,8 +17,9 @@
 // the page so the list reflects the change without a full reload.
 //
 // As of slice 10, all nine question types are wired
-// (MCQ + TF + SATA + SELECT_N + MATRIX + BOWTIE + CLOZE + HIGHLIGHT
-// + DRAG_DROP). Filters / search / pagination still deferred.
+// (MCQ + TF + SATA + SELECT_N + MATRIX + MATRIX_MR + BOWTIE + CLOZE +
+// HIGHLIGHT + DRAG_CLOZE + DRAG_ORDER). Filters / search / pagination
+// still deferred.
 
 'use client';
 
@@ -34,7 +35,6 @@ import { MatrixMrEditor, type MatrixMrEditorInitial } from '@/lib/bank/editors/m
 import { BowtieEditor, type BowtieEditorInitial } from '@/lib/bank/editors/bowtie-editor';
 import { ClozeEditor, type ClozeEditorInitial } from '@/lib/bank/editors/cloze-editor';
 import { HighlightEditor, type HighlightEditorInitial } from '@/lib/bank/editors/highlight-editor';
-import { DragDropEditor, type DragDropEditorInitial } from '@/lib/bank/editors/drag-drop-editor';
 import { DragClozeEditor, type DragClozeEditorInitial } from '@/lib/bank/editors/drag-cloze-editor';
 import { DragOrderEditor, type DragOrderEditorInitial } from '@/lib/bank/editors/drag-order-editor';
 import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
@@ -63,7 +63,6 @@ const EDITABLE_TYPES: ReadonlySet<QuestionType> = new Set([
   'BOWTIE',
   'CLOZE',
   'HIGHLIGHT',
-  'DRAG_DROP',
   'DRAG_CLOZE',
   'DRAG_ORDER',
 ]);
@@ -168,10 +167,6 @@ export interface BankListClientProps {
   highlightInitialsById: Record<string, HighlightEditorInitial>;
   /** Empty initial used when the curator picks HIGHLIGHT in create mode. */
   emptyHighlightInitial: HighlightEditorInitial;
-  /** Map of item_id → full editor initial, DRAG_DROP rows. */
-  dragDropInitialsById: Record<string, DragDropEditorInitial>;
-  /** Empty initial used when the curator picks DRAG_DROP in create mode. */
-  emptyDragDropInitial: DragDropEditorInitial;
   /** Map of item_id → full editor initial, DRAG_CLOZE rows. */
   dragClozeInitialsById: Record<string, DragClozeEditorInitial>;
   /** Empty initial used when the curator picks DRAG_CLOZE in create mode. */
@@ -216,8 +211,6 @@ export function BankListClient({
   emptyClozeInitial,
   highlightInitialsById,
   emptyHighlightInitial,
-  dragDropInitialsById,
-  emptyDragDropInitial,
   dragClozeInitialsById,
   emptyDragClozeInitial,
   dragOrderInitialsById,
@@ -610,13 +603,6 @@ export function BankListClient({
           onSaved={handleSaved}
         />
       )}
-      {modal.kind === 'editor-create' && modal.type === 'DRAG_DROP' && (
-        <DragDropEditor
-          initial={emptyDragDropInitial}
-          onClose={handleClose}
-          onSaved={handleSaved}
-        />
-      )}
       {modal.kind === 'editor-create' && modal.type === 'DRAG_CLOZE' && (
         <DragClozeEditor
           initial={emptyDragClozeInitial}
@@ -719,16 +705,6 @@ export function BankListClient({
         highlightInitialsById[modal.itemId] && (
           <HighlightEditor
             initial={highlightInitialsById[modal.itemId]}
-            onClose={handleClose}
-            onSaved={handleSaved}
-            onDeleted={handleDeleted}
-          />
-        )}
-      {modal.kind === 'editor-edit' &&
-        modal.type === 'DRAG_DROP' &&
-        dragDropInitialsById[modal.itemId] && (
-          <DragDropEditor
-            initial={dragDropInitialsById[modal.itemId]}
             onClose={handleClose}
             onSaved={handleSaved}
             onDeleted={handleDeleted}

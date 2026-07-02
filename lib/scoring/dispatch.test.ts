@@ -14,7 +14,6 @@ import type {
   MatrixMrCorrect,
   HighlightCorrect,
   ClozeCorrect,
-  DragDropCorrect,
   BowtieCorrect,
 } from '@/lib/bank/types';
 
@@ -69,13 +68,6 @@ describe('computeMarksFromKey — per-type max derivation (§5.2)', () => {
       feedback: {},
     };
     expect(computeMarksFromKey('CLOZE', c)).toBe(3);
-  });
-
-  it('DRAG_DROP → count of slots', () => {
-    const c: DragDropCorrect = {
-      slots: { s1: 't1', s2: 't2', s3: 't3', s4: 't4' },
-    };
-    expect(computeMarksFromKey('DRAG_DROP', c)).toBe(4);
   });
 
   it('BOWTIE → 5 (fixed)', () => {
@@ -215,17 +207,6 @@ describe('scoreAttempt — per-type runner scoring', () => {
     expect(scoreAttempt('CLOZE', c, { b1: 'c1', b2: 'c2' })).toEqual({
       score_awarded: 2,
       is_correct: true,
-    });
-  });
-
-  // ── DRAG_DROP (per-slot) ──
-  it('DRAG_DROP — §6: un-placed slot scores 0 for that slot', () => {
-    const c: DragDropCorrect = {
-      slots: { s1: 't1', s2: 't2', s3: 't3' },
-    };
-    expect(scoreAttempt('DRAG_DROP', c, { s1: 't1', s3: 't3' })).toEqual({
-      score_awarded: 2,
-      is_correct: false,
     });
   });
 

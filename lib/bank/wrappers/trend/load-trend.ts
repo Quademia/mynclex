@@ -65,10 +65,6 @@ import {
   highlightRowToInitial,
 } from '../../editors/highlight-row-mapper';
 import {
-  type DragDropDbRow,
-  dragDropRowToInitial,
-} from '../../editors/drag-drop-row-mapper';
-import {
   type DragClozeDbRow,
   dragClozeRowToInitial,
 } from '../../editors/drag-cloze-row-mapper';
@@ -140,8 +136,6 @@ function rowToSlotEditor(
       return { kind: 'CLOZE', initial: clozeRowToInitial(row as ClozeDbRow, sf) };
     case 'HIGHLIGHT':
       return { kind: 'HIGHLIGHT', initial: highlightRowToInitial(row as HighlightDbRow, sf) };
-    case 'DRAG_DROP':
-      return { kind: 'DRAG_DROP', initial: dragDropRowToInitial(row as DragDropDbRow, sf) };
     case 'DRAG_CLOZE':
       return { kind: 'DRAG_CLOZE', initial: dragClozeRowToInitial(row as DragClozeDbRow, sf) };
     case 'DRAG_ORDER':

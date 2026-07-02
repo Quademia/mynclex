@@ -27,15 +27,10 @@ export type MatrixMrAnswer = Record<string, string[]>;
 // blankId -> choiceId; missing blanks = skipped
 export type ClozeAnswer = Record<string, string>;
 
-// slotId -> tokenId; missing slots = skipped
-export type DragDropAnswer = Record<string, string>;
-
-// DRAG_CLOZE — same wire shape as DragDropAnswer (slotId -> tokenId); a
-// separate name so the new type is self-contained as DRAG_DROP is retired.
+// DRAG_CLOZE — slotId -> tokenId; missing slots = skipped.
 export type DragClozeAnswer = Record<string, string>;
 
-// DRAG_ORDER — same wire shape (slotId -> tokenId); separate name for the
-// self-contained ranked-response type.
+// DRAG_ORDER — slotId -> tokenId; missing slots = skipped (ranked response).
 export type DragOrderAnswer = Record<string, string>;
 
 // Each wing array holds the student's picks for that wing. centre is one
@@ -62,7 +57,6 @@ export type BankItemAnswer =
   | MatrixMrAnswer
   | HighlightAnswer
   | ClozeAnswer
-  | DragDropAnswer
   | DragClozeAnswer
   | DragOrderAnswer
   | BowtieAnswer;

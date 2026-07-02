@@ -17,7 +17,6 @@ import type {
   MatrixMrCorrect,
   HighlightCorrect,
   ClozeCorrect,
-  DragDropCorrect,
   DragClozeCorrect,
   DragOrderCorrect,
   BowtieCorrect,
@@ -64,8 +63,6 @@ export function computeMarksFromKey(
       return (correct as HighlightCorrect).correct_ids.length;
     case 'CLOZE':
       return Object.keys((correct as ClozeCorrect).answers).length;
-    case 'DRAG_DROP':
-      return Object.keys((correct as DragDropCorrect).slots).length;
     case 'DRAG_CLOZE':
       return Object.keys((correct as DragClozeCorrect).slots).length;
     case 'DRAG_ORDER':
@@ -126,12 +123,6 @@ export function scoreAttempt(
     case 'CLOZE': {
       const c = correct as ClozeCorrect;
       const r = scorePerBlank(c.answers, answer as Record<string, string>);
-      return { score_awarded: r.score_awarded, is_correct: r.is_correct };
-    }
-
-    case 'DRAG_DROP': {
-      const c = correct as DragDropCorrect;
-      const r = scorePerSlot(c.slots, answer as Record<string, string>);
       return { score_awarded: r.score_awarded, is_correct: r.is_correct };
     }
 

@@ -19,16 +19,15 @@
 // HIGHLIGHT wired today; the remaining 3 fall through to the
 // slice-4.2 placeholder.
 //
-// HIGHLIGHT, CLOZE, and DRAG_DROP-SENTENCE are special: the per-type
-// runner takes over stem rendering. HIGHLIGHT's stem holds the
-// [[bracketed]] clickable chunks; CLOZE's stem holds the {N} blank
-// markers that become inline dropdowns; DRAG_DROP-SENTENCE's stem
-// holds [N] markers that become inline drop boxes. For all three we
-// skip the regular `.rn-stem` render in RunnerQuestionArea and the
-// instruction moves to ABOVE the stem (the student needs to know
-// what they're doing before they read). DRAG_DROP-ORDERED renders
-// normally — its slot list sits below the stem like a regular options
-// block.
+// HIGHLIGHT, CLOZE, and DRAG_CLOZE are special: the per-type runner
+// takes over stem rendering. HIGHLIGHT's stem holds the [[bracketed]]
+// clickable chunks; CLOZE's stem holds the {N} blank markers that become
+// inline dropdowns; DRAG_CLOZE's stem holds [N] markers that become
+// inline drop boxes. For all three we skip the regular `.rn-stem` render
+// in RunnerQuestionArea and the instruction moves to ABOVE the stem (the
+// student needs to know what they're doing before they read). DRAG_ORDER
+// renders normally — its slot list sits below the stem like a regular
+// options block.
 //
 // Wrapper-aware layout (case panel + question — slice 4.3 / trend
 // dataset + question — slice 4.4) places the question column inside a
@@ -59,8 +58,6 @@ import type {
   HighlightCorrect,
   ClozeContent,
   ClozeCorrect,
-  DragDropContent,
-  DragDropCorrect,
   DragClozeContent,
   DragClozeCorrect,
   DragOrderContent,
@@ -77,7 +74,6 @@ import type {
   MatrixMrAnswer,
   HighlightAnswer,
   ClozeAnswer,
-  DragDropAnswer,
   DragClozeAnswer,
   DragOrderAnswer,
   BowtieAnswer,
@@ -92,7 +88,6 @@ import {
   MatrixMrRunner,
   HighlightRunner,
   ClozeRunner,
-  DragDropRunner,
   DragClozeRunner,
   DragOrderRunner,
   BowtieRunner,
@@ -110,7 +105,6 @@ const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   MATRIX_MR: 'Matrix (multiple response)',
   HIGHLIGHT: 'Highlight',
   CLOZE:     'Cloze',
-  DRAG_DROP: 'Drag-drop',
   DRAG_CLOZE: 'Drag-and-drop cloze',
   DRAG_ORDER: 'Drag to order',
   BOWTIE:    'Bow-tie',
@@ -177,16 +171,14 @@ export function RunnerQuestionArea(props: Props) {
       {/* HIGHLIGHT, CLOZE, and DRAG_DROP-SENTENCE render their own stem
        *  (interactive chunks / inline dropdowns / inline drop boxes).
        *  For these, instruction moves above the stem so the student
-       *  knows what to do before reading. DRAG_DROP-ORDERED renders
-       *  normally — slot list sits below the stem. All other types
-       *  render stem here, then instruction. */}
+       *  knows what to do before reading. DRAG_ORDER renders normally —
+       *  slot list sits below the stem. All other types render stem
+       *  here, then instruction. */}
       {(() => {
         const isStemTakeover =
           item.question_type === 'HIGHLIGHT' ||
           item.question_type === 'CLOZE' ||
-          item.question_type === 'DRAG_CLOZE' ||
-          (item.question_type === 'DRAG_DROP' &&
-            (item.content_snapshot_json as unknown as DragDropContent).subtype === 'SENTENCE');
+          item.question_type === 'DRAG_CLOZE';
 
         if (isStemTakeover) {
           return item.instruction_snapshot ? (
@@ -421,32 +413,6 @@ function PerTypeRunner(props: Props) {
           content={content}
           studentAnswer={(props.answerRow.answer_json as ClozeAnswer | undefined) ?? {}}
           correct={props.unseal.correct as ClozeCorrect}
-        />
-      );
-    }
-
-    case 'DRAG_DROP': {
-      const content = item.content_snapshot_json as unknown as DragDropContent;
-
-      if (props.itemMode === 'answering') {
-        return (
-          <DragDropRunner
-            mode="answering"
-            stem={item.stem_snapshot}
-            content={content}
-            selected={(props.pendingAnswer as DragDropAnswer | undefined) ?? {}}
-            onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
-          />
-        );
-      }
-
-      return (
-        <DragDropRunner
-          mode="review"
-          stem={item.stem_snapshot}
-          content={content}
-          studentAnswer={(props.answerRow.answer_json as DragDropAnswer | undefined) ?? {}}
-          correct={props.unseal.correct as DragDropCorrect}
         />
       );
     }

@@ -70,7 +70,6 @@ const TYPE_PILL: Record<string, { short: string; letter: string; color: string; 
   BOWTIE:    { short: 'Bow-tie',   letter: 'B', color: '#7c3aed', bg: '#efe6fd' },
   CLOZE:     { short: 'Cloze',     letter: 'C', color: '#b45309', bg: '#fbeedb' },
   HIGHLIGHT: { short: 'Highlight', letter: 'H', color: '#be123c', bg: '#fbe2e8' },
-  DRAG_DROP: { short: 'Drag-drop', letter: 'D', color: '#15803d', bg: '#ddf0e2' },
   DRAG_CLOZE: { short: 'Drag-cloze', letter: 'Z', color: '#0f766e', bg: '#d7f0ec' },
   DRAG_ORDER: { short: 'Drag-order', letter: 'O', color: '#1d4ed8', bg: '#dde6fb' },
 };

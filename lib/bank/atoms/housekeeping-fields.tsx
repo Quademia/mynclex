@@ -129,8 +129,6 @@ function formatMarksLabel(questionType: QuestionType, marks: number): string {
       return `Max: ${marks} — count of correct chunks`;
     case 'CLOZE':
       return `Max: ${marks} — count of blanks`;
-    case 'DRAG_DROP':
-      return `Max: ${marks} — count of slots`;
     case 'DRAG_CLOZE':
       return `Max: ${marks} — count of blanks`;
     case 'DRAG_ORDER':

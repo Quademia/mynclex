@@ -23,7 +23,6 @@ export type {
   MatrixAnswer,
   MatrixMrAnswer,
   ClozeAnswer,
-  DragDropAnswer,
   DragClozeAnswer,
   DragOrderAnswer,
   BowtieAnswer,

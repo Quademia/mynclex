@@ -260,7 +260,6 @@ export const QTYPE_OPTIONS: { id: string; label: string }[] = [
   { id: 'MATRIX_MR', label: 'Matrix (multiple response)' },
   { id: 'HIGHLIGHT', label: 'Highlight (Hot spot)' },
   { id: 'CLOZE',     label: 'Fill-in (Cloze)' },
-  { id: 'DRAG_DROP', label: 'Drag and drop' },
   { id: 'DRAG_CLOZE', label: 'Drag-and-drop cloze' },
   { id: 'DRAG_ORDER', label: 'Drag to order' },
   { id: 'BOWTIE',    label: 'Bow-tie' },

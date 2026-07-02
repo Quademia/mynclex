@@ -2,10 +2,10 @@
 //
 // Server action for the new authoring tree. Branches on question_type
 // and dispatches to the matching parser (lib/bank/parsers/<type>.ts)
-// to build content + correct JSONB. Supports all nine question types as
-// of slice 10: MCQ (slice 2), TF (slice 3), SATA (slice 4), SELECT_N
-// (slice 5), MATRIX (slice 6), BOWTIE (slice 7), CLOZE (slice 8),
-// HIGHLIGHT (slice 9), and DRAG_DROP (slice 10).
+// to build content + correct JSONB. Covers every live question type:
+// MCQ, TF, SATA, SELECT_N, MATRIX, MATRIX_MR, BOWTIE, CLOZE, HIGHLIGHT,
+// DRAG_CLOZE, DRAG_ORDER. (The old DRAG_DROP type was split into
+// DRAG_CLOZE + DRAG_ORDER and retired 2026-07-02.)
 //
 // Surface-aware: reads the `surface` hidden input on the form and
 // branches between admin (nclex_bank_items, NCLEX_<TYPE>_NNNNN) and
@@ -58,10 +58,6 @@ import {
   highlightStemScanText,
 } from '@/lib/bank/editors/highlight-stem-doc';
 import {
-  normalizeDragDropStem,
-  dragDropStemScanText,
-} from '@/lib/bank/editors/drag-drop-stem-doc';
-import {
   normalizeDragClozeStem,
   dragClozeStemScanText,
 } from '@/lib/bank/editors/drag-cloze-stem-doc';
@@ -70,11 +66,6 @@ import {
   parseHighlight,
   type HighlightChunkInput,
 } from '@/lib/bank/parsers/highlight';
-import {
-  parseDragDrop,
-  type DragDropSlotInput,
-  type DragDropTokenInput,
-} from '@/lib/bank/parsers/drag-drop';
 import {
   parseDragCloze,
   type DragClozeSlotInput,
@@ -192,7 +183,6 @@ const SUPPORTED_TYPES = new Set<QuestionType>([
   'BOWTIE',
   'CLOZE',
   'HIGHLIGHT',
-  'DRAG_DROP',
   'DRAG_CLOZE',
   'DRAG_ORDER',
 ]);
@@ -410,44 +400,6 @@ function parseQuestionFormData(formData: FormData): ParsedQuestion | { error: st
         });
         if (!hlResult.ok) return hlResult;
         return { ...hlResult, stem: serializeRichDoc(hlStemDoc) };
-      }
-      case 'DRAG_DROP': {
-        // Parallel slot + token arrays. The parser re-derives "active"
-        // slots from the stem's [N] markers (SENTENCE) or from the
-        // form slot list (ORDERED), so we send every slot row as-is —
-        // no in_stem flag needed.
-        const subtype = String(formData.get('dd_subtype') ?? '');
-        const slotIds        = formData.getAll('dd_slot_id').map(String);
-        const slotTargets    = formData.getAll('dd_slot_target_text').map(String);
-        const slotAssigned   = formData.getAll('dd_slot_assigned_token_id').map(String);
-        const tokenIds       = formData.getAll('dd_token_id').map(String);
-        const tokenTexts     = formData.getAll('dd_token_text').map(String);
-        const tokenFeedbacks = formData.getAll('dd_token_feedback').map(String);
-        const ddSlots: DragDropSlotInput[] = slotIds.map((id, i) => ({
-          id,
-          target_text: slotTargets[i] ?? '',
-          assigned_token_id: slotAssigned[i] ?? '',
-        }));
-        const ddTokens: DragDropTokenInput[] = tokenIds.map((id, i) => ({
-          id,
-          text: tokenTexts[i] ?? '',
-          feedback: tokenFeedbacks[i] ?? '',
-        }));
-        // The stem is a rich doc (JSON). For SENTENCE the [N] markers live as
-        // plain text inside it (Slice 6f, Option B); normalise (strip any marks
-        // off a marker + isolate), scan its flattened text for the parser, then
-        // store the doc JSON. No renumber — markers are byte-preserved (the
-        // parser keeps gaps like [1] [3]). ORDERED stems carry no markers — the
-        // normalise is a no-op and the scan text is just the flattened prose.
-        const ddStemDoc = normalizeDragDropStem(parseRichDoc(stem));
-        const ddResult = parseDragDrop({
-          stem: dragDropStemScanText(ddStemDoc),
-          subtype,
-          slots: ddSlots,
-          tokens: ddTokens,
-        });
-        if (!ddResult.ok) return ddResult;
-        return { ...ddResult, stem: serializeRichDoc(ddStemDoc) };
       }
       case 'DRAG_CLOZE': {
         // Like DRAG_DROP SENTENCE, but a standalone type — no subtype. The

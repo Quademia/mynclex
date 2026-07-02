@@ -19,7 +19,6 @@ import type { MatrixMrEditorInitial } from '../../editors/matrix-mr-row-mapper';
 import type { BowtieEditorInitial }   from '../../editors/bowtie-row-mapper';
 import type { ClozeEditorInitial }    from '../../editors/cloze-row-mapper';
 import type { HighlightEditorInitial } from '../../editors/highlight-row-mapper';
-import type { DragDropEditorInitial } from '../../editors/drag-drop-row-mapper';
 import type { DragClozeEditorInitial } from '../../editors/drag-cloze-row-mapper';
 import type { DragOrderEditorInitial } from '../../editors/drag-order-row-mapper';
 
@@ -96,7 +95,6 @@ export type SlotEditorInitial =
   | { kind: 'BOWTIE';     initial: BowtieEditorInitial    }
   | { kind: 'CLOZE';      initial: ClozeEditorInitial     }
   | { kind: 'HIGHLIGHT';  initial: HighlightEditorInitial }
-  | { kind: 'DRAG_DROP';  initial: DragDropEditorInitial  }
   | { kind: 'DRAG_CLOZE'; initial: DragClozeEditorInitial }
   | { kind: 'DRAG_ORDER'; initial: DragOrderEditorInitial };
 
