@@ -7,9 +7,9 @@
 //
 // 2026-06 redesign (Claude Design "Bank surfaces"): an overview/health band
 // on top (stat cards, "Reaches nobody" doubles as a filter), a compact
-// single-row toolbar (search · Status seg · Kind · Needs-attention chip ·
-// + New), and a re-skinned table that adds a HEALTH column + an attached
-// mini-bar. Styles: styles/bank-list.css (`bl-*`).
+// single-row toolbar (search · Status seg · Needs-attention chip · + New),
+// and a re-skinned table that adds a HEALTH column + an attached mini-bar.
+// Styles: styles/bank-list.css (`bl-*`).
 //
 // The shared list primitives (AttachedBar / HealthFlag / SearchIcon) live in
 // lib/bank/list-ui.tsx — extracted there once the Case-studies list became
@@ -28,8 +28,6 @@ export interface TrendListRow {
   trend_id:     string;
   title:        string;
   scenario:     string | null;  // for the hover peek
-  kind:         string;
-  kindLabel:    string;
   is_published: boolean;
   updated_at:   string;
   total:        number;   // attached question count
@@ -54,15 +52,7 @@ export function TrendsListClient({
 }) {
   const [q, setQ]           = useState('');
   const [status, setStatus] = useState('');
-  const [kind, setKind]     = useState('');
   const [attn, setAttn]     = useState(false);
-
-  // Distinct kinds present, for the Kind dropdown.
-  const kindOptions = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const r of rows) if (!seen.has(r.kind)) seen.set(r.kind, r.kindLabel);
-    return Array.from(seen, ([value, label]) => ({ value, label }));
-  }, [rows]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -70,11 +60,10 @@ export function TrendsListClient({
       if (term && !r.searchText.includes(term)) return false;
       if (status === 'published' && !r.is_published) return false;
       if (status === 'draft' && r.is_published) return false;
-      if (kind && r.kind !== kind) return false;
       if (attn && !needsAttention(r)) return false;
       return true;
     });
-  }, [rows, q, status, kind, attn]);
+  }, [rows, q, status, attn]);
 
   // Band stats are over ALL rows (the whole list), not the filtered view —
   // they describe the dataset population, and the cards double as filters.
@@ -83,7 +72,7 @@ export function TrendsListClient({
   const attnCount     = useMemo(() => rows.filter(needsAttention).length, [rows]);
   const totalAttached = useMemo(() => rows.reduce((s, r) => s + r.total, 0), [rows]);
 
-  const active = Boolean(q || status || kind || attn);
+  const active = Boolean(q || status || attn);
   const basePath = surface === 'tutor' ? '/tutor/bank/trends' : '/admin/bank/trends';
   const entityType = surface === 'tutor' ? 'tutor_trend_dataset' : 'trend_dataset';
 
@@ -93,7 +82,7 @@ export function TrendsListClient({
   const PAGE_SIZE = 50;
   const [shown, setShown] = useState(PAGE_SIZE);
   // Reset to the first page when the filter set changes (render-phase reset).
-  const filterSig = `${q}|${status}|${kind}|${attn}`;
+  const filterSig = `${q}|${status}|${attn}`;
   const [prevFilterSig, setPrevFilterSig] = useState(filterSig);
   if (filterSig !== prevFilterSig) {
     setPrevFilterSig(filterSig);
@@ -101,7 +90,7 @@ export function TrendsListClient({
   }
   const visible = filtered.slice(0, shown);
 
-  function clearAll() { setQ(''); setStatus(''); setKind(''); setAttn(false); }
+  function clearAll() { setQ(''); setStatus(''); setAttn(false); }
 
   return (
     <>
@@ -152,12 +141,6 @@ export function TrendsListClient({
             </button>
           ))}
         </div>
-        <select className="bl-select" value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Kind">
-          <option value="">All kinds</option>
-          {kindOptions.map((k) => (
-            <option key={k.value} value={k.value}>{k.label}</option>
-          ))}
-        </select>
         <button
           type="button"
           className={`bl-chip warn${attn ? ' on' : ''}`}
@@ -193,7 +176,6 @@ export function TrendsListClient({
               <tr>
                 <th className="bl-id">Trend ID</th>
                 <th className="bl-col-title">Title</th>
-                <th>Kind</th>
                 <th>Attached</th>
                 <th>Status</th>
                 <th>Health</th>
@@ -215,15 +197,11 @@ export function TrendsListClient({
                           {t.scenario
                             ? <p className="hover-peek-body">{t.scenario}</p>
                             : <p className="hover-peek-empty">No scenario yet.</p>}
-                          <div className="hover-peek-chips">
-                            <span className="hover-peek-chip">{t.kindLabel}</span>
-                          </div>
                         </div>
                       }>
                         {t.title}
                       </HoverPeek>
                     </td>
-                    <td className="bl-cell-mid">{t.kindLabel}</td>
                     <td><AttachedBar total={t.total} published={t.published} /></td>
                     <td>
                       {t.is_published

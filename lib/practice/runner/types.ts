@@ -93,7 +93,6 @@ export interface TrendSnapshot {
   trend_id:                 string;
   title_snapshot:           string;
   scenario_snapshot:        string | null;
-  kind_snapshot:            string;
   // Frozen chart tabs (Slice 3b). The trend stimulus is entirely
   // tab-based since Slice 4 retired the flat grid.
   tabs_snapshot_json:       unknown[];

@@ -19,7 +19,6 @@ import type { MatrixMrEditorInitial } from '../../editors/matrix-mr-row-mapper';
 import type { BowtieEditorInitial }   from '../../editors/bowtie-row-mapper';
 import type { ClozeEditorInitial }    from '../../editors/cloze-row-mapper';
 import type { HighlightEditorInitial } from '../../editors/highlight-row-mapper';
-import type { DragDropEditorInitial } from '../../editors/drag-drop-row-mapper';
 import type { DragClozeEditorInitial } from '../../editors/drag-cloze-row-mapper';
 import type { DragOrderEditorInitial } from '../../editors/drag-order-row-mapper';
 
@@ -33,7 +32,8 @@ export type Surface = 'admin' | 'tutor';
 //
 // The stimulus lives entirely in the chart tabs (TrendTabRow) since
 // Slice 4 retired the old flat grid — the `timepoints` / `rows` /
-// `row_label` columns are gone. `kind` is just a short display label.
+// `row_label` columns are gone. Slice 5 retired `kind` (a group of
+// titled tabs needs no top-level descriptor).
 //
 // is_free_sample + is_builder_visible were added in the slice-13
 // migration. Defaults: FALSE / TRUE.
@@ -42,7 +42,6 @@ export interface TrendDatasetRow {
   tutor_id?:          string | null;
   title:              string;
   scenario:           string | null;
-  kind:               string;
   is_published:       boolean;
   is_free_sample:     boolean;
   is_builder_visible: boolean;
@@ -96,7 +95,6 @@ export type SlotEditorInitial =
   | { kind: 'BOWTIE';     initial: BowtieEditorInitial    }
   | { kind: 'CLOZE';      initial: ClozeEditorInitial     }
   | { kind: 'HIGHLIGHT';  initial: HighlightEditorInitial }
-  | { kind: 'DRAG_DROP';  initial: DragDropEditorInitial  }
   | { kind: 'DRAG_CLOZE'; initial: DragClozeEditorInitial }
   | { kind: 'DRAG_ORDER'; initial: DragOrderEditorInitial };
 

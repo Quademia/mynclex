@@ -42,8 +42,8 @@ import type {
   SataAnswer,
   SelectNAnswer,
 } from '@/lib/scoring';
-import type { SelectNContent, MatrixContent, MatrixMrContent, ClozeContent, DragDropContent, DragClozeContent, DragOrderContent } from '@/lib/bank/types';
-import type { MatrixAnswer, MatrixMrAnswer, HighlightAnswer, ClozeAnswer, DragDropAnswer, DragClozeAnswer, DragOrderAnswer, BowtieAnswer } from '@/lib/scoring';
+import type { SelectNContent, MatrixContent, MatrixMrContent, ClozeContent, DragClozeContent, DragOrderContent } from '@/lib/bank/types';
+import type { MatrixAnswer, MatrixMrAnswer, HighlightAnswer, ClozeAnswer, DragClozeAnswer, DragOrderAnswer, BowtieAnswer } from '@/lib/scoring';
 import {
   isMcqComplete,
   isSataComplete,
@@ -52,7 +52,6 @@ import {
   isMatrixMrComplete,
   isHighlightComplete,
   isClozeComplete,
-  isDragDropComplete,
   isDragClozeComplete,
   isDragOrderComplete,
   isBowtieComplete,
@@ -1130,21 +1129,6 @@ function getSubmitGate(
         canSubmit:   ok,
         submitValue: ok ? (a as BankItemAnswer) : null,
         hint:        ok ? undefined : `${filled} of ${total} blanks filled — finish all to submit`,
-      };
-    }
-
-    case 'DRAG_DROP': {
-      const content = item.content_snapshot_json as unknown as DragDropContent;
-      const a = pending as DragDropAnswer | undefined;
-      const ok = isDragDropComplete(a, content);
-      const filled = a
-        ? content.slots.filter((s) => Boolean(a[s.id])).length
-        : 0;
-      const total = content.slots.length;
-      return {
-        canSubmit:   ok,
-        submitValue: ok ? (a as BankItemAnswer) : null,
-        hint:        ok ? undefined : `${filled} of ${total} slots filled — finish all to submit`,
       };
     }
 

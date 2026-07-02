@@ -196,48 +196,14 @@ export interface HighlightCorrect {
 }
 
 // ─────────────────────────────────────────────────────────────
-// DRAG_DROP — two subtypes in one shape.
-//   ORDERED : student drags tokens to ranked positions (1st, 2nd, ...).
-//   SENTENCE: student drags tokens into [N] markers in the stem.
-//
-// Slots hold position + optional target_text (display hint shown next
-// to the slot in the student runner). Tokens are the draggable pool;
-// the pool may contain distractors so tokens.length >= slots.length.
-// correct.slots is the rubric (slotId → tokenId, 1:1 for active slots).
-// feedback is sparse + keyed by TOKEN id — every token (the correct ones
-// AND the distractors) can carry its own explanation. A correct token's
-// feedback surfaces at its slot in review; a distractor's surfaces in the
-// distractor strip. (Moved off slots 2026-06-30 so distractors can be
-// explained, like every other type's per-option feedback.)
-// ─────────────────────────────────────────────────────────────
-
-export interface DragDropSlot {
-  id: string;             // 's1', 's2', ... — for SENTENCE, s1 ↔ [1]
-  target_text: string;    // ORDERED: "1st action" | SENTENCE: optional hint
-}
-
-export interface DragDropToken {
-  id: string;             // 't1', 't2', ...
-  text: string;
-}
-
-export interface DragDropContent {
-  subtype: 'ORDERED' | 'SENTENCE';
-  slots: DragDropSlot[];
-  tokens: DragDropToken[];
-}
-
-export interface DragDropCorrect {
-  slots: Record<string, string>;              // slotId -> correct tokenId
-  feedback?: Record<string, string>;          // sparse — tokenId -> feedback
-}
-
-// ─────────────────────────────────────────────────────────────
-// DRAG_CLOZE — the sentence-blanks type split out of DRAG_DROP (2026-06-30).
+// DRAG_CLOZE — the sentence-blanks drag type (split out of the retired
+// DRAG_DROP type on 2026-06-30; DRAG_DROP itself retired 2026-07-02).
 // The stem carries inline [N] markers; each maps to a slot the student drags
-// a token into. Same slot/token/feedback shape as DRAG_DROP's SENTENCE mode,
-// minus the `subtype` discriminator (this type is always sentence). Feedback
-// is token-keyed (every token — answer or distractor — can be explained).
+// a token into. Slots hold position + optional target_text (display hint).
+// Tokens are the draggable pool (may include distractors, so
+// tokens.length >= slots.length). correct.slots is the rubric (slotId →
+// tokenId). Feedback is sparse + token-keyed — every token (answer or
+// distractor) can carry its own explanation.
 // ─────────────────────────────────────────────────────────────
 
 export interface DragClozeSlot {
@@ -302,7 +268,6 @@ export type BankItemContent =
   | BowtieContent
   | ClozeContent
   | HighlightContent
-  | DragDropContent
   | DragClozeContent
   | DragOrderContent;
 
@@ -316,6 +281,5 @@ export type BankItemCorrect =
   | BowtieCorrect
   | ClozeCorrect
   | HighlightCorrect
-  | DragDropCorrect
   | DragClozeCorrect
   | DragOrderCorrect;

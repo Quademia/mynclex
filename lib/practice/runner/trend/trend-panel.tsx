@@ -16,7 +16,6 @@
 import { useState } from 'react';
 import type { TrendSnapshot } from '@/lib/practice/runner';
 import type { TrendTabRow } from '@/lib/bank/wrappers/trend/types';
-import { kindDefaultLabel } from '@/lib/bank/wrappers/trend/kind-templates';
 import { asMergeTab } from '@/lib/authoring/table/merge-table-model';
 import { MergeTableView } from '@/lib/authoring/table/merge-table-view';
 import { asNarrativeTab } from '@/lib/authoring/narrative/narrative-model';
@@ -32,7 +31,6 @@ interface Props {
 const SHOW_ALL_POSITION = 999;
 
 export function TrendPanel({ trendSnap }: Props) {
-  const kindLabel = kindDefaultLabel(trendSnap.kind_snapshot);
   const tabs = (trendSnap.tabs_snapshot_json ?? []) as TrendTabRow[];
 
   return (
@@ -40,7 +38,7 @@ export function TrendPanel({ trendSnap }: Props) {
       <div className="rn-trend-head">
         <div className="label">
           <span className="dot" aria-hidden="true" />
-          Trend data · {kindLabel}
+          Trend data
         </div>
         <div className="title">{trendSnap.title_snapshot}</div>
       </div>

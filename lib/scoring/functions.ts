@@ -97,7 +97,7 @@ export function scorePerBlank(
 }
 
 // scorePerSlot — 0/1 per slot, summed. Max = number of slots.
-// Used directly by: DRAG_DROP (single-token-per-slot).
+// Used directly by: DRAG_CLOZE + DRAG_ORDER (single-token-per-slot).
 // BOWTIE conceptually applies the same rule (per-wing 0/1 tally summed)
 // but its rubric shape is array+scalar+array, not Record. Bowtie scoring
 // is inlined in dispatch.ts using the same per-element math.

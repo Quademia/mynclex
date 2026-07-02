@@ -8,8 +8,9 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **TREND RICH MULTI-CHART — ✅ Slices 1–4 COMPLETE + Sam-tested + on `main`
-> (Slices 1–3 `2026-07-01`, Slice 4 `2026-07-02`; NOT yet prod; app-layer +
+> **TREND RICH MULTI-CHART — ✅ Slices 1–4 COMPLETE + Sam-tested + RELEASED to
+> PROD 2026-07-02 (PR #34)
+> (Slices 1–3 `2026-07-01`, Slice 4 `2026-07-02`; app-layer +
 > three additive migrations `20260712120000` [tables] + `20260713120000`
 > [snapshot + RPC] + `20260714120000` [retire flat grid], all dev-applied; tsc +
 > eslint clean; Slice 4 Sam-tested end-to-end). Since then the
@@ -68,15 +69,17 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
 >   → Trend "Slice plan" → Slice 5.
 >
-> **⏭ NEXT:** Slices 1–4 + the wrapper-harmonisation + picker-removal are on
-> `main`. **Build Slice 5 (retire `kind`) when picked up.** A `main → prod`
-> release is still pending (⚠ carries the trend migrations + the prod
-> trend-dataset delete step above + `PAYSTACK_SECRET_KEY` still not on prod).
+> **✅ RELEASED to PROD 2026-07-02 (PR #34** — `main → prod`; migrate-prod
+> applied `20260711`–`20260714120000` + deploy-prod both green; prod
+> trend-dataset cleanup done [2 test datasets + 1 question deleted before the
+> flat-column drop, prod trend datasets now 0]).
+> **⏭ NEXT:** **Build Slice 5 (retire `kind`) when picked up.** ⚠
+> `PAYSTACK_SECRET_KEY` still not on the prod Worker (prod checkout stays
+> broken until set — unrelated to this release).
 
-> **MATRIX MULTIPLE RESPONSE (`MATRIX_MR`) — ✅ BUILT + Sam-tested on dev
-> (2026-07-01; session branch off `main`; app-layer + ONE additive migration
-> `20260711120000` [dev-applied]; tsc + eslint + 98 vitest clean; NOT merged to
-> `main`, NOT prod).** New self-contained NGN item type — a matrix grid where
+> **MATRIX MULTIPLE RESPONSE (`MATRIX_MR`) — ✅ BUILT + Sam-tested + RELEASED to
+> PROD 2026-07-02 (PR #34; migration `20260711120000` applied to prod).** New
+> self-contained NGN item type — a matrix grid where
 > each row has **one or more** correct columns (checkbox per cell), scored
 > SATA-style per row. Mirror of `MATRIX` (radio, one-per-row); legacy `MATRIX`
 > untouched. Built via the "Adding a new question type — wiring checklist".

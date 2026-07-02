@@ -38,7 +38,6 @@ export { MatrixRunner,    isMatrixComplete }    from './types/matrix';
 export { MatrixMrRunner,  isMatrixMrComplete }  from './types/matrix-mr';
 export { HighlightRunner, isHighlightComplete } from './types/highlight';
 export { ClozeRunner,     isClozeComplete }     from './types/cloze';
-export { DragDropRunner,  isDragDropComplete }  from './types/drag-drop';
 export { DragClozeRunner, isDragClozeComplete } from './types/drag-cloze';
 export { DragOrderRunner, isDragOrderComplete } from './types/drag-order';
 export { BowtieRunner,    isBowtieComplete }    from './types/bowtie';
