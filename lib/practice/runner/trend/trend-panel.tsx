@@ -21,6 +21,8 @@ import { asMergeTab } from '@/lib/authoring/table/merge-table-model';
 import { MergeTableView } from '@/lib/authoring/table/merge-table-view';
 import { asNarrativeTab } from '@/lib/authoring/narrative/narrative-model';
 import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
+import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
+import { RichRender } from '@/lib/authoring/rich-render';
 
 interface Props {
   trendSnap: TrendSnapshot;
@@ -43,12 +45,18 @@ export function TrendPanel({ trendSnap }: Props) {
         <div className="title">{trendSnap.title_snapshot}</div>
       </div>
 
-      {trendSnap.scenario_snapshot && (
-        <div className="rn-trend-scenario">
-          <div className="label">Scenario</div>
-          <div className="body">{trendSnap.scenario_snapshot}</div>
-        </div>
-      )}
+      {(() => {
+        // Scenario is rich content (mirrors the case-study scenario).
+        // parseRichDoc reads both a stored rich-doc and a legacy plain string.
+        const scenarioDoc = parseRichDoc(trendSnap.scenario_snapshot ?? '');
+        if (isEmptyRichDoc(scenarioDoc)) return null;
+        return (
+          <div className="rn-trend-scenario">
+            <div className="label">Scenario</div>
+            <RichRender doc={scenarioDoc} className="body" />
+          </div>
+        );
+      })()}
 
       {tabs.length > 0 ? (
         <TabbedStimulus tabs={tabs} />

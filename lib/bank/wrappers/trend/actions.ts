@@ -189,8 +189,9 @@ export async function saveTrendMetadataAction(
   const title = String(formData.get('title') ?? '').trim();
   if (!title) return { ok: false, error: 'Title is required.' };
 
-  const scenarioRaw = String(formData.get('scenario') ?? '').trim();
-  const scenario = scenarioRaw || null;
+  // Scenario is rich content — the client posts a serialized Tiptap doc.
+  // Store it verbatim (do not trim/normalise the JSON); '' → null.
+  const scenario = String(formData.get('scenario') ?? '') || null;
 
   const kind = String(formData.get('kind') ?? '').trim() || 'custom';
 

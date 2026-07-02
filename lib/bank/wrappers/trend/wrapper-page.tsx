@@ -49,6 +49,8 @@ import {
   asNarrativeTab,
   type NarrativeTabData,
 } from '@/lib/authoring/narrative/narrative-model';
+import { RichField } from '@/lib/authoring/rich-field';
+import { RichRender } from '@/lib/authoring/rich-render';
 import type {
   SlotEditorInitial,
   SlotRow,
@@ -68,7 +70,13 @@ import { AuthorshipInline } from '@/lib/audit/authorship-line';
 import type { Authorship } from '@/lib/audit/authorship';
 
 import { McqEditorBody, McqPreview }             from '@/lib/bank/editors/mcq-editor';
-import { parseRichDoc, richTextToPlain }         from '@/lib/authoring/rich-doc';
+import {
+  parseRichDoc,
+  serializeRichDoc,
+  isEmptyRichDoc,
+  richTextToPlain,
+  type RichDoc,
+}                                                from '@/lib/authoring/rich-doc';
 import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-editor';
 import { SataEditorBody, SataPreview }           from '@/lib/bank/editors/sata-editor';
 import { SelectNEditorBody, SelectNPreview }     from '@/lib/bank/editors/select-n-editor';
@@ -189,7 +197,17 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
 
   // ── Wrapper-edit state (the curator's in-flight edits) ─────
   const [title, setTitle] = useState(datasetRow.title);
-  const [scenario, setScenario] = useState(datasetRow.scenario ?? '');
+  // Scenario is rich content (mirrors the case-study scenario). Parse the
+  // stored value once: a JSON rich-doc reads back as itself, a legacy
+  // plain-text scenario wraps as paragraphs. The serialized baseline drives
+  // dirty-tracking (compare docs by stored string, so a no-op load isn't dirty).
+  const [scenario, setScenario] = useState<RichDoc>(() =>
+    parseRichDoc(datasetRow.scenario ?? ''),
+  );
+  const initialScenarioSerialized = useMemo(
+    () => serializeRichDoc(parseRichDoc(datasetRow.scenario ?? '')),
+    [datasetRow.scenario],
+  );
   const [kind, setKind] = useState(datasetRow.kind);
   const [isPublished, setIsPublished] = useState(datasetRow.is_published);
   const [isFreeSample, setIsFreeSample] = useState(datasetRow.is_free_sample);
@@ -300,7 +318,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     setValidationIssues(
       validateTrend({
         title,
-        scenario,
+        scenario: richTextToPlain(scenario),
         is_published: isPublished,
         slots,
       }),
@@ -316,14 +334,14 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   // ── Wrapper-edit dirty tracking ─────────────────────────────
   const wrapperDirty = useMemo(() => {
     if (title !== datasetRow.title) return true;
-    if ((scenario || null) !== (datasetRow.scenario || null)) return true;
+    if (serializeRichDoc(scenario) !== initialScenarioSerialized) return true;
     if (kind !== datasetRow.kind) return true;
     if (isPublished       !== datasetRow.is_published)       return true;
     if (isFreeSample      !== datasetRow.is_free_sample)     return true;
     if (isBuilderVisible  !== datasetRow.is_builder_visible) return true;
     return false;
   }, [
-    title, scenario, kind,
+    title, scenario, initialScenarioSerialized, kind,
     isPublished, isFreeSample, isBuilderVisible,
     datasetRow,
   ]);
@@ -333,7 +351,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   function onCancelChanges() {
     if (!wrapperDirty) return;
     setTitle(datasetRow.title);
-    setScenario(datasetRow.scenario ?? '');
+    setScenario(parseRichDoc(datasetRow.scenario ?? ''));
     setKind(datasetRow.kind);
     setIsPublished(datasetRow.is_published);
     setIsFreeSample(datasetRow.is_free_sample);
@@ -346,7 +364,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     fd.set('surface', surface);
     fd.set('trend_id', datasetRow.trend_id);
     fd.set('title', title);
-    fd.set('scenario', scenario);
+    fd.set('scenario', serializeRichDoc(scenario));
     fd.set('kind', kind);
     if (isPublished)      fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
@@ -637,9 +655,6 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     setShowTypePicker(false);
   }
 
-  // ── Right-pane in-flight values ─────────────────────────────
-  const previewScenario = scenario;
-
   // Save-question button visibility + state
   const onQuestionPill = activePill !== 'dataset';
 
@@ -863,8 +878,8 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
 
           <div className="auth-tr-preview-section">
             <div className="auth-tr-preview-section-label">Scenario</div>
-            {previewScenario
-              ? <p className="auth-tr-preview-scenario">{previewScenario}</p>
+            {!isEmptyRichDoc(scenario)
+              ? <RichRender doc={scenario} className="auth-tr-preview-scenario" />
               : <p className="auth-tr-empty-msg">No scenario yet.</p>}
           </div>
 
@@ -1064,13 +1079,13 @@ function DatasetView({
   onIsBuilderVisibleChange,
 }: {
   title:                    string;
-  scenario:                 string;
+  scenario:                 RichDoc;
   kind:                     string;
   isPublished:              boolean;
   isFreeSample:             boolean;
   isBuilderVisible:         boolean;
   onTitleChange:            (next: string) => void;
-  onScenarioChange:         (next: string) => void;
+  onScenarioChange:         (next: RichDoc) => void;
   onKindChange:             (next: string) => void;
   onIsPublishedChange:      (next: boolean) => void;
   onIsFreeSampleChange:     (next: boolean) => void;
@@ -1091,14 +1106,12 @@ function DatasetView({
       </section>
 
       <section className="auth-tr-section">
-        <label className="auth-tr-section-label" htmlFor="auth-tr-scenario">Scenario</label>
-        <textarea
-          id="auth-tr-scenario"
-          className="auth-tr-textarea"
-          rows={4}
+        <label className="auth-tr-section-label">Scenario</label>
+        <RichField
           value={scenario}
-          onChange={(e) => onScenarioChange(e.target.value)}
-          placeholder="Brief patient context shown above the data table."
+          onChange={onScenarioChange}
+          placeholder="Brief patient context shown above the chart tabs…"
+          ariaLabel="Scenario"
         />
       </section>
 
