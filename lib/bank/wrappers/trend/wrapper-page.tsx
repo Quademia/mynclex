@@ -52,7 +52,6 @@ import {
 import type {
   SlotEditorInitial,
   SlotRow,
-  TrendRow,
   TrendTabRow,
   WrapperData,
 } from './types';
@@ -192,12 +191,9 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   const [title, setTitle] = useState(datasetRow.title);
   const [scenario, setScenario] = useState(datasetRow.scenario ?? '');
   const [kind, setKind] = useState(datasetRow.kind);
-  const [rowLabel, setRowLabel] = useState(datasetRow.row_label ?? '');
   const [isPublished, setIsPublished] = useState(datasetRow.is_published);
   const [isFreeSample, setIsFreeSample] = useState(datasetRow.is_free_sample);
   const [isBuilderVisible, setIsBuilderVisible] = useState(datasetRow.is_builder_visible);
-  const [timepoints, setTimepoints] = useState<string[]>(datasetRow.timepoints);
-  const [rows, setRows] = useState<TrendRow[]>(datasetRow.rows);
 
   // ── "Creating" state for + Add question flow ──────────────
   const [creating, setCreating] = useState<CreatingState | null>(null);
@@ -306,8 +302,6 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
         title,
         scenario,
         is_published: isPublished,
-        timepoints,
-        rows,
         slots,
       }),
     );
@@ -324,17 +318,13 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     if (title !== datasetRow.title) return true;
     if ((scenario || null) !== (datasetRow.scenario || null)) return true;
     if (kind !== datasetRow.kind) return true;
-    if ((rowLabel || null) !== (datasetRow.row_label || null)) return true;
     if (isPublished       !== datasetRow.is_published)       return true;
     if (isFreeSample      !== datasetRow.is_free_sample)     return true;
     if (isBuilderVisible  !== datasetRow.is_builder_visible) return true;
-    if (JSON.stringify(timepoints) !== JSON.stringify(datasetRow.timepoints)) return true;
-    if (JSON.stringify(rows)       !== JSON.stringify(datasetRow.rows))       return true;
     return false;
   }, [
-    title, scenario, kind, rowLabel,
+    title, scenario, kind,
     isPublished, isFreeSample, isBuilderVisible,
-    timepoints, rows,
     datasetRow,
   ]);
 
@@ -345,12 +335,9 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     setTitle(datasetRow.title);
     setScenario(datasetRow.scenario ?? '');
     setKind(datasetRow.kind);
-    setRowLabel(datasetRow.row_label ?? '');
     setIsPublished(datasetRow.is_published);
     setIsFreeSample(datasetRow.is_free_sample);
     setIsBuilderVisible(datasetRow.is_builder_visible);
-    setTimepoints(datasetRow.timepoints);
-    setRows(datasetRow.rows);
     setWrapperError(null);
   }
 
@@ -361,12 +348,9 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     fd.set('title', title);
     fd.set('scenario', scenario);
     fd.set('kind', kind);
-    fd.set('row_label', rowLabel);
     if (isPublished)      fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
-    fd.set('timepoints', JSON.stringify(timepoints));
-    fd.set('rows',       JSON.stringify(rows));
     return fd;
   }
 

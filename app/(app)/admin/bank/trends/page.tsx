@@ -22,9 +22,6 @@ interface TrendDbRow {
   title:        string;
   kind:         string;
   scenario:     string | null;
-  row_label:    string | null;
-  rows:         unknown;
-  timepoints:   unknown;
   is_published: boolean;
   updated_at:   string;
 }
@@ -36,7 +33,7 @@ export default async function AdminTrendsV2ListPage() {
 
   const { data: trendRows, error: trendErr } = await supabase
     .from('nclex_trend_datasets')
-    .select('trend_id, title, kind, scenario, row_label, rows, timepoints, is_published, updated_at')
+    .select('trend_id, title, kind, scenario, is_published, updated_at')
     .order('updated_at', { ascending: false });
 
   if (trendErr) {
@@ -93,8 +90,8 @@ export default async function AdminTrendsV2ListPage() {
             </div>
             <h1 className="bl-page-title">Trend datasets</h1>
             <p className="bl-page-sub">
-              Time-series data panels (rows × timepoints) that attach to bank
-              questions. A published dataset with no live question reaches nobody.
+              Multi-chart clinical data panels that attach to bank questions.
+              A published dataset with no live question reaches nobody.
             </p>
           </div>
           <div className="bl-head-actions">
@@ -125,11 +122,8 @@ export default async function AdminTrendsV2ListPage() {
   );
 }
 
-// Lowercased searchable blob: title + scenario + row label + the dataset
-// rows/timepoints (JSON-flattened — substring search, tiny N).
+// Lowercased searchable blob: title + scenario (substring search, tiny N).
+// The chart-tab stimulus lives in a child table and isn't loaded here.
 function buildTrendSearchText(t: TrendDbRow): string {
-  const parts: string[] = [t.title, t.scenario ?? '', t.row_label ?? ''];
-  if (t.rows) parts.push(JSON.stringify(t.rows));
-  if (t.timepoints) parts.push(JSON.stringify(t.timepoints));
-  return parts.join(' ').toLowerCase();
+  return [t.title, t.scenario ?? ''].join(' ').toLowerCase();
 }

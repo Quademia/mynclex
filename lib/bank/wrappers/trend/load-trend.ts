@@ -99,7 +99,7 @@ function configFor(surface: Surface): SurfaceConfig {
 }
 
 const DATASET_COLUMNS =
-  'trend_id, title, scenario, kind, row_label, timepoints, rows, ' +
+  'trend_id, title, scenario, kind, ' +
   'is_published, is_free_sample, is_builder_visible, ' +
   'created_at, updated_at';
 

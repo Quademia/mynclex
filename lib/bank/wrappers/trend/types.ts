@@ -1,8 +1,9 @@
 // mynclex/lib/bank/wrappers/trend/types.ts
 //
-// Type shapes for the trend wrapper. TrendDatasetRow + TrendRow
-// model the dataset row + its data rows; WrapperData + SlotRow +
-// SlotEditorInitial model the wrapper-page bundle.
+// Type shapes for the trend wrapper. TrendDatasetRow models the
+// dataset row; TrendTabRow models a chart tab (the stimulus);
+// WrapperData + SlotRow + SlotEditorInitial model the wrapper-page
+// bundle.
 //
 // is_free_sample + is_builder_visible defaults match nclex_bank_items:
 // FALSE / TRUE.
@@ -25,27 +26,14 @@ import type { DragOrderEditorInitial } from '../../editors/drag-order-row-mapper
 // Surface discriminator. Same convention as case-study/types.ts.
 export type Surface = 'admin' | 'tutor';
 
-// Per-cell flag. null = no flag. `'abnormal'` / `'borderline'` are
-// the two tones the authoring UI lets the curator set. Author-side
-// only — the student runner does NOT render flags on the pre-submit
-// view.
-export type TrendFlag = 'abnormal' | 'borderline' | null;
-
-// One row in a trend dataset. `values` and `flags` are aligned with
-// the parent dataset's `timepoints` array (same length — index i of
-// each three lines up). `ref_range` is optional per row; the column
-// renders if any row in the dataset has one set.
-export interface TrendRow {
-  metric:     string;
-  values:     string[];
-  flags:      TrendFlag[];
-  ref_range?: string;
-}
-
 // Full DB row shape for nclex_trend_datasets / nclex_tutor_trend_datasets.
 // tutor_id is present only on tutor rows; admin rows keep it null in
 // the TS shape even though the column doesn't exist on the admin
 // table — keeps both surfaces fieldable with one interface.
+//
+// The stimulus lives entirely in the chart tabs (TrendTabRow) since
+// Slice 4 retired the old flat grid — the `timepoints` / `rows` /
+// `row_label` columns are gone. `kind` is just a short display label.
 //
 // is_free_sample + is_builder_visible were added in the slice-13
 // migration. Defaults: FALSE / TRUE.
@@ -55,9 +43,6 @@ export interface TrendDatasetRow {
   title:              string;
   scenario:           string | null;
   kind:               string;
-  row_label:          string | null;
-  timepoints:         string[];
-  rows:               TrendRow[];
   is_published:       boolean;
   is_free_sample:     boolean;
   is_builder_visible: boolean;

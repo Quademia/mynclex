@@ -1,29 +1,21 @@
 // mynclex/lib/practice/runner/trend/trend-panel.tsx
 //
-// Sticky left-hand panel for trend questions. Two render paths:
-//
-//   • Rich multi-chart (Slice 3b) — when the snapshot carries chart tabs
-//     (tabs_snapshot_json), render a tab bar + the active tab's body,
-//     mirroring the case-study panel. Trends have NO progressive
-//     disclosure, so every tab is always shown (the reveal views are
-//     rendered past any visible_from).
-//   • Legacy flat grid — when the snapshot has no tabs (older trends not
-//     yet migrated to the tab model), fall back to the original
-//     Metric × timepoints table.
+// Sticky left-hand panel for trend questions. The stimulus is a rich
+// multi-chart (Slice 3b): a tab bar + the active tab's body, mirroring
+// the case-study panel. Trends have NO progressive disclosure, so every
+// tab is always shown (the reveal views render past any visible_from).
+// Slice 4 retired the legacy flat grid — every trend is tab-based.
 //
 // Trends are scattered standalones (per attempt-creation §8.3) — there
 // is no progressive disclosure, no answered-count pill, no entry banner.
 // The stimulus is shown in full from the moment the student lands on any
 // trend question that uses it.
-//
-// Curator-side flags ('abnormal' / 'borderline') on legacy rows are
-// NOT rendered — NCSBN never pre-flags values for the test-taker.
 
 'use client';
 
 import { useState } from 'react';
 import type { TrendSnapshot } from '@/lib/practice/runner';
-import type { TrendRow, TrendTabRow } from '@/lib/bank/wrappers/trend/types';
+import type { TrendTabRow } from '@/lib/bank/wrappers/trend/types';
 import { kindDefaultLabel } from '@/lib/bank/wrappers/trend/kind-templates';
 import { asMergeTab } from '@/lib/authoring/table/merge-table-model';
 import { MergeTableView } from '@/lib/authoring/table/merge-table-view';
@@ -33,8 +25,6 @@ import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
 interface Props {
   trendSnap: TrendSnapshot;
 }
-
-const ROW_LABEL_FALLBACK = 'Metric';
 
 // Show every revealed row/entry — trend has no progressive disclosure.
 const SHOW_ALL_POSITION = 999;
@@ -63,7 +53,9 @@ export function TrendPanel({ trendSnap }: Props) {
       {tabs.length > 0 ? (
         <TabbedStimulus tabs={tabs} />
       ) : (
-        <LegacyGrid trendSnap={trendSnap} />
+        <div className="rn-trend-body">
+          <div className="empty">No data in this dataset.</div>
+        </div>
       )}
     </aside>
   );
@@ -107,48 +99,4 @@ function ChartTabBody({ tab }: { tab: TrendTabRow }) {
   const nt = asNarrativeTab(tab.entries);
   if (nt) return <NarrativeView tab={nt} currentPosition={SHOW_ALL_POSITION} />;
   return <div className="empty">Nothing on this tab yet.</div>;
-}
-
-// ── Legacy flat grid (pre-tab trends) ────────────────────────────
-function LegacyGrid({ trendSnap }: { trendSnap: TrendSnapshot }) {
-  const timepoints = (trendSnap.timepoints_snapshot_json ?? []) as string[];
-  const rows       = (trendSnap.rows_snapshot_json       ?? []) as TrendRow[];
-  const rowLabel   = (trendSnap.row_label_snapshot ?? '').trim() || ROW_LABEL_FALLBACK;
-
-  const refRangeOn = rows.some((r) => (r.ref_range ?? '').trim() !== '');
-  const hasRows = rows.length > 0;
-  const hasCols = timepoints.length > 0;
-
-  return (
-    <div className="rn-trend-body">
-      {hasRows && hasCols ? (
-        <table className="rn-trend-table">
-          <thead>
-            <tr>
-              <th className="metric-col">{rowLabel}</th>
-              {timepoints.map((tp, c) => (
-                <th key={c} className="tp-col">{tp || `TP${c + 1}`}</th>
-              ))}
-              {refRangeOn && <th className="refrange-col">Ref range</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i}>
-                <td className="metric-col">{r.metric || `${rowLabel.toLowerCase()} ${i + 1}`}</td>
-                {timepoints.map((_, c) => (
-                  <td key={c} className="tp">{r.values[c] ?? ''}</td>
-                ))}
-                {refRangeOn && (
-                  <td className="refrange">{r.ref_range ?? ''}</td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <div className="empty">No data in this dataset.</div>
-      )}
-    </div>
-  );
 }

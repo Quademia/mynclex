@@ -342,14 +342,13 @@ CREATE INDEX idx_nclex_tutor_case_study_tabs_case ON nclex_tutor_case_study_tabs
 -- trend wrapper-v2 can carry the same three-row Visibility section
 -- as the case-study wrapper. Defaults match nclex_bank_items
 -- (FALSE / TRUE).
+-- The stimulus lives entirely in nclex_trend_tabs — the old flat-grid
+-- columns (row_label / timepoints / rows) were retired in 20260714120000.
 CREATE TABLE nclex_trend_datasets (
   trend_id            TEXT PRIMARY KEY,
   title               TEXT NOT NULL,
   scenario            TEXT,
   kind                TEXT NOT NULL,
-  row_label           TEXT,
-  timepoints          JSONB NOT NULL DEFAULT '[]'::jsonb,
-  rows                JSONB NOT NULL DEFAULT '[]'::jsonb,
   is_published        BOOLEAN NOT NULL DEFAULT FALSE,
   is_free_sample      BOOLEAN NOT NULL DEFAULT FALSE,
   is_builder_visible  BOOLEAN NOT NULL DEFAULT TRUE,
@@ -370,9 +369,6 @@ CREATE TABLE nclex_tutor_trend_datasets (
   title               TEXT NOT NULL,
   scenario            TEXT,
   kind                TEXT NOT NULL,
-  row_label           TEXT,
-  timepoints          JSONB NOT NULL DEFAULT '[]'::jsonb,
-  rows                JSONB NOT NULL DEFAULT '[]'::jsonb,
   is_published        BOOLEAN NOT NULL DEFAULT FALSE,
   is_free_sample      BOOLEAN NOT NULL DEFAULT FALSE,
   is_builder_visible  BOOLEAN NOT NULL DEFAULT TRUE,
@@ -388,8 +384,6 @@ CREATE INDEX idx_nclex_tutor_trend_datasets_tutor
 -- nclex_case_study_tabs — one row per tab per dataset. Trend is a fresh
 -- v2-only build, so `entries` holds the rich v2 blob (merge-table list
 -- or narrative); unlike case study there is no progressive disclosure.
--- The legacy flat-grid columns (timepoints / rows) on the dataset rows
--- stay until the Slice-4 conversion.
 CREATE TABLE nclex_trend_tabs (
   tab_id        TEXT PRIMARY KEY,
   trend_id      TEXT NOT NULL REFERENCES nclex_trend_datasets(trend_id) ON DELETE CASCADE,
@@ -627,12 +621,9 @@ CREATE TABLE nclex_attempt_trend_snapshots (
   title_snapshot             TEXT NOT NULL,
   scenario_snapshot          TEXT,
   kind_snapshot              TEXT NOT NULL,
-  row_label_snapshot         TEXT,
-  timepoints_snapshot_json   JSONB NOT NULL DEFAULT '[]'::jsonb,
-  rows_snapshot_json         JSONB NOT NULL DEFAULT '[]'::jsonb,
   -- Frozen chart tabs (rich multi-chart, Slice 3b). Mirror of
-  -- nclex_attempt_case_snapshots.tabs_snapshot_json. Empty [] for legacy
-  -- trends with no tabs — the runner falls back to the flat grid.
+  -- nclex_attempt_case_snapshots.tabs_snapshot_json. The flat-grid
+  -- snapshot columns were retired in 20260714120000.
   tabs_snapshot_json         JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (attempt_id, trend_id)

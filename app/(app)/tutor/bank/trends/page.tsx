@@ -21,9 +21,6 @@ interface TrendDbRow {
   title:        string;
   kind:         string;
   scenario:     string | null;
-  row_label:    string | null;
-  rows:         unknown;
-  timepoints:   unknown;
   is_published: boolean;
   updated_at:   string;
 }
@@ -35,7 +32,7 @@ export default async function TutorTrendsV2ListPage() {
 
   const { data: trendRows, error: trendErr } = await supabase
     .from('nclex_tutor_trend_datasets')
-    .select('trend_id, title, kind, scenario, row_label, rows, timepoints, is_published, updated_at')
+    .select('trend_id, title, kind, scenario, is_published, updated_at')
     .eq('tutor_id', user.id)
     .order('updated_at', { ascending: false });
 
@@ -93,9 +90,8 @@ export default async function TutorTrendsV2ListPage() {
             </div>
             <h1 className="bl-page-title">Trend datasets</h1>
             <p className="bl-page-sub">
-              Your private time-series data panels (rows × timepoints) that
-              attach to bank questions. A published dataset with no live question
-              reaches nobody.
+              Your private multi-chart clinical data panels that attach to bank
+              questions. A published dataset with no live question reaches nobody.
             </p>
           </div>
           <div className="bl-head-actions">
@@ -126,9 +122,8 @@ export default async function TutorTrendsV2ListPage() {
   );
 }
 
+// Lowercased searchable blob: title + scenario (substring search, tiny N).
+// The chart-tab stimulus lives in a child table and isn't loaded here.
 function buildTrendSearchText(t: TrendDbRow): string {
-  const parts: string[] = [t.title, t.scenario ?? '', t.row_label ?? ''];
-  if (t.rows) parts.push(JSON.stringify(t.rows));
-  if (t.timepoints) parts.push(JSON.stringify(t.timepoints));
-  return parts.join(' ').toLowerCase();
+  return [t.title, t.scenario ?? ''].join(' ').toLowerCase();
 }

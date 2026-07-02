@@ -137,7 +137,6 @@ export default async function SessionPage({ params }: PageProps) {
       .from('nclex_attempt_trend_snapshots')
       .select(
         'trend_id, title_snapshot, scenario_snapshot, kind_snapshot, ' +
-        'row_label_snapshot, timepoints_snapshot_json, rows_snapshot_json, ' +
         'tabs_snapshot_json',
       )
       .eq('attempt_id', attempt_id),

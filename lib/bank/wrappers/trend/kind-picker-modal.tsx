@@ -28,11 +28,11 @@ interface PresetCard {
 }
 
 const PRESETS: PresetCard[] = [
-  { kind: 'vitals',     label: 'Vitals',           description: 'BP, HR, RR, SpO₂, Temp — pre-seeded rows for a typical vitals panel.' },
-  { kind: 'labs',       label: 'Labs',             description: 'Common electrolytes / chemistry. Ref-range column on by default.' },
+  { kind: 'vitals',     label: 'Vitals',           description: 'Blood pressure, heart rate, respiratory rate, SpO₂, temperature.' },
+  { kind: 'labs',       label: 'Labs',             description: 'Electrolytes / chemistry and other lab results.' },
   { kind: 'io',         label: 'Intake & Output',  description: 'IV / PO intake, urine output, net balance.' },
   { kind: 'neuro',      label: 'Neuro',            description: 'GCS, pupils, orientation, motor strength.' },
-  { kind: 'assessment', label: 'Assessment',       description: 'Empty scaffold — build rows + timepoints from scratch.' },
+  { kind: 'assessment', label: 'Assessment',       description: 'General clinical assessment data.' },
 ];
 
 type Surface = 'admin' | 'tutor';
@@ -124,9 +124,9 @@ function KindPickerModal({ surface, onClose }: ModalProps) {
         </header>
 
         <p className="auth-kind-modal-hint">
-          Pick a kind preset to seed the new dataset&apos;s rows + timepoints.
-          Everything seeded is editable afterwards. Use Custom to start blank
-          with your own kind name.
+          Pick a kind — it&apos;s a short label for the dataset. You build the
+          stimulus itself from chart tabs afterwards. Use Custom to name your
+          own kind.
         </p>
 
         <div className="auth-kind-grid">
@@ -182,7 +182,7 @@ function CustomKindCard({ surface }: { surface: Surface }) {
       <div className="auth-kind-card auth-kind-card-custom">
         <div className="auth-kind-card-label">Custom</div>
         <div className="auth-kind-card-desc">
-          Type your own kind name. Empty rows + timepoints — build from scratch.
+          Type your own kind name — a short label for the dataset.
         </div>
         <input
           type="text"
