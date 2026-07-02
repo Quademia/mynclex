@@ -944,13 +944,14 @@ and the shared editors confirmed it. Findings:
 
 ### Slice plan
 
-> **STATUS (2026-07-02): Slices 1–4 COMPLETE + Sam-tested. Slices 1–3 are on
-> `main`; Slice 4 is on the session branch (`a418780`), NOT yet merged, NOT
-> prod. Three additive migrations `20260712120000` + `20260713120000` +
-> `20260714120000`, all dev-applied. tsc + eslint clean. Slice 4 Sam-tested
-> end-to-end (built a tab-based trend + 6 questions + ran them in the runner).
-> The arc is done — awaiting a `main` merge + a `main → prod` release (which
-> also needs the prod test-dataset delete noted in Slice 4).**
+> **STATUS (2026-07-02): Slices 1–4 COMPLETE + Sam-tested + on `main`. Three
+> additive migrations `20260712120000` + `20260713120000` + `20260714120000`,
+> all dev-applied. Slice 4 Sam-tested end-to-end. Since then, the
+> wrapper-harmonisation work + the "+ New creates a draft directly" picker
+> removal (`9ec098f`) also landed on `main` (app-layer). **Slice 5 — retire
+> `kind` — is PLANNED, not built** (see below). A `main → prod` release is
+> still pending (carries the trend migrations + the prod test-dataset delete
+> from Slice 4 + `PAYSTACK_SECRET_KEY`).**
 
 1. **Slice 1 — Storage. ✅ BUILT** (`5461592`, mig `20260712120000`). Added
    `nclex_trend_tabs` + `nclex_tutor_trend_tabs` (mirror `nclex_case_study_tabs`,
@@ -999,8 +1000,37 @@ that blocks a trend-dataset delete is child questions
 attempt/embed references are loose (no FK). On dev, `case_study_items` (the one
 RESTRICT on questions) had 0 rows for these, so nothing blocked the cascade.
 
-**⏭ NEXT: (with Sam's approval) merge the session branch → `main`; then a
-`main → prod` release (carries the prod trend-dataset delete step).**
+5. **Slice 5 — retire `kind` (⬜ PLANNED, not built; settled with Sam
+   2026-07-02).** *Precursor DONE* (`9ec098f`): "+ New trend dataset" now
+   creates a **draft directly** (mirror of the case-study `NewCaseButton`) — the
+   kind **picker + presets were deleted**, since with the flat grid gone a kind
+   no longer seeds anything. The remaining step: **remove `kind` entirely.**
+   - **Rationale (Sam):** `kind` was a *single-dataset* descriptor from when a
+     trend was one flat grid. Now a trend is a *group of tabs*, and **each tab
+     carries its own title** (Nurses' Notes / Vital Signs / Labs / …), so a
+     single top-level kind is **redundant with the tab titles and actively
+     misleading** (a 4-tab trend labelled "Vitals"). The per-kind labelling now
+     lives at the tab level, where it belongs.
+   - **Blast radius (same shape as Slice 4):** *app-layer* — the editor "Kind"
+     field (`DatasetView`), the runner header (`Trend data · {kind}` → just
+     `Trend data`), the loader `DATASET_COLUMNS`, `TrendDatasetRow.kind`, the
+     create/save actions, both list pages (`kindLabel` / `TrendListRow`), and
+     delete `kind-templates.ts` (`kindDefaultLabel` becomes unused). *Migration*
+     — drop `kind` from `nclex_trend_datasets` + `nclex_tutor_trend_datasets`,
+     drop `kind_snapshot` from `nclex_attempt_trend_snapshots`, update
+     `nclex_create_attempt` to stop freezing it, mirror `schema.sql`.
+   - **Runner header decision (settled):** drops to **"Trend data"** — the
+     dataset title carries the specifics.
+   - **Naming tension — noted, explicitly NOT in scope:** if a trend is "a group
+     of datasets," calling the entity a *"trend dataset"* (singular) is a mild
+     misnomer. Renaming the whole entity (`trend_id` / `nclex_trend_datasets` /
+     all "trend dataset" copy) is a much bigger job, deliberately deferred — the
+     `kind` removal stands on its own.
+
+**⏭ NEXT: build Slice 5 (retire `kind`) when picked up. Meanwhile the trend
+arc + the wrapper-harmonisation work is on `main`; a `main → prod` release
+(carries the trend-arc migrations `20260712–20260714120000` + the prod
+trend-dataset delete step + the `PAYSTACK_SECRET_KEY` gap) is still pending.**
 
 ---
 

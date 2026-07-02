@@ -8,13 +8,14 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
-> **TREND RICH MULTI-CHART — ✅ Slices 1–4 COMPLETE + Sam-tested (Slices 1–3
-> `2026-07-01`, Slice 4 `2026-07-02`; Slices 1–3 on `main`, Slice 4 on the
-> session branch `a418780`; NOT yet prod; app-layer + three additive migrations
-> `20260712120000` [tables] + `20260713120000` [snapshot + RPC] +
-> `20260714120000` [retire flat grid], all dev-applied; tsc + eslint clean;
-> Slice 4 Sam-tested end-to-end — built a tab-based trend + 6 questions + ran
-> them in the runner).** The deferred half of the bank rich-content relook — the trend
+> **TREND RICH MULTI-CHART — ✅ Slices 1–4 COMPLETE + Sam-tested + on `main`
+> (Slices 1–3 `2026-07-01`, Slice 4 `2026-07-02`; NOT yet prod; app-layer +
+> three additive migrations `20260712120000` [tables] + `20260713120000`
+> [snapshot + RPC] + `20260714120000` [retire flat grid], all dev-applied; tsc +
+> eslint clean; Slice 4 Sam-tested end-to-end). Since then the
+> wrapper-harmonisation work + the "+ New creates a draft directly" picker
+> removal (`9ec098f`) also landed on `main`. Slice 5 — retire `kind` — is
+> PLANNED (see below).** The deferred half of the bank rich-content relook — the trend
 > **stimulus** goes rich (trend questions were already rich). Trend **adopts
 > the case-study chart engine** (multi-tab rich charts) **minus progressive
 > disclosure**; the old flat grid is retired (timepoints→columns,
@@ -52,11 +53,25 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   `schema.sql` mirrored. **⚠ RELEASE STEP:** before/with the prod release,
 >   delete prod's 2 unpublished test trend datasets (+ 1 question) so prod ends
 >   up as clean as dev.
+> - **Slice 5 — retire `kind` ⬜ PLANNED** (settled 2026-07-02, not built).
+>   Precursor DONE (`9ec098f`): "+ New trend dataset" now creates a **draft
+>   directly** (mirror of case's `NewCaseButton`); the kind picker + presets were
+>   deleted. Remaining = **remove `kind` entirely**: it was a *single-dataset*
+>   descriptor from the flat-grid era, but a trend is now a *group of tabs* and
+>   each tab carries its own title, so a top-level kind is redundant + misleading.
+>   Same shape as Slice 4 — app-layer (editor field · runner header `Trend data ·
+>   {kind}` → just `Trend data` · loader · types · actions · both list pages ·
+>   delete `kind-templates.ts`) + a migration (drop `kind` off both dataset
+>   tables + `kind_snapshot` off the attempt snapshot + update
+>   `nclex_create_attempt` + `schema.sql`). Entity-rename (`trend dataset` →
+>   `trend`) noted but explicitly OUT of scope. Full write-up:
+>   [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
+>   → Trend "Slice plan" → Slice 5.
 >
-> **⏭ NEXT:** (with Sam's approval) merge the session branch → `main` (adds
-> Slice 4). Then this whole arc + MATRIX_MR + the large unreleased stack await a
-> `main → prod` release (⚠ carries the prod trend-dataset delete step above +
-> `PAYSTACK_SECRET_KEY` still not on prod).
+> **⏭ NEXT:** Slices 1–4 + the wrapper-harmonisation + picker-removal are on
+> `main`. **Build Slice 5 (retire `kind`) when picked up.** A `main → prod`
+> release is still pending (⚠ carries the trend migrations + the prod
+> trend-dataset delete step above + `PAYSTACK_SECRET_KEY` still not on prod).
 
 > **MATRIX MULTIPLE RESPONSE (`MATRIX_MR`) — ✅ BUILT + Sam-tested on dev
 > (2026-07-01; session branch off `main`; app-layer + ONE additive migration
