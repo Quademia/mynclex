@@ -54,28 +54,24 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   `schema.sql` mirrored. **⚠ RELEASE STEP:** before/with the prod release,
 >   delete prod's 2 unpublished test trend datasets (+ 1 question) so prod ends
 >   up as clean as dev.
-> - **Slice 5 — retire `kind` ⬜ PLANNED** (settled 2026-07-02, not built).
->   Precursor DONE (`9ec098f`): "+ New trend dataset" now creates a **draft
->   directly** (mirror of case's `NewCaseButton`); the kind picker + presets were
->   deleted. Remaining = **remove `kind` entirely**: it was a *single-dataset*
->   descriptor from the flat-grid era, but a trend is now a *group of tabs* and
->   each tab carries its own title, so a top-level kind is redundant + misleading.
->   Same shape as Slice 4 — app-layer (editor field · runner header `Trend data ·
->   {kind}` → just `Trend data` · loader · types · actions · both list pages ·
->   delete `kind-templates.ts`) + a migration (drop `kind` off both dataset
->   tables + `kind_snapshot` off the attempt snapshot + update
->   `nclex_create_attempt` + `schema.sql`). Entity-rename (`trend dataset` →
->   `trend`) noted but explicitly OUT of scope. Full write-up:
->   [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
->   → Trend "Slice plan" → Slice 5.
+> - **Slice 5 — retire `kind` ✅ DONE + RELEASED to PROD 2026-07-02 (PR #35)**
+>   (`2704b0a`, migration `20260715120000`). `kind` was a *single-dataset*
+>   descriptor from the flat-grid era; a trend is now a *group of titled tabs*, so
+>   a top-level kind was redundant. Migration re-points `nclex_create_attempt` to
+>   freeze without `kind`, drops `kind_snapshot` off the attempt snapshot, drops
+>   `kind` off both dataset tables; `schema.sql` mirrored. App-layer removed the
+>   "Kind" editor field, the trends-list Kind column + filter + hover chip, the
+>   runner header label (`Trend data · {kind}` → `Trend data`), deleted
+>   `kind-templates.ts`, tidied types/actions/loader/bulb + dropped the dead
+>   `.auth-tr-kind-hint` CSS. Entity-rename (`trend dataset` → `trend`) noted but
+>   OUT of scope.
 >
-> **✅ RELEASED to PROD 2026-07-02 (PR #34** — `main → prod`; migrate-prod
-> applied `20260711`–`20260714120000` + deploy-prod both green; prod
-> trend-dataset cleanup done [2 test datasets + 1 question deleted before the
-> flat-column drop, prod trend datasets now 0]).
-> **⏭ NEXT:** **Build Slice 5 (retire `kind`) when picked up.** ⚠
-> `PAYSTACK_SECRET_KEY` still not on the prod Worker (prod checkout stays
-> broken until set — unrelated to this release).
+> **✅ THE TREND RICH MULTI-CHART ARC (Slices 1–5) IS COMPLETE + ON PROD** (PR #34
+> shipped Slices 1–4 + MATRIX_MR; PR #35 shipped Slice 5 + the DRAG_DROP decouple).
+> **⏭ NEXT:** **Slice 7 — media block** (the last piece of the whole bank
+> rich-content relook; see the questions-and-wrappers banner below). ⚠
+> `PAYSTACK_SECRET_KEY` still not on the prod Worker (prod checkout stays broken
+> until set — unrelated to these releases).
 
 > **MATRIX MULTIPLE RESPONSE (`MATRIX_MR`) — ✅ BUILT + Sam-tested + RELEASED to
 > PROD 2026-07-02 (PR #34; migration `20260711120000` applied to prod).** New

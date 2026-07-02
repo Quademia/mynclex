@@ -2086,8 +2086,55 @@ gaps). Another point for B.
 
 ### Slice 7 (LAST) — media block in the narrative body
 
-Add an image / ECG / wound-photo block to the **narrative body** only
-(reuse the library's media block). Closes the arc.
+Add an image (ECG / wound-photo / X-ray = all just images) to the **narrative
+body** of a chart tab, rendered for students. Closes the bank rich-content arc.
+**Design settled 2026-07-02** (discussion only, nothing built):
+
+- **Reuse the library's existing image block** — `lib/library/image-block.tsx`
+  (a Tiptap `libImage` atom node) + `components/media/upload-field.tsx` (generic,
+  already used for PDFs / avatars / rationale images) + browser-side resize +
+  Supabase Storage `asset_id` + a 1-hour signed URL. The doc only stores the
+  small `asset_id`, not the bytes.
+- **Where it lives:** the **5 narrative tab types** — Nurses' Notes, Orders,
+  History & Physical, Diagnostics, and Custom "Free text" (the other 3 — Vital
+  Signs, Lab Results, Custom grid — are merge tables with no free-text body).
+  There is **one** narrative editor, `NarrativeTabEditorV2` in
+  `lib/authoring/narrative/`, used by **both** the case-study and trend wrappers,
+  so building the block in once lights it up in both.
+- **The image sits INSIDE an entry's `body` (a `RichDoc`), as a block node among
+  the paragraphs** — an entry can mix text + image freely (mirror of the library
+  note body). It is NOT a separate "image entry".
+- **The one open decision = the ACCESS MODEL.** Library images gate by
+  tutor-enrolment, but a bank stimulus image lives in a *published bank question*
+  any subscriber can draw in a quiz → it needs a bank-specific storage bucket +
+  purpose + a **bank-entitlement-gated signed URL**. Also: the tab JSON is frozen
+  into the attempt snapshot, so the `asset_id` must still resolve later. Settle
+  this before building.
+
+**Follow-on candidate — STEM images (AFTER Slice 7).** Sam's idea, valid: the
+question stem is already a `RichDoc` (since Slice 6), so the same image block
+could go inside a stem (`rationale_img` already exists as precedent for
+question-level images). But the blast radius is **much bigger** than the narrative
+block — a stem renders in the runner, the bank-list preview, the case + trend
+previews, **library embeds**, quiz previews, and every plain-text-flatten path —
+and the same access-model / frozen-snapshot bits now apply to every question.
+**Recommendation: do the narrative block first** (it de-risks the bank-image
+foundation: bucket, purpose, access gate, snapshot resolution), **then stem images
+become a cheap follow-on** that points the proven foundation at the stem editor +
+sweeps the extra surfaces. Known-unknown to verify: whether the rich-*stem* editor
+is block-capable (the narrative body definitely is).
+
+**Settled (2026-07-02) — the coupled-marker model stays; do NOT decouple.** For
+Cloze / Highlight / drag-cloze the answer positions ARE positions in the text, so
+the markers live **in the stem** (Option B: `{N}` / `[[chunk]]` / `[N]` as plain
+text in the rich prose, spliced by `RichRenderWithSlots`). Sam floated separating
+them (a clean stem + a separate answer layer / a repeated stem with selection
+applied). **Kept coupled:** markers-in-prose = one source of truth (the answer
+position moves with the words on edit); a decoupled position/span reference over
+mutable text reintroduces the classic drift bug; and for CLOZE a "pure stem" is
+incoherent (the reading text has holes). The coupling does **not** block stem
+images — markers are plain text that coexist with an image block in the same rich
+doc; the runner's splice logic just also renders the image node.
 
 ### Cross-cutting (every slice)
 
@@ -2156,13 +2203,22 @@ Both are **on the session branch, additive — `DRAG_DROP` is left 100% intact**
   is `slots`, no pool-size nag; a fresh item seeds one token per position). Max 8;
   3-slot advisory.
 
-**Legacy `DRAG_DROP` is NOT deleted.** The decouple (migrate the handful of old
-`DRAG_DROP` rows onto the two new types + delete the `DRAG_DROP`
-editor/parser/runner/type) is **deferred until the new types have been used for
-real and Sam is happy** — not on a fixed schedule. Until then `DRAG_DROP` is a
-frozen legacy type that still authors + renders + scores. When the decouple runs,
-it's the symmetric reverse of the checklist below (remove the `DRAG_DROP` line at
-each site; data move: bank dev 6/6, prod 1/2 by subtype; prod has 0 attempts).
+**Legacy `DRAG_DROP` — DECOUPLED + RETIRED 2026-07-02 (released to prod, PR #35).**
+Sam chose to do the full decouple. **Method = an in-place DATA relabel** (Sam's
+idea — a legacy row is identified only by `question_type='DRAG_DROP'` +
+`content.subtype`; the rest of the payload already matches the new types), NOT
+re-authoring: flip `question_type` (SENTENCE→`DRAG_CLOZE`, ORDERED→`DRAG_ORDER`),
+drop the `subtype` key, and **remap slot-keyed feedback → token-keyed per-row**
+(the split re-keyed feedback slot→token; the transform is deterministic:
+`fb[correct.slots[slot]] = oldFb[slot]`; token-keyed + empty rows pass through).
+Item ids kept (`ITEM_ID_PREFIX` is generation-only, never read to infer type).
+Dev: 13 rows relabelled (5→DCZ, 8→DO), verified 0 subtype/0 slot-keyed leftovers.
+Prod: 2 live published rows relabelled **before** the deploy (no feedback, 0
+attempt refs; safe under both code versions since DCZ/DO shipped in PR #34). Code
+was the symmetric reverse of the checklist below (net −3103 lines, 5 files
+deleted). **The `question_type` CHECK constraints were left permissive** —
+`DRAG_DROP` stays a legal-but-unused value so historical attempt snapshots that
+froze the string still validate; nothing writes it any more.
 
 ## Adding a new question type — wiring checklist (snapshot as of 2026-06-30)
 
