@@ -7,7 +7,6 @@
 
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
-import { kindDefaultLabel } from '@/lib/bank/wrappers/trend/kind-templates';
 import { createTrendAction } from '@/lib/bank/wrappers/trend/actions';
 import { loadAuthorship } from '@/lib/audit/authorship';
 import {
@@ -20,7 +19,6 @@ export const dynamic = 'force-dynamic';
 interface TrendDbRow {
   trend_id:     string;
   title:        string;
-  kind:         string;
   scenario:     string | null;
   is_published: boolean;
   updated_at:   string;
@@ -33,7 +31,7 @@ export default async function AdminTrendsV2ListPage() {
 
   const { data: trendRows, error: trendErr } = await supabase
     .from('nclex_trend_datasets')
-    .select('trend_id, title, kind, scenario, is_published, updated_at')
+    .select('trend_id, title, scenario, is_published, updated_at')
     .order('updated_at', { ascending: false });
 
   if (trendErr) {
@@ -70,8 +68,6 @@ export default async function AdminTrendsV2ListPage() {
     trend_id:     t.trend_id,
     title:        t.title,
     scenario:     t.scenario,
-    kind:         t.kind,
-    kindLabel:    kindDefaultLabel(t.kind),
     is_published: t.is_published,
     updated_at:   t.updated_at,
     total:        attachedStats[t.trend_id]?.total ?? 0,

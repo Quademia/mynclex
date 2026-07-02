@@ -2,7 +2,7 @@
 //
 // Server actions for the trend wrapper.
 //
-//   - createTrendAction        (kind-picker create flow)
+//   - createTrendAction        (insert a bare draft + redirect to editor)
 //   - saveTrendMetadataAction  (direct CRUD update on the dataset row)
 //   - detachQuestionAction     (clears trend_id on a question row)
 //   - deleteTrendAction        (three modes: simple / detach-and-delete /
@@ -117,9 +117,8 @@ async function nextTrendId(
 }
 
 // Insert a new draft trend dataset and redirect to the wrapper editor,
-// where the curator sets the title + kind label and builds the chart
-// tabs. No kind picker — a new trend starts as 'custom' (the flat-grid
-// seeds the presets used to drive are gone). Form fields: surface only.
+// where the curator sets the title + scenario and builds the chart tabs.
+// A new trend starts as a bare draft. Form fields: surface only.
 export async function createTrendAction(formData: FormData): Promise<SaveResult> {
   const surface = readSurface(formData);
   const { supabase, user } = await requireBankCurator(surface);
@@ -127,13 +126,9 @@ export async function createTrendAction(formData: FormData): Promise<SaveResult>
 
   const trend_id = await nextTrendId(supabase, surface);
 
-  // No kind picker any more — a new trend is created as a draft and the
-  // curator sets the title + kind label in the editor. `kind` is just a
-  // display label now (the flat-grid seeds it used to drive are gone).
   const row: Record<string, unknown> = {
     trend_id,
     title: 'Untitled trend dataset',
-    kind: 'custom',
   };
   if (surface === 'tutor') {
     row.tutor_id = user.id;
@@ -154,7 +149,7 @@ export async function createTrendAction(formData: FormData): Promise<SaveResult>
 // Direct CRUD update on the dataset row (decision 4 — no RPC for
 // save). Reads:
 //   - trend_id, surface
-//   - title, scenario, kind
+//   - title, scenario
 //   - is_published, is_free_sample, is_builder_visible
 //
 // The stimulus (chart tabs) saves independently via the tab actions;
@@ -179,8 +174,6 @@ export async function saveTrendMetadataAction(
   // Store it verbatim (do not trim/normalise the JSON); '' → null.
   const scenario = String(formData.get('scenario') ?? '') || null;
 
-  const kind = String(formData.get('kind') ?? '').trim() || 'custom';
-
   const is_published       = formData.get('is_published') === 'on';
   const is_free_sample     = formData.get('is_free_sample') === 'on';
   const is_builder_visible = formData.get('is_builder_visible') === 'on';
@@ -190,7 +183,6 @@ export async function saveTrendMetadataAction(
     .update({
       title,
       scenario,
-      kind,
       is_published,
       is_free_sample,
       is_builder_visible,

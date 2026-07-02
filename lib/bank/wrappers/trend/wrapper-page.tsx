@@ -27,7 +27,6 @@ import {
   useTransition,
   type MouseEvent,
 } from 'react';
-import { kindDefaultLabel } from './kind-templates';
 import {
   saveTrendMetadataAction,
   detachQuestionAction,
@@ -210,7 +209,6 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     () => serializeRichDoc(parseRichDoc(datasetRow.scenario ?? '')),
     [datasetRow.scenario],
   );
-  const [kind, setKind] = useState(datasetRow.kind);
   const [isPublished, setIsPublished] = useState(datasetRow.is_published);
   const [isFreeSample, setIsFreeSample] = useState(datasetRow.is_free_sample);
   const [isBuilderVisible, setIsBuilderVisible] = useState(datasetRow.is_builder_visible);
@@ -342,13 +340,12 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   const wrapperDirty = useMemo(() => {
     if (title !== datasetRow.title) return true;
     if (serializeRichDoc(scenario) !== initialScenarioSerialized) return true;
-    if (kind !== datasetRow.kind) return true;
     if (isPublished       !== datasetRow.is_published)       return true;
     if (isFreeSample      !== datasetRow.is_free_sample)     return true;
     if (isBuilderVisible  !== datasetRow.is_builder_visible) return true;
     return false;
   }, [
-    title, scenario, initialScenarioSerialized, kind,
+    title, scenario, initialScenarioSerialized,
     isPublished, isFreeSample, isBuilderVisible,
     datasetRow,
   ]);
@@ -359,7 +356,6 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     if (!wrapperDirty) return;
     setTitle(datasetRow.title);
     setScenario(parseRichDoc(datasetRow.scenario ?? ''));
-    setKind(datasetRow.kind);
     setIsPublished(datasetRow.is_published);
     setIsFreeSample(datasetRow.is_free_sample);
     setIsBuilderVisible(datasetRow.is_builder_visible);
@@ -372,7 +368,6 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     fd.set('trend_id', datasetRow.trend_id);
     fd.set('title', title);
     fd.set('scenario', serializeRichDoc(scenario));
-    fd.set('kind', kind);
     if (isPublished)      fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
@@ -751,7 +746,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
                     className={`auth-cs-btn subtle tiny${wrapperDirty ? ' dirty-glow' : ''}`}
                     onClick={onCancelChanges}
                     disabled={!wrapperDirty || isWrapperPending}
-                    title="Discard unsaved title / scenario / kind / visibility edits."
+                    title="Discard unsaved title / scenario / visibility edits."
                   >
                     Cancel changes
                   </button>
@@ -760,7 +755,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
                     className={`auth-cs-btn primary tiny${wrapperDirty ? ' dirty-glow' : ''}`}
                     onClick={onSaveTrend}
                     disabled={!wrapperDirty || isWrapperPending}
-                    title="Save dataset metadata (title, scenario, kind, visibility)."
+                    title="Save dataset metadata (title, scenario, visibility)."
                   >
                     {isWrapperPending ? 'Saving…' : 'Save trend'}
                   </button>
@@ -829,13 +824,11 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
                   <DatasetView
                     title={title}
                     scenario={scenario}
-                    kind={kind}
                     isPublished={isPublished}
                     isFreeSample={isFreeSample}
                     isBuilderVisible={isBuilderVisible}
                     onTitleChange={setTitle}
                     onScenarioChange={setScenario}
-                    onKindChange={setKind}
                     onIsPublishedChange={setIsPublished}
                     onIsFreeSampleChange={setIsFreeSample}
                     onIsBuilderVisibleChange={setIsBuilderVisible}
@@ -1098,26 +1091,22 @@ function PillStrip({
 function DatasetView({
   title,
   scenario,
-  kind,
   isPublished,
   isFreeSample,
   isBuilderVisible,
   onTitleChange,
   onScenarioChange,
-  onKindChange,
   onIsPublishedChange,
   onIsFreeSampleChange,
   onIsBuilderVisibleChange,
 }: {
   title:                    string;
   scenario:                 RichDoc;
-  kind:                     string;
   isPublished:              boolean;
   isFreeSample:             boolean;
   isBuilderVisible:         boolean;
   onTitleChange:            (next: string) => void;
   onScenarioChange:         (next: RichDoc) => void;
-  onKindChange:             (next: string) => void;
   onIsPublishedChange:      (next: boolean) => void;
   onIsFreeSampleChange:     (next: boolean) => void;
   onIsBuilderVisibleChange: (next: boolean) => void;
@@ -1144,24 +1133,6 @@ function DatasetView({
           placeholder="Brief patient context shown above the chart tabs…"
           ariaLabel="Scenario"
         />
-      </section>
-
-      <section className="auth-tr-section">
-        <label className="auth-tr-section-label" htmlFor="auth-tr-kind">Kind</label>
-        <input
-          id="auth-tr-kind"
-          type="text"
-          className="auth-tr-input"
-          value={kind}
-          onChange={(e) => onKindChange(e.target.value)}
-          placeholder="e.g. vitals, labs, doctor notes"
-          maxLength={64}
-        />
-        <span className="auth-tr-kind-hint">
-          Display label: <strong>{kindDefaultLabel(kind)}</strong>
-          {' '}· a short label for this dataset. The stimulus itself is
-          built from the chart tabs below.
-        </span>
       </section>
 
       <section className="auth-tr-section">

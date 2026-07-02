@@ -33,7 +33,8 @@ export type Surface = 'admin' | 'tutor';
 //
 // The stimulus lives entirely in the chart tabs (TrendTabRow) since
 // Slice 4 retired the old flat grid — the `timepoints` / `rows` /
-// `row_label` columns are gone. `kind` is just a short display label.
+// `row_label` columns are gone. Slice 5 retired `kind` (a group of
+// titled tabs needs no top-level descriptor).
 //
 // is_free_sample + is_builder_visible were added in the slice-13
 // migration. Defaults: FALSE / TRUE.
@@ -42,7 +43,6 @@ export interface TrendDatasetRow {
   tutor_id?:          string | null;
   title:              string;
   scenario:           string | null;
-  kind:               string;
   is_published:       boolean;
   is_free_sample:     boolean;
   is_builder_visible: boolean;
