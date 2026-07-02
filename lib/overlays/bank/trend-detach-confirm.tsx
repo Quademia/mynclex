@@ -4,9 +4,11 @@
 // dataset. Replaces the native window.confirm so the guard matches the
 // rest of our overlays (centred box, dimmed backdrop, styled buttons).
 //
-// Detach is REVERSIBLE — the question survives in the bank as a
-// standalone item and can be re-linked — so this is a lightweight
-// misclick guard, NOT the typed-DELETE gate. Backdrop click = Cancel.
+// Detach is non-destructive — the question survives in the bank as a
+// standalone item, it just leaves this trend dataset — so this is a
+// lightweight misclick guard, NOT the typed-DELETE gate. Backdrop
+// click = Cancel. (Note: there is no re-attach flow today, so detach is
+// effectively one-way; the copy below reflects that.)
 //
 // Deliberately its own component (not shared with the case-study detach
 // dialog): the copy differs and the two wrappers stay independent
@@ -50,8 +52,9 @@ export function TrendDetachConfirm({
           <span className="auth-detach-confirm-type">({questionType})</span>?
         </p>
         <p className="auth-detach-confirm-hint">
-          The question is removed from this trend dataset but stays in the
-          bank as a standalone item — you can re-link it later.
+          The question is removed from this trend dataset. It stays in the
+          bank as a standalone item, but it won&apos;t be part of this trend
+          anymore.
         </p>
         <div className="auth-detach-confirm-actions">
           <button

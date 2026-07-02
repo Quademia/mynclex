@@ -4,9 +4,11 @@
 // STUDY. Replaces the native window.confirm so the guard matches the
 // rest of our overlays (centred box, dimmed backdrop, styled buttons).
 //
-// Detach is REVERSIBLE — the question survives in the bank as a
-// standalone item and can be re-linked — so this is a lightweight
+// Detach is non-destructive — the question survives in the bank as a
+// standalone item, it just leaves this case — so this is a lightweight
 // misclick guard, NOT the typed-DELETE gate. Backdrop click = Cancel.
+// (Note: there is no re-attach flow today, so detach is effectively
+// one-way; the copy below reflects that.)
 //
 // Deliberately its own component (not shared with the trend detach
 // dialog): the copy differs and the two wrappers stay independent
@@ -50,8 +52,9 @@ export function CaseDetachConfirm({
           <span className="auth-detach-confirm-type">({questionType})</span>?
         </p>
         <p className="auth-detach-confirm-hint">
-          The question is removed from this case but stays in the bank as a
-          standalone item — you can re-link it later. The slot becomes empty.
+          The question is removed from this case and its slot becomes empty.
+          It stays in the bank as a standalone item, but it won&apos;t be part
+          of this case anymore.
         </p>
         <div className="auth-detach-confirm-actions">
           <button

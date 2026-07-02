@@ -482,11 +482,12 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     if (formEl) formEl.requestSubmit();
   }
 
-  // Detach: clear trend_id on the active question's row. Question
-  // survives in the bank as standalone. No typed gate since detach is
-  // reversible (curator can re-link from the bank list editor) and the
-  // action is non-destructive — a styled <TrendDetachConfirm> misclick
-  // guard (opened here, run in onConfirmDetach).
+  // Detach: clear trend_id on the active question's row. The question
+  // survives in the bank as a standalone item (it just leaves this
+  // trend). Non-destructive, so no typed gate — a styled
+  // <TrendDetachConfirm> misclick guard (opened here, run in
+  // onConfirmDetach). Note: there's no re-attach flow today, so detach
+  // is effectively one-way.
   function onDetachActive() {
     if (!activeSlot || isCreatingActive) return;
     setDetachTarget(activeSlot);

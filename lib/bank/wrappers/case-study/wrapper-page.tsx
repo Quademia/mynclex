@@ -516,9 +516,11 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     setPickerTargetPos(null);
   }
 
-  // Detach is reversible (the question survives in the bank as a
-  // standalone item), so a lightweight styled <CaseDetachConfirm>
-  // misclick guard — no typed gate. Opened here, run in onConfirmDetach.
+  // Detach is non-destructive (the question survives in the bank as a
+  // standalone item — it just leaves this case), so a lightweight styled
+  // <CaseDetachConfirm> misclick guard — no typed gate. Opened here, run
+  // in onConfirmDetach. Note: there's no re-attach flow today, so detach
+  // is effectively one-way.
   function onDetachSlot(slot: SlotRow) {
     if (slot.item_id === null) return;
     setDetachTarget(slot);
