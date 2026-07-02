@@ -944,14 +944,13 @@ and the shared editors confirmed it. Findings:
 
 ### Slice plan
 
-> **STATUS (2026-07-02): Slices 1–4 COMPLETE + Sam-tested + on `main`. Three
-> additive migrations `20260712120000` + `20260713120000` + `20260714120000`,
-> all dev-applied. Slice 4 Sam-tested end-to-end. Since then, the
+> **STATUS (2026-07-02): Slices 1–4 COMPLETE + Sam-tested + RELEASED to PROD
+> (PR #34 — migrate-prod applied `20260712`–`20260714120000`, deploy-prod green,
+> prod trend-dataset cleanup done → 0 prod trend datasets). The
 > wrapper-harmonisation work + the "+ New creates a draft directly" picker
-> removal (`9ec098f`) also landed on `main` (app-layer). **Slice 5 — retire
-> `kind` — is PLANNED, not built** (see below). A `main → prod` release is
-> still pending (carries the trend migrations + the prod test-dataset delete
-> from Slice 4 + `PAYSTACK_SECRET_KEY`).**
+> removal also shipped in the same PR. **Slice 5 — retire `kind` — is PLANNED,
+> not built** (see below). ⚠ `PAYSTACK_SECRET_KEY` still not on the prod
+> Worker.**
 
 1. **Slice 1 — Storage. ✅ BUILT** (`5461592`, mig `20260712120000`). Added
    `nclex_trend_tabs` + `nclex_tutor_trend_tabs` (mirror `nclex_case_study_tabs`,
