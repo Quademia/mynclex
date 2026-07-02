@@ -3290,6 +3290,164 @@
   border-radius: 999px;
 }
 
+/* ─────────────────────────────────────────────────────
+ * Wrapper harmonisation (Step 2) — case adopts the trend
+ * shape: a context-aware actions row + a top pill strip
+ * (Case pill + 6 fixed slot pills), then the pane body.
+ * Mirrors the trend .auth-tr-pane-actions / .auth-tr-pill-*
+ * (copy-not-share — the two wrappers keep their own CSS).
+ * ───────────────────────────────────────────────────── */
+.auth-cs-pane-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.auth-cs-pane-actions-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.auth-cs-pane-actions-label strong {
+  color: var(--text);
+}
+.auth-cs-pane-actions-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.auth-cs-pill-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: thin;
+}
+.auth-cs-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+}
+.auth-cs-pill:hover:not(.active):not(:disabled) {
+  background: var(--primary-light);
+  border-color: #cfe5e1;
+}
+.auth-cs-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+.auth-cs-pill-case {
+  font-weight: 600;
+}
+.auth-cs-slot-pill.empty {
+  border-style: dashed;
+  color: var(--accent-dark);
+}
+.auth-cs-pill-pos {
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.auth-cs-pill-plus {
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+.auth-cs-pill-type {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+/* CJMM badge — the short code (RC / AC / …) shown on a filled slot pill. */
+.auth-cs-pill-cjmm {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--accent-dark);
+}
+.auth-cs-pill.active .auth-cs-pill-cjmm {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+.auth-cs-pill-status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--text-muted);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.auth-cs-pill.active .auth-cs-pill-status {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+.auth-cs-pill-dirty {
+  color: var(--warning, #d97706);
+  font-size: 10px;
+}
+.auth-cs-pill.active .auth-cs-pill-dirty {
+  color: #ffffff;
+}
+
+/* Active-question editor body (replaces the old full-pane editor mode).
+ * Sits under the always-visible actions row + pill strip. */
+.auth-cs-editor-pane-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.auth-cs-editor-cjmm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.auth-cs-editor-cjmm-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.auth-cs-editor-cjmm-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
 .auth-cs-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
