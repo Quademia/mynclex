@@ -118,6 +118,23 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > `PAYSTACK_SECRET_KEY` still not on the prod Worker (prod checkout stays broken
 > until set — unrelated to these releases).
 
+> **⏭ POSITIONAL INSERT & REORDER — PLANNED 2026-07-04 (nothing built).**
+> Sam's finding: every authoring "add" appends at the END — no way to insert
+> a row/column in the middle of a chart table or matrix, or an entry between
+> two narrative timestamps (deletion is positional everywhere; insertion
+> isn't; narratives can't reorder at all despite order being authoritative).
+> Full-surface sweep done: HIGH = merge table · matrix family · narrative
+> entries; LOW = option lists / tables-per-tab / chips; already fine =
+> chart-tab rail (reorders), marker stems (position lives in prose), case
+> slots (fixed 6). **Plan: Slice 1** merge-table insert row above/below +
+> column left/right (Subdivide's mid-grid machinery generalised; merges
+> crossing the line expand) · **Slice 2** matrix/matrix-MR per-row/col
+> insert · **Slice 3** narrative insert above/below + move up/down arrows ·
+> **Slice 4 optional** option lists. All app-layer, zero migrations. Full
+> plan:
+> [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
+> → "Positional insert & reorder".
+
 > **MATRIX MULTIPLE RESPONSE (`MATRIX_MR`) — ✅ BUILT + Sam-tested + RELEASED to
 > PROD 2026-07-02 (PR #34; migration `20260711120000` applied to prod).** New
 > self-contained NGN item type — a matrix grid where

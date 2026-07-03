@@ -2451,3 +2451,79 @@ runtime whitelists never surface at compile time.
 ### The id-generator is already generic
 `nclex_next_tutor_item_id(p_prefix text)` takes a prefix, so a new
 `ITEM_ID_PREFIX` / `TUTOR_ITEM_ID_PREFIX` entry needs no RPC change.
+
+
+## Positional insert & reorder — closing the append-only gap (planned 2026-07-04)
+
+**The gap (Sam, 2026-07-04).** Every "add" operation across the authoring
+surfaces appends at the END. A curator who has built a large chart table and
+then realises a column belongs in the middle — or a nurses'-notes entry
+belongs between two existing timestamps — has no way to put it there.
+Deletion is already positional everywhere; insertion is not, and (narratives
+aside from the chart-tab rail) nothing reorders. On merged tables the manual
+workaround (append + hand-shuffle every cell) effectively means rebuilding
+the table.
+
+### Full-surface sweep (2026-07-04)
+
+Every list/grid "add" in the bank authoring surface, checked in code:
+
+| Surface | Today | Gap | Severity |
+| --- | --- | --- | --- |
+| **Merge table** (case + trend chart tabs, `lib/authoring/table/`) | `addRow`/`addCol` append at the end. Delete IS positional (selected band). Subdivide splits one cell mid-grid. | No insert-at-position for a full row/column. Worst case: merges make manual shuffling a rebuild. | **HIGH** |
+| **Matrix + Matrix-MR editors** | `addRow`/`addColumn` append (`[...rows, new]`); ✕ removes at any index. | No mid-grid insert; a 9-row grid needing a row at #3 = retype everything below. | **HIGH** |
+| **Narrative entries** (case + trend, `lib/authoring/narrative/`) | `addEntry` pushes at the end; `removeEntry` positional; **no reorder at all**. | Entries are usually chronological, and array order is AUTHORITATIVE by decision (never auto-sorted by the time chip) — so the curator owns ordering with no tools to manage it. | **HIGH** |
+| **Option lists** — MCQ/SATA/Select-N options · bow-tie wing tokens · cloze per-blank choices · drag-cloze/drag-order token pools | All append-only. Order is exactly what students see (`shuffle_seed` exists on the attempt type but NOTHING shuffles at render). | Same pattern, but lists are short (2–10 items) and cells are single fields — retype cost is small. | LOW |
+| **Tables-per-tab list** (merge tab holds a LIST of tables) | `addTable` appends. | Rarely more than 1–2 tables per tab. | LOW |
+| **Narrative header chips** | `addChip` appends, ✕ removes. | Chips are tiny labels. | LOW (micro) |
+
+**Already fine (no work needed):**
+- **Chart-tab RAIL order** — both wrappers already reorder tabs
+  (`reorderTabsAction`, two-pass shift).
+- **Marker-stem types** (Cloze `{N}` · Highlight `[[chunk]]` · drag-cloze
+  `[N]`) — position lives IN the prose; a curator inserts a marker anywhere
+  in the text (Cloze renumbers). Naturally position-free.
+- **Case slots** — fixed 6 NGN positions; "+" targets a specific empty slot,
+  so repositioning = detach + re-add at the target slot.
+- **Trend question pills** — ordered by `created_at`; display-only for the
+  curator (trend questions enter attempts individually). Noted, out of scope.
+
+### The plan (all app-layer, ZERO migrations — these structures save whole)
+
+**Slice 1 — merge table positional insert (both wrappers light up free).**
+New pure model ops `insertRowAt` (above/below the selection) + `insertColAt`
+(left/right of the selection) in `merge-table-model.ts`. The hard bookkeeping
+already exists — Subdivide's internals (`insertSubColumn`/`insertSubRow`)
+splice mid-grid and bump the colspan/rowspan of merges straddling the
+insertion line; these generalise to full-width/full-height inserts. Toolbar
+gains the four insert actions alongside Merge/Split/Heading (selection-driven,
+like the other positional actions). Unit tests in
+`merge-table-model.test.ts` (merge-crossing cases + id uniqueness).
+Decisions (defaults proposed): a new row inherits the ADJACENT row's
+"Appears from" (the row it was inserted relative to); an insertion line
+crossing a merged cell EXPANDS the merge (span +1 — consistent with
+Subdivide); new cells are plain (no heading inheritance).
+
+**Slice 2 — matrix family (MATRIX + MATRIX_MR).** Rows/columns are flat
+arrays keyed by id (the correct-map is id-keyed, so splicing is safe) —
+insert is a trivial `splice`; the work is the affordance: a small per-row /
+per-column insert control (next to the existing ✕), "Insert above/below" /
+"Insert left/right". Existing min/max bounds respected.
+
+**Slice 3 — narrative entries (case + trend).** Per-entry controls: **Insert
+above / Insert below** + **Move up / Move down** (arrows — the established
+repo pattern from the cohort curriculum; no drag-and-drop). Reorder is
+included here and not on the grids because entries are cards in a list
+(reorder covers the "two existing entries are in the wrong order" case that
+insert alone doesn't), while moving grid rows across merges is high cost /
+low payoff.
+
+**Slice 4 (optional, decide at build time) — option lists.** The same
+insert-at-position affordance on the 7 list editors (MCQ/SATA/Select-N,
+bow-tie wings, cloze choices, drag token pools). Cheap but wide (7 editors ×
+small change). LOW severity — fine to defer if the first three slices cover
+the real pain.
+
+**Out of scope:** drag-and-drop reordering anywhere; reorder for grid rows /
+columns (insert covers the authoring gap); trend-pill ordering; the tables-
+per-tab list and narrative chips (revisit only if they ever hurt).
