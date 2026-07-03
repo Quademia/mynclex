@@ -73,36 +73,48 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > attempt-anchored; migration `20260716120000` [bank-images bucket]
 > dev-applied, NOT prod; + the Sam-driven URL cache + lightbox).
 > **Slice 8 — stem images ✅ BUILT + Sam-tested 2026-07-03 (second session),
-> all four sub-slices** (branch `claude/serene-gagarin-6533c0`, awaiting the
-> `main` merge; ZERO migrations — the Slice-7 foundation carried everything):
+> all four sub-slices, MERGED to `main`** (ZERO migrations — the Slice-7
+> foundation carried everything):
 > **8a** editor chain + curator previews (all 11 editors; image-only stems
 > allowed w/ amber advisory; "(image)" list labels) · **8b** runner + the
 > attempt gate widened to frozen stems · **8c** library embeds via a new
 > note-anchored gate (live embedded stems OR the student's own answer
 > snapshots) · **8d** wrapper scenario images (case + trend). Detail in the
-> questions-and-wrappers plan doc → "Slice 8". **⏭ NEXT:** merge to `main` →
-> the builder case-eligibility fix (below) · the library image port (cache +
-> lightbox back-port, tutor-library.md) · the `main → prod` release (carries
-> Slices 7+8 and `20260716120000`). Parked follow-on: rationale images (+ the
-> `rationale_img` relegation decision). ⚠
+> questions-and-wrappers plan doc → "Slice 8". **⏭ NEXT:** the library image
+> port (cache + lightbox back-port, tutor-library.md) · the `main → prod`
+> release (carries Slices 7+8 + the eligibility/wrapper-tags arc =
+> migrations `20260716120000`–`20260720120000`). Parked follow-on: rationale
+> images (+ the `rationale_img` relegation decision). ⚠
 
-> **⬜ BUG — practice-builder case eligibility filters on RETIRED case-level
-> classification (found 2026-07-03 by Sam's Slice-7 test).** The wrapper-v2
-> design relegated classification to the CHILD questions ("none on the
-> wrapper"; the case-level columns are legacy awaiting cleanup — see
-> `mockups/case-study-wrapper-v2-mockup.html` + the trend rationale in
-> `bank.md`/`slice-1.12-plan.md`), but `_nclex_eligible_unit_pool`
-> (slice 5.1b, predates that decision) still matches cases against the
-> case row's own category/subject/topic/tags/difficulty. Old SQL-seeded
-> cases carry values so it *looked* fine; every editor-authored case has
-> NULLs → invisible to every classification/tag filter. **Fix:** a migration
-> re-pointing the case branch of `_nclex_eligible_unit_pool` (+ the per-axis
-> breakdown RPC) to DERIVE case match from its children via
-> `nclex_case_study_items` → `nclex_bank_items` — the "join through the
-> bank-item side" the trend doc anticipated. **Open semantics Q: ANY child
-> matches (recommended) vs ALL.** Also then: drop the legacy case columns +
-> the throwaway `imagetesting` tag SQL-set on dev `NCLEX_CS_00002` for the
-> Slice-7 test. Question-type filters keep excluding all cases (by design).
+> **✅ BUILDER CASE-ELIGIBILITY FIX + WRAPPER TAGS — BUILT + Sam-tested
+> 2026-07-03 (third session)** (branch `claude/eager-hodgkin-8a5547`, awaiting
+> the `main` merge; **4 migrations `20260717120000`–`20260720120000`, all
+> dev-applied + probe-verified**; tsc + eslint + 104 vitest clean). The bug
+> (found by Sam's Slice-7 test): `_nclex_eligible_unit_pool` matched cases
+> against the case row's RETIRED classification columns, which the editor
+> never writes → every editor-authored case invisible to every
+> classification/tag filter.
+> - **The fix** (`20260717120000`): the pool's case branch DERIVES the match
+>   from children via `nclex_case_study_items` → `nclex_bank_items`.
+>   **Settled semantics: ANY, one-child-ticks-ALL-boxes** — a case is in when
+>   at least one child passes ALL active axes simultaneously (the same
+>   conjunction standalone questions pass, wrapped in EXISTS). QType sit-out
+>   unchanged. The per-axis breakdown RPC needed NO eligibility change (it
+>   only calls the pool).
+> - **Wrapper tags retained + trend symmetry** (Sam's call; `20260718120000`):
+>   `tags` survives on cases, trend datasets gain it; **inheritance rule** —
+>   a wrapper tag counts as a tag on every question inside (child effective
+>   tags = own ∪ wrapper's) — applied in the pool, the builder tag **picker**
+>   (`get-filter-options` reads published wrappers too), and the per-tag
+>   **counts** (`20260720120000` — by_tag counts effective tags, deduped per
+>   question). Tags field on both wrappers' Content tab (comma-separated,
+>   question-editor convention); wrapper-list searches cover tags.
+> - **Legacy columns dropped** (`20260719120000`): the 7 case-level
+>   classification columns off both case tables (+ app sweep: loader, types,
+>   list-page search blobs). Nothing else read them (verified live).
+> - Question-type filters keep excluding all cases (by design). Dev test
+>   data (`imagetesting`, `wrappertagtesting`) deliberately left in place.
+>
 > `PAYSTACK_SECRET_KEY` still not on the prod Worker (prod checkout stays broken
 > until set — unrelated to these releases).
 
