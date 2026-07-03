@@ -100,9 +100,32 @@ function RenderInline({ content }: { content?: RichNode[] }) {
   );
 }
 
+// Optional custom-block seam (Slice 7). Hosts that carry non-text block
+// nodes (the bank image today) pass a renderer keyed off node.type; it
+// returns a ReactNode to take the node over, or null/undefined to fall
+// through to the default handling. Kept generic so Slice 8 (stem images)
+// reuses it unchanged.
+export type CustomBlockRenderer = (
+  node: RichNode,
+  key: string,
+) => ReactNode | null | undefined;
+
 // Render the block-level nodes the rich field can produce. Unknown blocks
 // fall through to rendering their children so nothing is silently lost.
-function RenderBlock({ node, k }: { node: RichNode; k: string }): ReactNode {
+function RenderBlock({
+  node,
+  k,
+  custom,
+}: {
+  node: RichNode;
+  k: string;
+  custom?: CustomBlockRenderer;
+}): ReactNode {
+  // Custom nodes first — an atom node like `bankImage` has no children,
+  // so the default fall-through would silently render nothing.
+  const el = custom?.(node, k);
+  if (el != null) return <Fragment key={k}>{el}</Fragment>;
+
   switch (node.type) {
     case 'paragraph':
       return (
@@ -122,45 +145,52 @@ function RenderBlock({ node, k }: { node: RichNode; k: string }): ReactNode {
     case 'bulletList':
       return (
         <ul key={k}>
-          <RenderBlocks nodes={node.content} prefix={k} />
+          <RenderBlocks nodes={node.content} prefix={k} custom={custom} />
         </ul>
       );
     case 'orderedList':
       return (
         <ol key={k}>
-          <RenderBlocks nodes={node.content} prefix={k} />
+          <RenderBlocks nodes={node.content} prefix={k} custom={custom} />
         </ol>
       );
     case 'listItem':
       return (
         <li key={k}>
-          <RenderBlocks nodes={node.content} prefix={k} />
+          <RenderBlocks nodes={node.content} prefix={k} custom={custom} />
         </li>
       );
     case 'blockquote':
       return (
         <blockquote key={k}>
-          <RenderBlocks nodes={node.content} prefix={k} />
+          <RenderBlocks nodes={node.content} prefix={k} custom={custom} />
         </blockquote>
       );
     default:
       // Unknown block — render its children inline-or-block as available.
-      return <RenderBlocks key={k} nodes={node.content} prefix={k} />;
+      return <RenderBlocks key={k} nodes={node.content} prefix={k} custom={custom} />;
   }
 }
 
 function RenderBlocks({
   nodes,
   prefix,
+  custom,
 }: {
   nodes?: RichNode[];
   prefix: string;
+  custom?: CustomBlockRenderer;
 }): ReactNode {
   if (!nodes || nodes.length === 0) return null;
   return (
     <>
       {nodes.map((node, i) => (
-        <RenderBlock key={`${prefix}-${i}`} k={`${prefix}-${i}`} node={node} />
+        <RenderBlock
+          key={`${prefix}-${i}`}
+          k={`${prefix}-${i}`}
+          node={node}
+          custom={custom}
+        />
       ))}
     </>
   );
@@ -205,10 +235,14 @@ export function RichRender({
   doc,
   className,
   inline = false,
+  custom,
 }: {
   doc: RichDoc;
   className?: string;
   inline?: boolean;
+  /** Custom-block seam — see CustomBlockRenderer. Ignored in `inline`
+   *  mode (a block node can't live inside phrasing content anyway). */
+  custom?: CustomBlockRenderer;
 }) {
   if (inline) {
     const lines: ReactNode[] = [];
@@ -226,7 +260,7 @@ export function RichRender({
   }
   return (
     <div className={className ? `auth-rich ${className}` : 'auth-rich'}>
-      <RenderBlocks nodes={doc.content} prefix="b" />
+      <RenderBlocks nodes={doc.content} prefix="b" custom={custom} />
     </div>
   );
 }

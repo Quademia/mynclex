@@ -16,10 +16,18 @@ import type {
   TabSaveAction,
   TabDeleteAction,
 } from '../chart-tab-types';
+import { NavIcon } from '@/components/nav/shared/nav-icon';
 import { RichField } from '../rich-field';
 import { RichRender } from '../rich-render';
 import { isEmptyRichDoc, type RichDoc } from '../rich-doc';
 import { InlineTools, InlineToolsDisabled } from '../inline-tools';
+import { BankImageBlock } from '../bank-image-block';
+import { getBankImageUrlAction } from '../bank-image-actions';
+import { bankImageRenderer } from './narrative-view';
+import {
+  AUTH_BLOCK_UPLOAD_EVENT,
+  type AuthBlockUploadDetail,
+} from '../block-upload-event';
 import {
   type NarrativeTabData,
   addEntry,
@@ -30,6 +38,13 @@ import {
   dedupeNarrativeIds,
   NVF_MAX,
 } from './narrative-model';
+
+// Slice 7 — narrative bodies may carry image blocks. Stable module
+// consts: the extension list feeds RichField (must not be a per-render
+// array), the renderer splices images into the static (non-focused)
+// entry cards via the curator resolver.
+const NARRATIVE_EXTENSIONS = [BankImageBlock];
+const curatorImageRenderer = bankImageRenderer(getBankImageUrlAction);
 
 interface Props {
   surface:         Surface;
@@ -58,6 +73,21 @@ export function NarrativeTabEditorV2({
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Slice 7 save-safety — count image uploads in flight (the block's
+  // NodeView fires AUTH_BLOCK_UPLOAD_EVENT true/false around each one).
+  // Saving mid-upload would persist a not-yet-filled block, so Save is
+  // held while any upload runs (the library editor's autosave guard,
+  // adapted to this editor's explicit Save).
+  const [uploadsInFlight, setUploadsInFlight] = useState(0);
+
+  useEffect(() => {
+    function onUpload(e: Event) {
+      const { uploading } = (e as CustomEvent<AuthBlockUploadDetail>).detail;
+      setUploadsInFlight((n) => Math.max(0, n + (uploading ? 1 : -1)));
+    }
+    window.addEventListener(AUTH_BLOCK_UPLOAD_EVENT, onUpload);
+    return () => window.removeEventListener(AUTH_BLOCK_UPLOAD_EVENT, onUpload);
+  }, []);
 
   // Heal duplicate entry ids on open (no-op when clean).
   useEffect(() => {
@@ -107,6 +137,10 @@ export function NarrativeTabEditorV2({
   }
 
   function onSave(fd: FormData) {
+    if (uploadsInFlight > 0) {
+      setErr('An image is still uploading — save once it finishes.');
+      return;
+    }
     setErr(null); setPending(true);
     saveAction(fd).then((r) => { if (!r.ok) setErr(r.error); }).finally(() => setPending(false));
   }
@@ -157,8 +191,13 @@ export function NarrativeTabEditorV2({
             <input type="hidden" name="title"         value={draftTitle} />
             <input type="hidden" name="entries"       value={JSON.stringify(draftNarrative)} />
             <input type="hidden" name="columns_def"   value="[]" />
-            <button type="submit" className="cs-btn primary" disabled={pending}>
-              {pending ? 'Saving…' : 'Save tab'}
+            <button
+              type="submit"
+              className="cs-btn primary"
+              disabled={pending || uploadsInFlight > 0}
+              title={uploadsInFlight > 0 ? 'An image is still uploading' : undefined}
+            >
+              {pending ? 'Saving…' : uploadsInFlight > 0 ? 'Uploading…' : 'Save tab'}
             </button>
           </form>
         </div>
@@ -172,6 +211,21 @@ export function NarrativeTabEditorV2({
         {activeEditor
           ? <InlineTools editor={activeEditor} buttonClassName="mt-tb-btn mt-tb-rich" />
           : <InlineToolsDisabled buttonClassName="mt-tb-btn mt-tb-rich" hint="Click into an entry to format its text" />}
+        {/* Slice 7 — insert an image block at the caret of the focused
+            entry. Mixes freely with the text (an atom block node). */}
+        <button
+          type="button"
+          className="mt-tb-btn mt-tb-rich"
+          title={activeEditor ? 'Insert image' : 'Click into an entry to insert an image'}
+          aria-label="Insert image"
+          disabled={!activeEditor}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() =>
+            activeEditor?.chain().focus().insertContent({ type: 'bankImage' }).run()
+          }
+        >
+          <NavIcon name="image" />
+        </button>
       </div>
 
       {/* entry cards */}
@@ -222,6 +276,7 @@ export function NarrativeTabEditorV2({
                   onChange={(doc) => onBody(idx, doc)}
                   placeholder="Write the note…"
                   ariaLabel={`Entry ${idx + 1} body`}
+                  extensions={NARRATIVE_EXTENSIONS}
                 />
               </div>
             ) : (
@@ -234,7 +289,7 @@ export function NarrativeTabEditorV2({
               >
                 {isEmptyRichDoc(entry.body)
                   ? <span className="nt-body-ph">Write the note…</span>
-                  : <RichRender doc={entry.body} />}
+                  : <RichRender doc={entry.body} custom={curatorImageRenderer} />}
               </div>
             )}
           </div>

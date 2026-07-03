@@ -66,6 +66,7 @@ import {
 } from '@/lib/authoring/table/merge-table-model';
 import { NarrativeTabEditorV2 } from '@/lib/authoring/narrative/narrative-tab-editor';
 import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
+import { getBankImageUrlAction } from '@/lib/authoring/bank-image-actions';
 import {
   asNarrativeTab,
   isNarrativeEmpty,
@@ -1199,7 +1200,11 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
               ) : previewMergeTab ? (
                 <MergeTableView tab={previewMergeTab} currentPosition={activeSlot} />
               ) : previewNarrativeTab ? (
-                <NarrativeView tab={previewNarrativeTab} currentPosition={activeSlot} />
+                <NarrativeView
+                  tab={previewNarrativeTab}
+                  currentPosition={activeSlot}
+                  resolveImageUrl={getBankImageUrlAction}
+                />
               ) : (
                 <p className="auth-cs-empty-msg">This tab can&apos;t be previewed.</p>
               )}

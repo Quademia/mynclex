@@ -22,15 +22,19 @@ import { asNarrativeTab } from '@/lib/authoring/narrative/narrative-model';
 import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
 import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
 import { RichRender } from '@/lib/authoring/rich-render';
+import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
 
 interface Props {
   trendSnap: TrendSnapshot;
+  // Slice 7 — attempt-anchored signed-URL resolver for bankImage nodes
+  // in narrative bodies (bound to the attempt by the runner).
+  resolveImageUrl?: BankImageResolver;
 }
 
 // Show every revealed row/entry — trend has no progressive disclosure.
 const SHOW_ALL_POSITION = 999;
 
-export function TrendPanel({ trendSnap }: Props) {
+export function TrendPanel({ trendSnap, resolveImageUrl }: Props) {
   const tabs = (trendSnap.tabs_snapshot_json ?? []) as TrendTabRow[];
 
   return (
@@ -57,7 +61,7 @@ export function TrendPanel({ trendSnap }: Props) {
       })()}
 
       {tabs.length > 0 ? (
-        <TabbedStimulus tabs={tabs} />
+        <TabbedStimulus tabs={tabs} resolveImageUrl={resolveImageUrl} />
       ) : (
         <div className="rn-trend-body">
           <div className="empty">No data in this dataset.</div>
@@ -68,7 +72,13 @@ export function TrendPanel({ trendSnap }: Props) {
 }
 
 // ── Rich multi-chart: tab bar + active tab body ──────────────────
-function TabbedStimulus({ tabs }: { tabs: TrendTabRow[] }) {
+function TabbedStimulus({
+  tabs,
+  resolveImageUrl,
+}: {
+  tabs: TrendTabRow[];
+  resolveImageUrl?: BankImageResolver;
+}) {
   const ordered = [...tabs].sort((a, b) => a.display_order - b.display_order);
   const [activeId, setActiveId] = useState<string>(() => ordered[0]?.tab_id ?? '');
   const effectiveId = ordered.some((t) => t.tab_id === activeId)
@@ -93,16 +103,32 @@ function TabbedStimulus({ tabs }: { tabs: TrendTabRow[] }) {
         ))}
       </div>
       <div className="rn-trend-body">
-        {activeTab && <ChartTabBody tab={activeTab} />}
+        {activeTab && (
+          <ChartTabBody tab={activeTab} resolveImageUrl={resolveImageUrl} />
+        )}
       </div>
     </>
   );
 }
 
-function ChartTabBody({ tab }: { tab: TrendTabRow }) {
+function ChartTabBody({
+  tab,
+  resolveImageUrl,
+}: {
+  tab: TrendTabRow;
+  resolveImageUrl?: BankImageResolver;
+}) {
   const mt = asMergeTab(tab.entries);
   if (mt) return <MergeTableView tab={mt} currentPosition={SHOW_ALL_POSITION} />;
   const nt = asNarrativeTab(tab.entries);
-  if (nt) return <NarrativeView tab={nt} currentPosition={SHOW_ALL_POSITION} />;
+  if (nt) {
+    return (
+      <NarrativeView
+        tab={nt}
+        currentPosition={SHOW_ALL_POSITION}
+        resolveImageUrl={resolveImageUrl}
+      />
+    );
+  }
   return <div className="empty">Nothing on this tab yet.</div>;
 }

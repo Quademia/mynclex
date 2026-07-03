@@ -39,12 +39,16 @@ import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
 import { asMergeTab, tabHasVisibleContent } from '@/lib/authoring/table/merge-table-model';
 import { asNarrativeTab, narrativeTabHasVisibleContent } from '@/lib/authoring/narrative/narrative-model';
+import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
 
 interface Props {
   caseSnap:         CaseSnapshot;
   currentPosition:  number;     // 1..6 — the current case-child's case_position
   totalChildren:    number;     // expected to be 6 in v1, but read off the case
   answeredCount:    number;     // 0..totalChildren — drives the head pill
+  // Slice 7 — attempt-anchored signed-URL resolver for bankImage nodes
+  // in narrative bodies (bound to the attempt by the runner).
+  resolveImageUrl?: BankImageResolver;
 }
 
 export function CasePanel({
@@ -52,6 +56,7 @@ export function CasePanel({
   currentPosition,
   totalChildren,
   answeredCount,
+  resolveImageUrl,
 }: Props) {
   // tabs_snapshot_json is JSONB — typed as unknown[] in the runner data
   // shape. Coerce here so the rest of the component can lean on TabRow.
@@ -133,7 +138,11 @@ export function CasePanel({
 
       <div className="rn-case-body">
         {activeTab && (
-          <ChartTabBody tab={activeTab} currentPosition={currentPosition} />
+          <ChartTabBody
+            tab={activeTab}
+            currentPosition={currentPosition}
+            resolveImageUrl={resolveImageUrl}
+          />
         )}
       </div>
     </aside>

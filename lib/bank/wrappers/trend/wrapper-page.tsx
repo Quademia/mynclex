@@ -44,6 +44,7 @@ import {
 } from '@/lib/authoring/table/merge-table-model';
 import { NarrativeTabEditorV2 } from '@/lib/authoring/narrative/narrative-tab-editor';
 import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
+import { getBankImageUrlAction } from '@/lib/authoring/bank-image-actions';
 import {
   asNarrativeTab,
   type NarrativeTabData,
@@ -1334,7 +1335,15 @@ function ChartTabBody({ draft }: { draft: TabDraft }) {
   const mt = asMergeTab(draft.entries);
   if (mt) return <MergeTableView tab={mt} currentPosition={TREND_PREVIEW_POSITION} />;
   const nt = asNarrativeTab(draft.entries);
-  if (nt) return <NarrativeView tab={nt} currentPosition={TREND_PREVIEW_POSITION} />;
+  if (nt) {
+    return (
+      <NarrativeView
+        tab={nt}
+        currentPosition={TREND_PREVIEW_POSITION}
+        resolveImageUrl={getBankImageUrlAction}
+      />
+    );
+  }
   return <p className="auth-tr-empty-msg">Empty tab.</p>;
 }
 

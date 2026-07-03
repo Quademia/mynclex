@@ -13,6 +13,7 @@
 
 import type { RichDoc } from '../rich-doc';
 import { EMPTY_RICH_DOC, richDocToPlain } from '../rich-doc';
+import { docHasFilledBankImage } from '../bank-image-doc';
 
 export interface NarrativeEntry {
   id:          string;
@@ -113,6 +114,9 @@ export function narrativeTabHasVisibleContent(tab: NarrativeTabData, q: number):
 // ── summaries / guards ──
 function entryIsEmpty(e: NarrativeEntry): boolean {
   if (e.chips.some((c) => c.trim().length > 0)) return false;
+  // Slice 7 — an image-only body is content: the plain-text flatten
+  // yields nothing for a bankImage atom, so ask the doc directly.
+  if (docHasFilledBankImage(e.body)) return false;
   return richDocToPlain(e.body).trim().length === 0;
 }
 

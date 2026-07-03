@@ -20,6 +20,7 @@
 
 import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import type { Editor } from '@tiptap/react';
+import type { AnyExtension } from '@tiptap/core';
 import { useEffect, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -52,6 +53,11 @@ interface RichFieldProps {
   /** Focus the editor (caret to end) as soon as it mounts. Used by the
    *  roving field so clicking a static field drops the caret straight in. */
   autofocus?: boolean;
+  /** Extra Tiptap extensions appended to the base set — opt-in per host,
+   *  so a block node (e.g. the Slice-7 bank image) only exists in fields
+   *  that deliberately enable it. Must be a stable reference (module
+   *  const), not a per-render array. */
+  extensions?: AnyExtension[];
 }
 
 export function RichField({
@@ -62,6 +68,7 @@ export function RichField({
   hideToolbar = false,
   onEditor,
   autofocus = false,
+  extensions,
 }: RichFieldProps) {
   const editor = useEditor({
     autofocus: autofocus ? 'end' : false,
@@ -80,6 +87,7 @@ export function RichField({
       TextAlign.configure({ types: ['heading', 'paragraph'], defaultAlignment: 'left' }),
       TextStyle,
       Color,
+      ...(extensions ?? []),
     ],
     content: value,
     editable: true,
