@@ -31,6 +31,7 @@ import {
   cacheBankImageUrl,
   evictBankImageUrl,
 } from './bank-image-url-cache';
+import { BankImageLightbox } from './bank-image-lightbox';
 
 export type BankImageResolver = (assetId: string) => Promise<AssetUrlResult>;
 
@@ -58,6 +59,7 @@ export function BankImageView({
   // after the eviction. Capped at one retry per mount.
   const [retryTick, setRetryTick] = useState(0);
   const retriedRef = useRef(false);
+  const [expanded, setExpanded] = useState(false);
 
   // Cache first: a hit needs no state and no effect — the URL is
   // available on the very first render (no "Loading…" flash).
@@ -104,8 +106,26 @@ export function BankImageView({
     <figure className="lib-image-block">
       <div className="lib-image-frame">
         {url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt={alt} className="lib-image-img" onError={onImgError} />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={url}
+              alt={alt}
+              className="lib-image-img auth-img-clickable"
+              title="Expand image"
+              onError={onImgError}
+              onClick={() => setExpanded(true)}
+            />
+            <button
+              type="button"
+              className="auth-img-expand"
+              aria-label="Expand image"
+              title="Expand image"
+              onClick={() => setExpanded(true)}
+            >
+              ⤢
+            </button>
+          </>
         ) : error ? (
           <div className="lib-image-state lib-image-error">{error}</div>
         ) : (
@@ -115,6 +135,14 @@ export function BankImageView({
       {caption ? (
         <figcaption className="lib-image-figcaption">{caption}</figcaption>
       ) : null}
+      {expanded && url && (
+        <BankImageLightbox
+          url={url}
+          alt={alt}
+          caption={caption}
+          onClose={() => setExpanded(false)}
+        />
+      )}
     </figure>
   );
 }

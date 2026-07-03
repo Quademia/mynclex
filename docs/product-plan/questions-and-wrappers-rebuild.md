@@ -2143,6 +2143,18 @@ Design settled 2026-07-02; **access model settled + the whole slice built
   server round-trip, and the identical URL means the browser serves the bytes
   from its HTTP cache. Load error → evict + re-mint (once per mount). Wired
   into both `BankImageView` and the editor NodeView.
+- `lib/authoring/bank-image-lightbox.tsx` — tap-to-expand lightbox
+  (Sam-requested after testing: detail-dense images — ECG strips — are
+  unreadable at column width; stored images carry up to 1600px). Tap the
+  inline image (or the always-visible corner ⤢ chip) → full-screen dimmed
+  overlay, fit-to-screen; tap the image again → 100% natural size (scroll to
+  pan); tap anywhere / × / Esc → close. Portaled to body; reuses the cached
+  URL (no re-fetch); exam-authentic (NGN lets candidates enlarge exhibits).
+  In the editor NodeView the ⤢ button opens it (image-click selects the
+  node); in read contexts the image itself is clickable. `.auth-lightbox-*` /
+  `.auth-img-expand` CSS in authoring.css. The tutor LIBRARY's image block
+  has the same limitation — porting the lightbox there is a separate small
+  follow-on, not bundled.
 - `lib/authoring/rich-render.tsx` — generic **`custom` block-renderer seam**;
   `bankImageRenderer(resolve)` (narrative-view.tsx) builds the splice.
 - `lib/authoring/bank-image-doc.ts` — pure deep-walkers

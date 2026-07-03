@@ -47,6 +47,7 @@ import {
   cacheBankImageUrl,
   evictBankImageUrl,
 } from './bank-image-url-cache';
+import { BankImageLightbox } from './bank-image-lightbox';
 
 export const BankImageBlock = Node.create({
   name: 'bankImage',
@@ -168,6 +169,9 @@ function FilledImage({
   // after the eviction. Capped at one retry per mount.
   const [retryTick, setRetryTick] = useState(0);
   const retriedRef = useRef(false);
+  // In the editor, clicking the image selects the Tiptap node — the
+  // lightbox opens via the corner ⤢ button instead.
+  const [expanded, setExpanded] = useState(false);
 
   // Cache first (bank-image-url-cache): a hit renders immediately with
   // no server round-trip — tab switches in the wrapper stay instant.
@@ -216,6 +220,18 @@ function FilledImage({
         ) : (
           <div className="lib-image-state lib-image-loading">Loading image…</div>
         )}
+        {url && (
+          <button
+            type="button"
+            className="auth-img-expand"
+            aria-label="Expand image"
+            title="Expand image"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setExpanded(true)}
+          >
+            ⤢
+          </button>
+        )}
         {editable && (
           <button
             type="button"
@@ -229,6 +245,14 @@ function FilledImage({
           </button>
         )}
       </div>
+      {expanded && url && (
+        <BankImageLightbox
+          url={url}
+          alt={alt}
+          caption={caption}
+          onClose={() => setExpanded(false)}
+        />
+      )}
 
       {editable ? (
         <div className="lib-image-fields" contentEditable={false}>
