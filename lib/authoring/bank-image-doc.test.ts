@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   collectBankImageAssetIds,
   docHasFilledBankImage,
+  richTextToPlainLabel,
 } from './bank-image-doc';
+import { parseRichDoc } from './rich-doc';
 import { isNarrativeEmpty, type NarrativeTabData } from './narrative/narrative-model';
 
 // Doc fragments
@@ -55,6 +57,19 @@ describe('collectBankImageAssetIds', () => {
     expect([...into].sort()).toEqual(['pre', 'x']);
   });
 
+  it('finds ids in a frozen STEM snapshot (the Slice-8 gate shape)', () => {
+    // stem_snapshot is a TEXT column: rich stems arrive as a stringified
+    // Tiptap doc, legacy stems as plain prose. The 8b gate composes
+    // parseRichDoc → collect; a plain-text stem must yield nothing, and
+    // the raw string itself must never be walked as if it were a doc.
+    const richStem = JSON.stringify(
+      doc(para('Interpret the rhythm strip. {1}'), imgNode('stem-1')),
+    );
+    expect([...collectBankImageAssetIds(parseRichDoc(richStem))]).toEqual(['stem-1']);
+    expect(collectBankImageAssetIds(parseRichDoc('plain legacy stem')).size).toBe(0);
+    expect(collectBankImageAssetIds(richStem).size).toBe(0); // unparsed string finds nothing
+  });
+
   it('ignores other node types and non-string asset ids', () => {
     const d = doc(
       { type: 'libImage', attrs: { assetId: 'library-not-bank' } },
@@ -70,6 +85,17 @@ describe('docHasFilledBankImage', () => {
     expect(docHasFilledBankImage(doc(para('text only')))).toBe(false);
     expect(docHasFilledBankImage(doc(imgNode(null)))).toBe(false);
     expect(docHasFilledBankImage(doc(imgNode('a')))).toBe(true);
+  });
+});
+
+describe('richTextToPlainLabel', () => {
+  it('flattens text, labels image-only docs, stays empty otherwise', () => {
+    const withText = JSON.stringify(doc(para('Assess the client.'), imgNode('a')));
+    const imageOnly = JSON.stringify(doc(imgNode('a')));
+    expect(richTextToPlainLabel(withText)).toBe('Assess the client.');
+    expect(richTextToPlainLabel(imageOnly)).toBe('(image)');
+    expect(richTextToPlainLabel('')).toBe('');
+    expect(richTextToPlainLabel(null)).toBe('');
   });
 });
 
