@@ -5926,6 +5926,47 @@
   width: 100%;
   table-layout: auto;
 }
+
+/* ── hover-⊕ insert markers (Slice 1c) ─────────────────────────
+ * Thin invisible strips over the table's top + left edges. Hovering one
+ * snaps a ⊕ dot to the nearest grid-line boundary and draws a preview
+ * line across the table; clicking inserts a row/column there. Lives
+ * INSIDE .mt-grid-scroll so markers scroll with a wide table. */
+.mt-inswrap {
+  position: relative;
+  width: fit-content;
+  min-width: 100%;
+}
+.mt-insgut { position: absolute; z-index: 4; }
+.mt-insgut-top  { top: 0; left: 0; right: 0; height: 10px; cursor: copy; }
+.mt-insgut-left { top: 0; left: 0; bottom: 0; width: 10px; cursor: copy; }
+.mt-ins-dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.3);
+}
+.mt-insgut-top  .mt-ins-dot { top: -1px; transform: translateX(-50%); }
+.mt-insgut-left .mt-ins-dot { left: -1px; transform: translateY(-50%); }
+.mt-ins-line {
+  position: absolute;
+  background: var(--accent);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 3;
+}
+.mt-ins-line.is-v { top: 0; bottom: 0; width: 2px; transform: translateX(-1px); }
+.mt-ins-line.is-h { left: 0; right: 0; height: 2px; transform: translateY(-1px); }
 .mt-gutter {
   width: 72px;
   padding: 0 8px;
