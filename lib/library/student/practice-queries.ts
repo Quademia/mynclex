@@ -24,6 +24,7 @@
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { richTextToPlain } from '@/lib/authoring/rich-doc';
+import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
 import { bodyToTiptap } from '../body-tiptap';
 
 /** A practice block lifted from a note body, in reading order. */
@@ -438,14 +439,14 @@ export async function getStudentPracticeNote(
         content: a.content_snapshot_json,
         correctSnap: a.correct_answer_snapshot_json,
         rationale: a.rationale_snapshot ? richTextToPlain(a.rationale_snapshot) : null,
-        stem: richTextToPlain(a.stem_snapshot),
+        stem: richTextToPlainLabel(a.stem_snapshot),
         type: a.question_type,
       });
     } else {
       cur.lastCorrect = a.is_correct;
     }
     if (a.stem_snapshot && !stemByItem.has(a.item_id)) {
-      stemByItem.set(a.item_id, richTextToPlain(a.stem_snapshot));
+      stemByItem.set(a.item_id, richTextToPlainLabel(a.stem_snapshot));
     }
   }
 
@@ -460,7 +461,7 @@ export async function getStudentPracticeNote(
       .select('item_id, stem')
       .in('item_id', missingStems);
     for (const q of (qRows ?? []) as Array<{ item_id: string; stem: string }>) {
-      stemByItem.set(q.item_id, richTextToPlain(q.stem ?? ''));
+      stemByItem.set(q.item_id, richTextToPlainLabel(q.stem ?? ''));
     }
   }
 

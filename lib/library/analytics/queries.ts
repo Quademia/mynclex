@@ -17,6 +17,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { richTextToPlain } from '@/lib/authoring/rich-doc';
+import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
 import { bodyToTiptap } from '../body-tiptap';
 import { tierOf } from './types';
 import { resolveReaderSegments } from './readers';
@@ -201,7 +202,7 @@ export async function getEmbedAnalyticsOverview(
       cur.attempts += 1;
     }
     if (a.stem_snapshot && !stemByItem.has(a.item_id)) {
-      stemByItem.set(a.item_id, richTextToPlain(a.stem_snapshot));
+      stemByItem.set(a.item_id, richTextToPlainLabel(a.stem_snapshot));
     }
   }
 
@@ -556,7 +557,7 @@ export async function getEmbedAnalyticsNote(
       item_id: string;
       stem: string;
       question_type: string;
-    }>).map((q) => [q.item_id, { stem: richTextToPlain(q.stem), type: q.question_type }]),
+    }>).map((q) => [q.item_id, { stem: richTextToPlainLabel(q.stem), type: q.question_type }]),
   );
 
   const { data: answerRows } = await supabase
@@ -980,7 +981,7 @@ export async function getEmbedReaderReport(
       correct: unknown;
     }>).map((q) => [
       q.item_id,
-      { stem: richTextToPlain(q.stem), type: q.question_type, content: q.content, correct: q.correct },
+      { stem: richTextToPlainLabel(q.stem), type: q.question_type, content: q.content, correct: q.correct },
     ]),
   );
 

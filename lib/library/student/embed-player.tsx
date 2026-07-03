@@ -31,6 +31,9 @@ import {
 } from '@/lib/practice/runner';
 import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc } from '@/lib/authoring/rich-doc';
+import { bankImageRenderer } from '@/lib/authoring/bank-image-render';
+import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
+import { getEmbedStemImageUrlAction } from './embed-image-actions';
 import type { BankItemAnswer } from '@/lib/scoring';
 import type {
   McqContent,
@@ -176,6 +179,11 @@ function EmbedPlayerRun({
 
   const q = questions[idx];
 
+  // Slice 8c — note-anchored resolver for bankImage nodes in embedded
+  // stems (the attempt anchor doesn't exist here; the gate is the note).
+  const resolveImageUrl: BankImageResolver = (id) =>
+    getEmbedStemImageUrlAction(noteId, id);
+
   // Mid-play = a started, unfinished pass with at least one answer in.
   const midPlay = phase === 'playing' && results.length > 0;
   useEffect(() => {
@@ -245,6 +253,7 @@ function EmbedPlayerRun({
         label={reviewSitting.label}
         questions={reviewSitting.questions}
         onBack={closeReview}
+        resolveImageUrl={resolveImageUrl}
       />
     );
   }
@@ -365,7 +374,12 @@ function EmbedPlayerRun({
       </div>
 
       <div className="eq-player-body">
-        <div className="rn-stem"><RichRender doc={parseRichDoc(q.stem)} /></div>
+        <div className="rn-stem">
+          <RichRender
+            doc={parseRichDoc(q.stem)}
+            custom={bankImageRenderer(resolveImageUrl)}
+          />
+        </div>
         {q.instruction && (
           <p className="rn-instruction"><RichRender doc={parseRichDoc(q.instruction)} inline /></p>
         )}
@@ -420,10 +434,12 @@ function ReviewPlay({
   label,
   questions,
   onBack,
+  resolveImageUrl,
 }: {
   label: string;
   questions: EmbedReviewQuestion[] | null;
   onBack: () => void;
+  resolveImageUrl?: BankImageResolver;
 }) {
   const [i, setI] = useState(0);
 
@@ -466,7 +482,12 @@ function ReviewPlay({
       </div>
 
       <div className="eq-player-body">
-        <div className="rn-stem"><RichRender doc={parseRichDoc(rq.stem)} /></div>
+        <div className="rn-stem">
+          <RichRender
+            doc={parseRichDoc(rq.stem)}
+            custom={bankImageRenderer(resolveImageUrl)}
+          />
+        </div>
         {rq.instruction && (
           <p className="rn-instruction"><RichRender doc={parseRichDoc(rq.instruction)} inline /></p>
         )}
