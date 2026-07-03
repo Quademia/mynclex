@@ -1277,6 +1277,38 @@ VALUES (
   ARRAY['application/pdf']
 );
 
+-- The later media buckets, same private/signed-URL posture. The
+-- library pair (slices 11.6a/11.6b) was never mirrored here —
+-- backfilled 2026-07-03 alongside the bank-images bucket
+-- (rich-content Slice 7, migration 20260716120000).
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'nclex-library-images',
+  'nclex-library-images',
+  FALSE,
+  5242880,
+  ARRAY['image/png','image/jpeg','image/webp']
+);
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'nclex-library-pdfs',
+  'nclex-library-pdfs',
+  FALSE,
+  26214400,
+  ARRAY['application/pdf']
+);
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'nclex-bank-images',
+  'nclex-bank-images',
+  FALSE,
+  5242880,
+  ARRAY['image/png','image/jpeg','image/webp']
+);
+
 
 -- =========================================================
 -- Tutor quiz tables (Tutor Quiz Slice 1, 2026-05-16)
