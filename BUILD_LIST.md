@@ -68,8 +68,12 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > **✅ THE TREND RICH MULTI-CHART ARC (Slices 1–5) IS COMPLETE + ON PROD** (PR #34
 > shipped Slices 1–4 + MATRIX_MR; PR #35 shipped Slice 5 + the DRAG_DROP decouple).
-> **⏭ NEXT:** **Slice 7 — media block** (the last piece of the whole bank
-> rich-content relook; see the questions-and-wrappers banner below). ⚠
+> **Slice 7 — media block ✅ BUILT 2026-07-03** (narrative-body images, both
+> wrappers; access model = Option A attempt-anchored; migration
+> `20260716120000` [bank-images bucket] dev-applied; tsc + eslint + 102 vitest
+> clean; awaiting Sam's dev test → merge `main`). **⏭ NEXT:** Sam tests Slice 7,
+> then **Slice 8 — stem images** (promoted to a numbered slice 2026-07-03;
+> both in the questions-and-wrappers plan doc). ⚠
 > `PAYSTACK_SECRET_KEY` still not on the prod Worker (prod checkout stays broken
 > until set — unrelated to these releases).
 

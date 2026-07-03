@@ -2084,45 +2084,115 @@ gaps). Another point for B.
 - **Indent** (list nesting + paragraph indent) — raised, then set aside in
   favour of alignment. Revisit if a real specimen needs it.
 
-### Slice 7 (LAST) — media block in the narrative body
+### Slice 7 (LAST) — media block in the narrative body — ✅ BUILT 2026-07-03
 
 Add an image (ECG / wound-photo / X-ray = all just images) to the **narrative
 body** of a chart tab, rendered for students. Closes the bank rich-content arc.
-**Design settled 2026-07-02** (discussion only, nothing built):
+Design settled 2026-07-02; **access model settled + the whole slice built
+2026-07-03** (app-layer + one additive migration `20260716120000`, dev-applied).
 
-- **Reuse the library's existing image block** — `lib/library/image-block.tsx`
-  (a Tiptap `libImage` atom node) + `components/media/upload-field.tsx` (generic,
-  already used for PDFs / avatars / rationale images) + browser-side resize +
-  Supabase Storage `asset_id` + a 1-hour signed URL. The doc only stores the
-  small `asset_id`, not the bytes.
+**The design (as settled):**
+
+- **Reuse the library's image-block machinery** — same upload flow
+  (`components/media/upload-field.tsx` + browser-side resize + Supabase Storage
+  `asset_id` + a 1-hour signed URL; the doc only stores the small `asset_id`),
+  but a **separate node** `bankImage` (own attrs `{assetId, alt, caption}`) so
+  the two doc ecosystems stay decoupled.
 - **Where it lives:** the **5 narrative tab types** — Nurses' Notes, Orders,
-  History & Physical, Diagnostics, and Custom "Free text" (the other 3 — Vital
-  Signs, Lab Results, Custom grid — are merge tables with no free-text body).
-  There is **one** narrative editor, `NarrativeTabEditorV2` in
-  `lib/authoring/narrative/`, used by **both** the case-study and trend wrappers,
-  so building the block in once lights it up in both.
+  History & Physical, Diagnostics, and Custom "Free text". One narrative editor
+  (`NarrativeTabEditorV2`) serves both wrappers → built once, live in both.
 - **The image sits INSIDE an entry's `body` (a `RichDoc`), as a block node among
-  the paragraphs** — an entry can mix text + image freely (mirror of the library
-  note body). It is NOT a separate "image entry".
-- **The one open decision = the ACCESS MODEL.** Library images gate by
-  tutor-enrolment, but a bank stimulus image lives in a *published bank question*
-  any subscriber can draw in a quiz → it needs a bank-specific storage bucket +
-  purpose + a **bank-entitlement-gated signed URL**. Also: the tab JSON is frozen
-  into the attempt snapshot, so the `asset_id` must still resolve later. Settle
-  this before building.
+  the paragraphs** — an entry mixes text + image freely. NOT a separate "image
+  entry".
 
-**Follow-on candidate — STEM images (AFTER Slice 7).** Sam's idea, valid: the
+**Access model — Option A, attempt-anchored (settled with Sam 2026-07-03):**
+
+- **ONE bucket for both sides** (`nclex-bank-images`, private, 5 MB,
+  png/jpeg/webp — mirror of the library bucket). Bucket split adds no security
+  (reads only ever go through gated actions that mint signed URLs) and
+  ownership already lives on the asset row. New purpose **`BANK_IMAGE`** in
+  `PURPOSE_CONFIG`.
+- **Curator gate** (`lib/authoring/bank-image-actions.ts`
+  `getBankImageUrlAction`): *owner* (RLS asset read — covers tutors + the
+  uploading admin) **or** *bank curator* (`BANK_CURATE` — the admin bank is
+  team-curated, so curator B resolves curator A's image via a service-role
+  lookup after the permission check). Purpose must be `BANK_IMAGE` either way.
+- **Student gate** (`lib/practice/runner/attempt-image-actions.ts`
+  `getAttemptImageUrlAction(attemptId, assetId)`): (1) RLS-read the attempt
+  (owner-only); (2) bank-subscription re-check for `CUSTOM_BUILT` attempts
+  (runner-page lapse-lock parity, non-redirecting, SUPER_ADMIN bypass);
+  (3) **anti-oracle** — the asset id must be referenced by THIS attempt's
+  frozen `tabs_snapshot_json` (case + trend snapshots, walked by
+  `collectBankImageAssetIds`); (4) mint. Frozen-snapshot resolution falls out
+  for free — review keeps resolving after the live case changes.
+- **Deletion policy:** bank image bytes are never purged once an attempt
+  snapshot references them (v1 = no purge; the asset row's soft-delete states
+  exist but nothing sweeps this purpose).
+
+**Build shape (kept reusable for Slice 8 — the handoff contract below):**
+
+- `lib/authoring/bank-image-block.tsx` — editor NodeView (upload dropzone →
+  filled image + alt/caption), host-agnostic, opt-in via `RichField`'s new
+  `extensions` prop (only narrative bodies enable it today).
+- `lib/authoring/bank-image-view.tsx` — Tiptap-free read-side `<BankImageView>`
+  with an **injected resolver** (curator action in previews/static cards,
+  attempt-bound action in the runner).
+- `lib/authoring/rich-render.tsx` — generic **`custom` block-renderer seam**;
+  `bankImageRenderer(resolve)` (narrative-view.tsx) builds the splice.
+- `lib/authoring/bank-image-doc.ts` — pure deep-walkers
+  (`collectBankImageAssetIds` / `docHasFilledBankImage`); walks ANY JSON shape
+  (frozen snapshots nest docs under `entries → body`, not `content`). Tested
+  (`bank-image-doc.test.ts`).
+- Emptiness fix: an image-only entry counts as content
+  (`entryIsEmpty` in narrative-model asks `docHasFilledBankImage`).
+- Save-safety: the narrative editor counts `AUTH_BLOCK_UPLOAD_EVENT`
+  (`lib/authoring/block-upload-event.ts`, the library guard's authoring mirror)
+  and holds Save while an upload is in flight.
+- Toolbar: an Image button in the narrative sticky toolbar inserts the block at
+  the caret of the focused entry.
+- Threading: `NarrativeView` takes `resolveImageUrl`; wrapper previews pass the
+  curator action; `CasePanel` / `TrendPanel` / both `ChartTabBody`s thread the
+  runner's attempt-bound closure.
+- Presentational CSS reuses `.lib-image-*` (styles/library.css is app-wide) —
+  zero new CSS.
+
+### Slice 8 — STEM images (planned, AFTER Slice 7)
+
+Sam's idea, valid — promoted from "follow-on candidate" to a numbered slice
+2026-07-03 so it stays on the arc's radar while Slice 7 is built. The
 question stem is already a `RichDoc` (since Slice 6), so the same image block
-could go inside a stem (`rationale_img` already exists as precedent for
+can go inside a stem (`rationale_img` already exists as precedent for
 question-level images). But the blast radius is **much bigger** than the narrative
 block — a stem renders in the runner, the bank-list preview, the case + trend
 previews, **library embeds**, quiz previews, and every plain-text-flatten path —
-and the same access-model / frozen-snapshot bits now apply to every question.
-**Recommendation: do the narrative block first** (it de-risks the bank-image
-foundation: bucket, purpose, access gate, snapshot resolution), **then stem images
-become a cheap follow-on** that points the proven foundation at the stem editor +
-sweeps the extra surfaces. Known-unknown to verify: whether the rich-*stem* editor
-is block-capable (the narrative body definitely is).
+and the same access-model / frozen-snapshot bits then apply to every question.
+
+**Sequencing rationale: Slice 7 first.** The narrative block de-risks the whole
+bank-image foundation (bucket, `BANK_IMAGE` purpose, curator gate, the
+attempt-anchored student gate, snapshot resolution). Slice 8 then points the
+proven foundation at the stem editor + sweeps the extra surfaces — mostly
+render-site work, not new machinery.
+
+**Things Slice 7 should hand Slice 8** (keep these reusable, not
+narrative-specific):
+- The image block node + its editor component (don't hard-wire it to the
+  narrative editor).
+- The `RichRender` image-node seam (stems render through `RichRender` too).
+- The asset-id walker used by the anti-oracle check (Slice 8 widens it from
+  "frozen tabs" to "frozen stems" — `stem_snapshot` on `nclex_attempt_items`).
+
+**Known-unknowns to verify at Slice 8 kickoff:**
+- Whether the rich-*stem* editor is block-capable (the narrative body
+  definitely is; the stem field may be constrained to inline content).
+- Marker-stem types (Cloze `{N}` / Highlight `[[chunk]]` / drag-cloze `[N]`):
+  `RichRenderWithSlots` must also render the image node (settled 2026-07-02:
+  the coupled-marker model does NOT block this — markers are plain text that
+  coexist with a block node).
+- Library **embeds** show tutor-question stems to enrolled students — that
+  surface needs its own gate anchor (the embed's note entitlement, like the
+  library's existing gate), not the attempt anchor.
+- The plain-text-flatten sweep (lists / analytics / embeds / quiz previews)
+  must skip the node gracefully — same check as Slice 7, more call sites.
 
 **Settled (2026-07-02) — the coupled-marker model stays; do NOT decouple.** For
 Cloze / Highlight / drag-cloze the answer positions ARE positions in the text, so
