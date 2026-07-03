@@ -2490,19 +2490,38 @@ Every list/grid "add" in the bank authoring surface, checked in code:
 
 ### The plan (all app-layer, ZERO migrations — these structures save whole)
 
-**Slice 1 — merge table positional insert (both wrappers light up free).**
+**Slice 1 — merge table positional insert (both wrappers light up free).
+PLAN ACCEPTED 2026-07-04 (incl. the three defaults + the hover-⊕ layer).**
 New pure model ops `insertRowAt` (above/below the selection) + `insertColAt`
 (left/right of the selection) in `merge-table-model.ts`. The hard bookkeeping
 already exists — Subdivide's internals (`insertSubColumn`/`insertSubRow`)
 splice mid-grid and bump the colspan/rowspan of merges straddling the
-insertion line; these generalise to full-width/full-height inserts. Toolbar
-gains the four insert actions alongside Merge/Split/Heading (selection-driven,
-like the other positional actions). Unit tests in
-`merge-table-model.test.ts` (merge-crossing cases + id uniqueness).
-Decisions (defaults proposed): a new row inherits the ADJACENT row's
-"Appears from" (the row it was inserted relative to); an insertion line
-crossing a merged cell EXPANDS the merge (span +1 — consistent with
-Subdivide); new cells are plain (no heading inheritance).
+insertion line; these generalise to full-width/full-height inserts.
+**Two triggers, one operation:**
+- **Toolbar ⊕ Insert ▾** in the Structure group (menu mirrors the Split ▾
+  pattern): Row above / Row below / Column left / Column right.
+  Selection-driven like Heading/Delete; a multi-cell selection inserts at the
+  selection's edge; post-insert the selection moves into the new row/column.
+  The footer + Row / + Column append buttons stay (the no-selection path).
+- **Hover-⊕ gutter markers** (the Google-Docs pattern — Sam's ask): moving
+  the mouse near a grid-line boundary in the strip ABOVE the table (column
+  boundaries) or LEFT of it (row boundaries) shows a small ⊕ on that
+  boundary + a preview line across the table; click inserts there. Markers
+  live in the GUTTERS, never on cells, so they can't fight the existing
+  drag-to-select. Desktop enhancement only — the toolbar menu is the
+  touch/keyboard fallback, so the hover layer can be disabled with zero
+  function loss if it misbehaves. The layer only READS layout and calls the
+  same tested ops; it cannot corrupt table data.
+
+**Accepted defaults:** a new row inherits the ADJACENT row's "Appears from"
+(the row it was inserted relative to); an insertion line crossing a merged
+cell EXPANDS the merge (span +1 — consistent with Subdivide); new cells are
+plain (no heading inheritance).
+
+**Sub-slices:** **1a** model ops + unit tests (merge-crossing, id
+uniqueness, visibleFrom inheritance, edges) · **1b** toolbar ⊕ Insert ▾ +
+handlers + post-insert selection (browser-testable end-to-end) · **1c** the
+hover-⊕ gutter layer + preview line (+ its CSS).
 
 **Slice 2 — matrix family (MATRIX + MATRIX_MR).** Rows/columns are flat
 arrays keyed by id (the correct-map is id-keyed, so splicing is safe) —
