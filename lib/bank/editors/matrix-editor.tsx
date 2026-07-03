@@ -66,12 +66,15 @@ import {
   RichInstructionField,
   RichStemField,
   RichRationaleFields,
+  STEM_IMAGE_KEYS,
 } from '@/lib/authoring/rich-atoms';
 import { RichRender } from '@/lib/authoring/rich-render';
+import { curatorBankImageRenderer } from '@/lib/authoring/bank-image-render';
+import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
+import { useAuthUploadsInFlight } from '@/lib/authoring/use-uploads-in-flight';
 import {
   parseRichDoc,
   isEmptyRichDoc,
-  richTextToPlain,
   type RichDoc,
 } from '@/lib/authoring/rich-doc';
 import type { MatrixEditorInitial } from './matrix-row-mapper';
@@ -409,7 +412,7 @@ export function MatrixPreview({
           {isEmptyRichDoc(stem) ? (
             <span className="auth-preview-placeholder">Stem appears here…</span>
           ) : (
-            <RichRender doc={stem} />
+            <RichRender doc={stem} custom={curatorBankImageRenderer} />
           )}
         </div>
         <div className="auth-matrix-preview-wrap">
@@ -502,6 +505,9 @@ export function MatrixEditorBody({
   const [tab, setTab] = useState<'content' | 'classification' | 'housekeeping'>('content');
   const [clientError, setClientError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
+  // Slice 8 — hold Save while a stem-image upload is in flight (saving
+  // then would persist a not-yet-filled image block).
+  const uploadsInFlight = useAuthUploadsInFlight();
 
   const [stem, setStem] = useState<RichDoc>(() => parseRichDoc(initial.stem));
   const [instruction, setInstruction] = useState<RichDoc>(() => parseRichDoc(initial.instruction));
@@ -545,6 +551,10 @@ export function MatrixEditorBody({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+    if (uploadsInFlight) {
+      setClientError('An image is still uploading — give it a moment, then save.');
+      return;
+    }
     if (contentIncomplete) {
       setTab('content');
       setClientError('Fill in the required fields on Content to continue.');
@@ -593,7 +603,7 @@ export function MatrixEditorBody({
         realm={initial.surface}
         entityType={initial.surface === 'tutor' ? 'tutor_question' : 'bank_item'}
         itemId={initial.itemId}
-        title={richTextToPlain(initial.stem)}
+        title={richTextToPlainLabel(initial.stem)}
       />
       <RovingProvider>
         <div className="auth-split">
@@ -608,7 +618,10 @@ export function MatrixEditorBody({
               onChange={(id) => setTab(id as typeof tab)}
             >
               <TabPanel id="content">
-                <RovingToolbar hint="Click into a field to format it" />
+                <RovingToolbar
+                  hint="Click into a field to format it"
+                  imageFieldKeys={STEM_IMAGE_KEYS}
+                />
                 <RichInstructionField
                   value={instruction}
                   onChange={(doc) => { setInstruction(doc); markDirty(); }}

@@ -34,8 +34,10 @@ import {
   type ReactNode,
 } from 'react';
 import type { Editor } from '@tiptap/react';
+import type { AnyExtension } from '@tiptap/core';
+import { NavIcon } from '@/components/nav/shared/nav-icon';
 import { RichField } from './rich-field';
-import { RichRender } from './rich-render';
+import { RichRender, type CustomBlockRenderer } from './rich-render';
 import { InlineTools, InlineToolsDisabled } from './inline-tools';
 import { serializeRichDoc, isEmptyRichDoc, type RichDoc } from './rich-doc';
 
@@ -76,10 +78,21 @@ export function RovingProvider({ children }: { children: ReactNode }) {
 
 export function RovingToolbar({
   hint = 'Click into a field to format it',
+  imageFieldKeys,
 }: {
   hint?: string;
+  /**
+   * Slice 8 — field keys whose editor accepts the `bankImage` block
+   * (i.e. fields whose <RovingRichField> passes the image extension).
+   * When set, the toolbar shows an Insert-image button, enabled only
+   * while one of these fields is the live editor — inserting into a
+   * field without the extension would throw an unknown-node error.
+   */
+  imageFieldKeys?: string[];
 }) {
-  const { activeEditor } = useRoving();
+  const { activeEditor, activeKey } = useRoving();
+  const imageTarget =
+    !!imageFieldKeys && activeKey !== null && imageFieldKeys.includes(activeKey);
   return (
     <div className="auth-roving-toolbar" role="toolbar" aria-label="Formatting">
       <span className="auth-roving-label">Format</span>
@@ -87,6 +100,25 @@ export function RovingToolbar({
         <InlineTools editor={activeEditor} buttonClassName="auth-rf-btn" />
       ) : (
         <InlineToolsDisabled buttonClassName="auth-rf-btn" hint={hint} />
+      )}
+      {imageFieldKeys && (
+        <button
+          type="button"
+          className="auth-rf-btn"
+          title={
+            imageTarget && activeEditor
+              ? 'Insert image'
+              : 'Click into the stem to insert an image'
+          }
+          aria-label="Insert image"
+          disabled={!imageTarget || !activeEditor}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() =>
+            activeEditor?.chain().focus().insertContent({ type: 'bankImage' }).run()
+          }
+        >
+          <NavIcon name="image" />
+        </button>
       )}
     </div>
   );
@@ -118,6 +150,18 @@ interface RovingRichFieldProps {
    * The host must then serialize the doc itself via `serializeRichDoc`.
    */
   noHiddenInput?: boolean;
+  /**
+   * Slice 8 — extra Tiptap extensions for the LIVE editor (forwarded to
+   * RichField), so a block node like `bankImage` exists only in fields
+   * that deliberately enable it. Must be a stable module const.
+   */
+  extensions?: AnyExtension[];
+  /**
+   * Slice 8 — custom-block renderer for the STATIC view (forwarded to
+   * RichRender). Without it a block node vanishes the moment the field
+   * loses focus, since the static render skips unknown atoms.
+   */
+  custom?: CustomBlockRenderer;
 }
 
 export function RovingRichField({
@@ -130,6 +174,8 @@ export function RovingRichField({
   className,
   inline = false,
   noHiddenInput = false,
+  extensions,
+  custom,
 }: RovingRichFieldProps) {
   const { activeKey, setActiveKey, setActiveEditor } = useRoving();
   const isActive = activeKey === fieldKey;
@@ -154,6 +200,7 @@ export function RovingRichField({
             onChange={onChange}
             placeholder={placeholder}
             ariaLabel={ariaLabel}
+            extensions={extensions}
           />
         </div>
       ) : (
@@ -168,7 +215,7 @@ export function RovingRichField({
           {isEmptyRichDoc(value) ? (
             <span className="auth-rrf-ph">{placeholder}</span>
           ) : (
-            <RichRender doc={value} inline={inline} />
+            <RichRender doc={value} inline={inline} custom={custom} />
           )}
         </div>
       )}

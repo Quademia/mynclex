@@ -81,13 +81,16 @@ import {
   RichInstructionField,
   RichStemField,
   RichRationaleFields,
+  STEM_IMAGE_KEYS,
 } from '@/lib/authoring/rich-atoms';
 import { RichRender } from '@/lib/authoring/rich-render';
+import { curatorBankImageRenderer } from '@/lib/authoring/bank-image-render';
+import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
+import { useAuthUploadsInFlight } from '@/lib/authoring/use-uploads-in-flight';
 import {
   parseRichDoc,
   serializeRichDoc,
   isEmptyRichDoc,
-  richTextToPlain,
   type RichDoc,
 } from '@/lib/authoring/rich-doc';
 import type { BowtieEditorInitial } from './bowtie-row-mapper';
@@ -449,7 +452,7 @@ export function BowtiePreview({
         {isEmptyRichDoc(stem) ? (
           <span className="auth-preview-placeholder">Stem appears here…</span>
         ) : (
-          <RichRender doc={stem} />
+          <RichRender doc={stem} custom={curatorBankImageRenderer} />
         )}
       </div>
 
@@ -613,6 +616,9 @@ export function BowtieEditorBody({
   // BOWTIE defaults to answer-key — the curator usually checks "did
   // I pick the right 5?" before "does the student see this clearly?".
   const [viewMode, setViewMode] = useState<PreviewViewMode>('answer-key');
+  // Slice 8 — hold Save while a stem-image upload is in flight (saving
+  // then would persist a not-yet-filled image block).
+  const uploadsInFlight = useAuthUploadsInFlight();
 
   const [stem, setStem] = useState<RichDoc>(() => parseRichDoc(initial.stem));
   const [instruction, setInstruction] = useState<RichDoc>(() => parseRichDoc(initial.instruction));
@@ -658,6 +664,10 @@ export function BowtieEditorBody({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+    if (uploadsInFlight) {
+      setClientError('An image is still uploading — give it a moment, then save.');
+      return;
+    }
     if (contentIncomplete) {
       setTab('content');
       setClientError('Fill in the required fields on Content to continue.');
@@ -693,7 +703,7 @@ export function BowtieEditorBody({
         realm={initial.surface}
         entityType={initial.surface === 'tutor' ? 'tutor_question' : 'bank_item'}
         itemId={initial.itemId}
-        title={richTextToPlain(initial.stem)}
+        title={richTextToPlainLabel(initial.stem)}
       />
       <RovingProvider>
         <div className="auth-split">
@@ -708,7 +718,10 @@ export function BowtieEditorBody({
               onChange={(id) => setTab(id as typeof tab)}
             >
               <TabPanel id="content">
-                <RovingToolbar hint="Click into a field to format it" />
+                <RovingToolbar
+                  hint="Click into a field to format it"
+                  imageFieldKeys={STEM_IMAGE_KEYS}
+                />
                 <RichInstructionField
                   value={instruction}
                   onChange={(doc) => { setInstruction(doc); markDirty(); }}

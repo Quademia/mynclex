@@ -296,6 +296,11 @@ interface SlotCursor {
   pattern: RegExp;
   renderSlot: SlotRenderer;
   n: number;
+  // Slice 8 — same custom-block seam as RichRender, so a marker stem can
+  // carry a `bankImage` node alongside its plain-text markers. Without it
+  // the atom falls into blockWithSlots' default case, which recurses into
+  // children an atom doesn't have → the image silently vanishes.
+  custom?: CustomBlockRenderer;
 }
 
 function renderMarkedText(
@@ -346,6 +351,11 @@ function inlineWithSlots(content: RichNode[] | undefined, cur: SlotCursor): Reac
 }
 
 function blockWithSlots(node: RichNode, k: string, cur: SlotCursor): ReactNode {
+  // Custom nodes first — mirrors RenderBlock (markers never sit inside an
+  // atom, so the slot cursor is unaffected by a custom take-over).
+  const el = cur.custom?.(node, k);
+  if (el != null) return <Fragment key={k}>{el}</Fragment>;
+
   switch (node.type) {
     case 'paragraph':
       return (
@@ -393,13 +403,16 @@ export function RichRenderWithSlots({
   pattern,
   renderSlot,
   className,
+  custom,
 }: {
   doc: RichDoc;
   pattern: RegExp;
   renderSlot: SlotRenderer;
   className?: string;
+  /** Custom-block seam — see CustomBlockRenderer (Slice 8: stem images). */
+  custom?: CustomBlockRenderer;
 }) {
-  const cur: SlotCursor = { pattern, renderSlot, n: 0 };
+  const cur: SlotCursor = { pattern, renderSlot, n: 0, custom };
   return (
     <div className={className ? `auth-rich ${className}` : 'auth-rich'}>
       {blocksWithSlots(doc.content, 'b', cur)}

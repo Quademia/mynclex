@@ -54,6 +54,7 @@ import {
   richTextToPlain,
   type RichDoc,
 } from '@/lib/authoring/rich-doc';
+import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
 import { DeleteCaseConfirm } from './delete-case-confirm';
 import { PublishBlockedNotice, type PublishBlockKind } from './publish-blocked-notice';
 import { TabRail } from './chart-tabs/tab-rail';
@@ -427,7 +428,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
         position:      s.position,
         has_item:      s.item_id !== null,
         question_type: s.question_type,
-        stem:          richTextToPlain(s.stem),
+        stem:          richTextToPlainLabel(s.stem),
         cjmm_step,
       };
     });

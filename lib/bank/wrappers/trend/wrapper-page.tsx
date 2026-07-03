@@ -79,6 +79,7 @@ import {
   richDocToPlain,
   type RichDoc,
 }                                                from '@/lib/authoring/rich-doc';
+import { richTextToPlainLabel }                  from '@/lib/authoring/bank-image-doc';
 import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-editor';
 import { SataEditorBody, SataPreview }           from '@/lib/bank/editors/sata-editor';
 import { SelectNEditorBody, SelectNPreview }     from '@/lib/bank/editors/select-n-editor';
@@ -1036,7 +1037,7 @@ function PillStrip({
             aria-selected={isActive}
             className={`auth-tr-pill${isActive ? ' active' : ''}`}
             onClick={() => onPickSlot(s.position)}
-            title={s.stem || s.question_type}
+            title={richTextToPlainLabel(s.stem) || s.question_type}
           >
             <span className="auth-tr-pill-pos">Q{s.position}</span>
             <span className="auth-tr-pill-type">{s.question_type}</span>

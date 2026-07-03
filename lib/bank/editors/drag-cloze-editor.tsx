@@ -55,12 +55,15 @@ import {
   RichStemField,
   RichInstructionField,
   RichRationaleFields,
+  STEM_IMAGE_KEYS,
 } from '@/lib/authoring/rich-atoms';
 import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
+import { curatorBankImageRenderer } from '@/lib/authoring/bank-image-render';
+import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
+import { useAuthUploadsInFlight } from '@/lib/authoring/use-uploads-in-flight';
 import {
   parseRichDoc,
   serializeRichDoc,
-  richTextToPlain,
   isEmptyRichDoc,
   EMPTY_RICH_DOC,
   type RichDoc,
@@ -292,6 +295,7 @@ export function DragClozePreview({
         doc={stem}
         pattern={/\[(\d+)\]/}
         renderSlot={renderSlot}
+        custom={curatorBankImageRenderer}
       />
     );
   }
@@ -546,6 +550,9 @@ export function DragClozeEditorBody({
   // pool + empty slots first, then flips to answer-key to verify the
   // assignment.
   const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
+  // Slice 8 — hold Save while a stem-image upload is in flight (saving
+  // then would persist a not-yet-filled image block).
+  const uploadsInFlight = useAuthUploadsInFlight();
 
   // Stem / instruction / rationale are rich docs. Read-coerce via
   // parseRichDoc (legacy plain text wraps as paragraphs; no migration). The
@@ -759,6 +766,10 @@ export function DragClozeEditorBody({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+    if (uploadsInFlight) {
+      setClientError('An image is still uploading — give it a moment, then save.');
+      return;
+    }
     if (contentIncomplete) {
       setTab('content');
       setClientError('Fill in the required fields on Content to continue.');
@@ -855,7 +866,7 @@ export function DragClozeEditorBody({
         realm={initial.surface}
         entityType={initial.surface === 'tutor' ? 'tutor_question' : 'bank_item'}
         itemId={initial.itemId}
-        title={richTextToPlain(initial.stem)}
+        title={richTextToPlainLabel(initial.stem)}
       />
       <RovingProvider>
         <RovingBridge onChange={setRoving} />
@@ -879,7 +890,10 @@ export function DragClozeEditorBody({
             onChange={(id) => setTab(id as typeof tab)}
           >
             <TabPanel id="content">
-              <RovingToolbar hint="Click into a field to format it" />
+              <RovingToolbar
+                hint="Click into a field to format it"
+                imageFieldKeys={STEM_IMAGE_KEYS}
+              />
               <RichInstructionField
                 value={instruction}
                 onChange={(doc) => { setInstruction(doc); onDirty?.(); }}

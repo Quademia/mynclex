@@ -15,35 +15,12 @@
 // (the pre-Slice-7 behaviour).
 
 import { studentEntries, type NarrativeTabData } from './narrative-model';
-import { RichRender, type CustomBlockRenderer } from '../rich-render';
+import { RichRender } from '../rich-render';
 import { isEmptyRichDoc } from '../rich-doc';
-import { BankImageView, type BankImageResolver } from '../bank-image-view';
-
-// Build the RichRender custom-block seam for `bankImage` nodes. Exported
-// so other bank-doc hosts (the static editor cards today, stem hosts in
-// Slice 8) splice images with the same one-liner.
-export function bankImageRenderer(
-  resolve: BankImageResolver | undefined,
-): CustomBlockRenderer | undefined {
-  if (!resolve) return undefined;
-  // Named function (not an arrow) — this is a render CALLBACK invoked by
-  // RichRender, not a component, but eslint's display-name rule can't
-  // tell the difference for an anonymous JSX-returning function.
-  return function renderBankImageNode(node, key) {
-    if (node.type !== 'bankImage') return undefined;
-    const assetId = node.attrs?.assetId;
-    if (typeof assetId !== 'string' || !assetId) return null; // never-filled block
-    return (
-      <BankImageView
-        key={key}
-        assetId={assetId}
-        alt={typeof node.attrs?.alt === 'string' ? node.attrs.alt : ''}
-        caption={typeof node.attrs?.caption === 'string' ? node.attrs.caption : ''}
-        resolve={resolve}
-      />
-    );
-  };
-}
+import type { BankImageResolver } from '../bank-image-view';
+// Slice 8 hoisted bankImageRenderer to ../bank-image-render so stem hosts
+// splice images without importing the narrative module.
+import { bankImageRenderer } from '../bank-image-render';
 
 export function NarrativeView({
   tab,

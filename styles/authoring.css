@@ -2060,11 +2060,12 @@
 
 /* Soft count advisory (advise > block) — saveable, just outside the norm.
    Amber, sits below the toolbar. Shared by the marker editors (Cloze blank
-   count, Highlight chunk count, …). */
+   count, Highlight chunk count, …) + the Slice-8 image-only-stem nudge. */
 .auth-cz-advisory,
 .auth-hl-advisory,
 .auth-dd-advisory,
-.auth-mmr-advisory {
+.auth-mmr-advisory,
+.auth-stem-advisory {
   margin: 8px 0 0;
   padding: 8px 12px;
   font-size: 12px;

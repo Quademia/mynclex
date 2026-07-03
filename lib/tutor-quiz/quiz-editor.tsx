@@ -17,7 +17,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { richTextToPlain } from '@/lib/authoring/rich-doc';
+import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { QuizFormModal } from './quiz-form-modal';
 import { QuizPublishControls } from './quiz-publish-controls';
@@ -51,8 +51,9 @@ import type {
 
 function stemPreview(stem: string): string {
   // Coerce rich-content stems (Tiptap JSON) to readable text; idempotent on
-  // plain strings, so it's safe whatever the source.
-  const trimmed = richTextToPlain(stem).trim();
+  // plain strings, so it's safe whatever the source. An image-only stem
+  // (Slice 8) labels as "(image)" instead of "(no stem)".
+  const trimmed = richTextToPlainLabel(stem).trim();
   return trimmed.length > 0 ? trimmed : '(no stem)';
 }
 

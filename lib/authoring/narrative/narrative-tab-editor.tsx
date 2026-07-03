@@ -22,8 +22,7 @@ import { RichRender } from '../rich-render';
 import { isEmptyRichDoc, type RichDoc } from '../rich-doc';
 import { InlineTools, InlineToolsDisabled } from '../inline-tools';
 import { BankImageBlock } from '../bank-image-block';
-import { getBankImageUrlAction } from '../bank-image-actions';
-import { bankImageRenderer } from './narrative-view';
+import { curatorBankImageRenderer } from '../bank-image-render';
 import {
   AUTH_BLOCK_UPLOAD_EVENT,
   type AuthBlockUploadDetail,
@@ -40,11 +39,10 @@ import {
 } from './narrative-model';
 
 // Slice 7 — narrative bodies may carry image blocks. Stable module
-// consts: the extension list feeds RichField (must not be a per-render
-// array), the renderer splices images into the static (non-focused)
-// entry cards via the curator resolver.
+// const: the extension list feeds RichField (must not be a per-render
+// array). The static (non-focused) entry cards splice images via the
+// shared curator renderer (bank-image-render, hoisted in Slice 8).
 const NARRATIVE_EXTENSIONS = [BankImageBlock];
-const curatorImageRenderer = bankImageRenderer(getBankImageUrlAction);
 
 interface Props {
   surface:         Surface;
@@ -289,7 +287,7 @@ export function NarrativeTabEditorV2({
               >
                 {isEmptyRichDoc(entry.body)
                   ? <span className="nt-body-ph">Write the note…</span>
-                  : <RichRender doc={entry.body} custom={curatorImageRenderer} />}
+                  : <RichRender doc={entry.body} custom={curatorBankImageRenderer} />}
               </div>
             )}
           </div>

@@ -17,6 +17,8 @@
 // arrive as untyped JSON — the walkers tolerate any shape and simply
 // find nothing in malformed input.
 
+import { parseRichDoc, richTextToPlain } from './rich-doc';
+
 interface LooseNode {
   type?: unknown;
   attrs?: Record<string, unknown>;
@@ -56,4 +58,17 @@ export function collectBankImageAssetIds(
 /** True when the doc carries at least one filled `bankImage` node. */
 export function docHasFilledBankImage(doc: unknown): boolean {
   return collectBankImageAssetIds(doc).size > 0;
+}
+
+/**
+ * Slice 8 — flatten a stored rich-field value for DISPLAY labels (list
+ * rows, pickers, drill-in titles). Same as richTextToPlain, except an
+ * image-only doc labels as "(image)" instead of flattening to '' and
+ * leaving the row blank. Display-only: never use for validation or
+ * search blobs — there the empty string is the correct answer.
+ */
+export function richTextToPlainLabel(raw: string | null | undefined): string {
+  const plain = richTextToPlain(raw);
+  if (plain) return plain;
+  return docHasFilledBankImage(parseRichDoc(raw)) ? '(image)' : '';
 }
