@@ -74,6 +74,24 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > clean; awaiting Sam's dev test → merge `main`). **⏭ NEXT:** Sam tests Slice 7,
 > then **Slice 8 — stem images** (promoted to a numbered slice 2026-07-03;
 > both in the questions-and-wrappers plan doc). ⚠
+
+> **⬜ BUG — practice-builder case eligibility filters on RETIRED case-level
+> classification (found 2026-07-03 by Sam's Slice-7 test).** The wrapper-v2
+> design relegated classification to the CHILD questions ("none on the
+> wrapper"; the case-level columns are legacy awaiting cleanup — see
+> `mockups/case-study-wrapper-v2-mockup.html` + the trend rationale in
+> `bank.md`/`slice-1.12-plan.md`), but `_nclex_eligible_unit_pool`
+> (slice 5.1b, predates that decision) still matches cases against the
+> case row's own category/subject/topic/tags/difficulty. Old SQL-seeded
+> cases carry values so it *looked* fine; every editor-authored case has
+> NULLs → invisible to every classification/tag filter. **Fix:** a migration
+> re-pointing the case branch of `_nclex_eligible_unit_pool` (+ the per-axis
+> breakdown RPC) to DERIVE case match from its children via
+> `nclex_case_study_items` → `nclex_bank_items` — the "join through the
+> bank-item side" the trend doc anticipated. **Open semantics Q: ANY child
+> matches (recommended) vs ALL.** Also then: drop the legacy case columns +
+> the throwaway `imagetesting` tag SQL-set on dev `NCLEX_CS_00002` for the
+> Slice-7 test. Question-type filters keep excluding all cases (by design).
 > `PAYSTACK_SECRET_KEY` still not on the prod Worker (prod checkout stays broken
 > until set — unrelated to these releases).
 
