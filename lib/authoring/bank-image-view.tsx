@@ -15,11 +15,22 @@
 // Both are server actions, so a server component may pass them
 // straight through; client hosts may also pass a bound closure.
 //
+// Minted URLs are remembered in the page-memory cache
+// (bank-image-url-cache) so a remount — tab switch, back-navigation —
+// reuses the same URL: no server round-trip, and the browser serves
+// the bytes from its own HTTP cache. A load error (expired URL)
+// evicts + re-mints, at most once per mount to rule out a retry loop.
+//
 // Presentational classes reuse the library's .lib-image-* styles
 // (styles/library.css is loaded app-wide).
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AssetUrlResult } from '@/lib/media/types';
+import {
+  getCachedBankImageUrl,
+  cacheBankImageUrl,
+  evictBankImageUrl,
+} from './bank-image-url-cache';
 
 export type BankImageResolver = (assetId: string) => Promise<AssetUrlResult>;
 
@@ -43,14 +54,30 @@ export function BankImageView({
   resolve: BankImageResolver;
 }) {
   const [state, setState] = useState<ResolveState | null>(null);
+  // Bumped when a cached URL fails to load — re-runs the fetch effect
+  // after the eviction. Capped at one retry per mount.
+  const [retryTick, setRetryTick] = useState(0);
+  const retriedRef = useRef(false);
+
+  // Cache first: a hit needs no state and no effect — the URL is
+  // available on the very first render (no "Loading…" flash).
+  const cachedUrl = getCachedBankImageUrl(assetId);
+  const current = state && state.assetId === assetId ? state : null;
+  const url = current && 'url' in current ? current.url : cachedUrl;
+  const error = current && 'error' in current ? current.error : null;
 
   useEffect(() => {
+    if (getCachedBankImageUrl(assetId)) return; // nothing to fetch
     let cancelled = false;
     resolve(assetId).then(
       (res) => {
         if (cancelled) return;
-        if (res.ok) setState({ assetId, url: res.url });
-        else setState({ assetId, error: res.error });
+        if (res.ok) {
+          cacheBankImageUrl(assetId, res.url);
+          setState({ assetId, url: res.url });
+        } else {
+          setState({ assetId, error: res.error });
+        }
       },
       () => {
         if (!cancelled) setState({ assetId, error: 'Could not load image.' });
@@ -63,18 +90,22 @@ export function BankImageView({
     // closures (new identity every render); re-fetching on identity
     // change would loop. The asset id is the real input.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assetId]);
+  }, [assetId, retryTick]);
 
-  const current = state && state.assetId === assetId ? state : null;
-  const url = current && 'url' in current ? current.url : null;
-  const error = current && 'error' in current ? current.error : null;
+  function onImgError() {
+    if (retriedRef.current) return; // one re-mint per mount, then give up
+    retriedRef.current = true;
+    evictBankImageUrl(assetId);
+    setState({ assetId, error: 'Reloading image…' });
+    setRetryTick((t) => t + 1);
+  }
 
   return (
     <figure className="lib-image-block">
       <div className="lib-image-frame">
         {url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt={alt} className="lib-image-img" />
+          <img src={url} alt={alt} className="lib-image-img" onError={onImgError} />
         ) : error ? (
           <div className="lib-image-state lib-image-error">{error}</div>
         ) : (

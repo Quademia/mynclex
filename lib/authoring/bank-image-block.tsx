@@ -36,12 +36,17 @@ import {
   NodeViewWrapper,
   type NodeViewProps,
 } from '@tiptap/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { UploadField } from '@/components/media/upload-field';
 import { resizeImage } from '@/lib/media/resize-image';
 import { getBankImageUrlAction } from './bank-image-actions';
 import { emitAuthBlockUpload } from './block-upload-event';
+import {
+  getCachedBankImageUrl,
+  cacheBankImageUrl,
+  evictBankImageUrl,
+} from './bank-image-url-cache';
 
 export const BankImageBlock = Node.create({
   name: 'bankImage',
@@ -159,22 +164,42 @@ function FilledImage({
   deleteNode: NodeViewProps['deleteNode'];
 }) {
   const [state, setState] = useState<ResolveState | null>(null);
+  // Bumped when a cached URL fails to load — re-runs the fetch effect
+  // after the eviction. Capped at one retry per mount.
+  const [retryTick, setRetryTick] = useState(0);
+  const retriedRef = useRef(false);
+
+  // Cache first (bank-image-url-cache): a hit renders immediately with
+  // no server round-trip — tab switches in the wrapper stay instant.
+  const cachedUrl = getCachedBankImageUrl(assetId);
+  const current = state && state.assetId === assetId ? state : null;
+  const url = current && 'url' in current ? current.url : cachedUrl;
+  const error = current && 'error' in current ? current.error : null;
 
   useEffect(() => {
+    if (getCachedBankImageUrl(assetId)) return; // nothing to fetch
     let cancelled = false;
     getBankImageUrlAction(assetId).then((res) => {
       if (cancelled) return;
-      if (res.ok) setState({ assetId, url: res.url });
-      else setState({ assetId, error: res.error });
+      if (res.ok) {
+        cacheBankImageUrl(assetId, res.url);
+        setState({ assetId, url: res.url });
+      } else {
+        setState({ assetId, error: res.error });
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [assetId]);
+  }, [assetId, retryTick]);
 
-  const current = state && state.assetId === assetId ? state : null;
-  const url = current && 'url' in current ? current.url : null;
-  const error = current && 'error' in current ? current.error : null;
+  function onImgError() {
+    if (retriedRef.current) return; // one re-mint per mount, then give up
+    retriedRef.current = true;
+    evictBankImageUrl(assetId);
+    setState({ assetId, error: 'Reloading image…' });
+    setRetryTick((t) => t + 1);
+  }
 
   return (
     <NodeViewWrapper
@@ -185,7 +210,7 @@ function FilledImage({
       <div className="lib-image-frame" contentEditable={false}>
         {url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt={alt} className="lib-image-img" />
+          <img src={url} alt={alt} className="lib-image-img" onError={onImgError} />
         ) : error ? (
           <div className="lib-image-state lib-image-error">{error}</div>
         ) : (

@@ -2137,6 +2137,12 @@ Design settled 2026-07-02; **access model settled + the whole slice built
 - `lib/authoring/bank-image-view.tsx` — Tiptap-free read-side `<BankImageView>`
   with an **injected resolver** (curator action in previews/static cards,
   attempt-bound action in the runner).
+- `lib/authoring/bank-image-url-cache.ts` — page-memory cache of minted URLs
+  keyed by asset id (TTL 55 min < the 1-h URL validity; Sam-requested after
+  testing). A remount — tab switch, back-navigation — reuses the same URL: no
+  server round-trip, and the identical URL means the browser serves the bytes
+  from its HTTP cache. Load error → evict + re-mint (once per mount). Wired
+  into both `BankImageView` and the editor NodeView.
 - `lib/authoring/rich-render.tsx` — generic **`custom` block-renderer seam**;
   `bankImageRenderer(resolve)` (narrative-view.tsx) builds the splice.
 - `lib/authoring/bank-image-doc.ts` — pure deep-walkers
