@@ -1,7 +1,8 @@
 // mynclex/lib/bank/builder/get-filter-options.ts
 //
 // Server-side fetch of the dynamic content-filter axis options:
-//   - tags      (array column on nclex_bank_items, deduped, sorted)
+//   - tags      (array columns on nclex_bank_items + the two wrapper
+//                tables, deduped, sorted)
 //   - topics    (free-text column, deduped, sorted)
 //   - subtopics (free-text column, deduped, sorted)
 //
@@ -11,11 +12,17 @@
 // data, so we read them on every page render.
 //
 // Called from app/(app)/student/bank/practice/page.tsx during SSR.
-// One DB query + cheap in-TS dedup; no PostgREST function needed.
+// Three cheap SELECTs + in-TS dedup; no PostgREST function needed.
 //
 // Scoping: only published, builder-visible rows. Mirrors the same
 // filter the create-attempt path applies, so a tag/topic that's not
 // reachable doesn't appear here.
+//
+// Wrapper tags: cases + trends carry their own tags, inherited by
+// their questions in the eligibility pool (20260717/20260718120000) —
+// so a wrapper-only tag must appear as a pickable option here or it
+// would match in the pool but be unreachable from the picker. The
+// student-side reads ride the read_published RLS policies.
 
 import { createClient } from '@/lib/supabase/server';
 
@@ -28,14 +35,29 @@ export interface FilterOptions {
 export async function getFilterOptions(): Promise<FilterOptions> {
   const supabase = await createClient();
 
-  // Single SELECT pulling the three columns; dedup in TS so we don't
+  // Question columns + the two wrappers' tags; dedup in TS so we don't
   // need a custom RPC. Currently <100 rows in dev, will be a few
   // thousand at scale — still cheap.
-  const { data, error } = await supabase
-    .from('nclex_bank_items')
-    .select('tags, topic, subtopic')
-    .eq('is_published', true)
-    .eq('is_builder_visible', true);
+  const [
+    { data, error },
+    { data: caseRows },
+    { data: trendRows },
+  ] = await Promise.all([
+    supabase
+      .from('nclex_bank_items')
+      .select('tags, topic, subtopic')
+      .eq('is_published', true)
+      .eq('is_builder_visible', true),
+    supabase
+      .from('nclex_case_studies')
+      .select('tags')
+      .eq('is_published', true)
+      .eq('is_builder_visible', true),
+    supabase
+      .from('nclex_trend_datasets')
+      .select('tags')
+      .eq('is_published', true),
+  ]);
 
   if (error || !data) {
     // Fail open — return empty arrays so the Builder still renders.
@@ -55,6 +77,15 @@ export async function getFilterOptions(): Promise<FilterOptions> {
     }
     if (row.topic && typeof row.topic === 'string') topicSet.add(row.topic);
     if (row.subtopic && typeof row.subtopic === 'string') subtopicSet.add(row.subtopic);
+  }
+
+  // Wrapper tags (fail-open: a missing result just contributes nothing).
+  for (const row of [...(caseRows ?? []), ...(trendRows ?? [])]) {
+    if (Array.isArray(row.tags)) {
+      for (const t of row.tags) {
+        if (t && typeof t === 'string') tagSet.add(t);
+      }
+    }
   }
 
   const sortAlpha = (a: string, b: string) => a.localeCompare(b);
