@@ -45,6 +45,8 @@ import {
   toggleHeading,
   addRow,
   addCol,
+  insertRowAt,
+  insertColAt,
   deleteRows,
   deleteCols,
   setVisibleFrom,
@@ -87,6 +89,7 @@ export function MergeTableEditor({
   const [sel, setSel] = useState<Sel>(null);
   const [dragging, setDragging] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
+  const [insertOpen, setInsertOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
@@ -120,6 +123,7 @@ export function MergeTableEditor({
     onDraftChange({ title: draftTitle, tab: nextTab });
     if (nextSel !== undefined) setSel(nextSel);
     setSplitOpen(false);
+    setInsertOpen(false);
   }
   // Apply a grid op (which returns a new table) to a given table index.
   function pushTable(ti: number, nextTable: MergeTable, nextSel?: Sel) {
@@ -130,6 +134,7 @@ export function MergeTableEditor({
   function onCellDown(e: React.MouseEvent, ti: number, r: number, c: number) {
     setDragging(true);
     setSplitOpen(false);
+    setInsertOpen(false);
     if (e.shiftKey && sel && sel.ti === ti) setSel({ ti, a: sel.a, f: { r, c } });
     else setSel({ ti, a: { r, c }, f: { r, c } });
   }
@@ -163,7 +168,31 @@ export function MergeTableEditor({
   function doSplit() {
     if (!singleCell || !rect || activeTi === null || !activeTable) return;
     if (merged) pushTable(activeTi, unmerge(activeTable, rect.top, rect.left));
-    else setSplitOpen((o) => !o);
+    else { setInsertOpen(false); setSplitOpen((o) => !o); }
+  }
+
+  // ── positional insert (Slice 1b) ──
+  // Boundary comes from the selection's edge; the new row inherits the
+  // reference row's "Appears from". Post-insert, the selection moves into
+  // the first real (non-covered) cell of the new row/column so the curator
+  // can type immediately; a fully-covered line (inserted inside a merge
+  // spanning everything) just clears the selection.
+  function doInsertRow(side: 'above' | 'below') {
+    if (!rect || activeTi === null || !activeTable) return;
+    const at = side === 'above' ? rect.top : rect.bot + 1;
+    const inheritFrom = side === 'above' ? rect.top : rect.bot;
+    const next = insertRowAt(activeTable, at, inheritFrom);
+    const c0 = next.grid[at].findIndex((cell) => !cell.covered);
+    pushTable(activeTi, next,
+      c0 >= 0 ? { ti: activeTi, a: { r: at, c: c0 }, f: { r: at, c: c0 } } : null);
+  }
+  function doInsertCol(side: 'left' | 'right') {
+    if (!rect || activeTi === null || !activeTable) return;
+    const at = side === 'left' ? rect.left : rect.right + 1;
+    const next = insertColAt(activeTable, at);
+    const r0 = next.grid.findIndex((row) => !row[at].covered);
+    pushTable(activeTi, next,
+      r0 >= 0 ? { ti: activeTi, a: { r: r0, c: at }, f: { r: r0, c: at } } : null);
   }
   function doSubdivideCols(n: number) {
     if (!rect || activeTi === null || !activeTable) return;
@@ -305,6 +334,29 @@ export function MergeTableEditor({
                 ))}
               </div>
               <div className="mt-split-menu-note">Splits 1 cell into several; other rows keep their look.</div>
+            </div>
+          )}
+        </span>
+        <span className="mt-tb-split">
+          <button type="button" className={`mt-tb-btn${insertOpen ? ' is-open' : ''}`} disabled={!hasSel}
+            onClick={() => { setSplitOpen(false); setInsertOpen((o) => !o); }}
+            title="Insert a whole row or column next to the selected cell">
+            ⊕ Insert ▾
+          </button>
+          {insertOpen && hasSel && (
+            <div className="mt-split-menu">
+              <div className="mt-split-menu-title">Insert at the selection</div>
+              <div className="mt-split-row">
+                <span className="mt-split-row-label">Row</span>
+                <button type="button" className="mt-split-opt" onClick={() => doInsertRow('above')}>Above</button>
+                <button type="button" className="mt-split-opt" onClick={() => doInsertRow('below')}>Below</button>
+              </div>
+              <div className="mt-split-row">
+                <span className="mt-split-row-label">Column</span>
+                <button type="button" className="mt-split-opt" onClick={() => doInsertCol('left')}>Left</button>
+                <button type="button" className="mt-split-opt" onClick={() => doInsertCol('right')}>Right</button>
+              </div>
+              <div className="mt-split-menu-note">A merge crossing the line grows to include the new row / column.</div>
             </div>
           )}
         </span>
