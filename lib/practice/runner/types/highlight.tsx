@@ -43,10 +43,14 @@ import type {
 import type { HighlightAnswer } from '@/lib/scoring';
 import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
 import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
+import { bankImageRenderer } from '@/lib/authoring/bank-image-render';
+import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
 
 type HighlightRunnerProps = {
   stem:    string;
   content: HighlightContent;
+  // Slice 8 — attempt-bound resolver for bankImage nodes in the stem.
+  resolveImageUrl?: BankImageResolver;
 } & (
   | {
       mode:     'answering';
@@ -153,6 +157,7 @@ export function HighlightRunner(props: HighlightRunnerProps) {
         doc={stemDoc}
         pattern={/\[\[(.+?)\]\]/}
         renderSlot={renderSlot}
+        custom={bankImageRenderer(props.resolveImageUrl)}
       />
 
       {isReview && (

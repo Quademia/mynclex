@@ -95,6 +95,8 @@ import {
 } from '@/lib/practice/runner';
 import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc } from '@/lib/authoring/rich-doc';
+import { bankImageRenderer } from '@/lib/authoring/bank-image-render';
+import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   MCQ:       'Multiple choice',
@@ -129,6 +131,11 @@ interface CommonProps {
   // the left of the .rn-split. Standalones / case-childs leave this
   // false.
   trendBadge?: boolean;
+  // Slice 8 — the attempt-bound signed-URL resolver for bankImage
+  // nodes in the frozen stem (runner.tsx builds the closure, same one
+  // the case/trend panels get). Optional: without it an image node
+  // renders nothing (pre-Slice-8 behaviour).
+  resolveImageUrl?: BankImageResolver;
 }
 
 type AnsweringProps = CommonProps & {
@@ -190,7 +197,10 @@ export function RunnerQuestionArea(props: Props) {
         return (
           <>
             <div className="rn-stem">
-              <RichRender doc={parseRichDoc(item.stem_snapshot)} />
+              <RichRender
+                doc={parseRichDoc(item.stem_snapshot)}
+                custom={bankImageRenderer(props.resolveImageUrl)}
+              />
             </div>
             {item.instruction_snapshot && (
               <p className="rn-instruction">
@@ -373,6 +383,7 @@ function PerTypeRunner(props: Props) {
           <HighlightRunner
             mode="answering"
             stem={item.stem_snapshot}
+            resolveImageUrl={props.resolveImageUrl}
             content={content}
             selected={(props.pendingAnswer as HighlightAnswer | undefined) ?? []}
             onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
@@ -384,6 +395,7 @@ function PerTypeRunner(props: Props) {
         <HighlightRunner
           mode="review"
           stem={item.stem_snapshot}
+          resolveImageUrl={props.resolveImageUrl}
           content={content}
           studentAnswer={(props.answerRow.answer_json as HighlightAnswer | undefined) ?? []}
           correct={props.unseal.correct as HighlightCorrect}
@@ -399,6 +411,7 @@ function PerTypeRunner(props: Props) {
           <ClozeRunner
             mode="answering"
             stem={item.stem_snapshot}
+            resolveImageUrl={props.resolveImageUrl}
             content={content}
             selected={(props.pendingAnswer as ClozeAnswer | undefined) ?? {}}
             onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
@@ -410,6 +423,7 @@ function PerTypeRunner(props: Props) {
         <ClozeRunner
           mode="review"
           stem={item.stem_snapshot}
+          resolveImageUrl={props.resolveImageUrl}
           content={content}
           studentAnswer={(props.answerRow.answer_json as ClozeAnswer | undefined) ?? {}}
           correct={props.unseal.correct as ClozeCorrect}
@@ -425,6 +439,7 @@ function PerTypeRunner(props: Props) {
           <DragClozeRunner
             mode="answering"
             stem={item.stem_snapshot}
+            resolveImageUrl={props.resolveImageUrl}
             content={content}
             selected={(props.pendingAnswer as DragClozeAnswer | undefined) ?? {}}
             onChange={(next) => props.onAnswerChange(next as BankItemAnswer)}
@@ -436,6 +451,7 @@ function PerTypeRunner(props: Props) {
         <DragClozeRunner
           mode="review"
           stem={item.stem_snapshot}
+          resolveImageUrl={props.resolveImageUrl}
           content={content}
           studentAnswer={(props.answerRow.answer_json as DragClozeAnswer | undefined) ?? {}}
           correct={props.unseal.correct as DragClozeCorrect}

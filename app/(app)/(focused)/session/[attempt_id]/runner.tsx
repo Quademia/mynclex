@@ -812,6 +812,9 @@ function RunnerShell({ data }: Props) {
         onAnswerChange={onAnswerChange}
         topSlot={cjmmTopSlot}
         trendBadge={inTrend}
+        resolveImageUrl={(id) =>
+          getAttemptImageUrlAction(data.attempt.attempt_id, id)
+        }
       />
     );
   } else if (answerRowForCurrent && unsealForCurrent) {
@@ -823,6 +826,9 @@ function RunnerShell({ data }: Props) {
         unseal={unsealForCurrent}
         topSlot={cjmmTopSlot}
         trendBadge={inTrend}
+        resolveImageUrl={(id) =>
+          getAttemptImageUrlAction(data.attempt.attempt_id, id)
+        }
       />
     );
   } else {

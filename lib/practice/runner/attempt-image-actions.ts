@@ -17,15 +17,16 @@
 //      PROGRAMME_ASSIGNED attempts are enrolment-gated at creation and
 //      their runner page adds no live re-check — same posture here.
 //   3. Anti-oracle gate — the requested asset id must actually be
-//      referenced by THIS attempt's frozen tab snapshots (case +
-//      trend). Stops a valid attempt being used as a key to mint URLs
-//      for arbitrary bank assets.
+//      referenced by THIS attempt's frozen content: the tab snapshots
+//      (case + trend, Slice 7) or an item's frozen stem (Slice 8).
+//      Stops a valid attempt being used as a key to mint URLs for
+//      arbitrary bank assets.
 //   4. Only then mint the 1-hour signed URL (service-role,
 //      RLS-bypassing).
 //
 // Frozen-snapshot resolution falls out for free: the walk runs over
-// tabs_snapshot_json, so an image keeps resolving in review years
-// after the live case/trend changed or vanished.
+// tabs_snapshot_json / stem_snapshot, so an image keeps resolving in
+// review years after the live question/case/trend changed or vanished.
 
 'use server';
 
@@ -34,6 +35,7 @@ import { getAssetUrl } from '@/lib/media/queries';
 import type { AssetUrlResult } from '@/lib/media/types';
 import { bankAccessForUser } from '@/lib/payments/entitlements';
 import { collectBankImageAssetIds } from '@/lib/authoring/bank-image-doc';
+import { parseRichDoc } from '@/lib/authoring/rich-doc';
 
 export async function getAttemptImageUrlAction(
   attemptId: string,
@@ -76,8 +78,9 @@ export async function getAttemptImageUrlAction(
     }
   }
 
-  // 3. Anti-oracle — the asset must live in THIS attempt's frozen tabs.
-  const [cases, trends] = await Promise.all([
+  // 3. Anti-oracle — the asset must live in THIS attempt's frozen
+  //    content: chart tabs (Slice 7) or an item's stem (Slice 8).
+  const [cases, trends, items] = await Promise.all([
     supabase
       .from('nclex_attempt_case_snapshots')
       .select('tabs_snapshot_json')
@@ -86,9 +89,13 @@ export async function getAttemptImageUrlAction(
       .from('nclex_attempt_trend_snapshots')
       .select('tabs_snapshot_json')
       .eq('attempt_id', attemptId),
+    supabase
+      .from('nclex_attempt_items')
+      .select('stem_snapshot')
+      .eq('attempt_id', attemptId),
   ]);
 
-  if (cases.error || trends.error) {
+  if (cases.error || trends.error || items.error) {
     return { ok: false, error: 'Could not look up image.' };
   }
 
@@ -98,6 +105,12 @@ export async function getAttemptImageUrlAction(
   }
   for (const row of trends.data ?? []) {
     collectBankImageAssetIds(row.tabs_snapshot_json, ids);
+  }
+  // stem_snapshot is a TEXT column (rich stems store stringified Tiptap
+  // JSON) — parse before walking; legacy plain text parses to
+  // paragraphs and simply yields no ids.
+  for (const row of items.data ?? []) {
+    collectBankImageAssetIds(parseRichDoc(row.stem_snapshot), ids);
   }
 
   if (!ids.has(assetId)) {

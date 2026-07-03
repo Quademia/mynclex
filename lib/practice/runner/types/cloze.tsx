@@ -46,10 +46,14 @@ import type {
 import type { ClozeAnswer } from '@/lib/scoring';
 import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
 import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
+import { bankImageRenderer } from '@/lib/authoring/bank-image-render';
+import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
 
 type ClozeRunnerProps = {
   stem:    string;
   content: ClozeContent;
+  // Slice 8 — attempt-bound resolver for bankImage nodes in the stem.
+  resolveImageUrl?: BankImageResolver;
 } & (
   | {
       mode:     'answering';
@@ -189,6 +193,7 @@ export function ClozeRunner(props: ClozeRunnerProps) {
         doc={stemDoc}
         pattern={/\{(\d+)\}/}
         renderSlot={renderSlot}
+        custom={bankImageRenderer(props.resolveImageUrl)}
       />
 
       {isReview && (
