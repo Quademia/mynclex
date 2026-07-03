@@ -2174,7 +2174,58 @@ Design settled 2026-07-02; **access model settled + the whole slice built
 - Presentational CSS reuses `.lib-image-*` (styles/library.css is app-wide) —
   zero new CSS.
 
-### Slice 8 — STEM images (planned, AFTER Slice 7)
+### Slice 8 — STEM images — ✅ BUILT + Sam-tested 2026-07-03 (second session)
+
+> **STATUS: BUILT — all four sub-slices, each Sam-tested on dev before the
+> next started** (branch `claude/serene-gagarin-6533c0`, commits
+> `179c26f`..`9068b4a`; all app-layer, ZERO migrations — the Slice-7
+> foundation carried everything). Images now work in question stems (all 11
+> types), library embeds, and wrapper scenarios:
+>
+> - **8a — editor chain + curator previews.** `bankImageRenderer` hoisted to
+>   `lib/authoring/bank-image-render.tsx` (server-safe; + the shared
+>   `curatorBankImageRenderer`). `RovingRichField` gained `extensions` (live
+>   editor) + `custom` (static view — without it the image vanished whenever
+>   the stem lost focus); `RichStemField` enables both for every editor in
+>   one place; `RovingToolbar` gained a stem-gated Insert-image button
+>   (`STEM_IMAGE_KEYS`). `RichRenderWithSlots` gained the same `custom` seam
+>   (a bankImage atom silently vanished from marker stems otherwise); the 3
+>   marker stem-doc save rewriters verified atom-safe. New
+>   `use-uploads-in-flight.ts` hook → all 11 editors hold Save mid-upload.
+>   New `richTextToPlainLabel` ("(image)" instead of a blank row; display
+>   only, never validation) across bank lists / pickers / titles. Wrappers
+>   inherited everything free (same EditorBody/Preview components).
+> - **8b — runner + gate.** `getAttemptImageUrlAction`'s anti-oracle walk
+>   gained frozen stems (`nclex_attempt_items.stem_snapshot`, parse-then-
+>   walk); `RunnerQuestionArea` + the 3 stem-takeover runners thread the
+>   attempt-bound resolver (answering + review; review resolves forever).
+>   Gate composition locked by unit tests in `bank-image-doc.test.ts`.
+> - **8c — library embeds.** New **note-anchored**
+>   `getEmbedStemImageUrlAction(noteId, assetId)`
+>   (`lib/library/student/embed-image-actions.ts`): note-RLS entitlement →
+>   anti-oracle over the LIVE stems of every question the note embeds OR the
+>   student's OWN answer-history stem snapshots (past sittings keep
+>   rendering after the tutor edits/removes the question) → mint. Student
+>   player (play + review) + the tutor "student preview" (passes the same
+>   gate by note ownership) wired.
+> - **8d — wrapper scenario images** (Sam's mid-arc submission). Both
+>   scenarios were already rich + frozen → the gate walk added the two
+>   scenario snapshot columns (same rows it already read); `RichField`
+>   gained an opt-in `imageButton` for its standalone toolbar; wrapper
+>   metadata Saves (+ case publish-all) hold mid-upload; previews +
+>   `CasePanel`/`TrendPanel` splice via the resolvers they already held.
+>
+> **Settled scope calls:** stem only — **rationale images PARKED** (they'd
+> relegate the legacy `rationale_img` column; Sam is thinking that through
+> separately; cheap follow-on on this seam when re-opened). **Image-only
+> stems ALLOWED with no new hard rule**: `isEmptyRichDoc` already counts an
+> image block as content; the 8 choice types show an amber advisory
+> (advise > block); the 3 marker types are naturally self-blocked by their
+> own structural rules (markers require stem text). Options / feedback /
+> instruction stay inline-only by design.
+>
+> Original planning notes kept below for the record; all four
+> known-unknowns resolved as noted inline.
 
 Sam's idea, valid — promoted from "follow-on candidate" to a numbered slice
 2026-07-03 so it stays on the arc's radar while Slice 7 is built. The
@@ -2199,18 +2250,28 @@ narrative-specific):
 - The asset-id walker used by the anti-oracle check (Slice 8 widens it from
   "frozen tabs" to "frozen stems" — `stem_snapshot` on `nclex_attempt_items`).
 
-**Known-unknowns to verify at Slice 8 kickoff:**
+**Known-unknowns to verify at Slice 8 kickoff — ALL RESOLVED at build:**
 - Whether the rich-*stem* editor is block-capable (the narrative body
   definitely is; the stem field may be constrained to inline content).
+  **→ YES** — `RichField` runs full StarterKit; the only gap was that
+  `RovingRichField` didn't forward `extensions` (and its static view needed
+  the `custom` renderer or the image dropped on blur). Both seams added (8a).
 - Marker-stem types (Cloze `{N}` / Highlight `[[chunk]]` / drag-cloze `[N]`):
   `RichRenderWithSlots` must also render the image node (settled 2026-07-02:
   the coupled-marker model does NOT block this — markers are plain text that
-  coexist with a block node).
+  coexist with a block node). **→ It had NO custom seam — a bankImage atom
+  hit the default case and silently vanished; the seam was added in 8a
+  (markers never sit inside an atom, so the slot cursor is unaffected).**
 - Library **embeds** show tutor-question stems to enrolled students — that
   surface needs its own gate anchor (the embed's note entitlement, like the
-  library's existing gate), not the attempt anchor.
+  library's existing gate), not the attempt anchor. **→ Built in 8c:
+  `getEmbedStemImageUrlAction`, anti-oracle = live embedded stems OR the
+  student's own answer snapshots.**
 - The plain-text-flatten sweep (lists / analytics / embeds / quiz previews)
   must skip the node gracefully — same check as Slice 7, more call sites.
+  **→ `richTextToPlain` inherently skips atoms (no text); the real issue was
+  image-only stems flattening to a BLANK row label → new
+  `richTextToPlainLabel` "(image)" fallback at the display sites.**
 
 **Settled (2026-07-02) — the coupled-marker model stays; do NOT decouple.** For
 Cloze / Highlight / drag-cloze the answer positions ARE positions in the text, so

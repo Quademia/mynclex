@@ -68,12 +68,23 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >
 > **✅ THE TREND RICH MULTI-CHART ARC (Slices 1–5) IS COMPLETE + ON PROD** (PR #34
 > shipped Slices 1–4 + MATRIX_MR; PR #35 shipped Slice 5 + the DRAG_DROP decouple).
-> **Slice 7 — media block ✅ BUILT 2026-07-03** (narrative-body images, both
-> wrappers; access model = Option A attempt-anchored; migration
-> `20260716120000` [bank-images bucket] dev-applied; tsc + eslint + 102 vitest
-> clean; awaiting Sam's dev test → merge `main`). **⏭ NEXT:** Sam tests Slice 7,
-> then **Slice 8 — stem images** (promoted to a numbered slice 2026-07-03;
-> both in the questions-and-wrappers plan doc). ⚠
+> **Slice 7 — media block ✅ BUILT + Sam-tested + MERGED to `main` 2026-07-03**
+> (narrative-body images, both wrappers; access model = Option A
+> attempt-anchored; migration `20260716120000` [bank-images bucket]
+> dev-applied, NOT prod; + the Sam-driven URL cache + lightbox).
+> **Slice 8 — stem images ✅ BUILT + Sam-tested 2026-07-03 (second session),
+> all four sub-slices** (branch `claude/serene-gagarin-6533c0`, awaiting the
+> `main` merge; ZERO migrations — the Slice-7 foundation carried everything):
+> **8a** editor chain + curator previews (all 11 editors; image-only stems
+> allowed w/ amber advisory; "(image)" list labels) · **8b** runner + the
+> attempt gate widened to frozen stems · **8c** library embeds via a new
+> note-anchored gate (live embedded stems OR the student's own answer
+> snapshots) · **8d** wrapper scenario images (case + trend). Detail in the
+> questions-and-wrappers plan doc → "Slice 8". **⏭ NEXT:** merge to `main` →
+> the builder case-eligibility fix (below) · the library image port (cache +
+> lightbox back-port, tutor-library.md) · the `main → prod` release (carries
+> Slices 7+8 and `20260716120000`). Parked follow-on: rationale images (+ the
+> `rationale_img` relegation decision). ⚠
 
 > **⬜ BUG — practice-builder case eligibility filters on RETIRED case-level
 > classification (found 2026-07-03 by Sam's Slice-7 test).** The wrapper-v2
