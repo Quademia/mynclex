@@ -6,7 +6,7 @@
 // nclex_tutor_case_study_items).
 //
 // saveCaseMetadataAction — wrapper-metadata save. Updates:
-//   - Case row: title, scenario_summary, is_free_sample,
+//   - Case row: title, scenario_summary, tags, is_free_sample,
 //     is_builder_visible, is_published.
 //   - Existing slot join rows: cjmm_step (per position).
 //
@@ -170,11 +170,18 @@ export async function saveCaseMetadataAction(
   const is_builder_visible = formData.get('is_builder_visible') === 'on';
   const is_published       = formData.get('is_published') === 'on';
 
+  // Wrapper tags — same comma-separated convention as the question
+  // editors. A tag on the case counts as a tag on every child in the
+  // student builder (inheritance, migration 20260717120000).
+  const tagsRaw = String(formData.get('tags') ?? '');
+  const tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
+
   const { error: caseErr } = await supabase
     .from(cfg.caseTable)
     .update({
       title,
       scenario_summary,
+      tags,
       is_free_sample,
       is_builder_visible,
       is_published,

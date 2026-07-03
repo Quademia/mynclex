@@ -7,6 +7,7 @@
 
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
+import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import { createTrendAction } from '@/lib/bank/wrappers/trend/actions';
 import { loadAuthorship } from '@/lib/audit/authorship';
 import {
@@ -20,6 +21,7 @@ interface TrendDbRow {
   trend_id:     string;
   title:        string;
   scenario:     string | null;
+  tags:         string[] | null;
   is_published: boolean;
   updated_at:   string;
 }
@@ -31,7 +33,7 @@ export default async function AdminTrendsV2ListPage() {
 
   const { data: trendRows, error: trendErr } = await supabase
     .from('nclex_trend_datasets')
-    .select('trend_id, title, scenario, is_published, updated_at')
+    .select('trend_id, title, scenario, tags, is_published, updated_at')
     .order('updated_at', { ascending: false });
 
   if (trendErr) {
@@ -136,8 +138,12 @@ function NewTrendButton({ surface }: { surface: 'admin' | 'tutor' }) {
   );
 }
 
-// Lowercased searchable blob: title + scenario (substring search, tiny N).
-// The chart-tab stimulus lives in a child table and isn't loaded here.
+// Lowercased searchable blob: title + scenario + tags (substring search,
+// tiny N). Scenario is rich content — flatten to plain text so the search
+// matches prose, not Tiptap JSON. The chart-tab stimulus lives in a child
+// table and isn't loaded here.
 function buildTrendSearchText(t: TrendDbRow): string {
-  return [t.title, t.scenario ?? ''].join(' ').toLowerCase();
+  return [t.title, richTextToPlain(t.scenario ?? ''), ...(t.tags ?? [])]
+    .join(' ')
+    .toLowerCase();
 }

@@ -346,10 +346,13 @@ CREATE INDEX idx_nclex_tutor_case_study_tabs_case ON nclex_tutor_case_study_tabs
 -- columns (row_label / timepoints / rows) were retired in 20260714120000.
 -- `kind` (a single-dataset descriptor from the flat-grid era) was retired
 -- in 20260715120000 — a trend is now a group of chart tabs, each titled.
+-- `tags` added in 20260718120000 (case-wrapper symmetry): a tag on a
+-- trend counts as a tag on every linked question in the student builder.
 CREATE TABLE nclex_trend_datasets (
   trend_id            TEXT PRIMARY KEY,
   title               TEXT NOT NULL,
   scenario            TEXT,
+  tags                TEXT[] NOT NULL DEFAULT '{}',
   is_published        BOOLEAN NOT NULL DEFAULT FALSE,
   is_free_sample      BOOLEAN NOT NULL DEFAULT FALSE,
   is_builder_visible  BOOLEAN NOT NULL DEFAULT TRUE,
@@ -369,6 +372,7 @@ CREATE TABLE nclex_tutor_trend_datasets (
   tutor_id            UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
   title               TEXT NOT NULL,
   scenario            TEXT,
+  tags                TEXT[] NOT NULL DEFAULT '{}',
   is_published        BOOLEAN NOT NULL DEFAULT FALSE,
   is_free_sample      BOOLEAN NOT NULL DEFAULT FALSE,
   is_builder_visible  BOOLEAN NOT NULL DEFAULT TRUE,

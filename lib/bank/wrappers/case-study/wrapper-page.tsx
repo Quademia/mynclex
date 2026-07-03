@@ -283,6 +283,12 @@ interface Props {
   authorship?: Authorship | null;
 }
 
+// Comma-separated tag input → clean array (same parse as the question
+// editors' save action).
+function parseTagsText(raw: string): string[] {
+  return raw.split(',').map((t) => t.trim()).filter(Boolean);
+}
+
 export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = null, authorship = null }: Props) {
   const { caseRow, tabs, slots, surface } = data;
   const router = useRouter();
@@ -303,6 +309,9 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
   const [isPublished, setIsPublished] = useState(caseRow.is_published);
   const [isFreeSample, setIsFreeSample] = useState(caseRow.is_free_sample);
   const [isBuilderVisible, setIsBuilderVisible] = useState(caseRow.is_builder_visible);
+  // Wrapper tags — held as the raw comma-separated input text; parsed to
+  // an array at compare/save time so cosmetic spacing isn't "dirty".
+  const [tagsText, setTagsText] = useState((caseRow.tags ?? []).join(', '));
 
   const initialCjmm = useMemo<Record<number, string>>(() => {
     const m: Record<number, string> = {};
@@ -565,11 +574,12 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     if (isPublished !== caseRow.is_published) return true;
     if (isFreeSample !== caseRow.is_free_sample) return true;
     if (isBuilderVisible !== caseRow.is_builder_visible) return true;
+    if (parseTagsText(tagsText).join(' ') !== (caseRow.tags ?? []).join(' ')) return true;
     for (const s of slots) {
       if ((cjmmBySlot[s.position] ?? '') !== (s.cjmm_step ?? '')) return true;
     }
     return false;
-  }, [title, scenario, initialScenarioSerialized, isPublished, isFreeSample, isBuilderVisible, cjmmBySlot, caseRow, slots]);
+  }, [title, scenario, initialScenarioSerialized, isPublished, isFreeSample, isBuilderVisible, tagsText, cjmmBySlot, caseRow, slots]);
 
   // Combined dirty signal — used by the leave-page guard on the
   // ← Back link and the Case Studies breadcrumb. True if any
@@ -604,6 +614,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     fd.set('case_id', caseRow.case_id);
     fd.set('title', title);
     fd.set('scenario_summary', serializeRichDoc(scenario));
+    fd.set('tags', tagsText);
     if (isPublished)      fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
@@ -663,6 +674,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     fd.set('case_id', caseRow.case_id);
     fd.set('title', title);
     fd.set('scenario_summary', serializeRichDoc(scenario));
+    fd.set('tags', tagsText);
     fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
@@ -690,6 +702,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     setIsPublished(caseRow.is_published);
     setIsFreeSample(caseRow.is_free_sample);
     setIsBuilderVisible(caseRow.is_builder_visible);
+    setTagsText((caseRow.tags ?? []).join(', '));
     setCjmmBySlot(initialCjmm);
     setError(null);
   }
@@ -1078,6 +1091,18 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
                     extensions={SCENARIO_EXTENSIONS}
                     imageButton
                   />
+                </div>
+                <div className="auth-cs-field">
+                  <label className="auth-cs-field-label">Tags</label>
+                  <input
+                    className="auth-cs-field-input"
+                    value={tagsText}
+                    onChange={(e) => setTagsText(e.target.value)}
+                    placeholder="comma, separated, tags"
+                  />
+                  <p className="auth-cs-field-help">
+                    A tag on the case also counts for every question inside it when students filter the bank.
+                  </p>
                 </div>
                 <div className="auth-cs-visibility" role="group" aria-label="Visibility flags">
                   <div className="auth-cs-visibility-title">Visibility</div>

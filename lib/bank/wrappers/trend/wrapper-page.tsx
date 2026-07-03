@@ -87,6 +87,12 @@ import { richTextToPlainLabel }                  from '@/lib/authoring/bank-imag
 // Slice 8d — the scenario may carry bankImage blocks. Stable module
 // const (RichField requires a stable extensions reference).
 const SCENARIO_EXTENSIONS = [BankImageBlock];
+
+// Comma-separated tag input → clean array (same parse as the question
+// editors' save action).
+function parseTagsText(raw: string): string[] {
+  return raw.split(',').map((t) => t.trim()).filter(Boolean);
+}
 import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-editor';
 import { SataEditorBody, SataPreview }           from '@/lib/bank/editors/sata-editor';
 import { SelectNEditorBody, SelectNPreview }     from '@/lib/bank/editors/select-n-editor';
@@ -214,6 +220,9 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   const [isPublished, setIsPublished] = useState(datasetRow.is_published);
   const [isFreeSample, setIsFreeSample] = useState(datasetRow.is_free_sample);
   const [isBuilderVisible, setIsBuilderVisible] = useState(datasetRow.is_builder_visible);
+  // Wrapper tags — held as the raw comma-separated input text; parsed to
+  // an array at compare time so cosmetic spacing isn't "dirty".
+  const [tagsText, setTagsText] = useState((datasetRow.tags ?? []).join(', '));
 
   // ── "Creating" state for + Add question flow ──────────────
   const [creating, setCreating] = useState<CreatingState | null>(null);
@@ -348,10 +357,11 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     if (isPublished       !== datasetRow.is_published)       return true;
     if (isFreeSample      !== datasetRow.is_free_sample)     return true;
     if (isBuilderVisible  !== datasetRow.is_builder_visible) return true;
+    if (parseTagsText(tagsText).join(' ') !== (datasetRow.tags ?? []).join(' ')) return true;
     return false;
   }, [
     title, scenario, initialScenarioSerialized,
-    isPublished, isFreeSample, isBuilderVisible,
+    isPublished, isFreeSample, isBuilderVisible, tagsText,
     datasetRow,
   ]);
 
@@ -364,6 +374,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     setIsPublished(datasetRow.is_published);
     setIsFreeSample(datasetRow.is_free_sample);
     setIsBuilderVisible(datasetRow.is_builder_visible);
+    setTagsText((datasetRow.tags ?? []).join(', '));
     setWrapperError(null);
   }
 
@@ -373,6 +384,7 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     fd.set('trend_id', datasetRow.trend_id);
     fd.set('title', title);
     fd.set('scenario', serializeRichDoc(scenario));
+    fd.set('tags', tagsText);
     if (isPublished)      fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
@@ -832,11 +844,13 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
                   <DatasetView
                     title={title}
                     scenario={scenario}
+                    tagsText={tagsText}
                     isPublished={isPublished}
                     isFreeSample={isFreeSample}
                     isBuilderVisible={isBuilderVisible}
                     onTitleChange={setTitle}
                     onScenarioChange={setScenario}
+                    onTagsTextChange={setTagsText}
                     onIsPublishedChange={setIsPublished}
                     onIsFreeSampleChange={setIsFreeSample}
                     onIsBuilderVisibleChange={setIsBuilderVisible}
@@ -1105,22 +1119,26 @@ function PillStrip({
 function DatasetView({
   title,
   scenario,
+  tagsText,
   isPublished,
   isFreeSample,
   isBuilderVisible,
   onTitleChange,
   onScenarioChange,
+  onTagsTextChange,
   onIsPublishedChange,
   onIsFreeSampleChange,
   onIsBuilderVisibleChange,
 }: {
   title:                    string;
   scenario:                 RichDoc;
+  tagsText:                 string;
   isPublished:              boolean;
   isFreeSample:             boolean;
   isBuilderVisible:         boolean;
   onTitleChange:            (next: string) => void;
   onScenarioChange:         (next: RichDoc) => void;
+  onTagsTextChange:         (next: string) => void;
   onIsPublishedChange:      (next: boolean) => void;
   onIsFreeSampleChange:     (next: boolean) => void;
   onIsBuilderVisibleChange: (next: boolean) => void;
@@ -1149,6 +1167,21 @@ function DatasetView({
           extensions={SCENARIO_EXTENSIONS}
           imageButton
         />
+      </section>
+
+      <section className="auth-tr-section">
+        <label className="auth-tr-section-label" htmlFor="auth-tr-tags">Tags</label>
+        <input
+          id="auth-tr-tags"
+          type="text"
+          className="auth-tr-input"
+          value={tagsText}
+          onChange={(e) => onTagsTextChange(e.target.value)}
+          placeholder="comma, separated, tags"
+        />
+        <p className="auth-cs-field-help">
+          A tag on the trend also counts for every question linked to it when students filter the bank.
+        </p>
       </section>
 
       <section className="auth-tr-section">
