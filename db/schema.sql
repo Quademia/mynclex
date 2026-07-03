@@ -120,6 +120,11 @@ CREATE TABLE nclex_bank_items (
 
 
 -- 5. QAcademy-owned case studies (scenario + 6 chart tabs as JSONB)
+-- Classification lives on the CHILD questions only (wrapper-v2 decision
+-- 9.2); the seven legacy case-level classification columns were dropped
+-- in 20260719120000 — the builder derives a case's match from its
+-- children. `tags` survives: a tag on the case counts as a tag on every
+-- child in the student builder (20260717120000).
 CREATE TABLE nclex_case_studies (
   case_id                   TEXT PRIMARY KEY,
   title                     TEXT NOT NULL,
@@ -127,14 +132,6 @@ CREATE TABLE nclex_case_studies (
 
   -- Chart tabs live in nclex_case_study_tabs (child table, added in Slice 1.11a).
 
-  -- Classification (subset — no bloom_level on case studies per bank.md)
-  client_needs_category     TEXT,
-  client_needs_subcategory  TEXT,
-  nursing_subject           TEXT,
-  body_system               TEXT,
-  topic                     TEXT,
-  subtopic                  TEXT,
-  difficulty                TEXT CHECK (difficulty IN ('Easy','Medium','Hard')),
   tags                      TEXT[] NOT NULL DEFAULT '{}',
 
   -- Visibility
@@ -257,6 +254,8 @@ CREATE INDEX idx_nclex_tutor_questions_tutor ON nclex_tutor_questions(tutor_id);
 
 
 -- 9. Tutor-private case studies (same shape as nclex_case_studies + tutor_id)
+-- Legacy classification columns dropped in 20260719120000 (see the
+-- admin twin above); tags survive.
 CREATE TABLE nclex_tutor_case_studies (
   case_id                   TEXT PRIMARY KEY,
   tutor_id                  UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
@@ -265,13 +264,6 @@ CREATE TABLE nclex_tutor_case_studies (
 
   -- Chart tabs live in nclex_tutor_case_study_tabs (child table, added in Slice 1.11a).
 
-  client_needs_category     TEXT,
-  client_needs_subcategory  TEXT,
-  nursing_subject           TEXT,
-  body_system               TEXT,
-  topic                     TEXT,
-  subtopic                  TEXT,
-  difficulty                TEXT CHECK (difficulty IN ('Easy','Medium','Hard')),
   tags                      TEXT[] NOT NULL DEFAULT '{}',
 
   is_free_sample            BOOLEAN NOT NULL DEFAULT FALSE,

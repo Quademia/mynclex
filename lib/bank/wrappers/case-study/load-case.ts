@@ -95,9 +95,7 @@ function configFor(surface: Surface): SurfaceConfig {
 }
 
 const CASE_COLUMNS =
-  'case_id, title, scenario_summary, ' +
-  'client_needs_category, client_needs_subcategory, nursing_subject, ' +
-  'body_system, topic, subtopic, difficulty, tags, ' +
+  'case_id, title, scenario_summary, tags, ' +
   'is_free_sample, is_builder_visible, is_published, ' +
   'created_at, updated_at';
 

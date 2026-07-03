@@ -23,8 +23,6 @@ interface CaseDbRow {
   case_id:          string;
   title:            string;
   scenario_summary: string | null;
-  topic:            string | null;
-  subtopic:         string | null;
   tags:               string[] | null;
   is_published:       boolean;
   is_builder_visible: boolean;
@@ -40,7 +38,7 @@ export default async function AdminCasesV2ListPage() {
 
   const { data: caseRows, error: caseErr } = await supabase
     .from('nclex_case_studies')
-    .select('case_id, title, scenario_summary, topic, subtopic, tags, is_published, is_builder_visible, is_free_sample, updated_at')
+    .select('case_id, title, scenario_summary, tags, is_published, is_builder_visible, is_free_sample, updated_at')
     .order('updated_at', { ascending: false });
 
   if (caseErr) {
@@ -155,12 +153,12 @@ function NewCaseButton({ surface }: { surface: 'admin' | 'tutor' }) {
   );
 }
 
-// Lowercased searchable blob: title + scenario + topic/subtopic/tags +
-// every chart tab's title and data. JSON.stringify is a pragmatic flatten
-// for the chart entries (substring search; tiny N so cost is irrelevant).
+// Lowercased searchable blob: title + scenario + tags + every chart tab's
+// title and data. JSON.stringify is a pragmatic flatten for the chart
+// entries (substring search; tiny N so cost is irrelevant).
 function buildCaseSearchText(c: CaseDbRow, tabs: TabRow[]): string {
   const parts: string[] = [
-    c.title, richTextToPlain(c.scenario_summary), c.topic ?? '', c.subtopic ?? '',
+    c.title, richTextToPlain(c.scenario_summary),
     ...(c.tags ?? []),
   ];
   for (const t of tabs) {

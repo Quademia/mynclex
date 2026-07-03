@@ -185,13 +185,6 @@ export const SAMPLE_DATA: WrapperData = {
       'A 28-year-old G3P3 patient is 2 hours postpartum following a vaginal delivery. ' +
       'The patient is alert and oriented. You are conducting your shift assessment and ' +
       'review the chart below.',
-    client_needs_category:    null,
-    client_needs_subcategory: null,
-    nursing_subject:          null,
-    body_system:              null,
-    topic:                    null,
-    subtopic:                 null,
-    difficulty:               null,
     tags:                     [],
     is_free_sample:           false,
     is_builder_visible:       true,
