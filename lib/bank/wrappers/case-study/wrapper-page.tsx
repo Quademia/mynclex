@@ -46,6 +46,9 @@ import {
 import { QuestionTypePicker } from '@/lib/bank/atoms/question-type-picker';
 import type { QuestionType } from '@/lib/bank/classifications';
 import { RichField } from '@/lib/authoring/rich-field';
+import { BankImageBlock } from '@/lib/authoring/bank-image-block';
+import { curatorBankImageRenderer } from '@/lib/authoring/bank-image-render';
+import { useAuthUploadsInFlight } from '@/lib/authoring/use-uploads-in-flight';
 import { RichRender } from '@/lib/authoring/rich-render';
 import {
   parseRichDoc,
@@ -55,6 +58,10 @@ import {
   type RichDoc,
 } from '@/lib/authoring/rich-doc';
 import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
+
+// Slice 8d — the scenario may carry bankImage blocks. Stable module
+// const (RichField requires a stable extensions reference).
+const SCENARIO_EXTENSIONS = [BankImageBlock];
 import { DeleteCaseConfirm } from './delete-case-confirm';
 import { PublishBlockedNotice, type PublishBlockKind } from './publish-blocked-notice';
 import { TabRail } from './chart-tabs/tab-rail';
@@ -392,6 +399,9 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
   // ── Save / cancel transitions for wrapper metadata ────────
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Slice 8d — hold the wrapper Save while a scenario-image upload is in
+  // flight (saving then would persist a not-yet-filled image block).
+  const uploadsInFlight = useAuthUploadsInFlight();
 
   // ── Validation panel state (12c-4a) ───────────────────────
   // null = panel closed. Array = open with these issues. Re-clicking
@@ -581,6 +591,10 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
 
   function onSaveCase() {
     setError(null);
+    if (uploadsInFlight) {
+      setError('An image is still uploading — give it a moment, then save.');
+      return;
+    }
     if (!title.trim()) {
       setError('Title is required.');
       return;
@@ -640,6 +654,10 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
   // publish anything.)
   function onConfirmPublishAll() {
     setError(null);
+    if (uploadsInFlight) {
+      setError('An image is still uploading — give it a moment, then publish.');
+      return;
+    }
     const fd = new FormData();
     fd.set('surface', surface);
     fd.set('case_id', caseRow.case_id);
@@ -1057,6 +1075,8 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
                     onChange={setScenario}
                     placeholder="Describe the patient and clinical context…"
                     ariaLabel="Scenario summary"
+                    extensions={SCENARIO_EXTENSIONS}
+                    imageButton
                   />
                 </div>
                 <div className="auth-cs-visibility" role="group" aria-label="Visibility flags">
@@ -1180,7 +1200,11 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
               Chart context · what the student sees at Q{activeSlot}
             </div>
             {!isEmptyRichDoc(scenario) && (
-              <RichRender doc={scenario} className="auth-cs-preview-scenario" />
+              <RichRender
+                doc={scenario}
+                className="auth-cs-preview-scenario"
+                custom={curatorBankImageRenderer}
+              />
             )}
             <div className="auth-cs-chart-tabs">
               {tabs.map((t) => (

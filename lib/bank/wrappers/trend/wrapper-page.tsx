@@ -50,6 +50,9 @@ import {
   type NarrativeTabData,
 } from '@/lib/authoring/narrative/narrative-model';
 import { RichField } from '@/lib/authoring/rich-field';
+import { BankImageBlock } from '@/lib/authoring/bank-image-block';
+import { curatorBankImageRenderer } from '@/lib/authoring/bank-image-render';
+import { useAuthUploadsInFlight } from '@/lib/authoring/use-uploads-in-flight';
 import { RichRender } from '@/lib/authoring/rich-render';
 import type {
   SlotEditorInitial,
@@ -80,6 +83,10 @@ import {
   type RichDoc,
 }                                                from '@/lib/authoring/rich-doc';
 import { richTextToPlainLabel }                  from '@/lib/authoring/bank-image-doc';
+
+// Slice 8d — the scenario may carry bankImage blocks. Stable module
+// const (RichField requires a stable extensions reference).
+const SCENARIO_EXTENSIONS = [BankImageBlock];
 import { TfEditorBody, TfPreview }               from '@/lib/bank/editors/tf-editor';
 import { SataEditorBody, SataPreview }           from '@/lib/bank/editors/sata-editor';
 import { SelectNEditorBody, SelectNPreview }     from '@/lib/bank/editors/select-n-editor';
@@ -287,6 +294,9 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   const [isQuestionPending, startQuestionTransition] = useTransition();
   const [isDetachPending, startDetachTransition] = useTransition();
   const [wrapperError, setWrapperError] = useState<string | null>(null);
+  // Slice 8d — hold the wrapper Save while a scenario-image upload is in
+  // flight (saving then would persist a not-yet-filled image block).
+  const uploadsInFlight = useAuthUploadsInFlight();
   const [questionError, setQuestionError] = useState<string | null>(null);
   const [pendingNav, setPendingNav] = useState<PendingNav | null>(null);
 
@@ -371,6 +381,10 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
 
   function onSaveTrend() {
     if (!wrapperDirty || isWrapperPending) return;
+    if (uploadsInFlight) {
+      setWrapperError('An image is still uploading — give it a moment, then save.');
+      return;
+    }
     setWrapperError(null);
     startWrapperTransition(async () => {
       const result = await saveTrendMetadataAction(buildWrapperFormData());
@@ -887,7 +901,13 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
           <div className="auth-tr-preview-section">
             <div className="auth-tr-preview-section-label">Scenario</div>
             {!isEmptyRichDoc(scenario)
-              ? <RichRender doc={scenario} className="auth-tr-preview-scenario" />
+              ? (
+                <RichRender
+                  doc={scenario}
+                  className="auth-tr-preview-scenario"
+                  custom={curatorBankImageRenderer}
+                />
+              )
               : <p className="auth-tr-empty-msg">No scenario yet.</p>}
           </div>
 
@@ -1126,6 +1146,8 @@ function DatasetView({
           onChange={onScenarioChange}
           placeholder="Brief patient context shown above the chart tabs…"
           ariaLabel="Scenario"
+          extensions={SCENARIO_EXTENSIONS}
+          imageButton
         />
       </section>
 

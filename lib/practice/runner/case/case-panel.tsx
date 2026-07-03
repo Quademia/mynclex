@@ -40,6 +40,7 @@ import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
 import { asMergeTab, tabHasVisibleContent } from '@/lib/authoring/table/merge-table-model';
 import { asNarrativeTab, narrativeTabHasVisibleContent } from '@/lib/authoring/narrative/narrative-model';
 import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
+import { bankImageRenderer } from '@/lib/authoring/bank-image-render';
 
 interface Props {
   caseSnap:         CaseSnapshot;
@@ -114,7 +115,11 @@ export function CasePanel({
         return (
           <div className="rn-case-scenario">
             <div className="label">Scenario</div>
-            <RichRender doc={scenarioDoc} className="body" />
+            <RichRender
+              doc={scenarioDoc}
+              className="body"
+              custom={bankImageRenderer(resolveImageUrl)}
+            />
           </div>
         );
       })()}

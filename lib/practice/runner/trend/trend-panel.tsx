@@ -23,6 +23,7 @@ import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
 import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
 import { RichRender } from '@/lib/authoring/rich-render';
 import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
+import { bankImageRenderer } from '@/lib/authoring/bank-image-render';
 
 interface Props {
   trendSnap: TrendSnapshot;
@@ -55,7 +56,11 @@ export function TrendPanel({ trendSnap, resolveImageUrl }: Props) {
         return (
           <div className="rn-trend-scenario">
             <div className="label">Scenario</div>
-            <RichRender doc={scenarioDoc} className="body" />
+            <RichRender
+              doc={scenarioDoc}
+              className="body"
+              custom={bankImageRenderer(resolveImageUrl)}
+            />
           </div>
         );
       })()}

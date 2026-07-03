@@ -79,15 +79,16 @@ export async function getAttemptImageUrlAction(
   }
 
   // 3. Anti-oracle — the asset must live in THIS attempt's frozen
-  //    content: chart tabs (Slice 7) or an item's stem (Slice 8).
+  //    content: chart tabs + wrapper scenario (Slices 7 + 8d) or an
+  //    item's stem (Slice 8).
   const [cases, trends, items] = await Promise.all([
     supabase
       .from('nclex_attempt_case_snapshots')
-      .select('tabs_snapshot_json')
+      .select('tabs_snapshot_json, scenario_summary_snapshot')
       .eq('attempt_id', attemptId),
     supabase
       .from('nclex_attempt_trend_snapshots')
-      .select('tabs_snapshot_json')
+      .select('tabs_snapshot_json, scenario_snapshot')
       .eq('attempt_id', attemptId),
     supabase
       .from('nclex_attempt_items')
@@ -99,16 +100,18 @@ export async function getAttemptImageUrlAction(
     return { ok: false, error: 'Could not look up image.' };
   }
 
+  // The stem / scenario snapshots are TEXT columns (rich values store
+  // stringified Tiptap JSON) — parse before walking; legacy plain text
+  // parses to paragraphs and simply yields no ids.
   const ids = new Set<string>();
   for (const row of cases.data ?? []) {
     collectBankImageAssetIds(row.tabs_snapshot_json, ids);
+    collectBankImageAssetIds(parseRichDoc(row.scenario_summary_snapshot), ids);
   }
   for (const row of trends.data ?? []) {
     collectBankImageAssetIds(row.tabs_snapshot_json, ids);
+    collectBankImageAssetIds(parseRichDoc(row.scenario_snapshot), ids);
   }
-  // stem_snapshot is a TEXT column (rich stems store stringified Tiptap
-  // JSON) — parse before walking; legacy plain text parses to
-  // paragraphs and simply yields no ids.
   for (const row of items.data ?? []) {
     collectBankImageAssetIds(parseRichDoc(row.stem_snapshot), ids);
   }
