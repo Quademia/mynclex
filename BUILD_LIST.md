@@ -118,8 +118,11 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > `PAYSTACK_SECRET_KEY` still not on the prod Worker (prod checkout stays broken
 > until set — unrelated to these releases).
 
-> **✅ POSITIONAL INSERT & REORDER — Slices 1–3 BUILT 2026-07-04 (Slice 1
-> Sam-tested; Slice 4 PARKED).** Sam's finding: every authoring "add"
+> **✅ POSITIONAL INSERT & REORDER — Slices 1–3 BUILT + Sam-tested + MERGED
+> to `main` 2026-07-04 (Slice 4 PARKED). + a 2nd wrapper-embedding seam fix:
+> the question editors' roving toolbar stuck INVISIBLY under the wrapper's
+> page-sticky back/title bar (top:0 z-5 vs z-20) — now parked at top:46px
+> z-6 in both panes, the `.mt-toolbar` spot.** Sam's finding: every authoring "add"
 > appended at the END. Full-surface sweep captured in the plan; built:
 > **Slice 1** merge-table insert row above/below + column left/right —
 > toolbar ⊕ Insert ▾ **+ the hover-⊕ gutter markers** (Google-Docs-style
