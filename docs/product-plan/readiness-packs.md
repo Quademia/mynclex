@@ -1,11 +1,17 @@
 # Readiness Packs
 
-Last updated: 2026-07-04 (doc created — consolidates the readiness-pack
-planning previously scattered across `payments-and-enrolment.md`,
-`bank.md`, `bank-consumption.html` and `main.md`, plus the 2026-07-04
-planning session's new decisions: wrappers-in-packs, the membership
-link table, the corrected per-entity reservation rule, and the CAT
-pool-exclusion constraint.)
+Last updated: 2026-07-04 (doc created + one full planning session —
+consolidates the readiness-pack planning previously scattered across
+`payments-and-enrolment.md`, `bank.md`, `bank-consumption.html` and
+`main.md`. Settled same day: wrappers-in-packs + the real-NCLEX
+composition guideline · the membership link table (per-child rows) ·
+the corrected per-entity reservation rule · the CAT pool-exclusion
+constraint · the credits model (dedicated table, 16-column working
+shape, timestamps-no-status, mint-at-activation frozen grant) · the
+21-day window semantics · one-shot/abandonment/re-claiming · publish
+gate & membership edits · admin surface shape · visibility incl.
+trials · seeding/naming. Open: §11.2 + §11.5 are proposals awaiting
+Sam's confirmation — first items next session.)
 
 **This is the canonical home for everything readiness-pack.** The other
 docs keep short pointers here. Where an older doc's section conflicts
@@ -318,9 +324,36 @@ counts. The admin picker therefore needs "add this case (6
 questions)" as a single action, and pack composition maths reads like
 the real blueprint: e.g. 3 cases (18 Q) + 82 standalone = 100.
 
-**Mix is a curation guideline, not code.** "Roughly 2–3 cases per
-pack" is guidance; code enforces only atomicity (whole wrappers, in
-order). Keeps the 5 packs free to vary without a migration.
+**Mix is a curation guideline, not code** — code enforces only
+atomicity (whole wrappers, in order). Keeps the 5 packs free to vary
+without a migration.
+
+### Composition guideline <span>adopted 2026-07-04, real-NCLEX-grounded</span>
+
+The real NCLEX-RN (NGN, since April 2023): 85–150 items (70–135
+scored + 15 unscored pretest); **every candidate gets exactly 3 case
+studies = 18 scored items** regardless of length (≈26% of scored
+items on a minimum exam, ≈13% on a maximum one); **standalone
+clinical-judgement items (bow-tie + trend) run at ~10%** of the items
+beyond the cases, scaling with length (≈5 short exam, up to ≈12
+long). Scaled to our 100:
+
+| Component | Per 100 questions | Notes |
+|---|---|---|
+| Case studies | **2–3 cases (12–18 Q)** | atomic, slot order — the two real-exam proportions bracket exactly this range |
+| Trend + bow-tie | **~8–12 Q** | the "10% standalone clinical judgement" layer |
+| Traditional standalones | **~70–80 Q** | across the Client Needs blueprint |
+
+- **Bow-ties need nothing new** — `BOWTIE` is an ordinary standalone
+  type; no atomicity, no wrapper.
+- **Prefer small trend attachments** — on the real exam a trend is a
+  *single* question with a trended-tabs stimulus; pack trends should
+  carry **1–3 questions per dataset**, not a 10-question run.
+  Atomicity applies as settled.
+- **Blueprint proportions** — the NCLEX test plan's Client Needs
+  category % ranges are authoring guidance for the whole 100; the
+  admin pack detail displays a blueprint meter (§ admin surface),
+  never a block.
 
 **CAT's wrapper exclusion is irrelevant here** — cases are excluded
 from the *adaptive* pool in v1, but packs are fixed-form, so that
@@ -355,12 +388,79 @@ nclex_readiness_pack_items
   pack_id    TEXT NOT NULL REFERENCES nclex_readiness_packs ON DELETE CASCADE
   item_id    TEXT NOT NULL REFERENCES nclex_bank_items ON DELETE RESTRICT
   position   INTEGER NOT NULL          -- 1..100, the sat order
-  -- wrapper members: whether the link rows point at the 6 child
-  -- questions individually (carrying their case in slot order) or at
-  -- the wrapper + expansion is a build-time decision — see §11.
   UNIQUE (pack_id, item_id)
   UNIQUE (pack_id, position)
 ```
+
+**Wrapper members: per-child rows** <span>settled 2026-07-04</span> —
+a case in a pack = 6 link rows (one per child question) at
+consecutive positions in slot order; a trend = one row per attached
+question. This is the **established attempt-items pattern applied at
+authoring time**: `nclex_attempt_items` already flattens wrappers
+into per-child rows with flat positions + wrapper reference columns,
+and the runner walks one flat list. Consequences: position numbering
+stays natural; FK delete-protection lands on every actual question;
+pack attempt creation maps link rows → attempt rows nearly 1:1 (the
+runner doesn't know it's running a pack). The link rows carry **no
+wrapper columns** — each bank question already knows its parent case
+on its own row; the loader derives grouping the way attempt creation
+does today. **Consecutive-and-in-slot-order is enforced at save** by
+the picker's "add case/trend as a unit" action.
+
+### Publish gate & membership edits <span>settled 2026-07-04</span>
+
+- **The publish toggle gates on completeness:** all 100 positions
+  filled + every member question published per the normal authoring
+  rules + member wrappers published + pack basics present (title,
+  time limit). Blocks with a notice naming what's missing; gate on
+  the toggle, not save (drafting stays frictionless — the case
+  wrapper's pattern).
+- **"Publish all N & publish pack"** helper (mirror of "Publish all &
+  publish case").
+- **Un-publish stops new sales and new claims only** — it never
+  touches existing credits, attempts or review.
+- **NO membership lock on published packs** (Sam's call — the
+  attempt-snapshot system already freezes every sitting as sat, so
+  past attempts are untouchable regardless of edits). The one
+  uncovered corner is **cross-student analytics** (percentiles assume
+  one yardstick), handled three cheap ways instead of a lock:
+  membership changes are **audit-logged** (the entity-generic audit
+  system extends to the pack + link tables — "which 100 questions on
+  any given date" stays answerable); a **curation guideline** — swap
+  to fix defects only, a content refresh is a new pack; and pack
+  analytics carries the **drift caveat** (tolerate or segment by
+  membership era — decided at the analytics slice; the audit log IS
+  the captured data).
+- Consistency for free: swapping a question *out* leaves it hidden
+  (never auto-expose); swapping one *in* requires it published, and
+  the machine-managed flag hides it in the same save.
+
+### Admin surface — shape <span>settled 2026-07-04; pixels to CD later</span>
+
+Three lenses:
+
+1. **Packs list** (`/admin/packs`): the 5 packs, status, fill
+   progress ("Pack 1 — 64/100"), blueprint-health hint.
+2. **Pack detail:** members **in position order**, wrapper units as
+   grouped collapsible blocks; composition meters — fill (97/100),
+   mix vs the composition guideline (cases / trend+bow-tie /
+   traditional), and the **blueprint meter** (Client Needs
+   proportions vs the published ranges — guidance, never a block);
+   the publish toggle + gate + helper.
+3. **Reserved-stock view:** the ~500 `readiness`-tagged questions,
+   filterable, each showing "Pack 3 / unassigned" — the how-far-to-
+   500 bookkeeping lens. Possibly a filter preset on the existing
+   bank list rather than a new page (build-time call).
+
+**The picker** (inside pack detail): the established
+filter → tick → add pattern, in two sections — standalone questions,
+and wrappers with per-unit **"Add case (6 questions)" / "Add trend
+(N questions)"** (atomicity enforced at save). Only
+published-or-publishable, non-member questions offered; a question in
+another pack shows its badge and can't be double-added (instant via
+the link table). **Positional control reuses the just-built
+patterns** — insert-at-position + move arrows on member rows, wrapper
+units moving as one block.
 
 **The visibility flag becomes machine-managed.** Adding a question
 (or wrapper) to a pack flips the right flag(s) off (per the §4
@@ -598,12 +698,15 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
    — event timestamps are the only truth** (16-column working shape
    accepted 2026-07-04, in §7). Final name + column lock at the build
    slice.
-2. **Post-purchase claiming UX** — where the "pick your packs" screen
-   lives, what an unclaimed credit looks like on the dashboard. (The
-   claim-as-its-own-step *model* is settled in §7; this is the
-   surface design. Per §11.10, the **dedicated readiness-pack page is
-   the likely home** — its pack-list card states already include
-   Claim; design deferred, CD candidate.)
+2. **Post-purchase claiming UX — PROPOSAL ON THE TABLE (2026-07-04),
+   awaiting Sam's confirmation** (the composition discussion
+   interrupted it; first item next session): claiming happens on the
+   readiness-page pack cards themselves (no separate wizard) · a
+   light confirm on claim, with **three escalating gates** — claim =
+   light · activate = firm · begin-exam = full-stop preflight ·
+   payment result screens deep-link to the page to claim · All-5
+   mints pre-claimed · pay-first guests claim after account setup ·
+   the dashboard section shows the compact state. Pixels to CD.
 3. **21-day window expiry semantics — ✅ SETTLED 2026-07-04** (see §2
    → *The 21-day window — semantics*): review lives inside the
    window (results persist forever) · expires-unstarted = credit
@@ -616,26 +719,35 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
    re-enterable on the sitting's own clock · sat-stays-closed upheld
    against the willing-re-payer scenario (UWorld-verified; redirect
    UI; v2 parking lot).
-5. **Results-page depth** — *partially shaped by §2 rule 1* (score +
-   band + per-category breakdown persist forever; question review
-   in-window). Still open: the page layout — full review immediately
-   or summary-first, and how prominently it feeds the Readiness
-   Signal.
-6. **Pack publish gate** *(settled-by-analogy — confirm at build)* —
-   a pack shouldn't be sellable/startable unless complete (100
-   positions filled) and every member question is published; gate on
-   the publish toggle, not save (mirror of the case "publish all &
-   publish case" rule).
-7. **Link-table shape for wrapper members** — rows per child question
-   (with the wrapper implied) vs rows per wrapper (expanded at load).
-   Per-child keeps `UNIQUE(pack_id, position)` natural and the FK
-   protection on every question; decide at the migration.
-8. **Admin picker design** — the planned "filter → tick → add" flow
-   plus a cases/trends section with per-wrapper "add as unit"
-   (modest extension of the original sketch, not a rethink).
-9. **Seeding/naming** — pack ids (`NCLEX_PACK_00001`-style vs
-   `PACK_1`), product ids (`READINESS_1/3/5`), and whether the 5
-   packs are created up-front as drafts.
+5. **Results page — PROPOSAL ON THE TABLE (2026-07-04), awaiting
+   Sam's confirmation** (interrupted alongside §11.2): a full results
+   **page**, not the popup — verdict hero (score + band, honest
+   labelling) → per-category breakdown (the remediation map) →
+   question list into review · **two lifetimes on one page** per the
+   window rule: the report reachable forever, question-review links
+   live in-window then disabled with a one-line explanation · review
+   reuses the existing review runner, gated by the credit's window.
+   Pixels to CD.
+6. **Pack publish gate — ✅ SETTLED 2026-07-04** (see §6 → *Publish
+   gate & membership edits*): completeness-gated toggle + publish-all
+   helper + un-publish stops new sales/claims only + **no membership
+   lock** (snapshots protect the past — Sam's call; audit log +
+   defects-only guideline + analytics drift caveat instead).
+7. **Link-table shape for wrapper members — ✅ SETTLED 2026-07-04**
+   (see §6): per-child rows, minimal columns, wrapper identity
+   derived from the question row, consecutive-and-in-slot-order
+   enforced at save — the established `nclex_attempt_items`
+   flattening pattern applied at authoring time.
+8. **Admin surface — ✅ SETTLED 2026-07-04** (see §6 → *Admin surface
+   — shape*): packs list + pack detail (grouped wrapper blocks,
+   fill/mix/blueprint meters) + reserved-stock view; picker =
+   filter→tick→add with add-as-unit wrapper sections, double-add
+   blocked, positional insert/move reused. Pixels to CD.
+9. **Seeding/naming — ✅ SETTLED 2026-07-04:** pack ids follow house
+   style (`NCLEX_PACK_00001`); product slugs `READINESS_SINGLE` /
+   `READINESS_SELECT3` / `READINESS_ALL5`; the 5 packs created
+   up-front as drafts at build time so earmarking has destinations
+   and the stock view can show per-pack fill progress.
 10. **Trial interaction — ✅ SETTLED 2026-07-04.** The readiness
     catalogue is **visible in-app to every bank audience including
     trials** — zero credits changes what a student *owns*, never what
