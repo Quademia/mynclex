@@ -72,6 +72,44 @@ export function removeEntry(prev: NarrativeTabData, idx: number): NarrativeTabDa
   return tab;
 }
 
+// ── positional insert + reorder (2026-07-04) ──
+// Entries are usually chronological and the array order is AUTHORITATIVE
+// (never auto-sorted by the time chip), so the curator needs position
+// tools: insert a blank entry at any index, and move an entry by one.
+
+/**
+ * Insert a blank entry so it becomes index `at` (0 = before the first,
+ * entries.length = append). The new entry inherits `visibleFrom` from
+ * `inheritFrom` (an index in the PRE-insert list — the entry the curator
+ * inserted relative to); defaults to the entry above the line, else 1.
+ */
+export function insertEntryAt(prev: NarrativeTabData, at: number, inheritFrom?: number): NarrativeTabData {
+  const tab = clone(prev);
+  const n = tab.entries.length;
+  const ins = Math.max(0, Math.min(at, n));
+  const inheritIdx =
+    inheritFrom !== undefined && inheritFrom >= 0 && inheritFrom < n
+      ? inheritFrom
+      : ins > 0 ? ins - 1 : 0;
+  const entry = emptyEntry(nextEntryId(tab));
+  entry.visibleFrom = tab.entries[inheritIdx]?.visibleFrom ?? 1;
+  tab.entries.splice(ins, 0, entry);
+  return tab;
+}
+
+/**
+ * Move the entry at `idx` one place up (-1) or down (+1). The whole card
+ * travels intact — id, chips, body, reveal. No-op at the ends.
+ */
+export function moveEntry(prev: NarrativeTabData, idx: number, dir: -1 | 1): NarrativeTabData {
+  const to = idx + dir;
+  if (idx < 0 || idx >= prev.entries.length || to < 0 || to >= prev.entries.length) return prev;
+  const tab = clone(prev);
+  const [e] = tab.entries.splice(idx, 1);
+  tab.entries.splice(to, 0, e);
+  return tab;
+}
+
 export function setEntryBody(prev: NarrativeTabData, idx: number, body: RichDoc): NarrativeTabData {
   const tab = clone(prev);
   if (tab.entries[idx]) tab.entries[idx].body = body;

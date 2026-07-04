@@ -31,6 +31,8 @@ import {
   type NarrativeTabData,
   addEntry,
   removeEntry,
+  insertEntryAt,
+  moveEntry,
   setEntryBody,
   setEntryVisibleFrom,
   setEntryChips,
@@ -125,6 +127,21 @@ export function NarrativeTabEditorV2({
   }
   function onAddEntry() {
     pushTab(addEntry(draftNarrative));
+  }
+  // Positional insert + reorder (2026-07-04). Insert puts a blank entry
+  // ABOVE idx (inheriting its reveal); + Add entry covers the bottom, so
+  // every position is reachable. activeIdx tracks the focused entry by
+  // INDEX, so both ops re-point it to keep the same card focused.
+  function onInsertEntry(idx: number) {
+    if (activeIdx !== null && activeIdx >= idx) setActiveIdx(activeIdx + 1);
+    pushTab(insertEntryAt(draftNarrative, idx, idx));
+  }
+  function onMoveEntry(idx: number, dir: -1 | 1) {
+    const next = moveEntry(draftNarrative, idx, dir);
+    if (next === draftNarrative) return; // at an end — no-op
+    if (activeIdx === idx) setActiveIdx(idx + dir);
+    else if (activeIdx === idx + dir) setActiveIdx(idx);
+    pushTab(next);
   }
   function onRemoveEntry(idx: number) {
     if (!isEmptyRichDoc(entries[idx].body) || entries[idx].chips.some((c) => c.trim())) {
@@ -248,6 +265,11 @@ export function NarrativeTabEditorV2({
                 <button type="button" className="nt-chip-add" onClick={() => addChip(idx)}>+ label</button>
               </div>
               <div className="nt-card-head-right">
+                <button type="button" className="nt-entry-ctl" onClick={() => onInsertEntry(idx)} aria-label="Insert an entry above" title="Insert an entry above this one">+</button>
+                <span className="nt-entry-move">
+                  <button type="button" className="nt-entry-ctl" onClick={() => onMoveEntry(idx, -1)} disabled={idx === 0} aria-label="Move entry up" title="Move this entry up">↑</button>
+                  <button type="button" className="nt-entry-ctl" onClick={() => onMoveEntry(idx, 1)} disabled={idx === entries.length - 1} aria-label="Move entry down" title="Move this entry down">↓</button>
+                </span>
                 {!hideReveal && (
                   <select
                     className={`mt-gutter-vf${entry.visibleFrom > 1 ? ' is-later' : ''}`}

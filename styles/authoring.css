@@ -6379,6 +6379,30 @@
   border-color: var(--danger);
   color: var(--danger);
 }
+/* Positional insert + reorder (2026-07-04) — the + / ↑ / ↓ cluster
+ * beside the reveal select and ×. Same chip look as the × delete,
+ * accent hover instead of danger. */
+.nt-entry-move { display: inline-flex; gap: 4px; }
+.nt-entry-ctl {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 7px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.nt-entry-ctl:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--primary-light);
+}
+.nt-entry-ctl:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 /* body — roving rich field (active) / static (click to edit) */
 .nt-body-edit .auth-rich-field {
   border: 1px solid var(--accent);
