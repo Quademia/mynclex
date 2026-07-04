@@ -601,7 +601,9 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
 2. **Post-purchase claiming UX** — where the "pick your packs" screen
    lives, what an unclaimed credit looks like on the dashboard. (The
    claim-as-its-own-step *model* is settled in §7; this is the
-   surface design.)
+   surface design. Per §11.10, the **dedicated readiness-pack page is
+   the likely home** — its pack-list card states already include
+   Claim; design deferred, CD candidate.)
 3. **21-day window expiry semantics — ✅ SETTLED 2026-07-04** (see §2
    → *The 21-day window — semantics*): review lives inside the
    window (results persist forever) · expires-unstarted = credit
@@ -634,8 +636,21 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
 9. **Seeding/naming** — pack ids (`NCLEX_PACK_00001`-style vs
    `PACK_1`), product ids (`READINESS_1/3/5`), and whether the 5
    packs are created up-front as drafts.
-10. **Trial interaction** — trial grants 0 credits (settled), but can
-    a trial student *see* the readiness catalogue in-app (upsell)?
+10. **Trial interaction — ✅ SETTLED 2026-07-04.** The readiness
+    catalogue is **visible in-app to every bank audience including
+    trials** — zero credits changes what a student *owns*, never what
+    they can *see or buy*. (The packs are public on the pricing page
+    anyway; a trial student is the hottest lead and a legitimate pack
+    customer regardless of bank status; and the 30-day tier needs the
+    same section anyway.) **Surfaces (settled):** a section on the
+    main bank dashboard **+ a dedicated readiness-pack page** (design
+    deferred — CD candidate). **Working concept for the page:** a
+    list of the 5 packs where each card's state derives from the
+    student's own credit rows — no credit → Buy · unclaimed credit →
+    Claim · claimed → Start my 21 days · window running →
+    Continue/Review + days left · used → score + band · expired →
+    spent. Taste rule: a section, not a nag — no popups or pressure
+    banners on trials.
 
 ---
 
