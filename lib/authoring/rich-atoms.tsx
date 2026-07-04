@@ -18,7 +18,22 @@
 // Each must be rendered inside a <RovingProvider> (the editor's Content tab).
 
 import { RovingRichField } from './roving-rich';
-import type { RichDoc } from './rich-doc';
+import { richDocToPlain, type RichDoc } from './rich-doc';
+import { BankImageBlock } from './bank-image-block';
+import { curatorBankImageRenderer } from './bank-image-render';
+import { docHasFilledBankImage } from './bank-image-doc';
+
+// Slice 8 — the stem may carry `bankImage` block nodes. Stable module
+// const (RichField requires a stable extensions reference); the static
+// (non-focused) stem view splices the image via the shared curator
+// renderer. Only the stem gets this — instruction / options / feedback /
+// rationale stay inline-only.
+const STEM_EXTENSIONS = [BankImageBlock];
+
+// The image-capable field keys, for RovingToolbar's imageFieldKeys prop.
+// Lives here beside RichStemField (which owns fieldKey="stem") so the
+// toolbar's enable-check can never drift from the actual field key.
+export const STEM_IMAGE_KEYS = ['stem'];
 
 // ── Instruction ──
 // Optional directive shown above the stem ("Select all that apply.").
@@ -65,6 +80,13 @@ export function RichStemField({
   onChange: (doc: RichDoc) => void;
   name?: string;
 }) {
+  // Advisory, not a block (advise > block): an image-only stem is valid —
+  // the image can BE the question — but usually wants a question sentence.
+  // Marker types (Cloze / Highlight / drag-cloze) are unaffected: their own
+  // structural rules already require marker text in the stem.
+  const imageOnly =
+    docHasFilledBankImage(value) && richDocToPlain(value).trim() === '';
+
   return (
     <div className="auth-fg">
       <label className="auth-label">Stem *</label>
@@ -76,7 +98,15 @@ export function RichStemField({
         className="auth-rrf-stem"
         ariaLabel="Stem"
         placeholder="Enter the full question text…"
+        extensions={STEM_EXTENSIONS}
+        custom={curatorBankImageRenderer}
       />
+      {imageOnly && (
+        <p className="auth-stem-advisory">
+          Image-only stem — that&apos;s allowed, but consider adding the
+          question text so students know what&apos;s being asked.
+        </p>
+      )}
     </div>
   );
 }

@@ -13,10 +13,11 @@
 // Shares list primitives with the Trends list via lib/bank/list-ui.tsx.
 // Styles: styles/bank-list.css (`bl-*`).
 //
-// Difficulty is deliberately NOT shown or filtered here: a case is a
-// container of up to 6 questions that each carry their own difficulty, so a
-// single difficulty on the wrapper is a weak signal. (The DB column stays —
-// the wrapper editor owns it; the list just doesn't read it.)
+// Classification is deliberately NOT shown or filtered here: a case is a
+// container of up to 6 questions that each carry their own classification,
+// so wrapper-level values were a weak signal. The legacy case-level columns
+// were dropped in migration 20260719120000 — the builder derives a case's
+// match from its children. Tags survive on the wrapper (searchable here).
 
 'use client';
 

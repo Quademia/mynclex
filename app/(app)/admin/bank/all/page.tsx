@@ -13,6 +13,7 @@
 
 import Link from 'next/link';
 import { richTextToPlain } from '@/lib/authoring/rich-doc';
+import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import {
   BankListClient,
@@ -197,7 +198,7 @@ export default async function AdminBankAllPage({ searchParams }: PageProps) {
   const summaryRows: BankListRowSummary[] = fullRows.map((r) => ({
     item_id:        r.item_id,
     question_type:  r.question_type as QuestionType,
-    stem:           richTextToPlain(r.stem),
+    stem:           richTextToPlainLabel(r.stem),
     instruction:    r.instruction ? richTextToPlain(r.instruction) : null,
     difficulty:     r.difficulty,
     is_published:   r.is_published,

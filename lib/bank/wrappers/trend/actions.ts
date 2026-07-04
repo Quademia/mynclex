@@ -149,7 +149,7 @@ export async function createTrendAction(formData: FormData): Promise<SaveResult>
 // Direct CRUD update on the dataset row (decision 4 — no RPC for
 // save). Reads:
 //   - trend_id, surface
-//   - title, scenario
+//   - title, scenario, tags
 //   - is_published, is_free_sample, is_builder_visible
 //
 // The stimulus (chart tabs) saves independently via the tab actions;
@@ -178,11 +178,19 @@ export async function saveTrendMetadataAction(
   const is_free_sample     = formData.get('is_free_sample') === 'on';
   const is_builder_visible = formData.get('is_builder_visible') === 'on';
 
+  // Wrapper tags — same comma-separated convention as the question
+  // editors. A tag on the trend counts as a tag on every linked
+  // question in the student builder (inheritance, migration
+  // 20260718120000).
+  const tagsRaw = String(formData.get('tags') ?? '');
+  const tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
+
   const { error } = await supabase
     .from(cfg.table)
     .update({
       title,
       scenario,
+      tags,
       is_published,
       is_free_sample,
       is_builder_visible,

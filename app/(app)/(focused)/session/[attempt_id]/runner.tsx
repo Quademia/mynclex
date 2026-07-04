@@ -33,6 +33,7 @@ import type {
 } from '@/lib/practice/runner';
 import type { GridFilter } from '@/lib/practice/runner';
 import { CasePanel, CjmmStrip, TrendPanel } from '@/lib/practice/runner';
+import { getAttemptImageUrlAction } from '@/lib/practice/runner/attempt-image-actions';
 import { formatClock, tierFor, tierIsStricter, type WarningTier } from '@/lib/practice/runner/clock';
 import { CJMM_STEPS } from '@/lib/bank/classifications';
 import { CaseEntryBanner } from '@/lib/hints/practice/case-entry-banner';
@@ -811,6 +812,9 @@ function RunnerShell({ data }: Props) {
         onAnswerChange={onAnswerChange}
         topSlot={cjmmTopSlot}
         trendBadge={inTrend}
+        resolveImageUrl={(id) =>
+          getAttemptImageUrlAction(data.attempt.attempt_id, id)
+        }
       />
     );
   } else if (answerRowForCurrent && unsealForCurrent) {
@@ -822,6 +826,9 @@ function RunnerShell({ data }: Props) {
         unseal={unsealForCurrent}
         topSlot={cjmmTopSlot}
         trendBadge={inTrend}
+        resolveImageUrl={(id) =>
+          getAttemptImageUrlAction(data.attempt.attempt_id, id)
+        }
       />
     );
   } else {
@@ -850,6 +857,9 @@ function RunnerShell({ data }: Props) {
           currentPosition={currentItem?.case_position ?? 1}
           totalChildren={caseChildIds.length}
           answeredCount={answeredInCase}
+          resolveImageUrl={(id) =>
+            getAttemptImageUrlAction(data.attempt.attempt_id, id)
+          }
         />
         {questionAreaInner}
       </div>
@@ -857,7 +867,12 @@ function RunnerShell({ data }: Props) {
   } else if (inTrend && trendSnap) {
     questionArea = (
       <div className="rn-split">
-        <TrendPanel trendSnap={trendSnap} />
+        <TrendPanel
+          trendSnap={trendSnap}
+          resolveImageUrl={(id) =>
+            getAttemptImageUrlAction(data.attempt.attempt_id, id)
+          }
+        />
         {questionAreaInner}
       </div>
     );

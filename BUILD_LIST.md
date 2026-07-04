@@ -54,28 +54,90 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 >   `schema.sql` mirrored. **⚠ RELEASE STEP:** before/with the prod release,
 >   delete prod's 2 unpublished test trend datasets (+ 1 question) so prod ends
 >   up as clean as dev.
-> - **Slice 5 — retire `kind` ⬜ PLANNED** (settled 2026-07-02, not built).
->   Precursor DONE (`9ec098f`): "+ New trend dataset" now creates a **draft
->   directly** (mirror of case's `NewCaseButton`); the kind picker + presets were
->   deleted. Remaining = **remove `kind` entirely**: it was a *single-dataset*
->   descriptor from the flat-grid era, but a trend is now a *group of tabs* and
->   each tab carries its own title, so a top-level kind is redundant + misleading.
->   Same shape as Slice 4 — app-layer (editor field · runner header `Trend data ·
->   {kind}` → just `Trend data` · loader · types · actions · both list pages ·
->   delete `kind-templates.ts`) + a migration (drop `kind` off both dataset
->   tables + `kind_snapshot` off the attempt snapshot + update
->   `nclex_create_attempt` + `schema.sql`). Entity-rename (`trend dataset` →
->   `trend`) noted but explicitly OUT of scope. Full write-up:
->   [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
->   → Trend "Slice plan" → Slice 5.
+> - **Slice 5 — retire `kind` ✅ DONE + RELEASED to PROD 2026-07-02 (PR #35)**
+>   (`2704b0a`, migration `20260715120000`). `kind` was a *single-dataset*
+>   descriptor from the flat-grid era; a trend is now a *group of titled tabs*, so
+>   a top-level kind was redundant. Migration re-points `nclex_create_attempt` to
+>   freeze without `kind`, drops `kind_snapshot` off the attempt snapshot, drops
+>   `kind` off both dataset tables; `schema.sql` mirrored. App-layer removed the
+>   "Kind" editor field, the trends-list Kind column + filter + hover chip, the
+>   runner header label (`Trend data · {kind}` → `Trend data`), deleted
+>   `kind-templates.ts`, tidied types/actions/loader/bulb + dropped the dead
+>   `.auth-tr-kind-hint` CSS. Entity-rename (`trend dataset` → `trend`) noted but
+>   OUT of scope.
 >
-> **✅ RELEASED to PROD 2026-07-02 (PR #34** — `main → prod`; migrate-prod
-> applied `20260711`–`20260714120000` + deploy-prod both green; prod
-> trend-dataset cleanup done [2 test datasets + 1 question deleted before the
-> flat-column drop, prod trend datasets now 0]).
-> **⏭ NEXT:** **Build Slice 5 (retire `kind`) when picked up.** ⚠
-> `PAYSTACK_SECRET_KEY` still not on the prod Worker (prod checkout stays
-> broken until set — unrelated to this release).
+> **✅ THE TREND RICH MULTI-CHART ARC (Slices 1–5) IS COMPLETE + ON PROD** (PR #34
+> shipped Slices 1–4 + MATRIX_MR; PR #35 shipped Slice 5 + the DRAG_DROP decouple).
+> **Slice 7 — media block ✅ BUILT + Sam-tested + MERGED to `main` 2026-07-03**
+> (narrative-body images, both wrappers; access model = Option A
+> attempt-anchored; migration `20260716120000` [bank-images bucket]
+> dev-applied, NOT prod; + the Sam-driven URL cache + lightbox).
+> **Slice 8 — stem images ✅ BUILT + Sam-tested 2026-07-03 (second session),
+> all four sub-slices, MERGED to `main`** (ZERO migrations — the Slice-7
+> foundation carried everything):
+> **8a** editor chain + curator previews (all 11 editors; image-only stems
+> allowed w/ amber advisory; "(image)" list labels) · **8b** runner + the
+> attempt gate widened to frozen stems · **8c** library embeds via a new
+> note-anchored gate (live embedded stems OR the student's own answer
+> snapshots) · **8d** wrapper scenario images (case + trend). Detail in the
+> questions-and-wrappers plan doc → "Slice 8". **⏭ NEXT:** the library image
+> port (cache + lightbox back-port, tutor-library.md) · the `main → prod`
+> release (carries Slices 7+8 + the eligibility/wrapper-tags arc =
+> migrations `20260716120000`–`20260720120000`). Parked follow-on: rationale
+> images (+ the `rationale_img` relegation decision). ⚠
+
+> **✅ BUILDER CASE-ELIGIBILITY FIX + WRAPPER TAGS — BUILT + Sam-tested
+> 2026-07-03 (third session)** (branch `claude/eager-hodgkin-8a5547`, awaiting
+> the `main` merge; **4 migrations `20260717120000`–`20260720120000`, all
+> dev-applied + probe-verified**; tsc + eslint + 104 vitest clean). The bug
+> (found by Sam's Slice-7 test): `_nclex_eligible_unit_pool` matched cases
+> against the case row's RETIRED classification columns, which the editor
+> never writes → every editor-authored case invisible to every
+> classification/tag filter.
+> - **The fix** (`20260717120000`): the pool's case branch DERIVES the match
+>   from children via `nclex_case_study_items` → `nclex_bank_items`.
+>   **Settled semantics: ANY, one-child-ticks-ALL-boxes** — a case is in when
+>   at least one child passes ALL active axes simultaneously (the same
+>   conjunction standalone questions pass, wrapped in EXISTS). QType sit-out
+>   unchanged. The per-axis breakdown RPC needed NO eligibility change (it
+>   only calls the pool).
+> - **Wrapper tags retained + trend symmetry** (Sam's call; `20260718120000`):
+>   `tags` survives on cases, trend datasets gain it; **inheritance rule** —
+>   a wrapper tag counts as a tag on every question inside (child effective
+>   tags = own ∪ wrapper's) — applied in the pool, the builder tag **picker**
+>   (`get-filter-options` reads published wrappers too), and the per-tag
+>   **counts** (`20260720120000` — by_tag counts effective tags, deduped per
+>   question). Tags field on both wrappers' Content tab (comma-separated,
+>   question-editor convention); wrapper-list searches cover tags.
+> - **Legacy columns dropped** (`20260719120000`): the 7 case-level
+>   classification columns off both case tables (+ app sweep: loader, types,
+>   list-page search blobs). Nothing else read them (verified live).
+> - Question-type filters keep excluding all cases (by design). Dev test
+>   data (`imagetesting`, `wrappertagtesting`) deliberately left in place.
+>
+> `PAYSTACK_SECRET_KEY` still not on the prod Worker (prod checkout stays broken
+> until set — unrelated to these releases).
+
+> **✅ POSITIONAL INSERT & REORDER — Slices 1–3 BUILT + Sam-tested + MERGED
+> to `main` 2026-07-04 (Slice 4 PARKED). + a 2nd wrapper-embedding seam fix:
+> the question editors' roving toolbar stuck INVISIBLY under the wrapper's
+> page-sticky back/title bar (top:0 z-5 vs z-20) — now parked at top:46px
+> z-6 in both panes, the `.mt-toolbar` spot.** Sam's finding: every authoring "add"
+> appended at the END. Full-surface sweep captured in the plan; built:
+> **Slice 1** merge-table insert row above/below + column left/right —
+> toolbar ⊕ Insert ▾ **+ the hover-⊕ gutter markers** (Google-Docs-style
+> ⊕-on-the-grid-line with a preview line; merges crossing the line expand;
+> new row inherits the adjacent "Appears from") · **Slice 2** matrix +
+> matrix-MR per-row/col + buttons (insert above / left; id-keyed picks
+> never remap) **+ a rider fix**: wide matrices now scroll inside the
+> wrapper panes (`.auth-split` collapsed to plain `1fr` — min tracked
+> content width; now `minmax(0,1fr)`, also fixed in the ≤1024px standalone
+> rule) · **Slice 3** narrative entries + (insert above, reveal inherited)
+> and ↑↓ move arrows (whole card travels). All app-layer, ZERO migrations;
+> unit tests 114→119. **Slice 4 (option lists) parked** — revisit only if
+> it hurts in practice. Full plan + build notes:
+> [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
+> → "Positional insert & reorder".
 
 > **MATRIX MULTIPLE RESPONSE (`MATRIX_MR`) — ✅ BUILT + Sam-tested + RELEASED to
 > PROD 2026-07-02 (PR #34; migration `20260711120000` applied to prod).** New

@@ -120,6 +120,11 @@ CREATE TABLE nclex_bank_items (
 
 
 -- 5. QAcademy-owned case studies (scenario + 6 chart tabs as JSONB)
+-- Classification lives on the CHILD questions only (wrapper-v2 decision
+-- 9.2); the seven legacy case-level classification columns were dropped
+-- in 20260719120000 — the builder derives a case's match from its
+-- children. `tags` survives: a tag on the case counts as a tag on every
+-- child in the student builder (20260717120000).
 CREATE TABLE nclex_case_studies (
   case_id                   TEXT PRIMARY KEY,
   title                     TEXT NOT NULL,
@@ -127,14 +132,6 @@ CREATE TABLE nclex_case_studies (
 
   -- Chart tabs live in nclex_case_study_tabs (child table, added in Slice 1.11a).
 
-  -- Classification (subset — no bloom_level on case studies per bank.md)
-  client_needs_category     TEXT,
-  client_needs_subcategory  TEXT,
-  nursing_subject           TEXT,
-  body_system               TEXT,
-  topic                     TEXT,
-  subtopic                  TEXT,
-  difficulty                TEXT CHECK (difficulty IN ('Easy','Medium','Hard')),
   tags                      TEXT[] NOT NULL DEFAULT '{}',
 
   -- Visibility
@@ -257,6 +254,8 @@ CREATE INDEX idx_nclex_tutor_questions_tutor ON nclex_tutor_questions(tutor_id);
 
 
 -- 9. Tutor-private case studies (same shape as nclex_case_studies + tutor_id)
+-- Legacy classification columns dropped in 20260719120000 (see the
+-- admin twin above); tags survive.
 CREATE TABLE nclex_tutor_case_studies (
   case_id                   TEXT PRIMARY KEY,
   tutor_id                  UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
@@ -265,13 +264,6 @@ CREATE TABLE nclex_tutor_case_studies (
 
   -- Chart tabs live in nclex_tutor_case_study_tabs (child table, added in Slice 1.11a).
 
-  client_needs_category     TEXT,
-  client_needs_subcategory  TEXT,
-  nursing_subject           TEXT,
-  body_system               TEXT,
-  topic                     TEXT,
-  subtopic                  TEXT,
-  difficulty                TEXT CHECK (difficulty IN ('Easy','Medium','Hard')),
   tags                      TEXT[] NOT NULL DEFAULT '{}',
 
   is_free_sample            BOOLEAN NOT NULL DEFAULT FALSE,
@@ -346,10 +338,13 @@ CREATE INDEX idx_nclex_tutor_case_study_tabs_case ON nclex_tutor_case_study_tabs
 -- columns (row_label / timepoints / rows) were retired in 20260714120000.
 -- `kind` (a single-dataset descriptor from the flat-grid era) was retired
 -- in 20260715120000 — a trend is now a group of chart tabs, each titled.
+-- `tags` added in 20260718120000 (case-wrapper symmetry): a tag on a
+-- trend counts as a tag on every linked question in the student builder.
 CREATE TABLE nclex_trend_datasets (
   trend_id            TEXT PRIMARY KEY,
   title               TEXT NOT NULL,
   scenario            TEXT,
+  tags                TEXT[] NOT NULL DEFAULT '{}',
   is_published        BOOLEAN NOT NULL DEFAULT FALSE,
   is_free_sample      BOOLEAN NOT NULL DEFAULT FALSE,
   is_builder_visible  BOOLEAN NOT NULL DEFAULT TRUE,
@@ -369,6 +364,7 @@ CREATE TABLE nclex_tutor_trend_datasets (
   tutor_id            UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
   title               TEXT NOT NULL,
   scenario            TEXT,
+  tags                TEXT[] NOT NULL DEFAULT '{}',
   is_published        BOOLEAN NOT NULL DEFAULT FALSE,
   is_free_sample      BOOLEAN NOT NULL DEFAULT FALSE,
   is_builder_visible  BOOLEAN NOT NULL DEFAULT TRUE,
@@ -1275,6 +1271,38 @@ VALUES (
   FALSE,
   26214400,
   ARRAY['application/pdf']
+);
+
+-- The later media buckets, same private/signed-URL posture. The
+-- library pair (slices 11.6a/11.6b) was never mirrored here —
+-- backfilled 2026-07-03 alongside the bank-images bucket
+-- (rich-content Slice 7, migration 20260716120000).
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'nclex-library-images',
+  'nclex-library-images',
+  FALSE,
+  5242880,
+  ARRAY['image/png','image/jpeg','image/webp']
+);
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'nclex-library-pdfs',
+  'nclex-library-pdfs',
+  FALSE,
+  26214400,
+  ARRAY['application/pdf']
+);
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'nclex-bank-images',
+  'nclex-bank-images',
+  FALSE,
+  5242880,
+  ARRAY['image/png','image/jpeg','image/webp']
 );
 
 

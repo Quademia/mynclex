@@ -210,7 +210,10 @@
 
 @media (max-width: 1024px) {
   .auth-split {
-    grid-template-columns: 1fr;
+    /* minmax(0, …) so wide grid content (matrix tables) scrolls inside
+       its own wrapper instead of stretching the column — plain 1fr means
+       minmax(auto, 1fr), whose min tracks the content width. */
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -1453,6 +1456,54 @@
 .auth-matrix-col-remove:hover { background: #fef2f2; color: var(--danger); }
 .auth-matrix-col-remove:disabled { opacity: 0; cursor: not-allowed; }
 
+/* Positional insert (2026-07-04) — "+" twins of the removes: column
+ * insert sits top-LEFT of the header (inserts to the left), row insert
+ * sits beside the row ✕ (inserts above). */
+.auth-matrix-col-insert {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.auth-matrix-col-head:hover .auth-matrix-col-insert { opacity: 1; }
+.auth-matrix-col-insert:hover { background: var(--primary-light); color: var(--accent); }
+.auth-matrix-col-insert:disabled { opacity: 0; cursor: not-allowed; }
+
+.auth-matrix-row-actions { white-space: nowrap; }
+.auth-row-insert {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  align-self: center;
+  margin-right: 4px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.auth-row-insert:hover:not(:disabled) {
+  background: var(--primary-light);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.auth-row-insert:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .auth-matrix-row-head {
   background: var(--white);
   padding: 10px 12px;
@@ -2060,11 +2111,12 @@
 
 /* Soft count advisory (advise > block) — saveable, just outside the norm.
    Amber, sits below the toolbar. Shared by the marker editors (Cloze blank
-   count, Highlight chunk count, …). */
+   count, Highlight chunk count, …) + the Slice-8 image-only-stem nudge. */
 .auth-cz-advisory,
 .auth-hl-advisory,
 .auth-dd-advisory,
-.auth-mmr-advisory {
+.auth-mmr-advisory,
+.auth-stem-advisory {
   margin: 8px 0 0;
   padding: 8px 12px;
   font-size: 12px;
@@ -3708,6 +3760,12 @@
   border-color: var(--accent);
   background: var(--white);
 }
+.auth-cs-field-help {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
 
 .auth-cs-chart-toolbar {
   display: flex;
@@ -4145,7 +4203,10 @@
   display: none;
 }
 .auth-cs-pane-left .auth-split {
-  grid-template-columns: 1fr;
+  /* minmax(0, …), not 1fr — 1fr = minmax(auto, 1fr), whose min tracks
+     the content width, so a wide matrix stretched the pane instead of
+     scrolling inside .auth-matrix-wrap (found 2026-07-04). */
+  grid-template-columns: minmax(0, 1fr);
 }
 
 /* ─────────────────────────────────────────────────────
@@ -5242,7 +5303,9 @@
   display: none;
 }
 .auth-tr-pane-left .auth-split {
-  grid-template-columns: 1fr;
+  /* minmax(0, …), not 1fr — same wide-matrix scroll fix as the case
+     pane (see .auth-cs-pane-left .auth-split). */
+  grid-template-columns: minmax(0, 1fr);
 }
 
 /* Dataset view (left pane when active = Dataset) */
@@ -5629,6 +5692,16 @@
   background: var(--white);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
+/* In the WRAPPER panes the page scrolls (no modal body) and the wrapper's
+ * back/title bar is page-sticky at top:0 z-20 — top:0 pinned this toolbar
+ * INVISIBLY underneath it (looked "not sticky"). Park it just below,
+ * exactly like .mt-toolbar does (found 2026-07-04). Standalone editors
+ * keep top:0 (their scroll container is the modal body, nothing above). */
+.auth-cs-pane-left .auth-roving-toolbar,
+.auth-tr-pane-left .auth-roving-toolbar {
+  top: 46px;
+  z-index: 6;
+}
 .auth-roving-label {
   font-size: 11px;
   font-weight: 700;
@@ -5919,6 +5992,47 @@
   width: 100%;
   table-layout: auto;
 }
+
+/* ── hover-⊕ insert markers (Slice 1c) ─────────────────────────
+ * Thin invisible strips over the table's top + left edges. Hovering one
+ * snaps a ⊕ dot to the nearest grid-line boundary and draws a preview
+ * line across the table; clicking inserts a row/column there. Lives
+ * INSIDE .mt-grid-scroll so markers scroll with a wide table. */
+.mt-inswrap {
+  position: relative;
+  width: fit-content;
+  min-width: 100%;
+}
+.mt-insgut { position: absolute; z-index: 4; }
+.mt-insgut-top  { top: 0; left: 0; right: 0; height: 10px; cursor: copy; }
+.mt-insgut-left { top: 0; left: 0; bottom: 0; width: 10px; cursor: copy; }
+.mt-ins-dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.3);
+}
+.mt-insgut-top  .mt-ins-dot { top: -1px; transform: translateX(-50%); }
+.mt-insgut-left .mt-ins-dot { left: -1px; transform: translateY(-50%); }
+.mt-ins-line {
+  position: absolute;
+  background: var(--accent);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 3;
+}
+.mt-ins-line.is-v { top: 0; bottom: 0; width: 2px; transform: translateX(-1px); }
+.mt-ins-line.is-h { left: 0; right: 0; height: 2px; transform: translateY(-1px); }
 .mt-gutter {
   width: 72px;
   padding: 0 8px;
@@ -6275,6 +6389,30 @@
   border-color: var(--danger);
   color: var(--danger);
 }
+/* Positional insert + reorder (2026-07-04) — the + / ↑ / ↓ cluster
+ * beside the reveal select and ×. Same chip look as the × delete,
+ * accent hover instead of danger. */
+.nt-entry-move { display: inline-flex; gap: 4px; }
+.nt-entry-ctl {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 7px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.nt-entry-ctl:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--primary-light);
+}
+.nt-entry-ctl:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 /* body — roving rich field (active) / static (click to edit) */
 .nt-body-edit .auth-rich-field {
   border: 1px solid var(--accent);
@@ -6334,4 +6472,115 @@
   font-size: 13.5px;
   line-height: 1.55;
   color: var(--text);
+}
+
+/* ───────────────────────────────────────────────────────────
+   Bank image — expand affordance + lightbox (Slice 7 follow-up)
+   The inline image opens a full-screen lightbox: fit-to-screen,
+   tap the image again for 100% (scroll to pan), tap anywhere /
+   × / Esc to close. Portaled to <body>.
+   ─────────────────────────────────────────────────────────── */
+
+.auth-img-clickable {
+  cursor: zoom-in;
+}
+
+/* Corner ⤢ chip — always visible (phones have no hover). */
+.auth-img-expand {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: zoom-in;
+  opacity: 0.85;
+}
+.auth-img-expand:hover,
+.auth-img-expand:focus-visible {
+  opacity: 1;
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.auth-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(8, 12, 20, 0.85);
+  display: flex;
+  padding: 28px;
+  overflow: auto;
+  cursor: zoom-out;
+}
+
+.auth-lightbox-fig {
+  margin: auto; /* centres when smaller than the viewport, scrolls when not */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-lightbox-img {
+  display: block;
+  max-width: min(1200px, 92vw);
+  max-height: 86vh;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  cursor: zoom-in;
+}
+.auth-lightbox.is-full .auth-lightbox-img {
+  max-width: none;
+  max-height: none;
+  cursor: zoom-out;
+}
+
+.auth-lightbox-caption {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  text-align: center;
+  max-width: 720px;
+  cursor: auto;
+}
+
+.auth-lightbox-close {
+  position: fixed;
+  top: 14px;
+  right: 18px;
+  z-index: 1301;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.6);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.auth-lightbox-close:hover {
+  background: rgba(15, 23, 42, 0.85);
+}
+
+@media (max-width: 768px) {
+  .auth-lightbox {
+    padding: 12px;
+  }
+  .auth-lightbox-img {
+    max-width: 96vw;
+    max-height: 84vh;
+  }
 }

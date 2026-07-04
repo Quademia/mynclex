@@ -42,6 +42,7 @@ export interface TrendDatasetRow {
   tutor_id?:          string | null;
   title:              string;
   scenario:           string | null;
+  tags:               string[];
   is_published:       boolean;
   is_free_sample:     boolean;
   is_builder_visible: boolean;

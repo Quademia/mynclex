@@ -50,10 +50,14 @@ import type {
 import type { DragClozeAnswer } from '@/lib/scoring';
 import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
 import { RichRender, RichRenderWithSlots } from '@/lib/authoring/rich-render';
+import { bankImageRenderer } from '@/lib/authoring/bank-image-render';
+import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
 
 type DragClozeRunnerProps = {
   stem:    string;
   content: DragClozeContent;
+  // Slice 8 — attempt-bound resolver for bankImage nodes in the stem.
+  resolveImageUrl?: BankImageResolver;
 } & (
   | {
       mode:     'answering';
@@ -186,6 +190,7 @@ export function DragClozeRunner(props: DragClozeRunnerProps) {
             />
           );
         }}
+        custom={bankImageRenderer(props.resolveImageUrl)}
       />
 
       {!isReview && (

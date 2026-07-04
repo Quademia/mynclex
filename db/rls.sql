@@ -1217,6 +1217,31 @@ CREATE POLICY nclex_pdf_activities_upload
 
 
 -- =========================================================
+-- storage.objects — the later media buckets
+-- =========================================================
+-- Same shape as nclex-pdf-activities: INSERT-only for authenticated,
+-- reads via service-role signed URLs. The library pair shipped in
+-- slices 11.6a/11.6b (2026-06) but was never mirrored here —
+-- backfilled 2026-07-03 alongside the bank-images policy
+-- (rich-content Slice 7, migration 20260716120000).
+
+CREATE POLICY nclex_library_images_upload
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'nclex-library-images');
+
+CREATE POLICY nclex_library_pdfs_upload
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'nclex-library-pdfs');
+
+CREATE POLICY nclex_bank_images_upload
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'nclex-bank-images');
+
+
+-- =========================================================
 -- nclex_tutor_quizzes (Tutor Quiz Slice 1, 2026-05-16)
 -- =========================================================
 -- Tutor-owned, following the nclex_tutor_questions pattern:

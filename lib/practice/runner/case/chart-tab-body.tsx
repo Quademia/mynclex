@@ -14,20 +14,30 @@ import { asMergeTab } from '@/lib/authoring/table/merge-table-model';
 import { MergeTableView } from '@/lib/authoring/table/merge-table-view';
 import { asNarrativeTab } from '@/lib/authoring/narrative/narrative-model';
 import { NarrativeView } from '@/lib/authoring/narrative/narrative-view';
+import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
 
 interface Props {
   tab:             TabRow;
   currentPosition: number;
+  // Slice 7 — attempt-anchored signed-URL resolver for bankImage nodes
+  // in narrative bodies (bound to the attempt by the runner).
+  resolveImageUrl?: BankImageResolver;
 }
 
-export function ChartTabBody({ tab, currentPosition }: Props) {
+export function ChartTabBody({ tab, currentPosition, resolveImageUrl }: Props) {
   const mergeTab = asMergeTab(tab.entries);
   if (mergeTab) {
     return <MergeTableView tab={mergeTab} currentPosition={currentPosition} />;
   }
   const narrativeTab = asNarrativeTab(tab.entries);
   if (narrativeTab) {
-    return <NarrativeView tab={narrativeTab} currentPosition={currentPosition} />;
+    return (
+      <NarrativeView
+        tab={narrativeTab}
+        currentPosition={currentPosition}
+        resolveImageUrl={resolveImageUrl}
+      />
+    );
   }
   // Every chart tab is v2; a tab matching neither shape is malformed metadata.
   // Render a neutral placeholder rather than nothing.

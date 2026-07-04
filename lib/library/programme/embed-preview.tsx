@@ -35,6 +35,8 @@ import {
 } from '@/lib/practice/runner';
 import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc } from '@/lib/authoring/rich-doc';
+import { bankImageRenderer } from '@/lib/authoring/bank-image-render';
+import { getEmbedStemImageUrlAction } from '../student/embed-image-actions';
 import type { BankItemAnswer } from '@/lib/scoring';
 import type {
   McqContent,
@@ -207,7 +209,15 @@ function EmbedPreviewPaged({
       </div>
 
       <div className="eq-player-body">
-        <div className="rn-stem"><RichRender doc={parseRichDoc(q.stem)} /></div>
+        <div className="rn-stem">
+          {/* Same note-anchored resolver the student player uses — the
+              tutor passes its note-RLS gate by ownership, exactly like
+              loadEmbedBlock above. */}
+          <RichRender
+            doc={parseRichDoc(q.stem)}
+            custom={bankImageRenderer((id) => getEmbedStemImageUrlAction(noteId, id))}
+          />
+        </div>
         {q.instruction && (
           <p className="rn-instruction"><RichRender doc={parseRichDoc(q.instruction)} inline /></p>
         )}

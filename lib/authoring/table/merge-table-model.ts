@@ -394,6 +394,79 @@ export function addCol(prev: MergeTable): MergeTable {
   return t;
 }
 
+// ── positional insert (2026-07-04) ────────────────────────────
+// The append-only gap: addRow/addCol only grow the table at the edges.
+// These insert a FULL row/column at any grid-line boundary. A merge whose
+// span crosses the insertion line EXPANDS (span +1, the new cells under it
+// are covered fillers) — the same rule Subdivide applies, and the natural
+// reading (inserting a row inside a "Day 1" band keeps it in the band).
+
+/**
+ * Insert a full row so it becomes index `at` (0 = above the first row,
+ * rows.length = below the last). The new row inherits `visibleFrom` from
+ * `inheritFrom` (a row index in the PRE-insert table — the row the curator
+ * inserted relative to); defaults to the row above the line, else row 0.
+ */
+export function insertRowAt(prev: MergeTable, at: number, inheritFrom?: number): MergeTable {
+  const t = clone(prev);
+  const n = t.rows.length;
+  const ins = Math.max(0, Math.min(at, n));
+  const inheritIdx =
+    inheritFrom !== undefined && inheritFrom >= 0 && inheritFrom < n
+      ? inheritFrom
+      : ins > 0 ? ins - 1 : 0;
+  const visibleFrom = t.rows[inheritIdx]?.visibleFrom ?? 1;
+
+  // Build the new row's cells with a running id counter (they're not in
+  // the grid until the splice, so nextCellId can't see them).
+  let nextNum = maxNumericSuffix('c', allCellIds(t)) + 1;
+  const newRow: MergeCell[] = [];
+  const bumped = new Set<MergeCell>();
+  for (let k = 0; k < t.cols; k++) {
+    // A merge crosses the line when the origin covering the cell just
+    // above the line also reaches the row just below it. Only possible
+    // when the line is strictly inside the grid.
+    const o = ins > 0 && ins < n ? findOrigin(t, ins - 1, k) : null;
+    if (o && o.r + o.cell.rowspan - 1 >= ins) {
+      const cv = blankCell('c' + nextNum++);
+      cv.covered = true;
+      newRow.push(cv);
+      if (!bumped.has(o.cell)) { o.cell.rowspan += 1; bumped.add(o.cell); }
+    } else {
+      newRow.push(blankCell('c' + nextNum++));
+    }
+  }
+  t.grid.splice(ins, 0, newRow);
+  t.rows.splice(ins, 0, { id: nextRowId(t), visibleFrom });
+  return t;
+}
+
+/**
+ * Insert a full column so it becomes index `at` (0 = left of the first
+ * column, cols = right of the last). Columns carry no reveal (that is
+ * per-row), so there is nothing to inherit.
+ */
+export function insertColAt(prev: MergeTable, at: number): MergeTable {
+  const t = clone(prev);
+  const n = t.cols;
+  const ins = Math.max(0, Math.min(at, n));
+  let nextNum = maxNumericSuffix('c', allCellIds(t)) + 1;
+  const bumped = new Set<MergeCell>();
+  for (let ri = 0; ri < t.rows.length; ri++) {
+    const o = ins > 0 && ins < n ? findOrigin(t, ri, ins - 1) : null;
+    if (o && o.c + o.cell.colspan - 1 >= ins) {
+      const cv = blankCell('c' + nextNum++);
+      cv.covered = true;
+      t.grid[ri].splice(ins, 0, cv);
+      if (!bumped.has(o.cell)) { o.cell.colspan += 1; bumped.add(o.cell); }
+    } else {
+      t.grid[ri].splice(ins, 0, blankCell('c' + nextNum++));
+    }
+  }
+  t.cols += 1;
+  return t;
+}
+
 /** Delete the row band in `rect` (splits any merge crossing the band). Keeps ≥1 row. */
 export function deleteRows(prev: MergeTable, rect: SelRect): MergeTable {
   const t = clone(prev);

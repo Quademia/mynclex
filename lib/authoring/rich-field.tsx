@@ -20,6 +20,7 @@
 
 import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import type { Editor } from '@tiptap/react';
+import type { AnyExtension } from '@tiptap/core';
 import { useEffect, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -52,6 +53,15 @@ interface RichFieldProps {
   /** Focus the editor (caret to end) as soon as it mounts. Used by the
    *  roving field so clicking a static field drops the caret straight in. */
   autofocus?: boolean;
+  /** Extra Tiptap extensions appended to the base set — opt-in per host,
+   *  so a block node (e.g. the Slice-7 bank image) only exists in fields
+   *  that deliberately enable it. Must be a stable reference (module
+   *  const), not a per-render array. */
+  extensions?: AnyExtension[];
+  /** Slice 8d — show an Insert-image button on the built-in toolbar.
+   *  Only enable together with the BankImageBlock extension; inserting
+   *  the node into an editor without it would throw. */
+  imageButton?: boolean;
 }
 
 export function RichField({
@@ -62,6 +72,8 @@ export function RichField({
   hideToolbar = false,
   onEditor,
   autofocus = false,
+  extensions,
+  imageButton = false,
 }: RichFieldProps) {
   const editor = useEditor({
     autofocus: autofocus ? 'end' : false,
@@ -80,6 +92,7 @@ export function RichField({
       TextAlign.configure({ types: ['heading', 'paragraph'], defaultAlignment: 'left' }),
       TextStyle,
       Color,
+      ...(extensions ?? []),
     ],
     content: value,
     editable: true,
@@ -112,7 +125,7 @@ export function RichField({
 
   return (
     <div className="auth-rich-field">
-      {!hideToolbar && <Toolbar editor={editor} />}
+      {!hideToolbar && <Toolbar editor={editor} imageButton={imageButton} />}
       <EditorContent
         editor={editor}
         className="auth-rf-body"
@@ -126,7 +139,13 @@ export function RichField({
 // Toolbar — flat core-inline buttons
 // ─────────────────────────────────────────────────────────────
 
-function Toolbar({ editor }: { editor: Editor }) {
+function Toolbar({
+  editor,
+  imageButton = false,
+}: {
+  editor: Editor;
+  imageButton?: boolean;
+}) {
   const state = useEditorState({
     editor,
     selector: ({ editor }) => ({
@@ -236,6 +255,24 @@ function Toolbar({ editor }: { editor: Editor }) {
       <span className="auth-rf-sep" aria-hidden="true" />
 
       <ColorMarkButtons editor={editor} buttonClassName="auth-rf-btn" />
+
+      {imageButton && (
+        <>
+          <span className="auth-rf-sep" aria-hidden="true" />
+          <button
+            type="button"
+            className="auth-rf-btn"
+            title="Insert image"
+            aria-label="Insert image"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() =>
+              editor.chain().focus().insertContent({ type: 'bankImage' }).run()
+            }
+          >
+            <NavIcon name="image" />
+          </button>
+        </>
+      )}
     </div>
   );
 }

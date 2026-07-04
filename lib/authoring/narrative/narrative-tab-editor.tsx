@@ -16,20 +16,35 @@ import type {
   TabSaveAction,
   TabDeleteAction,
 } from '../chart-tab-types';
+import { NavIcon } from '@/components/nav/shared/nav-icon';
 import { RichField } from '../rich-field';
 import { RichRender } from '../rich-render';
 import { isEmptyRichDoc, type RichDoc } from '../rich-doc';
 import { InlineTools, InlineToolsDisabled } from '../inline-tools';
+import { BankImageBlock } from '../bank-image-block';
+import { curatorBankImageRenderer } from '../bank-image-render';
+import {
+  AUTH_BLOCK_UPLOAD_EVENT,
+  type AuthBlockUploadDetail,
+} from '../block-upload-event';
 import {
   type NarrativeTabData,
   addEntry,
   removeEntry,
+  insertEntryAt,
+  moveEntry,
   setEntryBody,
   setEntryVisibleFrom,
   setEntryChips,
   dedupeNarrativeIds,
   NVF_MAX,
 } from './narrative-model';
+
+// Slice 7 — narrative bodies may carry image blocks. Stable module
+// const: the extension list feeds RichField (must not be a per-render
+// array). The static (non-focused) entry cards splice images via the
+// shared curator renderer (bank-image-render, hoisted in Slice 8).
+const NARRATIVE_EXTENSIONS = [BankImageBlock];
 
 interface Props {
   surface:         Surface;
@@ -58,6 +73,21 @@ export function NarrativeTabEditorV2({
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Slice 7 save-safety — count image uploads in flight (the block's
+  // NodeView fires AUTH_BLOCK_UPLOAD_EVENT true/false around each one).
+  // Saving mid-upload would persist a not-yet-filled block, so Save is
+  // held while any upload runs (the library editor's autosave guard,
+  // adapted to this editor's explicit Save).
+  const [uploadsInFlight, setUploadsInFlight] = useState(0);
+
+  useEffect(() => {
+    function onUpload(e: Event) {
+      const { uploading } = (e as CustomEvent<AuthBlockUploadDetail>).detail;
+      setUploadsInFlight((n) => Math.max(0, n + (uploading ? 1 : -1)));
+    }
+    window.addEventListener(AUTH_BLOCK_UPLOAD_EVENT, onUpload);
+    return () => window.removeEventListener(AUTH_BLOCK_UPLOAD_EVENT, onUpload);
+  }, []);
 
   // Heal duplicate entry ids on open (no-op when clean).
   useEffect(() => {
@@ -98,6 +128,21 @@ export function NarrativeTabEditorV2({
   function onAddEntry() {
     pushTab(addEntry(draftNarrative));
   }
+  // Positional insert + reorder (2026-07-04). Insert puts a blank entry
+  // ABOVE idx (inheriting its reveal); + Add entry covers the bottom, so
+  // every position is reachable. activeIdx tracks the focused entry by
+  // INDEX, so both ops re-point it to keep the same card focused.
+  function onInsertEntry(idx: number) {
+    if (activeIdx !== null && activeIdx >= idx) setActiveIdx(activeIdx + 1);
+    pushTab(insertEntryAt(draftNarrative, idx, idx));
+  }
+  function onMoveEntry(idx: number, dir: -1 | 1) {
+    const next = moveEntry(draftNarrative, idx, dir);
+    if (next === draftNarrative) return; // at an end — no-op
+    if (activeIdx === idx) setActiveIdx(idx + dir);
+    else if (activeIdx === idx + dir) setActiveIdx(idx);
+    pushTab(next);
+  }
   function onRemoveEntry(idx: number) {
     if (!isEmptyRichDoc(entries[idx].body) || entries[idx].chips.some((c) => c.trim())) {
       if (!window.confirm('Remove this entry? Its content will be lost.')) return;
@@ -107,6 +152,10 @@ export function NarrativeTabEditorV2({
   }
 
   function onSave(fd: FormData) {
+    if (uploadsInFlight > 0) {
+      setErr('An image is still uploading — save once it finishes.');
+      return;
+    }
     setErr(null); setPending(true);
     saveAction(fd).then((r) => { if (!r.ok) setErr(r.error); }).finally(() => setPending(false));
   }
@@ -157,8 +206,13 @@ export function NarrativeTabEditorV2({
             <input type="hidden" name="title"         value={draftTitle} />
             <input type="hidden" name="entries"       value={JSON.stringify(draftNarrative)} />
             <input type="hidden" name="columns_def"   value="[]" />
-            <button type="submit" className="cs-btn primary" disabled={pending}>
-              {pending ? 'Saving…' : 'Save tab'}
+            <button
+              type="submit"
+              className="cs-btn primary"
+              disabled={pending || uploadsInFlight > 0}
+              title={uploadsInFlight > 0 ? 'An image is still uploading' : undefined}
+            >
+              {pending ? 'Saving…' : uploadsInFlight > 0 ? 'Uploading…' : 'Save tab'}
             </button>
           </form>
         </div>
@@ -172,6 +226,21 @@ export function NarrativeTabEditorV2({
         {activeEditor
           ? <InlineTools editor={activeEditor} buttonClassName="mt-tb-btn mt-tb-rich" />
           : <InlineToolsDisabled buttonClassName="mt-tb-btn mt-tb-rich" hint="Click into an entry to format its text" />}
+        {/* Slice 7 — insert an image block at the caret of the focused
+            entry. Mixes freely with the text (an atom block node). */}
+        <button
+          type="button"
+          className="mt-tb-btn mt-tb-rich"
+          title={activeEditor ? 'Insert image' : 'Click into an entry to insert an image'}
+          aria-label="Insert image"
+          disabled={!activeEditor}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() =>
+            activeEditor?.chain().focus().insertContent({ type: 'bankImage' }).run()
+          }
+        >
+          <NavIcon name="image" />
+        </button>
       </div>
 
       {/* entry cards */}
@@ -196,6 +265,11 @@ export function NarrativeTabEditorV2({
                 <button type="button" className="nt-chip-add" onClick={() => addChip(idx)}>+ label</button>
               </div>
               <div className="nt-card-head-right">
+                <button type="button" className="nt-entry-ctl" onClick={() => onInsertEntry(idx)} aria-label="Insert an entry above" title="Insert an entry above this one">+</button>
+                <span className="nt-entry-move">
+                  <button type="button" className="nt-entry-ctl" onClick={() => onMoveEntry(idx, -1)} disabled={idx === 0} aria-label="Move entry up" title="Move this entry up">↑</button>
+                  <button type="button" className="nt-entry-ctl" onClick={() => onMoveEntry(idx, 1)} disabled={idx === entries.length - 1} aria-label="Move entry down" title="Move this entry down">↓</button>
+                </span>
                 {!hideReveal && (
                   <select
                     className={`mt-gutter-vf${entry.visibleFrom > 1 ? ' is-later' : ''}`}
@@ -222,6 +296,7 @@ export function NarrativeTabEditorV2({
                   onChange={(doc) => onBody(idx, doc)}
                   placeholder="Write the note…"
                   ariaLabel={`Entry ${idx + 1} body`}
+                  extensions={NARRATIVE_EXTENSIONS}
                 />
               </div>
             ) : (
@@ -234,7 +309,7 @@ export function NarrativeTabEditorV2({
               >
                 {isEmptyRichDoc(entry.body)
                   ? <span className="nt-body-ph">Write the note…</span>
-                  : <RichRender doc={entry.body} />}
+                  : <RichRender doc={entry.body} custom={curatorBankImageRenderer} />}
               </div>
             )}
           </div>

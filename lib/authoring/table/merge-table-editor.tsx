@@ -16,7 +16,7 @@
 // live editor; the rest render static formatted text, so drag-selecting a
 // range never fights an editor for the mouse.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import type {
   Surface,
@@ -45,6 +45,8 @@ import {
   toggleHeading,
   addRow,
   addCol,
+  insertRowAt,
+  insertColAt,
   deleteRows,
   deleteCols,
   setVisibleFrom,
@@ -87,6 +89,7 @@ export function MergeTableEditor({
   const [sel, setSel] = useState<Sel>(null);
   const [dragging, setDragging] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
+  const [insertOpen, setInsertOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
@@ -120,6 +123,7 @@ export function MergeTableEditor({
     onDraftChange({ title: draftTitle, tab: nextTab });
     if (nextSel !== undefined) setSel(nextSel);
     setSplitOpen(false);
+    setInsertOpen(false);
   }
   // Apply a grid op (which returns a new table) to a given table index.
   function pushTable(ti: number, nextTable: MergeTable, nextSel?: Sel) {
@@ -130,6 +134,7 @@ export function MergeTableEditor({
   function onCellDown(e: React.MouseEvent, ti: number, r: number, c: number) {
     setDragging(true);
     setSplitOpen(false);
+    setInsertOpen(false);
     if (e.shiftKey && sel && sel.ti === ti) setSel({ ti, a: sel.a, f: { r, c } });
     else setSel({ ti, a: { r, c }, f: { r, c } });
   }
@@ -163,7 +168,45 @@ export function MergeTableEditor({
   function doSplit() {
     if (!singleCell || !rect || activeTi === null || !activeTable) return;
     if (merged) pushTable(activeTi, unmerge(activeTable, rect.top, rect.left));
-    else setSplitOpen((o) => !o);
+    else { setInsertOpen(false); setSplitOpen((o) => !o); }
+  }
+
+  // ── positional insert (Slice 1b) ──
+  // Boundary comes from the selection's edge; the new row inherits the
+  // reference row's "Appears from". Post-insert, the selection moves into
+  // the first real (non-covered) cell of the new row/column so the curator
+  // can type immediately; a fully-covered line (inserted inside a merge
+  // spanning everything) just clears the selection.
+  function doInsertRow(side: 'above' | 'below') {
+    if (!rect || activeTi === null || !activeTable) return;
+    const at = side === 'above' ? rect.top : rect.bot + 1;
+    const inheritFrom = side === 'above' ? rect.top : rect.bot;
+    const next = insertRowAt(activeTable, at, inheritFrom);
+    const c0 = next.grid[at].findIndex((cell) => !cell.covered);
+    pushTable(activeTi, next,
+      c0 >= 0 ? { ti: activeTi, a: { r: at, c: c0 }, f: { r: at, c: c0 } } : null);
+  }
+  function doInsertCol(side: 'left' | 'right') {
+    if (!rect || activeTi === null || !activeTable) return;
+    const at = side === 'left' ? rect.left : rect.right + 1;
+    const next = insertColAt(activeTable, at);
+    const r0 = next.grid.findIndex((row) => !row[at].covered);
+    pushTable(activeTi, next,
+      r0 >= 0 ? { ti: activeTi, a: { r: r0, c: at }, f: { r: r0, c: at } } : null);
+  }
+  // Hover-⊕ gutter inserts (Slice 1c) — boundary index straight from the
+  // marker; the new row inherits from the row above the line (default).
+  function onInsertRowBoundary(ti: number, at: number) {
+    const next = insertRowAt(tables[ti], at);
+    const c0 = next.grid[at].findIndex((cell) => !cell.covered);
+    pushTable(ti, next,
+      c0 >= 0 ? { ti, a: { r: at, c: c0 }, f: { r: at, c: c0 } } : null);
+  }
+  function onInsertColBoundary(ti: number, at: number) {
+    const next = insertColAt(tables[ti], at);
+    const r0 = next.grid.findIndex((row) => !row[at].covered);
+    pushTable(ti, next,
+      r0 >= 0 ? { ti, a: { r: r0, c: at }, f: { r: r0, c: at } } : null);
   }
   function doSubdivideCols(n: number) {
     if (!rect || activeTi === null || !activeTable) return;
@@ -308,6 +351,29 @@ export function MergeTableEditor({
             </div>
           )}
         </span>
+        <span className="mt-tb-split">
+          <button type="button" className={`mt-tb-btn${insertOpen ? ' is-open' : ''}`} disabled={!hasSel}
+            onClick={() => { setSplitOpen(false); setInsertOpen((o) => !o); }}
+            title="Insert a whole row or column next to the selected cell">
+            ⊕ Insert ▾
+          </button>
+          {insertOpen && hasSel && (
+            <div className="mt-split-menu">
+              <div className="mt-split-menu-title">Insert at the selection</div>
+              <div className="mt-split-row">
+                <span className="mt-split-row-label">Row</span>
+                <button type="button" className="mt-split-opt" onClick={() => doInsertRow('above')}>Above</button>
+                <button type="button" className="mt-split-opt" onClick={() => doInsertRow('below')}>Below</button>
+              </div>
+              <div className="mt-split-row">
+                <span className="mt-split-row-label">Column</span>
+                <button type="button" className="mt-split-opt" onClick={() => doInsertCol('left')}>Left</button>
+                <button type="button" className="mt-split-opt" onClick={() => doInsertCol('right')}>Right</button>
+              </div>
+              <div className="mt-split-menu-note">A merge crossing the line grows to include the new row / column.</div>
+            </div>
+          )}
+        </span>
         <button type="button" className="mt-tb-btn" disabled={!hasSel}
           onClick={doHeading} title="Mark the selected cells as headings (a role — left labels too, not only the top row)">⬚ Heading</button>
         <button type="button" className="mt-tb-btn danger" disabled={!hasSel}
@@ -343,6 +409,8 @@ export function MergeTableEditor({
           onEditor={setActiveEditor}
           onAddRow={onAddRow}
           onAddCol={onAddCol}
+          onInsertRowBoundary={onInsertRowBoundary}
+          onInsertColBoundary={onInsertColBoundary}
           onRemove={onRemoveTable}
         />
       ))}
@@ -371,7 +439,8 @@ export function MergeTableEditor({
 
 function TableBlock({
   table, index, single, rect, activePos, previewPosition, hideReveal,
-  onCellDown, onCellEnter, onCellInput, onVF, onEditor, onAddRow, onAddCol, onRemove,
+  onCellDown, onCellEnter, onCellInput, onVF, onEditor, onAddRow, onAddCol,
+  onInsertRowBoundary, onInsertColBoundary, onRemove,
 }: {
   table:           MergeTable;
   index:           number;
@@ -387,6 +456,8 @@ function TableBlock({
   onEditor:        (e: Editor | null) => void;
   onAddRow:        (ti: number) => void;
   onAddCol:        (ti: number) => void;
+  onInsertRowBoundary: (ti: number, at: number) => void;
+  onInsertColBoundary: (ti: number, at: number) => void;
   onRemove:        (ti: number) => void;
 }) {
   const t = table;
@@ -395,6 +466,59 @@ function TableBlock({
     activePos && !t.grid[activePos.r]?.[activePos.c]?.covered
       ? t.grid[activePos.r][activePos.c]
       : null;
+
+  // ── hover-⊕ insert markers (Slice 1c) ──────────────────────
+  // Thin hover strips sit over the table's top edge (column boundaries)
+  // and left edge (row boundaries). Moving inside a strip snaps a ⊕ dot
+  // to the nearest grid-line boundary and draws a preview line; clicking
+  // inserts there via the same tested ops the toolbar uses. The layer
+  // only READS layout (cell rects → boundary positions), so it can't
+  // corrupt the grid; it lives INSIDE the scroll container so markers
+  // stay glued to their boundaries when a wide table scrolls.
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [ins, setIns] = useState<{ kind: 'row' | 'col'; at: number; px: number } | null>(null);
+
+  function onStripMove(e: React.MouseEvent, kind: 'row' | 'col') {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const wrapRect = wrap.getBoundingClientRect();
+    const pos = kind === 'col' ? e.clientX - wrapRect.left : e.clientY - wrapRect.top;
+    // Boundary positions from the rendered data cells: a cell at (r, c)
+    // anchors boundary c (its left edge) and c + colspan (its right edge)
+    // — rows likewise. A boundary running entirely inside merges has no
+    // anchoring edge and simply isn't offered (inserting there is still
+    // possible via the toolbar).
+    const best = { at: -1, px: 0, d: Number.POSITIVE_INFINITY };
+    const seen = new Set<number>();
+    const tds = wrap.querySelectorAll<HTMLTableCellElement>('td[data-c]');
+    for (const td of Array.from(tds)) {
+      const cellRect = td.getBoundingClientRect();
+      const edges: Array<[number, number]> =
+        kind === 'col'
+          ? [
+              [Number(td.dataset.c), cellRect.left - wrapRect.left],
+              [Number(td.dataset.c) + (td.colSpan || 1), cellRect.right - wrapRect.left],
+            ]
+          : [
+              [Number(td.dataset.r), cellRect.top - wrapRect.top],
+              [Number(td.dataset.r) + (td.rowSpan || 1), cellRect.bottom - wrapRect.top],
+            ];
+      for (const [at, px] of edges) {
+        if (seen.has(at)) continue;
+        seen.add(at);
+        const d = Math.abs(px - pos);
+        if (d < best.d) { best.at = at; best.px = px; best.d = d; }
+      }
+    }
+    setIns(best.at >= 0 ? { kind, at: best.at, px: best.px } : null);
+  }
+
+  function onInsClick() {
+    if (!ins) return;
+    if (ins.kind === 'col') onInsertColBoundary(index, ins.at);
+    else onInsertRowBoundary(index, ins.at);
+    setIns(null);
+  }
 
   return (
     <div className="mt-table-block">
@@ -411,7 +535,26 @@ function TableBlock({
       </div>
 
       <div className="mt-grid-scroll">
-        <table className="mt-grid">
+        <div className="mt-inswrap" ref={wrapRef} onMouseLeave={() => setIns(null)}>
+          <div className="mt-insgut mt-insgut-top" onMouseMove={(e) => onStripMove(e, 'col')}>
+            {ins?.kind === 'col' && (
+              <button
+                type="button" className="mt-ins-dot" style={{ left: ins.px }}
+                onClick={onInsClick} title="Insert a column here"
+              >+</button>
+            )}
+          </div>
+          <div className="mt-insgut mt-insgut-left" onMouseMove={(e) => onStripMove(e, 'row')}>
+            {ins?.kind === 'row' && (
+              <button
+                type="button" className="mt-ins-dot" style={{ top: ins.px }}
+                onClick={onInsClick} title="Insert a row here"
+              >+</button>
+            )}
+          </div>
+          {ins?.kind === 'col' && <div className="mt-ins-line is-v" style={{ left: ins.px }} />}
+          {ins?.kind === 'row' && <div className="mt-ins-line is-h" style={{ top: ins.px }} />}
+          <table className="mt-grid" onMouseMove={ins ? () => setIns(null) : undefined}>
           <tbody>
             {t.rows.map((row, r) => {
               const headerRow = isHeaderRow(t, r);
@@ -447,6 +590,8 @@ function TableBlock({
                 tds.push(
                   <td
                     key={cell.id}
+                    data-r={r}
+                    data-c={c}
                     colSpan={cell.colspan}
                     rowSpan={cell.rowspan}
                     className={
@@ -485,7 +630,8 @@ function TableBlock({
               return <tr key={row.id}>{tds}</tr>;
             })}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       <div className="mt-foot-actions">

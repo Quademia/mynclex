@@ -23,7 +23,7 @@ export type AssetStatus = 'UPLOADING' | 'READY' | 'DELETED' | 'PURGED';
 // Free text in the DB; this union is the canonical TS-side list.
 // New consumer features extend this string union and add an entry
 // to PURPOSE_CONFIG below.
-export type Purpose = 'PDF_ACTIVITY' | 'LIBRARY_IMAGE' | 'LIBRARY_PDF';
+export type Purpose = 'PDF_ACTIVITY' | 'LIBRARY_IMAGE' | 'LIBRARY_PDF' | 'BANK_IMAGE';
 
 
 // Per-purpose configuration. Drives:
@@ -83,6 +83,21 @@ export const PURPOSE_CONFIG: Record<Purpose, PurposeConfigEntry> = {
     storagePathPrefix: 'library_pdf',
     allowedMimeTypes: ['application/pdf'],
     maxSizeBytes: TWENTY_FIVE_MB,
+    isPublic: false,
+  },
+  // Bank image blocks (rich-content Slice 7): stimulus images inside
+  // chart-tab narrative bodies (case study + trend), later question
+  // stems (Slice 8). ONE bucket for both the admin bank and tutor
+  // questions — ownership lives on the asset row, access is gated in
+  // the resolving actions (curator: owner-or-bank-curator; student:
+  // attempt-anchored), so a bucket split adds nothing. Uploads are
+  // downscaled in the browser first, same as LIBRARY_IMAGE.
+  BANK_IMAGE: {
+    bucket: 'nclex-bank-images',
+    mediaType: 'IMAGE',
+    storagePathPrefix: 'bank_image',
+    allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    maxSizeBytes: FIVE_MB,
     isPublic: false,
   },
 };

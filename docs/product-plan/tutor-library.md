@@ -628,6 +628,30 @@ Trade-off: extra DB query per image render, but:
 - Mirrors PDF-activity machinery — no new pattern
 - Image-heavy notes batch-mint per page render, not per-image network round-trip
 
+> **Follow-on candidate (captured 2026-07-03) — port the BANK image
+> upgrades here.** The bank's Slice-7 media block (which reused this
+> machinery) gained two UX pieces during Sam's testing that the library's
+> own image block would benefit from equally:
+> 1. **Client-side URL cache** (`lib/authoring/bank-image-url-cache.ts`) —
+>    page-memory map of minted URLs keyed by asset id, TTL 55 min (under
+>    the 1-h signed-URL validity). A remount (tab/page switch, back-nav)
+>    reuses the same URL: no server round-trip, and the identical URL lets
+>    the browser serve the bytes from its HTTP cache — no re-download, no
+>    "Loading image…" flash. Load error → evict + re-mint once.
+> 2. **Tap-to-expand lightbox** (`lib/authoring/bank-image-lightbox.tsx`) —
+>    detail-dense images (ECG strips) are unreadable at column width;
+>    stored images carry up to 1600px. Tap the image (or its corner ⤢
+>    chip — phones have no hover) → full-screen dimmed overlay
+>    fit-to-screen; tap again → 100% (scroll to pan); tap-out / × / Esc →
+>    close. Portaled to body.
+>
+> The library's `lib/library/image-block.tsx` + the student read view
+> (`read-media-blocks.tsx`) still mint per remount and render inline-only.
+> Port = wire the SAME two modules (they're asset-id-generic; nothing
+> bank-specific inside) into the library's editor NodeView + student read
+> renderers. Small, self-contained, no migration. The PDF block doesn't
+> need the lightbox but could share the URL cache.
+
 ### Edit-anytime model
 
 A published note can be edited by the tutor at any time. Edits go

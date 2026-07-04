@@ -65,12 +65,15 @@ import {
   RichInstructionField,
   RichStemField,
   RichRationaleFields,
+  STEM_IMAGE_KEYS,
 } from '@/lib/authoring/rich-atoms';
 import { RichRender } from '@/lib/authoring/rich-render';
+import { curatorBankImageRenderer } from '@/lib/authoring/bank-image-render';
+import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
+import { useAuthUploadsInFlight } from '@/lib/authoring/use-uploads-in-flight';
 import {
   parseRichDoc,
   isEmptyRichDoc,
-  richTextToPlain,
   type RichDoc,
 } from '@/lib/authoring/rich-doc';
 import type { McqEditorInitial } from './mcq-row-mapper';
@@ -245,7 +248,7 @@ export function McqPreview({
           {isEmptyRichDoc(stem) ? (
             <span className="auth-preview-placeholder">Stem appears here…</span>
           ) : (
-            <RichRender doc={stem} />
+            <RichRender doc={stem} custom={curatorBankImageRenderer} />
           )}
         </div>
         <ol className="auth-preview-options">
@@ -334,6 +337,9 @@ export function McqEditorBody({
   // single-mode behaviour). Curator can flip to 'answer-key' to verify
   // the correct option highlights as expected.
   const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
+  // Slice 8 — hold Save while a stem-image upload is in flight (saving
+  // then would persist a not-yet-filled image block).
+  const uploadsInFlight = useAuthUploadsInFlight();
 
   // Content state — all rich. Seed from the stored column values via
   // parseRichDoc (legacy plain text wraps as paragraphs; no migration).
@@ -368,6 +374,10 @@ export function McqEditorBody({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+    if (uploadsInFlight) {
+      setClientError('An image is still uploading — give it a moment, then save.');
+      return;
+    }
     if (contentIncomplete) {
       setTab('content');
       setClientError('Fill in the required fields on Content to continue.');
@@ -403,7 +413,7 @@ export function McqEditorBody({
         realm={initial.surface}
         entityType={initial.surface === 'tutor' ? 'tutor_question' : 'bank_item'}
         itemId={initial.itemId}
-        title={richTextToPlain(initial.stem)}
+        title={richTextToPlainLabel(initial.stem)}
       />
       <RovingProvider>
         <div className="auth-split">
@@ -418,7 +428,10 @@ export function McqEditorBody({
               onChange={(id) => setTab(id as typeof tab)}
             >
               <TabPanel id="content">
-                <RovingToolbar hint="Click into a field to format it" />
+                <RovingToolbar
+                  hint="Click into a field to format it"
+                  imageFieldKeys={STEM_IMAGE_KEYS}
+                />
                 <RichInstructionField
                   value={instruction}
                   onChange={(doc) => { setInstruction(doc); markDirty(); }}

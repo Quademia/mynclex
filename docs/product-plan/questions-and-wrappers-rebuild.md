@@ -2084,10 +2084,206 @@ gaps). Another point for B.
 - **Indent** (list nesting + paragraph indent) — raised, then set aside in
   favour of alignment. Revisit if a real specimen needs it.
 
-### Slice 7 (LAST) — media block in the narrative body
+### Slice 7 (LAST) — media block in the narrative body — ✅ BUILT 2026-07-03
 
-Add an image / ECG / wound-photo block to the **narrative body** only
-(reuse the library's media block). Closes the arc.
+Add an image (ECG / wound-photo / X-ray = all just images) to the **narrative
+body** of a chart tab, rendered for students. Closes the bank rich-content arc.
+Design settled 2026-07-02; **access model settled + the whole slice built
+2026-07-03** (app-layer + one additive migration `20260716120000`, dev-applied).
+
+**The design (as settled):**
+
+- **Reuse the library's image-block machinery** — same upload flow
+  (`components/media/upload-field.tsx` + browser-side resize + Supabase Storage
+  `asset_id` + a 1-hour signed URL; the doc only stores the small `asset_id`),
+  but a **separate node** `bankImage` (own attrs `{assetId, alt, caption}`) so
+  the two doc ecosystems stay decoupled.
+- **Where it lives:** the **5 narrative tab types** — Nurses' Notes, Orders,
+  History & Physical, Diagnostics, and Custom "Free text". One narrative editor
+  (`NarrativeTabEditorV2`) serves both wrappers → built once, live in both.
+- **The image sits INSIDE an entry's `body` (a `RichDoc`), as a block node among
+  the paragraphs** — an entry mixes text + image freely. NOT a separate "image
+  entry".
+
+**Access model — Option A, attempt-anchored (settled with Sam 2026-07-03):**
+
+- **ONE bucket for both sides** (`nclex-bank-images`, private, 5 MB,
+  png/jpeg/webp — mirror of the library bucket). Bucket split adds no security
+  (reads only ever go through gated actions that mint signed URLs) and
+  ownership already lives on the asset row. New purpose **`BANK_IMAGE`** in
+  `PURPOSE_CONFIG`.
+- **Curator gate** (`lib/authoring/bank-image-actions.ts`
+  `getBankImageUrlAction`): *owner* (RLS asset read — covers tutors + the
+  uploading admin) **or** *bank curator* (`BANK_CURATE` — the admin bank is
+  team-curated, so curator B resolves curator A's image via a service-role
+  lookup after the permission check). Purpose must be `BANK_IMAGE` either way.
+- **Student gate** (`lib/practice/runner/attempt-image-actions.ts`
+  `getAttemptImageUrlAction(attemptId, assetId)`): (1) RLS-read the attempt
+  (owner-only); (2) bank-subscription re-check for `CUSTOM_BUILT` attempts
+  (runner-page lapse-lock parity, non-redirecting, SUPER_ADMIN bypass);
+  (3) **anti-oracle** — the asset id must be referenced by THIS attempt's
+  frozen `tabs_snapshot_json` (case + trend snapshots, walked by
+  `collectBankImageAssetIds`); (4) mint. Frozen-snapshot resolution falls out
+  for free — review keeps resolving after the live case changes.
+- **Deletion policy:** bank image bytes are never purged once an attempt
+  snapshot references them (v1 = no purge; the asset row's soft-delete states
+  exist but nothing sweeps this purpose).
+
+**Build shape (kept reusable for Slice 8 — the handoff contract below):**
+
+- `lib/authoring/bank-image-block.tsx` — editor NodeView (upload dropzone →
+  filled image + alt/caption), host-agnostic, opt-in via `RichField`'s new
+  `extensions` prop (only narrative bodies enable it today).
+- `lib/authoring/bank-image-view.tsx` — Tiptap-free read-side `<BankImageView>`
+  with an **injected resolver** (curator action in previews/static cards,
+  attempt-bound action in the runner).
+- `lib/authoring/bank-image-url-cache.ts` — page-memory cache of minted URLs
+  keyed by asset id (TTL 55 min < the 1-h URL validity; Sam-requested after
+  testing). A remount — tab switch, back-navigation — reuses the same URL: no
+  server round-trip, and the identical URL means the browser serves the bytes
+  from its HTTP cache. Load error → evict + re-mint (once per mount). Wired
+  into both `BankImageView` and the editor NodeView.
+- `lib/authoring/bank-image-lightbox.tsx` — tap-to-expand lightbox
+  (Sam-requested after testing: detail-dense images — ECG strips — are
+  unreadable at column width; stored images carry up to 1600px). Tap the
+  inline image (or the always-visible corner ⤢ chip) → full-screen dimmed
+  overlay, fit-to-screen; tap the image again → 100% natural size (scroll to
+  pan); tap anywhere / × / Esc → close. Portaled to body; reuses the cached
+  URL (no re-fetch); exam-authentic (NGN lets candidates enlarge exhibits).
+  In the editor NodeView the ⤢ button opens it (image-click selects the
+  node); in read contexts the image itself is clickable. `.auth-lightbox-*` /
+  `.auth-img-expand` CSS in authoring.css. The tutor LIBRARY's image block
+  has the same limitation — porting the lightbox there is a separate small
+  follow-on, not bundled.
+- `lib/authoring/rich-render.tsx` — generic **`custom` block-renderer seam**;
+  `bankImageRenderer(resolve)` (narrative-view.tsx) builds the splice.
+- `lib/authoring/bank-image-doc.ts` — pure deep-walkers
+  (`collectBankImageAssetIds` / `docHasFilledBankImage`); walks ANY JSON shape
+  (frozen snapshots nest docs under `entries → body`, not `content`). Tested
+  (`bank-image-doc.test.ts`).
+- Emptiness fix: an image-only entry counts as content
+  (`entryIsEmpty` in narrative-model asks `docHasFilledBankImage`).
+- Save-safety: the narrative editor counts `AUTH_BLOCK_UPLOAD_EVENT`
+  (`lib/authoring/block-upload-event.ts`, the library guard's authoring mirror)
+  and holds Save while an upload is in flight.
+- Toolbar: an Image button in the narrative sticky toolbar inserts the block at
+  the caret of the focused entry.
+- Threading: `NarrativeView` takes `resolveImageUrl`; wrapper previews pass the
+  curator action; `CasePanel` / `TrendPanel` / both `ChartTabBody`s thread the
+  runner's attempt-bound closure.
+- Presentational CSS reuses `.lib-image-*` (styles/library.css is app-wide) —
+  zero new CSS.
+
+### Slice 8 — STEM images — ✅ BUILT + Sam-tested 2026-07-03 (second session)
+
+> **STATUS: BUILT — all four sub-slices, each Sam-tested on dev before the
+> next started** (branch `claude/serene-gagarin-6533c0`, commits
+> `179c26f`..`9068b4a`; all app-layer, ZERO migrations — the Slice-7
+> foundation carried everything). Images now work in question stems (all 11
+> types), library embeds, and wrapper scenarios:
+>
+> - **8a — editor chain + curator previews.** `bankImageRenderer` hoisted to
+>   `lib/authoring/bank-image-render.tsx` (server-safe; + the shared
+>   `curatorBankImageRenderer`). `RovingRichField` gained `extensions` (live
+>   editor) + `custom` (static view — without it the image vanished whenever
+>   the stem lost focus); `RichStemField` enables both for every editor in
+>   one place; `RovingToolbar` gained a stem-gated Insert-image button
+>   (`STEM_IMAGE_KEYS`). `RichRenderWithSlots` gained the same `custom` seam
+>   (a bankImage atom silently vanished from marker stems otherwise); the 3
+>   marker stem-doc save rewriters verified atom-safe. New
+>   `use-uploads-in-flight.ts` hook → all 11 editors hold Save mid-upload.
+>   New `richTextToPlainLabel` ("(image)" instead of a blank row; display
+>   only, never validation) across bank lists / pickers / titles. Wrappers
+>   inherited everything free (same EditorBody/Preview components).
+> - **8b — runner + gate.** `getAttemptImageUrlAction`'s anti-oracle walk
+>   gained frozen stems (`nclex_attempt_items.stem_snapshot`, parse-then-
+>   walk); `RunnerQuestionArea` + the 3 stem-takeover runners thread the
+>   attempt-bound resolver (answering + review; review resolves forever).
+>   Gate composition locked by unit tests in `bank-image-doc.test.ts`.
+> - **8c — library embeds.** New **note-anchored**
+>   `getEmbedStemImageUrlAction(noteId, assetId)`
+>   (`lib/library/student/embed-image-actions.ts`): note-RLS entitlement →
+>   anti-oracle over the LIVE stems of every question the note embeds OR the
+>   student's OWN answer-history stem snapshots (past sittings keep
+>   rendering after the tutor edits/removes the question) → mint. Student
+>   player (play + review) + the tutor "student preview" (passes the same
+>   gate by note ownership) wired.
+> - **8d — wrapper scenario images** (Sam's mid-arc submission). Both
+>   scenarios were already rich + frozen → the gate walk added the two
+>   scenario snapshot columns (same rows it already read); `RichField`
+>   gained an opt-in `imageButton` for its standalone toolbar; wrapper
+>   metadata Saves (+ case publish-all) hold mid-upload; previews +
+>   `CasePanel`/`TrendPanel` splice via the resolvers they already held.
+>
+> **Settled scope calls:** stem only — **rationale images PARKED** (they'd
+> relegate the legacy `rationale_img` column; Sam is thinking that through
+> separately; cheap follow-on on this seam when re-opened). **Image-only
+> stems ALLOWED with no new hard rule**: `isEmptyRichDoc` already counts an
+> image block as content; the 8 choice types show an amber advisory
+> (advise > block); the 3 marker types are naturally self-blocked by their
+> own structural rules (markers require stem text). Options / feedback /
+> instruction stay inline-only by design.
+>
+> Original planning notes kept below for the record; all four
+> known-unknowns resolved as noted inline.
+
+Sam's idea, valid — promoted from "follow-on candidate" to a numbered slice
+2026-07-03 so it stays on the arc's radar while Slice 7 is built. The
+question stem is already a `RichDoc` (since Slice 6), so the same image block
+can go inside a stem (`rationale_img` already exists as precedent for
+question-level images). But the blast radius is **much bigger** than the narrative
+block — a stem renders in the runner, the bank-list preview, the case + trend
+previews, **library embeds**, quiz previews, and every plain-text-flatten path —
+and the same access-model / frozen-snapshot bits then apply to every question.
+
+**Sequencing rationale: Slice 7 first.** The narrative block de-risks the whole
+bank-image foundation (bucket, `BANK_IMAGE` purpose, curator gate, the
+attempt-anchored student gate, snapshot resolution). Slice 8 then points the
+proven foundation at the stem editor + sweeps the extra surfaces — mostly
+render-site work, not new machinery.
+
+**Things Slice 7 should hand Slice 8** (keep these reusable, not
+narrative-specific):
+- The image block node + its editor component (don't hard-wire it to the
+  narrative editor).
+- The `RichRender` image-node seam (stems render through `RichRender` too).
+- The asset-id walker used by the anti-oracle check (Slice 8 widens it from
+  "frozen tabs" to "frozen stems" — `stem_snapshot` on `nclex_attempt_items`).
+
+**Known-unknowns to verify at Slice 8 kickoff — ALL RESOLVED at build:**
+- Whether the rich-*stem* editor is block-capable (the narrative body
+  definitely is; the stem field may be constrained to inline content).
+  **→ YES** — `RichField` runs full StarterKit; the only gap was that
+  `RovingRichField` didn't forward `extensions` (and its static view needed
+  the `custom` renderer or the image dropped on blur). Both seams added (8a).
+- Marker-stem types (Cloze `{N}` / Highlight `[[chunk]]` / drag-cloze `[N]`):
+  `RichRenderWithSlots` must also render the image node (settled 2026-07-02:
+  the coupled-marker model does NOT block this — markers are plain text that
+  coexist with a block node). **→ It had NO custom seam — a bankImage atom
+  hit the default case and silently vanished; the seam was added in 8a
+  (markers never sit inside an atom, so the slot cursor is unaffected).**
+- Library **embeds** show tutor-question stems to enrolled students — that
+  surface needs its own gate anchor (the embed's note entitlement, like the
+  library's existing gate), not the attempt anchor. **→ Built in 8c:
+  `getEmbedStemImageUrlAction`, anti-oracle = live embedded stems OR the
+  student's own answer snapshots.**
+- The plain-text-flatten sweep (lists / analytics / embeds / quiz previews)
+  must skip the node gracefully — same check as Slice 7, more call sites.
+  **→ `richTextToPlain` inherently skips atoms (no text); the real issue was
+  image-only stems flattening to a BLANK row label → new
+  `richTextToPlainLabel` "(image)" fallback at the display sites.**
+
+**Settled (2026-07-02) — the coupled-marker model stays; do NOT decouple.** For
+Cloze / Highlight / drag-cloze the answer positions ARE positions in the text, so
+the markers live **in the stem** (Option B: `{N}` / `[[chunk]]` / `[N]` as plain
+text in the rich prose, spliced by `RichRenderWithSlots`). Sam floated separating
+them (a clean stem + a separate answer layer / a repeated stem with selection
+applied). **Kept coupled:** markers-in-prose = one source of truth (the answer
+position moves with the words on edit); a decoupled position/span reference over
+mutable text reintroduces the classic drift bug; and for CLOZE a "pure stem" is
+incoherent (the reading text has holes). The coupling does **not** block stem
+images — markers are plain text that coexist with an image block in the same rich
+doc; the runner's splice logic just also renders the image node.
 
 ### Cross-cutting (every slice)
 
@@ -2156,13 +2352,22 @@ Both are **on the session branch, additive — `DRAG_DROP` is left 100% intact**
   is `slots`, no pool-size nag; a fresh item seeds one token per position). Max 8;
   3-slot advisory.
 
-**Legacy `DRAG_DROP` is NOT deleted.** The decouple (migrate the handful of old
-`DRAG_DROP` rows onto the two new types + delete the `DRAG_DROP`
-editor/parser/runner/type) is **deferred until the new types have been used for
-real and Sam is happy** — not on a fixed schedule. Until then `DRAG_DROP` is a
-frozen legacy type that still authors + renders + scores. When the decouple runs,
-it's the symmetric reverse of the checklist below (remove the `DRAG_DROP` line at
-each site; data move: bank dev 6/6, prod 1/2 by subtype; prod has 0 attempts).
+**Legacy `DRAG_DROP` — DECOUPLED + RETIRED 2026-07-02 (released to prod, PR #35).**
+Sam chose to do the full decouple. **Method = an in-place DATA relabel** (Sam's
+idea — a legacy row is identified only by `question_type='DRAG_DROP'` +
+`content.subtype`; the rest of the payload already matches the new types), NOT
+re-authoring: flip `question_type` (SENTENCE→`DRAG_CLOZE`, ORDERED→`DRAG_ORDER`),
+drop the `subtype` key, and **remap slot-keyed feedback → token-keyed per-row**
+(the split re-keyed feedback slot→token; the transform is deterministic:
+`fb[correct.slots[slot]] = oldFb[slot]`; token-keyed + empty rows pass through).
+Item ids kept (`ITEM_ID_PREFIX` is generation-only, never read to infer type).
+Dev: 13 rows relabelled (5→DCZ, 8→DO), verified 0 subtype/0 slot-keyed leftovers.
+Prod: 2 live published rows relabelled **before** the deploy (no feedback, 0
+attempt refs; safe under both code versions since DCZ/DO shipped in PR #34). Code
+was the symmetric reverse of the checklist below (net −3103 lines, 5 files
+deleted). **The `question_type` CHECK constraints were left permissive** —
+`DRAG_DROP` stays a legal-but-unused value so historical attempt snapshots that
+froze the string still validate; nothing writes it any more.
 
 ## Adding a new question type — wiring checklist (snapshot as of 2026-06-30)
 
@@ -2246,3 +2451,117 @@ runtime whitelists never surface at compile time.
 ### The id-generator is already generic
 `nclex_next_tutor_item_id(p_prefix text)` takes a prefix, so a new
 `ITEM_ID_PREFIX` / `TUTOR_ITEM_ID_PREFIX` entry needs no RPC change.
+
+
+## Positional insert & reorder — closing the append-only gap (planned 2026-07-04 · Slices 1–3 BUILT 2026-07-04 · Slice 4 PARKED)
+
+**The gap (Sam, 2026-07-04).** Every "add" operation across the authoring
+surfaces appends at the END. A curator who has built a large chart table and
+then realises a column belongs in the middle — or a nurses'-notes entry
+belongs between two existing timestamps — has no way to put it there.
+Deletion is already positional everywhere; insertion is not, and (narratives
+aside from the chart-tab rail) nothing reorders. On merged tables the manual
+workaround (append + hand-shuffle every cell) effectively means rebuilding
+the table.
+
+### Full-surface sweep (2026-07-04)
+
+Every list/grid "add" in the bank authoring surface, checked in code:
+
+| Surface | Today | Gap | Severity |
+| --- | --- | --- | --- |
+| **Merge table** (case + trend chart tabs, `lib/authoring/table/`) | `addRow`/`addCol` append at the end. Delete IS positional (selected band). Subdivide splits one cell mid-grid. | No insert-at-position for a full row/column. Worst case: merges make manual shuffling a rebuild. | **HIGH** |
+| **Matrix + Matrix-MR editors** | `addRow`/`addColumn` append (`[...rows, new]`); ✕ removes at any index. | No mid-grid insert; a 9-row grid needing a row at #3 = retype everything below. | **HIGH** |
+| **Narrative entries** (case + trend, `lib/authoring/narrative/`) | `addEntry` pushes at the end; `removeEntry` positional; **no reorder at all**. | Entries are usually chronological, and array order is AUTHORITATIVE by decision (never auto-sorted by the time chip) — so the curator owns ordering with no tools to manage it. | **HIGH** |
+| **Option lists** — MCQ/SATA/Select-N options · bow-tie wing tokens · cloze per-blank choices · drag-cloze/drag-order token pools | All append-only. Order is exactly what students see (`shuffle_seed` exists on the attempt type but NOTHING shuffles at render). | Same pattern, but lists are short (2–10 items) and cells are single fields — retype cost is small. | LOW |
+| **Tables-per-tab list** (merge tab holds a LIST of tables) | `addTable` appends. | Rarely more than 1–2 tables per tab. | LOW |
+| **Narrative header chips** | `addChip` appends, ✕ removes. | Chips are tiny labels. | LOW (micro) |
+
+**Already fine (no work needed):**
+- **Chart-tab RAIL order** — both wrappers already reorder tabs
+  (`reorderTabsAction`, two-pass shift).
+- **Marker-stem types** (Cloze `{N}` · Highlight `[[chunk]]` · drag-cloze
+  `[N]`) — position lives IN the prose; a curator inserts a marker anywhere
+  in the text (Cloze renumbers). Naturally position-free.
+- **Case slots** — fixed 6 NGN positions; "+" targets a specific empty slot,
+  so repositioning = detach + re-add at the target slot.
+- **Trend question pills** — ordered by `created_at`; display-only for the
+  curator (trend questions enter attempts individually). Noted, out of scope.
+
+### The plan (all app-layer, ZERO migrations — these structures save whole)
+
+**Slice 1 — merge table positional insert (both wrappers light up free) —
+✅ BUILT + Sam-tested 2026-07-04 (1a model+tests · 1b toolbar · 1c hover-⊕),
+incl. the three accepted defaults.**
+New pure model ops `insertRowAt` (above/below the selection) + `insertColAt`
+(left/right of the selection) in `merge-table-model.ts`. The hard bookkeeping
+already exists — Subdivide's internals (`insertSubColumn`/`insertSubRow`)
+splice mid-grid and bump the colspan/rowspan of merges straddling the
+insertion line; these generalise to full-width/full-height inserts.
+**Two triggers, one operation:**
+- **Toolbar ⊕ Insert ▾** in the Structure group (menu mirrors the Split ▾
+  pattern): Row above / Row below / Column left / Column right.
+  Selection-driven like Heading/Delete; a multi-cell selection inserts at the
+  selection's edge; post-insert the selection moves into the new row/column.
+  The footer + Row / + Column append buttons stay (the no-selection path).
+- **Hover-⊕ gutter markers** (the Google-Docs pattern — Sam's ask): moving
+  the mouse near a grid-line boundary in the strip ABOVE the table (column
+  boundaries) or LEFT of it (row boundaries) shows a small ⊕ on that
+  boundary + a preview line across the table; click inserts there. Markers
+  live in the GUTTERS, never on cells, so they can't fight the existing
+  drag-to-select. Desktop enhancement only — the toolbar menu is the
+  touch/keyboard fallback, so the hover layer can be disabled with zero
+  function loss if it misbehaves. The layer only READS layout and calls the
+  same tested ops; it cannot corrupt table data.
+
+**Accepted defaults:** a new row inherits the ADJACENT row's "Appears from"
+(the row it was inserted relative to); an insertion line crossing a merged
+cell EXPANDS the merge (span +1 — consistent with Subdivide); new cells are
+plain (no heading inheritance).
+
+**Sub-slices:** **1a** model ops + unit tests (merge-crossing, id
+uniqueness, visibleFrom inheritance, edges) · **1b** toolbar ⊕ Insert ▾ +
+handlers + post-insert selection (browser-testable end-to-end) · **1c** the
+hover-⊕ gutter layer + preview line (+ its CSS).
+
+**Slice 2 — matrix family (MATRIX + MATRIX_MR) — ✅ BUILT 2026-07-04.**
+Rows/columns are flat arrays keyed by id (the correct-map is id-keyed, so
+splicing never remaps picks) — `insertRowAt`/`insertColumnAt` splice at
+position. Affordances mirror the removes (a deliberate DIVERGENCE from the
+chart table, discussed + kept with Sam: each editor follows its own
+established grammar — matrix = buttons attached to the thing, like its ✕s;
+chart table = selection + toolbar + hover gutters. Matrix grids are small,
+capped 10×6, and the always-visible buttons are touch-friendly with no
+fallback needed): a hover-revealed **+** at each column header's top-LEFT
+(inserts to the left, twin of the top-right ✕) and a **+** beside each
+row's ✕ (inserts above). The end-append buttons keep covering the ends, so
+every boundary is reachable. Bounds respected (insert disabled at max).
+**Rider fix (same session):** wide matrix grids didn't scroll inside the
+WRAPPER panes — the wrapper overrides collapsed `.auth-split` to plain
+`1fr` (= `minmax(auto, 1fr)`, min tracks content width) so
+`.auth-matrix-wrap`'s overflow-x never engaged; now `minmax(0, 1fr)` in
+the case pane + trend pane + the standalone ≤1024px responsive rule (the
+same latent bug at narrow windows).
+
+**Slice 3 — narrative entries (case + trend) — ✅ BUILT 2026-07-04.**
+`insertEntryAt` (blank entry at any index, inheriting the reference
+entry's "Appears from") + `moveEntry` (one place up/down; the whole card —
+id, chips, body, reveal — travels intact; no-op at the ends), both
+unit-tested. Entry cards gained a **+** (insert above) and **↑ ↓** move
+arrows (the cohort-curriculum pattern; no drag-and-drop) beside the reveal
+select and ×; `+ Add entry` keeps covering the bottom. The editor's
+focused-entry index re-points across both ops so the focused card stays
+focused. Reorder is included here and not on the grids because entries are
+cards in a list (reorder covers the "two existing entries are swapped"
+case insert alone doesn't), while moving grid rows across merges is high
+cost / low payoff.
+
+**Slice 4 — option lists — ⏸ PARKED (Sam, 2026-07-04).** The same
+insert-at-position affordance on the 7 list editors (MCQ/SATA/Select-N,
+bow-tie wings, cloze choices, drag token pools). LOW severity (short
+lists, cheap to retype) — revisit only if it becomes a real pain in
+authoring practice.
+
+**Out of scope:** drag-and-drop reordering anywhere; reorder for grid rows /
+columns (insert covers the authoring gap); trend-pill ordering; the tables-
+per-tab list and narrative chips (revisit only if they ever hurt).

@@ -66,12 +66,15 @@ import {
   RichInstructionField,
   RichStemField,
   RichRationaleFields,
+  STEM_IMAGE_KEYS,
 } from '@/lib/authoring/rich-atoms';
 import { RichRender } from '@/lib/authoring/rich-render';
+import { curatorBankImageRenderer } from '@/lib/authoring/bank-image-render';
+import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
+import { useAuthUploadsInFlight } from '@/lib/authoring/use-uploads-in-flight';
 import {
   parseRichDoc,
   isEmptyRichDoc,
-  richTextToPlain,
   type RichDoc,
 } from '@/lib/authoring/rich-doc';
 import type { MatrixMrEditorInitial } from './matrix-mr-row-mapper';
@@ -157,6 +160,15 @@ function MatrixMrGrid({
     if (rows.length >= MAX_MATRIX_MR_ROWS) return;
     update({ rows: [...rows, { id: nextRowId(), text: emptyDoc(), feedback: emptyDoc() }] });
   }
+  // Positional insert (2026-07-04): a new row ABOVE idx / column LEFT of
+  // idx. With the append buttons covering the ends, every boundary is
+  // reachable. The correct-map is id-keyed, so splicing never remaps picks.
+  function insertRowAt(idx: number) {
+    if (rows.length >= MAX_MATRIX_MR_ROWS) return;
+    const next = [...rows];
+    next.splice(idx, 0, { id: nextRowId(), text: emptyDoc(), feedback: emptyDoc() });
+    update({ rows: next });
+  }
   function removeRow(idx: number) {
     if (rows.length <= MIN_MATRIX_MR_ROWS) return;
     const removedId = rows[idx].id;
@@ -179,6 +191,12 @@ function MatrixMrGrid({
   function addColumn() {
     if (columns.length >= MAX_MATRIX_MR_COLS) return;
     update({ columns: [...columns, { id: nextColId(), text: emptyDoc() }] });
+  }
+  function insertColumnAt(idx: number) {
+    if (columns.length >= MAX_MATRIX_MR_COLS) return;
+    const next = [...columns];
+    next.splice(idx, 0, { id: nextColId(), text: emptyDoc() });
+    update({ columns: next });
   }
   function removeColumn(idx: number) {
     if (columns.length <= MIN_MATRIX_MR_COLS) return;
@@ -273,6 +291,15 @@ function MatrixMrGrid({
                   <input type="hidden" name="matrixmr_col_id" value={col.id} />
                   <button
                     type="button"
+                    className="auth-matrix-col-insert"
+                    onClick={() => insertColumnAt(cIdx)}
+                    disabled={disabled || columns.length >= MAX_MATRIX_MR_COLS}
+                    title="Insert a column to the left of this one"
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
                     className="auth-matrix-col-remove"
                     onClick={() => removeColumn(cIdx)}
                     disabled={disabled || columns.length <= MIN_MATRIX_MR_COLS}
@@ -316,6 +343,15 @@ function MatrixMrGrid({
                     </td>
                   ))}
                   <td className="auth-matrix-row-actions">
+                    <button
+                      type="button"
+                      className="auth-row-insert"
+                      onClick={() => insertRowAt(rIdx)}
+                      disabled={disabled || rows.length >= MAX_MATRIX_MR_ROWS}
+                      title="Insert a row above this one"
+                    >
+                      +
+                    </button>
                     <button
                       type="button"
                       className="auth-row-remove"
@@ -427,7 +463,7 @@ export function MatrixMrPreview({
           {isEmptyRichDoc(stem) ? (
             <span className="auth-preview-placeholder">Stem appears here…</span>
           ) : (
-            <RichRender doc={stem} />
+            <RichRender doc={stem} custom={curatorBankImageRenderer} />
           )}
         </div>
         <div className="auth-matrix-preview-wrap">
@@ -520,6 +556,9 @@ export function MatrixMrEditorBody({
   const [tab, setTab] = useState<'content' | 'classification' | 'housekeeping'>('content');
   const [clientError, setClientError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<PreviewViewMode>('student');
+  // Slice 8 — hold Save while a stem-image upload is in flight (saving
+  // then would persist a not-yet-filled image block).
+  const uploadsInFlight = useAuthUploadsInFlight();
 
   const [stem, setStem] = useState<RichDoc>(() => parseRichDoc(initial.stem));
   const [instruction, setInstruction] = useState<RichDoc>(() => parseRichDoc(initial.instruction));
@@ -566,6 +605,10 @@ export function MatrixMrEditorBody({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (pending) return;
+    if (uploadsInFlight) {
+      setClientError('An image is still uploading — give it a moment, then save.');
+      return;
+    }
     if (contentIncomplete) {
       setTab('content');
       setClientError(
@@ -618,7 +661,7 @@ export function MatrixMrEditorBody({
         realm={initial.surface}
         entityType={initial.surface === 'tutor' ? 'tutor_question' : 'bank_item'}
         itemId={initial.itemId}
-        title={richTextToPlain(initial.stem)}
+        title={richTextToPlainLabel(initial.stem)}
       />
       <RovingProvider>
         <div className="auth-split">
@@ -633,7 +676,10 @@ export function MatrixMrEditorBody({
               onChange={(id) => setTab(id as typeof tab)}
             >
               <TabPanel id="content">
-                <RovingToolbar hint="Click into a field to format it" />
+                <RovingToolbar
+                  hint="Click into a field to format it"
+                  imageFieldKeys={STEM_IMAGE_KEYS}
+                />
                 <RichInstructionField
                   value={instruction}
                   onChange={(doc) => { setInstruction(doc); markDirty(); }}

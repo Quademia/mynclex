@@ -20,8 +20,6 @@ interface CaseDbRow {
   case_id:          string;
   title:            string;
   scenario_summary: string | null;
-  topic:            string | null;
-  subtopic:         string | null;
   tags:               string[] | null;
   is_published:       boolean;
   is_builder_visible: boolean;
@@ -37,7 +35,7 @@ export default async function TutorCasesV2ListPage() {
 
   const { data: caseRows, error: caseErr } = await supabase
     .from('nclex_tutor_case_studies')
-    .select('case_id, title, scenario_summary, topic, subtopic, tags, is_published, is_builder_visible, is_free_sample, updated_at')
+    .select('case_id, title, scenario_summary, tags, is_published, is_builder_visible, is_free_sample, updated_at')
     .eq('tutor_id', user.id)
     .order('updated_at', { ascending: false });
 
@@ -153,7 +151,7 @@ function NewCaseButton({ surface }: { surface: 'admin' | 'tutor' }) {
 
 function buildCaseSearchText(c: CaseDbRow, tabs: TabRow[]): string {
   const parts: string[] = [
-    c.title, richTextToPlain(c.scenario_summary), c.topic ?? '', c.subtopic ?? '',
+    c.title, richTextToPlain(c.scenario_summary),
     ...(c.tags ?? []),
   ];
   for (const t of tabs) {

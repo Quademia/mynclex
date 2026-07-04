@@ -45,16 +45,11 @@ export interface CaseRow {
   title:                     string;
   scenario_summary:          string | null;
 
-  // Classifications retained on the DB row but NOT surfaced in UI
-  // (decision 9.2 — they live on questions only). Loaded for
-  // legacy-edit fallback only.
-  client_needs_category:     string | null;
-  client_needs_subcategory:  string | null;
-  nursing_subject:           string | null;
-  body_system:               string | null;
-  topic:                     string | null;
-  subtopic:                  string | null;
-  difficulty:                'Easy' | 'Medium' | 'Hard' | null;
+  // Tags are the one classification-adjacent field the wrapper keeps
+  // (decision 2026-07-03): a tag on the case counts as a tag on every
+  // child in the student builder. The seven legacy classification
+  // columns were dropped in 20260719120000 — classification lives on
+  // the child questions only (decision 9.2).
   tags:                      string[];
 
   is_free_sample:            boolean;
