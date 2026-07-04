@@ -464,6 +464,15 @@ the `reference_bank_publish_eligibility` memory.
 
 ## Readiness packs
 
+> **⚠ SUPERSEDED (2026-07-04) — canonical home is now
+> [readiness-packs.md](readiness-packs.md).** That doc consolidates
+> this section, the pricing in `payments-and-enrolment.md`, and the
+> 2026-07-04 planning decisions (membership link table replacing
+> `item_ids`, wrappers-in-packs, the corrected per-entity reservation
+> rule). Where this section conflicts with it, the new doc wins —
+> notably `item_ids TEXT[]` below is slated for replacement by
+> `nclex_readiness_pack_items`.
+
 A QAcademy product — curated assessments sold separately from the
 main bank. Questions in readiness packs are **reserved**: they don't
 appear in the custom quiz builder.

@@ -387,6 +387,12 @@ readiness packs stack on top — bank-only is the volume play.
 
 ### Pricing — Readiness packs
 
+> **Note (2026-07-04):** the canonical home for everything
+> readiness-pack (format, pricing, reservation, storage, build plan)
+> is now [readiness-packs.md](readiness-packs.md). This section is
+> kept for the pricing history (adopted + rejected alternatives);
+> the new doc carries the settled tables forward.
+
 **Settled 2026-05-17.** Five identical-shape packs, three standalone
 SKUs, bundled credits per bank tier.
 

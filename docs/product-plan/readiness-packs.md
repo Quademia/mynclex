@@ -1,0 +1,454 @@
+# Readiness Packs
+
+Last updated: 2026-07-04 (doc created — consolidates the readiness-pack
+planning previously scattered across `payments-and-enrolment.md`,
+`bank.md`, `bank-consumption.html` and `main.md`, plus the 2026-07-04
+planning session's new decisions: wrappers-in-packs, the membership
+link table, the corrected per-entity reservation rule, and the CAT
+pool-exclusion constraint.)
+
+**This is the canonical home for everything readiness-pack.** The other
+docs keep short pointers here. Where an older doc's section conflicts
+with this one, this doc wins.
+
+Status legend: **settled** · **settled-by-analogy** (follows an
+established house rule, confirm at build time) · **open**.
+
+---
+
+## 1. What a readiness pack is <span>settled</span>
+
+A QAcademy-owned product: a curated, fixed-form, exam-simulating
+assessment sold separately from (and bundled with) the bank
+subscription. The student buys a pack, sits it **once**, under exam
+timing, and gets a score that means something *because everyone who
+takes that pack answers the same 100 questions* — a fixed yardstick.
+
+Marketing name on the public page: **"Exam Readiness Assessments"**
+(bank-access page, Section 2). Internal/product name: readiness packs.
+
+How it differs from the neighbours:
+
+| | Readiness pack | Custom practice | CAT (planned) |
+|---|---|---|---|
+| Question list | Fixed, curated | Student-filtered | Adaptive, drawn live from the whole eligible bank |
+| Retakes | **One shot, ever** | Unlimited | Repeatable |
+| Timing | Always timed, exam pace | Student's choice | Timed |
+| Value | Comparable, predictive score | Practice in the shape you need | Exam *feel* + ability estimate |
+
+Tutors do **not** get readiness packs (`nclex_tutor_readiness_packs`
+deliberately doesn't exist) — tutors use Mock activities instead.
+Settled in the original bank schema design.
+
+---
+
+## 2. Format & attempt rules <span>settled 2026-05-17</span>
+
+**Format (all 5 packs identical shape):**
+
+- **Count in v1:** 5 packs, named plainly "Readiness Pack 1" → "5".
+- **Length:** 100 questions per pack — fixed, **not CAT**. Predictive
+  integrity needs a consistent denominator.
+- **Time limit:** 3 hours 20 minutes (200 min = 2 min/question,
+  matching the real NCLEX's 5-hour / 150-question pace).
+
+**Attempt rules:**
+
+- **One shot per pack.** No retakes, no resets. If a student can
+  retake the same 100 questions, the score isn't a real signal any
+  more (UWorld follows the same rule for the same reason).
+- **Permanent until activated.** Once entitled (bundled or
+  standalone), a pack sits dormant in the student's account forever.
+  The clock only starts on "Start".
+- **21-day window on activation.** Same for bundled and standalone.
+  Chosen over UWorld's 14 days — more generous, mild differentiation,
+  still tight enough to feel focused rather than "a second bank
+  subscription".
+- **Window is independent of the bank subscription.** Unactivated
+  packs survive bank expiry; a student can return months later,
+  activate, and get their 21 days.
+
+**Runner rules** (from the source/mode/state framework,
+`bank-consumption.html` §15 — that framework itself stays canonical
+there):
+
+- `READINESS_PACK` is one of the three locked attempt **sources**.
+- **Mode is set by us at pack authoring** — default **Timed
+  Sequential** (no backtracking; exam-authentic).
+- **No resume.** Timed modes can't be resumed; abandoning a pack
+  attempt is equivalent to discarding it. Combined with one-shot,
+  this makes abandonment expensive — the preflight screen must say so
+  unmistakably (see Open questions §11).
+- **Review is available forever** after completion, like every
+  finished session.
+
+**Relation to the Readiness Signal** (`bank-consumption.html` §6):
+pack results **feed** the signal as ordinary attempts — they are
+**not specially weighted** and the signal never requires a pack (a
+bank subscriber may have done zero packs).
+
+---
+
+## 3. Pricing & SKUs <span>settled 2026-05-17</span>
+
+Moved here from `payments-and-enrolment.md` (which keeps the bank
+pricing and the generic payment flows).
+
+**Standalone catalogue (3 SKUs)** — sold from the bank-access page,
+Section 2:
+
+| SKU | What it grants | GHS | USD | USD per pack |
+|---|---|---|---|---|
+| Single Pack | 1 pack — student picks any 1 of the 5 | ₵100 | $20 | $20 |
+| Select 3 | 3 packs — student picks any 3 of the 5 | ₵240 | $48 | $16 (20% off) |
+| All 5 | All 5 packs unlocked | ₵350 | $70 | $14 (30% off) |
+
+Card copy: *"100 questions · 3 hours 20 minutes · one shot per pack ·
+21-day window on activation."* Selection of which packs happens
+**post-purchase**, so a returning student is never blocked from buying
+by the SKU shape.
+
+**Bundled credits per bank tier:**
+
+| Bank tier | Pack credits |
+|---|---|
+| Trial | 0 |
+| 30 days | 0 |
+| 60 days | 1 |
+| 90 days | 2 |
+| 180 days | 3 |
+| 365 days | 5 (all) |
+
+Packs only kick in on serious commitment — 30d is pure bank, no
+readiness sweetener.
+
+**Bundle vs standalone value:**
+
+| Tier | Bank price (USD) | Packs | Standalone value | Combo worth | Bundle saves |
+|---|---|---|---|---|---|
+| 30 days | $30 | 0 | — | $30 | — |
+| 60 days | $50 | 1 | $20 | $70 | **$20** |
+| 90 days | $70 | 2 | $40 (2× Single) | $110 | **$40** |
+| 180 days | $110 | 3 | $48 (Select 3) | $158 | **$48** |
+| 365 days | $160 | 5 | $70 (All 5) | $230 | **$70** |
+
+(2-pack rows price as 2× Single — there is no "Select 2" SKU. GHS
+savings scale the same way: ₵100 / ₵200 / ₵240 / ₵350.)
+
+**Interaction rules (bundle + standalone coexist):**
+
+- Bundled packs are granted as **credits**, not pre-assigned packs —
+  a 90d bank gives "2 credits"; the student picks which 2 of the 5 to
+  claim. A standalone purchase grants its packs the same way (the SKU
+  fixes the *count*, the student picks the packs).
+- A student can buy standalone packs on top of a bundle.
+- During selection, the system **disables packs the student already
+  owns** (bundle-claimed or previously purchased) — prevents
+  double-purchase and wasted credits.
+
+**Principles:** Single at $20 anchors to UWorld's standalone price;
+30% off at All-5 mirrors the bank's reward-commitment curve; GHS
+regionally priced (Single ≈ 5% of monthly Ghanaian entry-nursing
+salary, All 5 ≈ 16%); the bundle line is real marketing — *"a year of
+bank + all 5 readiness packs, $70 cheaper than buying separately."*
+Rejected alternatives (lower and higher tables) are preserved in
+`payments-and-enrolment.md` → *Pricing — Readiness packs* for the
+record.
+
+**Readiness packs are NOT offered at programme checkout** (settled —
+keeps programme checkout simple; packs sell through the readiness
+page).
+
+---
+
+## 4. Content: reservation mechanics <span>settled; per-entity rule corrected 2026-07-04</span>
+
+Pack questions are **reserved**: they must never appear in the student
+custom-quiz builder (and later, never in the CAT pool — §8).
+Otherwise a student could meet pack questions before buying the pack,
+and the one-shot score stops being a clean signal.
+
+**No new tables for the questions themselves, and no new column.**
+Pack questions stay ordinary `nclex_bank_items` rows — every editor,
+image, wrapper, scoring and runner path operates on bank items, and
+none of that stack gets duplicated. Reservation uses the pieces that
+already exist:
+
+1. **Hiding = `is_builder_visible = FALSE`** — the flag already exists
+   and the builder pool + the tag picker already filter on it
+   (verified in the live pool SQL, 2026-07-04).
+2. **Bookkeeping = a `readiness` workflow tag** — "which hidden
+   questions are readiness stock, how far to 500?" is answered by a
+   tag, the same trick as `for_prod`. Zero schema change. Because the
+   tag picker excludes non-builder-visible rows, the tag does not leak
+   to students — **tag and hide in the same save** (a tagged-but-
+   visible question would leak its tag until hidden).
+3. **Membership = the link table** (§6) — which pack, what position.
+
+A dedicated `is_readiness_question` column was considered and
+**rejected** (2026-07-04): it would duplicate what the flag + tag
+already say, every query would need to check both, and they can
+drift. One hiding flag + one workflow tag + one link table keeps each
+job in exactly one place.
+
+### The per-entity reservation rule (corrected 2026-07-04)
+
+Builder visibility is checked on **different rows** per entity type,
+so "reserve this" means a different flip per type:
+
+| Reserving… | Flip `is_builder_visible = FALSE` on… | Why |
+|---|---|---|
+| A standalone question | the question row | the pool's baseline filter checks it directly |
+| A case study | **the case row** (one flip hides the whole 6-question unit) | the pool checks the *case row's own* flag; case children are excluded from the standalone pool by `parent_case_id` regardless, so flipping the 6 children would do nothing |
+| A trend | **the trend's child question rows** | trend questions appear in the pool as standalone rows with their own flags; the trend dataset's own flag is a known no-op |
+
+(An earlier framing — "hiding a case's children hides the case" —
+was wrong in mechanism: what the 2026-07-03 eligibility fix derived
+from children was classification/tag *matching*, not visibility. The
+conclusion stands, the mechanism above is the true one.)
+
+**Removal never auto-exposes.** When a question (or wrapper) is
+removed from a pack, it stays hidden; a curator re-exposes
+deliberately. Safest default for a sold product.
+
+**Post-completion:** once a student has completed a pack, its
+questions **stay hidden from the builder forever** — no per-student
+unlock state. (Kept from the original bank plan.)
+
+---
+
+## 5. Wrappers in packs <span>settled 2026-07-04</span>
+
+**Cases and trends go into packs.** The real NCLEX-RN has included
+unfolding case studies in every sitting since the NGN change (three
+cases / 18 questions minimum, woven among standalone items) — a
+100-question "exam-simulating mock" with zero cases would feel
+noticeably less real than the exam it predicts, and prediction is the
+product. The machinery is already there: the runner handles wrapper
+questions inside ordinary attempts (case panel, trend panel,
+progressive disclosure, frozen snapshots), and a pack attempt is just
+another attempt.
+
+**Atomicity is the one hard rule enforced in code.** A case is
+atomic: its 6 questions enter a pack as a unit, consecutive and in
+slot order — progressive chart disclosure and the CJMM sequence only
+make sense whole. Trends are the same idea with variable question
+counts. The admin picker therefore needs "add this case (6
+questions)" as a single action, and pack composition maths reads like
+the real blueprint: e.g. 3 cases (18 Q) + 82 standalone = 100.
+
+**Mix is a curation guideline, not code.** "Roughly 2–3 cases per
+pack" is guidance; code enforces only atomicity (whole wrappers, in
+order). Keeps the 5 packs free to vary without a migration.
+
+**CAT's wrapper exclusion is irrelevant here** — cases are excluded
+from the *adaptive* pool in v1, but packs are fixed-form, so that
+deferral doesn't constrain pack content.
+
+---
+
+## 6. Storage: the membership link table <span>settled 2026-07-04</span>
+
+The original sketch (copied from Licensure) put a plain
+`item_ids TEXT[]` on the pack row — the table exists (empty) with that
+shape today. **Replace it with a link table**,
+`nclex_readiness_pack_items` — one row per pack↔question membership,
+carrying position. Reasons:
+
+1. **The database can protect a sold product.** A real FK lets
+   Postgres physically refuse to delete a question that sits inside a
+   pack. A text list silently keeps a broken ID — discovered only when
+   a paying student's one-shot mock loads 99 questions.
+2. **"Is this question reserved, and by which pack?" becomes
+   instant.** The builder pool exclusion, a "Pack 3" badge on the bank
+   list, and the no-double-membership rule in the picker are all
+   trivial lookups with a link table, awkward scans with a text list.
+3. **It's the house pattern.** Case membership works exactly this way
+   (`nclex_case_study_items` — one row per question-in-case, with
+   position). Same shape of relationship, familiar code everywhere.
+
+Illustrative shape (not binding until the build slice):
+
+```
+nclex_readiness_pack_items
+  pack_id    TEXT NOT NULL REFERENCES nclex_readiness_packs ON DELETE CASCADE
+  item_id    TEXT NOT NULL REFERENCES nclex_bank_items ON DELETE RESTRICT
+  position   INTEGER NOT NULL          -- 1..100, the sat order
+  -- wrapper members: whether the link rows point at the 6 child
+  -- questions individually (carrying their case in slot order) or at
+  -- the wrapper + expansion is a build-time decision — see §11.
+  UNIQUE (pack_id, item_id)
+  UNIQUE (pack_id, position)
+```
+
+**The visibility flag becomes machine-managed.** Adding a question
+(or wrapper) to a pack flips the right flag(s) off (per the §4
+per-entity rule) in the same save; removal leaves them hidden (never
+auto-expose). The flag and the pack contents cannot drift, and there
+is no manual curator step to forget.
+
+The pack row keeps `title / description / n / time_limit_sec /
+published / status`; `item_ids` is dropped by the same migration that
+adds the link table (the table is empty — cheap). `price_cents` on the
+pack row is superseded by the products catalogue (§7) and should be
+dropped too.
+
+---
+
+## 7. Payments & entitlement integration <span>settled; details open</span>
+
+The money path is **already built and generic** — nothing
+readiness-specific is missing in it:
+
+- `nclex_products` carries READINESS SKUs: `pack_type = 'READINESS'`,
+  `readiness_pack_count` (1/3/5), and `bundled_readiness_credits` on
+  BANK_DURATION rows. (An early sketch in the payments doc put a
+  per-SKU `readiness_pack_id` on products — the schema as built
+  correctly uses the *count*, matching the settled
+  credits-then-choose model. The built shape is canonical.)
+- `nclex_payments` has the `READINESS_PURCHASE` purpose;
+  `lib/payments/init.ts` already routes READINESS products to it, and
+  `lib/payments/activate.ts` already creates `nclex_subscriptions`
+  rows for it.
+- `nclex_subscriptions` carries `readiness_pack_id` (nullable) +
+  `readiness_activated_at` — the natural slots for "claimed which
+  pack" and "started the 21-day clock". `end_at` stays NULL until
+  activation.
+- The pay-first / invite flow, dual currency, and the trial machinery
+  are all shared with bank purchases
+  (`payments-and-enrolment.md` stays canonical for those).
+
+**The likely credit shape** (to confirm at build time): one
+subscription row per credit — a "Select 3" purchase creates 3 rows
+with `readiness_pack_id NULL`; claiming sets the pack id; activating
+sets `readiness_activated_at` + `end_at = now() + 21 days`. Bundled
+credits create the same rows at bank-purchase activation, with
+`source` distinguishing them. This is Open question §11.1.
+
+---
+
+## 8. Interaction with CAT <span>settled as a constraint 2026-07-04; CAT itself parked</span>
+
+CAT is the opposite animal: it draws from the **whole eligible bank,
+live** — no fixed list, by design. The two products split cleanly and
+the split is the point (fixed yardstick vs adaptive feel). Two
+consequences land on the pack side:
+
+1. **The CAT selection pool must exclude reserved pack questions** —
+   the same reservation the builder honours, which the link table
+   makes easy to enforce. Written here because the builder's filter
+   and CAT's pool query will be separate pieces of SQL; the CAT build
+   slice must carry this rule explicitly
+   (`bank-consumption-cat.html` §12.7 build-handoff should point
+   here).
+2. **"Unseen" is a preference, not a promise.** CAT picks unseen
+   first, then falls back to "seen in practice but never in a CAT",
+   then true repeats — a guarantee is impossible to keep for heavy
+   practice users. Rough maths: a 5-CAT allowance at up to 150 Q/CAT
+   needs ~750 unseen questions as a bare floor and ~1,500
+   CAT-suitable standalones for genuinely clean runs (the algorithm
+   needs *choice* at every difficulty level, not just count).
+
+**Status note (2026-07-04):** Sam is not yet convinced CAT earns its
+cost (heavy engineering + a quiet ~1,500-question content demand).
+Parked without prejudice. **Nothing in the readiness-pack build
+depends on CAT** — packs work identically whether CAT ships or never
+does. The pool-exclusion rule is enforced from the pack side anyway.
+
+---
+
+## 9. Content budget <span>settled as a planning number 2026-07-04</span>
+
+- **~500 reserved questions** for the 5 packs (some inside cases/
+  trends per the §5 mix), authored over months and earmarked as they
+  land (flag + `readiness` tag).
+- Reserved questions are **500 questions the builder and CAT can
+  never touch** — be deliberately stingy while the bank is young.
+- Full product vision (packs + healthy builder + CAT as designed) ≈
+  **2,000+ published questions**. This number shapes curation pace,
+  not any build slice.
+
+---
+
+## 10. Current build state (2026-07-04)
+
+**Already exists:**
+
+- Schema: `nclex_readiness_packs` (empty, old `item_ids` shape),
+  `nclex_attempts.source = 'READINESS_PACK'` + FK + integrity
+  CHECKs, products/payments/subscriptions columns per §7.
+- Payment machinery handles READINESS purchases end-to-end
+  (init → verify → activate → subscription row).
+- Runner/attempt infrastructure for the other two sources, including
+  wrapper rendering and frozen snapshots; history/preflight code
+  already references the READINESS_PACK source in passing.
+- Bank-access page shows "N readiness packs included" on bank cards.
+
+**Not built (the gaps):**
+
+1. Admin authoring surface — `/admin/packs` is a placeholder (no
+   pack CRUD, no question picker, no publish).
+2. The link-table migration (+ drop `item_ids`/`price_cents`).
+3. Public catalogue Section 2 (the 3 SKU cards) + READINESS product
+   rows seeded.
+4. Post-purchase claiming (credits → pick packs; disable owned).
+5. Student surface: where packs live, activation moment, the
+   one-shot timed run wiring, results.
+6. Attempt creation for the READINESS_PACK source
+   (`nclex_create_attempt` currently serves the other sources).
+
+---
+
+## 11. Open questions (not yet settled)
+
+1. **Credit/entitlement representation** — confirm the
+   one-subscription-row-per-credit shape (§7), incl. how a bundle
+   grant is created at bank activation and what `source` values
+   distinguish bundled vs standalone.
+2. **Post-purchase claiming UX** — where the "pick your packs" screen
+   lives, what an unclaimed credit looks like on the dashboard.
+3. **21-day window expiry semantics** — what happens to an activated
+   but never-started pack at day 21 (entitlement consumed?); and
+   **mid-attempt expiry** (student starts at day 20, window lapses
+   mid-sitting — grace to finish the sitting, or hard stop?).
+4. **One-shot + abandonment UX** — abandoning a timed attempt
+   discards it; for a one-shot product, does an abandoned attempt
+   consume the shot? (Consistency says yes — same as walking out of
+   the real exam — but the preflight warning + a connection-loss
+   grace policy need deciding.)
+5. **Results-page depth** — what the student sees after a pack: score
+   + band? per-category breakdown? full review immediately, or
+   summary-first? How prominently it feeds the Readiness Signal.
+6. **Pack publish gate** *(settled-by-analogy — confirm at build)* —
+   a pack shouldn't be sellable/startable unless complete (100
+   positions filled) and every member question is published; gate on
+   the publish toggle, not save (mirror of the case "publish all &
+   publish case" rule).
+7. **Link-table shape for wrapper members** — rows per child question
+   (with the wrapper implied) vs rows per wrapper (expanded at load).
+   Per-child keeps `UNIQUE(pack_id, position)` natural and the FK
+   protection on every question; decide at the migration.
+8. **Admin picker design** — the planned "filter → tick → add" flow
+   plus a cases/trends section with per-wrapper "add as unit"
+   (modest extension of the original sketch, not a rethink).
+9. **Seeding/naming** — pack ids (`NCLEX_PACK_00001`-style vs
+   `PACK_1`), product ids (`READINESS_1/3/5`), and whether the 5
+   packs are created up-front as drafts.
+10. **Trial interaction** — trial grants 0 credits (settled), but can
+    a trial student *see* the readiness catalogue in-app (upsell)?
+
+---
+
+## Pointers kept elsewhere
+
+- `payments-and-enrolment.md` — bank pricing, pay-first flow, dual
+  currency, trial; the rejected readiness pricing alternatives
+  (historical record).
+- `bank.md` §Readiness packs — superseded by this doc (pointer
+  added).
+- `bank-consumption.html` §6 (Readiness Signal), §15 (source/mode/
+  state framework) — those frameworks stay canonical there; this doc
+  consumes them.
+- `bank-consumption-cat.html` — CAT design; must carry the §8
+  pool-exclusion rule into its build handoff.
+- `main.md` §Readiness packs — one-paragraph summary, points here.
