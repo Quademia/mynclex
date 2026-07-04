@@ -326,14 +326,64 @@ un-claim (harmless: the 5 packs are deliberately identical in shape).
   `readiness_activated_at`) are slated for removal in the build
   slice's migration — free while unused.
 - **A NEW dedicated credits table** (working name
-  `nclex_readiness_credits` — **name and columns intentionally not
-  locked yet**; to be examined properly at the build slice). One row
-  per credit. Every row records: owner, provenance (which payment or
-  admin grant, bought vs bundled), an **explicit lifecycle status**
-  (credit → claimed → activated → used / expired / revoked), which
-  pack once claimed, per-transition timestamps (claimed / activated /
-  expires), and which attempt consumed the one shot. Explicit status
-  + timestamps + a sweep is the house pattern (mirrors enrolments).
+  `nclex_readiness_credits`). One row per credit. Working column
+  shape **accepted 2026-07-04** (below) — final lock at the build
+  slice.
+
+### The credits table — accepted working shape (2026-07-04)
+
+**No status column — the event timestamps are the only truth** (Sam's
+call, 2026-07-04): a status column would duplicate what the
+timestamps already say and the two could drift — the same
+one-fact-one-home principle that rejected the subscription shell row.
+The stage is *derived* from which blanks are filled, via one shared
+code helper so every screen reads it identically. (Enrolments keep
+their explicit status column deliberately — an enrolment's life loops
+and pauses; a credit's is strictly one-way. Linear lifecycle →
+timestamps; loopy lifecycle → status.)
+
+| # | Column | Holds | Filled when |
+|---|---|---|---|
+| 1 | `credit_id` | PK | minting |
+| 2 | `user_id` | owning student | minting |
+| 3 | `source` | `SELF_PURCHASE` · `BANK_BUNDLE` · `ADMIN_GRANT` | minting |
+| 4 | `payment_id` | the spawning receipt | minting; NULL for admin grants |
+| 5 | `granted_by` | which admin granted it | admin grants only |
+| 6 | `pack_id` | the claimed pack | claiming; NULL before |
+| 7 | `attempt_id` | the one sitting that consumed the shot | completion; NULL before |
+| 8 | `created_at` | minted | minting |
+| 9 | `claimed_at` | pack picked | claiming (with #6) |
+| 10 | `activated_at` | window started | activation |
+| 11 | `expires_at` | **the deadline** — activation + 21d, frozen per-credit | activation (with #10) |
+| 12 | `used_at` | sitting completed | completion (with #7) |
+| 13 | `expired_at` | **the lapse event** — window passed unused | the nightly sweep |
+| 14 | `revoked_at` | taken back | refund/admin path |
+| 15 | `revoked_reason` | why (refund, error…) | with #14 |
+| 16 | `updated_at` | housekeeping | every write |
+
+`expires_at` vs `expired_at` — deadline vs event — are both needed:
+DB-level rules can only read what's written in rows (never the
+clock), so the sweep stamping `expired_at` is what lets the
+no-double-claim constraint ignore lapsed credits; it also gives
+honest reporting. Reading the stage: #8 only = unclaimed credit →
++#9 = claimed → +#10/11 = window running → exactly one of #12 / #13 /
+#14 ends the story.
+
+**Database-enforced rules:** activation requires a claim; used
+requires activation; used/expired/revoked mutually exclusive; a claim
+must name a pack; provenance must exist (payment or admin, matching
+`source`); **no two live claims on the same pack per student** (the
+disable-owned rule with teeth); a claimed pack can't be deleted.
+Students read their own rows; every transition goes through a
+server action that re-validates (layered enforcement).
+
+**The table deliberately does NOT:** gate review (review-forever
+reads the attempt), touch the builder pool (reservation = flag +
+link table), or store attempt content.
+
+**Two seams left to open question §11.3/§11.4:** whether `expired_at`
+frees the pack for a re-claim with another credit, and what an
+abandoned sitting does to the credit.
 
 ### Credits are minted at activation — the grant is frozen
 
@@ -459,11 +509,12 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
 ## 11. Open questions (not yet settled)
 
 1. **Credit/entitlement representation — ✅ SETTLED 2026-07-04** (see
-   §7): a NEW dedicated credits table, one row per credit, explicit
-   lifecycle statuses, claiming as its own final step; readiness
-   purchases create no subscription row. **Still open within it:**
-   the exact table name + column list — deliberately unlocked until
-   the build slice.
+   §7): a NEW dedicated credits table, one row per credit, minted at
+   activation with the grant frozen; claiming as its own final step;
+   readiness purchases create no subscription row; **no status column
+   — event timestamps are the only truth** (16-column working shape
+   accepted 2026-07-04, in §7). Final name + column lock at the build
+   slice.
 2. **Post-purchase claiming UX** — where the "pick your packs" screen
    lives, what an unclaimed credit looks like on the dashboard. (The
    claim-as-its-own-step *model* is settled in §7; this is the
