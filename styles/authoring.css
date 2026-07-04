@@ -5692,6 +5692,16 @@
   background: var(--white);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
+/* In the WRAPPER panes the page scrolls (no modal body) and the wrapper's
+ * back/title bar is page-sticky at top:0 z-20 — top:0 pinned this toolbar
+ * INVISIBLY underneath it (looked "not sticky"). Park it just below,
+ * exactly like .mt-toolbar does (found 2026-07-04). Standalone editors
+ * keep top:0 (their scroll container is the modal body, nothing above). */
+.auth-cs-pane-left .auth-roving-toolbar,
+.auth-tr-pane-left .auth-roving-toolbar {
+  top: 46px;
+  z-index: 6;
+}
 .auth-roving-label {
   font-size: 11px;
   font-weight: 700;
