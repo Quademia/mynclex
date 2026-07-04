@@ -118,20 +118,21 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > `PAYSTACK_SECRET_KEY` still not on the prod Worker (prod checkout stays broken
 > until set — unrelated to these releases).
 
-> **⏭ POSITIONAL INSERT & REORDER — PLANNED 2026-07-04 (nothing built).**
-> Sam's finding: every authoring "add" appends at the END — no way to insert
-> a row/column in the middle of a chart table or matrix, or an entry between
-> two narrative timestamps (deletion is positional everywhere; insertion
-> isn't; narratives can't reorder at all despite order being authoritative).
-> Full-surface sweep done: HIGH = merge table · matrix family · narrative
-> entries; LOW = option lists / tables-per-tab / chips; already fine =
-> chart-tab rail (reorders), marker stems (position lives in prose), case
-> slots (fixed 6). **Plan: Slice 1** merge-table insert row above/below +
-> column left/right (Subdivide's mid-grid machinery generalised; merges
-> crossing the line expand) · **Slice 2** matrix/matrix-MR per-row/col
-> insert · **Slice 3** narrative insert above/below + move up/down arrows ·
-> **Slice 4 optional** option lists. All app-layer, zero migrations. Full
-> plan:
+> **✅ POSITIONAL INSERT & REORDER — Slices 1–3 BUILT 2026-07-04 (Slice 1
+> Sam-tested; Slice 4 PARKED).** Sam's finding: every authoring "add"
+> appended at the END. Full-surface sweep captured in the plan; built:
+> **Slice 1** merge-table insert row above/below + column left/right —
+> toolbar ⊕ Insert ▾ **+ the hover-⊕ gutter markers** (Google-Docs-style
+> ⊕-on-the-grid-line with a preview line; merges crossing the line expand;
+> new row inherits the adjacent "Appears from") · **Slice 2** matrix +
+> matrix-MR per-row/col + buttons (insert above / left; id-keyed picks
+> never remap) **+ a rider fix**: wide matrices now scroll inside the
+> wrapper panes (`.auth-split` collapsed to plain `1fr` — min tracked
+> content width; now `minmax(0,1fr)`, also fixed in the ≤1024px standalone
+> rule) · **Slice 3** narrative entries + (insert above, reveal inherited)
+> and ↑↓ move arrows (whole card travels). All app-layer, ZERO migrations;
+> unit tests 114→119. **Slice 4 (option lists) parked** — revisit only if
+> it hurts in practice. Full plan + build notes:
 > [questions-and-wrappers-rebuild.md](docs/product-plan/questions-and-wrappers-rebuild.md)
 > → "Positional insert & reorder".
 

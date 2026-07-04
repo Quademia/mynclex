@@ -2453,7 +2453,7 @@ runtime whitelists never surface at compile time.
 `ITEM_ID_PREFIX` / `TUTOR_ITEM_ID_PREFIX` entry needs no RPC change.
 
 
-## Positional insert & reorder — closing the append-only gap (planned 2026-07-04)
+## Positional insert & reorder — closing the append-only gap (planned 2026-07-04 · Slices 1–3 BUILT 2026-07-04 · Slice 4 PARKED)
 
 **The gap (Sam, 2026-07-04).** Every "add" operation across the authoring
 surfaces appends at the END. A curator who has built a large chart table and
@@ -2490,8 +2490,9 @@ Every list/grid "add" in the bank authoring surface, checked in code:
 
 ### The plan (all app-layer, ZERO migrations — these structures save whole)
 
-**Slice 1 — merge table positional insert (both wrappers light up free).
-PLAN ACCEPTED 2026-07-04 (incl. the three defaults + the hover-⊕ layer).**
+**Slice 1 — merge table positional insert (both wrappers light up free) —
+✅ BUILT + Sam-tested 2026-07-04 (1a model+tests · 1b toolbar · 1c hover-⊕),
+incl. the three accepted defaults.**
 New pure model ops `insertRowAt` (above/below the selection) + `insertColAt`
 (left/right of the selection) in `merge-table-model.ts`. The hard bookkeeping
 already exists — Subdivide's internals (`insertSubColumn`/`insertSubRow`)
@@ -2523,25 +2524,43 @@ uniqueness, visibleFrom inheritance, edges) · **1b** toolbar ⊕ Insert ▾ +
 handlers + post-insert selection (browser-testable end-to-end) · **1c** the
 hover-⊕ gutter layer + preview line (+ its CSS).
 
-**Slice 2 — matrix family (MATRIX + MATRIX_MR).** Rows/columns are flat
-arrays keyed by id (the correct-map is id-keyed, so splicing is safe) —
-insert is a trivial `splice`; the work is the affordance: a small per-row /
-per-column insert control (next to the existing ✕), "Insert above/below" /
-"Insert left/right". Existing min/max bounds respected.
+**Slice 2 — matrix family (MATRIX + MATRIX_MR) — ✅ BUILT 2026-07-04.**
+Rows/columns are flat arrays keyed by id (the correct-map is id-keyed, so
+splicing never remaps picks) — `insertRowAt`/`insertColumnAt` splice at
+position. Affordances mirror the removes (a deliberate DIVERGENCE from the
+chart table, discussed + kept with Sam: each editor follows its own
+established grammar — matrix = buttons attached to the thing, like its ✕s;
+chart table = selection + toolbar + hover gutters. Matrix grids are small,
+capped 10×6, and the always-visible buttons are touch-friendly with no
+fallback needed): a hover-revealed **+** at each column header's top-LEFT
+(inserts to the left, twin of the top-right ✕) and a **+** beside each
+row's ✕ (inserts above). The end-append buttons keep covering the ends, so
+every boundary is reachable. Bounds respected (insert disabled at max).
+**Rider fix (same session):** wide matrix grids didn't scroll inside the
+WRAPPER panes — the wrapper overrides collapsed `.auth-split` to plain
+`1fr` (= `minmax(auto, 1fr)`, min tracks content width) so
+`.auth-matrix-wrap`'s overflow-x never engaged; now `minmax(0, 1fr)` in
+the case pane + trend pane + the standalone ≤1024px responsive rule (the
+same latent bug at narrow windows).
 
-**Slice 3 — narrative entries (case + trend).** Per-entry controls: **Insert
-above / Insert below** + **Move up / Move down** (arrows — the established
-repo pattern from the cohort curriculum; no drag-and-drop). Reorder is
-included here and not on the grids because entries are cards in a list
-(reorder covers the "two existing entries are in the wrong order" case that
-insert alone doesn't), while moving grid rows across merges is high cost /
-low payoff.
+**Slice 3 — narrative entries (case + trend) — ✅ BUILT 2026-07-04.**
+`insertEntryAt` (blank entry at any index, inheriting the reference
+entry's "Appears from") + `moveEntry` (one place up/down; the whole card —
+id, chips, body, reveal — travels intact; no-op at the ends), both
+unit-tested. Entry cards gained a **+** (insert above) and **↑ ↓** move
+arrows (the cohort-curriculum pattern; no drag-and-drop) beside the reveal
+select and ×; `+ Add entry` keeps covering the bottom. The editor's
+focused-entry index re-points across both ops so the focused card stays
+focused. Reorder is included here and not on the grids because entries are
+cards in a list (reorder covers the "two existing entries are swapped"
+case insert alone doesn't), while moving grid rows across merges is high
+cost / low payoff.
 
-**Slice 4 (optional, decide at build time) — option lists.** The same
+**Slice 4 — option lists — ⏸ PARKED (Sam, 2026-07-04).** The same
 insert-at-position affordance on the 7 list editors (MCQ/SATA/Select-N,
-bow-tie wings, cloze choices, drag token pools). Cheap but wide (7 editors ×
-small change). LOW severity — fine to defer if the first three slices cover
-the real pain.
+bow-tie wings, cloze choices, drag token pools). LOW severity (short
+lists, cheap to retype) — revisit only if it becomes a real pain in
+authoring practice.
 
 **Out of scope:** drag-and-drop reordering anywhere; reorder for grid rows /
 columns (insert covers the authoring gap); trend-pill ordering; the tables-
