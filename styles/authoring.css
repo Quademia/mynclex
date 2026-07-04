@@ -210,7 +210,10 @@
 
 @media (max-width: 1024px) {
   .auth-split {
-    grid-template-columns: 1fr;
+    /* minmax(0, …) so wide grid content (matrix tables) scrolls inside
+       its own wrapper instead of stretching the column — plain 1fr means
+       minmax(auto, 1fr), whose min tracks the content width. */
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -4200,7 +4203,10 @@
   display: none;
 }
 .auth-cs-pane-left .auth-split {
-  grid-template-columns: 1fr;
+  /* minmax(0, …), not 1fr — 1fr = minmax(auto, 1fr), whose min tracks
+     the content width, so a wide matrix stretched the pane instead of
+     scrolling inside .auth-matrix-wrap (found 2026-07-04). */
+  grid-template-columns: minmax(0, 1fr);
 }
 
 /* ─────────────────────────────────────────────────────
@@ -5297,7 +5303,9 @@
   display: none;
 }
 .auth-tr-pane-left .auth-split {
-  grid-template-columns: 1fr;
+  /* minmax(0, …), not 1fr — same wide-matrix scroll fix as the case
+     pane (see .auth-cs-pane-left .auth-split). */
+  grid-template-columns: minmax(0, 1fr);
 }
 
 /* Dataset view (left pane when active = Dataset) */
