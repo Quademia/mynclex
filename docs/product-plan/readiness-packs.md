@@ -335,13 +335,28 @@ un-claim (harmless: the 5 packs are deliberately identical in shape).
   expires), and which attempt consumed the one shot. Explicit status
   + timestamps + a sweep is the house pattern (mirrors enrolments).
 
+### Credits are minted at activation — the grant is frozen
+
+The products catalogue is only the **recipe** ("this SKU carries 2
+credits"). At activation the recipe is cooked: real credit rows are
+**minted** into the credits table, and from then on the student's
+ownership lives entirely in those rows — the subscription row never
+carries credit information, and the product row is out of the
+picture. Minting (rather than deriving "they qualify for N" from the
+product at read time) freezes the grant at what was promised at
+purchase: a later catalogue edit to a bundle count cannot change
+already-granted credits — the same freeze philosophy as the
+enrolment plan snapshot. It also gives each credit a row to carry its
+own lifecycle, and removes any entitled-minus-claimed arithmetic.
+
 ### Worked examples
 
 - Buy **BANK_90D** → 1 payment row → activation creates 1
-  subscription row (90 days of bank) **+ 2 credit rows** (bundle
-  provenance, pointing at the same payment).
-- Buy **READINESS_SELECT3** → 1 payment row → **3 credit rows**, no
-  subscription row.
+  subscription row (90 days of bank, knows nothing about credits)
+  **+ 2 credit rows minted** (bundle provenance, pointing at the same
+  payment).
+- Buy **READINESS_SELECT3** → 1 payment row → **3 credit rows
+  minted**, no subscription row.
 - Admin grants a pack → 1 credit row, no payment.
 
 ### Rejected (2026-07-04)
