@@ -1453,6 +1453,54 @@
 .auth-matrix-col-remove:hover { background: #fef2f2; color: var(--danger); }
 .auth-matrix-col-remove:disabled { opacity: 0; cursor: not-allowed; }
 
+/* Positional insert (2026-07-04) — "+" twins of the removes: column
+ * insert sits top-LEFT of the header (inserts to the left), row insert
+ * sits beside the row ✕ (inserts above). */
+.auth-matrix-col-insert {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.auth-matrix-col-head:hover .auth-matrix-col-insert { opacity: 1; }
+.auth-matrix-col-insert:hover { background: var(--primary-light); color: var(--accent); }
+.auth-matrix-col-insert:disabled { opacity: 0; cursor: not-allowed; }
+
+.auth-matrix-row-actions { white-space: nowrap; }
+.auth-row-insert {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  align-self: center;
+  margin-right: 4px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.auth-row-insert:hover:not(:disabled) {
+  background: var(--primary-light);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.auth-row-insert:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .auth-matrix-row-head {
   background: var(--white);
   padding: 10px 12px;

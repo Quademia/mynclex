@@ -160,6 +160,15 @@ function MatrixMrGrid({
     if (rows.length >= MAX_MATRIX_MR_ROWS) return;
     update({ rows: [...rows, { id: nextRowId(), text: emptyDoc(), feedback: emptyDoc() }] });
   }
+  // Positional insert (2026-07-04): a new row ABOVE idx / column LEFT of
+  // idx. With the append buttons covering the ends, every boundary is
+  // reachable. The correct-map is id-keyed, so splicing never remaps picks.
+  function insertRowAt(idx: number) {
+    if (rows.length >= MAX_MATRIX_MR_ROWS) return;
+    const next = [...rows];
+    next.splice(idx, 0, { id: nextRowId(), text: emptyDoc(), feedback: emptyDoc() });
+    update({ rows: next });
+  }
   function removeRow(idx: number) {
     if (rows.length <= MIN_MATRIX_MR_ROWS) return;
     const removedId = rows[idx].id;
@@ -182,6 +191,12 @@ function MatrixMrGrid({
   function addColumn() {
     if (columns.length >= MAX_MATRIX_MR_COLS) return;
     update({ columns: [...columns, { id: nextColId(), text: emptyDoc() }] });
+  }
+  function insertColumnAt(idx: number) {
+    if (columns.length >= MAX_MATRIX_MR_COLS) return;
+    const next = [...columns];
+    next.splice(idx, 0, { id: nextColId(), text: emptyDoc() });
+    update({ columns: next });
   }
   function removeColumn(idx: number) {
     if (columns.length <= MIN_MATRIX_MR_COLS) return;
@@ -276,6 +291,15 @@ function MatrixMrGrid({
                   <input type="hidden" name="matrixmr_col_id" value={col.id} />
                   <button
                     type="button"
+                    className="auth-matrix-col-insert"
+                    onClick={() => insertColumnAt(cIdx)}
+                    disabled={disabled || columns.length >= MAX_MATRIX_MR_COLS}
+                    title="Insert a column to the left of this one"
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
                     className="auth-matrix-col-remove"
                     onClick={() => removeColumn(cIdx)}
                     disabled={disabled || columns.length <= MIN_MATRIX_MR_COLS}
@@ -319,6 +343,15 @@ function MatrixMrGrid({
                     </td>
                   ))}
                   <td className="auth-matrix-row-actions">
+                    <button
+                      type="button"
+                      className="auth-row-insert"
+                      onClick={() => insertRowAt(rIdx)}
+                      disabled={disabled || rows.length >= MAX_MATRIX_MR_ROWS}
+                      title="Insert a row above this one"
+                    >
+                      +
+                    </button>
                     <button
                       type="button"
                       className="auth-row-remove"
