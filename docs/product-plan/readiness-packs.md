@@ -75,10 +75,10 @@ there):
 - `READINESS_PACK` is one of the three locked attempt **sources**.
 - **Mode is set by us at pack authoring** — default **Timed
   Sequential** (no backtracking; exam-authentic).
-- **No resume.** Timed modes can't be resumed; abandoning a pack
-  attempt is equivalent to discarding it. Combined with one-shot,
-  this makes abandonment expensive — the preflight screen must say so
-  unmistakably (see Open questions §11).
+- **No resume across sessions — but packs deviate from the general
+  "abandoned = discarded" rule:** a quit **submits-as-is** instead of
+  voiding, and a connection loss is re-enterable while the sitting's
+  own clock runs. See *One shot, abandonment & re-claiming* below.
 - **Review: inside the window only** — packs deviate from the
   general "review forever" rule; see *The 21-day window — semantics*
   below. (Custom practice keeps review-forever untouched.)
@@ -120,11 +120,53 @@ AND time to learn from it.** Three rules:
    the only cost of starting that late is little/no review time. No
    grace-period bookkeeping beyond "the sitting completes".
 
-**Remaining sliver (leaning yes, confirm before build):** may a
-*fresh* credit re-claim a pack whose earlier credit expired
-**unused**? No questions were ever exposed, so score integrity is
-untouched — but it interacts with the credits table's
-no-double-claim rule (whether `expired_at` rows are ignored by it).
+### One shot, abandonment & re-claiming <span>settled 2026-07-04</span>
+
+Four rules (UWorld-verified: the same assessment can only be taken
+once — *"it can't be reset"* — and their answer to "test me again" is
+the catalogue of distinct assessments, pitched as *"each test acts as
+an independent data point, ensuring you don't memorize questions"*):
+
+1. **Starting the sitting = the shot.** Gated by a full-stop
+   preflight warning that cannot be clicked casually: *this is your
+   one attempt; leaving mid-exam ends and scores it.*
+2. **Quit = submit-as-is, not void** (deviation from the general
+   "abandoned timed session = discarded" rule, packs only).
+   Unanswered questions score zero, the result computes, review works
+   normally for the rest of the window. The student gets something
+   honest for their money; the Readiness Signal gets real data; the
+   credit's story stays clean (used + attempt link, like any
+   completion).
+3. **Connection loss ≠ quit.** The sitting can be re-entered while
+   its own 3h20m clock is still running — the clock never pauses
+   (exam-authentic). Clock runs out before they return →
+   auto-submit-as-is. No quit-and-restart, but a Wi-Fi blip doesn't
+   destroy a paid attempt.
+4. **Which packs can a fresh credit claim?** A credit is generic (no
+   memory); the student's own history with each pack decides:
+
+   | History with the pack | Claimable? | Why |
+   |---|---|---|
+   | Never touched | ✅ | nothing to protect |
+   | Live claim held (claimed / window running) | ❌ | already owned — would waste a credit |
+   | **Sat** (even partially — quit counts, rule 2) | ❌ **ever** | one shot per pack: the questions are exposed, a repeat score could never be honest |
+   | Earlier claim **expired unused** | ✅ | not one question was seen — fresh as untouched (the credits table's no-double-claim rule ignores `expired_at` rows) |
+
+**Why sat-stays-closed even for a willing re-payer** (challenged +
+upheld 2026-07-04): a re-sit score is inflated by familiarity — it
+measures memory, not readiness — and hands the student false
+confidence at the exact moment they're deciding whether to book the
+real exam; it also contaminates the Readiness Signal, percentiles and
+future v2 calibration. The *desire* ("test me again") is honestly
+served by a **different** pack — that's what the multi-pack catalogue
+is for, and it earns the same revenue. UI treats it as a redirect,
+not a wall: *"Pack 2 can't be re-sat — a repeat score wouldn't be a
+true measure. Ready to test your improvement? Pack 3 is fresh to
+you."*
+
+**Parking lot (v2, only if re-sit demand proves real):** more packs
+(UWorld grew to 6), and possibly an explicitly-labelled *"practice
+re-run — not scored, not predictive"* mode. Never a scored re-sit.
 
 ---
 
@@ -420,9 +462,11 @@ server action that re-validates (layered enforcement).
 reads the attempt), touch the builder pool (reservation = flag +
 link table), or store attempt content.
 
-**Two seams:** whether `expired_at` frees the pack for a re-claim
-with another credit (§11.3 remaining sliver — leaning yes), and what
-a deliberately abandoned sitting does to the credit (§11.4).
+**Both former seams are now settled** (§2 → *One shot, abandonment &
+re-claiming*): `expired_at` rows are ignored by the no-double-claim
+rule (expired-unused packs re-claimable with a fresh credit), and a
+deliberately abandoned sitting consumes the credit via
+submit-as-is (used + attempt link, like any completion).
 
 ### Credits are minted at activation — the grant is frozen
 
@@ -561,15 +605,15 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
 3. **21-day window expiry semantics — ✅ SETTLED 2026-07-04** (see §2
    → *The 21-day window — semantics*): review lives inside the
    window (results persist forever) · expires-unstarted = credit
-   spent · started-inside = always finishes. **Remaining sliver:**
-   whether a fresh credit may re-claim a pack whose earlier credit
-   expired *unused* (leaning yes — no questions were exposed).
-4. **One-shot + abandonment UX** — *narrowed 2026-07-04:*
-   window-lapse-mid-sitting is solved (§2 rule 3). Still open:
-   does a student *deliberately abandoning* a sitting consume the
-   shot? (Consistency says yes — same as walking out of the real
-   exam — but the preflight warning + a connection-loss grace policy
-   need deciding.)
+   spent · started-inside = always finishes. The re-claim sliver is
+   settled too (§2 → *One shot, abandonment & re-claiming*, rule 4):
+   expired-unused packs are re-claimable with a fresh credit.
+4. **One-shot + abandonment — ✅ SETTLED 2026-07-04** (see §2 → *One
+   shot, abandonment & re-claiming*): start = the shot (full-stop
+   preflight warning) · quit = submit-as-is · connection loss
+   re-enterable on the sitting's own clock · sat-stays-closed upheld
+   against the willing-re-payer scenario (UWorld-verified; redirect
+   UI; v2 parking lot).
 5. **Results-page depth** — *partially shaped by §2 rule 1* (score +
    band + per-category breakdown persist forever; question review
    in-window). Still open: the page layout — full review immediately
