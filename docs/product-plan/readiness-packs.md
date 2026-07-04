@@ -295,35 +295,75 @@ dropped too.
 
 ---
 
-## 7. Payments & entitlement integration <span>settled; details open</span>
+## 7. Payments & entitlement: the credits model <span>direction settled 2026-07-04; exact table shape deliberately NOT locked</span>
 
-The money path is **already built and generic** — nothing
-readiness-specific is missing in it:
+### The model
+
+**However a readiness entitlement arrives, what the student holds is
+credits, claimed against packs of their choosing later.** Credits
+arise three ways:
+
+1. **Bundled with a bank product** — 60d→1, 90d→2, 180d→3, 365d→5
+   (Trial and 30d carry zero).
+2. **Standalone readiness SKUs** — Single/Select 3/All 5 → 1/3/5
+   credits. (For All 5 the claiming step is trivial — 5 credits, 5
+   packs, no choice — but the mechanics are identical.)
+3. **Admin grant** — no payment behind it.
+
+**Claiming is its own, final step** (settled 2026-07-04): the student
+turns a credit into a named pack on their dashboard *before* — and
+separately from — activating the 21-day window. Claims don't
+un-claim (harmless: the 5 packs are deliberately identical in shape).
+
+### Three tables, three jobs
+
+- **`nclex_payments`** (exists, live) — the charge/receipt. One row
+  per product bought. Already knows the `READINESS_PURCHASE` purpose;
+  `lib/payments/init.ts` already routes READINESS products to it.
+- **`nclex_subscriptions`** (exists, live) — **bank time only.** A
+  readiness purchase creates **no subscription row**. Its two
+  never-written readiness columns (`readiness_pack_id`,
+  `readiness_activated_at`) are slated for removal in the build
+  slice's migration — free while unused.
+- **A NEW dedicated credits table** (working name
+  `nclex_readiness_credits` — **name and columns intentionally not
+  locked yet**; to be examined properly at the build slice). One row
+  per credit. Every row records: owner, provenance (which payment or
+  admin grant, bought vs bundled), an **explicit lifecycle status**
+  (credit → claimed → activated → used / expired / revoked), which
+  pack once claimed, per-transition timestamps (claimed / activated /
+  expires), and which attempt consumed the one shot. Explicit status
+  + timestamps + a sweep is the house pattern (mirrors enrolments).
+
+### Worked examples
+
+- Buy **BANK_90D** → 1 payment row → activation creates 1
+  subscription row (90 days of bank) **+ 2 credit rows** (bundle
+  provenance, pointing at the same payment).
+- Buy **READINESS_SELECT3** → 1 payment row → **3 credit rows**, no
+  subscription row.
+- Admin grants a pack → 1 credit row, no payment.
+
+### Rejected (2026-07-04)
+
+Squeezing per-credit state into `nclex_subscriptions` (this doc's
+earlier "likely shape") — rejected after discussion: the credit's
+stage would be *inferred* from which columns happen to be filled
+rather than stated; one-payment→N-rows would weaken the table's
+one-entitlement-per-payment database guarantee for bank rows too; and
+a one-shot paid product deserves boringly explicit record-keeping.
+The subscriptions table goes back to doing one thing well.
+
+### Unchanged
 
 - `nclex_products` carries READINESS SKUs: `pack_type = 'READINESS'`,
   `readiness_pack_count` (1/3/5), and `bundled_readiness_credits` on
   BANK_DURATION rows. (An early sketch in the payments doc put a
   per-SKU `readiness_pack_id` on products — the schema as built
-  correctly uses the *count*, matching the settled
-  credits-then-choose model. The built shape is canonical.)
-- `nclex_payments` has the `READINESS_PURCHASE` purpose;
-  `lib/payments/init.ts` already routes READINESS products to it, and
-  `lib/payments/activate.ts` already creates `nclex_subscriptions`
-  rows for it.
-- `nclex_subscriptions` carries `readiness_pack_id` (nullable) +
-  `readiness_activated_at` — the natural slots for "claimed which
-  pack" and "started the 21-day clock". `end_at` stays NULL until
-  activation.
+  correctly uses the *count*. The built shape is canonical.)
 - The pay-first / invite flow, dual currency, and the trial machinery
   are all shared with bank purchases
   (`payments-and-enrolment.md` stays canonical for those).
-
-**The likely credit shape** (to confirm at build time): one
-subscription row per credit — a "Select 3" purchase creates 3 rows
-with `readiness_pack_id NULL`; claiming sets the pack id; activating
-sets `readiness_activated_at` + `end_at = now() + 21 days`. Bundled
-credits create the same rows at bank-purchase activation, with
-`source` distinguishing them. This is Open question §11.1.
 
 ---
 
@@ -388,7 +428,9 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
 
 1. Admin authoring surface — `/admin/packs` is a placeholder (no
    pack CRUD, no question picker, no publish).
-2. The link-table migration (+ drop `item_ids`/`price_cents`).
+2. The link-table migration (+ drop `item_ids`/`price_cents`), and
+   the credits-table migration (+ drop the two never-written
+   readiness columns off `nclex_subscriptions`).
 3. Public catalogue Section 2 (the 3 SKU cards) + READINESS product
    rows seeded.
 4. Post-purchase claiming (credits → pick packs; disable owned).
@@ -401,12 +443,16 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
 
 ## 11. Open questions (not yet settled)
 
-1. **Credit/entitlement representation** — confirm the
-   one-subscription-row-per-credit shape (§7), incl. how a bundle
-   grant is created at bank activation and what `source` values
-   distinguish bundled vs standalone.
+1. **Credit/entitlement representation — ✅ SETTLED 2026-07-04** (see
+   §7): a NEW dedicated credits table, one row per credit, explicit
+   lifecycle statuses, claiming as its own final step; readiness
+   purchases create no subscription row. **Still open within it:**
+   the exact table name + column list — deliberately unlocked until
+   the build slice.
 2. **Post-purchase claiming UX** — where the "pick your packs" screen
-   lives, what an unclaimed credit looks like on the dashboard.
+   lives, what an unclaimed credit looks like on the dashboard. (The
+   claim-as-its-own-step *model* is settled in §7; this is the
+   surface design.)
 3. **21-day window expiry semantics** — what happens to an activated
    but never-started pack at day 21 (entitlement consumed?); and
    **mid-attempt expiry** (student starts at day 20, window lapses
