@@ -79,13 +79,52 @@ there):
   attempt is equivalent to discarding it. Combined with one-shot,
   this makes abandonment expensive — the preflight screen must say so
   unmistakably (see Open questions §11).
-- **Review is available forever** after completion, like every
-  finished session.
+- **Review: inside the window only** — packs deviate from the
+  general "review forever" rule; see *The 21-day window — semantics*
+  below. (Custom practice keeps review-forever untouched.)
 
 **Relation to the Readiness Signal** (`bank-consumption.html` §6):
 pack results **feed** the signal as ordinary attempts — they are
 **not specially weighted** and the signal never requires a pack (a
 bank subscriber may have done zero packs).
+
+### The 21-day window — semantics <span>settled 2026-07-04</span>
+
+Grounded in what UWorld does with its Self-Assessments (2-week
+window from activation; sitting AND review both live inside it;
+after the window, answers are no longer viewable — even the score
+needs a support email). We adopt the same shape, more generous on
+results. **The window is not just time-to-sit — it's time to sit
+AND time to learn from it.** Three rules:
+
+1. **The window covers the sitting and the review.** Question-level
+   review (questions, the student's answers, correct answers,
+   rationales) is available from completion until day 21, then
+   closes. **The result never disappears:** score, band and the
+   per-category breakdown persist forever in history and keep
+   feeding the Readiness Signal (deliberately more generous than
+   UWorld, and content-safe — a breakdown exposes no questions).
+   Rationale for closing question review: pack questions are a
+   reserved, reusable asset; review-forever means permanent exposure
+   of 100 reserved questions to everyone who ever sat the pack.
+2. **Expires unstarted = the credit is spent.** Activate and never
+   sit → day 21 consumes the shot; no reset, no credit refund. The
+   student controlled the clock completely (packs wait unactivated
+   forever), so "Start my window" is the commitment moment — and the
+   UI must say so before the press. (Same as UWorld; same logic as a
+   real exam no-show.)
+3. **Started inside the window = always allowed to finish.** The
+   window governs *whether you may start*; once started, the sitting
+   is governed only by its own 3h20m timer. A sitting begun at 23:00
+   on day 21 completes and scores normally past the window's end —
+   the only cost of starting that late is little/no review time. No
+   grace-period bookkeeping beyond "the sitting completes".
+
+**Remaining sliver (leaning yes, confirm before build):** may a
+*fresh* credit re-claim a pack whose earlier credit expired
+**unused**? No questions were ever exposed, so score integrity is
+untouched — but it interacts with the credits table's
+no-double-claim rule (whether `expired_at` rows are ignored by it).
 
 ---
 
@@ -381,9 +420,9 @@ server action that re-validates (layered enforcement).
 reads the attempt), touch the builder pool (reservation = flag +
 link table), or store attempt content.
 
-**Two seams left to open question §11.3/§11.4:** whether `expired_at`
-frees the pack for a re-claim with another credit, and what an
-abandoned sitting does to the credit.
+**Two seams:** whether `expired_at` frees the pack for a re-claim
+with another credit (§11.3 remaining sliver — leaning yes), and what
+a deliberately abandoned sitting does to the credit (§11.4).
 
 ### Credits are minted at activation — the grant is frozen
 
@@ -519,18 +558,23 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
    lives, what an unclaimed credit looks like on the dashboard. (The
    claim-as-its-own-step *model* is settled in §7; this is the
    surface design.)
-3. **21-day window expiry semantics** — what happens to an activated
-   but never-started pack at day 21 (entitlement consumed?); and
-   **mid-attempt expiry** (student starts at day 20, window lapses
-   mid-sitting — grace to finish the sitting, or hard stop?).
-4. **One-shot + abandonment UX** — abandoning a timed attempt
-   discards it; for a one-shot product, does an abandoned attempt
-   consume the shot? (Consistency says yes — same as walking out of
-   the real exam — but the preflight warning + a connection-loss
-   grace policy need deciding.)
-5. **Results-page depth** — what the student sees after a pack: score
-   + band? per-category breakdown? full review immediately, or
-   summary-first? How prominently it feeds the Readiness Signal.
+3. **21-day window expiry semantics — ✅ SETTLED 2026-07-04** (see §2
+   → *The 21-day window — semantics*): review lives inside the
+   window (results persist forever) · expires-unstarted = credit
+   spent · started-inside = always finishes. **Remaining sliver:**
+   whether a fresh credit may re-claim a pack whose earlier credit
+   expired *unused* (leaning yes — no questions were exposed).
+4. **One-shot + abandonment UX** — *narrowed 2026-07-04:*
+   window-lapse-mid-sitting is solved (§2 rule 3). Still open:
+   does a student *deliberately abandoning* a sitting consume the
+   shot? (Consistency says yes — same as walking out of the real
+   exam — but the preflight warning + a connection-loss grace policy
+   need deciding.)
+5. **Results-page depth** — *partially shaped by §2 rule 1* (score +
+   band + per-category breakdown persist forever; question review
+   in-window). Still open: the page layout — full review immediately
+   or summary-first, and how prominently it feeds the Readiness
+   Signal.
 6. **Pack publish gate** *(settled-by-analogy — confirm at build)* —
    a pack shouldn't be sellable/startable unless complete (100
    positions filled) and every member question is published; gate on
