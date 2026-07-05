@@ -1,17 +1,19 @@
 # Readiness Packs
 
-Last updated: 2026-07-04 (doc created + one full planning session —
-consolidates the readiness-pack planning previously scattered across
+Last updated: 2026-07-05 (§11.2 post-purchase claiming UX confirmed
+by Sam + recorded in §7 → *Post-purchase claiming UX*. Doc created
+2026-07-04 + one full planning session — consolidates the
+readiness-pack planning previously scattered across
 `payments-and-enrolment.md`, `bank.md`, `bank-consumption.html` and
-`main.md`. Settled same day: wrappers-in-packs + the real-NCLEX
+`main.md`. Settled 2026-07-04: wrappers-in-packs + the real-NCLEX
 composition guideline · the membership link table (per-child rows) ·
 the corrected per-entity reservation rule · the CAT pool-exclusion
 constraint · the credits model (dedicated table, 16-column working
 shape, timestamps-no-status, mint-at-activation frozen grant) · the
 21-day window semantics · one-shot/abandonment/re-claiming · publish
 gate & membership edits · admin surface shape · visibility incl.
-trials · seeding/naming. Open: §11.2 + §11.5 are proposals awaiting
-Sam's confirmation — first items next session.)
+trials · seeding/naming. Open: §11.5 (results page) is a drafted
+proposal awaiting Sam's confirmation — next item on the table.)
 
 **This is the canonical home for everything readiness-pack.** The other
 docs keep short pointers here. Where an older doc's section conflicts
@@ -495,6 +497,8 @@ arise three ways:
 turns a credit into a named pack on their dashboard *before* — and
 separately from — activating the 21-day window. Claims don't
 un-claim (harmless: the 5 packs are deliberately identical in shape).
+One named exception — All-5 mints pre-claimed; see *Post-purchase
+claiming UX* below.
 
 ### Three tables, three jobs
 
@@ -581,6 +585,53 @@ purchase: a later catalogue edit to a bundle count cannot change
 already-granted credits — the same freeze philosophy as the
 enrolment plan snapshot. It also gives each credit a row to carry its
 own lifecycle, and removes any entitled-minus-claimed arithmetic.
+
+### Post-purchase claiming UX <span>settled 2026-07-05</span>
+
+How a held credit becomes a named pack. Six pieces:
+
+1. **Claiming lives on the readiness-page pack cards — no separate
+   wizard.** The dedicated readiness page (§11.10) already gives each
+   pack a card whose state derives from the student's credit rows;
+   when the student holds an unclaimed credit, every *eligible* card
+   (per the claimability table, §2 → *One shot, abandonment &
+   re-claiming*, rule 4) shows a **Claim** button. Picking the pack
+   IS the claim. State and action live on the same object.
+2. **Three escalating gates, friction matched to what each step
+   costs:**
+   - **Claim = light confirm.** Irreversible but harmless (the packs
+     are identical in shape; the window does NOT start). The copy
+     must carry both halves explicitly: *"this won't start your
+     21-day window"* (no fear-claiming) AND *"claims can't be swapped
+     to another pack"* (no expected undo) — light in friction, not
+     light in information. This matters most to a Select-3 buyer
+     allocating 3 credits across 5 packs — claiming is their one
+     scarce-allocation moment.
+   - **Activate = firm confirm** ("Start my 21 days" — the
+     commitment moment; day 21 spends the shot even unsat, §2).
+   - **Begin exam = full-stop preflight** (the one-attempt warning,
+     §2 rule 1).
+3. **Payment result screens deep-link to the readiness page.** The
+   existing checkout result card gains a "Claim your pack →" CTA for
+   readiness purchases — payment to claiming is one click, not a
+   hunt.
+4. **All-5 mints pre-claimed.** 5 credits, 5 packs, zero real choice
+   — the claim step would be pure ceremony, so the credit rows are
+   minted with `pack_id` + `claimed_at` already stamped. This is a
+   **deliberate, named exception** to "claiming is its own final
+   step" — the build slice must not treat the mint-time
+   `claimed_at` as a bug.
+5. **Pay-first guests claim after account setup.** Credits mint
+   against the account at `/welcome` (the established convergence
+   point); the student lands on the readiness page with credits
+   waiting. No claiming as a guest.
+6. **The bank-dashboard section shows the compact state only**
+   ("2 credits unclaimed · Pack 1: 12 days left") and links to the
+   readiness page. One surface does claiming; the dashboard
+   signposts.
+
+Pixels to CD (the readiness page + its claim/activate confirms are
+already on the CD-brief list, §11.10 / §11.2).
 
 ### Worked examples
 
@@ -698,15 +749,16 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
    — event timestamps are the only truth** (16-column working shape
    accepted 2026-07-04, in §7). Final name + column lock at the build
    slice.
-2. **Post-purchase claiming UX — PROPOSAL ON THE TABLE (2026-07-04),
-   awaiting Sam's confirmation** (the composition discussion
-   interrupted it; first item next session): claiming happens on the
-   readiness-page pack cards themselves (no separate wizard) · a
-   light confirm on claim, with **three escalating gates** — claim =
-   light · activate = firm · begin-exam = full-stop preflight ·
-   payment result screens deep-link to the page to claim · All-5
-   mints pre-claimed · pay-first guests claim after account setup ·
-   the dashboard section shows the compact state. Pixels to CD.
+2. **Post-purchase claiming UX — ✅ SETTLED 2026-07-05** (see §7 →
+   *Post-purchase claiming UX*): claiming on the readiness-page pack
+   cards themselves (no separate wizard) · **three escalating
+   gates** — claim = light (but the copy carries both halves: window
+   doesn't start + no swap) · activate = firm · begin-exam =
+   full-stop preflight · payment result screens deep-link to the
+   page · All-5 mints pre-claimed (deliberate, named exception to
+   claim-as-its-own-step) · pay-first guests claim after account
+   setup at `/welcome` · the dashboard section = compact state +
+   signpost only. Pixels to CD.
 3. **21-day window expiry semantics — ✅ SETTLED 2026-07-04** (see §2
    → *The 21-day window — semantics*): review lives inside the
    window (results persist forever) · expires-unstarted = credit
