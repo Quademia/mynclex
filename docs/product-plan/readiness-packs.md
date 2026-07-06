@@ -1,19 +1,19 @@
 # Readiness Packs
 
-Last updated: 2026-07-05 (§11.2 post-purchase claiming UX confirmed
-by Sam + recorded in §7 → *Post-purchase claiming UX*. Doc created
-2026-07-04 + one full planning session — consolidates the
+Last updated: 2026-07-06 (§11.5 results page SETTLED — proposal
+confirmed + enriched: popup stays as the source-aware runner summary
+[standing rule: it adapts per source], points line beside the
+headline %, peer comparator w/ minimum-N gate, per-system +
+per-difficulty breakdowns w/ the thin-slice honesty rule, two
+lifetimes. Same session: the Readiness-band top label renamed
+**Exam-ready → Excelling** in `bank-consumption.html` §6.
+**With §11.5 settled, every §11 open question is now closed** — next
+step = the CD briefs (claiming / results / admin picker) or the
+build-slice plan. Doc created 2026-07-04 — consolidates the
 readiness-pack planning previously scattered across
 `payments-and-enrolment.md`, `bank.md`, `bank-consumption.html` and
-`main.md`. Settled 2026-07-04: wrappers-in-packs + the real-NCLEX
-composition guideline · the membership link table (per-child rows) ·
-the corrected per-entity reservation rule · the CAT pool-exclusion
-constraint · the credits model (dedicated table, 16-column working
-shape, timestamps-no-status, mint-at-activation frozen grant) · the
-21-day window semantics · one-shot/abandonment/re-claiming · publish
-gate & membership edits · admin surface shape · visibility incl.
-trials · seeding/naming. Open: §11.5 (results page) is a drafted
-proposal awaiting Sam's confirmation — next item on the table.)
+`main.md`; §11.2 claiming UX settled 2026-07-05; everything else
+settled 2026-07-04.)
 
 **This is the canonical home for everything readiness-pack.** The other
 docs keep short pointers here. Where an older doc's section conflicts
@@ -740,7 +740,7 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
 
 ---
 
-## 11. Open questions (not yet settled)
+## 11. Open questions — ✅ ALL SETTLED as of 2026-07-06 (kept as the decision log)
 
 1. **Credit/entitlement representation — ✅ SETTLED 2026-07-04** (see
    §7): a NEW dedicated credits table, one row per credit, minted at
@@ -771,15 +771,62 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
    re-enterable on the sitting's own clock · sat-stays-closed upheld
    against the willing-re-payer scenario (UWorld-verified; redirect
    UI; v2 parking lot).
-5. **Results page — PROPOSAL ON THE TABLE (2026-07-04), awaiting
-   Sam's confirmation** (interrupted alongside §11.2): a full results
-   **page**, not the popup — verdict hero (score + band, honest
-   labelling) → per-category breakdown (the remediation map) →
-   question list into review · **two lifetimes on one page** per the
-   window rule: the report reachable forever, question-review links
-   live in-window then disabled with a one-line explanation · review
-   reuses the existing review runner, gated by the credit's window.
-   Pixels to CD.
+5. **Results page — ✅ SETTLED 2026-07-06** (proposal confirmed by
+   Sam as drafted, then enriched in the same discussion). A full
+   results **page** per sitting — the permanent analytics /
+   performance-review surface; the pack card's used state links here
+   forever. The confirmed shape:
+   - **The popup stays too — page and popup are complementary
+     layers.** The runner's universal source-aware results popup
+     (built Slice 3a, `lib/practice/runner/results-popup.tsx`;
+     `READINESS_PACK` is already in its source union) remains the
+     instant on-runner completion summary. For readiness it gets its
+     own variant: primary CTA **"See your full report" → this page**,
+     no retake button (one shot). **Standing rule (Sam, 2026-07-06):
+     the popup must keep adapting intelligently per source** —
+     builder session / curriculum-linked quiz / readiness pack /
+     future CAT each get fitting copy + actions, never one generic
+     popup.
+   - **Verdict hero:** score + band, honest labelling (a *measured*
+     score on a fixed form — no "Predicted" prefix here, and never
+     pass-probability). Bands renamed 2026-07-06: **Building →
+     Approaching → Ready → Excelling** (top band was "Exam-ready";
+     rename rationale in `bank-consumption.html` §6, which stays
+     canonical for bands). **Headline % stays the canonical
+     `final_score`** (item-equivalent average,
+     `bank-marks-and-scoring.html` §7 — one formula everywhere;
+     bands are defined on it) **plus an explicit points line**
+     (e.g. "412 of 520 points" — earned vs max marks) so the
+     answer-level volume behind NGN partial credit is visible
+     (Sam's point: ~100 questions carry far more than 100 scoreable
+     answers; partial credit is already in the maths, the points
+     line makes it visible).
+   - **Peer comparator** (Sam's addition): "You scored higher than
+     N% of takers of this pack." A pack is the fairest peer set in
+     the product — identical 100 questions under identical
+     conditions (this answers `bank-consumption.html`'s open
+     cohort-definition question *for packs*). **Minimum-N gate**
+     before it renders (~20–30 sittings; below that: "Peer
+     comparison unlocks as more nurses sit this pack"). Aggregate
+     data → lives in the forever layer.
+   - **Breakdowns — a multi-axis remediation map** (Sam's
+     addition): per-category (client needs) **+ per-body-system +
+     per-difficulty** (all axes already on every bank item;
+     subjects / Bloom / CJMM available too if CD wants them).
+     **Thin-slice honesty rule:** always show the fraction
+     ("1 of 3"), never a bare percentage on tiny slices — 100
+     questions across 14 body systems leaves some systems at 2–3
+     questions.
+   - **Question list → review** via the existing review runner,
+     gated by the credit's 21-day window. No new review surface.
+   - **Two lifetimes on one page** (the design's spine, mirrors §2):
+     the **report layer** (score · band · points · peer · breakdowns)
+     reachable forever; the **question-review layer** live in-window,
+     then links disable with a one-line explanation ("Question
+     review closed on day 21 — your score and breakdown are yours
+     forever").
+   - Pixels to CD (the results brief joins claiming + the admin
+     picker on the CD-brief list).
 6. **Pack publish gate — ✅ SETTLED 2026-07-04** (see §6 → *Publish
    gate & membership edits*): completeness-gated toggle + publish-all
    helper + un-publish stops new sales/claims only + **no membership
