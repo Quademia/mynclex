@@ -2369,6 +2369,21 @@ deleted). **The `question_type` CHECK constraints were left permissive** —
 `DRAG_DROP` stays a legal-but-unused value so historical attempt snapshots that
 froze the string still validate; nothing writes it any more.
 
+**⏸ PARKED — real drag gesture as a polish layer (noted 2026-07-06).** The
+DRAG_CLOZE / DRAG_ORDER runners deliberately use **click-to-place** (tap a
+token to arm it, tap a slot to place it) instead of real drag-and-drop —
+native HTML5 DnD is unreliable on touch and the audience is phone-first (the
+rationale is documented in the runner file headers). Settled with Sam
+2026-07-06: a true drag gesture **is buildable whenever we want it** — it is
+an *interaction-layer* concern, unrelated to Tiptap/RichDoc (which only
+covers formatted text rendering; `RichRenderWithSlots` already renders the
+drop targets inside rich prose). The build shape when picked up: layer a
+pointer-event drag library (e.g. `dnd-kit`, touch-capable) **on top of** the
+existing runners — same tokens/slots/answer map, scoring + snapshot + review
+untouched — and **keep click-to-place working alongside** as the
+accessible/phone-reliable path, so drag is additive, not a replacement. Pure
+polish; park until the consumption front makes it worth the trip.
+
 ## Adding a new question type — wiring checklist (snapshot as of 2026-06-30)
 
 Built from the `DRAG_CLOZE` + `DRAG_ORDER` builds. **This is a map of where a
