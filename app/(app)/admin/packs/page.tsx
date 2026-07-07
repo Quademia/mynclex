@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { loadPacksOverview, loadPacksSubcats } from '@/lib/bank/packs/queries';
 import { blueprintHealth } from '@/lib/bank/packs/composition';
-import { PackStrip } from '@/lib/bank/packs/pack-strip';
+import { PacksAreaHead } from '@/lib/bank/packs/area-head';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,27 +22,23 @@ export default async function AdminPacksPage() {
 
   return (
     <main className="auth-list-page">
-      <div className="auth-list-inner">
-        <header className="bl-page-head rp-area-head">
-          <div>
-            <div className="bl-eyebrow">
-              <span className="bl-surface-chip admin"><span className="dot" />Admin bank</span>
-              Readiness packs
-            </div>
-            <h1 className="bl-page-title">Readiness packs</h1>
-            <p className="bl-page-sub">
-              Curated 100-question exam-simulating assessments, sold separately.
-              Each student sits a pack once, under exam timing — so fill them
-              deliberately from reserved stock.
-            </p>
-          </div>
+      <PacksAreaHead
+        title="Readiness packs"
+        right={
           <div className="bl-head-actions">
             <Link href="/admin/dashboard" className="bl-btn">← Admin</Link>
             <Link href="/admin/bank/all" className="bl-btn">Question bank →</Link>
           </div>
-        </header>
-
-        <PackStrip packs={packs} activeId={null} />
+        }
+        packs={packs}
+        activeId={null}
+      />
+      <div className="auth-list-inner">
+        <p className="bl-page-sub">
+          Curated 100-question exam-simulating assessments, sold separately.
+          Each student sits a pack once, under exam timing — so fill them
+          deliberately from reserved stock.
+        </p>
 
         <div className="rp-grid">
           {packs.map((p) => {

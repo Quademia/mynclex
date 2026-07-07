@@ -9,7 +9,7 @@
 
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { loadPacksOverview, loadReservedStock } from '@/lib/bank/packs/queries';
-import { PackStrip } from '@/lib/bank/packs/pack-strip';
+import { PacksAreaHead } from '@/lib/bank/packs/area-head';
 import { ReservedStockView } from '@/lib/bank/packs/reserved-view';
 
 export const dynamic = 'force-dynamic';
@@ -24,22 +24,17 @@ export default async function AdminReservedStockPage() {
 
   return (
     <main className="auth-list-page">
-      <div className="auth-list-inner">
-        <header className="bl-page-head rp-area-head">
-          <div>
-            <div className="bl-eyebrow">
-              <span className="bl-surface-chip admin"><span className="dot" />Admin bank</span>
-              Readiness packs
-            </div>
-            <h1 className="bl-page-title">Reserved stock</h1>
-          </div>
+      <PacksAreaHead
+        title="Reserved stock"
+        right={
           <div className="rp-head-note">
             reserved questions never appear in student practice
           </div>
-        </header>
-
-        <PackStrip packs={packs} activeId="reserved" />
-
+        }
+        packs={packs}
+        activeId="reserved"
+      />
+      <div className="auth-list-inner">
         <ReservedStockView stock={stock} />
       </div>
     </main>

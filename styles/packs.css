@@ -94,6 +94,24 @@
 .rp-area-head { margin-bottom: 4px; }
 .rp-head-note { font-size: 12px; color: var(--text-faint); padding-top: 6px; }
 
+/* ── Sticky area header (per the CD prototype) ─────────────────
+ * Title row + pill strip pin to the top of the .product-content
+ * scroll (the locked shell's only scroll region — top:0 parks flush
+ * under the app topbar, the library breadcrumb-bar precedent). The
+ * negative margins bleed the white band across .auth-list-page's
+ * 28px/24px padding so scrolled rows never peek around it. */
+.rp-sticky-head {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  margin: -28px -24px 20px;
+  padding: 14px 24px 0;
+}
+.rp-sticky-head-inner { max-width: 1180px; margin: 0 auto; }
+.rp-sticky-head .bl-page-head { margin-bottom: 0; }
+
 .rp-strip {
   display: flex;
   gap: 6px;
@@ -157,6 +175,21 @@
 /* ── Detail columns ────────────────────────────────────────── */
 .rp-detail-cols { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
 .rp-detail-side { flex: 1 1 300px; min-width: min(300px, 100%); display: flex; flex-direction: column; gap: 16px; }
+
+/* Desktop: the right rail parks under the stuck header band and
+ * scrolls internally if taller than the viewport (the cohort
+ * "sticky rail + page scroll" pattern). Offsets: ~125px stuck band
+ * + 12px gap; max-height = viewport − 56px topbar − offset − 16px
+ * breathing room. The members list deliberately stays in normal
+ * page flow (Sam's call — no hard viewport cap like the CD). */
+@media (min-width: 769px) {
+  .rp-detail-side {
+    position: sticky;
+    top: 137px;
+    max-height: calc(100dvh - 209px);
+    overflow-y: auto;
+  }
+}
 
 /* ── Members panel ─────────────────────────────────────────── */
 .rp-members {
@@ -598,6 +631,9 @@
 
 /* ≤768px: single column (CLAUDE.md UI convention #3) */
 @media (max-width: 768px) {
+  /* No pinned band on phones — a tall sticky header eats too much
+   * of a small viewport; natural page scroll instead. */
+  .rp-sticky-head { position: static; }
   .rp-grid { grid-template-columns: 1fr; }
   .rp-q-row { grid-template-columns: 32px minmax(0, 1fr) auto; }
   .rp-unit-head { grid-template-columns: auto 32px minmax(0, 1fr) auto; }

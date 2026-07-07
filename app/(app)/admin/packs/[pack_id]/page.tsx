@@ -9,7 +9,7 @@
 import { notFound } from 'next/navigation';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { loadPacksOverview, loadPackDetail } from '@/lib/bank/packs/queries';
-import { PackStrip } from '@/lib/bank/packs/pack-strip';
+import { PacksAreaHead } from '@/lib/bank/packs/area-head';
 import { PackDetailBody } from '@/lib/bank/packs/detail-body';
 
 export const dynamic = 'force-dynamic';
@@ -33,20 +33,13 @@ export default async function AdminPackDetailPage({
 
   return (
     <main className="auth-list-page">
+      <PacksAreaHead
+        title="Readiness packs"
+        right={<div className="rp-head-note">{target} questions · one shot · exam pace</div>}
+        packs={packs}
+        activeId={pack.pack_id}
+      />
       <div className="auth-list-inner">
-        <header className="bl-page-head rp-area-head">
-          <div>
-            <div className="bl-eyebrow">
-              <span className="bl-surface-chip admin"><span className="dot" />Admin bank</span>
-              Readiness packs
-            </div>
-            <h1 className="bl-page-title">Readiness packs</h1>
-          </div>
-          <div className="rp-head-note">{target} questions · one shot · exam pace</div>
-        </header>
-
-        <PackStrip packs={packs} activeId={pack.pack_id} />
-
         <PackDetailBody pack={pack} units={units} count={count} target={target} />
       </div>
     </main>
