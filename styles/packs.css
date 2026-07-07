@@ -90,6 +90,38 @@
 .rp-card-link { text-decoration: none; color: inherit; cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s; }
 .rp-card-link:hover { text-decoration: none; border-color: var(--border-strong); box-shadow: var(--shadow-md); }
 
+/* Card wrapper: the ⋮ menu sits as a SIBLING of the card <Link>
+ * (programme-card pattern) so the menu isn't nested inside the anchor. */
+.rp-card-wrap { position: relative; display: flex; }
+.rp-card-wrap .rp-card-link { flex: 1; }
+.rp-card-wrap .rp-card-top { padding-right: 26px; }
+
+.rp-card-menu { position: absolute; top: 12px; right: 12px; }
+.rp-card-menu-btn {
+  width: 24px; height: 24px; border-radius: 6px;
+  border: 1px solid transparent; background: transparent;
+  color: var(--text-faint); font-size: 15px; font-weight: 700;
+  cursor: pointer; line-height: 1;
+}
+.rp-card-menu-btn:hover { border-color: var(--border); color: var(--text); background: var(--white); }
+
+.rp-card-menu-pop {
+  position: absolute; top: 28px; right: 0; z-index: 20;
+  min-width: 150px;
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-md);
+  padding: 4px; display: flex; flex-direction: column;
+}
+.rp-card-menu-item {
+  text-align: left; background: transparent; border: none;
+  padding: 7px 10px; border-radius: 6px;
+  font-size: 12.5px; font-weight: 600; color: var(--text); cursor: pointer;
+}
+.rp-card-menu-item:hover:not(:disabled) { background: var(--bg); }
+.rp-card-menu-item.is-danger { color: var(--danger); }
+.rp-card-menu-item.is-danger:hover:not(:disabled) { background: #fef2f2; }
+.rp-card-menu-item:disabled { color: var(--text-faint); cursor: not-allowed; }
+
 /* ── Pill strip (Slice ②a) ─────────────────────────────────── */
 .rp-area-head { margin-bottom: 4px; }
 .rp-head-note { font-size: 12px; color: var(--text-faint); padding-top: 6px; }

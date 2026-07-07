@@ -11,6 +11,7 @@ import { loadPacksOverview, loadPacksSubcats } from '@/lib/bank/packs/queries';
 import { blueprintHealth } from '@/lib/bank/packs/composition';
 import { PacksAreaHead } from '@/lib/bank/packs/area-head';
 import { NewPackButton } from '@/lib/bank/packs/new-pack-button';
+import { PackCardMenu } from '@/lib/bank/packs/pack-card-menu';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,39 +49,41 @@ export default async function AdminPacksPage() {
             const pct = target > 0 ? Math.min(100, Math.round((p.count / target) * 100)) : 0;
             const health = blueprintHealth(subcatsByPack[p.pack_id] ?? []);
             return (
-              <Link
-                key={p.pack_id}
-                href={`/admin/packs/${p.pack_id}`}
-                className="rp-card rp-card-link"
-              >
-                <div className="rp-card-top">
-                  <span className="rp-pack-id">{p.pack_id}</span>
-                  <span className={`rp-status ${p.status}`}>
-                    {p.published ? 'published' : p.status}
-                  </span>
-                </div>
-                <h2 className="rp-title">{p.title}</h2>
-                <div className="rp-fill-row">
-                  <span className="rp-fill-count">
-                    {p.count} <span className="of">/ {target} questions</span>
-                  </span>
-                  {health && (
-                    <span
-                      className={`rp-bp-hint ${health.inRange === health.total ? 'ok' : 'warn'}`}
-                      title="Client Needs categories inside the published NCLEX blueprint ranges — guidance, never a block"
-                    >
-                      Blueprint {health.inRange}/{health.total}
+              <div key={p.pack_id} className="rp-card-wrap">
+                <Link
+                  href={`/admin/packs/${p.pack_id}`}
+                  className="rp-card rp-card-link"
+                >
+                  <div className="rp-card-top">
+                    <span className="rp-pack-id">{p.pack_id}</span>
+                    <span className={`rp-status ${p.status}`}>
+                      {p.published ? 'published' : p.status}
                     </span>
-                  )}
-                </div>
-                <div className="rp-fill-bar">
-                  <span style={{ width: `${pct}%` }} />
-                </div>
-                <div className="rp-meta">
-                  <span>⏱ {formatTimeLimit(p.time_limit_sec)}</span>
-                  <span>One shot · exam pace</span>
-                </div>
-              </Link>
+                  </div>
+                  <h2 className="rp-title">{p.title}</h2>
+                  <div className="rp-fill-row">
+                    <span className="rp-fill-count">
+                      {p.count} <span className="of">/ {target} questions</span>
+                    </span>
+                    {health && (
+                      <span
+                        className={`rp-bp-hint ${health.inRange === health.total ? 'ok' : 'warn'}`}
+                        title="Client Needs categories inside the published NCLEX blueprint ranges — guidance, never a block"
+                      >
+                        Blueprint {health.inRange}/{health.total}
+                      </span>
+                    )}
+                  </div>
+                  <div className="rp-fill-bar">
+                    <span style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="rp-meta">
+                    <span>⏱ {formatTimeLimit(p.time_limit_sec)}</span>
+                    <span>One shot · exam pace</span>
+                  </div>
+                </Link>
+                <PackCardMenu pack={p} />
+              </div>
             );
           })}
         </div>

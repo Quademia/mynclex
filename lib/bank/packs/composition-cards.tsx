@@ -22,6 +22,7 @@ import {
   computeBlueprint,
   computeGate,
   computeMix,
+  type PackGate,
 } from './composition';
 import type { PackRow, PackUnit } from './types';
 
@@ -111,23 +112,26 @@ export function PackCompositionCard({
   );
 }
 
-export function PackPublishCard({
-  pack,
-  units,
-  count,
-  target,
+/** The Publishing controls — state line + gated toggle + checklist +
+ *  the publish-all helper. ONE component behind both frames: the
+ *  detail sidebar card and the packs-list card-menu popup (2026-07-08)
+ *  — so the checklist has a single source of truth forever. Hosts
+ *  supply a computed gate; the actions re-check it server-side. */
+export function PublishPanel({
+  packId,
+  published,
+  gate,
+  onChanged,
 }: {
-  pack:   PackRow;
-  units:  PackUnit[];
-  count:  number;
-  target: number;
+  packId:    string;
+  published: boolean;
+  gate:      PackGate;
+  /** Fired after a successful toggle / publish-all. */
+  onChanged: () => void;
 }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-
-  const gate = computeGate(pack, units, count, target);
 
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, msg: string) => {
     startTransition(async () => {
@@ -137,20 +141,20 @@ export function PackPublishCard({
         return;
       }
       setNotice(msg);
-      router.refresh();
+      onChanged();
     });
   };
 
-  const stateLabel = pack.published
+  const stateLabel = published
     ? 'Published — on sale & claimable'
     : gate.ok
       ? 'Draft — ready to publish'
       : 'Draft — not ready yet';
 
   const toggle = () => {
-    if (pack.published) {
+    if (published) {
       run(
-        () => setPackPublishedAction(pack.pack_id, false),
+        () => setPackPublishedAction(packId, false),
         'Pack unpublished — new sales and claims stop. Students who already own it keep full access.',
       );
       return;
@@ -163,27 +167,27 @@ export function PackPublishCard({
       return;
     }
     run(
-      () => setPackPublishedAction(pack.pack_id, true),
+      () => setPackPublishedAction(packId, true),
       'Pack published — it is now on sale and claimable.',
     );
   };
 
   return (
-    <section className="rp-card rp-side-card">
+    <>
       <div className="rp-side-card-head">
         <div className="rp-pub-state">
           <h3>Publishing</h3>
           <span
-            className={`rp-pub-state-label ${pack.published ? 'live' : gate.ok ? 'ready' : 'blocked'}`}
+            className={`rp-pub-state-label ${published ? 'live' : gate.ok ? 'ready' : 'blocked'}`}
           >
             {stateLabel}
           </span>
         </div>
         <button
           type="button"
-          className={`rp-pub-toggle ${pack.published ? 'on' : ''}`}
+          className={`rp-pub-toggle ${published ? 'on' : ''}`}
           title={
-            pack.published
+            published
               ? 'Unpublish (stops new sales only)'
               : gate.ok
                 ? 'Publish this pack'
@@ -207,14 +211,14 @@ export function PackPublishCard({
         ))}
       </div>
 
-      {!pack.published && gate.helperOnly && (
+      {!published && gate.helperOnly && (
         <button
           type="button"
           className="rp-add-btn"
           disabled={pending}
           onClick={() =>
             run(
-              () => publishAllAndPublishPackAction(pack.pack_id),
+              () => publishAllAndPublishPackAction(packId),
               `Published ${gate.unpubQ.length} member question${gate.unpubQ.length === 1 ? '' : 's'}, then the pack — it is now on sale.`,
             )
           }
@@ -224,13 +228,39 @@ export function PackPublishCard({
       )}
 
       <p className="rp-meter-note">
-        {pack.published
+        {published
           ? 'Unpublishing stops new sales and claims only — students who already own this pack keep full access, always.'
           : 'Publishing puts the pack on sale. The checklist gates the toggle, never your drafting.'}
       </p>
 
       <ErrorToast error={error} onDismiss={() => setError(null)} />
       <InfoToast message={notice} onDismiss={() => setNotice(null)} />
+    </>
+  );
+}
+
+export function PackPublishCard({
+  pack,
+  units,
+  count,
+  target,
+}: {
+  pack:   PackRow;
+  units:  PackUnit[];
+  count:  number;
+  target: number;
+}) {
+  const router = useRouter();
+  const gate = computeGate(pack, units, count, target);
+
+  return (
+    <section className="rp-card rp-side-card">
+      <PublishPanel
+        packId={pack.pack_id}
+        published={pack.published}
+        gate={gate}
+        onChanged={() => router.refresh()}
+      />
     </section>
   );
 }

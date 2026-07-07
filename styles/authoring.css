@@ -1043,7 +1043,10 @@
 
 .auth-toast {
   position: fixed;
-  top: 24px;
+  /* Parked BELOW the app topbar (56px + 12px): at the old top:24px the
+   * toast landed inside the topbar band, colliding with the user-menu
+   * corner (Sam, 2026-07-08 packs session). */
+  top: 68px;
   right: 24px;
   z-index: 1000;
   display: flex;

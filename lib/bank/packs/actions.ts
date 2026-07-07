@@ -15,7 +15,7 @@ import { revalidatePath } from 'next/cache';
 import { requireBankCurator } from '@/lib/access';
 import { loadPackDetail, loadPackPicker } from './queries';
 import { unitLinkIds, unitMembers } from './grouping';
-import { computeGate } from './composition';
+import { computeGate, type PackGate } from './composition';
 import type { PackActionResult, PackUnit, PickerLoadResult } from './types';
 import { PACK_POSITION_STEP } from './types';
 
@@ -616,6 +616,23 @@ async function finishAdd(
 // here server-side (layered enforcement), not trusted from the client.
 // Un-publish stops new sales/claims only; it never touches existing
 // credits, attempts or review.
+
+/** Gate + publish state for one pack — feeds the packs-list card
+ *  menu's Publishing popup, which loads lazily instead of the list
+ *  page loading five packs' full membership up front. */
+export async function loadPackGateAction(packId: string): Promise<
+  | { ok: true; published: boolean; gate: PackGate }
+  | { ok: false; error: string }
+> {
+  const { supabase } = await requireBankCurator('admin');
+  const detail = await loadPackDetail(supabase, packId);
+  if (!detail) return { ok: false, error: 'Pack not found.' };
+  return {
+    ok: true,
+    published: detail.pack.published,
+    gate: computeGate(detail.pack, detail.units, detail.count, detail.pack.n ?? 100),
+  };
+}
 
 export async function setPackPublishedAction(
   packId: string,
