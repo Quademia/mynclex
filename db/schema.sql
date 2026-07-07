@@ -187,14 +187,14 @@ CREATE INDEX idx_nclex_case_study_tabs_case ON nclex_case_study_tabs(case_id);
 
 
 -- 7. QAcademy-owned readiness packs (curated assessments, sold separately)
+-- Reshaped 20260721120000: item_ids TEXT[] → the link table below;
+-- price_cents → the products catalogue (nclex_products).
 CREATE TABLE nclex_readiness_packs (
   pack_id                   TEXT PRIMARY KEY,
   title                     TEXT NOT NULL,
   description               TEXT,
-  item_ids                  TEXT[] NOT NULL DEFAULT '{}',
   n                         INTEGER,
   time_limit_sec            INTEGER,
-  price_cents               INTEGER,
   published                 BOOLEAN NOT NULL DEFAULT FALSE,
   publish_at                TIMESTAMPTZ,
   unpublish_at              TIMESTAMPTZ,
@@ -202,6 +202,22 @@ CREATE TABLE nclex_readiness_packs (
                               CHECK (status IN ('draft','active','archived')),
   created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 7b. Pack membership (20260721120000) — one row per question-in-a-pack,
+-- per-child rows for wrapper members (the nclex_attempt_items flattening
+-- pattern at authoring time — readiness-packs.md §6). Global
+-- UNIQUE(item_id): a question belongs to at most ONE pack, DB-enforced.
+-- id = '<pack_id>:<item_id>' — composite on purpose, so an audit row's
+-- entity_id names both halves even after the link row is deleted.
+CREATE TABLE nclex_readiness_pack_items (
+  id          TEXT PRIMARY KEY,
+  pack_id     TEXT NOT NULL REFERENCES nclex_readiness_packs(pack_id) ON DELETE CASCADE,
+  item_id     TEXT NOT NULL REFERENCES nclex_bank_items(item_id) ON DELETE RESTRICT,
+  position    INTEGER NOT NULL CHECK (position >= 1),   -- sat order; completeness owned by the publish gate
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (item_id),
+  UNIQUE (pack_id, position)
 );
 
 
