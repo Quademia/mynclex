@@ -15,6 +15,8 @@ import type {
   PickerCase,
   PickerQuestion,
   PickerTrend,
+  ReservedRow,
+  ReservedStock,
 } from './types';
 
 const PACK_COLUMNS =
@@ -163,6 +165,139 @@ export async function loadPacksSubcats(
     (out[r.pack_id] ??= []).push(r.nclex_bank_items?.client_needs_subcategory ?? null);
   }
   return out;
+}
+
+// ── Reserved-stock lens (Slice ③) ────────────────────────────────────
+// The "how far to 500" bookkeeping view. Union of three sources so it
+// can't drift: readiness-TAGGED questions (own tag), children of
+// readiness-tagged CASES (wrapper-tag inheritance), and every pack
+// MEMBER (the link table is authoritative for assignment). The picker
+// stamps tag+flags on add, so in practice members are tagged — the
+// union is the no-drift backstop.
+
+const RESERVED_TAG = 'readiness';
+
+interface ReservedItemRow {
+  item_id:                  string;
+  stem:                     string;
+  question_type:            string;
+  difficulty:               string | null;
+  client_needs_subcategory: string | null;
+  is_published:             boolean;
+  is_builder_visible:       boolean;
+  parent_case_id:           string | null;
+  trend_id:                 string | null;
+}
+
+const RESERVED_ITEM_COLUMNS =
+  'item_id, stem, question_type, difficulty, client_needs_subcategory, is_published, is_builder_visible, parent_case_id, trend_id';
+
+export async function loadReservedStock(
+  supabase: SupabaseClient,
+): Promise<ReservedStock> {
+  const [packs, { data: linkRows, error: linkErr }] = await Promise.all([
+    loadPacksOverview(supabase),
+    supabase.from('nclex_readiness_pack_items').select('pack_id, item_id'),
+  ]);
+  if (linkErr) throw new Error(`Could not load pack memberships: ${linkErr.message}`);
+
+  const numOf: Record<string, number> = {};
+  for (const p of packs) numOf[p.pack_id] = p.num;
+  const packNumByItem: Record<string, number> = {};
+  for (const l of (linkRows ?? []) as { pack_id: string; item_id: string }[]) {
+    packNumByItem[l.item_id] = numOf[l.pack_id] ?? 0;
+  }
+
+  // Source 1+2 seeds: tagged questions + tagged cases (children inherit).
+  const [{ data: taggedItems, error: tiErr }, { data: taggedCases, error: tcErr }] =
+    await Promise.all([
+      supabase
+        .from('nclex_bank_items')
+        .select(RESERVED_ITEM_COLUMNS)
+        .contains('tags', [RESERVED_TAG]),
+      supabase
+        .from('nclex_case_studies')
+        .select('case_id, is_builder_visible')
+        .contains('tags', [RESERVED_TAG]),
+    ]);
+  if (tiErr) throw new Error(`Could not load reserved questions: ${tiErr.message}`);
+  if (tcErr) throw new Error(`Could not load reserved cases: ${tcErr.message}`);
+
+  const byId: Record<string, ReservedItemRow> = {};
+  for (const r of (taggedItems ?? []) as ReservedItemRow[]) byId[r.item_id] = r;
+
+  // Children of the tagged cases.
+  const taggedCaseIds = ((taggedCases ?? []) as { case_id: string }[]).map((c) => c.case_id);
+  if (taggedCaseIds.length > 0) {
+    const { data: caseChildRows, error } = await supabase
+      .from('nclex_bank_items')
+      .select(RESERVED_ITEM_COLUMNS)
+      .in('parent_case_id', taggedCaseIds);
+    if (error) throw new Error(`Could not load case questions: ${error.message}`);
+    for (const r of (caseChildRows ?? []) as ReservedItemRow[]) byId[r.item_id] = r;
+  }
+
+  // Source 3 backstop: pack members not caught by a tag.
+  const missingMemberIds = Object.keys(packNumByItem).filter((id) => !byId[id]);
+  if (missingMemberIds.length > 0) {
+    const { data: memberRows, error } = await supabase
+      .from('nclex_bank_items')
+      .select(RESERVED_ITEM_COLUMNS)
+      .in('item_id', missingMemberIds);
+    if (error) throw new Error(`Could not load pack members: ${error.message}`);
+    for (const r of (memberRows ?? []) as ReservedItemRow[]) byId[r.item_id] = r;
+  }
+
+  // Case children's effective builder-visibility = the CASE row's flag
+  // (per-entity rule). Fetch flags for every parent case we touch.
+  const parentCaseIds = [
+    ...new Set(
+      Object.values(byId)
+        .map((r) => r.parent_case_id)
+        .filter(Boolean),
+    ),
+  ] as string[];
+  const caseVisible: Record<string, boolean> = {};
+  for (const c of (taggedCases ?? []) as { case_id: string; is_builder_visible: boolean }[]) {
+    caseVisible[c.case_id] = c.is_builder_visible;
+  }
+  const unknownCaseIds = parentCaseIds.filter((id) => !(id in caseVisible));
+  if (unknownCaseIds.length > 0) {
+    const { data: caseRows, error } = await supabase
+      .from('nclex_case_studies')
+      .select('case_id, is_builder_visible')
+      .in('case_id', unknownCaseIds);
+    if (error) throw new Error(`Could not load case flags: ${error.message}`);
+    for (const c of (caseRows ?? []) as { case_id: string; is_builder_visible: boolean }[]) {
+      caseVisible[c.case_id] = c.is_builder_visible;
+    }
+  }
+
+  const rows: ReservedRow[] = Object.values(byId)
+    .map((r) => ({
+      itemId: r.item_id,
+      questionType: r.question_type,
+      stemLabel: richTextToPlainLabel(r.stem),
+      difficulty: r.difficulty,
+      subcategory: r.client_needs_subcategory,
+      isPublished: r.is_published,
+      isBuilderVisible: r.parent_case_id
+        ? (caseVisible[r.parent_case_id] ?? true)
+        : r.is_builder_visible,
+      source: (r.parent_case_id ? 'case' : r.trend_id ? 'trend' : 'standalone') as
+        | 'standalone'
+        | 'case'
+        | 'trend',
+      wrapperId: r.parent_case_id ?? r.trend_id ?? null,
+      packNum: packNumByItem[r.item_id] ?? null,
+    }))
+    .sort((a, b) => a.itemId.localeCompare(b.itemId));
+
+  return {
+    rows,
+    target: packs.reduce((a, p) => a + (p.n ?? 100), 0),
+    packNums: packs.map((p) => p.num),
+  };
 }
 
 // ── Picker candidates (Slice ②b) ─────────────────────────────────────

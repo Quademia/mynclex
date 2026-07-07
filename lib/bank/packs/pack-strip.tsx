@@ -4,7 +4,7 @@
 // fixed packs, per the CD prototype's "tabs" navigation. Viable
 // because pack count is small and fixed (the case-wrapper pill-strip
 // precedent); if packs ever multiply this falls back to list → detail.
-// "Reserved stock" is a disabled placeholder until Slice ③.
+// The Reserved-stock pill (Slice ③) opens the bookkeeping lens.
 
 import Link from 'next/link';
 import type { PackOverview } from './types';
@@ -14,7 +14,7 @@ export function PackStrip({
   activeId,
 }: {
   packs: PackOverview[];
-  /** null = the Packs list pill is active. */
+  /** null = the Packs list pill; 'reserved' = the reserved-stock lens. */
   activeId: string | null;
 }) {
   return (
@@ -36,9 +36,13 @@ export function PackStrip({
           <span className="rp-pill-sub">{p.count}</span>
         </Link>
       ))}
-      <span className="rp-pill soon" title="The reserved-stock lens ships with Slice 3">
-        Reserved stock <span className="rp-pill-sub">soon</span>
-      </span>
+      <Link
+        href="/admin/packs/reserved"
+        className={`rp-pill ${activeId === 'reserved' ? 'active' : ''}`}
+        title="All readiness-reserved questions — per pack or unassigned"
+      >
+        Reserved stock
+      </Link>
     </nav>
   );
 }

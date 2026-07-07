@@ -126,3 +126,32 @@ export interface PackPickerData {
 export type PickerLoadResult =
   | { ok: true; data: PackPickerData }
   | { ok: false; error: string };
+
+// ── Reserved-stock lens (Slice ③) ────────────────────────────────────
+// One row per reserved QUESTION. Reserved = carries the `readiness`
+// tag itself, sits inside a readiness-tagged case (wrapper tags
+// inherit — the eligibility-arc rule), or is a pack member. For case
+// children the builder-visibility shown is the CASE row's flag (the
+// per-entity rule — the child's own flag is a no-op there).
+
+export interface ReservedRow {
+  itemId:           string;
+  questionType:     string;
+  stemLabel:        string;
+  difficulty:       string | null;
+  subcategory:      string | null;
+  isPublished:      boolean;
+  /** The flag that actually controls builder exposure for this row. */
+  isBuilderVisible: boolean;
+  source:           'standalone' | 'case' | 'trend';
+  wrapperId:        string | null;
+  /** Pack number holding this question, or null = unassigned. */
+  packNum:          number | null;
+}
+
+export interface ReservedStock {
+  rows:    ReservedRow[];
+  /** Sum of the packs' n — the "how far to 500" denominator. */
+  target:  number;
+  packNums: number[];
+}

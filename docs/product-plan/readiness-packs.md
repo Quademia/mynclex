@@ -988,11 +988,18 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   members, safe because saved rows are well-formed and pack members
   are builder-hidden) + un-publish semantics (§6), gate re-computed
   server-side in the actions; the packs-list **blueprint-health
-  hint** ("Blueprint 6/8"). **⏭ Remaining: the reserved-stock view**
-  (~500 `readiness`-tagged questions, per-pack/unassigned — placement
-  is Sam's build-time call: dedicated page behind the [Reserved
-  stock] pill vs a bank-list filter preset). (Audit coverage moved
-  to Slice ①.)
+  hint** ("Blueprint 6/8"). **Reserved-stock lens BUILT same
+  session — Sam's placement call: a dedicated page**
+  (`/admin/packs/reserved`, behind the pill; static segment beats the
+  `[pack_id]` sibling). Union of three sources so it can't drift:
+  readiness-tagged questions + children of readiness-tagged cases
+  (wrapper-tag inheritance — this is what the raw bank-list tag
+  filter can't see) + every link-table member (backstop). Rows show
+  pack assignment ("Pack 3"/"unassigned"), source (standalone/case/
+  trend), and a **⚠ visible-in-builder leak warning** (the §4
+  tag-and-hide rule surfaced; case children read the CASE row's
+  flag). Header counts reserved vs the summed pack-target. (Audit
+  coverage moved to Slice ①.)
 
 **Student side (sequenced after admin; slice boundaries firm up when
 we get there — roughly the §10 gaps list):**
