@@ -1025,6 +1025,22 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   is restricted to never-sold packs (sold packs retire via archive
   and keep their number forever).
 
+- **⬜ Pack audit READOUT (planned 2026-07-08 — Sam: definitely
+  needed).** The capture side has run since Slice ① (triggers on the
+  pack + link tables, `deleted` action, composite link ids that
+  survive deletion) — but there is NO UI over it yet; pack history is
+  only reachable by querying the log directly. Build the readout:
+  a **History drawer on pack detail** (point the existing
+  entity-generic audit drawer — the bank-list one — at the pack +
+  membership entities), showing who created/edited the pack and who
+  added/removed which question, when. **Why it matters: several
+  curators will work the same packs** — the log is how the team
+  reviews each other's changes, and it's the §6 no-membership-lock
+  decision's answer to "which questions did this pack hold on date
+  X". Sequencing: fits naturally when the multi-curator workflow
+  starts (before or alongside the earmarking pass); small slice —
+  readout only, capture is done.
+
 **Student side (sequenced after admin; slice boundaries firm up when
 we get there — roughly the §10 gaps list):**
 
