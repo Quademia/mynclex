@@ -47,13 +47,14 @@ interface LinkJoinRow {
   item_id:  string;
   position: number;
   nclex_bank_items: {
-    question_type:         string;
-    stem:                  string;
-    difficulty:            string | null;
-    client_needs_category: string | null;
-    is_published:          boolean;
-    parent_case_id:        string | null;
-    trend_id:              string | null;
+    question_type:            string;
+    stem:                     string;
+    difficulty:               string | null;
+    client_needs_category:    string | null;
+    client_needs_subcategory: string | null;
+    is_published:             boolean;
+    parent_case_id:           string | null;
+    trend_id:                 string | null;
   } | null;
 }
 
@@ -72,7 +73,7 @@ export async function loadPackDetail(
       supabase
         .from('nclex_readiness_pack_items')
         .select(
-          'id, item_id, position, nclex_bank_items(question_type, stem, difficulty, client_needs_category, is_published, parent_case_id, trend_id)',
+          'id, item_id, position, nclex_bank_items(question_type, stem, difficulty, client_needs_category, client_needs_subcategory, is_published, parent_case_id, trend_id)',
         )
         .eq('pack_id', packId)
         .order('position'),
@@ -89,6 +90,7 @@ export async function loadPackDetail(
       stemLabel: richTextToPlainLabel(r.nclex_bank_items?.stem ?? ''),
       difficulty: r.nclex_bank_items?.difficulty ?? null,
       category: r.nclex_bank_items?.client_needs_category ?? null,
+      subcategory: r.nclex_bank_items?.client_needs_subcategory ?? null,
       isPublished: r.nclex_bank_items?.is_published ?? false,
       parentCaseId: r.nclex_bank_items?.parent_case_id ?? null,
       trendId: r.nclex_bank_items?.trend_id ?? null,
@@ -141,6 +143,26 @@ export async function loadPackDetail(
     units: groupPackMembers(members, caseMeta, trendMeta),
     count: members.length,
   };
+}
+
+/** Every pack's member subcategories in one read — feeds the list
+ *  cards' blueprint-health hint (Slice ③). */
+export async function loadPacksSubcats(
+  supabase: SupabaseClient,
+): Promise<Record<string, (string | null)[]>> {
+  const { data, error } = await supabase
+    .from('nclex_readiness_pack_items')
+    .select('pack_id, nclex_bank_items(client_needs_subcategory)');
+  if (error) throw new Error(`Could not load pack members: ${error.message}`);
+
+  const out: Record<string, (string | null)[]> = {};
+  for (const r of (data ?? []) as unknown as {
+    pack_id: string;
+    nclex_bank_items: { client_needs_subcategory: string | null } | null;
+  }[]) {
+    (out[r.pack_id] ??= []).push(r.nclex_bank_items?.client_needs_subcategory ?? null);
+  }
+  return out;
 }
 
 // ── Picker candidates (Slice ②b) ─────────────────────────────────────

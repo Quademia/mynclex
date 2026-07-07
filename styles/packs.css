@@ -315,6 +315,80 @@
 }
 .rp-btn-ghost:hover:not(:disabled) { border-color: var(--text-faint); }
 
+/* ── Composition + Publishing cards (Slice ③) ──────────────── */
+.rp-meter-block { display: flex; flex-direction: column; gap: 6px; }
+.rp-meter-title { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.rp-meter-title-row { display: flex; align-items: baseline; justify-content: space-between; }
+.rp-meter-strong { font-size: 13px; font-weight: 700; color: var(--text); }
+.rp-meter-note { margin: 2px 0 0; font-size: 11px; color: var(--text-faint); }
+
+.rp-mix-row { display: flex; align-items: center; gap: 8px; }
+.rp-mix-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.rp-mix-dot.ok { background: var(--accent); }
+.rp-mix-dot.warn { background: var(--warning); }
+.rp-mix-dot.empty { background: var(--border-strong); }
+.rp-mix-label { flex: 1; font-size: 12.5px; color: var(--text); }
+.rp-mix-val { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.rp-mix-guide { font-size: 11px; color: var(--text-faint); width: 74px; text-align: right; }
+
+.rp-bp-row {
+  display: grid;
+  grid-template-columns: 104px 1fr 74px;
+  gap: 8px;
+  align-items: center;
+}
+.rp-bp-label { font-size: 11.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp-bp-bar { position: relative; height: 9px; background: var(--bg-soft); border-radius: 999px; overflow: hidden; }
+.rp-bp-band { position: absolute; top: 0; bottom: 0; background: var(--border); }
+.rp-bp-fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 999px; }
+.rp-bp-fill.ok { background: var(--accent); }
+.rp-bp-fill.warn { background: var(--warning); }
+.rp-bp-fill.empty { background: var(--border-strong); }
+.rp-bp-pct { font-size: 11px; text-align: right; font-weight: 600; }
+.rp-bp-pct.ok { color: var(--accent-dark); }
+.rp-bp-pct.warn { color: #b45309; }
+.rp-bp-pct.empty { color: var(--text-faint); }
+.rp-bp-range { color: var(--text-faint); font-weight: 400; }
+
+.rp-pub-state { display: flex; flex-direction: column; }
+.rp-pub-state-label { font-size: 12px; font-weight: 600; }
+.rp-pub-state-label.live { color: var(--success); }
+.rp-pub-state-label.ready { color: var(--accent-dark); }
+.rp-pub-state-label.blocked { color: #92400e; }
+
+.rp-pub-toggle {
+  width: 40px; height: 22px; border-radius: 999px; border: none;
+  cursor: pointer; position: relative; flex: none;
+  background: var(--border-strong);
+  transition: background 0.15s ease;
+}
+.rp-pub-toggle.on { background: var(--accent); }
+.rp-pub-toggle:disabled { opacity: 0.6; cursor: default; }
+.rp-pub-knob {
+  position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--white); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: left 0.15s ease;
+}
+.rp-pub-toggle.on .rp-pub-knob { left: 20px; }
+
+.rp-gate-rows { display: flex; flex-direction: column; gap: 5px; }
+.rp-gate-row { display: flex; align-items: flex-start; gap: 8px; }
+.rp-gate-icon {
+  width: 15px; height: 15px; border-radius: 50%; flex: none; margin-top: 2px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9.5px; font-weight: 700;
+}
+.rp-gate-icon.ok { background: var(--primary-light); color: var(--accent-dark); }
+.rp-gate-icon.todo { background: #fef3c7; color: #92400e; }
+.rp-gate-label { font-size: 12.5px; color: var(--text-muted); }
+.rp-gate-label.todo { color: #92400e; }
+
+/* List-card blueprint-health hint (Slice ③) */
+.rp-bp-hint { font-size: 11.5px; font-weight: 600; }
+.rp-bp-hint.ok { color: var(--accent-dark); }
+.rp-bp-hint.warn { color: #b45309; }
+
 /* ── Picker slide-over (Slice ②b) ──────────────────────────── */
 .rp-pk-root { position: fixed; inset: 0; z-index: 50; }
 .rp-pk-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.28); }

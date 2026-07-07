@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PackMembersList } from './members-list';
 import { PackBasicsCard } from './basics-card';
+import { PackCompositionCard, PackPublishCard } from './composition-cards';
 import { PackPicker, type PickerInsertAt } from './picker';
 import type { PackRow, PackUnit } from './types';
 
@@ -70,6 +71,8 @@ export function PackDetailBody({
           onAddQuestions={openAtEnd}
         />
         <aside className="rp-detail-side">
+          <PackCompositionCard units={units} count={count} target={target} />
+          <PackPublishCard pack={pack} units={units} count={count} target={target} />
           <PackBasicsCard pack={pack} />
         </aside>
       </div>

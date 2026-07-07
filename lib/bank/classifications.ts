@@ -135,6 +135,33 @@ export const CLIENT_NEEDS_SUBCATEGORIES: Record<ClientNeedsCategory, string[]> =
   ],
 };
 
+// NCLEX-RN test-plan blueprint — the published percentage-of-items
+// range per Client Needs subcategory (NCSBN 2023 test plan). Drives
+// the readiness-pack blueprint meter (readiness-packs.md §5/§8):
+// authoring GUIDANCE only, never a gate.
+export const CLIENT_NEEDS_BLUEPRINT_RANGES: Record<string, [number, number]> = {
+  'Management of Care':                       [15, 21],
+  'Safety and Infection Control':             [10, 16],
+  'Health Promotion and Maintenance':         [6, 12],
+  'Psychosocial Integrity':                   [6, 12],
+  'Basic Care and Comfort':                   [6, 12],
+  'Pharmacological and Parenteral Therapies': [13, 19],
+  'Reduction of Risk Potential':              [9, 15],
+  'Physiological Adaptation':                 [11, 17],
+};
+
+// Compact display labels for the 8 subcategories (meter rows, chips).
+export const CLIENT_NEEDS_SHORT_LABELS: Record<string, string> = {
+  'Management of Care':                       'Mgmt of Care',
+  'Safety and Infection Control':             'Safety & IC',
+  'Health Promotion and Maintenance':         'Health Promo',
+  'Psychosocial Integrity':                   'Psychosocial',
+  'Basic Care and Comfort':                   'Basic Care',
+  'Pharmacological and Parenteral Therapies': 'Pharm Therapies',
+  'Reduction of Risk Potential':              'Risk Reduction',
+  'Physiological Adaptation':                 'Phys Adaptation',
+};
+
 // ─────────────────────────────────────────────────────────────
 // Other classification axes.
 // ─────────────────────────────────────────────────────────────

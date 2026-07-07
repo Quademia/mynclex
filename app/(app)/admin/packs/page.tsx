@@ -7,14 +7,18 @@
 
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
-import { loadPacksOverview } from '@/lib/bank/packs/queries';
+import { loadPacksOverview, loadPacksSubcats } from '@/lib/bank/packs/queries';
+import { blueprintHealth } from '@/lib/bank/packs/composition';
 import { PackStrip } from '@/lib/bank/packs/pack-strip';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPacksPage() {
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
-  const packs = await loadPacksOverview(supabase);
+  const [packs, subcatsByPack] = await Promise.all([
+    loadPacksOverview(supabase),
+    loadPacksSubcats(supabase),
+  ]);
 
   return (
     <main className="auth-list-page">
@@ -44,6 +48,7 @@ export default async function AdminPacksPage() {
           {packs.map((p) => {
             const target = p.n ?? 100;
             const pct = target > 0 ? Math.min(100, Math.round((p.count / target) * 100)) : 0;
+            const health = blueprintHealth(subcatsByPack[p.pack_id] ?? []);
             return (
               <Link
                 key={p.pack_id}
@@ -61,6 +66,14 @@ export default async function AdminPacksPage() {
                   <span className="rp-fill-count">
                     {p.count} <span className="of">/ {target} questions</span>
                   </span>
+                  {health && (
+                    <span
+                      className={`rp-bp-hint ${health.inRange === health.total ? 'ok' : 'warn'}`}
+                      title="Client Needs categories inside the published NCLEX blueprint ranges — guidance, never a block"
+                    >
+                      Blueprint {health.inRange}/{health.total}
+                    </span>
+                  )}
                 </div>
                 <div className="rp-fill-bar">
                   <span style={{ width: `${pct}%` }} />

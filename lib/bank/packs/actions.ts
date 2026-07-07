@@ -15,6 +15,7 @@ import { revalidatePath } from 'next/cache';
 import { requireBankCurator } from '@/lib/access';
 import { loadPackDetail, loadPackPicker } from './queries';
 import { unitLinkIds, unitMembers } from './grouping';
+import { computeGate } from './composition';
 import type { PackActionResult, PackUnit, PickerLoadResult } from './types';
 import { PACK_POSITION_STEP } from './types';
 
@@ -486,6 +487,85 @@ async function finishAdd(
 
   const insertErr = await insertLinkRows(supabase, packId, itemIds, computed.positions);
   if (insertErr) return { ok: false, error: insertErr };
+
+  revalidatePack(packId);
+  return { ok: true };
+}
+
+// ── Publish / unpublish (Slice ③ — §6) ──────────────────────────────
+// The gate lives on the TOGGLE, not on save — and it's re-computed
+// here server-side (layered enforcement), not trusted from the client.
+// Un-publish stops new sales/claims only; it never touches existing
+// credits, attempts or review.
+
+export async function setPackPublishedAction(
+  packId: string,
+  publish: boolean,
+): Promise<PackActionResult> {
+  const { supabase } = await requireBankCurator('admin');
+
+  if (publish) {
+    const detail = await loadPackDetail(supabase, packId);
+    if (!detail) return { ok: false, error: 'Pack not found.' };
+    const gate = computeGate(detail.pack, detail.units, detail.count, detail.pack.n ?? 100);
+    if (!gate.ok) {
+      const n = gate.rows.filter((r) => !r.ok).length;
+      return {
+        ok: false,
+        error: `${n} item${n === 1 ? '' : 's'} to finish before this pack can go on sale — see the checklist.`,
+      };
+    }
+  }
+
+  const { error } = await supabase
+    .from('nclex_readiness_packs')
+    .update({
+      published: publish,
+      status: publish ? 'active' : 'draft',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('pack_id', packId);
+  if (error) return { ok: false, error: `Could not update the pack: ${error.message}` };
+
+  revalidatePack(packId);
+  return { ok: true };
+}
+
+/** "Publish all N & publish pack" — mirrors the case wrapper's
+ *  publish-all helper: flips is_published on the draft member
+ *  questions (safe — a saved question row is always well-formed, and
+ *  pack members are hidden from the builder so publishing only makes
+ *  them reachable through this pack), then publishes the pack. Only
+ *  offered/accepted when unpublished member questions are the ONLY
+ *  gate gap. */
+export async function publishAllAndPublishPackAction(
+  packId: string,
+): Promise<PackActionResult> {
+  const { supabase } = await requireBankCurator('admin');
+
+  const detail = await loadPackDetail(supabase, packId);
+  if (!detail) return { ok: false, error: 'Pack not found.' };
+  const gate = computeGate(detail.pack, detail.units, detail.count, detail.pack.n ?? 100);
+  if (!gate.helperOnly) {
+    return {
+      ok: false,
+      error: 'This helper only applies when unpublished member questions are the only gap.',
+    };
+  }
+
+  const { error: pubErr } = await supabase
+    .from('nclex_bank_items')
+    .update({ is_published: true, updated_at: new Date().toISOString() })
+    .in('item_id', gate.unpubQ);
+  if (pubErr) {
+    return { ok: false, error: `Could not publish the questions: ${pubErr.message}` };
+  }
+
+  const { error } = await supabase
+    .from('nclex_readiness_packs')
+    .update({ published: true, status: 'active', updated_at: new Date().toISOString() })
+    .eq('pack_id', packId);
+  if (error) return { ok: false, error: `Could not publish the pack: ${error.message}` };
 
   revalidatePack(packId);
   return { ok: true };

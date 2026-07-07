@@ -960,7 +960,8 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   [Reserved stock "soon"]) on list + detail. `position` = **spaced
   ordinals** (STEP 1e6, the cohort "store" pattern — display numbers
   are dense-computed; moves write gap midpoints, no renumber under the
-  UNIQUE). **🔨 ②b: the picker** (slide-over from the CD prototype:
+  UNIQUE). **②b ✅ BUILT + Sam-tested + MERGED to `main` 2026-07-07
+  (second session): the picker** (slide-over from the CD prototype:
   search+facets, standalone multi-tick add, case add-as-unit,
   **trend per-question selection** [the 2026-07-07 revision — §5],
   insert-at-position via the row ⊕, and the machine-managed
@@ -975,15 +976,23 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   arrows reused from the insert arc. **The visibility flag goes
   machine-managed** (per the §4 per-entity rule): add → flag(s) off
   in the same save; removal leaves hidden (never auto-expose).
-- **⬜ Slice ③ — Meters + publish gate + reserved-stock lens.**
-  Composition meters on pack detail (fill · mix vs the §5 guideline ·
-  the blueprint meter — guidance, never a block); the
-  completeness-gated **publish toggle** + "Publish all N & publish
-  pack" helper + un-publish semantics (§6); the **reserved-stock
-  view** (~500 `readiness`-tagged questions, per-pack/unassigned —
-  possibly a filter preset on the existing bank list, build-time
-  call) + the packs-list blueprint-health hint. (Audit coverage
-  moved to Slice ①.)
+- **🔨 Slice ③ — Meters + publish gate + reserved-stock lens.**
+  **Meters + gate + list hint BUILT 2026-07-07 (second session,
+  awaiting Sam's test):** Composition meters on pack detail (fill ·
+  mix vs the §5 guideline · the blueprint meter vs the NCSBN 2023
+  ranges [new `CLIENT_NEEDS_BLUEPRINT_RANGES` in classifications.ts]
+  — guidance, never a block; pure maths in
+  `lib/bank/packs/composition.ts`); the completeness-gated **publish
+  toggle** + "Publish all N & publish pack" helper (mirrors the case
+  wrapper's publish-all precedent — flips `is_published` on draft
+  members, safe because saved rows are well-formed and pack members
+  are builder-hidden) + un-publish semantics (§6), gate re-computed
+  server-side in the actions; the packs-list **blueprint-health
+  hint** ("Blueprint 6/8"). **⏭ Remaining: the reserved-stock view**
+  (~500 `readiness`-tagged questions, per-pack/unassigned — placement
+  is Sam's build-time call: dedicated page behind the [Reserved
+  stock] pill vs a bank-list filter preset). (Audit coverage moved
+  to Slice ①.)
 
 **Student side (sequenced after admin; slice boundaries firm up when
 we get there — roughly the §10 gaps list):**

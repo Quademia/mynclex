@@ -39,6 +39,7 @@ export interface PackMember {
   stemLabel:    string;         // plain-text preview ("(image)" fallback)
   difficulty:   string | null;
   category:     string | null;  // client_needs_category
+  subcategory:  string | null;  // client_needs_subcategory (blueprint meter — ③)
   isPublished:  boolean;
   parentCaseId: string | null;
   trendId:      string | null;
