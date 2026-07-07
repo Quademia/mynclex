@@ -189,10 +189,10 @@ function MemberSummary({ m, child }: { m: PackMember; child?: boolean }) {
         />
         <span className="rp-mono">{m.itemId}</span>
         <span className="rp-type-chip">{m.questionType}</span>
-        {m.difficulty && !child && (
+        {m.difficulty && (
           <span className={`rp-diff ${DIFF_CLASS[m.difficulty] ?? ''}`}>{m.difficulty}</span>
         )}
-        {m.category && !child && <span className="rp-dim">{m.category}</span>}
+        {m.category && <span className="rp-dim">{m.category}</span>}
         {child && m.cjmmStep && <span className="rp-cjmm">{m.cjmmStep}</span>}
       </div>
       {m.stemLabel && <div className="rp-stem">{m.stemLabel}</div>}
