@@ -1,0 +1,69 @@
+// mynclex/lib/bank/packs/types.ts
+//
+// Readiness packs — curator-side types (Slice ②a).
+// Storage: nclex_readiness_packs + nclex_readiness_pack_items (link
+// rows, one per member question; wrapper members are per-child rows at
+// consecutive positions — readiness-packs.md §6).
+//
+// `position` is a SPACED ordinal (the "store" model, STEP = 1e6 — the
+// cohort-activities pattern): order is ascending position, the printed
+// "position 12" is the dense 1-based index computed at render. Moves
+// write midpoints into gaps, so the UNIQUE (pack_id, position)
+// constraint never sees a collision and nothing renumbers globally.
+
+export const PACK_POSITION_STEP = 1_000_000;
+
+export interface PackRow {
+  pack_id:        string;
+  title:          string;
+  description:    string | null;
+  n:              number | null;
+  time_limit_sec: number | null;
+  published:      boolean;
+  status:         'draft' | 'active' | 'archived';
+}
+
+/** One pack in the strip / list — pack row + live member count. */
+export interface PackOverview extends PackRow {
+  /** Pack number for the pill label ("Pack 3") — derived from id order. */
+  num:   number;
+  count: number;
+}
+
+/** A member question row, joined to its bank item. */
+export interface PackMember {
+  linkId:   string;
+  itemId:   string;
+  position: number;             // spaced ordinal (storage), NOT the printed number
+  questionType: string;
+  stemLabel:    string;         // plain-text preview ("(image)" fallback)
+  difficulty:   string | null;
+  category:     string | null;  // client_needs_category
+  isPublished:  boolean;
+  parentCaseId: string | null;
+  trendId:      string | null;
+  cjmmStep:     string | null;  // case children only
+}
+
+/** A run of consecutive members belonging to one case / trend, or a standalone. */
+export type PackUnit =
+  | { kind: 'q'; member: PackMember }
+  | {
+      kind: 'case' | 'trend';
+      wrapperId:    string;
+      title:        string;
+      isPublished:  boolean;
+      members:      PackMember[];
+    };
+
+export interface PackDetail {
+  pack:  PackRow;
+  units: PackUnit[];
+  /** Total member questions (per-child count, = link-row count). */
+  count: number;
+}
+
+export interface PackActionResult {
+  ok:     boolean;
+  error?: string;
+}

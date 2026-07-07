@@ -1,62 +1,25 @@
 // mynclex/app/(app)/admin/packs/page.tsx
 //
-// Readiness packs list — Slice ① of the readiness-packs build
-// (docs/product-plan/readiness-packs.md §12). The 5 seeded packs with
-// status + fill progress read from the membership link table. Pack
-// detail (picker, meters, publish gate) arrives in Slices ② + ③.
-// Gated on BANK_CURATE.
+// Readiness packs list — Slice ①, reworked in ②a to share the
+// loadPacksOverview reader + the pill strip with the detail route, and
+// the cards now link into /admin/packs/[pack_id]
+// (docs/product-plan/readiness-packs.md §12). Gated on BANK_CURATE.
 
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
+import { loadPacksOverview } from '@/lib/bank/packs/queries';
+import { PackStrip } from '@/lib/bank/packs/pack-strip';
 
 export const dynamic = 'force-dynamic';
 
-interface PackRow {
-  pack_id:        string;
-  title:          string;
-  description:    string | null;
-  n:              number | null;
-  time_limit_sec: number | null;
-  published:      boolean;
-  status:         'draft' | 'active' | 'archived';
-}
-
 export default async function AdminPacksPage() {
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
-
-  const { data: packRows, error: packErr } = await supabase
-    .from('nclex_readiness_packs')
-    .select('pack_id, title, description, n, time_limit_sec, published, status')
-    .order('pack_id');
-
-  if (packErr) {
-    return (
-      <main className="auth-list-page">
-        <div className="auth-list-inner">
-          <h1 className="auth-list-page-title">Readiness packs</h1>
-          <p className="auth-sandbox-error">Could not load packs: {packErr.message}</p>
-        </div>
-      </main>
-    );
-  }
-
-  const packs = (packRows ?? []) as PackRow[];
-
-  // Fill counts off the link table — one row per member question.
-  const fill: Record<string, number> = {};
-  if (packs.length > 0) {
-    const { data: linkRows } = await supabase
-      .from('nclex_readiness_pack_items')
-      .select('pack_id');
-    for (const row of (linkRows ?? []) as { pack_id: string }[]) {
-      fill[row.pack_id] = (fill[row.pack_id] ?? 0) + 1;
-    }
-  }
+  const packs = await loadPacksOverview(supabase);
 
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner">
-        <header className="bl-page-head">
+        <header className="bl-page-head rp-area-head">
           <div>
             <div className="bl-eyebrow">
               <span className="bl-surface-chip admin"><span className="dot" />Admin bank</span>
@@ -75,13 +38,18 @@ export default async function AdminPacksPage() {
           </div>
         </header>
 
+        <PackStrip packs={packs} activeId={null} />
+
         <div className="rp-grid">
           {packs.map((p) => {
             const target = p.n ?? 100;
-            const count = fill[p.pack_id] ?? 0;
-            const pct = target > 0 ? Math.min(100, Math.round((count / target) * 100)) : 0;
+            const pct = target > 0 ? Math.min(100, Math.round((p.count / target) * 100)) : 0;
             return (
-              <section key={p.pack_id} className="rp-card">
+              <Link
+                key={p.pack_id}
+                href={`/admin/packs/${p.pack_id}`}
+                className="rp-card rp-card-link"
+              >
                 <div className="rp-card-top">
                   <span className="rp-pack-id">{p.pack_id}</span>
                   <span className={`rp-status ${p.status}`}>
@@ -91,7 +59,7 @@ export default async function AdminPacksPage() {
                 <h2 className="rp-title">{p.title}</h2>
                 <div className="rp-fill-row">
                   <span className="rp-fill-count">
-                    {count} <span className="of">/ {target} questions</span>
+                    {p.count} <span className="of">/ {target} questions</span>
                   </span>
                 </div>
                 <div className="rp-fill-bar">
@@ -101,7 +69,7 @@ export default async function AdminPacksPage() {
                   <span>⏱ {formatTimeLimit(p.time_limit_sec)}</span>
                   <span>One shot · exam pace</span>
                 </div>
-              </section>
+              </Link>
             );
           })}
         </div>
