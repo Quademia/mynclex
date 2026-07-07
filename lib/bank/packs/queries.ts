@@ -22,6 +22,14 @@ import type {
 const PACK_COLUMNS =
   'pack_id, title, description, n, time_limit_sec, published, status';
 
+/** "Pack N" from the id suffix (NCLEX_PACK_00004 → 4) — STABLE across
+ *  deletions, unlike row order (a delete must never renumber the
+ *  survivors; settled 2026-07-08). */
+export function packNumFromId(packId: string): number {
+  const m = /_(\d+)$/.exec(packId);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
 /** All packs + live member counts — feeds the pill strip AND the list cards. */
 export async function loadPacksOverview(
   supabase: SupabaseClient,
@@ -37,9 +45,9 @@ export async function loadPacksOverview(
     counts[row.pack_id] = (counts[row.pack_id] ?? 0) + 1;
   }
 
-  return ((packRows ?? []) as PackRow[]).map((p, i) => ({
+  return ((packRows ?? []) as PackRow[]).map((p) => ({
     ...p,
-    num: i + 1,
+    num: packNumFromId(p.pack_id),
     count: counts[p.pack_id] ?? 0,
   }));
 }

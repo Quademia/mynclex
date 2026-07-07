@@ -1001,6 +1001,30 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   flag). Header counts reserved vs the summed pack-target. (Audit
   coverage moved to Slice ①.)
 
+- **✅ Post-③ admin improvements (2026-07-08, Sam-directed):**
+  **(1) Sticky area header** per the CD prototype — title row + pill
+  strip pin to the `.product-content` scroll on all three lenses; the
+  detail's right rail parks under the band and scrolls internally;
+  Sam's variation: the members list keeps natural page flow (no CD
+  viewport cap); mobile stays natural scroll. **(2) Pack create /
+  edit / delete:** one shared `PackFormModal` (title · description ·
+  question count · time limit) — "+ New pack" on the list creates a
+  draft and opens it; the basics card became read-only display (+ id,
+  + count) whose Edit opens the same modal. **`n` is EDITABLE**
+  (Sam's call — the 100 standard is an amber advisory, advise >
+  block; the mix guide now SCALES to n; time limit follows exam pace
+  2 min × n until manually set; hard floor: n ≥ current members).
+  **Delete = never-sold packs only** (published blocks it now; a
+  credits check joins when the student side lands) — empty pack =
+  plain confirm, members = typed-DELETE gate; cascade puts members
+  back in the unassigned reserve (never auto-exposed), audit keeps
+  the history. **(3) Pack numbering is id-derived + gaps refill:**
+  the pill "Pack N" comes from the id suffix (stable across deletes —
+  no renumbering), and minting takes the LOWEST free number, so a
+  deleted draft's slot is reusable — safe precisely because deletion
+  is restricted to never-sold packs (sold packs retire via archive
+  and keep their number forever).
+
 **Student side (sequenced after admin; slice boundaries firm up when
 we get there — roughly the §10 gaps list):**
 

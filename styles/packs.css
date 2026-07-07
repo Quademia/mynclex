@@ -347,6 +347,41 @@
   padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
 }
 .rp-btn-ghost:hover:not(:disabled) { border-color: var(--text-faint); }
+.rp-btn-danger-ghost { color: var(--danger); }
+.rp-btn-danger-ghost:hover:not(:disabled) { border-color: #fecaca; background: #fef2f2; }
+
+.rp-basics-danger {
+  display: flex; align-items: center; gap: 10px;
+  border-top: 1px solid var(--bg-soft); padding-top: 10px;
+}
+
+/* ── Create / edit modal (2026-07-08) ──────────────────────── */
+.rp-modal-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(15, 23, 42, 0.28);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.rp-modal {
+  width: min(480px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.rp-modal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.rp-modal-head h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--text); }
+.rp-modal-num-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.rp-modal-advice {
+  margin: 0; font-size: 12px; color: #92400e;
+  background: #fef3c7; border-radius: 6px; padding: 7px 10px;
+}
+.rp-modal-advice.block { background: #fef2f2; color: var(--danger); }
+.rp-modal-hint { margin: 0; font-size: 11.5px; color: var(--text-faint); }
 
 /* ── Composition + Publishing cards (Slice ③) ──────────────── */
 .rp-meter-block { display: flex; flex-direction: column; gap: 6px; }

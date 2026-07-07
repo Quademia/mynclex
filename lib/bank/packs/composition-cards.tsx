@@ -39,7 +39,7 @@ export function PackCompositionCard({
   count:  number;
   target: number;
 }) {
-  const mixRows = computeMix(units, count);
+  const mixRows = computeMix(units, count, target);
   const bpRows = computeBlueprint(units);
   const fillPct = target > 0 ? Math.min(100, (count / target) * 100) : 0;
 

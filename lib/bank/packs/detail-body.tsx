@@ -73,7 +73,7 @@ export function PackDetailBody({
         <aside className="rp-detail-side">
           <PackCompositionCard units={units} count={count} target={target} />
           <PackPublishCard pack={pack} units={units} count={count} target={target} />
-          <PackBasicsCard pack={pack} />
+          <PackBasicsCard pack={pack} memberCount={count} />
         </aside>
       </div>
 

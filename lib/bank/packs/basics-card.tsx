@@ -1,33 +1,46 @@
 // mynclex/lib/bank/packs/basics-card.tsx
 //
-// "Pack basics" sidebar card (Slice ②a): view → Edit → save/cancel.
-// Title, description, time limit (entered in minutes, stored in
-// seconds). From the CD prototype (concept-not-source).
+// "Pack basics" sidebar card. Reworked 2026-07-08: read-only display
+// of the pack row's curator-ownable fields (id · title · description ·
+// question count · time limit) — the old inline form retired in
+// favour of the shared create/edit <PackFormModal>. Also hosts Delete
+// (never-sold packs only; published packs hide the button and the
+// server refuses them regardless — layered enforcement).
 
 'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
-import { updatePackBasicsAction } from './actions';
+import { PackDeleteConfirm } from '@/lib/overlays/bank/pack-delete-confirm';
+import { deletePackAction } from './actions';
+import { PackFormModal } from './pack-form-modal';
 import type { PackRow } from './types';
 
-export function PackBasicsCard({ pack }: { pack: PackRow }) {
+export function PackBasicsCard({
+  pack,
+  memberCount,
+}: {
+  pack: PackRow;
+  memberCount: number;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const timeLimitMin = Math.round((pack.time_limit_sec ?? 0) / 60);
 
-  const save = (fd: FormData) => {
+  const runDelete = () => {
     startTransition(async () => {
-      const res = await updatePackBasicsAction(fd);
+      const res = await deletePackAction(pack.pack_id);
       if (!res.ok) {
-        setError(res.error ?? 'Save failed.');
+        setError(res.error ?? 'Delete failed.');
+        setConfirmingDelete(false);
         return;
       }
-      setEditing(false);
+      router.push('/admin/packs');
       router.refresh();
     });
   };
@@ -36,71 +49,79 @@ export function PackBasicsCard({ pack }: { pack: PackRow }) {
     <section className="rp-card rp-side-card">
       <div className="rp-side-card-head">
         <h3>Pack basics</h3>
-        {!editing && (
-          <button type="button" className="rp-btn-ghost" onClick={() => setEditing(true)}>
-            Edit
-          </button>
-        )}
+        <button type="button" className="rp-btn-ghost" onClick={() => setEditing(true)}>
+          Edit
+        </button>
       </div>
 
-      {!editing ? (
-        <div className="rp-basics-view">
-          <div>
-            <span className="rp-field-label">Title</span>
-            <span>{pack.title}</span>
-          </div>
-          <div>
-            <span className="rp-field-label">Description</span>
-            <span className={pack.description ? '' : 'rp-dim'}>
-              {pack.description || 'No description yet — shown to students on the catalogue.'}
-            </span>
-          </div>
-          <div>
-            <span className="rp-field-label">Time limit</span>
-            <span>{formatTime(timeLimitMin)} · exam pace (2 min / question)</span>
-          </div>
+      <div className="rp-basics-view">
+        <div>
+          <span className="rp-field-label">Pack id</span>
+          <span className="rp-mono">{pack.pack_id}</span>
         </div>
-      ) : (
-        <form action={save} className="rp-basics-form">
-          <input type="hidden" name="pack_id" value={pack.pack_id} />
-          <label>
-            Title
-            <input name="title" defaultValue={pack.title} required maxLength={120} />
-          </label>
-          <label>
-            Description
-            <textarea
-              name="description"
-              rows={3}
-              defaultValue={pack.description ?? ''}
-              maxLength={500}
-            />
-          </label>
-          <label>
-            Time limit (minutes)
-            <input
-              name="time_limit_min"
-              type="number"
-              min={1}
-              max={600}
-              defaultValue={timeLimitMin || 200}
-              className="rp-input-narrow"
-            />
-          </label>
-          <div className="rp-form-actions">
-            <button type="submit" className="rp-btn-primary" disabled={pending}>
-              {pending ? 'Saving…' : 'Save'}
-            </button>
-            <button
-              type="button"
-              className="rp-btn-ghost"
-              disabled={pending}
-              onClick={() => setEditing(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+        <div>
+          <span className="rp-field-label">Title</span>
+          <span>{pack.title}</span>
+        </div>
+        <div>
+          <span className="rp-field-label">Description</span>
+          <span className={pack.description ? '' : 'rp-dim'}>
+            {pack.description || 'No description yet — shown to students on the catalogue.'}
+          </span>
+        </div>
+        <div>
+          <span className="rp-field-label">Question count</span>
+          <span>
+            {pack.n ?? 100} questions
+            {(pack.n ?? 100) !== 100 && (
+              <span className="rp-dim"> · standard is 100</span>
+            )}
+          </span>
+        </div>
+        <div>
+          <span className="rp-field-label">Time limit</span>
+          <span>{formatTime(timeLimitMin)} · exam pace (2 min / question)</span>
+        </div>
+      </div>
+
+      {!pack.published && (
+        <div className="rp-basics-danger">
+          <button
+            type="button"
+            className="rp-btn-ghost rp-btn-danger-ghost"
+            disabled={pending}
+            onClick={() => setConfirmingDelete(true)}
+          >
+            Delete pack…
+          </button>
+          <span className="rp-dim">
+            {memberCount > 0
+              ? 'Questions return to the unassigned reserve.'
+              : 'Only unpublished packs can be deleted.'}
+          </span>
+        </div>
+      )}
+
+      {editing && (
+        <PackFormModal
+          pack={pack}
+          memberCount={memberCount}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {confirmingDelete && (
+        <PackDeleteConfirm
+          packId={pack.pack_id}
+          memberCount={memberCount}
+          pending={pending}
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={runDelete}
+        />
       )}
 
       <ErrorToast error={error} onDismiss={() => setError(null)} />

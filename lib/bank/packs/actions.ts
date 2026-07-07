@@ -27,35 +27,154 @@ function revalidatePack(packId: string) {
   revalidatePath(`/admin/packs/${packId}`);
 }
 
-// ── Pack basics ──────────────────────────────────────────────────────
+// ── Pack basics: shared form parsing (create + edit modal) ───────────
+
+interface PackFormValues {
+  title:       string;
+  description: string | null;
+  timeLimitMin: number;
+  n:           number;
+}
+
+function parsePackForm(formData: FormData): PackFormValues | { error: string } {
+  const title = String(formData.get('title') ?? '').trim();
+  const description = String(formData.get('description') ?? '').trim();
+  const timeLimitMin = Number(formData.get('time_limit_min'));
+  const n = Number(formData.get('n'));
+
+  if (!title) return { error: 'The pack needs a title.' };
+  if (!Number.isFinite(timeLimitMin) || timeLimitMin <= 0 || !Number.isInteger(timeLimitMin)) {
+    return { error: 'Time limit must be a whole number of minutes.' };
+  }
+  if (!Number.isFinite(n) || n < 1 || !Number.isInteger(n)) {
+    return { error: 'Question count must be a whole number of at least 1.' };
+  }
+  return { title, description: description || null, timeLimitMin, n };
+}
+
 export async function updatePackBasicsAction(
   formData: FormData,
 ): Promise<PackActionResult> {
   const { supabase } = await requireBankCurator('admin');
 
   const packId = String(formData.get('pack_id') ?? '');
-  const title = String(formData.get('title') ?? '').trim();
-  const description = String(formData.get('description') ?? '').trim();
-  const timeLimitMin = Number(formData.get('time_limit_min'));
-
   if (!packId) return { ok: false, error: 'Missing pack id.' };
-  if (!title) return { ok: false, error: 'The pack needs a title.' };
-  if (!Number.isFinite(timeLimitMin) || timeLimitMin <= 0 || !Number.isInteger(timeLimitMin)) {
-    return { ok: false, error: 'Time limit must be a whole number of minutes.' };
+  const values = parsePackForm(formData);
+  if ('error' in values) return { ok: false, error: values.error };
+
+  // n can't drop below the questions already placed — remove members
+  // first (the fill meter, capacity check and gate all read n).
+  const { count: memberCount } = await supabase
+    .from('nclex_readiness_pack_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('pack_id', packId);
+  if ((memberCount ?? 0) > values.n) {
+    return {
+      ok: false,
+      error: `This pack already holds ${memberCount} questions — remove some before lowering the count to ${values.n}.`,
+    };
   }
 
   const { error } = await supabase
     .from('nclex_readiness_packs')
     .update({
-      title,
-      description: description || null,
-      time_limit_sec: timeLimitMin * 60,
+      title: values.title,
+      description: values.description,
+      n: values.n,
+      time_limit_sec: values.timeLimitMin * 60,
       updated_at: new Date().toISOString(),
     })
     .eq('pack_id', packId);
   if (error) return { ok: false, error: `Save failed: ${error.message}` };
 
   revalidatePack(packId);
+  return { ok: true };
+}
+
+// ── Create / delete (settled 2026-07-08) ─────────────────────────────
+
+const PACK_ID_PREFIX = 'NCLEX_PACK_';
+
+/** Mint the LOWEST free number, not max+1 — a deleted (never-sold)
+ *  pack's slot is refillable. Safe because deletion is restricted to
+ *  never-sold packs, so no purchase/credit can reference a reused id;
+ *  retired-after-sale packs are archived, never deleted, and keep
+ *  their number forever. */
+export async function createPackAction(
+  formData: FormData,
+): Promise<PackActionResult & { packId?: string }> {
+  const { supabase } = await requireBankCurator('admin');
+
+  const values = parsePackForm(formData);
+  if ('error' in values) return { ok: false, error: values.error };
+
+  const { data: idRows, error: idErr } = await supabase
+    .from('nclex_readiness_packs')
+    .select('pack_id');
+  if (idErr) return { ok: false, error: `Could not load packs: ${idErr.message}` };
+
+  const taken = new Set(
+    ((idRows ?? []) as { pack_id: string }[])
+      .map((r) => {
+        const m = /_(\d+)$/.exec(r.pack_id);
+        return m ? parseInt(m[1], 10) : 0;
+      })
+      .filter((v) => v > 0),
+  );
+  let num = 1;
+  while (taken.has(num)) num++;
+  const packId = `${PACK_ID_PREFIX}${String(num).padStart(5, '0')}`;
+
+  const { error } = await supabase.from('nclex_readiness_packs').insert({
+    pack_id: packId,
+    title: values.title,
+    description: values.description,
+    n: values.n,
+    time_limit_sec: values.timeLimitMin * 60,
+    published: false,
+    status: 'draft',
+  });
+  if (error) {
+    if (error.code === '23505') {
+      return { ok: false, error: 'A pack was just created elsewhere — try again.' };
+    }
+    return { ok: false, error: `Create failed: ${error.message}` };
+  }
+
+  revalidatePath('/admin/packs');
+  return { ok: true, packId };
+}
+
+export async function deletePackAction(packId: string): Promise<PackActionResult> {
+  const { supabase } = await requireBankCurator('admin');
+
+  const { data: packRow } = await supabase
+    .from('nclex_readiness_packs')
+    .select('pack_id, published')
+    .eq('pack_id', packId)
+    .maybeSingle();
+  if (!packRow) return { ok: false, error: 'Pack not found.' };
+  if ((packRow as { published: boolean }).published) {
+    return {
+      ok: false,
+      error: 'A published pack cannot be deleted — unpublish it first.',
+    };
+  }
+  // FUTURE (student side): also refuse when any nclex_readiness_credits
+  // row references this pack — ever-sold packs retire via archive, and
+  // that guard is what keeps the lowest-free-number minting safe.
+
+  // Link rows cascade; each removal lands in the audit log ('deleted'
+  // rows with the composite ids). Member questions keep their flags +
+  // readiness tag — they return to the UNASSIGNED reserve, never to
+  // student practice (§6 never-auto-expose).
+  const { error } = await supabase
+    .from('nclex_readiness_packs')
+    .delete()
+    .eq('pack_id', packId);
+  if (error) return { ok: false, error: `Delete failed: ${error.message}` };
+
+  revalidatePath('/admin/packs');
   return { ok: true };
 }
 

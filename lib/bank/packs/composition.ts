@@ -29,7 +29,11 @@ export interface MixRow {
   tone:  MeterTone;
 }
 
-export function computeMix(units: PackUnit[], total: number): MixRow[] {
+export function computeMix(
+  units: PackUnit[],
+  total: number,
+  target: number,
+): MixRow[] {
   const caseUnits = units.filter((u) => u.kind === 'case').length;
   const caseQ = units
     .filter((u) => u.kind === 'case')
@@ -42,6 +46,18 @@ export function computeMix(units: PackUnit[], total: number): MixRow[] {
   ).length;
   const trad = total - caseQ - trendQ - bowQ;
 
+  // The §5 guideline is per-100; n is editable (2026-07-08), so the
+  // guide scales to the pack's own target — at n=50 the meter advises
+  // 1–2 cases, not the per-100 numbers.
+  const scale = target > 0 ? target / 100 : 1;
+  const band = ([lo, hi]: readonly [number, number]): [number, number] => {
+    const l = Math.max(0, Math.round(lo * scale));
+    return [l, Math.max(l, Math.round(hi * scale))];
+  };
+  const casesB = band(MIX_GUIDE_CASES);
+  const cjB = band(MIX_GUIDE_CJ);
+  const tradB = band(MIX_GUIDE_TRAD);
+
   const tone = (lo: number, hi: number, v: number): MeterTone =>
     total === 0 ? 'empty' : v >= lo && v <= hi ? 'ok' : 'warn';
 
@@ -49,20 +65,20 @@ export function computeMix(units: PackUnit[], total: number): MixRow[] {
     {
       label: 'Case studies',
       value: `${caseUnits} unit${caseUnits === 1 ? '' : 's'}`,
-      guide: `${MIX_GUIDE_CASES[0]}–${MIX_GUIDE_CASES[1]} units`,
-      tone: tone(MIX_GUIDE_CASES[0], MIX_GUIDE_CASES[1], caseUnits),
+      guide: `${casesB[0]}–${casesB[1]} units`,
+      tone: tone(casesB[0], casesB[1], caseUnits),
     },
     {
       label: 'Trend + bow-tie',
       value: `${trendQ + bowQ} Q`,
-      guide: `~${MIX_GUIDE_CJ[0]}–${MIX_GUIDE_CJ[1]} Q`,
-      tone: tone(MIX_GUIDE_CJ[0], MIX_GUIDE_CJ[1], trendQ + bowQ),
+      guide: `~${cjB[0]}–${cjB[1]} Q`,
+      tone: tone(cjB[0], cjB[1], trendQ + bowQ),
     },
     {
       label: 'Traditional standalone',
       value: `${trad} Q`,
-      guide: `~${MIX_GUIDE_TRAD[0]}–${MIX_GUIDE_TRAD[1]} Q`,
-      tone: tone(MIX_GUIDE_TRAD[0], MIX_GUIDE_TRAD[1], trad),
+      guide: `~${tradB[0]}–${tradB[1]} Q`,
+      tone: tone(tradB[0], tradB[1], trad),
     },
   ];
 }

@@ -10,6 +10,7 @@ import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { loadPacksOverview, loadPacksSubcats } from '@/lib/bank/packs/queries';
 import { blueprintHealth } from '@/lib/bank/packs/composition';
 import { PacksAreaHead } from '@/lib/bank/packs/area-head';
+import { NewPackButton } from '@/lib/bank/packs/new-pack-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,7 @@ export default async function AdminPacksPage() {
           <div className="bl-head-actions">
             <Link href="/admin/dashboard" className="bl-btn">← Admin</Link>
             <Link href="/admin/bank/all" className="bl-btn">Question bank →</Link>
+            <NewPackButton />
           </div>
         }
         packs={packs}
