@@ -1,15 +1,16 @@
 # Readiness Packs
 
-Last updated: 2026-07-06 (§11.5 results page SETTLED — proposal
+Last updated: 2026-07-07 (§12 build slices added — the minimal
+slice plan for the build, admin side first; to be updated as slices
+land. Previously 2026-07-06: §11.5 results page SETTLED — proposal
 confirmed + enriched: popup stays as the source-aware runner summary
 [standing rule: it adapts per source], points line beside the
 headline %, peer comparator w/ minimum-N gate, per-system +
 per-difficulty breakdowns w/ the thin-slice honesty rule, two
 lifetimes. Same session: the Readiness-band top label renamed
 **Exam-ready → Excelling** in `bank-consumption.html` §6.
-**With §11.5 settled, every §11 open question is now closed** — next
-step = the CD briefs (claiming / results / admin picker) or the
-build-slice plan. Doc created 2026-07-04 — consolidates the
+**With §11.5 settled, every §11 open question is now closed.**
+Doc created 2026-07-04 — consolidates the
 readiness-pack planning previously scattered across
 `payments-and-enrolment.md`, `bank.md`, `bank-consumption.html` and
 `main.md`; §11.2 claiming UX settled 2026-07-05; everything else
@@ -862,6 +863,67 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
     Continue/Review + days left · used → score + band · expired →
     spent. Taste rule: a section, not a nag — no popups or pressure
     banners on trials.
+
+---
+
+## 12. Build slices <span>sketched 2026-07-06 · recorded 2026-07-07 — update as slices land</span>
+
+Direction set 2026-07-06: **build starts admin side first, CD as
+needed mid-build** (not briefs-first; CD most valuable at Slice ②).
+This is the minimal slice plan — statuses and build notes get updated
+here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
+⏭ next · ⬜ pending.
+
+**Admin side (the authoring surface):**
+
+- **⏭ Slice ① — Foundation: link table + seed + packs list.**
+  The migration: create `nclex_readiness_pack_items` (per-child link
+  rows per §6 — `pack_id` CASCADE / `item_id` RESTRICT / `position`,
+  the two UNIQUEs), drop `item_ids` + `price_cents` off
+  `nclex_readiness_packs` (both empty/superseded). Seed the **5 packs
+  as drafts** (`NCLEX_PACK_00001`…`00005`, §11.9) so earmarking has
+  destinations. The `/admin/packs` placeholder becomes the real
+  **packs list**: the 5 packs, status, fill progress ("Pack 1 —
+  64/100"), blueprint-health hint.
+- **⬜ Slice ② — Pack detail + picker + machine-managed visibility.**
+  Pack detail per §6: members in position order, wrapper units as
+  grouped collapsible blocks; the **filter → tick → add picker** with
+  per-unit "Add case (6 questions)" / "Add trend (N questions)"
+  (consecutive-and-in-slot-order enforced at save); double-add
+  blocked with a pack badge; positional insert + move arrows reused
+  from the insert arc, wrapper units move as one block. **The
+  visibility flag goes machine-managed** (per the §4 per-entity
+  rule): add → flag(s) off in the same save; removal leaves hidden
+  (never auto-expose). CD candidate for the picker/detail pixels.
+- **⬜ Slice ③ — Meters + publish gate + reserved-stock lens.**
+  Composition meters on pack detail (fill · mix vs the §5 guideline ·
+  the blueprint meter — guidance, never a block); the
+  completeness-gated **publish toggle** + "Publish all N & publish
+  pack" helper + un-publish semantics (§6); the **reserved-stock
+  view** (~500 `readiness`-tagged questions, per-pack/unassigned —
+  possibly a filter preset on the existing bank list, build-time
+  call). Audit-log coverage of the pack + link tables lands here too.
+
+**Student side (sequenced after admin; slice boundaries firm up when
+we get there — roughly the §10 gaps list):**
+
+- **⬜ Catalogue + products:** the public bank-access page Section 2
+  (3 SKU cards) + READINESS product rows seeded; the in-app
+  catalogue surfaces (§11.10 — bank-dashboard section + the
+  dedicated readiness page).
+- **⬜ Credits + claiming:** the credits-table migration (§7 —
+  final name + column lock here; + drop the two never-written
+  readiness columns off `nclex_subscriptions`); mint-at-activation;
+  claiming UX per §7 (pack-card claiming, three escalating gates,
+  All-5 pre-claimed, pay-first via `/welcome`). CD brief: claiming.
+- **⬜ The sitting:** attempt creation for the READINESS_PACK source
+  (link rows → attempt rows, the runner doesn't know it's a pack);
+  the one-shot timed run wiring (start = the shot, quit =
+  submit-as-is, re-enterable on the sitting's clock per §2).
+- **⬜ Results page:** the permanent per-sitting report per §11.5
+  (verdict hero + points line, peer comparator w/ min-N, multi-axis
+  breakdowns, two lifetimes, review-runner reuse + window gating);
+  the readiness variant of the results popup. CD brief: results.
 
 ---
 
