@@ -1,0 +1,93 @@
+/* mynclex/styles/packs.css
+ *
+ * Readiness packs — admin authoring surfaces (Slice ①: the packs
+ * list). Namespaced .rp-*. App tokens from tokens.css.
+ */
+
+.rp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.rp-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rp-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rp-pack-id {
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+}
+
+.rp-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Status chip — draft / active / archived */
+.rp-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+.rp-status.draft    { background: var(--bg-soft);      color: var(--text-muted); }
+.rp-status.active   { background: var(--primary-light); color: var(--accent-dark); }
+.rp-status.archived { background: var(--bg-soft);      color: var(--text-faint); }
+
+/* Fill progress */
+.rp-fill-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rp-fill-count { font-size: 13px; font-weight: 600; color: var(--text); }
+.rp-fill-count .of { color: var(--text-faint); font-weight: 400; }
+
+.rp-fill-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+
+.rp-fill-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.rp-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ≤768px: single column (CLAUDE.md UI convention #3) */
+@media (max-width: 768px) {
+  .rp-grid { grid-template-columns: 1fr; }
+}
