@@ -1023,7 +1023,15 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   no renumbering), and minting takes the LOWEST free number, so a
   deleted draft's slot is reusable — safe precisely because deletion
   is restricted to never-sold packs (sold packs retire via archive
-  and keep their number forever).
+  and keep their number forever). **(4) Packs-list card ⋮ menu**
+  (programme-card-menu pattern): Edit → the shared modal · Delete →
+  the graded confirm (disabled on published cards w/ unpublish-first
+  tooltip) · **Publishing → a popup hosting the SAME `PublishPanel`
+  as the detail sidebar** (extracted — one source of truth for the
+  gate checklist; gate loads lazily per pack; popup stays open so
+  the curator watches the checklist flip). **(5) App-wide toast fix**
+  (Sam's catch): `.auth-toast` moved below the 56px topbar
+  (top 24→68px) — it was colliding with the user-menu corner.
 
 - **⬜ Pack audit READOUT (planned 2026-07-08 — Sam: definitely
   needed).** The capture side has run since Slice ① (triggers on the
@@ -1037,9 +1045,9 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   curators will work the same packs** — the log is how the team
   reviews each other's changes, and it's the §6 no-membership-lock
   decision's answer to "which questions did this pack hold on date
-  X". Sequencing: fits naturally when the multi-curator workflow
-  starts (before or alongside the earmarking pass); small slice —
-  readout only, capture is done.
+  X". Sequencing: **pulled EARLIER (Sam, same day) — build soon, a
+  next-session candidate**, ahead of the multi-curator earmarking
+  pass; small slice — readout only, capture is done.
 
 **Student side (sequenced after admin; slice boundaries firm up when
 we get there — roughly the §10 gaps list):**
