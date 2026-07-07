@@ -901,7 +901,10 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
 
 **Admin side (the authoring surface):**
 
-- **🔨 Slice ① — Foundation: link table + seed + packs list.**
+- **✅ Slice ① — Foundation: link table + seed + packs list — BUILT +
+  Sam-tested 2026-07-07** (migration `20260721120000` dev-applied +
+  probe-verified: seeds + audit rows, RESTRICT blocks deleting an
+  in-pack question, link insert/delete → created/deleted audit rows).
   The migration: create `nclex_readiness_pack_items` (per-child link
   rows per §6, the **locked shape** — global `UNIQUE(item_id)`,
   composite id, `position >= 1`), drop `item_ids` + `price_cents` off
@@ -914,7 +917,19 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   **packs list**: the 5 packs, status, fill progress ("Pack 1 —
   64/100"); the blueprint-health hint joins in Slice ③ with the
   meter maths.
-- **⬜ Slice ② — Pack detail + picker + machine-managed visibility.**
+- **🔨 Slice ② — Pack detail + picker + machine-managed visibility.**
+  **②a (detail spine) ✅ BUILT + Sam-tested 2026-07-07** from the CD
+  "Readiness Packs Admin" prototype (concept-not-source): new
+  `lib/bank/packs/` module; `/admin/packs/[pack_id]` detail (members in
+  sat order, case/trend units as tinted collapsible blocks that move as
+  one, ↑↓/remove, pack-basics card incl. child difficulty+category
+  chips); the **pill-strip navigation** ([Packs] [Pack 1–5 w/ dot+count]
+  [Reserved stock "soon"]) on list + detail. `position` = **spaced
+  ordinals** (STEP 1e6, the cohort "store" pattern — display numbers
+  are dense-computed; moves write gap midpoints, no renumber under the
+  UNIQUE). **⏭ ②b next: the picker** (slide-over, search+facets,
+  add-as-unit, insert-at-position via the row ⊕, and the
+  machine-managed visibility flags in the add path).
   Pack detail per §6: members in position order, wrapper units as
   grouped collapsible blocks; the **filter → tick → add picker** with
   per-unit "Add case (6 questions)" / "Add trend (N questions)"
