@@ -319,13 +319,41 @@ questions inside ordinary attempts (case panel, trend panel,
 progressive disclosure, frozen snapshots), and a pack attempt is just
 another attempt.
 
-**Atomicity is the one hard rule enforced in code.** A case is
-atomic: its 6 questions enter a pack as a unit, consecutive and in
-slot order — progressive chart disclosure and the CJMM sequence only
-make sense whole. Trends are the same idea with variable question
-counts. The admin picker therefore needs "add this case (6
-questions)" as a single action, and pack composition maths reads like
-the real blueprint: e.g. 3 cases (18 Q) + 82 standalone = 100.
+**Atomicity is the one hard rule enforced in code — for CASES ONLY
+(trend revised 2026-07-07, ②b build).** A case is atomic: its 6
+questions enter a pack as a unit, consecutive and in slot order —
+progressive chart disclosure and the CJMM sequence only make sense
+whole. The admin picker therefore needs "add this case (6 questions)"
+as a single action, and pack composition maths reads like the real
+blueprint: e.g. 3 cases (18 Q) + 82 standalone = 100.
+
+**Trends are NOT atomic** — Sam's ②b revision of the original
+"same idea with variable counts" framing. A trend question is a
+complete self-standing item (no progressive disclosure, no CJMM
+sequence — the wrapper build explicitly adopted the chart engine
+*minus* disclosure), and the reservation model already treats trend
+children individually (per-child visibility flags, §4). So the picker
+offers a trend's questions **with per-question checkboxes** — the
+curator selects which siblings to place at that insertion point:
+
+- **Batch lands together:** whatever is ticked in one add lands
+  consecutively at the insertion point, in item-id order.
+- **Blocks are display-over-adjacency, nothing is stored:** the
+  detail page's tinted trend block = a run of consecutive same-trend
+  rows (the ②a grouping already derives it this way). The block
+  moves as one (that's what you placed), and **per-question remove**
+  works on trend rows (case rows stay block-remove only).
+- **No magnet, no welding:** adding more siblings later inserts them
+  wherever the curator points — possibly forming a second block of
+  the same trend elsewhere in the pack. Legal by design.
+- **No within-block reorder (build-when-it-hurts):** sibling order
+  inside a block is the landed order; rearranging = remove +
+  re-add at the right spot. Within-block ↑↓ is a cheap app-layer
+  bolt-on if real use demands it.
+- **Cross-pack splitting allowed:** different questions of one trend
+  may live in different packs (the `UNIQUE(item_id)` rule is
+  per-child). "Which pack is this trend in?" is a per-question
+  answer — badges reflect that.
 
 **Mix is a curation guideline, not code** — code enforces only
 atomicity (whole wrappers, in order). Keeps the 5 packs free to vary
@@ -351,8 +379,9 @@ long). Scaled to our 100:
   type; no atomicity, no wrapper.
 - **Prefer small trend attachments** — on the real exam a trend is a
   *single* question with a trended-tabs stimulus; pack trends should
-  carry **1–3 questions per dataset**, not a 10-question run.
-  Atomicity applies as settled.
+  carry **1–3 questions per dataset**, not a 10-question run. The
+  per-question picker (above) makes this natural — take the 1–3 best
+  siblings, leave the rest.
 - **Blueprint proportions** — the NCLEX test plan's Client Needs
   category % ranges are authoring guidance for the whole 100; the
   admin pack detail displays a blueprint meter (§ admin surface),
@@ -426,7 +455,8 @@ runner doesn't know it's running a pack). The link rows carry **no
 wrapper columns** — each bank question already knows its parent case
 on its own row; the loader derives grouping the way attempt creation
 does today. **Consecutive-and-in-slot-order is enforced at save** by
-the picker's "add case/trend as a unit" action.
+the picker's "add case as a unit" action (cases only — trends add
+per-question, §5).
 
 ### Publish gate & membership edits <span>settled 2026-07-04</span>
 
@@ -480,15 +510,18 @@ Three lenses:
    500 bookkeeping lens. Possibly a filter preset on the existing
    bank list rather than a new page (build-time call).
 
-**The picker** (inside pack detail): the established
-filter → tick → add pattern, in two sections — standalone questions,
-and wrappers with per-unit **"Add case (6 questions)" / "Add trend
-(N questions)"** (atomicity enforced at save). Only
-published-or-publishable, non-member questions offered; a question in
-another pack shows its badge and can't be double-added (instant via
-the link table). **Positional control reuses the just-built
-patterns** — insert-at-position + move arrows on member rows, wrapper
-units moving as one block.
+**The picker** (inside pack detail; trend model revised 2026-07-07 —
+see §5): the established filter → tick → add pattern, in three
+sections — standalone questions (tick several, add as a batch),
+cases with per-unit **"Add case (6 questions)"** (atomicity enforced
+at save), and trends with **per-question checkboxes** (select which
+siblings land at this insertion point; the batch lands consecutively
+in item-id order). Only published, non-member questions offered; a
+question in another pack shows its badge and can't be double-added
+(instant via the link table). **Positional control reuses the
+just-built patterns** — insert-at-position + move arrows on member
+rows, case units moving as one block, trend blocks =
+display-grouping over consecutive rows with per-question remove.
 
 **The visibility flag becomes machine-managed.** Adding a question
 (or wrapper) to a pack flips the right flag(s) off (per the §4
@@ -927,18 +960,21 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   [Reserved stock "soon"]) on list + detail. `position` = **spaced
   ordinals** (STEP 1e6, the cohort "store" pattern — display numbers
   are dense-computed; moves write gap midpoints, no renumber under the
-  UNIQUE). **⏭ ②b next: the picker** (slide-over, search+facets,
-  add-as-unit, insert-at-position via the row ⊕, and the
-  machine-managed visibility flags in the add path).
-  Pack detail per §6: members in position order, wrapper units as
-  grouped collapsible blocks; the **filter → tick → add picker** with
-  per-unit "Add case (6 questions)" / "Add trend (N questions)"
-  (consecutive-and-in-slot-order enforced at save); double-add
-  blocked with a pack badge; positional insert + move arrows reused
-  from the insert arc, wrapper units move as one block. **The
-  visibility flag goes machine-managed** (per the §4 per-entity
-  rule): add → flag(s) off in the same save; removal leaves hidden
-  (never auto-expose). CD candidate for the picker/detail pixels.
+  UNIQUE). **🔨 ②b: the picker** (slide-over from the CD prototype:
+  search+facets, standalone multi-tick add, case add-as-unit,
+  **trend per-question selection** [the 2026-07-07 revision — §5],
+  insert-at-position via the row ⊕, and the machine-managed
+  visibility flags in the add path).
+  Pack detail per §6: members in position order, case units as
+  welded collapsible blocks, trend blocks = display-grouping over
+  consecutive same-trend rows (per-question remove; no within-block
+  reorder — build-when-it-hurts); the **filter → tick → add picker**
+  with per-unit "Add case (6 questions)" and per-question trend
+  checkboxes (a trend batch lands consecutively, item-id order);
+  double-add blocked with a pack badge; positional insert + move
+  arrows reused from the insert arc. **The visibility flag goes
+  machine-managed** (per the §4 per-entity rule): add → flag(s) off
+  in the same save; removal leaves hidden (never auto-expose).
 - **⬜ Slice ③ — Meters + publish gate + reserved-stock lens.**
   Composition meters on pack detail (fill · mix vs the §5 guideline ·
   the blueprint meter — guidance, never a block); the

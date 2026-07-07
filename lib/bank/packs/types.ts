@@ -67,3 +67,61 @@ export interface PackActionResult {
   ok:     boolean;
   error?: string;
 }
+
+// ── Picker (Slice ②b) ────────────────────────────────────────────────
+// Candidate shapes the slide-over filters CLIENT-SIDE (prototype
+// parity — search + facets over a one-shot load). `inPack` carries the
+// double-add badge: 'Pack N' (another pack, disabled) or 'this pack'
+// (trend siblings already placed here); standalones/cases already in
+// THIS pack are excluded server-side (they're on the members list).
+
+export interface PickerQuestion {
+  itemId:       string;
+  stemLabel:    string;
+  questionType: string;
+  difficulty:   string | null;
+  category:     string | null;   // client_needs_category (top level, 4)
+  subcategory:  string | null;   // client_needs_subcategory (8)
+  subject:      string | null;   // nursing_subject
+  bodySystem:   string | null;
+  bloom:        string | null;   // bloom_level
+  inPack:       string | null;
+}
+
+export interface PickerCase {
+  caseId:       string;
+  title:        string;
+  childCount:   number;
+  childTypes:   string[];
+  childSubcats: string[];        // for the ANY-child facet match
+  childSystems: string[];
+  inPack:       string | null;
+}
+
+export interface PickerTrendChild {
+  itemId:       string;
+  stemLabel:    string;
+  questionType: string;
+  difficulty:   string | null;
+  subcategory:  string | null;
+  bodySystem:   string | null;
+  inPack:       string | null;
+}
+
+export interface PickerTrend {
+  trendId:  string;
+  title:    string;
+  children: PickerTrendChild[];  // per-question selection — §5 revision
+}
+
+export interface PackPickerData {
+  target:      number;
+  remaining:   number;
+  standalones: PickerQuestion[];
+  cases:       PickerCase[];
+  trends:      PickerTrend[];
+}
+
+export type PickerLoadResult =
+  | { ok: true; data: PackPickerData }
+  | { ok: false; error: string };

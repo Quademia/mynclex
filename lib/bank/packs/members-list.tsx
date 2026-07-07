@@ -1,18 +1,25 @@
 // mynclex/lib/bank/packs/members-list.tsx
 //
-// The pack detail's "Questions in sat order" panel (Slice ②a), from
+// The pack detail's "Questions in sat order" panel (②a + ②b), from
 // the CD "Readiness Packs Admin" prototype (concept-not-source).
-// Standalone rows + case/trend units as tinted collapsible blocks that
-// move as one. Printed positions are the DENSE index over the ordered
-// members (storage uses spaced ordinals — types.ts). The per-row ⊕
-// (insert-above via the picker) arrives with Slice ②b.
+// Standalone rows + case/trend units as tinted collapsible blocks.
+// Case blocks are WELDED (move + remove as one — §5 atomicity); trend
+// blocks are display-grouping over consecutive rows, so their children
+// also get a per-question × (§5, revised 2026-07-07). Each unit's ⊕
+// opens the picker in insert-above mode. Printed positions are the
+// DENSE index over the ordered members (storage uses spaced
+// ordinals — types.ts).
 
 'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
-import { movePackUnitAction, removePackUnitAction } from './actions';
+import {
+  movePackUnitAction,
+  removePackMemberAction,
+  removePackUnitAction,
+} from './actions';
 import { unitMembers } from './grouping';
 import type { PackMember, PackUnit } from './types';
 
@@ -27,11 +34,17 @@ export function PackMembersList({
   units,
   count,
   target,
+  onInsertAbove,
+  onAddQuestions,
 }: {
   packId: string;
   units: PackUnit[];
   count: number;
   target: number;
+  /** Open the picker in insert-above mode (unit's first link + its printed position). */
+  onInsertAbove: (linkId: string, pos: number) => void;
+  /** Open the picker in append mode (the empty state's CTA). */
+  onAddQuestions: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -77,10 +90,12 @@ export function PackMembersList({
           <div className="rp-members-empty-plus">+</div>
           <div className="rp-members-empty-title">All {target} positions are open</div>
           <p>
-            Fill this pack from reserved stock — standalone questions, and
-            case studies or trends added as whole units. The picker arrives
-            with the next slice.
+            Fill this pack — standalone questions ticked in batches, case
+            studies as whole units, and trends question by question.
           </p>
+          <button type="button" className="rp-add-btn" onClick={onAddQuestions}>
+            + Add questions
+          </button>
         </div>
       ) : (
         <div className="rp-members-rows">
@@ -102,6 +117,17 @@ export function PackMembersList({
                   disabled={downDis}
                   onClick={() => run(() => movePackUnitAction(packId, first.linkId, 'down'))}
                 >↓</button>
+                <button
+                  type="button"
+                  className="rp-row-insert"
+                  title={
+                    u.kind === 'q'
+                      ? 'Insert questions above this question'
+                      : 'Insert questions above this unit'
+                  }
+                  disabled={pending}
+                  onClick={() => onInsertAbove(first.linkId, ranges[i].from)}
+                >+</button>
                 <button
                   type="button"
                   className="rp-row-remove"
@@ -161,9 +187,24 @@ export function PackMembersList({
                 {!isCollapsed && (
                   <div className="rp-unit-children">
                     {u.members.map((m, k) => (
-                      <div key={m.linkId} className="rp-child-row">
+                      <div
+                        key={m.linkId}
+                        className={`rp-child-row ${u.kind === 'trend' ? 'trend' : ''}`}
+                      >
                         <div className="rp-pos">{from + k}</div>
                         <MemberSummary m={m} child />
+                        {/* Trend blocks are display-grouping, not welded
+                            units (§5) — each question leaves on its own.
+                            Case children stay block-remove only. */}
+                        {u.kind === 'trend' && (
+                          <button
+                            type="button"
+                            className="rp-child-remove"
+                            title="Remove this question (stays reserved and hidden)"
+                            disabled={pending}
+                            onClick={() => run(() => removePackMemberAction(packId, m.linkId))}
+                          >×</button>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -13,9 +13,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireBankCurator } from '@/lib/access';
-import { loadPackDetail } from './queries';
+import { loadPackDetail, loadPackPicker } from './queries';
 import { unitLinkIds, unitMembers } from './grouping';
-import type { PackActionResult, PackUnit } from './types';
+import type { PackActionResult, PackUnit, PickerLoadResult } from './types';
 import { PACK_POSITION_STEP } from './types';
 
 const NOGAP_ERROR =
@@ -136,6 +136,357 @@ export async function removePackUnitAction(
 
   // Deliberately NOT touching the question's visibility flags: removed
   // questions stay reserved and hidden (never auto-expose — §6).
+  revalidatePack(packId);
+  return { ok: true };
+}
+
+/** Remove ONE member row — the trend blocks' per-question × (§5: trend
+ *  blocks are display-grouping, not welded units). Case children are
+ *  refused here (layered enforcement of case atomicity). */
+export async function removePackMemberAction(
+  packId: string,
+  linkId: string,
+): Promise<PackActionResult> {
+  const { supabase } = await requireBankCurator('admin');
+
+  const { data: link } = await supabase
+    .from('nclex_readiness_pack_items')
+    .select('id, item_id, nclex_bank_items(parent_case_id)')
+    .eq('id', linkId)
+    .eq('pack_id', packId)
+    .maybeSingle();
+  if (!link) return { ok: false, error: 'That question is no longer in this pack.' };
+  const parentCaseId = (
+    link as unknown as { nclex_bank_items: { parent_case_id: string | null } | null }
+  ).nclex_bank_items?.parent_case_id;
+  if (parentCaseId) {
+    return {
+      ok: false,
+      error: 'Case questions leave as one unit — remove the whole case block.',
+    };
+  }
+
+  const { error } = await supabase
+    .from('nclex_readiness_pack_items')
+    .delete()
+    .eq('id', linkId)
+    .eq('pack_id', packId);
+  if (error) return { ok: false, error: `Remove failed: ${error.message}` };
+
+  // Flags untouched — never auto-expose (§6).
+  revalidatePack(packId);
+  return { ok: true };
+}
+
+// ── Picker: candidates + add (Slice ②b) ─────────────────────────────
+
+export async function loadPackPickerAction(
+  packId: string,
+): Promise<PickerLoadResult> {
+  const { supabase } = await requireBankCurator('admin');
+  try {
+    return { ok: true, data: await loadPackPicker(supabase, packId) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Could not load the picker.' };
+  }
+}
+
+const READINESS_TAG = 'readiness';
+
+const NOGAP_INSERT_ERROR =
+  'No room to insert at that spot — insert at the end and move things, or remove and re-add a neighbour.';
+
+interface OrderedLink {
+  id:       string;
+  position: number;
+}
+
+/** This pack's link rows in position order + the pack's target n. */
+async function loadPackLinks(
+  supabase: Awaited<ReturnType<typeof requireBankCurator>>['supabase'],
+  packId: string,
+): Promise<{ links: OrderedLink[]; target: number } | { error: string }> {
+  const [{ data: packRow }, { data: linkRows, error }] = await Promise.all([
+    supabase.from('nclex_readiness_packs').select('n').eq('pack_id', packId).maybeSingle(),
+    supabase
+      .from('nclex_readiness_pack_items')
+      .select('id, position')
+      .eq('pack_id', packId)
+      .order('position'),
+  ]);
+  if (!packRow) return { error: 'Pack not found.' };
+  if (error) return { error: `Could not load pack members: ${error.message}` };
+  return {
+    links: (linkRows ?? []) as OrderedLink[],
+    target: (packRow as { n: number | null }).n ?? 100,
+  };
+}
+
+/** Spaced positions for k new rows: at the end, or in the gap above
+ *  `beforeLinkId` (the anchor unit's first row — the ⊕ semantics). */
+function computeInsertPositions(
+  links: OrderedLink[],
+  beforeLinkId: string | null,
+  k: number,
+): { positions: number[] } | { error: string } {
+  if (beforeLinkId === null) {
+    const last = links.length > 0 ? links[links.length - 1].position : 0;
+    return { positions: Array.from({ length: k }, (_, i) => last + PACK_POSITION_STEP * (i + 1)) };
+  }
+  const idx = links.findIndex((l) => l.id === beforeLinkId);
+  if (idx < 0) {
+    return { error: 'That insertion point just moved — reopen the picker and try again.' };
+  }
+  const lower = idx > 0 ? links[idx - 1].position : 0;
+  const upper = links[idx].position;
+  const spacing = Math.floor((upper - lower) / (k + 1));
+  if (spacing < 1) return { error: NOGAP_INSERT_ERROR };
+  return { positions: Array.from({ length: k }, (_, i) => lower + spacing * (i + 1)) };
+}
+
+/** Any of these questions already in a pack? (Friendly pre-check; the
+ *  global UNIQUE(item_id) is the real guarantee.) */
+async function findExistingMemberships(
+  supabase: Awaited<ReturnType<typeof requireBankCurator>>['supabase'],
+  itemIds: string[],
+): Promise<string[] | { error: string }> {
+  const { data, error } = await supabase
+    .from('nclex_readiness_pack_items')
+    .select('item_id')
+    .in('item_id', itemIds);
+  if (error) return { error: `Could not check memberships: ${error.message}` };
+  return ((data ?? []) as { item_id: string }[]).map((r) => r.item_id);
+}
+
+/** Machine-managed reservation on QUESTION rows (standalones + trend
+ *  children — §4 per-entity rule): hide from the builder, drop the
+ *  free-sample exposure, and stamp the `readiness` bookkeeping tag in
+ *  the same save (§4's tag-and-hide rule — the tag and the pack
+ *  contents must not drift). Runs BEFORE the link insert so a partial
+ *  failure leaves a question reserved-but-unassigned (never exposed). */
+async function reserveQuestionRows(
+  supabase: Awaited<ReturnType<typeof requireBankCurator>>['supabase'],
+  rows: { item_id: string; tags: string[] }[],
+): Promise<string | null> {
+  for (const r of rows) {
+    const tags = r.tags.includes(READINESS_TAG) ? r.tags : [...r.tags, READINESS_TAG];
+    const { error } = await supabase
+      .from('nclex_bank_items')
+      .update({
+        is_builder_visible: false,
+        is_free_sample: false,
+        tags,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('item_id', r.item_id);
+    if (error) return `Could not reserve ${r.item_id}: ${error.message}`;
+  }
+  return null;
+}
+
+/** Insert the link rows (one batch statement — atomic). */
+async function insertLinkRows(
+  supabase: Awaited<ReturnType<typeof requireBankCurator>>['supabase'],
+  packId: string,
+  itemIds: string[],
+  positions: number[],
+): Promise<string | null> {
+  const { error } = await supabase.from('nclex_readiness_pack_items').insert(
+    itemIds.map((itemId, i) => ({
+      id: `${packId}:${itemId}`,
+      pack_id: packId,
+      item_id: itemId,
+      position: positions[i],
+    })),
+  );
+  if (!error) return null;
+  if (error.code === '23505') {
+    return 'One of those questions was just placed in a pack elsewhere — refresh and try again.';
+  }
+  return `Add failed: ${error.message}`;
+}
+
+function capacityError(remaining: number): string {
+  if (remaining <= 0) return 'This pack is already full — remove something first.';
+  return `Only ${remaining} position${remaining === 1 ? '' : 's'} left in this pack — deselect a few first.`;
+}
+
+/** Standalone questions — the picker's multi-tick add. Order preserved
+ *  as sent (the picker's visible list order). */
+export async function addPackStandalonesAction(
+  packId: string,
+  itemIds: string[],
+  beforeLinkId: string | null,
+): Promise<PackActionResult> {
+  const { supabase } = await requireBankCurator('admin');
+
+  const ids = [...new Set(itemIds)].filter(Boolean);
+  if (ids.length === 0) return { ok: false, error: 'Nothing selected.' };
+
+  const { data: itemRows, error: itemErr } = await supabase
+    .from('nclex_bank_items')
+    .select('item_id, tags, is_published, parent_case_id, trend_id')
+    .in('item_id', ids);
+  if (itemErr) return { ok: false, error: `Could not load questions: ${itemErr.message}` };
+  const items = (itemRows ?? []) as {
+    item_id: string;
+    tags: string[];
+    is_published: boolean;
+    parent_case_id: string | null;
+    trend_id: string | null;
+  }[];
+  if (items.length !== ids.length) {
+    return { ok: false, error: 'One of those questions no longer exists.' };
+  }
+  const bad = items.find((i) => !i.is_published || i.parent_case_id || i.trend_id);
+  if (bad) {
+    return {
+      ok: false,
+      error: `${bad.item_id} is not a published standalone question — refresh the picker.`,
+    };
+  }
+
+  return finishAdd(supabase, packId, ids, beforeLinkId, () =>
+    reserveQuestionRows(
+      supabase,
+      ids.map((id) => items.find((i) => i.item_id === id)!),
+    ),
+  );
+}
+
+/** A case study — atomic, all children as one unit in slot order (§5).
+ *  Reservation flips the CASE row's own flag (§4 per-entity rule). */
+export async function addPackCaseAction(
+  packId: string,
+  caseId: string,
+  beforeLinkId: string | null,
+): Promise<PackActionResult> {
+  const { supabase } = await requireBankCurator('admin');
+
+  const [{ data: caseRow }, { data: childRows, error: childErr }] = await Promise.all([
+    supabase
+      .from('nclex_case_studies')
+      .select('case_id, tags, is_published')
+      .eq('case_id', caseId)
+      .maybeSingle(),
+    supabase
+      .from('nclex_case_study_items')
+      .select('item_id, position')
+      .eq('case_id', caseId)
+      .order('position'),
+  ]);
+  if (!caseRow) return { ok: false, error: 'Case study not found.' };
+  if (childErr) return { ok: false, error: `Could not load case members: ${childErr.message}` };
+  const c = caseRow as { case_id: string; tags: string[]; is_published: boolean };
+  if (!c.is_published) return { ok: false, error: 'Only published case studies can join a pack.' };
+  const childIds = ((childRows ?? []) as { item_id: string }[]).map((r) => r.item_id);
+  if (childIds.length === 0) return { ok: false, error: 'That case study has no questions.' };
+
+  return finishAdd(supabase, packId, childIds, beforeLinkId, async () => {
+    const tags = c.tags.includes(READINESS_TAG) ? c.tags : [...c.tags, READINESS_TAG];
+    const { error } = await supabase
+      .from('nclex_case_studies')
+      .update({
+        is_builder_visible: false,
+        is_free_sample: false,
+        tags,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('case_id', caseId);
+    return error ? `Could not reserve ${caseId}: ${error.message}` : null;
+  });
+}
+
+/** SELECTED questions of a trend — the §5 per-question model. The
+ *  batch lands consecutively in item-id order; reservation flips the
+ *  CHILD question rows' flags (§4 — the dataset's own flag is a no-op). */
+export async function addPackTrendQuestionsAction(
+  packId: string,
+  trendId: string,
+  itemIds: string[],
+  beforeLinkId: string | null,
+): Promise<PackActionResult> {
+  const { supabase } = await requireBankCurator('admin');
+
+  const ids = [...new Set(itemIds)].filter(Boolean).sort();
+  if (ids.length === 0) return { ok: false, error: 'Nothing selected.' };
+
+  const [{ data: trendRow }, { data: itemRows, error: itemErr }] = await Promise.all([
+    supabase
+      .from('nclex_trend_datasets')
+      .select('trend_id, is_published')
+      .eq('trend_id', trendId)
+      .maybeSingle(),
+    supabase
+      .from('nclex_bank_items')
+      .select('item_id, tags, is_published, trend_id')
+      .in('item_id', ids),
+  ]);
+  if (!trendRow) return { ok: false, error: 'Trend not found.' };
+  if (!(trendRow as { is_published: boolean }).is_published) {
+    return { ok: false, error: 'Only published trends can join a pack.' };
+  }
+  if (itemErr) return { ok: false, error: `Could not load questions: ${itemErr.message}` };
+  const items = (itemRows ?? []) as {
+    item_id: string;
+    tags: string[];
+    is_published: boolean;
+    trend_id: string | null;
+  }[];
+  if (items.length !== ids.length) {
+    return { ok: false, error: 'One of those questions no longer exists.' };
+  }
+  const bad = items.find((i) => !i.is_published || i.trend_id !== trendId);
+  if (bad) {
+    return {
+      ok: false,
+      error: `${bad.item_id} is not a published question of this trend — refresh the picker.`,
+    };
+  }
+
+  return finishAdd(supabase, packId, ids, beforeLinkId, () =>
+    reserveQuestionRows(
+      supabase,
+      ids.map((id) => items.find((i) => i.item_id === id)!),
+    ),
+  );
+}
+
+/** Shared tail of every add: capacity → double-add pre-check →
+ *  positions → reserve (fail-safe direction) → one batch link insert. */
+async function finishAdd(
+  supabase: Awaited<ReturnType<typeof requireBankCurator>>['supabase'],
+  packId: string,
+  itemIds: string[],
+  beforeLinkId: string | null,
+  reserve: () => Promise<string | null>,
+): Promise<PackActionResult> {
+  const loaded = await loadPackLinks(supabase, packId);
+  if ('error' in loaded) return { ok: false, error: loaded.error };
+  const { links, target } = loaded;
+
+  if (links.length + itemIds.length > target) {
+    return { ok: false, error: capacityError(target - links.length) };
+  }
+
+  const existing = await findExistingMemberships(supabase, itemIds);
+  if (!Array.isArray(existing)) return { ok: false, error: existing.error };
+  if (existing.length > 0) {
+    return {
+      ok: false,
+      error: `Already in a pack: ${existing.slice(0, 3).join(', ')}${existing.length > 3 ? ` +${existing.length - 3} more` : ''}.`,
+    };
+  }
+
+  const computed = computeInsertPositions(links, beforeLinkId, itemIds.length);
+  if ('error' in computed) return { ok: false, error: computed.error };
+
+  const reserveErr = await reserve();
+  if (reserveErr) return { ok: false, error: reserveErr };
+
+  const insertErr = await insertLinkRows(supabase, packId, itemIds, computed.positions);
+  if (insertErr) return { ok: false, error: insertErr };
+
   revalidatePack(packId);
   return { ok: true };
 }

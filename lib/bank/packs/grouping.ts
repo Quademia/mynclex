@@ -4,9 +4,11 @@
 // Consecutive rows sharing a parent_case_id (or trend_id) form ONE
 // case / trend unit — the same derivation attempt-creation uses (the
 // link rows carry no wrapper columns; each question knows its parent on
-// its own row, readiness-packs.md §6). Non-consecutive repeats of the
-// same wrapper would fold into separate units — the picker's
-// add-as-a-unit action keeps that from ever happening at save.
+// its own row, readiness-packs.md §6). Non-consecutive repeats fold
+// into SEPARATE units: for cases that can't occur (the picker's atomic
+// add), but for trends it's legal by design (§5, revised 2026-07-07 —
+// a trend block is display-grouping over adjacency, and a curator may
+// place siblings at different insertion points).
 
 import type { PackMember, PackUnit } from './types';
 

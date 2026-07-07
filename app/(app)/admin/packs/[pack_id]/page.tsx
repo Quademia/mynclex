@@ -1,16 +1,16 @@
 // mynclex/app/(app)/admin/packs/[pack_id]/page.tsx
 //
-// Readiness pack detail — Slice ②a (readiness-packs.md §12): members
-// in sat order with case/trend units as grouped blocks, move/remove,
-// pack basics. The picker (②b) and meters/publish gate (③) land on
-// this same page next. Gated on BANK_CURATE.
+// Readiness pack detail — Slices ②a + ②b (readiness-packs.md §12):
+// members in sat order with case/trend units as grouped blocks,
+// move/remove, pack basics, and the "Add questions" picker slide-over
+// (header button + per-row ⊕ insert-above). Meters + publish gate (③)
+// land on this same page next. Gated on BANK_CURATE.
 
 import { notFound } from 'next/navigation';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 import { loadPacksOverview, loadPackDetail } from '@/lib/bank/packs/queries';
 import { PackStrip } from '@/lib/bank/packs/pack-strip';
-import { PackMembersList } from '@/lib/bank/packs/members-list';
-import { PackBasicsCard } from '@/lib/bank/packs/basics-card';
+import { PackDetailBody } from '@/lib/bank/packs/detail-body';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,40 +47,8 @@ export default async function AdminPackDetailPage({
 
         <PackStrip packs={packs} activeId={pack.pack_id} />
 
-        <div className="rp-detail-head">
-          <div className="rp-detail-title">
-            <h2>{pack.title}</h2>
-            <span className={`rp-status ${pack.status}`}>
-              {pack.published ? 'published' : pack.status}
-            </span>
-          </div>
-          <div className="rp-detail-meta">
-            <span className="rp-mono">{pack.pack_id}</span>
-            <span>{count} of {target} positions filled</span>
-            <span>⏱ {formatTimeLimit(pack.time_limit_sec)}</span>
-          </div>
-        </div>
-
-        <div className="rp-detail-cols">
-          <PackMembersList
-            packId={pack.pack_id}
-            units={units}
-            count={count}
-            target={target}
-          />
-          <aside className="rp-detail-side">
-            <PackBasicsCard pack={pack} />
-          </aside>
-        </div>
+        <PackDetailBody pack={pack} units={units} count={count} target={target} />
       </div>
     </main>
   );
-}
-
-function formatTimeLimit(sec: number | null): string {
-  if (!sec || sec <= 0) return 'No time limit set';
-  const h = Math.floor(sec / 3600);
-  const m = Math.round((sec % 3600) / 60);
-  if (h === 0) return `${m} m`;
-  return m === 0 ? `${h} h` : `${h} h ${m} m`;
 }
