@@ -384,16 +384,34 @@ carrying position. Reasons:
    (`nclex_case_study_items` — one row per question-in-case, with
    position). Same shape of relationship, familiar code everywhere.
 
-Illustrative shape (not binding until the build slice):
+Shape **locked at build (2026-07-07, Slice ①)** — three changes from
+the original sketch, all settled with Sam:
 
 ```
 nclex_readiness_pack_items
+  id         TEXT PRIMARY KEY          -- '<pack_id>:<item_id>' (see below)
   pack_id    TEXT NOT NULL REFERENCES nclex_readiness_packs ON DELETE CASCADE
   item_id    TEXT NOT NULL REFERENCES nclex_bank_items ON DELETE RESTRICT
-  position   INTEGER NOT NULL          -- 1..100, the sat order
-  UNIQUE (pack_id, item_id)
+  position   INTEGER NOT NULL CHECK (position >= 1)   -- the sat order
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  UNIQUE (item_id)                     -- ONE PACK PER QUESTION, DB-enforced
   UNIQUE (pack_id, position)
 ```
+
+1. **`UNIQUE (item_id)` is global, not per-pack** — the "can't be
+   double-added" rule was UI-only in the sketch; per the
+   layered-enforcement house rule the database itself now guarantees
+   a question belongs to at most one pack (packs never share
+   questions — that's the reservation model). The per-pack duplicate
+   rule comes free (implied by the global one).
+2. **`id` + `created_at`** per the house pattern
+   (`nclex_case_study_items`). The `id` is the composite
+   `'<pack_id>:<item_id>'` — deliberately meaningful so an audit-log
+   row (which stores only `entity_id`) names both the pack and the
+   question even after the link row is deleted.
+3. **`position` gets a `>= 1` sanity check only** — no hard 1..100
+   bound; "exactly n, no gaps" is owned by the publish gate (the
+   pack row already carries `n`).
 
 **Wrapper members: per-child rows** <span>settled 2026-07-04</span> —
 a case in a pack = 6 link rows (one per child question) at
@@ -433,7 +451,14 @@ the picker's "add case/trend as a unit" action.
   to fix defects only, a content refresh is a new pack; and pack
   analytics carries the **drift caveat** (tolerate or segment by
   membership era — decided at the analytics slice; the audit log IS
-  the captured data).
+  the captured data). **Build note (2026-07-07):** the audit trigger
+  only knew `created`/`updated` — removing a question from a pack is
+  a row DELETE, i.e. half of every swap — so Slice ① widens it with a
+  `deleted` action, and the pack + link tables get audit coverage
+  **from Slice ① onward** (not Slice ③ as first sketched) so history
+  exists from the first membership row. Who-added-it is answered by
+  the audit log, not an `added_by` column (the log survives the row's
+  deletion and captures the remover too).
 - Consistency for free: swapping a question *out* leaves it hidden
   (never auto-expose); swapping one *in* requires it published, and
   the machine-managed flag hides it in the same save.
@@ -876,15 +901,19 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
 
 **Admin side (the authoring surface):**
 
-- **⏭ Slice ① — Foundation: link table + seed + packs list.**
+- **🔨 Slice ① — Foundation: link table + seed + packs list.**
   The migration: create `nclex_readiness_pack_items` (per-child link
-  rows per §6 — `pack_id` CASCADE / `item_id` RESTRICT / `position`,
-  the two UNIQUEs), drop `item_ids` + `price_cents` off
-  `nclex_readiness_packs` (both empty/superseded). Seed the **5 packs
-  as drafts** (`NCLEX_PACK_00001`…`00005`, §11.9) so earmarking has
+  rows per §6, the **locked shape** — global `UNIQUE(item_id)`,
+  composite id, `position >= 1`), drop `item_ids` + `price_cents` off
+  `nclex_readiness_packs` (both empty/superseded). **Audit coverage
+  from day one** (pulled forward from Slice ③): widen the audit
+  action CHECK + trigger with `deleted`, attach triggers to the pack
+  + link tables. Seed the **5 packs as drafts**
+  (`NCLEX_PACK_00001`…`00005`, §11.9) so earmarking has
   destinations. The `/admin/packs` placeholder becomes the real
   **packs list**: the 5 packs, status, fill progress ("Pack 1 —
-  64/100"), blueprint-health hint.
+  64/100"); the blueprint-health hint joins in Slice ③ with the
+  meter maths.
 - **⬜ Slice ② — Pack detail + picker + machine-managed visibility.**
   Pack detail per §6: members in position order, wrapper units as
   grouped collapsible blocks; the **filter → tick → add picker** with
@@ -902,7 +931,8 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   pack" helper + un-publish semantics (§6); the **reserved-stock
   view** (~500 `readiness`-tagged questions, per-pack/unassigned —
   possibly a filter preset on the existing bank list, build-time
-  call). Audit-log coverage of the pack + link tables lands here too.
+  call) + the packs-list blueprint-health hint. (Audit coverage
+  moved to Slice ①.)
 
 **Student side (sequenced after admin; slice boundaries firm up when
 we get there — roughly the §10 gaps list):**
