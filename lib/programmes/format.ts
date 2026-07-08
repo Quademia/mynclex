@@ -8,7 +8,7 @@
 
 import type { Currency, ProgrammeHealth, ProgrammeStatus, UnitLabel } from './types';
 
-const CURRENCY_SYMBOL: Record<Currency, string> = { GHS: '₵', USD: '$' };
+const CURRENCY_PREFIX: Record<Currency, string> = { GHS: 'GHS ', USD: '$' };
 
 const MONTHS = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -28,14 +28,14 @@ export function formatShortDate(iso: string): string {
 /**
  * Card price line. `0` renders as "Free"; otherwise the currency
  * symbol + the whole-cedi/dollar amount (minor → major). Thousands
- * grouped ("₵1,200"). NULL minor (transient mid-create) → "—".
+ * grouped ("GHS 1,200"). NULL minor (transient mid-create) → "—".
  */
 export function formatPrice(minor: number | null, currency: Currency): string {
   if (minor == null) return '—';
   if (minor === 0) return 'Free';
   const major = minor / 100;
   const shown = Number.isInteger(major) ? major : Number(major.toFixed(2));
-  return `${CURRENCY_SYMBOL[currency]}${shown.toLocaleString()}`;
+  return `${CURRENCY_PREFIX[currency]}${shown.toLocaleString()}`;
 }
 
 /** Health band → short label for the card meter row. */

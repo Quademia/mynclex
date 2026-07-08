@@ -161,8 +161,8 @@ function Group({
         <div className="pr-row pr-row-head">
           <div>Product</div>
           <div>Grants</div>
-          <div>GHS ₵</div>
-          <div>USD $</div>
+          <div>GHS</div>
+          <div>USD</div>
           <div>Credits</div>
           <div>Status</div>
           <div />

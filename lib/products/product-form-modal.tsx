@@ -339,7 +339,7 @@ export function ProductFormModal({
 
         <div className="pr-price-row">
           <label className="pr-field">
-            Price (GHS ₵)
+            Price (GHS)
             <input
               value={priceGhs}
               onChange={(e) => setPriceGhs(e.target.value)}
@@ -350,7 +350,7 @@ export function ProductFormModal({
             <span className="pr-hint">What the customer is charged.</span>
           </label>
           <label className="pr-field">
-            Full price (₵, optional)
+            Full price (GHS, optional)
             <input
               value={fullGhs}
               onChange={(e) => setFullGhs(e.target.value)}

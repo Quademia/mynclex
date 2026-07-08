@@ -462,8 +462,8 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
                     disabled={isPending}
                     ariaLabel="Currency"
                     options={[
-                      { value: 'GHS', label: 'GHS ₵' },
-                      { value: 'USD', label: 'USD $' },
+                      { value: 'GHS', label: 'GHS' },
+                      { value: 'USD', label: 'USD' },
                     ]}
                   />
                   <span className="prog-field-help">
@@ -476,9 +476,11 @@ export function ProgrammeFormModal(props: ProgrammeFormModalProps) {
                   <span className="prog-field-label">
                     Price <span className="prog-required">*</span>
                   </span>
-                  <div className="prog-price-input">
+                  {/* data-ccy drives the input's left padding — the absolutely
+                      positioned prefix is 3 glyphs wide for GHS, 1 for $. */}
+                  <div className="prog-price-input" data-ccy={currency}>
                     <span className="prog-price-prefix">
-                      {currency === 'GHS' ? '₵' : '$'}
+                      {currency === 'GHS' ? 'GHS' : '$'}
                     </span>
                     <input
                       type="number"

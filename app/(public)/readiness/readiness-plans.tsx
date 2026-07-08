@@ -12,10 +12,10 @@
 // "three SKUs" survives here: the count, the names, the credits and both
 // prices are props, and the unlock line is computed against the live
 // published-pack count. Money maths is imported, never re-derived —
-// see lib/products/money.ts and savings.ts.
+// see lib/products/money.ts and savings.ts (one money voice: "GHS 100").
 
 import { useState } from 'react';
-import { formatMinorPublic, percentOff, type Currency } from '@/lib/products/money';
+import { formatMinor, percentOff, type Currency } from '@/lib/products/money';
 import { unitPriceMinor } from '@/lib/products/savings';
 
 export interface ReadinessSku {
@@ -108,16 +108,16 @@ export function ReadinessPlans({ skus, packCount, uniformLine }: Props) {
               </div>
 
               <div className="rdp-plan-pricing">
-                <div className="rdp-plan-price">{formatMinorPublic(price, currency)}</div>
+                <div className="rdp-plan-price">{formatMinor(price, currency)}</div>
                 {discount != null && full != null && (
                   <>
-                    <div className="rdp-plan-strike">{formatMinorPublic(full, currency)}</div>
+                    <div className="rdp-plan-strike">{formatMinor(full, currency)}</div>
                     <div className="rdp-plan-off">−{discount}%</div>
                   </>
                 )}
               </div>
               {unit != null && (
-                <div className="rdp-plan-unit">{formatMinorPublic(unit, currency)} per pack</div>
+                <div className="rdp-plan-unit">{formatMinor(unit, currency)} per pack</div>
               )}
 
               <div className="rdp-plan-feats">

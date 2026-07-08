@@ -11,8 +11,18 @@
 
 export type Currency = 'GHS' | 'USD';
 
-export const CURRENCY_SYMBOL: Record<Currency, string> = {
-  GHS: '₵',
+/**
+ * ONE money voice across the whole product (Sam, 2026-07-08): cedis print
+ * as the ISO code, never the ₵ glyph. The public pages already did this;
+ * the admin and tutor surfaces used ₵, and a split voice is just two
+ * things to keep in step. Dollars keep "$" — it is read correctly by
+ * everyone, and every existing surface already prints it.
+ *
+ * Not exported: the only legitimate way to render an amount is through
+ * the formatter below, which owns the minor→major conversion too.
+ */
+const CURRENCY_PREFIX: Record<Currency, string> = {
+  GHS: 'GHS ',
   USD: '$',
 };
 
@@ -58,35 +68,13 @@ export function minorToInput(minor: number | null): string {
   return Number.isInteger(major) ? String(major) : major.toFixed(2);
 }
 
-/** 12050 → "120.50"; 12000 → "12,000". The bare number, both voices share. */
-function majorString(minor: number): string {
+/** 12050 → "GHS 120.50" · 12000 → "GHS 12,000" · 2000 USD → "$20". */
+export function formatMinor(minor: number, currency: Currency): string {
   const major = minor / 100;
-  return Number.isInteger(major)
+  const amount = Number.isInteger(major)
     ? major.toLocaleString('en-US')
     : major.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-/**
- * INTERNAL voice: 12050 → "₵120.50". Admin + tutor surfaces (products
- * catalogue, tutor payments, programme overview) all render the cedi sign.
- */
-export function formatMinor(minor: number, currency: Currency): string {
-  return `${CURRENCY_SYMBOL[currency]}${majorString(minor)}`;
-}
-
-/**
- * PUBLIC voice: 12050 → "GHS 120.50" (USD keeps "$"). Every page a
- * prospective buyer sees prints the ISO code, not the ₵ glyph — see
- * bank-plans, checkout-shell, strategies/format and the payment callback.
- * The audience is international (US/UK/Canada migration) and "₵" is not
- * a sign a stranger reliably reads; "$" is.
- *
- * The split is deliberate, so keep it: internal surfaces stay terse
- * because column width is scarce and the reader knows the currency.
- */
-export function formatMinorPublic(minor: number, currency: Currency): string {
-  const amount = majorString(minor);
-  return currency === 'GHS' ? `GHS ${amount}` : `$${amount}`;
+  return `${CURRENCY_PREFIX[currency]}${amount}`;
 }
 
 /** Percent off, rounded — derived from the pair, never stored. Null
@@ -111,15 +99,15 @@ export const MAX_DISCOUNT_PCT = 99;
  * full:price ratio, not on any exchange rate, and our GHS column is
  * regionally priced (3.86–4.38 GHS per $ across the bank tiers), not
  * converted. Reproduces the hand-entered readiness offers exactly:
- * ₵350 at 30% → ₵500; $48 at 20% → $60.
+ * GHS 350 at 30% → GHS 500; $48 at 20% → $60.
  *
- * Rounds to the nearest MINOR unit, not the nearest whole ₵/$. Whole-unit
- * rounding was the first attempt and it defeats the feature: $30 at 20%
- * rounds to $38, which is 21% off, while ₵120 rounds to ₵150, which is
- * 20% — the two currencies diverge exactly as they would by hand. The
+ * Rounds to the nearest MINOR unit, not the nearest whole cedi/dollar.
+ * Whole-unit rounding was the first attempt and it defeats the feature:
+ * $30 at 20% rounds to $38, which is 21% off, while GHS 120 rounds to
+ * GHS 150, which is 20% — the currencies diverge as they would by hand. The
  * relative error of minor-unit rounding is small enough that the
  * displayed percentages always agree. Numbers stay tidy wherever the
- * maths is clean (₵350 @30% → ₵500), and untidy only where the true
+ * maths is clean (GHS 350 @30% → GHS 500), and untidy only where the true
  * answer is untidy ($30 @20% → $37.50).
  *
  * Returns null for a zero price (the trial: 0 ÷ 0.7 is still 0, and a
