@@ -1,13 +1,19 @@
 # Readiness Packs
 
-Last updated: 2026-07-08 (**student Slice ②a scoped** — credits table +
-mint-at-activation cut into three sub-slices [§12 → Slice ②a], claiming
-deferred to ②b. Two §7 decisions revised in the same pass, both because
-later migrations invalidated their assumptions: **the All-5 pre-claim
-exception is RETIRED** — every credit now mints unclaimed [§7 →
-*Post-purchase claiming UX* r4] — and the `nclex_subscriptions`
-`pack_type` CHECK narrows to `BANK_DURATION` alongside the two dead
-column drops [§7 → *Three tables, three jobs*]. Previously 2026-07-08:
+Last updated: 2026-07-08 (**student Slice ②a COMPLETE + MERGED to
+`main`** — the credits table + mint-at-activation, three sub-slices [§12
+→ Slice ②a]; migrations `20260728120000` [credits table + subscription
+cleanup] + `20260729120000` [`mint_index` idempotency key]. Sam-tested
+live: a `BANK_60D` buy granted a subscription AND minted its 1 bundled
+credit. The mint is keyed on `readiness_credits`, never `pack_type` (the
+bundled-credit trap), locked by tests unsatisfiable by the buggy
+version. Claiming/activation/sweep deferred to ②b. Scoped the same day
+with two §7 revisions, both because later migrations invalidated their
+assumptions: **the All-5 pre-claim exception is RETIRED** — every credit
+mints unclaimed [§7 → *Post-purchase claiming UX* r4] — and the
+`nclex_subscriptions` `pack_type` CHECK narrowed to `BANK_DURATION`
+alongside the two dead column drops [§7 → *Three tables, three jobs*].
+Previously 2026-07-08:
 **student Slice ① COMPLETE** — READINESS SKUs
 seeded, the admin Products & Pricing page, and now the public
 `/readiness` page [§12 → Slice ①.3, re-cut from "bank-access Section 2"
@@ -1421,49 +1427,69 @@ not contradict its own warning. It would also restate the "5 pack
 credits" line above it. At launch (5 packs, 5 credits) both render the
 same; they differ only where the credits-only version is wrong.
 
-- **⏭ Slice ②a — credits table + mint-at-activation** <span>scoped
-  2026-07-08</span>. Deliberately stops **before** claiming: the point
-  of the slice is to prove that credits mint and the table writes
-  correctly, which is the ground everything in ②b stands on. Three
-  sub-slices.
+- **✅ Slice ②a — credits table + mint-at-activation — BUILT +
+  Sam-tested + MERGED to `main` 2026-07-08** (three sub-slices; two
+  migrations `20260728120000` + `20260729120000`, dev-applied +
+  probe-verified; app-layer mint; tsc + eslint + vitest clean).
+  Deliberately stopped **before** claiming — the slice's job was to
+  prove credits mint and the table writes correctly, the ground ②b
+  stands on. Sam validated it live: a `BANK_60D` purchase granted a
+  subscription **and** minted its 1 bundled credit (source
+  `BANK_BUNDLE`, unclaimed, idempotency-keyed) — the mixed-grant case a
+  `pack_type`-keyed mint would have silently broken.
 
-  - **②a.1 — the migration.** Create `nclex_readiness_credits` on the
-    §7 accepted shape — 16 columns, **no status column** (event
-    timestamps are the only truth), the DB-enforced rules (activation
-    requires a claim · used requires activation ·
-    used/expired/revoked mutually exclusive · a claim names a pack ·
-    provenance matches `source` · **no two live claims on the same
-    pack per student**, as a partial unique index that ignores
-    `expired_at` rows per §2 r4 · a claimed pack can't be deleted),
-    and RLS (a student reads their own rows; every transition goes
-    through a re-validating server action). Same migration does the
-    `nclex_subscriptions` cleanup settled in §7 → *Three tables,
-    three jobs*: drop `readiness_pack_id` + `readiness_activated_at`,
-    narrow the `pack_type` CHECK to `BANK_DURATION`.
-  - **②a.2 — the mint + the `activate.ts` fix.** A
-    `mintReadinessCredits()` called from `grantAndActivateRow`
-    **whenever `product.readiness_credits > 0`, never keyed on
-    `pack_type`** (§7 → *The mint rule*), idempotent per `payment_id`
-    the way `grantBankSubscription` already is. The same commit
-    removes `READINESS_PURCHASE` from `activate.ts`'s `BANK_PURPOSES`
-    so a readiness purchase stops granting a subscription row —
-    **currently a latent bug, not a live one**: `init.ts` already
-    routes readiness products to `READINESS_PURCHASE`, but
-    `checkout/bank/page.tsx` hard-rejects any `pack_type !==
-    'BANK_DURATION'` and no readiness checkout route exists yet. It
-    goes live the moment ②b adds one, so it is fixed here, first —
-    the same ordering that caught the trial no-expiry bug. The four
-    §7 worked examples become the unit tests.
-  - **②a.3 — read + stage helper.** One shared `creditStage(row)`
-    deriving unclaimed → claimed → window-running → used/expired/
-    revoked from the filled timestamps (§7: *one shared code helper
-    so every screen reads it identically*), plus a `getMyCredits()`
-    read. Enough to see minted rows; no claiming, no activation, no
-    sweep.
+  - **②a.1 — the migration ✅** (`20260728120000`). Created
+    `nclex_readiness_credits` on the §7 accepted shape — 16 columns,
+    **no status column** (event timestamps are the only truth), ten
+    CHECK constraints (activation requires a claim · used requires
+    activation · used/expired/revoked mutually exclusive · a claim
+    names a pack · provenance matches `source` · expiry requires
+    activation · revoke carries a reason), the **partial unique index
+    for one live claim per (student, pack)** that ignores
+    `expired_at`/`revoked_at` rows so a lapsed pack is re-claimable but
+    a sat one never is (§2 r4), and owner + SUPER_ADMIN RLS. Same
+    migration did the `nclex_subscriptions` cleanup (§7 → *Three
+    tables, three jobs*): dropped `readiness_pack_id` +
+    `readiness_activated_at`, narrowed the `pack_type` CHECK to
+    `BANK_DURATION`. Verified by 10 adversarial constraint probes (each
+    illegal state rejected, both legal states + the re-claim-after-
+    expiry seam accepted), rolled back.
+  - **②a.2 — the mint + the `activate.ts` fix ✅.** The pure decision
+    (`planActivationGrants` in `lib/payments/readiness-mint.ts`) mints
+    **whenever `readiness_credits > 0`, never keyed on `pack_type`** (§7
+    → *The mint rule*); `grantBankSubscription` became
+    `grantProductEntitlement`, which grants a subscription (bank passes
+    only) and/or mints credits. **Divergence from the scoped plan
+    (better than written):** rather than *removing* `READINESS_PURCHASE`
+    from `BANK_PURPOSES`, the list was **renamed `PRODUCT_PURPOSES` and
+    kept all three** — a readiness purchase still has to be routed and
+    minted, so dropping it would make activation reject it; the
+    no-subscription outcome now comes from the product's `pack_type` via
+    `planActivationGrants`, closer to the fact than a purpose list. Same
+    end state the plan wanted, more robust. **Second addition
+    (`20260729120000`):** the mint is N-rows-per-payment, so — unlike
+    the one-per-payment subscription — it had no key against a double
+    activation (the callback can fire twice; the grant precedes the
+    ACTIVATED flip). Added `mint_index` + `UNIQUE(payment_id,
+    mint_index)`; a re-run's batch insert conflicts on index 1, rolls
+    back atomically, is read as already-minted. The four §7 worked
+    examples (incl. `BANK_30D`→0) are unit tests — together
+    unsatisfiable by any count-keyed-on-`pack_type` rewrite.
+  - **②a.3 — read + stage helper ✅.** `creditStage()` (pure,
+    `lib/payments/readiness-credits.ts`) derives unclaimed → claimed →
+    active → used/expired/revoked from the filled timestamps, terminal
+    endings winning (§7: *one helper so every screen reads it
+    identically*); `getMyCredits()` (`readiness-credits-read.ts`) reads
+    the caller's own rows (getUser + explicit `user_id` filter) → rows
+    with stage + a by-stage tally. Split pure-from-server like the mint
+    so the stage logic is unit-tested. Read-only — no claiming,
+    activation, or sweep. Clock caveat documented: the stage is truthful
+    to what's written, so a past-deadline credit reads ACTIVE until the
+    sweep stamps `expired_at`.
 
-  **Out of scope, named so they aren't assumed:** the nightly sweep
-  that stamps `expired_at`, the 21-day window, the "Claim all"
-  button, and every surface in §11.10.
+  **Out of scope (as scoped), now ②b or later:** the nightly sweep that
+  stamps `expired_at`, the 21-day window, the "Claim all" button, and
+  every surface in §11.10.
 
 - **⬜ Slice ②b — claiming + the in-app surfaces.** Claiming UX per §7
   (pack-card claiming, the three escalating gates, **"Claim all"**
