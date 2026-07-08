@@ -1,7 +1,13 @@
 // mynclex/lib/payments/activate.ts
 //
 // Turns a PAID payment into actual access:
-//   • BANK / readiness purposes  → an nclex_subscriptions row (5.3).
+//   • Product purposes (BANK_PURCHASE, READINESS_PURCHASE,
+//     BANK_OPTIN_AT_PROGRAMME) → grantProductEntitlement, which grants
+//     whatever the product confers (readiness-packs.md §7): a bank-time
+//     nclex_subscriptions row (bank passes only) AND/OR readiness credit
+//     rows (any product whose readiness_credits > 0). A readiness
+//     purchase writes NO subscription — just its credits; a longer bank
+//     pass writes a subscription AND its bundled credits.
 //   • PROGRAMME_INITIAL          → an nclex_enrolments row (5.4a):
 //       tutor-led → PENDING_APPROVAL (tutor still approves),
 //       self-paced → ENROLLED immediately (no approval gate).
@@ -21,6 +27,7 @@ import 'server-only';
 import { headers } from 'next/headers';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { buildSchedule, isOverdue } from './schedule';
+import { planActivationGrants } from './readiness-mint';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
 
 type AdminClient = ReturnType<typeof createServiceRoleClient>;
@@ -48,8 +55,13 @@ export type ActivateResult =
 const PAYMENT_COLS =
   'payment_id, paystack_reference, checkout_group_id, user_id, email, purpose, product_id, programme_id, cohort_id, strategy_id, enrolment_id, status';
 
-// Purposes that grant a bank/readiness subscription (vs programme enrolment).
-const BANK_PURPOSES = ['BANK_PURCHASE', 'READINESS_PURCHASE', 'BANK_OPTIN_AT_PROGRAMME'];
+// Purposes that buy a catalogue PRODUCT (vs a programme enrolment /
+// installment). All three carry a product_id and route to
+// grantProductEntitlement; whether that grants a subscription, credits,
+// or both is decided from the product (planActivationGrants), not from
+// this list — so READINESS_PURCHASE belongs here (it must be handled and
+// minted) yet grants no subscription, its pack_type isn't BANK_DURATION.
+const PRODUCT_PURPOSES = ['BANK_PURCHASE', 'READINESS_PURCHASE', 'BANK_OPTIN_AT_PROGRAMME'];
 
 // Enrolment statuses that count as "already actively enrolled" — must
 // match the partial unique indexes on nclex_enrolments.
@@ -64,11 +76,21 @@ async function findProfileIdByEmail(admin: AdminClient, email: string): Promise<
   return data?.id ?? null;
 }
 
-// Insert the entitlement row. Idempotent: one subscription per payment.
-async function grantBankSubscription(
+type ActivatableProductRow = {
+  product_id: string;
+  pack_type: 'BANK_DURATION' | 'READINESS';
+  duration_days: number | null;
+  readiness_credits: number;
+};
+
+// Insert the bank-time subscription row. Idempotent: one per payment
+// (unique index on payment_id). Bank passes only — the caller decides
+// via planActivationGrants, so a readiness product never reaches here.
+async function insertBankSubscriptionOnce(
   admin: AdminClient,
   payment: PaymentRow,
-  userId: string
+  userId: string,
+  product: ActivatableProductRow
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   // Cheap pre-check (limit(1), never maybeSingle — that errors on >1 row).
   // The real guarantee is the partial unique index on payment_id, enforced
@@ -80,19 +102,11 @@ async function grantBankSubscription(
     .limit(1);
   if (existing && existing.length > 0) return { ok: true };
 
-  if (!payment.product_id) return { ok: false, error: 'Payment has no product to grant.' };
-
-  const { data: product, error: prodErr } = await admin
-    .from('nclex_products')
-    .select('product_id, pack_type, duration_days')
-    .eq('product_id', payment.product_id)
-    .maybeSingle();
-  if (prodErr || !product) return { ok: false, error: 'Product not found for activation.' };
-
-  // Duration packs run for duration_days from now; readiness packs have
-  // no end until the student "starts" them (5.x), so end_at stays NULL.
+  // Duration packs run for duration_days from now. (Only BANK_DURATION
+  // reaches here, so end_at is always set for a real pass; the guard
+  // keeps a 0/NULL-duration row from computing a bogus date.)
   const endAt =
-    product.pack_type === 'BANK_DURATION' && product.duration_days
+    product.duration_days != null
       ? new Date(Date.now() + product.duration_days * 86_400_000).toISOString()
       : null;
 
@@ -112,6 +126,74 @@ async function grantBankSubscription(
     // (unique index on payment_id) — that's success, not a failure.
     if (insErr.code === '23505') return { ok: true };
     return { ok: false, error: insErr.message };
+  }
+  return { ok: true };
+}
+
+// Mint the readiness credits this activation grants — `count` rows, each
+// tagged `source`. Idempotent per payment via UNIQUE(payment_id,
+// mint_index): a repeat / concurrent activation's batch insert conflicts
+// on mint_index 1, rolls back atomically, and is treated as success.
+//
+// The count comes straight from the product's readiness_credits and is
+// NEVER keyed on pack_type — bundled bank-pass credits ride this same
+// path. The pack_type-derived facts (whether a subscription is granted,
+// and the source tag) are settled by planActivationGrants; see
+// readiness-mint.ts for why this matters.
+async function mintReadinessCreditsOnce(
+  admin: AdminClient,
+  payment: PaymentRow,
+  userId: string,
+  count: number,
+  source: 'BANK_BUNDLE' | 'SELF_PURCHASE'
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const rows = Array.from({ length: count }, (_, i) => ({
+    user_id: userId,
+    source,
+    payment_id: payment.payment_id,
+    mint_index: i + 1,
+  }));
+
+  const { error } = await admin.from('nclex_readiness_credits').insert(rows);
+  if (error) {
+    // Already minted by a concurrent / repeat activation (unique index
+    // on payment_id + mint_index) — success, not a failure.
+    if (error.code === '23505') return { ok: true };
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+
+// Grant everything activating a catalogue product confers: a bank-time
+// subscription (bank passes) and/or readiness credits (any product whose
+// readiness_credits > 0). Both idempotent per payment, so a double
+// activation is safe. A readiness purchase falls through with NO
+// subscription (its pack_type isn't BANK_DURATION) but DOES mint credits;
+// a bank pass writes a subscription AND any bundled credits.
+async function grantProductEntitlement(
+  admin: AdminClient,
+  payment: PaymentRow,
+  userId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!payment.product_id) return { ok: false, error: 'Payment has no product to grant.' };
+
+  const { data: product, error: prodErr } = await admin
+    .from('nclex_products')
+    .select('product_id, pack_type, duration_days, readiness_credits')
+    .eq('product_id', payment.product_id)
+    .maybeSingle();
+  if (prodErr || !product) return { ok: false, error: 'Product not found for activation.' };
+
+  const row = product as ActivatableProductRow;
+  const plan = planActivationGrants(row);
+
+  if (plan.subscription) {
+    const r = await insertBankSubscriptionOnce(admin, payment, userId, row);
+    if (!r.ok) return r;
+  }
+  if (plan.creditCount > 0 && plan.creditSource) {
+    const r = await mintReadinessCreditsOnce(admin, payment, userId, plan.creditCount, plan.creditSource);
+    if (!r.ok) return r;
   }
   return { ok: true };
 }
@@ -306,16 +388,16 @@ async function grantAndActivateRow(
   payment: PaymentRow,
   userId: string
 ): Promise<{ ok: true; pending: boolean } | { ok: false; error: string }> {
-  const isBank = BANK_PURPOSES.includes(payment.purpose);
+  const isProduct = PRODUCT_PURPOSES.includes(payment.purpose);
   const isProgrammeInitial = payment.purpose === 'PROGRAMME_INITIAL';
   const isInstallment = payment.purpose === 'PROGRAMME_INSTALLMENT';
-  if (!isBank && !isProgrammeInitial && !isInstallment) {
+  if (!isProduct && !isProgrammeInitial && !isInstallment) {
     return { ok: false, error: 'This payment type is not handled yet.' };
   }
 
   let pending = false;
-  if (isBank) {
-    const grant = await grantBankSubscription(admin, payment, userId);
+  if (isProduct) {
+    const grant = await grantProductEntitlement(admin, payment, userId);
     if (!grant.ok) return { ok: false, error: grant.error };
   } else if (isInstallment) {
     const grant = await grantInstallmentPayment(admin, payment, userId);
