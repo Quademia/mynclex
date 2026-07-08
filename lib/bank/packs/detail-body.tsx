@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { PackMembersList } from './members-list';
 import { PackBasicsCard } from './basics-card';
 import { PackCompositionCard, PackPublishCard } from './composition-cards';
+import { PackHistoryButton } from './history-drawer';
 import { PackPicker, type PickerInsertAt } from './picker';
 import type { PackRow, PackUnit } from './types';
 
@@ -49,6 +50,7 @@ export function PackDetailBody({
             <span className={`rp-status ${pack.status}`}>
               {pack.published ? 'published' : pack.status}
             </span>
+            <PackHistoryButton packId={pack.pack_id} packTitle={pack.title} />
           </div>
           <div className="rp-detail-meta">
             <span className="rp-mono">{pack.pack_id}</span>

@@ -28,6 +28,11 @@ const GATES: Record<string, AuditGate> = {
   case_study:          () => requireBankCurator('admin'),
   trend_dataset:       () => requireBankCurator('admin'),
   bank_item:           () => requireBankCurator('admin'),
+  // Readiness packs (pack row + membership link rows) — same admin gate
+  // as the rest of the QAcademy bank; the pack surfaces are
+  // BANK_CURATE-gated pages.
+  readiness_pack:      () => requireBankCurator('admin'),
+  readiness_pack_item: () => requireBankCurator('admin'),
   // Tutor bank realm — is-a-tutor (or SUPER_ADMIN); RLS scopes to owner.
   tutor_case_study:    () => requireBankCurator('tutor'),
   tutor_trend_dataset: () => requireBankCurator('tutor'),
