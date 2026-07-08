@@ -58,13 +58,35 @@ export function minorToInput(minor: number | null): string {
   return Number.isInteger(major) ? String(major) : major.toFixed(2);
 }
 
-/** 12050 → "₵120.50". Whole amounts drop the decimals. */
-export function formatMinor(minor: number, currency: Currency): string {
+/** 12050 → "120.50"; 12000 → "12,000". The bare number, both voices share. */
+function majorString(minor: number): string {
   const major = minor / 100;
-  const amount = Number.isInteger(major)
+  return Number.isInteger(major)
     ? major.toLocaleString('en-US')
     : major.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `${CURRENCY_SYMBOL[currency]}${amount}`;
+}
+
+/**
+ * INTERNAL voice: 12050 → "₵120.50". Admin + tutor surfaces (products
+ * catalogue, tutor payments, programme overview) all render the cedi sign.
+ */
+export function formatMinor(minor: number, currency: Currency): string {
+  return `${CURRENCY_SYMBOL[currency]}${majorString(minor)}`;
+}
+
+/**
+ * PUBLIC voice: 12050 → "GHS 120.50" (USD keeps "$"). Every page a
+ * prospective buyer sees prints the ISO code, not the ₵ glyph — see
+ * bank-plans, checkout-shell, strategies/format and the payment callback.
+ * The audience is international (US/UK/Canada migration) and "₵" is not
+ * a sign a stranger reliably reads; "$" is.
+ *
+ * The split is deliberate, so keep it: internal surfaces stay terse
+ * because column width is scarce and the reader knows the currency.
+ */
+export function formatMinorPublic(minor: number, currency: Currency): string {
+  const amount = majorString(minor);
+  return currency === 'GHS' ? `GHS ${amount}` : `$${amount}`;
 }
 
 /** Percent off, rounded — derived from the pair, never stored. Null

@@ -15,7 +15,7 @@
 // see lib/products/money.ts and savings.ts.
 
 import { useState } from 'react';
-import { formatMinor, percentOff, type Currency } from '@/lib/products/money';
+import { formatMinorPublic, percentOff, type Currency } from '@/lib/products/money';
 import { unitPriceMinor } from '@/lib/products/savings';
 
 export interface ReadinessSku {
@@ -108,16 +108,16 @@ export function ReadinessPlans({ skus, packCount, uniformLine }: Props) {
               </div>
 
               <div className="rdp-plan-pricing">
-                <div className="rdp-plan-price">{formatMinor(price, currency)}</div>
+                <div className="rdp-plan-price">{formatMinorPublic(price, currency)}</div>
                 {discount != null && full != null && (
                   <>
-                    <div className="rdp-plan-strike">{formatMinor(full, currency)}</div>
+                    <div className="rdp-plan-strike">{formatMinorPublic(full, currency)}</div>
                     <div className="rdp-plan-off">−{discount}%</div>
                   </>
                 )}
               </div>
               {unit != null && (
-                <div className="rdp-plan-unit">{formatMinor(unit, currency)} per pack</div>
+                <div className="rdp-plan-unit">{formatMinorPublic(unit, currency)} per pack</div>
               )}
 
               <div className="rdp-plan-feats">
