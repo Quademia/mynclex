@@ -16,12 +16,24 @@ import type { Currency } from './money';
 import type { ProductRow } from './types';
 
 /**
+ * The rounding rule for "what one credit costs", in minor units. Its own
+ * export because two surfaces need it — the admin catalogue (via
+ * perPackMinor, below) and the public /readiness cards, which hold plain
+ * minor-unit numbers rather than a whole ProductRow. One rule, one place:
+ * the two must never disagree about whether ₵400 ÷ 6 is ₵66.66 or ₵66.67.
+ */
+export function unitPriceMinor(priceMinor: number, credits: number): number | null {
+  if (credits < 1) return null;
+  return Math.round(priceMinor / credits);
+}
+
+/**
  * What one credit costs under this SKU, in minor units. Null for
  * anything that isn't a readiness SKU granting at least one credit
  * (bank tiers price a duration, not a pack).
  */
 export function perPackMinor(product: ProductRow, currency: Currency): number | null {
-  if (product.pack_type !== 'READINESS' || product.readiness_credits < 1) return null;
+  if (product.pack_type !== 'READINESS') return null;
   const price = currency === 'GHS' ? product.price_minor_ghs : product.price_minor_usd;
-  return Math.round(price / product.readiness_credits);
+  return unitPriceMinor(price, product.readiness_credits);
 }

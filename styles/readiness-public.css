@@ -1,0 +1,454 @@
+/* mynclex/styles/readiness-public.css
+ * Public readiness landing (/readiness, Slice ①.3).
+ * Inherits the (public) discovery.css bridge vars. Namespaced `.rdp-*`.
+ *
+ * The design prototype's palette was our token set written out as raw
+ * hex — #1e3a5f is --primary, #2d7d72 is --accent, #edf6f5 is
+ * --primary-light, and so on. Nothing here invents a colour.
+ */
+
+.rdp-content { max-width: 1080px; }
+
+/* ── shared section furniture ────────────────────────────────── */
+.rdp-eyebrow {
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent-strong);
+}
+.rdp-section { margin-top: 56px; }
+.rdp-section h2,
+.rdp-plans-head h2 {
+  margin: 8px 0 0;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  color: var(--accent-strong);
+}
+.rdp-section-lede {
+  margin: 6px 0 20px;
+  font-size: 14px;
+  color: var(--ink-mute);
+  max-width: 620px;
+}
+
+/* ── hero ────────────────────────────────────────────────────── */
+.rdp-hero { padding: 28px 0 8px; max-width: 700px; }
+.rdp-hero h1 {
+  margin-top: 12px;
+  font-size: 34px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--accent-strong);
+}
+.rdp-lede { margin-top: 18px; font-size: 17px; line-height: 1.55; color: var(--ink-soft); }
+.rdp-lede strong { color: var(--ink); }
+.rdp-hero-meta { display: flex; gap: 18px; margin-top: 20px; flex-wrap: wrap; }
+.rdp-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-mute);
+}
+.rdp-meta-item svg { color: var(--accent); flex: none; }
+
+/* ── pricing grid ────────────────────────────────────────────── */
+.rdp-plans { margin-top: 44px; }
+.rdp-plans-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.rdp-plans-head h2 { margin: 0; }
+.rdp-uniform { margin: 6px 0 0; font-size: 13.5px; color: var(--ink-mute); }
+
+.rdp-fx {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  overflow: hidden;
+  flex: none;
+}
+.rdp-fx button {
+  padding: 7px 18px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: var(--bg-card);
+  color: var(--ink-mute);
+}
+.rdp-fx button.on { background: var(--accent-strong); color: var(--white); }
+
+.rdp-plan-grid {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.rdp-plan {
+  flex: 1 1 260px;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 22px;
+}
+.rdp-plan-name { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.3; }
+.rdp-plan-grants { font-size: 12.5px; color: var(--ink-mute); margin-top: 3px; }
+
+.rdp-plan-pricing {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.rdp-plan-price {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--accent-strong);
+}
+.rdp-plan-strike {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-faint);
+  text-decoration: line-through;
+}
+.rdp-plan-off {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.rdp-plan-unit { font-size: 12.5px; color: var(--ink-mute); margin-top: 5px; }
+
+.rdp-plan-feats {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rdp-feat { display: flex; align-items: flex-start; gap: 9px; }
+.rdp-feat svg { flex: none; margin-top: 1px; color: var(--accent); }
+.rdp-feat span { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.rdp-feat.muted svg { color: var(--ink-faint); }
+.rdp-feat.muted span { color: var(--ink-mute); font-weight: 500; }
+.rdp-feat.sub svg { color: var(--ink-faint); }
+.rdp-feat.sub span { font-size: 12.5px; font-weight: 400; color: var(--ink-mute); line-height: 1.45; }
+
+/* `margin-bottom: auto` on the feature list eats the slack, so cards of
+ * unequal text height still line their buttons up along the bottom. */
+.rdp-plan-feats { margin-bottom: auto; }
+
+.rdp-plan-btn {
+  margin-top: 20px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  background: var(--bg-sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  cursor: not-allowed;
+}
+
+.rdp-plans-note { margin: 16px 0 0; font-size: 12.5px; color: var(--ink-faint); }
+
+/* ── what's in a pack ────────────────────────────────────────── */
+.rdp-pack-list {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.rdp-pack-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+}
+.rdp-pack-row:last-child { border-bottom: none; }
+.rdp-pack-id { flex: 1 1 220px; min-width: 0; }
+.rdp-pack-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+.rdp-pack-desc { font-size: 12.5px; color: var(--ink-mute); margin-top: 2px; }
+.rdp-pack-stats { display: flex; gap: 22px; flex: none; }
+.rdp-stat { text-align: right; min-width: 62px; }
+.rdp-stat-val { font-size: 15px; font-weight: 700; color: var(--accent-strong); }
+.rdp-stat-key {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.rdp-prelaunch {
+  background: var(--bg-card);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: 30px 26px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.rdp-prelaunch-icon { flex: none; margin-top: 2px; color: var(--accent); }
+.rdp-prelaunch-title { font-size: 15px; font-weight: 700; color: var(--accent-strong); }
+.rdp-prelaunch p {
+  font-size: 13.5px;
+  color: var(--ink-mute);
+  line-height: 1.55;
+  margin: 6px 0 0;
+  max-width: 540px;
+}
+
+/* ── how it works ────────────────────────────────────────────── */
+.rdp-steps {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+.rdp-step { display: flex; flex-direction: column; gap: 10px; }
+.rdp-step-head { display: flex; align-items: center; gap: 10px; }
+.rdp-step-n {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent-strong);
+  color: var(--white);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.rdp-step-rule { height: 1px; flex: 1; background: var(--line); }
+.rdp-step-title { font-size: 14.5px; font-weight: 600; color: var(--ink); }
+.rdp-step-body { font-size: 12.5px; color: var(--ink-mute); line-height: 1.5; }
+
+/* ── the sample report ───────────────────────────────────────── */
+.rdp-report {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lift);
+  overflow: hidden;
+}
+.rdp-report-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--bg);
+}
+.rdp-report-who strong { font-size: 13px; font-weight: 700; color: var(--accent-strong); }
+.rdp-report-who span { font-size: 12px; color: var(--ink-faint); margin-left: 6px; }
+.rdp-sample-pill {
+  font-family: var(--mono, monospace);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.rdp-report-body { padding: 26px 24px; }
+
+.rdp-verdict { display: flex; gap: 28px; flex-wrap: wrap; align-items: center; }
+.rdp-ring { flex: none; }
+.rdp-ring-track { stroke: var(--bg-sunk); }
+.rdp-ring-fill { stroke: var(--accent); }
+.rdp-ring-pct { font-size: 34px; font-weight: 700; fill: var(--accent-strong); }
+.rdp-ring-cap { font-size: 9.5px; letter-spacing: 1px; fill: var(--ink-faint); }
+
+.rdp-verdict-copy { flex: 1; min-width: 240px; }
+.rdp-verdict-chips { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rdp-band-chip {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.rdp-points { font-size: 13px; color: var(--ink-mute); }
+.rdp-verdict-copy p {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  margin: 12px 0 16px;
+}
+.rdp-verdict-copy p strong { color: var(--ink); }
+
+.rdp-bands { position: relative; padding-top: 22px; }
+.rdp-you {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--accent-strong);
+}
+.rdp-you span { font-size: 10px; font-weight: 700; }
+.rdp-band-strip { display: flex; height: 12px; border-radius: 999px; overflow: hidden; }
+.rdp-band-strip div { flex: 1; }
+.rdp-band-strip .b1 { background: #f3c2c2; }
+.rdp-band-strip .b2 { background: #f6d79a; }
+.rdp-band-strip .b3 { background: var(--accent); }
+.rdp-band-strip .b4 { background: var(--accent-strong); }
+.rdp-band-keys { display: flex; margin-top: 6px; font-size: 10.5px; color: var(--ink-faint); }
+.rdp-band-keys span { flex: 1; text-align: center; }
+.rdp-band-keys span:first-child { text-align: left; }
+.rdp-band-keys span:last-child { text-align: right; }
+.rdp-band-keys .on { color: var(--accent-dark); font-weight: 700; }
+
+.rdp-report-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+.rdp-panel {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.rdp-panel-key {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  margin-bottom: 12px;
+}
+.rdp-peer-line { font-size: 15px; color: var(--ink); line-height: 1.5; }
+.rdp-peer-line strong { color: var(--accent-strong); font-size: 20px; }
+.rdp-curve { margin-top: 12px; display: block; }
+.rdp-curve-fill { fill: #dbeae6; }
+.rdp-curve-line { stroke: #9ec7bd; stroke-width: 1.5; }
+.rdp-curve-mark { stroke: var(--accent-strong); stroke-width: 1.5; }
+.rdp-curve-dot { fill: var(--accent-strong); }
+.rdp-panel-foot { font-size: 11.5px; color: var(--ink-faint); margin-top: 8px; }
+
+.rdp-bars { display: flex; flex-direction: column; gap: 11px; }
+.rdp-bar-row { display: flex; flex-direction: column; gap: 5px; }
+.rdp-bar-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.rdp-bar-name {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rdp-bar-val { flex: none; font-size: 11.5px; font-weight: 600; }
+.rdp-bar-val.good { color: var(--accent-dark); }
+.rdp-bar-val.mid  { color: #b45309; }
+.rdp-bar-val.bad  { color: var(--danger); }
+.rdp-bar-val.thin { color: var(--ink-faint); }
+.rdp-bar-track { height: 7px; background: var(--bg-sunk); border-radius: 999px; overflow: hidden; }
+.rdp-bar-fill { height: 100%; border-radius: 999px; }
+.rdp-bar-fill.good { background: var(--accent); }
+.rdp-bar-fill.mid  { background: var(--warning); }
+.rdp-bar-fill.bad  { background: var(--danger); }
+.rdp-bar-fill.thin { background: var(--line-strong); }
+
+.rdp-report-foot {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--bg);
+  font-size: 12.5px;
+  color: var(--ink-mute);
+  line-height: 1.5;
+}
+.rdp-report-foot svg { flex: none; margin-top: 1px; }
+.rdp-report-foot strong { color: var(--ink-soft); }
+
+/* ── cross-sell ──────────────────────────────────────────────── */
+.rdp-crosssell {
+  margin-top: 44px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--accent-soft);
+  border: 1px solid #cfe2de;
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  flex-wrap: wrap;
+}
+.rdp-crosssell-icon { flex: none; color: var(--accent-dark); }
+.rdp-crosssell-copy {
+  flex: 1;
+  min-width: 220px;
+  font-size: 14px;
+  color: var(--accent-dark);
+  line-height: 1.5;
+}
+.rdp-crosssell-btn {
+  flex: none;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--white);
+  background: var(--accent);
+  border-radius: var(--radius);
+}
+.rdp-crosssell-btn:hover { background: var(--accent-dark); text-decoration: none; }
+
+/* ── mobile (≤768px) — the prototype's inline styles couldn't carry
+ *    media queries, so the two-column report panel is ours to collapse. */
+@media (max-width: 768px) {
+  .rdp-hero h1 { font-size: 27px; }
+  .rdp-lede { font-size: 15.5px; }
+
+  .rdp-plans-head { align-items: flex-start; }
+  .rdp-plan { flex: 1 1 100%; max-width: none; }
+
+  .rdp-pack-row { align-items: flex-start; }
+  .rdp-pack-stats { gap: 18px; }
+  .rdp-stat { text-align: left; min-width: 0; }
+
+  .rdp-verdict { gap: 18px; justify-content: center; }
+  .rdp-verdict-copy { min-width: 0; }
+  .rdp-report-body { padding: 20px 16px; }
+  .rdp-report-head,
+  .rdp-report-foot { padding: 14px 16px; }
+
+  /* the whole point of the breakpoint */
+  .rdp-report-panels { grid-template-columns: minmax(0, 1fr); }
+
+  .rdp-band-keys { font-size: 9.5px; }
+  .rdp-crosssell { flex-direction: column; align-items: flex-start; }
+  .rdp-crosssell-btn { width: 100%; text-align: center; }
+}

@@ -146,7 +146,7 @@ export interface PackGate {
 }
 
 export function computeGate(
-  pack: Pick<PackRow, 'title' | 'time_limit_sec'>,
+  pack: Pick<PackRow, 'title' | 'n' | 'time_limit_sec'>,
   units: PackUnit[],
   count: number,
   target: number,
@@ -159,7 +159,16 @@ export function computeGate(
       if (!m.isPublished) unpubQ.push(m.itemId);
     }
   }
-  const basicsOk = Boolean(pack.title?.trim()) && (pack.time_limit_sec ?? 0) > 0;
+  // `n` joins title + time limit as a publish-blocking basic (2026-07-08).
+  // It was previously absent: callers pass `pack.n ?? 100` as `target`, so a
+  // null-`n` pack could publish and then claim "all 100 positions filled"
+  // against a question count nobody had ever set. A published pack is a
+  // public listing (readiness-packs.md §12 → Slice ①.3) — its question
+  // count and time limit are printed to visitors, so neither may be null.
+  const basicsOk =
+    Boolean(pack.title?.trim()) &&
+    (pack.n ?? 0) > 0 &&
+    (pack.time_limit_sec ?? 0) > 0;
 
   const nameFirst = (ids: string[]) =>
     ids.slice(0, 3).join(', ') + (ids.length > 3 ? ` +${ids.length - 3} more` : '');
@@ -189,8 +198,8 @@ export function computeGate(
     {
       ok: basicsOk,
       label: basicsOk
-        ? 'Pack basics set (title, time limit)'
-        : 'Pack needs a title and time limit',
+        ? 'Pack basics set (title, question count, time limit)'
+        : 'Pack needs a title, question count and time limit',
     },
   ];
 

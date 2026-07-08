@@ -1,10 +1,13 @@
 // mynclex/components/public/public-nav.tsx
 //
 // Shared top nav for every public page (the (public) route group). The
-// full link set from the design handoff is present; only Programmes +
-// Log in are wired today. Practice bank / Readiness / For tutors and the
+// full link set from the design handoff is present; Practice bank,
+// Programmes, Readiness and Log in are wired. For tutors and the
 // GHS/USD currency toggle are intentional placeholders for later slices
 // (they render but don't navigate / do anything yet).
+//
+// Readiness went live with Slice ①.3 (2026-07-08). Its buy buttons are
+// still disabled — the page sells and explains; checkout is Slice ②b.
 
 import Link from 'next/link';
 
@@ -18,7 +21,7 @@ export function PublicNav() {
       <nav className="links">
         <Link href="/bank-access">Practice bank</Link>
         <Link href="/programmes">Programmes</Link>
-        <span className="link-soon">Readiness</span>
+        <Link href="/readiness">Readiness</Link>
         <span className="link-soon">For tutors</span>
       </nav>
 

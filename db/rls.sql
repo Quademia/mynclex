@@ -1692,15 +1692,18 @@ CREATE POLICY nclex_pps_admin_all
 -- Migration: db/migrations/20260721120000_readiness_pack_link_table.sql
 -- ============================================================
 
--- nclex_readiness_packs — mirror of the bank-items audience split:
--- any authenticated user reads PUBLISHED packs (the future catalogue);
--- BANK_CURATE (SUPER_ADMIN via the helper) reads drafts + writes.
--- RLS was entirely OFF on this table before this migration.
+-- nclex_readiness_packs — ANYONE (incl. anon) reads PUBLISHED + active
+-- packs; BANK_CURATE (SUPER_ADMIN via the helper) reads drafts + writes.
+-- RLS was entirely OFF on this table before Slice ①.
+-- 20260726120000: the read widened from `TO authenticated` to the public
+-- role — the public /readiness page lists each published pack's title,
+-- description, question count and time limit to logged-out visitors,
+-- exactly as /bank-access prices itself from nclex_products. Membership
+-- (nclex_readiness_pack_items) stays curator-only, so no question leaks.
 ALTER TABLE nclex_readiness_packs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY nclex_readiness_packs_read_published ON nclex_readiness_packs FOR SELECT
-  TO authenticated
-  USING (published = TRUE);
+CREATE POLICY nclex_readiness_packs_public_select ON nclex_readiness_packs FOR SELECT
+  USING (published = TRUE AND status = 'active');
 
 CREATE POLICY nclex_readiness_packs_curate_all ON nclex_readiness_packs FOR ALL
   TO authenticated
