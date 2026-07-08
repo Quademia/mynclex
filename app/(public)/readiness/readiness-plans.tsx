@@ -38,12 +38,26 @@ interface Props {
 
 /**
  * What the card promises, derived — never the SKU's identity. A sixth
- * published pack silently turns yesterday's "unlocks all 5" into
+ * published pack silently turns yesterday's "unlocks every pack" into
  * "pick any 5 of 6", with nobody editing anything.
+ *
+ * The unlocks-everything branch states NO count (Sam, 2026-07-08). "All 5
+ * packs" advertises how many packs we have shipped, which is operational
+ * trivia the buyer never asked for and which reads badly mid-launch. The
+ * count survives only in the pick-a-subset branch, where it is the thing
+ * being chosen FROM and so carries real information.
+ *
+ * Note what we did NOT do: drive this line off `credits` alone
+ * ("Unlocks 5 packs"). That over-promises whenever a SKU grants more
+ * credits than there are packs to claim — a credit is spent claiming a
+ * pack and nobody claims one twice, so the surplus is unspendable. The
+ * admin catalogue already flags that configuration amber; the public card
+ * must not contradict the warning. It would also just restate the
+ * "5 pack credits" line directly above it.
  */
 function unlockLine(credits: number, packCount: number): { text: string; muted: boolean } {
   if (packCount === 0) return { text: 'Pick your packs once they publish', muted: true };
-  if (credits >= packCount) return { text: `Unlocks all ${packCount} packs`, muted: false };
+  if (credits >= packCount) return { text: 'Unlocks every pack', muted: false };
   return { text: `Pick any ${credits} of ${packCount} packs`, muted: false };
 }
 
