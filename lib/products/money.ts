@@ -73,3 +73,50 @@ export function percentOff(priceMinor: number, fullMinor: number | null): number
   if (fullMinor == null || fullMinor <= priceMinor || fullMinor <= 0) return null;
   return Math.round(((fullMinor - priceMinor) / fullMinor) * 100);
 }
+
+/** Smallest offer the DB accepts: full_price must be strictly above price. */
+export const MIN_DISCOUNT_PCT = 1;
+export const MAX_DISCOUNT_PCT = 99;
+
+/**
+ * The offer helper (Sam's idea, 2026-07-08): given the charged price and
+ * a target discount, what "was" price shows exactly that discount?
+ *
+ *     full = price ÷ (1 − d)
+ *
+ * Applied to BOTH currencies with the SAME d, this is the only way the
+ * two can display the same percentage — the percentage depends on the
+ * full:price ratio, not on any exchange rate, and our GHS column is
+ * regionally priced (3.86–4.38 GHS per $ across the bank tiers), not
+ * converted. Reproduces the hand-entered readiness offers exactly:
+ * ₵350 at 30% → ₵500; $48 at 20% → $60.
+ *
+ * Rounds to the nearest MINOR unit, not the nearest whole ₵/$. Whole-unit
+ * rounding was the first attempt and it defeats the feature: $30 at 20%
+ * rounds to $38, which is 21% off, while ₵120 rounds to ₵150, which is
+ * 20% — the two currencies diverge exactly as they would by hand. The
+ * relative error of minor-unit rounding is small enough that the
+ * displayed percentages always agree. Numbers stay tidy wherever the
+ * maths is clean (₵350 @30% → ₵500), and untidy only where the true
+ * answer is untidy ($30 @20% → $37.50).
+ *
+ * Returns null for a zero price (the trial: 0 ÷ 0.7 is still 0, and a
+ * full price must exceed the price — the DB CHECK would reject it).
+ *
+ * This is a GENERATOR, not a binding: it fills the boxes once, then the
+ * numbers are the admin's. Nothing about the discount is stored.
+ */
+export function fullPriceForDiscount(
+  priceMinor:  number,
+  discountPct: number,
+): number | null {
+  if (priceMinor <= 0) return null;
+  if (!Number.isFinite(discountPct)) return null;
+  if (discountPct < MIN_DISCOUNT_PCT || discountPct > MAX_DISCOUNT_PCT) return null;
+
+  const full = Math.round(priceMinor / (1 - discountPct / 100));
+
+  // A 1% discount on a 1-pesewa product rounds back onto the price;
+  // the DB requires strictly greater.
+  return full > priceMinor ? full : priceMinor + 1;
+}

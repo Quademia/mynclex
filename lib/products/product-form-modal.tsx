@@ -21,7 +21,14 @@
 import { useState, useTransition } from 'react';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { createProductAction, updateProductAction } from './actions';
-import { minorToInput, parseMoneyToMinor } from './money';
+import {
+  MAX_DISCOUNT_PCT,
+  MIN_DISCOUNT_PCT,
+  fullPriceForDiscount,
+  minorToInput,
+  parseMoneyToMinor,
+  percentOff,
+} from './money';
 import type { PackType, ProductRow } from './types';
 
 const TYPE_LABEL: Record<PackType, string> = {
@@ -62,6 +69,12 @@ export function ProductFormModal({
   const [fullGhs, setFullGhs]   = useState(minorToInput(product?.full_price_minor_ghs ?? null));
   const [fullUsd, setFullUsd]   = useState(minorToInput(product?.full_price_minor_usd ?? null));
   const [sortOrder, setSort]    = useState<number | ''>(product?.sort_order ?? 0);
+
+  // Offer helper: a generator, never stored. Fills both full-price boxes
+  // from one discount so the two currencies show the SAME % (they only
+  // agree when the full:price multiplier is shared — our GHS column is
+  // regionally priced, not FX-converted).
+  const [discount, setDiscount] = useState<number | ''>('');
 
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -137,6 +150,39 @@ export function ProductFormModal({
     (priceGhsParse.minor === 0 || priceUsdParse.minor === 0);
   const creditsExceedPacks =
     typeof credits === 'number' && credits > packCount;
+
+  // Live readout: what discount do the CURRENT numbers actually show?
+  // Survives hand-edits and later price changes — the helper generates,
+  // this tells the truth afterwards.
+  const liveGhsOff =
+    priceGhsParse.ok && fullGhsParse?.ok ? percentOff(priceGhsParse.minor, fullGhsParse.minor) : null;
+  const liveUsdOff =
+    priceUsdParse.ok && fullUsdParse?.ok ? percentOff(priceUsdParse.minor, fullUsdParse.minor) : null;
+  const offersDiverge =
+    liveGhsOff !== null && liveUsdOff !== null && liveGhsOff !== liveUsdOff;
+
+  const applyDiscount = (pct: number) => {
+    if (!priceGhsParse.ok || !priceUsdParse.ok) return;
+    const g = fullPriceForDiscount(priceGhsParse.minor, pct);
+    const u = fullPriceForDiscount(priceUsdParse.minor, pct);
+    // A zero-priced currency (the trial) yields null — leave it blank.
+    setFullGhs(g === null ? '' : minorToInput(g));
+    setFullUsd(u === null ? '' : minorToInput(u));
+  };
+
+  const clearOffer = () => {
+    setFullGhs('');
+    setFullUsd('');
+    setDiscount('');
+  };
+
+  const helperUsable =
+    priceGhsParse.ok && priceUsdParse.ok &&
+    (priceGhsParse.minor > 0 || priceUsdParse.minor > 0);
+  const discountValid =
+    typeof discount === 'number' &&
+    discount >= MIN_DISCOUNT_PCT && discount <= MAX_DISCOUNT_PCT;
+  const hasOffer = fullGhs.trim() !== '' || fullUsd.trim() !== '';
 
   const submit = () => {
     const fd = new FormData();
@@ -246,6 +292,51 @@ export function ProductFormModal({
           />
         </label>
 
+        {/* Offer helper — frontend only, nothing stored. One discount
+            fills BOTH full prices, which is the only way the two
+            currencies can display the same % off. */}
+        <div className="pr-offer-helper">
+          <div className="pr-offer-head">
+            <span className="pr-identity-label">Offer helper</span>
+            <span className="pr-offer-note">Not saved — it just fills the full prices below.</span>
+          </div>
+          <div className="pr-offer-controls">
+            <label className="pr-field pr-offer-pct">
+              % off
+              <input
+                type="number"
+                min={MIN_DISCOUNT_PCT}
+                max={MAX_DISCOUNT_PCT}
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                placeholder="30"
+                disabled={pending || !helperUsable}
+              />
+            </label>
+            <button
+              type="button"
+              className="rp-btn-ghost"
+              disabled={pending || !helperUsable || !discountValid}
+              onClick={() => applyDiscount(discount as number)}
+            >
+              Fill full prices
+            </button>
+            <button
+              type="button"
+              className="rp-btn-ghost"
+              disabled={pending || !hasOffer}
+              onClick={clearOffer}
+            >
+              Clear offer
+            </button>
+          </div>
+          <p className="pr-offer-explain">
+            Both currencies get the same multiplier, so both show the same
+            % off. Setting them by hand rarely does — our cedi prices are
+            regionally set, not converted.
+          </p>
+        </div>
+
         <div className="pr-price-row">
           <label className="pr-field">
             Price (GHS ₵)
@@ -267,7 +358,11 @@ export function ProductFormModal({
               placeholder="—"
               disabled={pending}
             />
-            <span className="pr-hint">Was-price, struck through. Blank = no offer.</span>
+            <span className="pr-hint">
+              {liveGhsOff !== null
+                ? <><strong className="pr-live-off">−{liveGhsOff}%</strong> off. Struck through on sales cards.</>
+                : 'Was-price, struck through. Blank = no offer.'}
+            </span>
           </label>
         </div>
         {fullGhsBad && (
@@ -298,7 +393,11 @@ export function ProductFormModal({
               placeholder="—"
               disabled={pending}
             />
-            <span className="pr-hint">Was-price, struck through. Blank = no offer.</span>
+            <span className="pr-hint">
+              {liveUsdOff !== null
+                ? <><strong className="pr-live-off">−{liveUsdOff}%</strong> off. Struck through on sales cards.</>
+                : 'Was-price, struck through. Blank = no offer.'}
+            </span>
           </label>
         </div>
         {fullUsdBad && (
@@ -307,6 +406,14 @@ export function ProductFormModal({
           </p>
         )}
         {!priceUsdParse.ok && <p className="pr-advice block">USD price: {priceUsdParse.error}</p>}
+
+        {offersDiverge && (
+          <p className="pr-advice">
+            This offer is {liveGhsOff}% off in cedis but {liveUsdOff}% off in
+            dollars. Deliberate regional pricing is fine — otherwise use the
+            offer helper to match them.
+          </p>
+        )}
 
         {zeroPrice && (
           <p className="pr-advice">
