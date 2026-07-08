@@ -1,65 +1,27 @@
 // mynclex/lib/products/savings.ts
 //
-// The readiness SKUs' "₵80/pack · 20% off" line — DERIVED at render,
-// never stored (settled 2026-07-08). CD's round-1 prototype hardcoded
-// "20% off" against the credit count, so editing All-5's price would
-// have left the label happily lying. Here the anchor is the real
-// 1-credit SKU's unit price, so every label follows the catalogue.
+// Per-pack unit price for the readiness SKUs — "₵80/pack" — shown under
+// each currency's price so it is always correct in that currency.
 //
-// Distinct from a PROMOTIONAL discount (full_price_minor_*, see
-// money.ts → percentOff): that's "was ₵350, now ₵280". This is
-// "buying five at once beats buying one five times".
+// This file used to also DERIVE a volume discount ("20% off") by
+// comparing each SKU's unit price against the 1-credit SKU's. That was
+// retired 2026-07-08 (Sam): a discount is now expressed exactly one way,
+// via full_price_minor_* — set All-5's full price to 5 × Single and the
+// row reads ~₵500~ ₵350 −30%, the same number the derived maths gave,
+// but under one mechanism instead of two, and it carries to the public
+// card for free. Trade-off accepted: a typed full price can drift if the
+// Single pack's price later changes; a derived one couldn't.
 
 import type { Currency } from './money';
 import type { ProductRow } from './types';
 
-export interface PackSavings {
-  /** Price of one credit under this SKU, in minor units. */
-  perPackMinor: number;
-  /** Percent cheaper per pack than the 1-credit SKU. Null when there
-   *  is no anchor, or this IS the anchor, or it's no cheaper. */
-  percentOff:   number | null;
-}
-
-const priceOf = (p: ProductRow, c: Currency) =>
-  c === 'GHS' ? p.price_minor_ghs : p.price_minor_usd;
-
 /**
- * The unit-price anchor: the ACTIVE readiness SKU granting exactly one
- * credit. Archived SKUs are excluded — a retired product must not
- * silently set the savings maths for the live ones.
+ * What one credit costs under this SKU, in minor units. Null for
+ * anything that isn't a readiness SKU granting at least one credit
+ * (bank tiers price a duration, not a pack).
  */
-export function findUnitAnchor(products: ProductRow[]): ProductRow | null {
-  return (
-    products.find(
-      (p) =>
-        p.pack_type === 'READINESS' &&
-        p.status === 'ACTIVE' &&
-        p.readiness_credits === 1,
-    ) ?? null
-  );
-}
-
-export function packSavings(
-  product:  ProductRow,
-  anchor:   ProductRow | null,
-  currency: Currency,
-): PackSavings | null {
+export function perPackMinor(product: ProductRow, currency: Currency): number | null {
   if (product.pack_type !== 'READINESS' || product.readiness_credits < 1) return null;
-
-  const perPackMinor = Math.round(priceOf(product, currency) / product.readiness_credits);
-
-  if (!anchor || anchor.product_id === product.product_id) {
-    return { perPackMinor, percentOff: null };
-  }
-
-  const anchorPerPack = priceOf(anchor, currency); // anchor grants exactly 1
-  if (anchorPerPack <= 0 || perPackMinor >= anchorPerPack) {
-    return { perPackMinor, percentOff: null };
-  }
-
-  return {
-    perPackMinor,
-    percentOff: Math.round(((anchorPerPack - perPackMinor) / anchorPerPack) * 100),
-  };
+  const price = currency === 'GHS' ? product.price_minor_ghs : product.price_minor_usd;
+  return Math.round(price / product.readiness_credits);
 }

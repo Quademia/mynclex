@@ -105,6 +105,8 @@
 .pr-cell-price.warn .pr-price { color: var(--warning); }
 .pr-was { font-size: 11px; color: var(--text-faint); }
 .pr-was s { margin-right: 4px; }
+/* Readiness only: what one credit costs, in THIS cell's currency. */
+.pr-per-pack { font-size: 11px; color: var(--text-muted); }
 
 .pr-pill {
   display: inline-block;

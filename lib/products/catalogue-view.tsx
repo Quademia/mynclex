@@ -22,7 +22,7 @@ import { ProductRetireConfirm } from '@/lib/overlays/products/retire-confirm';
 import { ProductFormModal } from './product-form-modal';
 import { setProductStatusAction } from './actions';
 import { formatMinor, percentOff, type Currency } from './money';
-import { findUnitAnchor, packSavings } from './savings';
+import { perPackMinor } from './savings';
 import type { ProductRow } from './types';
 
 export function CatalogueView({
@@ -40,7 +40,6 @@ export function CatalogueView({
   const [error, setError] = useState<string | null>(null);
 
   const hasTrial = products.some((p) => p.kind === 'TRIAL');
-  const anchor   = findUnitAnchor(products);
 
   const bank      = products.filter((p) => p.pack_type === 'BANK_DURATION');
   const readiness = products.filter((p) => p.pack_type === 'READINESS');
@@ -93,7 +92,6 @@ export function CatalogueView({
         title="Bank access"
         subtitle="Duration passes to the full question bank — including the free trial"
         products={bank}
-        anchor={anchor}
         pending={pending}
         onEdit={setEditing}
         onRetire={setRetiring}
@@ -103,7 +101,6 @@ export function CatalogueView({
         title="Readiness packs"
         subtitle="One-shot curated mock exams"
         products={readiness}
-        anchor={anchor}
         pending={pending}
         onEdit={setEditing}
         onRetire={setRetiring}
@@ -138,7 +135,6 @@ function Group({
   title,
   subtitle,
   products,
-  anchor,
   pending,
   onEdit,
   onRetire,
@@ -147,7 +143,6 @@ function Group({
   title:        string;
   subtitle:     string;
   products:     ProductRow[];
-  anchor:       ProductRow | null;
   pending:      boolean;
   onEdit:       (p: ProductRow) => void;
   onRetire:     (p: ProductRow) => void;
@@ -177,7 +172,6 @@ function Group({
           <ProductRowView
             key={p.product_id}
             product={p}
-            anchor={anchor}
             pending={pending}
             onEdit={onEdit}
             onRetire={onRetire}
@@ -191,14 +185,12 @@ function Group({
 
 function ProductRowView({
   product: p,
-  anchor,
   pending,
   onEdit,
   onRetire,
   onReactivate,
 }: {
   product:      ProductRow;
-  anchor:       ProductRow | null;
   pending:      boolean;
   onEdit:       (p: ProductRow) => void;
   onRetire:     (p: ProductRow) => void;
@@ -213,9 +205,12 @@ function ProductRowView({
       ? `${p.readiness_credits} mock exam${p.readiness_credits === 1 ? '' : 's'} · 100 Q each`
       : `Full question bank · ${p.duration_days} days`;
 
+  // The Credits column shows CREDITS, in both groups. The per-pack unit
+  // price lives under each currency's price, where it is correct in that
+  // currency; any discount is expressed once, by the full price.
   const credits =
     p.pack_type === 'READINESS'
-      ? savingsLabel(p, anchor)
+      ? `${p.readiness_credits} credit${p.readiness_credits === 1 ? '' : 's'}`
       : p.readiness_credits > 0
         ? `${p.readiness_credits} pack credit${p.readiness_credits === 1 ? '' : 's'}`
         : 'No packs included';
@@ -235,12 +230,14 @@ function ProductRowView({
       <PriceCell
         minor={p.price_minor_ghs}
         fullMinor={p.full_price_minor_ghs}
+        perPack={perPackMinor(p, 'GHS')}
         currency="GHS"
         warn={isPaid && p.price_minor_ghs === 0}
       />
       <PriceCell
         minor={p.price_minor_usd}
         fullMinor={p.full_price_minor_usd}
+        perPack={perPackMinor(p, 'USD')}
         currency="USD"
         warn={isPaid && p.price_minor_usd === 0}
       />
@@ -271,15 +268,22 @@ function ProductRowView({
   );
 }
 
-/** Price + optional struck-through "was" price and its derived % off. */
+/**
+ * The charged price, then (when on offer) the struck-through full price
+ * with its derived % off, then (readiness only) the per-pack unit price.
+ * Every figure here is in THIS cell's currency — the old per-pack label
+ * was cedis-only and sat under a "Credits" header.
+ */
 function PriceCell({
   minor,
   fullMinor,
+  perPack,
   currency,
   warn,
 }: {
   minor:     number;
   fullMinor: number | null;
+  perPack:   number | null;
   currency:  Currency;
   warn:      boolean;
 }) {
@@ -292,14 +296,9 @@ function PriceCell({
           <s>{formatMinor(fullMinor, currency)}</s> −{off}%
         </span>
       )}
+      {perPack !== null && (
+        <span className="pr-per-pack">{formatMinor(perPack, currency)}/pack</span>
+      )}
     </div>
   );
-}
-
-/** "₵80/pack · 20% off" — derived against the 1-credit SKU, never stored. */
-function savingsLabel(p: ProductRow, anchor: ProductRow | null): string {
-  const s = packSavings(p, anchor, 'GHS');
-  if (!s) return '—';
-  const per = `${formatMinor(s.perPackMinor, 'GHS')}/pack`;
-  return s.percentOff === null ? per : `${per} · ${s.percentOff}% off`;
 }
