@@ -198,6 +198,17 @@ Card copy: *"100 questions · 3 hours 20 minutes · one shot per pack ·
 **post-purchase**, so a returning student is never blocked from buying
 by the SKU shape.
 
+> ⚠ **This table is the seed, not the shape** (noted 2026-07-08, when
+> the admin Products & Pricing page shipped). An admin with
+> PAYMENTS_MANAGE can create and retire readiness SKUs at will, so
+> "the 3 SKUs" is a fact about today's catalogue, not a constant any
+> surface may encode. Likewise the card copy above: `100 questions`
+> is `nclex_readiness_packs.n` and `3 hours 20 minutes` is
+> `time_limit_sec` — **both editable per pack** — and "any 1 of the
+> 5" counts published packs. Every one of those numbers is a read.
+> The public page's treatment of this is settled in the *Student
+> side → Slice ①* entry below (§12).
+
 **Bundled credits per bank tier:**
 
 | Bank tier | Pack credits |
@@ -1134,14 +1145,104 @@ we get there — roughly the §10 gaps list):**
        Same advisory on the bank tiers' bundled credits.
      - **Slug**: format + uniqueness validated on create; immutable
        after. **No second trial** — creation guards against it.
-  3. **Public bank-access Section 2** — the 3 SKU cards reading the
-     catalogue live (the same single-source pattern as the bank
-     tiers), settled card copy (§3): *"100 questions · 3 hours 20
-     minutes · one shot per pack · 21-day window on activation."*
+  3. **Public readiness page** — ⏭ NEXT. Was drafted as "bank-access
+     Section 2"; **re-cut 2026-07-08 (with Sam) into a dedicated
+     public `/readiness` page.** Full shape below.
   Plus **one small RLS migration**: `nclex_products` writes (and
   reading ARCHIVED rows) are SUPER_ADMIN-only today, but the surface
   gates on PAYMENTS_MANAGE — align the SQL layer to the TS gate
-  (the layered-enforcement rule).
+  (the layered-enforcement rule). **✅ landed as `20260723120000`
+  (piece 1 above).**
+
+#### Slice ①.3 — the public readiness page <span>settled 2026-07-08</span>
+
+**Where it lives — a dedicated page, not a section on bank-access.**
+The public nav has carried a disabled `<span class="link-soon">
+Readiness</span>` placeholder since the landing-page slice
+(`components/public/public-nav.tsx`), between *Practice bank* and
+*For tutors* — the surface was always planned, and §3's
+"bank-access page, Section 2" simply predates it. Each public page
+sells one thing: `/bank-access` converts on *duration*, `/readiness`
+converts on *verdict*. **New folder** (approved):
+`app/(public)/readiness/` = `page.tsx` (server; catalogue + published-
+pack reads) + `readiness-plans.tsx` (client; currency toggle + the
+cards), mirroring `bank-access/`. Styles: new
+`styles/readiness-public.css`, not an extension of `bank.css`.
+
+**Bank-access stays untouched.** Sam raised the real future case —
+*"I bought 30 days, which bundles no credits, and now I want packs"*
+(§3 already allows it: *"a student can buy standalone packs on top of
+a bundle"*). That buyer is **logged in and has already paid**; they
+never return to `/bank-access`, which exists to convert someone who
+has bought nothing. The top-up therefore lands on the **in-app**
+surfaces (§11.10 — the bank-dashboard compact section and the in-app
+readiness page), which know who the student is and can say *"you hold
+0 credits."* A public page cannot. So "dedicated page only" is not a
+staging compromise to revisit — the top-up flow simply lives
+elsewhere, and it is already scheduled inside the credits slice.
+What may return to `/bank-access` later is a **cross-sell line**, not
+cards: §3's *"a year of bank + all 5 packs, $70 cheaper than buying
+separately."* One sentence, whenever wanted.
+
+**Everything on the page is a read.** The admin can create and retire
+readiness SKUs, and can edit each pack's `n` and `time_limit_sec`.
+So the page encodes no counts, names or numbers:
+
+- **N cards, not 3.** Query `pack_type='READINESS'`, `kind='PAID'`,
+  `status='ACTIVE'`, ordered by `sort_order`. Render whatever comes
+  back; the grid must hold N=1 and N=7, not just today's 3. Card
+  title is the row's `name`. Price is `price_minor_{ghs,usd}` under
+  the shared GHS/USD toggle; the strike-through "was" price and its
+  computed % are `full_price_minor_*` + `percentOff()`; the per-pack
+  unit price is `perPackMinor()`. All three already exist and are
+  derived, never stored.
+- **No "Most popular" badge.** `bank-plans.tsx` hardcodes
+  `days === 90`; the readiness equivalent would hardcode All-5.
+  There is no `featured` column, and `credits === max(credits)` is a
+  guess. Ship no badge. A real `featured` flag is a separate cheap
+  decision if ever wanted.
+- **Zero active SKUs hides the pricing section** (archiving all
+  three is a legal admin action) — never an empty grid.
+- **The pack count is live, and counts *published* packs only** —
+  `published = TRUE AND status = 'active'`. Drafts must never
+  inflate the public number. As of today all five seeded packs are
+  `draft`, so the honest count is **0**.
+- **"All N unlocked" vs "pick any 3" is derived**, not a SKU
+  identity: `readiness_credits >= publishedPackCount` → the card
+  reads *unlocks every pack*; otherwise *pick any N of M*. Publish a
+  sixth pack and yesterday's All-5 card must start saying "any 5 of
+  6" by itself.
+
+**Where the pack specifics go — Option 2 (settled).** A credit is
+spendable on *any* pack, so a SKU card may only print "100 questions
+· 3h 20m" if every published pack agrees — and one pack edited to 75
+questions makes the card lie. Rejected: making uniformity a product
+rule (contradicts the editable-`n` decision taken the same day).
+Adopted:
+
+- **Cards sell count, price and terms** — *"1 pack · one shot ·
+  21-day window on activation."*
+- **A "What's in a pack" block below the grid sells substance** —
+  one row per published pack with its own `n` and `time_limit_sec`.
+  Honest under any configuration.
+- **Nicety:** a single line above the grid — *"Every pack: 100
+  questions, 3h 20m"* — rendered **only when the published packs
+  actually agree** on both, and silently absent otherwise.
+
+**Pre-launch state.** With no pack published, the page must not read
+*"pick any 1 of 0 packs."* A deliberate zero-published-packs state is
+part of the slice, not an accident to paper over.
+
+**CTA + nav (Sam's calls).** The nav placeholder **lights up** to a
+real `/readiness` link now. The card CTA stays **disabled ("Coming
+soon")** until ②b builds the readiness checkout route — `/checkout/
+bank` hard-rejects any product whose `pack_type !== 'BANK_DURATION'`
+(`app/(public)/checkout/bank/page.tsx`), by design. Deliberately
+**not** pulled forward: a working CTA before ②a mints credits would
+take a student's money and grant nothing, because the credits table
+does not yet exist. Precedent for a live page with an inert CTA: the
+bank landing shipped that way, and its *Start free trial* button is
+still a disabled stub today.
 - **⬜ Credits + claiming:** the credits-table migration (§7 —
   final name + column lock here; + drop the two never-written
   readiness columns off `nclex_subscriptions`); mint-at-activation;
