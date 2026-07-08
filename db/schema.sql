@@ -1817,15 +1817,21 @@ CREATE TABLE nclex_config (
 
 -- nclex_products — QAcademy's buyable SKU catalogue (bank durations,
 -- readiness, trial). NOT programme fees. Dual-currency by column.
+--
+-- 20260724120000: the two columns divide cleanly — pack_type = WHAT it
+-- grants, kind = WHETHER you pay. The trial is a free BANK_DURATION
+-- pass (kind='TRIAL'), not its own pack_type; 'TRIAL' was dropped from
+-- the pack_type CHECK. A trial SUBSCRIPTION is identified by
+-- source='SELF_TRIAL_SIGNUP', not by its pack_type.
 CREATE TABLE nclex_products (
   product_id            TEXT PRIMARY KEY,                          -- slug: BANK_30D, READINESS_ALL5, NCLEX_TRIAL
   name                  TEXT NOT NULL,
   kind                  TEXT NOT NULL DEFAULT 'PAID'
                         CHECK (kind IN ('PAID','TRIAL')),
   pack_type             TEXT NOT NULL
-                        CHECK (pack_type IN ('BANK_DURATION','READINESS','TRIAL')),
+                        CHECK (pack_type IN ('BANK_DURATION','READINESS')),
   duration_days         INTEGER,                                   -- NULL for readiness
-  readiness_pack_count  SMALLINT,                                  -- READINESS SKUs only — 1/3/5
+  readiness_pack_count  SMALLINT,                                  -- READINESS SKUs only — credits granted; free integer, no 1/3/5 rule
   bundled_readiness_credits SMALLINT NOT NULL DEFAULT 0,           -- BANK_DURATION only — free readiness credits with the pass
   price_minor_ghs       INTEGER NOT NULL DEFAULT 0,
   price_minor_usd       INTEGER NOT NULL DEFAULT 0,
