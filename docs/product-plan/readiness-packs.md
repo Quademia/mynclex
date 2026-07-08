@@ -714,11 +714,36 @@ The subscriptions table goes back to doing one thing well.
 
 ### Unchanged
 
-- `nclex_products` carries READINESS SKUs: `pack_type = 'READINESS'`,
-  `readiness_pack_count` (1/3/5), and `bundled_readiness_credits` on
-  BANK_DURATION rows. (An early sketch in the payments doc put a
-  per-SKU `readiness_pack_id` on products — the schema as built
-  correctly uses the *count*. The built shape is canonical.)
+- `nclex_products` carries READINESS SKUs: `pack_type = 'READINESS'`
+  plus **`readiness_credits`** — the count of credits activating the
+  product mints. (An early sketch in the payments doc put a per-SKU
+  `readiness_pack_id` on products — the schema as built correctly uses
+  the *count*. The built shape is canonical.)
+  **Revised 2026-07-08 (Sam's catch, migration `20260725120000`):**
+  the two original columns — `readiness_pack_count` (READINESS) and
+  `bundled_readiness_credits` (BANK_DURATION) — **collapsed into one
+  `readiness_credits`**. They answered the same question in two
+  places: §3's interaction rules already say bundled and standalone
+  packs are granted by the *identical* credit mechanism (the SKU fixes
+  the COUNT; the student picks the packs), and a credit's provenance
+  derives from `pack_type`. The split forced the mint code to branch
+  on type to choose a column, and left an unguarded illegal state (a
+  READINESS row could also carry bundled credits — mint 5, or 8?). Now:
+  one column, `NOT NULL DEFAULT 0`, with `CHECK (pack_type <>
+  'READINESS' OR readiness_credits >= 1)` — a readiness SKU granting
+  nothing is broken; a bank pass granting nothing is normal. Done
+  before the credits slice so no mint logic or credit rows depended on
+  the old shape. **The pack count is a free integer** — no 1/3/5 rule
+  exists in the DB, so a "Select 2" SKU is legal.
+- **The trial is a free BANK_DURATION pass, not its own `pack_type`**
+  (settled 2026-07-08, migration `20260724120000`): `pack_type` = what
+  the product grants, `kind` = whether you pay. `'TRIAL'` was dropped
+  from the products `pack_type` CHECK; a trial *subscription* is
+  identified by `source = 'SELF_TRIAL_SIGNUP'`. This also fixed a
+  latent bug — `activate.ts` only sets an expiry for `BANK_DURATION`,
+  so an activated trial would have granted bank access with **no end
+  date** (unreachable: trial signup is unwired, 0 TRIAL subscription
+  rows anywhere).
 - The pay-first / invite flow, dual currency, and the trial machinery
   are all shared with bank purchases
   (`payments-and-enrolment.md` stays canonical for those).
@@ -1056,26 +1081,59 @@ we get there — roughly the §10 gaps list):**
   widened to include the admin management surface, narrowed to
   exclude the in-app student surfaces (moved to the credits slice,
   below). Three pieces, one CD brief (sent 2026-07-08):
-  1. **READINESS product rows seeded** — one migration inserting the
-     3 settled SKUs (§3 prices: `READINESS_SINGLE` ₵100/$20 ·
-     `READINESS_SELECT3` ₵240/$48 · `READINESS_ALL5` ₵350/$70;
-     `pack_type='READINESS'`, `readiness_pack_count` 1/3/5). The
-     `nclex_products` schema needs NO change — readiness support
-     (pack_type, pack count, dual currency, bundled credits on the
-     bank tiers) shipped with the payments arc.
+  1. **READINESS product rows seeded ✅** (migration `20260722120000`,
+     dev-applied) — the 3 settled SKUs (§3 prices: `READINESS_SINGLE`
+     ₵100/$20 · `READINESS_SELECT3` ₵240/$48 · `READINESS_ALL5`
+     ₵350/$70; `pack_type='READINESS'`, credits 1/3/5). Plus **three
+     schema corrections found while building** (all dev-applied, all
+     pre-credits-slice so nothing depended on the old shapes):
+     `20260723120000` products RLS for PAYMENTS_MANAGE ·
+     `20260724120000` the trial becomes a free BANK_DURATION pass
+     (+ fixes the no-expiry bug) · `20260725120000`
+     `readiness_pack_count` + `bundled_readiness_credits` collapse to
+     one `readiness_credits`. See §7 → *Unchanged* for both rationales.
   2. **Admin Products & Pricing page** — fills the existing
      `/admin/products` placeholder (nav entry + PAYMENTS_MANAGE gate
-     already exist). One page, products grouped Trial / Bank access /
-     Readiness. **Create + edit in v1 (Sam's call 2026-07-08).**
-     Editable: both prices, display name, `bundled_readiness_credits`
-     (bank tiers), status activate/retire, sort order. **Locked
-     identity fields:** slug, `pack_type`, `duration_days`,
-     `readiness_pack_count` — a different offer = retire the old +
-     create the new, never mutate meaning under sold rows. **No
+     already exist). **Create + edit in v1 (Sam's call 2026-07-08).**
+     Two groups, not three: **Bank access** (the paid tiers *and* the
+     free trial — the trial is a bank pass that costs nothing; a "Free"
+     pill distinguishes it) and **Readiness packs**.
+     Editable: both prices, display name, `readiness_credits`, status
+     activate/retire, sort order. **Locked identity fields:** slug,
+     `pack_type`, `duration_days` — a different offer = retire the old
+     + create the new, never mutate meaning under sold rows. **No
      delete, ever** (payments FK RESTRICT) — ARCHIVED is the only
      remove; re-activate reverses it. The page states the
      recipe-only rule on its face: **edits affect future buyers
      only** (grants freeze at mint/activation, §7).
+
+     **Settled build rules (2026-07-08, from the CD round-1 review):**
+     - **Money in, money out.** Prices are stored as integer minor
+       units; the form accepts `120.50` and stores `12050`, refusing
+       >2 decimal places. One conversion helper, one place.
+     - **Per-pack savings are DERIVED, never stored** — a readiness
+       SKU's "₵80/pack · 20% off" is computed against the 1-credit
+       SKU's unit price. Hardcoding it (CD round 1) makes the label
+       lie the moment a price is edited.
+     - **Promotions = `compare_at_price`, NOT a discount percentage**
+       (Sam asked; recommendation accepted). A stored percentage makes
+       the charge derived, which breaks under dual-currency rounding —
+       Paystack needs one exact integer. Keep `price_minor_*` as what
+       you actually charge; add nullable `compare_at_price_minor_ghs`
+       / `_usd` meaning "what it used to cost". Set + higher than price
+       → public card shows a strike-through and a *computed* % off.
+       Running a promo = lower the price, set compare-at. Time-boxed
+       promo windows + coupon codes are a real, separate feature —
+       **parked**. ⬜ *Columns not yet built — land them with the
+       admin page.*
+     - **`readiness_credits` is a free integer**, not a 1/3/5 dropdown
+       (CD round 1's constraint came from an over-specified brief).
+       Amber advisory — never a hard block — when a SKU grants more
+       credits than there are packs to claim (credits beyond the pack
+       count are unspendable: no student can claim one pack twice).
+       Same advisory on the bank tiers' bundled credits.
+     - **Slug**: format + uniqueness validated on create; immutable
+       after. **No second trial** — creation guards against it.
   3. **Public bank-access Section 2** — the 3 SKU cards reading the
      catalogue live (the same single-source pattern as the bank
      tiers), settled card copy (§3): *"100 questions · 3 hours 20

@@ -1823,6 +1823,11 @@ CREATE TABLE nclex_config (
 -- pass (kind='TRIAL'), not its own pack_type; 'TRIAL' was dropped from
 -- the pack_type CHECK. A trial SUBSCRIPTION is identified by
 -- source='SELF_TRIAL_SIGNUP', not by its pack_type.
+-- 20260725120000: readiness_pack_count + bundled_readiness_credits
+-- collapsed into ONE readiness_credits — both answered "how many
+-- credits does activating this MINT?" (§3: bundled and standalone packs
+-- are granted by the identical credit mechanism). Provenance derives
+-- from pack_type.
 CREATE TABLE nclex_products (
   product_id            TEXT PRIMARY KEY,                          -- slug: BANK_30D, READINESS_ALL5, NCLEX_TRIAL
   name                  TEXT NOT NULL,
@@ -1831,15 +1836,18 @@ CREATE TABLE nclex_products (
   pack_type             TEXT NOT NULL
                         CHECK (pack_type IN ('BANK_DURATION','READINESS')),
   duration_days         INTEGER,                                   -- NULL for readiness
-  readiness_pack_count  SMALLINT,                                  -- READINESS SKUs only — credits granted; free integer, no 1/3/5 rule
-  bundled_readiness_credits SMALLINT NOT NULL DEFAULT 0,           -- BANK_DURATION only — free readiness credits with the pass
+  -- Credits minted on activation. READINESS: the SKU IS the count (>=1,
+  -- free integer — no 1/3/5 rule). BANK_DURATION: bundled sweetener (0 = none).
+  readiness_credits     SMALLINT NOT NULL DEFAULT 0,
   price_minor_ghs       INTEGER NOT NULL DEFAULT 0,
   price_minor_usd       INTEGER NOT NULL DEFAULT 0,
   status                TEXT NOT NULL DEFAULT 'ACTIVE'
                         CHECK (status IN ('ACTIVE','ARCHIVED')),
   sort_order            SMALLINT NOT NULL DEFAULT 0,
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT nclex_products_readiness_credits_positive
+    CHECK (pack_type <> 'READINESS' OR readiness_credits >= 1)
 );
 CREATE INDEX idx_nclex_products_status_sort ON nclex_products (status, sort_order);
 

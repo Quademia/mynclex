@@ -14,7 +14,7 @@ export default async function BankLandingPage() {
   const supabase = await createClient();
   const { data: products } = await supabase
     .from('nclex_products')
-    .select('product_id, name, duration_days, bundled_readiness_credits, price_minor_ghs, price_minor_usd')
+    .select('product_id, name, duration_days, readiness_credits, price_minor_ghs, price_minor_usd')
     .eq('pack_type', 'BANK_DURATION')
     .eq('kind', 'PAID')
     .eq('status', 'ACTIVE')
@@ -23,7 +23,7 @@ export default async function BankLandingPage() {
   const plans: BankPlan[] = (products ?? []).map((p) => ({
     productId: p.product_id,
     days: p.duration_days ?? 0,
-    readinessCredits: p.bundled_readiness_credits ?? 0,
+    readinessCredits: p.readiness_credits ?? 0,
     ghsMinor: p.price_minor_ghs,
     usdMinor: p.price_minor_usd,
   }));
