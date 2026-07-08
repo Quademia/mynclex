@@ -10,10 +10,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import type { Authorship } from '@/lib/audit/authorship';
 import { PackMembersList } from './members-list';
 import { PackBasicsCard } from './basics-card';
 import { PackCompositionCard, PackPublishCard } from './composition-cards';
-import { PackHistoryButton } from './history-drawer';
+import { PackAuthorship } from './history-drawer';
 import { PackPicker, type PickerInsertAt } from './picker';
 import type { PackRow, PackUnit } from './types';
 
@@ -22,11 +23,13 @@ export function PackDetailBody({
   units,
   count,
   target,
+  authorship,
 }: {
-  pack:   PackRow;
-  units:  PackUnit[];
-  count:  number;
-  target: number;
+  pack:       PackRow;
+  units:      PackUnit[];
+  count:      number;
+  target:     number;
+  authorship: Authorship;
 }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -50,7 +53,11 @@ export function PackDetailBody({
             <span className={`rp-status ${pack.status}`}>
               {pack.published ? 'published' : pack.status}
             </span>
-            <PackHistoryButton packId={pack.pack_id} packTitle={pack.title} />
+            <PackAuthorship
+              packId={pack.pack_id}
+              packTitle={pack.title}
+              authorship={authorship}
+            />
           </div>
           <div className="rp-detail-meta">
             <span className="rp-mono">{pack.pack_id}</span>

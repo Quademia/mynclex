@@ -13,7 +13,55 @@
 
 import { useState } from 'react';
 import { AuditDrawerShell, formatWhen } from '@/lib/audit/history-drawer';
+import type { Authorship } from '@/lib/audit/authorship';
 import { loadPackHistory, type PackHistoryEntry } from './history-actions';
+
+/**
+ * Header authorship readout: "Created by X · Last edit Y" + the History
+ * clock — the wrapper-topbar treatment (AuthorshipInline's markup and
+ * classes), except the clock opens the PACK drawer (merged pack +
+ * membership timeline), which the shared component can't host. Facts
+ * arrive pre-resolved from loadPackAuthorship (eager, no flicker).
+ */
+export function PackAuthorship({
+  packId,
+  packTitle,
+  authorship,
+}: {
+  packId:     string;
+  packTitle:  string;
+  authorship: Authorship;
+}) {
+  if (!authorship.hasAny) {
+    // Unreachable in practice (every pack has a 'created' row), but the
+    // clock stays reachable so the drawer can say so itself.
+    return (
+      <span className="audit-topbar-authors">
+        <span className="audit-inline audit-inline--empty">No change history yet</span>
+        <PackHistoryButton packId={packId} packTitle={packTitle} />
+      </span>
+    );
+  }
+
+  return (
+    <span className="audit-topbar-authors">
+      <span className="audit-inline">
+        <span className="audit-inline-fact">
+          <span className="audit-cell-label">Created</span>
+          <span className="audit-inline-name">{authorship.createdByName ?? 'System'}</span>
+        </span>
+        {authorship.hasEdits && (
+          <span className="audit-inline-fact">
+            <span className="audit-inline-sep" aria-hidden="true">·</span>
+            <span className="audit-cell-label">Last edit</span>
+            <span className="audit-inline-name">{authorship.lastEditedByName ?? 'System'}</span>
+          </span>
+        )}
+        <PackHistoryButton packId={packId} packTitle={packTitle} />
+      </span>
+    </span>
+  );
+}
 
 export function PackHistoryButton({
   packId,

@@ -8,7 +8,11 @@
 
 import { notFound } from 'next/navigation';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
-import { loadPacksOverview, loadPackDetail } from '@/lib/bank/packs/queries';
+import {
+  loadPacksOverview,
+  loadPackDetail,
+  loadPackAuthorship,
+} from '@/lib/bank/packs/queries';
 import { PacksAreaHead } from '@/lib/bank/packs/area-head';
 import { PackDetailBody } from '@/lib/bank/packs/detail-body';
 
@@ -22,9 +26,10 @@ export default async function AdminPackDetailPage({
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
   const { pack_id } = await params;
 
-  const [packs, detail] = await Promise.all([
+  const [packs, detail, authorship] = await Promise.all([
     loadPacksOverview(supabase),
     loadPackDetail(supabase, pack_id),
+    loadPackAuthorship(supabase, pack_id),
   ]);
   if (!detail) notFound();
 
@@ -40,7 +45,13 @@ export default async function AdminPackDetailPage({
         activeId={pack.pack_id}
       />
       <div className="auth-list-inner">
-        <PackDetailBody pack={pack} units={units} count={count} target={target} />
+        <PackDetailBody
+          pack={pack}
+          units={units}
+          count={count}
+          target={target}
+          authorship={authorship}
+        />
       </div>
     </main>
   );

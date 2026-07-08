@@ -5,6 +5,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
+import type { Authorship } from '@/lib/audit/authorship';
 import { groupPackMembers, type WrapperMeta } from './grouping';
 import type {
   PackDetail,
@@ -152,6 +153,57 @@ export async function loadPackDetail(
     pack: packRow as PackRow,
     units: groupPackMembers(members, caseMeta, trendMeta),
     count: members.length,
+  };
+}
+
+/**
+ * Header authorship facts for one pack — "created by" from the pack
+ * row's audit entry, "last edited by" from the newest event across the
+ * WHOLE pack story (settings edits AND membership adds/moves/removals),
+ * so the header agrees with the History drawer's top entry (Option B,
+ * settled 2026-07-08). Caller is the BANK_CURATE-gated detail page;
+ * the log's RLS backs the same gate.
+ */
+export async function loadPackAuthorship(
+  supabase: SupabaseClient,
+  packId: string,
+): Promise<Authorship> {
+  const [{ data: packEvents }, { data: newestMember }] = await Promise.all([
+    supabase
+      .from('nclex_audit_log')
+      .select('action, changed_by_name, changed_at')
+      .eq('entity_type', 'readiness_pack')
+      .eq('entity_id', packId)
+      .order('changed_at', { ascending: true }),
+    supabase
+      .from('nclex_audit_log')
+      .select('action, changed_by_name, changed_at')
+      .eq('entity_type', 'readiness_pack_item')
+      .like('entity_id', `${packId}:%`)
+      .order('changed_at', { ascending: false })
+      .limit(1),
+  ]);
+
+  type Ev = { action: string; changed_by_name: string | null; changed_at: string };
+  const pack = (packEvents ?? []) as Ev[];
+  const member = ((newestMember ?? []) as Ev[])[0] ?? null;
+
+  const created = pack.find((e) => e.action === 'created') ?? null;
+  const newestPack = pack.length > 0 ? pack[pack.length - 1] : null;
+  const newest =
+    newestPack && member
+      ? (member.changed_at > newestPack.changed_at ? member : newestPack)
+      : (member ?? newestPack);
+
+  return {
+    createdByName:    created?.changed_by_name ?? null,
+    createdAt:        created?.changed_at ?? null,
+    lastEditedByName: newest?.changed_by_name ?? null,
+    lastEditedAt:     newest?.changed_at ?? null,
+    // Any event beyond the pack's own creation row counts as an edit —
+    // adding a question IS editing the pack.
+    hasEdits:         pack.length > 1 || member !== null,
+    hasAny:           pack.length > 0 || member !== null,
   };
 }
 
