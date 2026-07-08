@@ -264,8 +264,13 @@ export async function getPaymentReceipt(reference: string): Promise<PaymentRecei
     destinationLabel = 'Go to your programme';
     retryHref = `/programmes/${progRow.programme_id}`;
   } else if (isReadinessOnly) {
-    destinationHref = '/student';
-    destinationLabel = 'Go to your dashboard';
+    // Interim (Slice ②b.1): the packs/claim surface (/student/bank/packs)
+    // is behind the active-bank-subscription gate, so a credit-only buyer
+    // would be bounced there. Land them on the picker (the canonical
+    // student hub, no bank-sub required) until ②b.2 gives readiness its
+    // own student-gated home and re-points this at it.
+    destinationHref = '/student/picker';
+    destinationLabel = 'Go to your account';
     retryHref = '/readiness';
   } else if (rows.some((r) => BANK_PURPOSES.includes(r.purpose))) {
     destinationHref = '/student/bank';
