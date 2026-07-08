@@ -1,6 +1,14 @@
 # Readiness Packs
 
-Last updated: 2026-07-08 (**student Slice ① COMPLETE** — READINESS SKUs
+Last updated: 2026-07-08 (**student Slice ②a scoped** — credits table +
+mint-at-activation cut into three sub-slices [§12 → Slice ②a], claiming
+deferred to ②b. Two §7 decisions revised in the same pass, both because
+later migrations invalidated their assumptions: **the All-5 pre-claim
+exception is RETIRED** — every credit now mints unclaimed [§7 →
+*Post-purchase claiming UX* r4] — and the `nclex_subscriptions`
+`pack_type` CHECK narrows to `BANK_DURATION` alongside the two dead
+column drops [§7 → *Three tables, three jobs*]. Previously 2026-07-08:
+**student Slice ① COMPLETE** — READINESS SKUs
 seeded, the admin Products & Pricing page, and now the public
 `/readiness` page [§12 → Slice ①.3, re-cut from "bank-access Section 2"
 into a dedicated page]. Everything on that page is a read: N cards, no
@@ -8,7 +16,7 @@ badge, "Unlocks every pack" derived, pack specifics in their own block.
 Migrations `20260726120000` [anon reads published packs] +
 `20260727120000` [`All 5` → `All packs`]. Two fixes fell out: the
 publish gate now requires `n`, and the ₵ sign is retired product-wide in
-favour of `GHS`. Next: ②a credits + mint. Previously 2026-07-07: §12
+favour of `GHS`. Previously 2026-07-07: §12
 build slices added — the minimal slice plan for the build, admin side
 first; to be updated as slices land. Previously 2026-07-06: §11.5 results page SETTLED — proposal
 confirmed + enriched: popup stays as the source-aware runner summary
@@ -584,9 +592,10 @@ arise three ways:
 **Claiming is its own, final step** (settled 2026-07-04): the student
 turns a credit into a named pack on their dashboard *before* — and
 separately from — activating the 21-day window. Claims don't
-un-claim (harmless: the 5 packs are deliberately identical in shape).
-One named exception — All-5 mints pre-claimed; see *Post-purchase
-claiming UX* below.
+un-claim (harmless: the packs are deliberately identical in shape).
+**No exceptions — every credit mints unclaimed** (revised 2026-07-08;
+the All-5 pre-claim carve-out is retired, see *Post-purchase claiming
+UX* r4 below).
 
 ### Three tables, three jobs
 
@@ -594,10 +603,23 @@ claiming UX* below.
   per product bought. Already knows the `READINESS_PURCHASE` purpose;
   `lib/payments/init.ts` already routes READINESS products to it.
 - **`nclex_subscriptions`** (exists, live) — **bank time only.** A
-  readiness purchase creates **no subscription row**. Its two
-  never-written readiness columns (`readiness_pack_id`,
-  `readiness_activated_at`) are slated for removal in the build
-  slice's migration — free while unused.
+  readiness purchase creates **no subscription row**.
+  **Enforced in SQL, not just TS** (settled 2026-07-08): Slice ②a's
+  migration drops the two never-written readiness columns
+  (`readiness_pack_id`, `readiness_activated_at` — verified 0 rows
+  populated, free while unused) **and narrows the `pack_type` CHECK
+  from `('BANK_DURATION','READINESS','TRIAL')` to `BANK_DURATION`
+  alone.** Both other values became unreachable by earlier decisions
+  and nothing cleaned up after them: `TRIAL` when migration
+  `20260724120000` made the trial a free `BANK_DURATION` pass (§7 →
+  *Unchanged*), and `READINESS` once `activate.ts` stops granting a
+  subscription for `READINESS_PURCHASE`. Leaving a CHECK permissive
+  for states the product forbids means the database will happily
+  record the bug — the layered-enforcement rule says the SQL layer
+  mirrors the TS gate. (Verified 2026-07-08 before the decision: dev
+  holds 5 subscription rows, none with either readiness column set and
+  none with `pack_type` `READINESS` or `TRIAL`; prod holds no
+  subscription rows at all. Nothing to migrate, only to forbid.)
 - **A NEW dedicated credits table** (working name
   `nclex_readiness_credits`). One row per credit. Working column
   shape **accepted 2026-07-04** (below) — final lock at the build
@@ -703,12 +725,40 @@ How a held credit becomes a named pack. Six pieces:
    existing checkout result card gains a "Claim your pack →" CTA for
    readiness purchases — payment to claiming is one click, not a
    hunt.
-4. **All-5 mints pre-claimed.** 5 credits, 5 packs, zero real choice
-   — the claim step would be pure ceremony, so the credit rows are
-   minted with `pack_id` + `claimed_at` already stamped. This is a
-   **deliberate, named exception** to "claiming is its own final
-   step" — the build slice must not treat the mint-time
-   `claimed_at` as a bug.
+4. **Every credit mints unclaimed — the All-5 pre-claim exception is
+   RETIRED** <span>revised 2026-07-08</span>. It was settled
+   2026-07-05 on the reasoning that All-5 means *5 credits, 5 packs,
+   zero real choice*, so the claim step would be pure ceremony and
+   the rows should mint with `pack_id` + `claimed_at` already
+   stamped. Three changes since have each broken a premise of that
+   sentence:
+   - **"5 packs" is no longer a constant.** The pack count is
+     admin-editable (create + delete, post-③ improvements), so
+     "which SKU is the all-packs one" cannot be a hardcoded
+     `product_id` without re-introducing exactly the count-hardcoding
+     bug the §12 → Slice ①.3 re-cut removed from the public page. The
+     honest derivation is `readiness_credits >= publishedPackCount`,
+     evaluated at mint time.
+   - **"5 credits" is no longer a constant.** `readiness_credits` is
+     a free integer (migration `20260725120000`) and
+     `READINESS_SELECT2` already exists, so there is no 1/3/5 rule
+     for the mint to key off.
+   - **Pre-claim cannot survive contact with history.** A student who
+     has already *sat* a pack can never claim it again (§2 r4,
+     claimability table). Buy All-packs after sitting Pack 2 → 5
+     credits, 4 claimable packs. Mint-time pre-claim must either fail
+     or silently strand a credit with no surface having said so. The
+     degenerate case is already live on dev today: **zero published
+     packs**, so pre-claim would have nothing to claim into.
+
+   **The rule now:** the mint writes `pack_id` and `claimed_at` NULL,
+   always, whatever the SKU. One code path, no mint-time branch, no
+   dependency on pack count or purchase history. **The ceremony moves
+   to the claiming UI** (Slice ②b): when a student's unclaimed credits
+   are `>=` the packs they can still claim, offer a single **"Claim
+   all"** button. One click instead of a special case in the ledger.
+   A build slice that finds `claimed_at` stamped at mint time is
+   looking at a bug, not at this exception.
 5. **Pay-first guests claim after account setup.** Credits mint
    against the account at `/welcome` (the established convergence
    point); the student lands on the readiness page with credits
@@ -721,6 +771,30 @@ How a held credit becomes a named pack. Six pieces:
 Pixels to CD (the readiness page + its claim/activate confirms are
 already on the CD-brief list, §11.10 / §11.2).
 
+### The mint rule — one condition, and it is NOT `pack_type`
+
+**Mint `readiness_credits` rows whenever `product.readiness_credits >
+0`, regardless of `pack_type`.** Stated explicitly because the
+natural-looking implementation is wrong: a mint written as `if
+(product.pack_type === 'READINESS')` passes every readiness test,
+ships green, and **silently drops every bundled credit** — `BANK_90D`
+grants 90 days of bank access *and* 2 readiness credits, and nobody
+notices the missing credits until a student asks where their pack
+went. `pack_type` answers *what else does this grant* (bank time, via
+a subscription row); `readiness_credits` answers *how many credits
+does this mint*. They are independent questions and the two purchase
+shapes cross:
+
+| Product | Subscription row? | Credit rows minted |
+|---|---|---|
+| `BANK_30D` (credits 0) | ✅ 30 days | 0 |
+| `BANK_90D` (credits 2) | ✅ 90 days | **2** |
+| `READINESS_SELECT3` (credits 3) | ❌ **none** | 3 |
+
+`source` on each credit row is what `pack_type` *does* decide:
+`BANK_BUNDLE` for a `BANK_DURATION` product, `SELF_PURCHASE` for a
+`READINESS` one, `ADMIN_GRANT` where there is no payment.
+
 ### Worked examples
 
 - Buy **BANK_90D** → 1 payment row → activation creates 1
@@ -729,7 +803,12 @@ already on the CD-brief list, §11.10 / §11.2).
   payment).
 - Buy **READINESS_SELECT3** → 1 payment row → **3 credit rows
   minted**, no subscription row.
+- Buy **BANK_30D** → 1 payment row → 1 subscription row, **0 credit
+  rows** (the `readiness_credits > 0` guard, not a type check).
 - Admin grants a pack → 1 credit row, no payment.
+
+All four are unit tests in Slice ②a.2 — the third exists so a
+`pack_type`-keyed regression cannot pass the suite.
 
 ### Rejected (2026-07-04)
 
@@ -868,10 +947,11 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
    gates** — claim = light (but the copy carries both halves: window
    doesn't start + no swap) · activate = firm · begin-exam =
    full-stop preflight · payment result screens deep-link to the
-   page · All-5 mints pre-claimed (deliberate, named exception to
-   claim-as-its-own-step) · pay-first guests claim after account
-   setup at `/welcome` · the dashboard section = compact state +
-   signpost only. Pixels to CD.
+   page · **every credit mints unclaimed** (the All-5 pre-claim
+   exception was retired 2026-07-08 — a "Claim all" button replaces
+   the ceremony; see §7 → *Post-purchase claiming UX* r4 for why) ·
+   pay-first guests claim after account setup at `/welcome` · the
+   dashboard section = compact state + signpost only. Pixels to CD.
 3. **21-day window expiry semantics — ✅ SETTLED 2026-07-04** (see §2
    → *The 21-day window — semantics*): review lives inside the
    window (results persist forever) · expires-unstarted = credit
@@ -1341,16 +1421,60 @@ not contradict its own warning. It would also restate the "5 pack
 credits" line above it. At launch (5 packs, 5 credits) both render the
 same; they differ only where the credits-only version is wrong.
 
-- **⬜ Credits + claiming:** the credits-table migration (§7 —
-  final name + column lock here; + drop the two never-written
-  readiness columns off `nclex_subscriptions`); mint-at-activation;
-  claiming UX per §7 (pack-card claiming, three escalating gates,
-  All-5 pre-claimed, pay-first via `/welcome`). **Now also carries
-  the in-app catalogue surfaces (§11.10 — the bank-dashboard compact
-  section + the dedicated readiness page), moved here from Slice ①
-  (2026-07-08):** their pack cards read state off the credit rows
-  this slice creates, and their pixels ride this slice's CD brief.
-  CD brief: claiming.
+- **⏭ Slice ②a — credits table + mint-at-activation** <span>scoped
+  2026-07-08</span>. Deliberately stops **before** claiming: the point
+  of the slice is to prove that credits mint and the table writes
+  correctly, which is the ground everything in ②b stands on. Three
+  sub-slices.
+
+  - **②a.1 — the migration.** Create `nclex_readiness_credits` on the
+    §7 accepted shape — 16 columns, **no status column** (event
+    timestamps are the only truth), the DB-enforced rules (activation
+    requires a claim · used requires activation ·
+    used/expired/revoked mutually exclusive · a claim names a pack ·
+    provenance matches `source` · **no two live claims on the same
+    pack per student**, as a partial unique index that ignores
+    `expired_at` rows per §2 r4 · a claimed pack can't be deleted),
+    and RLS (a student reads their own rows; every transition goes
+    through a re-validating server action). Same migration does the
+    `nclex_subscriptions` cleanup settled in §7 → *Three tables,
+    three jobs*: drop `readiness_pack_id` + `readiness_activated_at`,
+    narrow the `pack_type` CHECK to `BANK_DURATION`.
+  - **②a.2 — the mint + the `activate.ts` fix.** A
+    `mintReadinessCredits()` called from `grantAndActivateRow`
+    **whenever `product.readiness_credits > 0`, never keyed on
+    `pack_type`** (§7 → *The mint rule*), idempotent per `payment_id`
+    the way `grantBankSubscription` already is. The same commit
+    removes `READINESS_PURCHASE` from `activate.ts`'s `BANK_PURPOSES`
+    so a readiness purchase stops granting a subscription row —
+    **currently a latent bug, not a live one**: `init.ts` already
+    routes readiness products to `READINESS_PURCHASE`, but
+    `checkout/bank/page.tsx` hard-rejects any `pack_type !==
+    'BANK_DURATION'` and no readiness checkout route exists yet. It
+    goes live the moment ②b adds one, so it is fixed here, first —
+    the same ordering that caught the trial no-expiry bug. The four
+    §7 worked examples become the unit tests.
+  - **②a.3 — read + stage helper.** One shared `creditStage(row)`
+    deriving unclaimed → claimed → window-running → used/expired/
+    revoked from the filled timestamps (§7: *one shared code helper
+    so every screen reads it identically*), plus a `getMyCredits()`
+    read. Enough to see minted rows; no claiming, no activation, no
+    sweep.
+
+  **Out of scope, named so they aren't assumed:** the nightly sweep
+  that stamps `expired_at`, the 21-day window, the "Claim all"
+  button, and every surface in §11.10.
+
+- **⬜ Slice ②b — claiming + the in-app surfaces.** Claiming UX per §7
+  (pack-card claiming, the three escalating gates, **"Claim all"**
+  where unclaimed credits `>=` claimable packs — the replacement for
+  the retired pre-claim exception, pay-first via `/welcome`); the
+  readiness checkout route (which is what makes the ②a.2 fix load-
+  bearing); and **the in-app catalogue surfaces (§11.10 — the
+  bank-dashboard compact section + the dedicated readiness page),
+  moved here from Slice ① (2026-07-08):** their pack cards read state
+  off the credit rows ②a creates, and their pixels ride this slice's
+  CD brief. CD brief: claiming.
 - **⬜ The sitting:** attempt creation for the READINESS_PACK source
   (link rows → attempt rows, the runner doesn't know it's a pack);
   the one-shot timed run wiring (start = the shot, quit =
