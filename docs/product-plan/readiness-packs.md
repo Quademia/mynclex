@@ -1052,15 +1052,48 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
 **Student side (sequenced after admin; slice boundaries firm up when
 we get there — roughly the §10 gaps list):**
 
-- **⬜ Catalogue + products:** the public bank-access page Section 2
-  (3 SKU cards) + READINESS product rows seeded; the in-app
-  catalogue surfaces (§11.10 — bank-dashboard section + the
-  dedicated readiness page).
+- **⏭ Slice ① Catalogue + products (RE-CUT 2026-07-08, with Sam):**
+  widened to include the admin management surface, narrowed to
+  exclude the in-app student surfaces (moved to the credits slice,
+  below). Three pieces, one CD brief (sent 2026-07-08):
+  1. **READINESS product rows seeded** — one migration inserting the
+     3 settled SKUs (§3 prices: `READINESS_SINGLE` ₵100/$20 ·
+     `READINESS_SELECT3` ₵240/$48 · `READINESS_ALL5` ₵350/$70;
+     `pack_type='READINESS'`, `readiness_pack_count` 1/3/5). The
+     `nclex_products` schema needs NO change — readiness support
+     (pack_type, pack count, dual currency, bundled credits on the
+     bank tiers) shipped with the payments arc.
+  2. **Admin Products & Pricing page** — fills the existing
+     `/admin/products` placeholder (nav entry + PAYMENTS_MANAGE gate
+     already exist). One page, products grouped Trial / Bank access /
+     Readiness. **Create + edit in v1 (Sam's call 2026-07-08).**
+     Editable: both prices, display name, `bundled_readiness_credits`
+     (bank tiers), status activate/retire, sort order. **Locked
+     identity fields:** slug, `pack_type`, `duration_days`,
+     `readiness_pack_count` — a different offer = retire the old +
+     create the new, never mutate meaning under sold rows. **No
+     delete, ever** (payments FK RESTRICT) — ARCHIVED is the only
+     remove; re-activate reverses it. The page states the
+     recipe-only rule on its face: **edits affect future buyers
+     only** (grants freeze at mint/activation, §7).
+  3. **Public bank-access Section 2** — the 3 SKU cards reading the
+     catalogue live (the same single-source pattern as the bank
+     tiers), settled card copy (§3): *"100 questions · 3 hours 20
+     minutes · one shot per pack · 21-day window on activation."*
+  Plus **one small RLS migration**: `nclex_products` writes (and
+  reading ARCHIVED rows) are SUPER_ADMIN-only today, but the surface
+  gates on PAYMENTS_MANAGE — align the SQL layer to the TS gate
+  (the layered-enforcement rule).
 - **⬜ Credits + claiming:** the credits-table migration (§7 —
   final name + column lock here; + drop the two never-written
   readiness columns off `nclex_subscriptions`); mint-at-activation;
   claiming UX per §7 (pack-card claiming, three escalating gates,
-  All-5 pre-claimed, pay-first via `/welcome`). CD brief: claiming.
+  All-5 pre-claimed, pay-first via `/welcome`). **Now also carries
+  the in-app catalogue surfaces (§11.10 — the bank-dashboard compact
+  section + the dedicated readiness page), moved here from Slice ①
+  (2026-07-08):** their pack cards read state off the credit rows
+  this slice creates, and their pixels ride this slice's CD brief.
+  CD brief: claiming.
 - **⬜ The sitting:** attempt creation for the READINESS_PACK source
   (link rows → attempt rows, the runner doesn't know it's a pack);
   the one-shot timed run wiring (start = the shot, quit =
