@@ -1839,17 +1839,30 @@ CREATE TABLE nclex_products (
   -- Credits minted on activation. READINESS: the SKU IS the count (>=1,
   -- free integer — no 1/3/5 rule). BANK_DURATION: bundled sweetener (0 = none).
   readiness_credits     SMALLINT NOT NULL DEFAULT 0,
+  -- price_minor_* is the exact integer Paystack charges. full_price_minor_*
+  -- (20260726120000) is the OPTIONAL pre-offer "was" price: decorative only,
+  -- struck through on sales cards, never charged; the "% off" is derived
+  -- from the pair. NULL = not on offer.
   price_minor_ghs       INTEGER NOT NULL DEFAULT 0,
   price_minor_usd       INTEGER NOT NULL DEFAULT 0,
+  full_price_minor_ghs  INTEGER,
+  full_price_minor_usd  INTEGER,
   status                TEXT NOT NULL DEFAULT 'ACTIVE'
                         CHECK (status IN ('ACTIVE','ARCHIVED')),
   sort_order            SMALLINT NOT NULL DEFAULT 0,
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT nclex_products_readiness_credits_positive
-    CHECK (pack_type <> 'READINESS' OR readiness_credits >= 1)
+    CHECK (pack_type <> 'READINESS' OR readiness_credits >= 1),
+  CONSTRAINT nclex_products_full_price_ghs_above_price
+    CHECK (full_price_minor_ghs IS NULL OR full_price_minor_ghs > price_minor_ghs),
+  CONSTRAINT nclex_products_full_price_usd_above_price
+    CHECK (full_price_minor_usd IS NULL OR full_price_minor_usd > price_minor_usd)
 );
 CREATE INDEX idx_nclex_products_status_sort ON nclex_products (status, sort_order);
+-- At most one trial product (the admin create form guards it too).
+CREATE UNIQUE INDEX idx_nclex_products_single_trial
+  ON nclex_products ((kind)) WHERE kind = 'TRIAL';
 
 -- nclex_payments — Paystack audit trail. One row per txn; polymorphic
 -- single-purpose rows (`purpose` enum + exactly one of product/programme).

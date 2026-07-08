@@ -47,6 +47,9 @@ import '@/styles/embed-analytics.css';
 import '@/styles/student-practice.css';
 import '@/styles/profile.css';
 import '@/styles/packs.css';
+// After packs.css: the admin Products & Pricing surface reuses that
+// file's .rp-modal* / .rp-btn-* primitives and adds its own `pr-*`.
+import '@/styles/products.css';
 // Loaded LAST: the bank LIST-surfaces redesign (Trends / Cases / Question
 // Bank). Namespaced `bl-*`; tops the old list rules during the staged
 // per-surface migration. See styles/bank-list.css.

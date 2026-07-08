@@ -1,0 +1,298 @@
+/* mynclex/styles/products.css
+ *
+ * Admin Products & Pricing (readiness-packs.md §12 slice ①).
+ * Namespaced `pr-*`. Reuses the packs surface's modal + button
+ * primitives (.rp-modal*, .rp-btn-*) and the bank-list page header
+ * atoms (.bl-eyebrow, .bl-page-title) rather than re-inventing them.
+ *
+ * Desktop = grouped rows; ≤768px the same markup reflows into cards
+ * (labels injected by ::before) — CLAUDE.md UI convention #3.
+ */
+
+.pr-page { max-width: 1180px; }
+
+/* ── Header ──────────────────────────────────────────────────────── */
+.pr-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.pr-lede {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* The standing reassurance: catalogue edits never touch a sold grant. */
+.pr-callout {
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  background: var(--primary-light);
+  border: 1px solid #cfe2de;
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--accent-dark);
+}
+.pr-callout strong { font-weight: 700; }
+
+/* ── Groups + rows ───────────────────────────────────────────────── */
+.pr-group { margin-bottom: 28px; }
+.pr-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.pr-group-head h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--text); }
+.pr-group-head span { font-size: 12px; color: var(--text-faint); }
+
+.pr-table {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.pr-row {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.7fr) minmax(0, 1.3fr) 108px 108px minmax(0, 1.2fr) 92px 148px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--bg-soft);
+}
+.pr-row:last-child { border-bottom: none; }
+
+.pr-row-head {
+  padding: 10px 18px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+
+/* Archived stays in place, muted — payments reference it forever. */
+.pr-row.archived { opacity: 0.58; }
+
+.pr-cell-product { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pr-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.pr-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.pr-cell-muted { font-size: 12.5px; color: var(--text-muted); }
+
+.pr-cell-price { display: flex; flex-direction: column; gap: 1px; }
+.pr-price { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.pr-cell-price.warn .pr-price { color: var(--warning); }
+.pr-was { font-size: 11px; color: var(--text-faint); }
+.pr-was s { margin-right: 4px; }
+
+.pr-pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.pr-pill.active   { background: var(--primary-light); color: var(--accent-dark); }
+.pr-pill.archived { background: var(--bg-soft);       color: var(--text-faint); }
+.pr-pill.free     { background: var(--bg-soft);       color: var(--text-muted); }
+
+.pr-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.pr-btn-retire {
+  padding: 5px 12px;
+  border-radius: var(--radius);
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.pr-btn-retire:hover:not(:disabled) { background: #fee2e2; }
+.pr-btn-retire:disabled { opacity: 0.6; cursor: default; }
+
+/* ── Modal ───────────────────────────────────────────────────────── */
+.pr-modal { width: min(560px, 94vw); }
+.pr-modal-lede { margin: 10px 0 14px; font-size: 13px; color: var(--text-muted); }
+
+.pr-type-picker { display: flex; flex-direction: column; gap: 10px; }
+.pr-type-picker button {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  font-family: inherit;
+  cursor: pointer;
+}
+.pr-type-picker button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--primary-light);
+}
+.pr-type-picker button:disabled { opacity: 0.55; cursor: not-allowed; }
+.pr-type-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.pr-type-desc { font-size: 12px; color: var(--text-muted); }
+
+/* Identity block — locked once the product exists. */
+.pr-identity {
+  margin: 14px 0 18px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.pr-identity-head { display: flex; align-items: center; gap: 8px; }
+.pr-identity-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+.pr-lock { font-size: 11px; color: var(--text-muted); }
+.pr-identity-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+.pr-identity-grid input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+}
+.pr-identity-grid input.pr-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  color: var(--text);
+}
+.pr-identity-value { font-size: 13px; color: var(--text-muted); padding: 6px 0; }
+.pr-identity-value.pr-mono { font-size: 12.5px; }
+.pr-mini-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.pr-identity-note {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.pr-form-grid { display: flex; flex-direction: column; gap: 12px; }
+.pr-price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.pr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.pr-field input {
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--white);
+}
+.pr-field input:focus { outline: none; border-color: var(--accent); }
+.pr-hint { font-size: 11.5px; font-weight: 400; color: var(--text-muted); }
+
+/* Advisory (amber, saves) vs structural block (red, disables Save). */
+.pr-advice {
+  margin: 0;
+  padding: 8px 11px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+.pr-advice.block {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: var(--danger);
+}
+
+.pr-form-actions { display: flex; gap: 8px; margin-top: 18px; }
+
+/* ── Mobile: rows become cards ───────────────────────────────────── */
+@media (max-width: 768px) {
+  .pr-row-head { display: none; }
+
+  .pr-table {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: visible;
+  }
+
+  .pr-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 16px;
+    padding: 14px 16px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .pr-cell-product { grid-column: 1 / -1; }
+  .pr-cell-muted:first-of-type { grid-column: 1 / -1; }
+
+  /* Label the bare cells that lose their column header. */
+  .pr-cell-price::before,
+  .pr-row > .pr-cell-muted + .pr-cell-muted::before {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-faint);
+  }
+
+  .pr-row-actions { grid-column: 1 / -1; justify-content: stretch; }
+  .pr-row-actions > * { flex: 1; text-align: center; }
+
+  .pr-identity-grid,
+  .pr-price-row { grid-template-columns: 1fr; }
+}
