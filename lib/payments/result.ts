@@ -46,6 +46,11 @@ export type PaymentReceipt = {
   // they finish account setup (the "awaiting tutor" step they don't reach on
   // this screen, since a guest has no enrolment yet).
   isTutorLed: boolean;
+  // True when the order is ONLY readiness pack credits (no bank pass, no
+  // programme). The credits mint unclaimed; until the claim UI ships
+  // (Slice ②b.2) the result screen must not promise "start practising" —
+  // it says the credits are ready and the packs come next.
+  isReadinessOnly: boolean;
 };
 
 type Row = {
@@ -214,7 +219,11 @@ export async function getPaymentReceipt(reference: string): Promise<PaymentRecei
     // Bank / readiness / programme bank opt-in.
     const name = (r.product_id && productNameById.get(r.product_id)) || 'Bank access';
     const meta =
-      r.purpose === 'BANK_OPTIN_AT_PROGRAMME' ? 'Added with your programme' : 'Question bank access';
+      r.purpose === 'READINESS_PURCHASE'
+        ? 'Readiness pack credits'
+        : r.purpose === 'BANK_OPTIN_AT_PROGRAMME'
+          ? 'Added with your programme'
+          : 'Question bank access';
     return { key: r.payment_id, name, meta, amountMinor: r.amount_minor };
   });
 
@@ -234,6 +243,14 @@ export async function getPaymentReceipt(reference: string): Promise<PaymentRecei
     return !!prog && prog.deliveryMode !== 'SELF_PACED';
   });
 
+  // Readiness credits only (no bank pass, no programme). Interim until the
+  // claim UI ships: the buyer holds unclaimed credits, so we send them to
+  // their dashboard — NOT "start practising" (there's nothing to practise
+  // yet) — and retry goes back to the readiness page. Slice ②b.2 will
+  // re-point this at the claim surface with a "Claim your pack →" CTA.
+  const isReadinessOnly =
+    rows.length > 0 && rows.every((r) => r.purpose === 'READINESS_PURCHASE');
+
   const progRow = rows.find((r) => r.purpose === 'PROGRAMME_INITIAL' || r.purpose === 'PROGRAMME_INSTALLMENT');
   if (progRow?.programme_id) {
     const prog = progById.get(progRow.programme_id);
@@ -246,6 +263,10 @@ export async function getPaymentReceipt(reference: string): Promise<PaymentRecei
     }
     destinationLabel = 'Go to your programme';
     retryHref = `/programmes/${progRow.programme_id}`;
+  } else if (isReadinessOnly) {
+    destinationHref = '/student';
+    destinationLabel = 'Go to your dashboard';
+    retryHref = '/readiness';
   } else if (rows.some((r) => BANK_PURPOSES.includes(r.purpose))) {
     destinationHref = '/student/bank';
     destinationLabel = 'Start practising';
@@ -262,5 +283,6 @@ export async function getPaymentReceipt(reference: string): Promise<PaymentRecei
     destinationLabel,
     retryHref,
     isTutorLed,
+    isReadinessOnly,
   };
 }

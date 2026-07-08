@@ -16,9 +16,10 @@
 // a credit is spendable on ANY pack, so a card printing "100 questions"
 // starts lying the moment one pack is set to 75.
 //
-// CTAs ship disabled. The readiness checkout route is Slice ②b, and a
-// working buy button before ②a mints credits would take a student's
-// money and grant nothing.
+// Each SKU card's "Get credits" links to the readiness checkout route
+// (Slice ②b.1, /checkout/readiness) — the purchase mints credits (②a). The
+// credits are held UNCLAIMED until the claim UI ships (②b.2); the checkout
+// + result copy make no claiming promise yet.
 
 import { createClient } from '@/lib/supabase/server';
 import { ReadinessPlans, type ReadinessSku } from './readiness-plans';

@@ -131,23 +131,19 @@ export function ReadinessPlans({ skus, packCount, uniformLine }: Props) {
                 </div>
               </div>
 
-              <button
-                type="button"
+              <a
                 className="rdp-plan-btn"
-                disabled
-                title="Pack checkout is not live yet"
+                href={`/checkout/readiness?product=${encodeURIComponent(s.productId)}&currency=${currency}`}
               >
-                <LockIcon />
-                Coming soon
-              </button>
+                Get credits
+              </a>
             </div>
           );
         })}
       </div>
 
       <p className="rdp-plans-note">
-        Pack checkout opens shortly — longer <a href="/bank-access">bank passes</a> already
-        include pack credits at no extra cost.
+        Longer <a href="/bank-access">bank passes</a> include pack credits at no extra cost.
       </p>
     </section>
   );
@@ -172,12 +168,3 @@ function ClockIcon() {
   );
 }
 
-function LockIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="11" width="18" height="11" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
