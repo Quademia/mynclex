@@ -212,6 +212,19 @@ slice.
    - Full design + slice history:
      `docs/product-plan/mobile-responsive.md`.
 
+4. **One money voice: `GHS 350`, never `₵350`.** Every surface —
+   public, student, tutor, admin — renders cedis as the ISO code, and
+   dollars as `$`. Amounts are stored as integer **minor units** and
+   should only be rendered through `formatMinor()` in
+   `lib/products/money.ts`, which owns both the minor→major conversion
+   and the prefix. Don't hand-roll ``currency === 'GHS' ? `GHS ${x}` :
+   `$${x}` `` — five files still do, and that's known debt, not a
+   pattern to copy. (Settled 2026-07-08: the admin/tutor surfaces
+   printed ₵ while the public ones printed GHS; a split voice is two
+   things to keep in step, and `₵` isn't a sign our migrating,
+   international audience reliably reads.) A `₵` glyph used as a
+   decorative **icon** is fine — an icon isn't an amount.
+
 ## Non-Negotiable Rules
 
 1. **Table prefix: `nclex_`** on every MyNclex database object (tables,

@@ -1,8 +1,16 @@
 # Readiness Packs
 
-Last updated: 2026-07-07 (§12 build slices added — the minimal
-slice plan for the build, admin side first; to be updated as slices
-land. Previously 2026-07-06: §11.5 results page SETTLED — proposal
+Last updated: 2026-07-08 (**student Slice ① COMPLETE** — READINESS SKUs
+seeded, the admin Products & Pricing page, and now the public
+`/readiness` page [§12 → Slice ①.3, re-cut from "bank-access Section 2"
+into a dedicated page]. Everything on that page is a read: N cards, no
+badge, "Unlocks every pack" derived, pack specifics in their own block.
+Migrations `20260726120000` [anon reads published packs] +
+`20260727120000` [`All 5` → `All packs`]. Two fixes fell out: the
+publish gate now requires `n`, and the ₵ sign is retired product-wide in
+favour of `GHS`. Next: ②a credits + mint. Previously 2026-07-07: §12
+build slices added — the minimal slice plan for the build, admin side
+first; to be updated as slices land. Previously 2026-07-06: §11.5 results page SETTLED — proposal
 confirmed + enriched: popup stays as the source-aware runner summary
 [standing rule: it adapts per source], points line beside the
 headline %, peer comparator w/ minimum-N gate, per-system +
@@ -191,7 +199,15 @@ Section 2:
 |---|---|---|---|---|
 | Single Pack | 1 pack — student picks any 1 of the 5 | ₵100 | $20 | $20 |
 | Select 3 | 3 packs — student picks any 3 of the 5 | ₵240 | $48 | $16 (20% off) |
-| All 5 | All 5 packs unlocked | ₵350 | $70 | $14 (30% off) |
+| All packs | every published pack unlocked | ₵350 | $70 | $14 (30% off) |
+
+The third SKU was named **"All 5"** until 2026-07-08 (migration
+`20260727120000`). The live `/readiness` page caught it: with three
+packs published, a card headed *"All 5"* rendered the derived line
+*"Unlocks all 3 packs"*. Every hardcoded pack count had been driven out
+of the code, and one survived in a database column an admin had typed.
+Its slug stays `READINESS_ALL5` — a locked identity field; this is the
+same offer, not a new one.
 
 Card copy: *"100 questions · 3 hours 20 minutes · one shot per pack ·
 21-day window on activation."* Selection of which packs happens
@@ -231,7 +247,7 @@ readiness sweetener.
 | 60 days | $50 | 1 | $20 | $70 | **$20** |
 | 90 days | $70 | 2 | $40 (2× Single) | $110 | **$40** |
 | 180 days | $110 | 3 | $48 (Select 3) | $158 | **$48** |
-| 365 days | $160 | 5 | $70 (All 5) | $230 | **$70** |
+| 365 days | $160 | 5 | $70 (All packs) | $230 | **$70** |
 
 (2-pack rows price as 2× Single — there is no "Select 2" SKU. GHS
 savings scale the same way: ₵100 / ₵200 / ₵240 / ₵350.)
@@ -250,7 +266,7 @@ savings scale the same way: ₵100 / ₵200 / ₵240 / ₵350.)
 **Principles:** Single at $20 anchors to UWorld's standalone price;
 30% off at All-5 mirrors the bank's reward-commitment curve; GHS
 regionally priced (Single ≈ 5% of monthly Ghanaian entry-nursing
-salary, All 5 ≈ 16%); the bundle line is real marketing — *"a year of
+salary, All packs ≈ 16%); the bundle line is real marketing — *"a year of
 bank + all 5 readiness packs, $70 cheaper than buying separately."*
 Rejected alternatives (lower and higher tables) are preserved in
 `payments-and-enrolment.md` → *Pricing — Readiness packs* for the
@@ -558,9 +574,11 @@ arise three ways:
 
 1. **Bundled with a bank product** — 60d→1, 90d→2, 180d→3, 365d→5
    (Trial and 30d carry zero).
-2. **Standalone readiness SKUs** — Single/Select 3/All 5 → 1/3/5
-   credits. (For All 5 the claiming step is trivial — 5 credits, 5
-   packs, no choice — but the mechanics are identical.)
+2. **Standalone readiness SKUs** — Single/Select 3/All packs → 1/3/5
+   credits. (For All packs the claiming step is trivial *while there
+   are five* — 5 credits, 5 packs, no choice — but the mechanics are
+   identical, and a sixth published pack turns it into a real choice
+   with nobody editing the SKU.)
 3. **Admin grant** — no payment behind it.
 
 **Claiming is its own, final step** (settled 2026-07-04): the student
@@ -1088,10 +1106,10 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
 **Student side (sequenced after admin; slice boundaries firm up when
 we get there — roughly the §10 gaps list):**
 
-- **⏭ Slice ① Catalogue + products (RE-CUT 2026-07-08, with Sam):**
-  widened to include the admin management surface, narrowed to
-  exclude the in-app student surfaces (moved to the credits slice,
-  below). Three pieces, one CD brief (sent 2026-07-08):
+- **✅ Slice ① Catalogue + products — COMPLETE 2026-07-08** (RE-CUT the
+  same day, with Sam): widened to include the admin management surface,
+  narrowed to exclude the in-app student surfaces (moved to the credits
+  slice, below). All three pieces built + Sam-tested:
   1. **READINESS product rows seeded ✅** (migration `20260722120000`,
      dev-applied) — the 3 settled SKUs (§3 prices: `READINESS_SINGLE`
      ₵100/$20 · `READINESS_SELECT3` ₵240/$48 · `READINESS_ALL5`
@@ -1145,9 +1163,9 @@ we get there — roughly the §10 gaps list):**
        Same advisory on the bank tiers' bundled credits.
      - **Slug**: format + uniqueness validated on create; immutable
        after. **No second trial** — creation guards against it.
-  3. **Public readiness page** — ⏭ NEXT. Was drafted as "bank-access
-     Section 2"; **re-cut 2026-07-08 (with Sam) into a dedicated
-     public `/readiness` page.** Full shape below.
+  3. **Public readiness page ✅ BUILT + Sam-tested 2026-07-08.** Was
+     drafted as "bank-access Section 2"; re-cut with Sam into a
+     dedicated public `/readiness` page. Full shape + build notes below.
   Plus **one small RLS migration**: `nclex_products` writes (and
   reading ARCHIVED rows) are SUPER_ADMIN-only today, but the surface
   gates on PAYMENTS_MANAGE — align the SQL layer to the TS gate
@@ -1243,6 +1261,86 @@ take a student's money and grant nothing, because the credits table
 does not yet exist. Precedent for a live page with an inert CTA: the
 bank landing shipped that way, and its *Start free trial* button is
 still a disabled stub today.
+
+#### Build notes <span>2026-07-08 — Sam-tested</span>
+
+Built from the CD "Public Readiness Packs v2" prototype (which honoured
+the three corrections above). `app/(public)/readiness/` = `page.tsx`
+(server; all reads) + `readiness-plans.tsx` (client; the currency
+toggle, and nothing else) + `sample-report.tsx` (static). New
+`styles/readiness-public.css`. The prototype's palette turned out to be
+our token set written as raw hex, so `.pub-shell`'s bridge vars
+absorbed it 1:1.
+
+**Two migrations, both dev-applied + verified:**
+
+- **`20260726120000` — anon reads published packs.** Caught before a
+  line of the page was written: Slice ①'s
+  `nclex_readiness_packs_read_published` was scoped `TO authenticated`,
+  so a logged-out visitor read **zero** packs and the page would have
+  shown "the first packs are being curated" to every stranger, forever.
+  Now mirrors `nclex_products_public_select` (no `TO` clause → the
+  `public` role), predicate `published = TRUE AND status = 'active'`.
+  Membership (`nclex_readiness_pack_items`) stays curator-only, so no
+  question leaks — only title/description/`n`/`time_limit_sec`.
+- **`20260727120000` — the `All 5` → `All packs` rename** (see §3).
+
+**Two code fixes that fell out of building it:**
+
+- **The publish gate now requires `n`** (`lib/bank/packs/composition.ts`
+  → `computeGate`). It required a title and a time limit but *not* a
+  question count, while every caller passed `pack.n ?? 100` as the fill
+  target — so a null-`n` pack could publish and then claim "all 100
+  positions filled" against a number nobody had set. A published pack
+  is a public listing; neither number may be null. (No data to repair:
+  all five seeds carry `n = 100`.)
+- **One money voice, product-wide.** The page reached for
+  `formatMinor()` — the *admin* formatter, which printed `₵350`. Every
+  public surface already printed `GHS 350`. Sam's call on seeing the
+  split: everything is GHS. The cedi sign is retired from all three
+  amount formatters (`lib/products/money.ts`,
+  `lib/programmes/format.ts`, `lib/home/tutor/programme-overview-queries.ts`)
+  and their labels; `$` stays. Two `₵` glyphs survive in
+  `tutor-payments-view` because they are **icons**, not amounts (one
+  sits beside the words "GHS Received"). Five files still hand-roll the
+  same formatter — flagged, not fixed.
+
+**Three deviations from the prototype, all deliberate:**
+
+1. **The cross-sell banner is number-free.** CD wrote *"includes all 5
+   packs — ₵350 cheaper than buying them separately"*: three hardcodes
+   (pack count, price, coverage) in one sentence, i.e. exactly the bug
+   this re-cut removed. It now reads *"Longer bank passes include
+   readiness credits at no extra cost."*
+2. **The pre-launch card makes no promises.** CD had it invite a
+   purchase (*"buy your credits whenever you like — they never expire
+   until you spend them"*) while every CTA on the page is disabled. The
+   expiry claim is also slippery: `expires_at` is stamped at
+   **activation**, so a credit can lapse unsat (§2). Both dropped.
+3. **The sample report is static.** CD's Client-needs / Body-system /
+   Difficulty tab switcher was a review affordance, not a feature
+   (Sam) — a marketing page has no business shipping interactive state
+   to show off a breakdown. Frozen on Client needs; a dead tab strip
+   would be worse than none. Everything it illustrates is settled in
+   §11.5, so it advertises nothing unbuilt *by decision* — only unbuilt
+   *by schedule*. **It will need re-syncing when the real results page
+   lands.** Its peer-comparison caption states no min-N number, because
+   §11.5 settled a range (~20–30) rather than a figure, and a public
+   page is the wrong place to pick one.
+
+**The unlocks-everything line states no count** (Sam, after seeing it
+live). "Unlocks all 3 packs" advertises how many packs we have shipped
+— operational trivia, and it reads badly mid-launch. Now *"Unlocks
+every pack"*. The count survives only in the pick-a-subset branch
+("Pick any 3 of 5 packs"), where it is the set being chosen from.
+**Rejected: driving the line off `credits` alone** ("Unlocks 5 packs").
+That over-promises whenever a SKU grants more credits than there are
+packs to claim — surplus credits are unspendable — which is precisely
+the configuration the admin catalogue flags amber; the public card must
+not contradict its own warning. It would also restate the "5 pack
+credits" line above it. At launch (5 packs, 5 credits) both render the
+same; they differ only where the credits-only version is wrong.
+
 - **⬜ Credits + claiming:** the credits-table migration (§7 —
   final name + column lock here; + drop the two never-written
   readiness columns off `nclex_subscriptions`); mint-at-activation;
