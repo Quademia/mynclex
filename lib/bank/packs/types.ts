@@ -86,6 +86,7 @@ export interface PickerQuestion {
   subject:      string | null;   // nursing_subject
   bodySystem:   string | null;
   bloom:        string | null;   // bloom_level
+  tags:         string[];        // curator tags (free-form; facet opts derived from the pool)
   inPack:       string | null;
 }
 

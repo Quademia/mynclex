@@ -151,6 +151,7 @@ export function PackPicker({
         inArr(f.sys, q.bodySystem) &&
         inArr(f.diff, q.difficulty) &&
         inArr(f.bloom, q.bloom) &&
+        anyChild(f.tags ?? [], q.tags) &&
         (!term || `${q.stemLabel} ${q.itemId}`.toLowerCase().includes(term)),
     );
   }, [data, qFacets, qSearch]);
@@ -191,7 +192,49 @@ export function PackPicker({
     [data],
   );
 
-  const pickedIds = filteredQ.filter((q) => picked[q.itemId] && !q.inPack).map((q) => q.itemId);
+  // Tags are free-form (not a fixed classification enum), so the facet's
+  // options are derived from the loaded standalone pool. The facet is only
+  // offered when the pool actually carries tags.
+  const tagOpts = useMemo(
+    () =>
+      data
+        ? [...new Set(data.standalones.flatMap((q) => q.tags))].filter(Boolean).sort()
+        : [],
+    [data],
+  );
+  const qDefs = useMemo<FacetDef[]>(
+    () => (tagOpts.length ? [...Q_FACETS, { key: 'tags', label: 'Tags', opts: tagOpts }] : Q_FACETS),
+    [tagOpts],
+  );
+
+  // Selection is GLOBAL across the whole standalone pool (keyed by item id),
+  // not scoped to the current filter — so ticks made under one filter aren't
+  // silently dropped when the curator narrows to another. The footer + add
+  // both read this global set.
+  const eligibleStandalones = useMemo(
+    () => (data ? data.standalones.filter((q) => !q.inPack) : []),
+    [data],
+  );
+  const pickedIds = useMemo(
+    () => eligibleStandalones.filter((q) => picked[q.itemId]).map((q) => q.itemId),
+    [eligibleStandalones, picked],
+  );
+
+  // Select-all operates on the CURRENTLY FILTERED eligible rows (compose it
+  // with the facets: filter → select all → add). Tri-state against them.
+  const eligibleFiltered = useMemo(() => filteredQ.filter((q) => !q.inPack), [filteredQ]);
+  const filteredSelectedCount = eligibleFiltered.filter((q) => picked[q.itemId]).length;
+  const allFilteredSelected =
+    eligibleFiltered.length > 0 && filteredSelectedCount === eligibleFiltered.length;
+  const someFilteredSelected = filteredSelectedCount > 0 && !allFilteredSelected;
+
+  const remaining = data?.remaining ?? 0;
+  const overCapacity = pickedIds.length > remaining;
+
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someFilteredSelected;
+  }, [someFilteredSelected]);
 
   // ── Add flows ──────────────────────────────────────────────────────
   const runAdd = (
@@ -246,6 +289,42 @@ export function PackPicker({
           return next;
         }),
     );
+  };
+
+  // Tick / untick every filtered eligible row at once, capping the add so the
+  // global selection never exceeds the pack's free positions.
+  const toggleSelectAllFiltered = () => {
+    if (allFilteredSelected) {
+      setPicked((p) => {
+        const next = { ...p };
+        for (const q of eligibleFiltered) next[q.itemId] = false;
+        return next;
+      });
+      return;
+    }
+    const slotsLeft = remaining - pickedIds.length;
+    if (slotsLeft <= 0) {
+      setNotice(
+        `No room left — the ${remaining} position${remaining === 1 ? '' : 's'} this pack has ${
+          remaining === 1 ? 'is' : 'are'
+        } already selected. Add them, or free up space first.`,
+      );
+      return;
+    }
+    const toAdd = eligibleFiltered.filter((q) => !picked[q.itemId]);
+    const capped = toAdd.slice(0, slotsLeft);
+    setPicked((p) => {
+      const next = { ...p };
+      for (const q of capped) next[q.itemId] = true;
+      return next;
+    });
+    if (capped.length < toAdd.length) {
+      setNotice(
+        `Selected ${capped.length} to fill the pack — ${toAdd.length - capped.length} more match this filter but only ${remaining} position${
+          remaining === 1 ? '' : 's'
+        } remain.`,
+      );
+    }
   };
 
   if (!open) return null;
@@ -349,7 +428,7 @@ export function PackPicker({
       ? [{ key: 'nq', label: 'Questions per trend', opts: trendNqOpts } as FacetDef]
       : []),
   ];
-  const qChips = chipsOf(Q_FACETS, qFacets, setQFacets);
+  const qChips = chipsOf(qDefs, qFacets, setQFacets);
   const wChips = chipsOf(wDefs, wFacets, setWFacets);
 
   const remainLabel = data
@@ -449,7 +528,7 @@ export function PackPicker({
                 onClick={() =>
                   isWrapTab
                     ? setWFacets({ subcat: [], sys: [], nq: [] })
-                    : setQFacets(emptyFacets(Q_FACETS))
+                    : setQFacets(emptyFacets(qDefs))
                 }
               >
                 Clear all
@@ -459,7 +538,7 @@ export function PackPicker({
           {facetsOpen &&
             (isWrapTab
               ? facetPanel(wDefs, wFacets, setWFacets)
-              : facetPanel(Q_FACETS, qFacets, setQFacets))}
+              : facetPanel(qDefs, qFacets, setQFacets))}
         </div>
 
         {/* Body */}
@@ -480,6 +559,25 @@ export function PackPicker({
             <>
               {filteredQ.length === 0 && (
                 <div className="rp-pk-empty">No questions match these filters.</div>
+              )}
+              {eligibleFiltered.length > 0 && (
+                <label className="rp-pk-selectall">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleSelectAllFiltered}
+                  />
+                  <span>
+                    {allFilteredSelected ? 'Deselect all' : 'Select all'} ({eligibleFiltered.length})
+                    {qChips.length > 0 || qSearch.trim() ? ' in this filter' : ''}
+                  </span>
+                  {pickedIds.length > 0 && (
+                    <span className="rp-pk-selectall-count">
+                      {pickedIds.length} selected · {remaining} position{remaining === 1 ? '' : 's'} free
+                    </span>
+                  )}
+                </label>
               )}
               {filteredQ.map((q) => (
                 <QuestionRow
@@ -561,14 +659,32 @@ export function PackPicker({
             automatically, and stay reserved even if removed later.
           </p>
           {tab === 'q' && (
-            <button
-              type="button"
-              className="rp-btn-primary"
-              disabled={pickedIds.length === 0 || pending}
-              onClick={addSelectedStandalones}
-            >
-              {pickedIds.length === 0 ? 'Add selected' : `Add ${pickedIds.length} selected`}
-            </button>
+            <>
+              {overCapacity && (
+                <span className="rp-pk-cap-warn">
+                  {pickedIds.length} selected · only {remaining} fit — deselect{' '}
+                  {pickedIds.length - remaining}
+                </span>
+              )}
+              {pickedIds.length > 0 && (
+                <button
+                  type="button"
+                  className="rp-pk-link"
+                  disabled={pending}
+                  onClick={() => setPicked({})}
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                type="button"
+                className="rp-btn-primary"
+                disabled={pickedIds.length === 0 || pending || overCapacity}
+                onClick={addSelectedStandalones}
+              >
+                {pickedIds.length === 0 ? 'Add selected' : `Add ${pickedIds.length} selected`}
+              </button>
+            </>
           )}
         </div>
       </div>

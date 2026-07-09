@@ -378,6 +378,7 @@ interface CandidateRow {
   nursing_subject:          string | null;
   body_system:              string | null;
   bloom_level:              string | null;
+  tags:                     string[] | null;
   trend_id?:                string | null;
 }
 
@@ -413,7 +414,7 @@ export async function loadPackPicker(
     supabase
       .from('nclex_bank_items')
       .select(
-        'item_id, stem, question_type, difficulty, client_needs_category, client_needs_subcategory, nursing_subject, body_system, bloom_level',
+        'item_id, stem, question_type, difficulty, client_needs_category, client_needs_subcategory, nursing_subject, body_system, bloom_level, tags',
       )
       .eq('is_published', true)
       .is('parent_case_id', null)
@@ -450,6 +451,7 @@ export async function loadPackPicker(
       subject: r.nursing_subject,
       bodySystem: r.body_system,
       bloom: r.bloom_level,
+      tags: r.tags ?? [],
       inPack: memberOf[r.item_id] ?? null,
     }));
 
