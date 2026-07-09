@@ -19,8 +19,11 @@ import { revalidatePath } from 'next/cache';
 
 const PACKS_PATH = '/student/bank/packs';
 
-/** The window length (§2). One number, here. */
-export const READINESS_WINDOW_DAYS = 21;
+// The window length (§2). One number, here. NOT exported — a 'use server'
+// file may only export async functions (a bare `export const` breaks the
+// whole module at build). Move to a shared constants file if the sweep /
+// runner needs it later.
+const READINESS_WINDOW_DAYS = 21;
 
 export interface ActivateResult {
   ok: boolean;
