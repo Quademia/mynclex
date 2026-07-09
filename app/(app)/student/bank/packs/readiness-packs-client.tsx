@@ -18,6 +18,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { claimReadinessPack, claimAllReadiness } from '@/lib/payments/readiness-claim';
 import { activateReadinessPack } from '@/lib/payments/readiness-activate';
+import { beginReadinessAttempt } from '@/lib/payments/readiness-begin';
 import type { StudentReadinessView, StudentPackCard } from '@/lib/payments/readiness-packs-view';
 
 function timeStr(sec: number): string {
@@ -88,6 +89,20 @@ export function ReadinessPacksClient({ view }: { view: StudentReadinessView }) {
     });
   }
 
+  // Begin exam → build the sitting, then hand off to the runner's full-stop
+  // preflight (that screen, not this click, spends the shot). No card-level
+  // dialog: the one-shot warning IS the preflight (§7's heaviest gate).
+  function doBegin(pack: StudentPackCard) {
+    startTransition(async () => {
+      const r = await beginReadinessAttempt(pack.packId);
+      if (r.ok && r.attemptId) {
+        router.push(`/session/${r.attemptId}`);
+      } else {
+        flash(r.error ?? 'Could not open your exam.');
+      }
+    });
+  }
+
   const hasNothing =
     view.unclaimed === 0 && view.claimed === 0 && view.active === 0 && view.completed === 0;
 
@@ -126,6 +141,7 @@ export function ReadinessPacksClient({ view }: { view: StudentReadinessView }) {
               pending={pending}
               onClaim={() => setDialog({ kind: 'claim', pack: p })}
               onActivate={() => setDialog({ kind: 'activate', pack: p })}
+              onBegin={() => doBegin(p)}
             />
           ))}
         </div>
@@ -221,11 +237,13 @@ function PackCard({
   pending,
   onClaim,
   onActivate,
+  onBegin,
 }: {
   pack: StudentPackCard;
   pending: boolean;
   onClaim: () => void;
   onActivate: () => void;
+  onBegin: () => void;
 }) {
   const specs = `${pack.n} questions · ${timeStr(pack.timeLimitSec)} · one shot`;
 
@@ -296,6 +314,11 @@ function PackCard({
         {pack.state === 'CLAIMED' && (
           <button type="button" className="rs-btn rs-btn-teal rs-btn-full" disabled={pending} onClick={onActivate}>
             Start my 21 days
+          </button>
+        )}
+        {pack.state === 'ACTIVE' && (
+          <button type="button" className="rs-btn rs-btn-navy rs-btn-full" disabled={pending} onClick={onBegin}>
+            Begin exam
           </button>
         )}
       </div>

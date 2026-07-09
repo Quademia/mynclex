@@ -26,7 +26,8 @@ export type AttemptForExit = {
  *     activity in its checklist (Permissive v1 — any cohort is
  *     reachable until enrolment ships). Otherwise the programme URL.
  *     Final fallback: /student/picker (a real route, not a 404).
- *   • READINESS_PACK / other → /student (root).
+ *   • READINESS_PACK     → /student/bank/packs (where they began the sitting).
+ *   • other              → /student (root).
  */
 export async function resolveAttemptExitHref(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,6 +36,10 @@ export async function resolveAttemptExitHref(
 ): Promise<string> {
   if (attempt.source === 'CUSTOM_BUILT') {
     return '/student/bank/practice';
+  }
+
+  if (attempt.source === 'READINESS_PACK') {
+    return '/student/bank/packs';
   }
 
   if (attempt.source === 'PROGRAMME_ASSIGNED' && attempt.programme_activity_id) {
