@@ -1648,7 +1648,8 @@ same; they differ only where the credits-only version is wrong.
       only if the preflight ever becomes skippable. Dev-verified end to end
       (create → start spends → idempotent; repeated Begin makes no new
       snapshots).
-    - **🔨 2b-iii — sit, quit-as-is, re-entry.** Four pieces: (1) session-page
+    - **✅ 2b-iii — sit, quit-as-is, re-entry — BUILT + Sam-tested 2026-07-09**
+      (no migration; app-layer). Four pieces: (1) session-page
       gate makes a `READINESS_PACK` sitting explicit (owner sits; no
       bank-subscription block on a readiness-only student; window-gated *review*
       is 2b-iv); (2) **quit = submit-as-is** — a *deliberate* end scores what's
