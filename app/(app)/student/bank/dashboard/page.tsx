@@ -4,7 +4,7 @@ import { requireActiveBankSubscription } from '@/lib/access';
 export const dynamic = 'force-dynamic';
 
 // Per-page bank gate: the layout now admits readiness-only students, so
-// each bank-consumption page re-asserts bank access (→ /bank-access).
+// each bank-consumption page re-asserts bank access (→ /no-access?need=bank).
 export default async function BankDashboardPage() {
   await requireActiveBankSubscription();
   return (

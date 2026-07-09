@@ -10,12 +10,13 @@
 // This gate protects ENTRY only. The bank-consumption pages
 // (dashboard / practice / history / journey / profile) each keep their
 // own requireActiveBankSubscription() call, so a readiness-only student
-// who clicks Practice still bounces to /bank-access — the sidebar is
-// shared, the entitlements are not. The Readiness Packs page adds no
-// bank check: getting through this door is enough.
+// who clicks Practice still bounces to the reason-aware access wall
+// (/no-access?need=bank) — the sidebar is shared, the entitlements are
+// not. The Readiness Packs page adds no bank check: getting through this
+// door is enough.
 //
-// A student with NEITHER bank access nor readiness still bounces to
-// /bank-access. SUPER_ADMIN + STUDENT bypasses (matches the bank gate).
+// A student with NEITHER bank access nor readiness bounces to the same
+// access wall. SUPER_ADMIN + STUDENT bypasses (matches the bank gate).
 
 import { redirect } from 'next/navigation';
 import { bankAccessForUser, ownsReadinessForUser } from '@/lib/payments/entitlements';
@@ -31,5 +32,5 @@ export async function requireBankOrReadiness(): Promise<AuthGateResult> {
 
   if (await ownsReadinessForUser(ctx.supabase, ctx.user.id)) return ctx;
 
-  redirect('/bank-access');
+  redirect('/no-access?need=bank');
 }

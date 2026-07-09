@@ -3,8 +3,9 @@
 // Student-side gate for the bank surfaces (Slice 5.6). Two checks:
 //   1. STUDENT role (requireStudent) — the bank is the learner space.
 //   2. An active bank subscription (bankAccessForUser, the TS mirror of
-//      nclex_has_active_bank_access). No active access → bounce to
-//      /bank-access to buy/renew.
+//      nclex_has_active_bank_access). No active access → the reason-aware
+//      access wall (/no-access?need=bank), which explains what's locked
+//      and offers the bank-plans CTA (and a packs link if they own one).
 //
 // SUPER_ADMIN bypass: a super-admin who also holds STUDENT keeps access
 // without a subscription, for tooling/testing (matches the RPC's bypass).
@@ -21,7 +22,7 @@ export async function requireActiveBankSubscription(): Promise<AuthGateResult> {
   if (ctx.roles.includes('SUPER_ADMIN')) return ctx;
 
   const access = await bankAccessForUser(ctx.supabase, ctx.user.id);
-  if (!access.active) redirect('/bank-access');
+  if (!access.active) redirect('/no-access?need=bank');
 
   return ctx;
 }

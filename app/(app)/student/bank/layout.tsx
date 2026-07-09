@@ -12,9 +12,10 @@
 // (which lives in this sidebar). ENTRY only: the bank-consumption pages
 // (dashboard / practice / history / journey / profile) each keep their own
 // requireActiveBankSubscription() so a readiness-only student who clicks
-// them still bounces to /bank-access. The Packs page adds no bank check.
-// A student with neither entitlement bounces to /bank-access here. The
-// create-attempt RPC carries the bank check as the hard backstop.
+// them still bounces to the reason-aware access wall (/no-access?need=bank).
+// The Packs page adds no bank check. A student with neither entitlement
+// bounces to the same wall here. The create-attempt RPC carries the bank
+// check as the hard backstop.
 //
 // hasProgrammeEnrolment is hard-coded today; replace when the
 // nclex_enrolments table lands.
