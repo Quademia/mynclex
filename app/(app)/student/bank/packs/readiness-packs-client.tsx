@@ -17,6 +17,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { claimReadinessPack, claimAllReadiness } from '@/lib/payments/readiness-claim';
+import { activateReadinessPack } from '@/lib/payments/readiness-activate';
 import type { StudentReadinessView, StudentPackCard } from '@/lib/payments/readiness-packs-view';
 
 function timeStr(sec: number): string {
@@ -30,6 +31,7 @@ function timeStr(sec: number): string {
 
 type Dialog =
   | { kind: 'claim'; pack: StudentPackCard }
+  | { kind: 'activate'; pack: StudentPackCard }
   | { kind: 'claimAll' }
   | null;
 
@@ -73,6 +75,19 @@ export function ReadinessPacksClient({ view }: { view: StudentReadinessView }) {
     });
   }
 
+  function doActivate(pack: StudentPackCard) {
+    startTransition(async () => {
+      const r = await activateReadinessPack(pack.packId);
+      setDialog(null);
+      if (r.ok) {
+        flash(`Your 21 days on ${pack.title} have started.`);
+        router.refresh();
+      } else {
+        flash(r.error ?? 'Could not start your window.');
+      }
+    });
+  }
+
   const hasNothing =
     view.unclaimed === 0 && view.claimed === 0 && view.active === 0 && view.completed === 0;
 
@@ -105,7 +120,13 @@ export function ReadinessPacksClient({ view }: { view: StudentReadinessView }) {
       ) : (
         <div className="rs-grid">
           {view.packs.map((p) => (
-            <PackCard key={p.packId} pack={p} pending={pending} onClaim={() => setDialog({ kind: 'claim', pack: p })} />
+            <PackCard
+              key={p.packId}
+              pack={p}
+              pending={pending}
+              onClaim={() => setDialog({ kind: 'claim', pack: p })}
+              onActivate={() => setDialog({ kind: 'activate', pack: p })}
+            />
           ))}
         </div>
       )}
@@ -115,6 +136,14 @@ export function ReadinessPacksClient({ view }: { view: StudentReadinessView }) {
           pack={dialog.pack}
           pending={pending}
           onConfirm={() => doClaim(dialog.pack)}
+          onCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'activate' && (
+        <ActivateDialog
+          pack={dialog.pack}
+          pending={pending}
+          onConfirm={() => doActivate(dialog.pack)}
           onCancel={() => setDialog(null)}
         />
       )}
@@ -191,10 +220,12 @@ function PackCard({
   pack,
   pending,
   onClaim,
+  onActivate,
 }: {
   pack: StudentPackCard;
   pending: boolean;
   onClaim: () => void;
+  onActivate: () => void;
 }) {
   const specs = `${pack.n} questions · ${timeStr(pack.timeLimitSec)} · one shot`;
 
@@ -209,6 +240,10 @@ function PackCard({
             ? { label: 'Completed', tone: 'grey' }
             : { label: 'Available', tone: 'grey' };
 
+  // Days-left urgency colour for the running window.
+  const dl = pack.daysLeft;
+  const daysTone = dl == null ? '' : dl > 7 ? 'ok' : dl > 2 ? 'warn' : 'danger';
+
   return (
     <div className={`rs-card rs-card-${pack.state.toLowerCase()}`}>
       <div className="rs-card-top">
@@ -217,8 +252,29 @@ function PackCard({
       </div>
       <div className="rs-card-specs">{specs}</div>
 
+      {pack.state === 'ACTIVE' && dl != null && (
+        <div className="rs-days">
+          <div className={`rs-days-num rs-days-${daysTone}`}>
+            {dl} <span className="rs-days-unit">{dl === 1 ? 'day left' : 'days left'}</span>
+          </div>
+          <div className="rs-days-bar">
+            <div
+              className={`rs-days-fill rs-days-${daysTone}`}
+              style={{ width: `${Math.max(4, Math.round((dl / 21) * 100))}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {pack.state === 'CLAIMED' && (
-        <div className="rs-card-note">This pack is yours. You&apos;ll start its 21-day window when you&apos;re ready to sit it.</div>
+        <div className="rs-card-note">This pack is yours. Start its 21-day window when you&apos;re ready to sit it.</div>
+      )}
+      {pack.state === 'ACTIVE' && (
+        <div className={`rs-card-note${daysTone === 'danger' ? ' rs-card-note-danger' : ''}`}>
+          {daysTone === 'danger'
+            ? 'Your window closes soon — sit it before you lose the shot.'
+            : 'Sit your one attempt any time before the window closes.'}
+        </div>
       )}
       {pack.lapsed && (
         <div className="rs-card-note rs-card-note-muted">
@@ -235,6 +291,11 @@ function PackCard({
         {pack.state === 'CLAIMABLE' && (
           <button type="button" className="rs-btn rs-btn-navy rs-btn-full" disabled={pending} onClick={onClaim}>
             Claim this pack
+          </button>
+        )}
+        {pack.state === 'CLAIMED' && (
+          <button type="button" className="rs-btn rs-btn-teal rs-btn-full" disabled={pending} onClick={onActivate}>
+            Start my 21 days
           </button>
         )}
       </div>
@@ -273,6 +334,45 @@ function ClaimDialog({
             </button>
             <button type="button" className="rs-btn rs-btn-teal" disabled={pending} onClick={onConfirm}>
               {pending ? 'Claiming…' : 'Claim pack'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActivateDialog({
+  pack,
+  pending,
+  onConfirm,
+  onCancel,
+}: {
+  pack: StudentPackCard;
+  pending: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="rs-overlay" onClick={onCancel}>
+      <div className="rs-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="rs-modal-accent rs-modal-accent-amber" />
+        <div className="rs-modal-body">
+          <h3 className="rs-modal-title">Start your 21 days on {pack.title}?</h3>
+          <p className="rs-modal-p">
+            Your 21-day window starts now and can&apos;t be paused. Sit the exam any time within
+            those 21 days.
+          </p>
+          <p className="rs-modal-p">
+            If the window closes before you sit, the pack is used up — no reset, no refund. You
+            control when to start, so start when you&apos;re ready to sit soon.
+          </p>
+          <div className="rs-modal-actions">
+            <button type="button" className="rs-btn rs-btn-ghost" onClick={onCancel}>
+              Cancel
+            </button>
+            <button type="button" className="rs-btn rs-btn-navy" disabled={pending} onClick={onConfirm}>
+              {pending ? 'Starting…' : 'Start my 21 days'}
             </button>
           </div>
         </div>

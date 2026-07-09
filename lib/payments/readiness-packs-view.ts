@@ -36,6 +36,10 @@ export interface StudentPackCard {
   state: PackCardState;
   /** An earlier credit on this pack lapsed unused — it's fresh again. */
   lapsed: boolean;
+  /** Whole days left in the window — ACTIVE cards only, else null.
+   *  Clamped at 0 (a past-deadline credit reads ACTIVE until the sweep
+   *  stamps expired_at; the card can still show "0 days left"). */
+  daysLeft: number | null;
 }
 
 export interface StudentReadinessView {
@@ -71,30 +75,39 @@ export async function getStudentReadinessView(): Promise<StudentReadinessView> {
       .order('pack_id'),
     supabase
       .from('nclex_readiness_credits')
-      .select('pack_id, claimed_at, activated_at, used_at, expired_at, revoked_at')
+      .select('pack_id, claimed_at, activated_at, expires_at, used_at, expired_at, revoked_at')
       .eq('user_id', user.id),
   ]);
 
-  const credits = (creditRows ?? []).map((c) => ({ packId: c.pack_id as string | null, stage: creditStage(c) }));
+  const credits = (creditRows ?? []).map((c) => ({
+    packId: c.pack_id as string | null,
+    stage: creditStage(c),
+    expiresAt: c.expires_at as string | null,
+  }));
 
   const unclaimed = credits.filter((c) => c.stage === 'UNCLAIMED').length;
 
   // The one LIVE claim per pack (DB-guaranteed ≤1): claimed / active / used.
   // Expired / revoked credits release the pack, so they don't count here.
-  const liveByPack = new Map<string, 'CLAIMED' | 'ACTIVE' | 'USED'>();
+  const liveByPack = new Map<string, { stage: 'CLAIMED' | 'ACTIVE' | 'USED'; expiresAt: string | null }>();
   const lapsedPacks = new Set<string>();
   for (const c of credits) {
     if (!c.packId) continue;
     if (c.stage === 'CLAIMED' || c.stage === 'ACTIVE' || c.stage === 'USED') {
-      liveByPack.set(c.packId, c.stage);
+      liveByPack.set(c.packId, { stage: c.stage, expiresAt: c.expiresAt });
     } else if (c.stage === 'EXPIRED') {
       lapsedPacks.add(c.packId);
     }
   }
 
+  const now = Date.now();
   const packs: StudentPackCard[] = (packRows ?? []).map((p) => {
     const live = liveByPack.get(p.pack_id);
-    const state: PackCardState = live ?? (unclaimed > 0 ? 'CLAIMABLE' : 'CATALOGUE');
+    const state: PackCardState = live?.stage ?? (unclaimed > 0 ? 'CLAIMABLE' : 'CATALOGUE');
+    const daysLeft =
+      state === 'ACTIVE' && live?.expiresAt
+        ? Math.max(0, Math.ceil((new Date(live.expiresAt).getTime() - now) / 86_400_000))
+        : null;
     return {
       packId: p.pack_id,
       num: packNumFromId(p.pack_id),
@@ -104,15 +117,16 @@ export async function getStudentReadinessView(): Promise<StudentReadinessView> {
       timeLimitSec: p.time_limit_sec ?? 12000,
       state,
       lapsed: !live && lapsedPacks.has(p.pack_id),
+      daysLeft,
     };
   });
 
-  const liveValues = [...liveByPack.values()];
+  const liveStages = [...liveByPack.values()].map((v) => v.stage);
   return {
     packs,
     unclaimed,
-    claimed: liveValues.filter((s) => s === 'CLAIMED').length,
-    active: liveValues.filter((s) => s === 'ACTIVE').length,
-    completed: liveValues.filter((s) => s === 'USED').length,
+    claimed: liveStages.filter((s) => s === 'CLAIMED').length,
+    active: liveStages.filter((s) => s === 'ACTIVE').length,
+    completed: liveStages.filter((s) => s === 'USED').length,
   };
 }
