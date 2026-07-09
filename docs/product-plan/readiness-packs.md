@@ -1633,17 +1633,37 @@ same; they differ only where the credits-only version is wrong.
       cases/trends + snapshotting exactly like `nclex_create_attempt`;
       returns the attempt id. Test: call it, verify 100 ordered
       `nclex_attempt_items` + case/trend snapshots.
-    - **2b-ii — Begin + the one-shot preflight.** `beginReadinessAttempt(packId)`
-      server action (get-or-create the live attempt, mirror of
-      `readiness-activate.ts`); a **Begin exam** button on the ACTIVE card →
-      `/session/[id]`; the preflight's **readiness full-stop variant**
-      (one-shot warning). Start spends the shot (`used_at` + `attempt_id`) +
-      starts the clock. Test: Begin → warning → Start → runner, timer running.
-    - **2b-iii — sit, quit-as-is, re-entry.** Session-page gate for
-      `READINESS_PACK`; confirm the timed sequential run; **quit =
-      submit-as-is** (packs-only deviation) while **connection-loss =
-      re-enterable on the clock** (the existing resume path). Test: answer
-      some, quit → scores as-is; re-enter mid-clock → resumes.
+    - **2b-ii — Begin + the one-shot preflight ✅ BUILT + Sam-tested
+      2026-07-09** (migs `20260730120000` create + `20260731120000` start).
+      `beginReadinessAttempt(packId)` (`lib/payments/readiness-begin.ts`) builds
+      the sitting via the 2b-i RPC; a **Begin exam** button on the ACTIVE card →
+      `/session/[id]`; the preflight's **readiness full-stop variant** (red,
+      four-bullet one-shot warning). Start goes through
+      `nclex_start_readiness_attempt` → spends the shot (`used_at` +
+      `attempt_id`, atomic) + starts the clock. **Decision (Sam 2026-07-09): no
+      card-level confirm overlay before Begin** — Begin is non-destructive
+      (spends nothing; snapshots reused idempotently), and the full-stop
+      preflight IS the gate; a second overlay would be double-gating a safe
+      click (confirmation fatigue that weakens the real gate). Add a card gate
+      only if the preflight ever becomes skippable. Dev-verified end to end
+      (create → start spends → idempotent; repeated Begin makes no new
+      snapshots).
+    - **🔨 2b-iii — sit, quit-as-is, re-entry.** Four pieces: (1) session-page
+      gate makes a `READINESS_PACK` sitting explicit (owner sits; no
+      bank-subscription block on a readiness-only student; window-gated *review*
+      is 2b-iv); (2) **quit = submit-as-is** — a *deliberate* end scores what's
+      done (unreached = zero), reusing the **same scoring the clock-expiry
+      already uses**; (3) **dropped-connection re-entry** — an *involuntary*
+      leave (tab close / crash) stays IN_PROGRESS + resumable while the clock
+      runs, then clock-expiry auto-submits (existing lazy-expiry); (4) **no
+      void** — a spent shot can never be discarded to escape a score. **Exit-UX
+      decision (Sam 2026-07-09): the readiness Exit confirm offers THREE
+      choices** — *End & submit now* (scores, can't return) · *Leave — I'll come
+      back* (resumable) · *Keep going* — so both the deliberate-quit (r2) and
+      step-away (r3) paths are explicit; an accidental tab-close = no click = no
+      submit = still resumable. Plus readiness-honest copy on the exit/end
+      affordances. Test: answer some → End & submit → scores as-is; Leave → come
+      back mid-clock → resumes; clock runs out → auto-submits.
     - **2b-iv — completion + USED card + in-window review.** The results
       popup **readiness variant** (CTA "See your full report", no retake);
       card flips to **USED**; per-question review **gated to the 21-day
