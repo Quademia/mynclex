@@ -72,7 +72,7 @@ export default async function PickerPage() {
         ? `${credits.byStage.ACTIVE} window${credits.byStage.ACTIVE === 1 ? '' : 's'} open`
         : ownsReadiness
           ? 'Your one-shot mock exams — claim, activate, sit.'
-          : 'One-shot mock exams that predict your NCLEX readiness.';
+          : 'A curated, one-shot mock built like the real NCLEX. Sit it once for a formal readiness score — a true measure of where you stand, not just more practice.';
 
   return (
     <AppShell
@@ -108,13 +108,14 @@ export default async function PickerPage() {
             <div className="picker-side">
               <aside className="picker-bank-rail">
                 <div className="bank-rail-eyebrow">Question Bank</div>
-                <div className="bank-rail-title">Self-study practice</div>
+                <div className="bank-rail-title">Practise &amp; rehearse</div>
                 {bankStatusLine && (
                   <div className="bank-rail-status">{bankStatusLine}</div>
                 )}
                 <p className="bank-rail-desc">
-                  Thousands of NCLEX-style questions. Practise any time — no
-                  schedule, no cohort.
+                  Thousands of NCLEX-style questions with full rationales —
+                  learn by topic, or rehearse exam day with timed and
+                  CAT-adaptive modes. Unlimited, at your pace.
                 </p>
                 <Link href={bankHref} className="bank-rail-cta">
                   {bankCtaLabel} <span aria-hidden="true">→</span>
@@ -123,9 +124,7 @@ export default async function PickerPage() {
 
               <aside className="picker-bank-rail picker-readiness-rail">
                 <div className="bank-rail-eyebrow">Readiness Packs</div>
-                <div className="bank-rail-title">
-                  {ownsReadiness ? 'Your mock exams' : 'Mock exams'}
-                </div>
+                <div className="bank-rail-title">Test your readiness</div>
                 <p className="bank-rail-desc">{readinessLine}</p>
                 <Link
                   href={ownsReadiness ? '/student/bank/packs' : '/readiness'}
