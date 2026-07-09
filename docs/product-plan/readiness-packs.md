@@ -1588,21 +1588,68 @@ same; they differ only where the credits-only version is wrong.
     change, not just typecheck.** (Same family as the `export type`
     gotcha.)
 
-  - **⏭ ②b.2 step 2b — the one-shot runner** (the sitting behind "Begin
-    exam") and **step 3 — results** (§11.5) light up the rest of the
-    ACTIVE card + the sat states. "Build everything" (Sam, 2026-07-09 —
-    no real users, so no burned-window risk): the full claim → activate →
-    sit → result chain ships, in ordered tested steps, nothing dormant.
-    **Dev prep for next session (Sam):** ~500 questions going onto dev so
-    packs can be filled to their `n` and the whole readiness build tested
-    **back-to-back** (buy → claim → activate → sit → result) on a
-    real-sized pack. (The 2 test-published packs are under-filled — fine
-    for claim/activate, not for a real sitting.)
-- **⬜ The sitting:** attempt creation for the READINESS_PACK source
-  (link rows → attempt rows, the runner doesn't know it's a pack);
-  the one-shot timed run wiring (start = the shot, quit =
-  submit-as-is, re-enterable on the sitting's clock per §2).
-- **⬜ Results page:** the permanent per-sitting report per §11.5
+  - **🔨 ②b.2 step 2b — the one-shot runner** (the sitting behind "Begin
+    exam") lights up the rest of the ACTIVE card + the USED state. **Step 3
+    — results** (§11.5, the standalone permanent report page) is a
+    SEPARATE slice after it. "Build everything" (Sam, 2026-07-09 — no real
+    users, so no burned-window risk): the full claim → activate → sit →
+    result chain ships, in ordered tested steps, nothing dormant. Dev is
+    ready — all 5 packs filled 100/100, published, active (the ~500-question
+    fill last session).
+
+    **Architecture (settled 2026-07-09, grounded in the code).** The
+    runner, timer, scoring, per-question review, the results popup and the
+    `/session/[id]` page are **reused as-is** — the session page is
+    source-agnostic (it already lazy-expires + scores any timed attempt
+    generically) and the preflight is already source-aware. The sitting
+    lands as an ordinary attempt; **the runner doesn't know it's a pack.**
+    The one genuinely new piece is **attempt creation**: `nclex_create_attempt`
+    hard-rejects readiness (`source <> 'CUSTOM_BUILT'` raises; it also
+    requires a bank subscription and picks questions *randomly from a filter
+    pool*), so readiness needs its **own creation function** that walks the
+    pack's fixed 100 members **in curated position order**. That function
+    **writes to the same four attempt tables** the existing RPC does
+    (`nclex_attempts` + `nclex_attempt_items` + the case/trend snapshot
+    tables) — which is exactly why the runner reuses unchanged. **No new
+    tables** (the attempt tables already carry the `READINESS_PACK` source +
+    FK + CHECKs). The credits table already has the hooks: `attempt_id` (the
+    forever link) + `used_at` (the "sat = closed forever" stamp); the card
+    states (`CATALOGUE → CLAIMABLE → CLAIMED → ACTIVE → USED`) are already
+    modelled — 2b makes ACTIVE/USED reachable.
+
+    **Shot timing (settled, Sam 2026-07-09):** the shot is spent **on Start
+    at the preflight** (§2 r1 — "starting the sitting = the shot"), NOT on
+    attempt creation. Bouncing off the preflight costs nothing; the attempt
+    row may exist unstarted + reusable. `used_at` + `attempt_id` stamp when
+    the student clicks Start past the full-stop warning.
+
+    **Sub-slices (each built, then PAUSED for Sam's test before the next):**
+    - **2b-i — attempt creation (the migration).** New
+      `nclex_create_readiness_attempt(p_pack_id)` SECURITY DEFINER: validates
+      the caller owns a live, activated, not-yet-sat credit for the pack +
+      the pack is published; builds the attempt (source `READINESS_PACK`,
+      mode **Timed Sequential**, `duration_seconds` = the pack's
+      `time_limit_sec`) walking members **in position order**, flattening
+      cases/trends + snapshotting exactly like `nclex_create_attempt`;
+      returns the attempt id. Test: call it, verify 100 ordered
+      `nclex_attempt_items` + case/trend snapshots.
+    - **2b-ii — Begin + the one-shot preflight.** `beginReadinessAttempt(packId)`
+      server action (get-or-create the live attempt, mirror of
+      `readiness-activate.ts`); a **Begin exam** button on the ACTIVE card →
+      `/session/[id]`; the preflight's **readiness full-stop variant**
+      (one-shot warning). Start spends the shot (`used_at` + `attempt_id`) +
+      starts the clock. Test: Begin → warning → Start → runner, timer running.
+    - **2b-iii — sit, quit-as-is, re-entry.** Session-page gate for
+      `READINESS_PACK`; confirm the timed sequential run; **quit =
+      submit-as-is** (packs-only deviation) while **connection-loss =
+      re-enterable on the clock** (the existing resume path). Test: answer
+      some, quit → scores as-is; re-enter mid-clock → resumes.
+    - **2b-iv — completion + USED card + in-window review.** The results
+      popup **readiness variant** (CTA "See your full report", no retake);
+      card flips to **USED**; per-question review **gated to the 21-day
+      window**. Test: finish → readiness popup → USED → review works
+      in-window.
+- **⬜ Results page (step 3, its own slice after 2b):** the permanent per-sitting report per §11.5
   (verdict hero + points line, peer comparator w/ min-N, multi-axis
   breakdowns, two lifetimes, review-runner reuse + window gating);
   the readiness variant of the results popup. CD brief: results.
