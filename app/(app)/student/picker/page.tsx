@@ -57,11 +57,12 @@ export default async function PickerPage() {
     : null;
   const bankCtaLabel = bankAccess.active ? 'Open the bank' : 'Get access';
 
-  // Readiness door: shown when the student owns readiness (a non-revoked
-  // credit — claimed, running, sat, or waiting to be claimed). It's their
-  // only hub route to the packs page if they hold no bank pass, and a
-  // convenient shortcut if they do. Grouped with the bank rail, not a
-  // co-equal third product (2026-07-09 IA decision).
+  // Readiness door: ALWAYS shown (grouped with the bank rail, not a co-equal
+  // third product — 2026-07-09 IA decision). Owners (a non-revoked credit —
+  // claimed, running, sat, or waiting to be claimed) go to their packs page;
+  // a logged-in student with no credits gets a sell-state door pointing at the
+  // public /readiness page, so they can discover + buy rather than being shown
+  // nothing.
   const credits = await getMyCredits();
   const ownsReadiness = credits.total - credits.byStage.REVOKED > 0;
   const readinessLine =
@@ -69,7 +70,9 @@ export default async function PickerPage() {
       ? `${credits.byStage.UNCLAIMED} credit${credits.byStage.UNCLAIMED === 1 ? '' : 's'} ready to claim`
       : credits.byStage.ACTIVE > 0
         ? `${credits.byStage.ACTIVE} window${credits.byStage.ACTIVE === 1 ? '' : 's'} open`
-        : 'Your one-shot mock exams — claim, activate, sit.';
+        : ownsReadiness
+          ? 'Your one-shot mock exams — claim, activate, sit.'
+          : 'One-shot mock exams that predict your NCLEX readiness.';
 
   return (
     <AppShell
@@ -118,16 +121,20 @@ export default async function PickerPage() {
                 </Link>
               </aside>
 
-              {ownsReadiness && (
-                <aside className="picker-bank-rail picker-readiness-rail">
-                  <div className="bank-rail-eyebrow">Readiness Packs</div>
-                  <div className="bank-rail-title">Your mock exams</div>
-                  <p className="bank-rail-desc">{readinessLine}</p>
-                  <Link href="/student/bank/packs" className="bank-rail-cta">
-                    View your packs <span aria-hidden="true">→</span>
-                  </Link>
-                </aside>
-              )}
+              <aside className="picker-bank-rail picker-readiness-rail">
+                <div className="bank-rail-eyebrow">Readiness Packs</div>
+                <div className="bank-rail-title">
+                  {ownsReadiness ? 'Your mock exams' : 'Mock exams'}
+                </div>
+                <p className="bank-rail-desc">{readinessLine}</p>
+                <Link
+                  href={ownsReadiness ? '/student/bank/packs' : '/readiness'}
+                  className="bank-rail-cta"
+                >
+                  {ownsReadiness ? 'View your packs' : 'Get readiness packs'}{' '}
+                  <span aria-hidden="true">→</span>
+                </Link>
+              </aside>
             </div>
           </div>
         </div>
