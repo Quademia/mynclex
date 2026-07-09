@@ -2454,6 +2454,19 @@
 .rn-oneshot-start:hover:not(:disabled) { filter: brightness(0.94); }
 .rn-oneshot-start:disabled { opacity: 0.6; cursor: default; }
 
+/* Readiness exit confirm — three stacked full-width choices (End & submit /
+ * Leave / Keep going), most-consequential first. */
+.rn-readiness-exit-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.rn-readiness-exit-actions .auth-btn {
+  width: 100%;
+  justify-content: center;
+}
+
 /* ────────────────────────────────────────────────────────────
  *  Slice 3a — End-of-quiz results popup
  *

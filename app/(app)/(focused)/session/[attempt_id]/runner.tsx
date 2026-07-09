@@ -61,6 +61,7 @@ import { ErrorToast } from '@/lib/toast/error-toast';
 import { FinishWithBlanksConfirm } from '@/lib/overlays/practice/finish-with-blanks-confirm';
 import { CaseExitConfirm } from '@/lib/overlays/practice/case-exit-confirm';
 import { ExitAttemptConfirm } from '@/lib/overlays/practice/exit-attempt-confirm';
+import { ReadinessExitConfirm } from '@/lib/overlays/practice/readiness-exit-confirm';
 import { ResultsPopup } from '@/lib/practice/runner/results-popup';
 import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
@@ -989,14 +990,32 @@ function RunnerShell({ data }: Props) {
       )}
 
       {showExitConfirm && data.mode === 'live' && (
-        <ExitAttemptConfirm
-          isTimed={isTimed}
-          onCancel={() => setShowExitConfirm(false)}
-          onConfirm={() => {
-            setShowExitConfirm(false);
-            router.push(data.exitHref);
-          }}
-        />
+        data.attempt.source === 'READINESS_PACK' ? (
+          // One-shot pack: End & submit (score as-is) vs Leave (resumable) vs
+          // Keep going. End reuses the normal finish path — completeAttempt
+          // scores unreached questions as zero over the full pack (§2 r2).
+          <ReadinessExitConfirm
+            pending={submitting}
+            onEndSubmit={() => {
+              setShowExitConfirm(false);
+              onFinish();
+            }}
+            onLeave={() => {
+              setShowExitConfirm(false);
+              router.push(data.exitHref);
+            }}
+            onCancel={() => setShowExitConfirm(false)}
+          />
+        ) : (
+          <ExitAttemptConfirm
+            isTimed={isTimed}
+            onCancel={() => setShowExitConfirm(false)}
+            onConfirm={() => {
+              setShowExitConfirm(false);
+              router.push(data.exitHref);
+            }}
+          />
+        )
       )}
 
       {/* Slice 3a — results popup. Renders only in review mode (gated

@@ -142,6 +142,7 @@ export function ReadinessPacksClient({ view }: { view: StudentReadinessView }) {
               onClaim={() => setDialog({ kind: 'claim', pack: p })}
               onActivate={() => setDialog({ kind: 'activate', pack: p })}
               onBegin={() => doBegin(p)}
+              onResume={() => p.resumeAttemptId && router.push(`/session/${p.resumeAttemptId}`)}
             />
           ))}
         </div>
@@ -238,12 +239,14 @@ function PackCard({
   onClaim,
   onActivate,
   onBegin,
+  onResume,
 }: {
   pack: StudentPackCard;
   pending: boolean;
   onClaim: () => void;
   onActivate: () => void;
   onBegin: () => void;
+  onResume: () => void;
 }) {
   const specs = `${pack.n} questions · ${timeStr(pack.timeLimitSec)} · one shot`;
 
@@ -254,9 +257,11 @@ function PackCard({
         ? { label: 'Claimed', tone: 'navy' }
         : pack.state === 'ACTIVE'
           ? { label: 'Window open', tone: 'teal' }
-          : pack.state === 'USED'
-            ? { label: 'Completed', tone: 'grey' }
-            : { label: 'Available', tone: 'grey' };
+          : pack.state === 'SITTING'
+            ? { label: 'In progress', tone: 'amber' }
+            : pack.state === 'USED'
+              ? { label: 'Completed', tone: 'grey' }
+              : { label: 'Available', tone: 'grey' };
 
   // Days-left urgency colour for the running window.
   const dl = pack.daysLeft;
@@ -286,6 +291,11 @@ function PackCard({
 
       {pack.state === 'CLAIMED' && (
         <div className="rs-card-note">This pack is yours. Start its 21-day window when you&apos;re ready to sit it.</div>
+      )}
+      {pack.state === 'SITTING' && (
+        <div className="rs-card-note rs-card-note-danger">
+          Your exam is under way and the clock is still running. Pick up where you left off.
+        </div>
       )}
       {pack.state === 'ACTIVE' && (
         <div className={`rs-card-note${daysTone === 'danger' ? ' rs-card-note-danger' : ''}`}>
@@ -319,6 +329,11 @@ function PackCard({
         {pack.state === 'ACTIVE' && (
           <button type="button" className="rs-btn rs-btn-navy rs-btn-full" disabled={pending} onClick={onBegin}>
             Begin exam
+          </button>
+        )}
+        {pack.state === 'SITTING' && (
+          <button type="button" className="rs-btn rs-btn-navy rs-btn-full" disabled={pending} onClick={onResume}>
+            Resume exam
           </button>
         )}
       </div>

@@ -73,6 +73,7 @@
 .rs-pill-teal { background: var(--primary-light); color: var(--accent-dark); }
 .rs-pill-navy { background: #eef2f8; color: var(--primary); }
 .rs-pill-grey { background: #f3f4f6; color: var(--text-muted); }
+.rs-pill-amber { background: #fef3c7; color: #92400e; }
 
 /* ── buttons ────────────────────────────────────────────────────── */
 .rs-btn {
