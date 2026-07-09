@@ -10,8 +10,12 @@ settled with Sam: **readiness stays a bank-family surface** (relaxed
 `requireBankOrReadiness` front door + per-page bank gates + a picker
 Readiness door — NOT a third product), and a **reason-aware `/no-access`
 wall** (gates redirect with `?need=<reason>`; the bank gate's 6 callers
-route through it). No migration in this arc. ⏭ NEXT = ②b.2 step 2 (the
-sitting) → step 3 (results). See §12 → Slice ②b. Previously (**Slice ②a
+route through it). Plus **②b.2 step 2a — activate the 21-day window**
+(Start my 21 days → writes `activated_at` + `expires_at`, card flips to
+ACTIVE with a days-left meter; no Begin button yet). No migration in this
+arc. ⏭ NEXT = ②b.2 step 2b (the one-shot runner) → step 3 (results);
+~500 questions go onto dev first so packs fill to `n` for a back-to-back
+sitting test. See §12 → Slice ②b. Previously (**Slice ②a
 COMPLETE + MERGED**): the credits table + mint-at-activation, three
 sub-slices [§12 → Slice ②a]; migrations `20260728120000` [credits table
 + subscription cleanup] + `20260729120000` [`mint_index` idempotency key]. Sam-tested
@@ -1565,12 +1569,35 @@ same; they differ only where the credits-only version is wrong.
     `/bank-access`. New blocked cases add a `need` value, not a redirect
     per gate.
 
-  - **⏭ ②b.2 step 2 — the sitting** (activate the 21-day window + the
-    one-shot runner + the begin-exam preflight; see the next bullet) and
-    **step 3 — results** (§11.5) light up the ACTIVE / sat card states.
-    "Build everything" (Sam, 2026-07-09 — no real users, so no
-    burned-window risk): the full claim → activate → sit → result chain
-    ships, in ordered tested steps, nothing dormant.
+  - **②b.2 step 2a — activate the 21-day window ✅ BUILT + Sam-tested +
+    MERGED to `main` 2026-07-09.** The CLAIMED card gained a **Start my
+    21 days** button → firm confirm → `activateReadinessPack`
+    (`readiness-activate.ts`, service-role, ownership re-validated) writes
+    `activated_at` + `expires_at` (now + `READINESS_WINDOW_DAYS = 21`)
+    onto the pack's claimed credit; the DB CHECKs enforce
+    activation-needs-a-claim / activation-sets-a-deadline. The card flips
+    to **ACTIVE** with a days-left meter (urgency colour) — **no
+    Begin-exam button yet** (the runner is step 2b; no dead button, same
+    as step 1 left CLAIMED buttonless). `getStudentReadinessView` now
+    carries `daysLeft` (reads `expires_at`). Verified live: Pack 1 →
+    `activated_at` + `expires_at` exactly 21 days apart, stage ACTIVE,
+    nothing else touched. **Gotcha (fixed `6dd3837`):** a bare
+    `export const` in the `'use server'` file broke the whole module
+    (only async functions may be exported) — tsc/eslint pass it, the dev
+    build doesn't; **smoke-test the route after any `'use server'`
+    change, not just typecheck.** (Same family as the `export type`
+    gotcha.)
+
+  - **⏭ ②b.2 step 2b — the one-shot runner** (the sitting behind "Begin
+    exam") and **step 3 — results** (§11.5) light up the rest of the
+    ACTIVE card + the sat states. "Build everything" (Sam, 2026-07-09 —
+    no real users, so no burned-window risk): the full claim → activate →
+    sit → result chain ships, in ordered tested steps, nothing dormant.
+    **Dev prep for next session (Sam):** ~500 questions going onto dev so
+    packs can be filled to their `n` and the whole readiness build tested
+    **back-to-back** (buy → claim → activate → sit → result) on a
+    real-sized pack. (The 2 test-published packs are under-filled — fine
+    for claim/activate, not for a real sitting.)
 - **⬜ The sitting:** attempt creation for the READINESS_PACK source
   (link rows → attempt rows, the runner doesn't know it's a pack);
   the one-shot timed run wiring (start = the shot, quit =
