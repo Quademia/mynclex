@@ -1,0 +1,111 @@
+/* mynclex/styles/readiness-student.css
+ *
+ * The student Readiness Packs surface (Slice ②b.1), inside the bank
+ * shell. App tokens only (this is NOT under .pub-shell, so no bridge
+ * vars). Namespaced `rs-*`. Mobile-first: the grid collapses to one
+ * column ≤768px.
+ */
+
+.rs-wrap { max-width: 1000px; margin: 0 auto; }
+
+/* ── header ─────────────────────────────────────────────────────── */
+.rs-head {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 22px;
+}
+.rs-head-hot { background: var(--primary-light); border-color: #cfe2de; }
+.rs-head-title { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; color: var(--primary); margin: 0; }
+.rs-head-sub { font-size: 13.5px; color: var(--text-muted); margin: 4px 0 0; line-height: 1.5; max-width: 640px; }
+.rs-head-cta { margin-top: 16px; display: inline-flex; }
+
+.rs-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.rs-chip { display: inline-flex; align-items: center; font-size: 12.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px; }
+.rs-chip-navy { background: #eef2f8; color: var(--primary); }
+.rs-chip-teal { background: var(--primary-light); color: var(--accent-dark); }
+.rs-chip-grey { background: #f3f4f6; color: var(--text-muted); }
+
+/* ── claim-all banner ───────────────────────────────────────────── */
+.rs-claimall {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: var(--primary-light); border: 1px solid #cfe2de; border-radius: 10px;
+  padding: 14px 18px; margin-bottom: 18px;
+}
+.rs-claimall-txt { flex: 1; min-width: 180px; font-size: 13.5px; color: var(--accent-dark); line-height: 1.45; }
+.rs-claimall-txt strong { font-weight: 700; }
+
+/* ── grid + cards ───────────────────────────────────────────────── */
+.rs-grid { display: flex; flex-wrap: wrap; gap: 14px; }
+.rs-card {
+  flex: 1 1 300px; max-width: 360px; min-width: 0;
+  display: flex; flex-direction: column;
+  background: var(--white); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: var(--shadow); padding: 18px;
+}
+.rs-card-claimable { border-color: #cfe2de; }
+.rs-card-claimed { border-color: var(--border-strong); }
+.rs-card-catalogue { opacity: 0.92; }
+
+.rs-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.rs-card-title { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.rs-card-specs { font-size: 12px; color: var(--text-faint); margin-top: 5px; }
+.rs-card-note { font-size: 12.5px; color: var(--text-muted); line-height: 1.45; margin-top: 12px; }
+.rs-card-note-muted { color: var(--text-faint); }
+.rs-card-foot { margin-top: auto; padding-top: 14px; }
+
+.rs-pill { flex: none; white-space: nowrap; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+.rs-pill-teal { background: var(--primary-light); color: var(--accent-dark); }
+.rs-pill-navy { background: #eef2f8; color: var(--primary); }
+.rs-pill-grey { background: #f3f4f6; color: var(--text-muted); }
+
+/* ── buttons ────────────────────────────────────────────────────── */
+.rs-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  font: inherit; font-size: 13.5px; font-weight: 600;
+  border-radius: var(--radius); padding: 10px 16px; cursor: pointer;
+  border: 1px solid transparent; text-decoration: none;
+}
+.rs-btn:disabled { opacity: 0.55; cursor: default; }
+.rs-btn-full { width: 100%; }
+.rs-btn-teal { background: var(--accent); color: var(--white); }
+.rs-btn-teal:hover { background: var(--accent-dark); text-decoration: none; }
+.rs-btn-navy { background: var(--primary); color: var(--white); }
+.rs-btn-navy:hover { background: var(--primary-dark); text-decoration: none; }
+.rs-btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+.rs-btn-ghost:hover { background: var(--bg-soft); text-decoration: none; }
+
+/* ── empty ──────────────────────────────────────────────────────── */
+.rs-empty { background: var(--white); border: 1px dashed var(--border-strong); border-radius: 10px; padding: 28px 22px; text-align: center; color: var(--text-muted); }
+.rs-empty-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+
+/* ── dialog ─────────────────────────────────────────────────────── */
+.rs-overlay {
+  position: fixed; inset: 0; z-index: 70; background: rgba(15, 23, 42, 0.5);
+  display: flex; align-items: center; justify-content: center; padding: 18px;
+}
+.rs-modal { width: 440px; max-width: 100%; background: var(--white); border-radius: 14px; box-shadow: var(--shadow-lg); overflow: hidden; }
+.rs-modal-accent { height: 4px; }
+.rs-modal-accent-teal { background: var(--accent); }
+.rs-modal-body { padding: 22px 24px; }
+.rs-modal-title { font-size: 16.5px; font-weight: 700; color: var(--text); margin: 0 0 14px; }
+.rs-modal-p { font-size: 13.5px; color: #374151; line-height: 1.55; margin: 0 0 10px; }
+.rs-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+
+/* ── toast ──────────────────────────────────────────────────────── */
+.rs-toast {
+  position: fixed; top: 68px; right: 16px; z-index: 90;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-radius: var(--radius);
+  font-size: 13px; font-weight: 600; color: var(--text);
+  background: var(--white); box-shadow: var(--shadow-lg); border-left: 3px solid var(--accent);
+}
+.rs-toast button { background: transparent; border: none; color: var(--text-faint); font-size: 16px; line-height: 1; cursor: pointer; }
+
+/* ── mobile ─────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .rs-card { flex-basis: 100%; max-width: none; }
+  .rs-claimall { flex-direction: column; align-items: stretch; }
+  .rs-claimall .rs-btn { width: 100%; }
+}

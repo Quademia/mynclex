@@ -48,3 +48,20 @@ export async function getMyBankAccess(): Promise<BankAccess> {
   if (!user) return NONE;
   return bankAccessForUser(supabase, user.id);
 }
+
+// Does this user hold ANY readiness entitlement — a credit that hasn't
+// been taken back? This is what lets a pack-owner past the bank space's
+// front door even with no bank subscription (readiness-packs.md §11.10 +
+// the 2026-07-09 IA decision). It is NOT gate for the bank-consumption
+// pages — those keep their own bankAccessForUser check. A revoked credit
+// (refund/admin correction) no longer counts. Reads through the owner's
+// own RLS (nclex_readiness_credits_owner_select).
+export async function ownsReadinessForUser(supabase: SbClient, userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('nclex_readiness_credits')
+    .select('credit_id')
+    .eq('user_id', userId)
+    .is('revoked_at', null)
+    .limit(1);
+  return !!data && data.length > 0;
+}

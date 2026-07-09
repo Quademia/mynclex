@@ -647,6 +647,14 @@
 }
 
 /* ── Bank rail — the constant entry point, given hero treatment ── */
+/* Self-study side column — stacks the bank rail + (for owners) the
+ * readiness rail in the picker's second grid track. */
+.picker-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .picker-bank-rail {
   position: relative;
   overflow: hidden;
@@ -659,6 +667,30 @@
   box-shadow: 0 12px 30px rgba(20, 45, 76, 0.22);
   padding: 24px 22px;
   color: #fff;
+}
+
+/* Readiness door — the same rail card in a teal (accent) tone so it
+ * reads as distinct-but-in-family beneath the navy bank rail. */
+.picker-readiness-rail {
+  background: linear-gradient(160deg, var(--accent) 0%, var(--accent-dark) 100%);
+  box-shadow: 0 12px 30px rgba(35, 95, 86, 0.22);
+}
+.picker-readiness-rail .bank-rail-eyebrow {
+  color: color-mix(in srgb, #fff 82%, transparent);
+}
+.picker-readiness-rail .bank-rail-cta {
+  background: #fff;
+  color: var(--accent-dark);
+}
+.picker-readiness-rail .bank-rail-cta:hover {
+  background: var(--primary-light);
+}
+.picker-readiness-rail::after {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--primary) 34%, transparent),
+    transparent 70%
+  );
 }
 
 .picker-bank-rail::after {

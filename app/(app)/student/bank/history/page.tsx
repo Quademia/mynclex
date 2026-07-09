@@ -6,10 +6,14 @@
 
 import { getHistoryAttempts } from '@/lib/practice/history/queries';
 import { HistoryTable } from '@/lib/practice/history/history-table';
+import { requireActiveBankSubscription } from '@/lib/access';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BankHistoryPage() {
+  // Per-page bank gate (see dashboard) — the layout admits readiness-only
+  // students; history requires bank access.
+  await requireActiveBankSubscription();
   const attempts = await getHistoryAttempts();
   return (
     <>

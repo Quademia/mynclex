@@ -1,6 +1,12 @@
 import { Placeholder } from '@/components/nav/shared/placeholder';
+import { requireActiveBankSubscription } from '@/lib/access';
 
-export default function BankJourneyPage() {
+export const dynamic = 'force-dynamic';
+
+// Per-page bank gate (see dashboard) — the layout admits readiness-only
+// students; this page requires bank access.
+export default async function BankJourneyPage() {
+  await requireActiveBankSubscription();
   return (
     <Placeholder
       title="Journey Tracker"
