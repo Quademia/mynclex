@@ -27,8 +27,11 @@ import { SampleReport } from './sample-report';
 
 export const dynamic = 'force-dynamic';
 
-/** 12000 → "3h 20m" · 9000 → "2h 30m" · 2700 → "45m". */
-export function formatDuration(seconds: number): string {
+/** 12000 → "3h 20m" · 9000 → "2h 30m" · 2700 → "45m".
+ *  Local helper — must NOT be exported: a Next.js `page.tsx` may only
+ *  export the default component + allowed config, so an exported helper
+ *  fails the production `next build` type-check (Turbopack dev misses it). */
+function formatDuration(seconds: number): string {
   const mins = Math.round(seconds / 60);
   const h = Math.floor(mins / 60);
   const m = mins % 60;
