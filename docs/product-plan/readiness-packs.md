@@ -1,9 +1,20 @@
 # Readiness Packs
 
-Last updated: 2026-07-08 (**student Slice ②a COMPLETE + MERGED to
-`main`** — the credits table + mint-at-activation, three sub-slices [§12
-→ Slice ②a]; migrations `20260728120000` [credits table + subscription
-cleanup] + `20260729120000` [`mint_index` idempotency key]. Sam-tested
+Last updated: 2026-07-09 (**student Slice ②b.1 + ②b.2 step 1 COMPLETE +
+MERGED to `main`** — the readiness checkout route (`/checkout/readiness`,
+credits buyable; both mint paths proven live) and the student **packs
+surface + claiming** (`/student/bank/packs`; claim / claim-all via
+service-role actions, the DB one-live-claim-per-pack index the guard;
+built from the CD "Readiness Claiming" prototype). Two IA decisions
+settled with Sam: **readiness stays a bank-family surface** (relaxed
+`requireBankOrReadiness` front door + per-page bank gates + a picker
+Readiness door — NOT a third product), and a **reason-aware `/no-access`
+wall** (gates redirect with `?need=<reason>`; the bank gate's 6 callers
+route through it). No migration in this arc. ⏭ NEXT = ②b.2 step 2 (the
+sitting) → step 3 (results). See §12 → Slice ②b. Previously (**Slice ②a
+COMPLETE + MERGED**): the credits table + mint-at-activation, three
+sub-slices [§12 → Slice ②a]; migrations `20260728120000` [credits table
++ subscription cleanup] + `20260729120000` [`mint_index` idempotency key]. Sam-tested
 live: a `BANK_60D` buy granted a subscription AND minted its 1 bundled
 credit. The mint is keyed on `readiness_credits`, never `pack_type` (the
 bundled-credit trap), locked by tests unsatisfiable by the buggy
@@ -1491,16 +1502,75 @@ same; they differ only where the credits-only version is wrong.
   stamps `expired_at`, the 21-day window, the "Claim all" button, and
   every surface in §11.10.
 
-- **⬜ Slice ②b — claiming + the in-app surfaces.** Claiming UX per §7
-  (pack-card claiming, the three escalating gates, **"Claim all"**
-  where unclaimed credits `>=` claimable packs — the replacement for
-  the retired pre-claim exception, pay-first via `/welcome`); the
-  readiness checkout route (which is what makes the ②a.2 fix load-
-  bearing); and **the in-app catalogue surfaces (§11.10 — the
-  bank-dashboard compact section + the dedicated readiness page),
-  moved here from Slice ① (2026-07-08):** their pack cards read state
-  off the credit rows ②a creates, and their pixels ride this slice's
-  CD brief. CD brief: claiming.
+- **🔨 Slice ②b — the readiness checkout, the surface + claiming, the
+  sitting, results.** Split into build steps; the CD "Readiness
+  Claiming" prototype (2026-07-09) drives the surface pixels.
+
+  - **②b.1 — the readiness checkout route ✅ BUILT + Sam-tested + MERGED
+    to `main` 2026-07-08.** A student can buy readiness credits: new
+    `/checkout/readiness` (mirror of `/checkout/bank`, ACTIVE PAID
+    READINESS SKU, shared `CheckoutShell`; the engine already routed
+    `READINESS_PURCHASE` and ②a mints). The `/readiness` CTA went live
+    ("Get credits"). The result screen is honest for a readiness-only
+    order (`isReadinessOnly` → "Readiness pack credits" line, lands on
+    the picker with "Go to your account", NOT "Start practising"). Both
+    mint paths now proven on real dev buys: bundled (`BANK_60D` → sub +
+    `BANK_BUNDLE` credit) and standalone (`READINESS_SINGLE` →
+    `SELF_PURCHASE` credit, **no subscription**).
+
+  - **②b.2 step 1 — the student packs surface + claiming ✅ BUILT +
+    Sam-tested + MERGED to `main` 2026-07-09.** The dedicated
+    `/student/bank/packs` surface (was a placeholder): `getStudent­Readiness­View`
+    joins published packs × the student's credits into per-pack card
+    state via `creditStage`; `claimReadinessPack` / `claimAllReadiness`
+    (service-role actions re-validating ownership — no student-write RLS
+    on credits) set `pack_id` + `claimed_at` on one unclaimed credit,
+    the DB one-live-claim-per-pack index the hard guard. The light claim
+    confirm carries **both** copy halves (won't start the clock / can't
+    be swapped). Members never read (curator-only RLS) — the card shows
+    the pack's own n + time. Reachable states this step: catalogue /
+    claimable / claimed (activation + sat states render but aren't
+    reachable until the sitting). Verified live: 2 packs claimed to
+    distinct packs, only `pack_id`+`claimed_at` written (no clock
+    started), no double-claim.
+
+    **IA decision (2026-07-09, settled with Sam) — readiness stays a
+    bank-family surface, NOT a third product.** The student IA is two
+    spaces (Bank / Programme) with a picker hub + a two-pill switcher;
+    readiness lives in the bank sidebar (§11.10 always placed it "for
+    every bank audience"). But standalone SKUs (②b.1) created a buyer
+    with readiness credits and **no bank subscription**, whom the bank
+    gate blocked. Fix, three small changes: (1) the bank layout's
+    front-door gate relaxed to **`requireBankOrReadiness`** (bank access
+    OR a readiness entitlement); (2) the 5 bank-consumption pages
+    (dashboard/practice/history/journey/profile) each re-assert
+    `requireActiveBankSubscription` themselves, so a readiness-only
+    student who clicks them still bounces — the Packs page adds no bank
+    check; (3) the picker gains a **Readiness door** (grouped with the
+    bank rail, teal variant, shown to owners) — the only hub route to
+    packs for a student with no bank pass. `/student/bank` index →
+    dashboard (bank) or packs (readiness-only).
+
+    **Reason-aware access wall (2026-07-09, from Sam's test feedback).**
+    A blocked gate no longer hard-redirects to a bespoke target with no
+    context (a no-bank student clicking Practice was dumped on the bank
+    sell page). `/no-access` is now reason-aware: gates redirect with
+    `?need=<reason>` and the page renders the explanation + CTA.
+    `need=bank` → what's locked + See-bank-plans + (if they own
+    readiness) a link to their packs so they're never stranded; no
+    reason → the existing genuine-denial page. All 6
+    `requireActiveBankSubscription` callers (5 pages + the session
+    runner) and `requireBankOrReadiness` route through it; the picker's
+    "Get access" (chosen navigation) still links straight to
+    `/bank-access`. New blocked cases add a `need` value, not a redirect
+    per gate.
+
+  - **⏭ ②b.2 step 2 — the sitting** (activate the 21-day window + the
+    one-shot runner + the begin-exam preflight; see the next bullet) and
+    **step 3 — results** (§11.5) light up the ACTIVE / sat card states.
+    "Build everything" (Sam, 2026-07-09 — no real users, so no
+    burned-window risk): the full claim → activate → sit → result chain
+    ships, in ordered tested steps, nothing dormant.
 - **⬜ The sitting:** attempt creation for the READINESS_PACK source
   (link rows → attempt rows, the runner doesn't know it's a pack);
   the one-shot timed run wiring (start = the shot, quit =
