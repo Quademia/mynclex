@@ -88,7 +88,15 @@ ID formats: questions `NCLEX_<TYPE>_<NNNNN>` (SATA/MCQ often a `900xx`/`910xx`
 series — continue whichever the recent case-study items use); case
 `NCLEX_CS_000NN`; tabs `<CASE>_TAB_<n>`; links `<CASE>_ITEM_<n>`; trend
 `NCLEX_TRD_000NN`, its tab `<TREND>_TAB_1`. New rows: `is_published=false`
-(draft), `is_builder_visible=true`, `marks=1`.
+(draft), `is_builder_visible=true`.
+
+**`marks` = the question's MAX partial-credit score — NEVER a flat 1.** A flat
+`marks=1` on a multi-answer type makes the submit RPC throw `score_awarded N out
+of range [0, marks]` and blocks Submit. Compute it (mirror
+`lib/scoring/dispatch.ts` → `computeMarksFromKey`): MCQ/TF = 1 · SATA/SELECT_N =
+#correct answers · MATRIX = #rows · MATRIX_MR = #correct cells (summed over
+rows) · CLOZE = #blanks · HIGHLIGHT = #correct chunks · BOWTIE = 5. Put a
+`marksFor(qtype, correct)` helper in the generator and use it — do not hardcode.
 
 ### 5. Insert
 
@@ -106,10 +114,18 @@ series — continue whichever the recent case-study items use); case
 ### 6. Verify (always)
 
 Read the rows back from the target and deep-compare against intent:
-question `question_type` / `position` / `cjmm_step` / `correct`; tab
+question `question_type` / `position` / `cjmm_step` / `correct` / `marks`; tab
 `visibleFrom` schedules; child count = 6; wrapper `is_published=false`. Only
 then report to the user, who does the final visual/clinical review in the
 editor at `localhost:3000` → admin bank.
+
+**When a case goes to BOTH dev and prod, MD5-verify the copy is faithful.** The
+prod insert re-uses the same content re-IDed, so `md5(content::text)`,
+`md5(correct::text)` per question, and `md5(entries::text)` per tab must be
+**byte-identical** on dev and prod (Postgres normalises jsonb, so equal logical
+content → equal hash). Any mismatch = a corrupted/edited copy; fix before
+reporting. (This only proves the dev→prod *copy* is faithful — NOT that the
+clinical mapping is right. That still needs a human eye on the flagged calls.)
 
 ## Conventions & judgment calls — FLAG, don't silently decide
 
@@ -120,8 +136,15 @@ Surface these to the user for confirmation (they own the clinical call):
   incomplete reference range) — state each fix.
 - **Label cleanup** (doc "P / Pulse oximeter" → "Pulse / Saturations") — match
   the existing authored cases' cleaned labels; note it.
-- **Classifications + difficulty** — specimens state none; leave NULL and tell
-  the user they must set them (they gate builder eligibility).
+- **Classifications + difficulty** — the specimen states none, but **fill them
+  per question** (Sam's standing ask, 2026-07-10): `client_needs_category` (one
+  of the 4 top-level in `lib/bank/classifications.ts`), `nursing_subject`,
+  `body_system`, `topic` (free text), `subtopic` (free text/null), `difficulty`
+  (Easy/Medium/Hard). Assign per-question by CJMM focus (e.g. prioritise/take-
+  action → often *Safe and Effective Care Environment*; physiological recognise/
+  analyse/evaluate → *Physiological Integrity*; teaching → *Health Promotion*).
+  They gate builder eligibility. Use the EXACT enum strings from
+  `classifications.ts`. Flag any genuinely ambiguous axis to the user.
 - **Paired-scoring Cloze** ("Scoring Rule: Rationale" / cause-effect) — v1
   scores each blank independently; note the deferral.
 
@@ -131,10 +154,70 @@ Surface these to the user for confirmation (they own the clinical call):
 - Never invent clinical content. Transcription copies the specimen verbatim;
   authoring new questions is a separate task with its own review.
 
+## Batch mode — multi-agent (a whole folder at once)
+
+**Proven 2026-07-10:** the whole Family folder went in as parallel subagent
+batches — 6 fresh cases across two batches of 3, one general-purpose subagent per
+`.docx`, each end-to-end (dev + prod + MD5-verify + classifications), **zero ID
+collisions, zero failures**. Two modes: (a) **one file at a time** (the serial
+pipeline above — the orchestrator maps + builds each case; best for a single
+file or when you want to eyeball every question), or (b) **multi-agent** —
+requires the user to opt in (spawning agents + prod writes cost tokens). Use
+multi-agent when a folder has several untranscribed case files.
+
+**THE one rule that makes it safe: pre-mint a distinct ID band per agent BEFORE
+fan-out.** If agents each query "next SATA id" in parallel they pick the SAME
+number and collide on insert. So the orchestrator allocates non-overlapping
+ranges up front and hands each agent its exact IDs.
+
+The band trick: an `item_id` is `PREFIX + number`, and the prefix differs per
+type — so ONE sequential number range per agent works for ALL its types at once.
+Give agent A the numbers `x01, x02, …` (Q1=x01 … Q6=x06, standalone=x07) with
+the correct per-type prefix; give agent B a disjoint hundreds-range; etc.
+
+**Orchestrator steps:**
+1. **Pick the files** + confirm the batch size with the user (3 validated cleanly;
+   4–5 is fine once proven). Skip any already in the bank (title match).
+2. **Query current maxes** on dev AND prod for every question type + CS + TRD
+   (see step 4 above). Pick a CLEAN high band above all maxes and verify it's
+   empty. Used so far: **dev items `97xxx`, prod items `99xxx`** — carve a
+   distinct hundreds-range per agent (A=`970xx`/`990xx`, B=`971xx`/`991xx`, …).
+   Assign each agent explicit `CS_000NN` (dev+prod) and `TRD_000NN` (dev+prod).
+   Log the next free band in memory so the following batch continues cleanly.
+3. **Fan out one subagent per file** (Agent tool, `general-purpose`, all in one
+   message → parallel). Each agent prompt MUST include: its `.docx` path; a
+   pointer to `reference/json-shapes.md`; a WORKING generator to COPY as the
+   template (this session used `gen-scc.js` = case + bow-tie + `cls()`
+   classifications + dev insert + prod SQL emit; `gen-pph.js` = a standalone
+   *trend* question + rotated flowsheet); `lib/bank/classifications.ts` for the
+   vocabulary; **its exact dev+prod ID assignment**; the full step list
+   (extract → map → build → `node gen dev --insert` → verify dev → `node gen prod
+   --sql` → apply via prod MCP `execute_sql` in one `BEGIN…COMMIT` → MD5-verify
+   dev==prod); governance (drafts only, touch ONLY its own band); and a report
+   format (per-question type/marks/cjmm/classification/key + every judgment call
+   + PASS/FAIL). Agents reach the prod MCP tool via ToolSearch.
+4. **Batch-level verify after all report:** on prod, confirm each new case has 6
+   children + expected tabs + `is_published=false`; count items per band (should
+   equal 7 = 6 + standalone, no overlap between bands); check no multi-answer
+   type sits at `marks=1` (a legit 1-blank CLOZE at marks 1 is fine — verify it's
+   actually a cloze). Then read each agent's flagged judgment calls and review
+   them (the MD5 only proves the copy is faithful, not the mapping).
+
+The generator each agent copies carries: the Tiptap builders, `gridTable` /
+`bannerTable` (shared `cidN` so cell ids stay unique across banner tables in one
+tab), `marksFor`, the `cls()` classification helper, an `IDS = {dev,prod}` map,
+and both a dev `--insert` path (supabase-js, dev-ref-guarded) and a prod `--sql`
+emit. `tags` is `text[]` → emit `'{}'` (NOT `'[]'::jsonb`). Keep prose
+apostrophes as curly `’` where possible to sidestep SQL-quote escaping.
+
 ## Reference material in this skill
 
 - `reference/json-shapes.md` — exact `content` + `correct` per question type,
   the tab (narrative / merge-table / banner) shapes, wrapper table columns, and
   the cue→type table.
 - `scripts/docx-to-text.js` — the extractor.
-- `scripts/generator-template.js` — the builders + insert harness to copy and fill.
+- `scripts/generator-template.js` — the builders + insert harness to copy and
+  fill. **Evolve it toward the session generators** (`gen-scc.js` pattern): add
+  `marksFor()`, the `cls()` classification helper + the 6 classification columns,
+  the `IDS = {dev,prod}` map, and a prod `--sql` emitter alongside the dev
+  `--insert` — the bundled template predates all of these.
