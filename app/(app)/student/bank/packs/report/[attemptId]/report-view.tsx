@@ -17,8 +17,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ReadinessReport } from '@/lib/payments/readiness-report';
-import { weakestSubcategory } from '@/lib/payments/readiness-breakdowns';
+import { weakestSubcategory, nextMoves } from '@/lib/payments/readiness-breakdowns';
 import WhereToFocus from './where-to-focus';
+import NextMoves from './next-moves';
 
 type SectionKey = 'results' | 'focus' | 'moves' | 'insights' | 'map' | 'review';
 
@@ -169,6 +170,7 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
   const count = useCountUp(pct ?? 0, mounted && pct !== null);
   const dl = daysLeft(expiresAt);
   const weakest = weakestSubcategory(report.items);
+  const nm = nextMoves(report.items);
 
   const openSection = (k: SectionKey) => {
     const opening = openSec !== k;
@@ -232,8 +234,11 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
     moves: {
       title: 'Your next moves',
       sub: 'Remediation · quick wins · strengths',
-      summary: 'Coming next',
-      summaryTone: 'muted',
+      summary:
+        nm.moves.length > 0
+          ? `${nm.moves.length} to work on${nm.oneAway > 0 ? ` · ${nm.oneAway} quick win${nm.oneAway === 1 ? '' : 's'}` : ''}`
+          : 'On track',
+      summaryTone: nm.moves.length > 0 ? undefined : 'ok',
     },
     insights: {
       title: 'Trend & pacing',
@@ -490,7 +495,7 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
             open={openSec === 'moves'}
             onToggle={() => openSection('moves')}
           >
-            <ComingSoon what="Your next moves" />
+            <NextMoves items={report.items} reviewOpen={reviewOpen} attemptId={attemptId} />
           </AccordionSection>
 
           <AccordionSection

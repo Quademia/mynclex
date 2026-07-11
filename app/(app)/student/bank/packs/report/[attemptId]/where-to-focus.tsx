@@ -49,7 +49,7 @@ function Val({ correct, n }: { correct: number; n: number }) {
   );
 }
 
-function TopicChecklist({ topics }: { topics: string[] }) {
+function TopicChecklist({ topics, target }: { topics: string[]; target: string }) {
   if (!topics.length) {
     return (
       <div className="rs-wtf-topics">
@@ -67,7 +67,10 @@ function TopicChecklist({ topics }: { topics: string[] }) {
           </span>
         ))}
       </div>
-      <a className="rs-wtf-practise" href="/student/bank/practice">
+      <a
+        className="rs-wtf-practise"
+        href={`/student/bank/practice?subcat=${encodeURIComponent(target)}`}
+      >
         Practise this category in the bank →
       </a>
     </div>
@@ -170,7 +173,9 @@ export default function WhereToFocus({ items }: { items: ReportItem[] }) {
                   <Val correct={cat.correct} n={cat.n} />
                 </button>
 
-                {open && cat.oneToOne && <TopicChecklist topics={cat.wrongTopics} />}
+                {open && cat.oneToOne && (
+                  <TopicChecklist topics={cat.wrongTopics} target={cat.name} />
+                )}
 
                 {open &&
                   !cat.oneToOne &&
@@ -196,7 +201,9 @@ export default function WhereToFocus({ items }: { items: ReportItem[] }) {
                           <Bar frac={sub.frac} />
                           <Val correct={sub.correct} n={sub.n} />
                         </button>
-                        {subOpen && <TopicChecklist topics={sub.wrongTopics} />}
+                        {subOpen && (
+                          <TopicChecklist topics={sub.wrongTopics} target={sub.name} />
+                        )}
                       </div>
                     );
                   })}

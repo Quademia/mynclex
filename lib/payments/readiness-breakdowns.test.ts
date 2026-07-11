@@ -4,6 +4,7 @@ import {
   axisRows,
   clientNeedsTree,
   weakestSubcategory,
+  nextMoves,
 } from '@/lib/payments/readiness-breakdowns';
 
 function mk(o: Partial<ReportItem>): ReportItem {
@@ -104,5 +105,36 @@ describe('weakestSubcategory', () => {
 
   it('returns null when nothing is subcategorised', () => {
     expect(weakestSubcategory([mk({})])).toBeNull();
+  });
+});
+
+describe('nextMoves', () => {
+  const items = [
+    mk({ subcategory: 'Weak' }),
+    mk({ subcategory: 'Weak' }),
+    mk({ subcategory: 'Weak' }),
+    mk({ subcategory: 'Strong', isCorrect: true }),
+    mk({ subcategory: 'Strong', isCorrect: true }),
+    // partial, one point away from full (3 of 4)
+    mk({ subcategory: 'Weak', scoreAwarded: 3, marks: 4 }),
+  ];
+  const nm = nextMoves(items);
+
+  it('surfaces weak subcategories as moves, not strong ones', () => {
+    expect(nm.moves.map((m) => m.name)).toContain('Weak');
+    expect(nm.moves.map((m) => m.name)).not.toContain('Strong');
+  });
+
+  it('surfaces strong subcategories as strengths', () => {
+    expect(nm.strengths.map((s) => s.name)).toContain('Strong');
+  });
+
+  it('counts partially-correct and one-away questions', () => {
+    expect(nm.partial).toBe(1);
+    expect(nm.oneAway).toBe(1);
+  });
+
+  it('ignores singletons (n < 2) as moves', () => {
+    expect(nextMoves([mk({ subcategory: 'Solo' })]).moves).toEqual([]);
   });
 });

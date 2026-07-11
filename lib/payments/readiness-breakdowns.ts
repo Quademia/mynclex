@@ -153,6 +153,41 @@ export function clientNeedsTree(items: ReportItem[]): CnCatNode[] {
   });
 }
 
+export interface NextMovesData {
+  /** Weakest subcategories worth practising (n≥2, below the green bar). */
+  moves: BucketRow[];
+  /** Strongest areas that held up (n≥2). */
+  strengths: BucketRow[];
+  /** Partially-correct questions one point away from full — the fastest gains. */
+  oneAway: number;
+  /** Total partially-correct questions. */
+  partial: number;
+}
+
+/** The "your next moves" data — remediation targets, quick wins, strengths. */
+export function nextMoves(items: ReportItem[]): NextMovesData {
+  const rows = [...groupBy(items.filter((i) => i.subcategory != null), (i) => i.subcategory)]
+    .map(([name, its]) => bucket(name, its))
+    .filter((r) => r.n >= 2);
+  const moves = [...rows]
+    .sort((a, b) => a.frac - b.frac || b.n - a.n)
+    .filter((r) => r.frac < 0.7)
+    .slice(0, 3);
+  const strengths = [...rows]
+    .sort((a, b) => b.frac - a.frac || b.n - a.n)
+    .filter((r) => r.frac >= 0.7)
+    .slice(0, 3);
+  let oneAway = 0;
+  let partial = 0;
+  for (const it of items) {
+    if (!it.isCorrect && it.scoreAwarded > 0) {
+      partial += 1;
+      if (it.marks - it.scoreAwarded === 1) oneAway += 1;
+    }
+  }
+  return { moves, strengths, oneAway, partial };
+}
+
 /** Weakest L2 subcategory (min frac, tie-break larger n) for the summary line. */
 export function weakestSubcategory(items: ReportItem[]): string | null {
   const groups = groupBy(items.filter((i) => i.subcategory != null), (i) => i.subcategory);
