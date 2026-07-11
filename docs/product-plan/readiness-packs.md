@@ -672,7 +672,7 @@ timestamps; loopy lifecycle → status.)
 | 10 | `activated_at` | window started | activation |
 | 11 | `expires_at` | **the deadline** — activation + 21d, frozen per-credit | activation (with #10) |
 | 12 | `used_at` | sitting completed | completion (with #7) |
-| 13 | `expired_at` | **the lapse event** — window passed unused | the nightly sweep |
+| 13 | `expired_at` | **the lapse event** — window passed unused | lazy stamp on next touch (read / re-claim) — see *Lapse mechanism* below |
 | 14 | `revoked_at` | taken back | refund/admin path |
 | 15 | `revoked_reason` | why (refund, error…) | with #14 |
 | 16 | `updated_at` | housekeeping | every write |
@@ -684,6 +684,30 @@ no-double-claim constraint ignore lapsed credits; it also gives
 honest reporting. Reading the stage: #8 only = unclaimed credit →
 +#9 = claimed → +#10/11 = window running → exactly one of #12 / #13 /
 #14 ends the story.
+
+> **Lapse mechanism — `expired_at` is stamped LAZILY, not by a nightly
+> sweep (settled 2026-07-11, with Sam).** The "possible lapse date" is
+> already on the row from activation — it's `expires_at` (#11) = the
+> frozen deadline. So we do **not** need a scheduled job to discover
+> lapses; we stamp `expired_at` (#13) **the next time the credit is
+> touched** — on a packs-page read, or (the correctness-critical one) at
+> the moment of a re-claim attempt. This mirrors the exam sitting's
+> existing **lazy-expiry** (a timed-out attempt is finalised on the next
+> `/session` load, not by a cron). Why it's safe: the only thing that
+> *depends* on `expired_at` being written is re-claiming a lapsed pack —
+> and a re-claim is itself the action that triggers the stamp, so the
+> write always lands right before it matters. A student who never
+> returns leaves a stale-but-harmless row (nobody's reading it); the
+> next touch self-heals it. Card **display** doesn't even wait for the
+> stamp — it derives "lapsed" live by comparing today to `expires_at`
+> (the same live read that already drives "N days left"). Net: keeps the
+> written-fact model + audit trail, drops the cron. The `expired_at`
+> column and the no-double-claim rule are **unchanged** — only *who
+> writes the stamp, and when* changes (a lazy write on read/claim
+> instead of a scheduled sweep). Build slice below. **Bonus:** the same
+> lazy-expiry pass can finalise an abandoned sitting whose 3h20m clock
+> ran out while the student was away, so one small mechanism covers both
+> the window lapse and the sitting timeout.
 
 **Database-enforced rules:** activation requires a claim; used
 requires activation; used/expired/revoked mutually exclusive; a claim
@@ -1498,13 +1522,15 @@ same; they differ only where the credits-only version is wrong.
     the caller's own rows (getUser + explicit `user_id` filter) → rows
     with stage + a by-stage tally. Split pure-from-server like the mint
     so the stage logic is unit-tested. Read-only — no claiming,
-    activation, or sweep. Clock caveat documented: the stage is truthful
-    to what's written, so a past-deadline credit reads ACTIVE until the
-    sweep stamps `expired_at`.
+    activation, or expiry write. Clock caveat documented: the stage is
+    truthful to what's written, so a past-deadline credit reads ACTIVE
+    until `expired_at` is stamped (now **lazily, on next touch** — see §7
+    *Lapse mechanism*; the nightly sweep is retired).
 
-  **Out of scope (as scoped), now ②b or later:** the nightly sweep that
-  stamps `expired_at`, the 21-day window, the "Claim all" button, and
-  every surface in §11.10.
+  **Out of scope (as scoped), now ②b or later:** the lazy-expiry write
+  that stamps `expired_at` (was "the nightly sweep" — retired 2026-07-11;
+  see §12 *Lazy-expiry* slice), the 21-day window, the "Claim all" button,
+  and every surface in §11.10.
 
 - **🔨 Slice ②b — the readiness checkout, the surface + claiming, the
   sitting, results.** Split into build steps; the CD "Readiness
@@ -1665,15 +1691,49 @@ same; they differ only where the credits-only version is wrong.
       submit = still resumable. Plus readiness-honest copy on the exit/end
       affordances. Test: answer some → End & submit → scores as-is; Leave → come
       back mid-clock → resumes; clock runs out → auto-submits.
-    - **2b-iv — completion + USED card + in-window review.** The results
-      popup **readiness variant** (CTA "See your full report", no retake);
-      card flips to **USED**; per-question review **gated to the 21-day
-      window**. Test: finish → readiness popup → USED → review works
-      in-window.
+    - **✅ 2b-iv — completion + USED card + in-window review — BUILT +
+      Sam-tested 2026-07-11** (app-layer, no migration; tsc + eslint clean;
+      NOT yet merged to `main`). The results popup **readiness variant**
+      (eyebrow "Exam complete", single CTA **"See your full report"** → the
+      report page, no inline review, no retake); the **step-3 report page as
+      a navigable PLACEHOLDER** (`/student/bank/packs/report/[attemptId]` —
+      ownership+source+terminal gate, the banked score [persists forever],
+      a "full report coming" placeholder, the window-gated "Review your
+      answers" entry); the card flips to **USED**; per-question review
+      **gated to the 21-day window** at BOTH the `/session` route (out-of-window
+      → redirect to the report) and the report's Review button (defence in
+      depth) via the shared `reviewWindowOpen` helper. Verified live end to
+      end + the out-of-window path (backdated window on dev).
+    - **✅ Completed-card polish — BUILT + Sam-tested 2026-07-11** (same
+      sitting; app-layer). Three improvements from a design pass: (1) the USED
+      card shows the **mark + Readiness band** (Building/Approaching/Ready/
+      Excelling, `lib/payments/readiness-band.ts` = the single score→band
+      source per bank-consumption §6, banded on the *rounded* percent; the
+      report page shows the same chip); (2) **Review from the card** — while
+      the window's open a completed card carries both "See your full report"
+      + "Review answers", the second dropping when the window closes; (3) **one
+      uniform 21-day window bar** (`WindowBar`) — a single continuous countdown
+      draining across CLAIMED ("21 days · not started", illustrative) → ACTIVE
+      ("N days left to sit", tone escalates to red) → SITTING (muted) → USED
+      ("N days of review left", **calm** tone) → "Review closed", with the tone
+      deliberately flipping urgent→calm the moment you sit; no bar on
+      catalogue/claim/lapsed.
 - **⬜ Results page (step 3, its own slice after 2b):** the permanent per-sitting report per §11.5
   (verdict hero + points line, peer comparator w/ min-N, multi-axis
   breakdowns, two lifetimes, review-runner reuse + window gating);
-  the readiness variant of the results popup. CD brief: results.
+  the readiness variant of the results popup. **The placeholder route +
+  the window-gated Review entry already exist (2b-iv) — this slice fills
+  it in.** CD brief: results.
+- **⬜ Lazy-expiry (replaces the nightly sweep — settled 2026-07-11):**
+  stamp `expired_at` **on the next touch** of a past-deadline unsat credit
+  — on a packs-page read and (correctness-critical) at re-claim time —
+  instead of a scheduled job. Card display already derives "lapsed" live
+  from `expires_at`; this slice adds the write-through + folds the
+  re-claim guard's time check into the claim action. `expired_at` column
+  + the no-double-claim rule unchanged (only the *writer* changes). Reuse
+  the `/session` lazy-expiry pattern; the **same pass finalises an
+  abandoned sitting** whose clock ran out while the student was away. Full
+  rationale: §7 → *Lapse mechanism*.
 
 ---
 
