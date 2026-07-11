@@ -51,6 +51,9 @@ export interface StudentPackCard {
   /** USED only: is the 21-day answer-review window still open? Drives the
    *  card note. Always false for non-USED. */
   reviewOpen: boolean;
+  /** The sitting's score (0..1) — USED cards only, else null. Drives the
+   *  mark + derived Readiness band on the completed card. */
+  finalScore: number | null;
 }
 
 export interface StudentReadinessView {
@@ -98,18 +101,22 @@ export async function getStudentReadinessView(): Promise<StudentReadinessView> {
   }));
 
   // A USED credit carries its sitting's attempt_id. Read those attempts'
-  // status to split "sitting in progress" (resume) from "finished" (results).
+  // status to split "sitting in progress" (resume) from "finished" (results),
+  // and their final_score to show the mark + band on the completed card.
   const usedAttemptIds = credits
     .filter((c) => c.stage === 'USED' && c.attemptId)
     .map((c) => c.attemptId as string);
-  const attemptStatus = new Map<string, string>();
+  const attemptById = new Map<string, { status: string; finalScore: number | null }>();
   if (usedAttemptIds.length > 0) {
     const { data: attempts } = await supabase
       .from('nclex_attempts')
-      .select('attempt_id, status')
+      .select('attempt_id, status, final_score')
       .in('attempt_id', usedAttemptIds);
     for (const a of attempts ?? []) {
-      attemptStatus.set(a.attempt_id as string, a.status as string);
+      attemptById.set(a.attempt_id as string, {
+        status: a.status as string,
+        finalScore: (a.final_score as number | null) ?? null,
+      });
     }
   }
 
@@ -139,13 +146,15 @@ export async function getStudentReadinessView(): Promise<StudentReadinessView> {
     // (resume mid-clock); a terminal sitting reads as USED (finished).
     let state: PackCardState;
     let resumeAttemptId: string | null = null;
+    let finalScore: number | null = null;
     if (live?.stage === 'USED') {
-      const st = live.attemptId ? attemptStatus.get(live.attemptId) : undefined;
-      if (st === 'IN_PROGRESS') {
+      const at = live.attemptId ? attemptById.get(live.attemptId) : undefined;
+      if (at?.status === 'IN_PROGRESS') {
         state = 'SITTING';
         resumeAttemptId = live.attemptId;
       } else {
         state = 'USED';
+        finalScore = at?.finalScore ?? null;
       }
     } else {
       state = live?.stage ?? (unclaimed > 0 ? 'CLAIMABLE' : 'CATALOGUE');
@@ -178,6 +187,7 @@ export async function getStudentReadinessView(): Promise<StudentReadinessView> {
       resumeAttemptId,
       reportAttemptId,
       reviewOpen,
+      finalScore,
     };
   });
 

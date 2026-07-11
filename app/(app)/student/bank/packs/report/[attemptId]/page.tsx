@@ -20,6 +20,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { reviewWindowOpen } from '@/lib/payments/readiness-window';
+import { scoreToBand } from '@/lib/payments/readiness-band';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,6 +83,7 @@ export default async function ReadinessReportPage({ params }: PageProps) {
 
   const pct =
     attempt.final_score !== null ? Math.round(attempt.final_score * 100) : null;
+  const band = scoreToBand(attempt.final_score);
 
   // Review window: open while now < expires_at. Missing deadline (edge)
   // reads as closed — never leak review past a window we can't confirm.
@@ -102,6 +104,7 @@ export default async function ReadinessReportPage({ params }: PageProps) {
             <>
               <span className="rs-report-num">{pct}</span>
               <span className="rs-report-pct">%</span>
+              {band && <span className={`rs-band rs-band-${band.tone}`}>{band.label}</span>}
             </>
           ) : (
             <span className="rs-report-unavail">Score unavailable</span>

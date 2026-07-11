@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { claimReadinessPack, claimAllReadiness } from '@/lib/payments/readiness-claim';
 import { activateReadinessPack } from '@/lib/payments/readiness-activate';
 import { beginReadinessAttempt } from '@/lib/payments/readiness-begin';
+import { scoreToBand } from '@/lib/payments/readiness-band';
 import type { StudentReadinessView, StudentPackCard } from '@/lib/payments/readiness-packs-view';
 
 function timeStr(sec: number): string {
@@ -146,6 +147,7 @@ export function ReadinessPacksClient({ view }: { view: StudentReadinessView }) {
               onReport={() =>
                 p.reportAttemptId && router.push(`/student/bank/packs/report/${p.reportAttemptId}`)
               }
+              onReview={() => p.reportAttemptId && router.push(`/session/${p.reportAttemptId}`)}
             />
           ))}
         </div>
@@ -244,6 +246,7 @@ function PackCard({
   onBegin,
   onResume,
   onReport,
+  onReview,
 }: {
   pack: StudentPackCard;
   pending: boolean;
@@ -252,6 +255,7 @@ function PackCard({
   onBegin: () => void;
   onResume: () => void;
   onReport: () => void;
+  onReview: () => void;
 }) {
   const specs = `${pack.n} questions · ${timeStr(pack.timeLimitSec)} · one shot`;
 
@@ -268,10 +272,6 @@ function PackCard({
               ? { label: 'Completed', tone: 'grey' }
               : { label: 'Available', tone: 'grey' };
 
-  // Days-left urgency colour for the running window.
-  const dl = pack.daysLeft;
-  const daysTone = dl == null ? '' : dl > 7 ? 'ok' : dl > 2 ? 'warn' : 'danger';
-
   return (
     <div className={`rs-card rs-card-${pack.state.toLowerCase()}`}>
       <div className="rs-card-top">
@@ -280,42 +280,25 @@ function PackCard({
       </div>
       <div className="rs-card-specs">{specs}</div>
 
-      {pack.state === 'ACTIVE' && dl != null && (
-        <div className="rs-days">
-          <div className={`rs-days-num rs-days-${daysTone}`}>
-            {dl} <span className="rs-days-unit">{dl === 1 ? 'day left' : 'days left'}</span>
-          </div>
-          <div className="rs-days-bar">
-            <div
-              className={`rs-days-fill rs-days-${daysTone}`}
-              style={{ width: `${Math.max(4, Math.round((dl / 21) * 100))}%` }}
-            />
-          </div>
-        </div>
-      )}
+      {/* Completed sitting → the banked mark + its Readiness band. */}
+      {pack.state === 'USED' && <ResultBlock finalScore={pack.finalScore} />}
+
+      {/* The one uniform 21-day window bar — same element from CLAIMED
+          (not started) through the running window to review, only the
+          label + tone changing. Renders null for the pre-window states. */}
+      <WindowBar pack={pack} />
 
       {pack.state === 'CLAIMED' && (
-        <div className="rs-card-note">This pack is yours. Start its 21-day window when you&apos;re ready to sit it.</div>
+        <div className="rs-card-note">Start its 21-day window when you&apos;re ready to sit it.</div>
       )}
       {pack.state === 'SITTING' && (
         <div className="rs-card-note rs-card-note-danger">
           Your exam is under way and the clock is still running. Pick up where you left off.
         </div>
       )}
-      {pack.state === 'ACTIVE' && (
-        <div className={`rs-card-note${daysTone === 'danger' ? ' rs-card-note-danger' : ''}`}>
-          {daysTone === 'danger'
-            ? 'Your window closes soon — sit it before you lose the shot.'
-            : 'Sit your one attempt any time before the window closes.'}
-        </div>
-      )}
-      {pack.state === 'USED' && (
-        <div className="rs-card-note">
-          {pack.reviewOpen
-            ? `You've sat this pack. Your score is saved — answer review is open for ${
-                pack.daysLeft === 1 ? '1 more day' : `${pack.daysLeft} more days`
-              }.`
-            : "You've sat this pack. Your score is saved; the answer-review window has closed."}
+      {pack.state === 'ACTIVE' && pack.daysLeft != null && pack.daysLeft <= 2 && (
+        <div className="rs-card-note rs-card-note-danger">
+          Your window closes soon — sit it before you lose the shot.
         </div>
       )}
       {pack.lapsed && (
@@ -351,10 +334,83 @@ function PackCard({
           </button>
         )}
         {pack.state === 'USED' && (
-          <button type="button" className="rs-btn rs-btn-navy rs-btn-full" disabled={pending} onClick={onReport}>
-            See your full report
-          </button>
+          <div className="rs-card-btns">
+            <button type="button" className="rs-btn rs-btn-navy rs-btn-full" disabled={pending} onClick={onReport}>
+              See your full report
+            </button>
+            {pack.reviewOpen && (
+              <button type="button" className="rs-btn rs-btn-ghost rs-btn-full" disabled={pending} onClick={onReview}>
+                Review answers
+              </button>
+            )}
+          </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// The completed sitting's banked mark + its Readiness band. The score
+// persists forever (unlike the review window), so this stays on the card
+// for good once a pack is sat.
+function ResultBlock({ finalScore }: { finalScore: number | null }) {
+  if (finalScore == null) return null;
+  const pct = Math.round(finalScore * 100);
+  const band = scoreToBand(finalScore);
+  return (
+    <div className="rs-result">
+      <div className="rs-result-score">{pct}%</div>
+      {band && <span className={`rs-band rs-band-${band.tone}`}>{band.label}</span>}
+    </div>
+  );
+}
+
+// The single 21-day window bar, shared across every state where a window
+// exists. It's one continuous countdown: activation stamps a deadline and
+// the same bar drains from "not started" (CLAIMED) through the running
+// window (ACTIVE / SITTING) to answer-review (USED) — only the label and
+// tone change. The tone deliberately FLIPS at sitting: before sitting the
+// draining bar threatens the whole shot (escalates to red); after sitting
+// it only threatens review (stays calm). Pre-window states render nothing.
+function WindowBar({ pack }: { pack: StudentPackCard }) {
+  const dl = pack.daysLeft;
+  const fill = (d: number) => Math.max(4, Math.round((d / 21) * 100));
+
+  let cfg:
+    | { tone: string; width: number; num: number | null; label: string }
+    | null = null;
+
+  if (pack.state === 'CLAIMED') {
+    // No live deadline yet — an illustrative full bar showing the window
+    // that's ready to start.
+    cfg = { tone: 'idle', width: 100, num: null, label: '21 days · not started' };
+  } else if (pack.state === 'ACTIVE' && dl != null) {
+    // Time to SIT — losing this loses the shot, so escalate to red.
+    const tone = dl > 7 ? 'ok' : dl > 2 ? 'warn' : 'danger';
+    cfg = { tone, width: fill(dl), num: dl, label: dl === 1 ? 'day left to sit' : 'days left to sit' };
+  } else if (pack.state === 'SITTING' && dl != null) {
+    // Mid-exam — the exam's own clock is what matters; keep this muted.
+    cfg = { tone: 'idle', width: fill(dl), num: dl, label: dl === 1 ? 'day left' : 'days left' };
+  } else if (pack.state === 'USED' && pack.reviewOpen && dl != null) {
+    // Score already banked — the countdown only closes REVIEW, so stay calm.
+    cfg = { tone: 'ok', width: fill(dl), num: dl, label: dl === 1 ? 'day of review left' : 'days of review left' };
+  } else if (pack.state === 'USED' && !pack.reviewOpen) {
+    cfg = { tone: 'idle', width: 0, num: null, label: 'Review closed' };
+  }
+
+  if (!cfg) return null;
+
+  return (
+    <div className="rs-days">
+      {cfg.num != null ? (
+        <div className={`rs-days-num rs-days-${cfg.tone}`}>
+          {cfg.num} <span className="rs-days-unit">{cfg.label}</span>
+        </div>
+      ) : (
+        <div className={`rs-days-label rs-days-${cfg.tone}`}>{cfg.label}</div>
+      )}
+      <div className="rs-days-bar">
+        <div className={`rs-days-fill rs-days-${cfg.tone}`} style={{ width: `${cfg.width}%` }} />
       </div>
     </div>
   );

@@ -68,6 +68,11 @@
 .rs-days-fill.rs-days-warn { background: #b45309; }
 .rs-days-danger { color: var(--danger); }
 .rs-days-fill.rs-days-danger { background: var(--danger); }
+/* idle/neutral tone — not-started (CLAIMED), mid-exam (SITTING), review-closed */
+.rs-days-idle { color: var(--text-faint); }
+.rs-days-fill.rs-days-idle { background: var(--border-strong); }
+/* label-only variant of the meter (no big number): not-started + review-closed */
+.rs-days-label { font-size: 13px; font-weight: 600; }
 
 .rs-pill { flex: none; white-space: nowrap; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
 .rs-pill-teal { background: var(--primary-light); color: var(--accent-dark); }
@@ -90,6 +95,23 @@
 .rs-btn-navy:hover { background: var(--primary-dark); text-decoration: none; }
 .rs-btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
 .rs-btn-ghost:hover { background: var(--bg-soft); text-decoration: none; }
+/* stacked buttons in a card foot (report + review on a completed card) */
+.rs-card-btns { display: flex; flex-direction: column; gap: 8px; }
+
+/* ── Readiness band chip (shared: completed card + report page) ──── */
+.rs-band {
+  display: inline-flex; align-items: center; white-space: nowrap;
+  font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+}
+.rs-band-danger { background: #fee2e2; color: #b91c1c; }
+.rs-band-warn   { background: #fef3c7; color: #92400e; }
+.rs-band-ok     { background: var(--primary-light); color: var(--accent-dark); }
+.rs-band-strong { background: #dcfce7; color: #15803d; }
+
+/* completed-card mark + band */
+.rs-result { display: flex; align-items: baseline; gap: 10px; margin-top: 12px; }
+.rs-result-score { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; color: var(--primary); }
+.rs-result .rs-band { align-self: center; }
 
 /* ── empty ──────────────────────────────────────────────────────── */
 .rs-empty { background: var(--white); border: 1px dashed var(--border-strong); border-radius: 10px; padding: 28px 22px; text-align: center; color: var(--text-muted); }
@@ -136,6 +158,7 @@
 .rs-report-num { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; color: var(--primary); line-height: 1; }
 .rs-report-pct { font-size: 26px; font-weight: 700; color: var(--primary); }
 .rs-report-unavail { font-size: 20px; font-weight: 600; color: var(--text-muted); }
+.rs-report-score .rs-band { align-self: center; margin-left: 8px; }
 .rs-report-scorelabel { font-size: 13px; color: var(--text-faint); margin-top: 6px; }
 
 .rs-report-soon {
