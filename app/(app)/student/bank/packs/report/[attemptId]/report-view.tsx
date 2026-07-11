@@ -191,6 +191,16 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
   const CIRC = 2 * Math.PI * R;
   const dash = ((pct ?? 0) / 100) * CIRC;
 
+  // The ring arc adopts the band's tone so the ring, chip and strip read as
+  // one verdict (solid tone, not the pale strip colour, to stay legible).
+  const RING_COLOR: Record<string, string> = {
+    danger: 'var(--danger)',
+    warn: 'var(--warning)',
+    ok: 'var(--accent)',
+    strong: 'var(--success)',
+  };
+  const ringColor = band ? RING_COLOR[band.tone] : 'var(--accent)';
+
   // ── outcomes + points bar segments (percent of the whole) ──────────
   const oTotal = Math.max(1, outcomes.total);
   const segFull = (outcomes.full / oTotal) * 100;
@@ -282,7 +292,7 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
                       cy="60"
                       r={R}
                       fill="none"
-                      stroke="var(--accent)"
+                      stroke={ringColor}
                       strokeWidth="12"
                       strokeLinecap="round"
                       transform="rotate(-90 60 60)"
