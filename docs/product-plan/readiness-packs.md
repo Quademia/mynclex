@@ -1,7 +1,21 @@
 # Readiness Packs
 
-Last updated: 2026-07-09 (**student Slice ②b.1 + ②b.2 step 1 COMPLETE +
-MERGED to `main`** — the readiness checkout route (`/checkout/readiness`,
+Last updated: 2026-07-11 (**Results page (step 3) — design SETTLED +
+build SLICED into §12.** Layout **variant v3** [verdict rail +
+collapsible sections] adopted over v1/v2/v4 — the full story reorganised
+into a scannable accordion where collapsed summaries keep everything
+visible; a **responsive** mobile pass reviewed at 375px [sticky
+mini-verdict, single-column accordion, under-row map detail]. Verified
+against the code: the report is **mostly reads** — the graded answers are
+already frozen per question on `nclex_attempt_answers`; **one new
+migration in the whole build** [the peer RPC]. **Per-question time
+deferred** — the runner never fills `time_spent_sec`; rather than ship
+approximate time we placeholder the Pacing card + the map's time bits and
+build a real **runner active-timer** as its own future arc [serves CAT].
+**Seven report slices ①–⑦ recorded in §12** [Foundation+hero+three-readings
+· where-to-focus · next-moves+deep-link · trend+pacing · per-question map ·
+peer · polish]. Previously 2026-07-09: **student Slice ②b.1 + ②b.2 step 1
+COMPLETE + MERGED to `main`** — the readiness checkout route (`/checkout/readiness`,
 credits buyable; both mint paths proven live) and the student **packs
 surface + claiming** (`/student/bank/packs`; claim / claim-all via
 service-role actions, the DB one-live-claim-per-pack index the guard;
@@ -1817,12 +1831,132 @@ same; they differ only where the credits-only version is wrong.
       ("N days of review left", **calm** tone) → "Review closed", with the tone
       deliberately flipping urgent→calm the moment you sit; no bar on
       catalogue/claim/lapsed.
-- **⬜ Results page (step 3, its own slice after 2b):** the permanent per-sitting report per §11.5
-  (verdict hero + points line, peer comparator w/ min-N, multi-axis
-  breakdowns, two lifetimes, review-runner reuse + window gating);
-  the readiness variant of the results popup. **The placeholder route +
-  the window-gated Review entry already exist (2b-iv) — this slice fills
-  it in.** CD brief: results.
+- **🔨 Results page (step 3) — the permanent per-sitting report per §11.5.
+  Design SETTLED 2026-07-11 (variant chosen + mobile prototype reviewed);
+  build sliced, NOT started.** The placeholder route + the window-gated
+  Review entry already exist (2b-iv) — these slices fill it in.
+
+  **Design decision — variant v3 ("verdict rail + collapsible sections"),
+  responsive.** CD produced four layout variants over the settled §11.5
+  content (v1 story-scroll · v2 tabs · v3 rail+collapsible-sections · v4
+  rail+single-pane). **v3 adopted (Sam):** it's the full story reorganised
+  into a scannable accordion — every *collapsed* section still shows its
+  summary line ("Weakest: Physiological Adaptation", "3 moves · 8 quick
+  wins", "12 answers changed", "18 days left"), so nothing hides behind a
+  click (the flaw that ruled out v2's tabs and v4's single-pane), and it
+  degrades to a natural single-column mobile accordion. CD then produced a
+  **responsive** pass (reviewed at 375px): verdict rail → top block + a
+  **slim sticky mini-verdict** (% + band) on scroll; single-open accordion
+  with smooth height + scroll-into-view (no shove); 2-up rows stack;
+  per-question map's detail card injects **full-width under the tapped row**
+  (kept inline — the per-question *slide-over* was scrapped as overcooked);
+  peer histogram → 6 fat 10-pt brackets; + two prototype bug fixes (band
+  strip "YOU" marker now piecewise-mapped so it sits over the band it
+  names; only the two end labels render so they don't collide). Prototype
+  is **concept-not-source** (rebuild in our stack/tokens): CD does
+  responsive in JS (window-width in state) — **we translate to CSS
+  `@media (max-width:768px)`** per CLAUDE.md UI #3 (avoids SSR/hydration
+  mismatch); only the genuinely-interactive bits (sticky mini-verdict scroll
+  listener, scroll-into-view, accordion toggle, map filters, the count-up /
+  ring-reveal animations) stay client-side.
+
+  **The design is animated — reproduce it as a first-class layer** (+ a
+  `prefers-reduced-motion` guard the prototype lacks): score-ring draw,
+  %/peer count-up, band-strip marker slide, staggered bar-grow (outcomes /
+  points / pacing / breakdowns), peer bars grow-up, 100 map cells pop-in,
+  section expand + caret rotate, detail-card rise, trend sparkline
+  self-draw. 7 are pure CSS `@keyframes` (portable); 2 (count-ups,
+  ring/marker reveal-on-mount) need a small client component.
+
+  **Grounding (verified against the code 2026-07-11).** Almost everything
+  the report needs is **already frozen onto the attempt at submit** —
+  reads only, **one new migration in the whole build** (peer). The graded
+  answers live on `nclex_attempt_answers` (JOIN `nclex_attempt_items` on
+  `attempt_item_id`; after termination every item has exactly one answer
+  row incl. SKIPPED, so an inner join is safe). Available per question:
+  `is_correct` (all-or-nothing) *and* `score_awarded` (partial) *and*
+  `marks_snapshot` (max points) → question-outcome counts + points totals;
+  `answer_json` (picks) + `correct_answer_snapshot_json` (key) → the
+  selection-family found/missed/wrong(−1) breakdown by set-difference;
+  `classification_snapshot` (client-needs L1/L2, body_system, difficulty,
+  topic/subtopic free-text) + top-level `cjmm_step` (case children only,
+  non-null iff `parent_case_id`) → the multi-axis breakdowns + Client Needs
+  3-level drill (L3 = wrong-question **topic checklist**, unscored — free
+  text, so it'll have holes; bucket nulls defensively); `answer_changes_json`
+  (`{at,from,to}[]`) → the second-guessing panel. Per-attempt: `final_score`
+  (= AVG of per-item fractions — *not* a points ratio, so points stay
+  **counts** per §11.5), `readiness_pack_id`, `ended_at−started_at`. **Reuse
+  map:** the report route + gate (`app/(app)/student/bank/packs/report/
+  [attemptId]`), `scoreToBand` (`lib/payments/readiness-band.ts`),
+  `reviewWindowOpen` (`lib/payments/readiness-window.ts`), the review runner
+  (existing review mode at `/session/[id]` — no new surface), the results
+  popup readiness variant, and the USED-card "See your full report" link
+  **all already exist**. Student code lives in `lib/payments/`; report CSS
+  in `styles/readiness-student.css` (`.rs-*`).
+
+  **Data gap — per-question time deferred (Sam, 2026-07-11).**
+  `time_spent_sec` exists but the runner never fills it (dropped from the
+  submit path; the migration note punted to "derive from `submitted_at`
+  deltas later"). Deriving is systematically biased (attributes pauses +
+  re-reads to the next-answered question) and CAT needs a *real* response-time
+  signal (rapid-guessing detection wants active foreground time, not
+  wall-clock). **Decision: don't ship approximate time.** Build the report
+  now with the two time-dependent pieces as **clean placeholders** (the
+  **Pacing** card + the map's **"rushed" filter / per-cell time row**), hooks
+  left in place; the real capture is its **own future arc — a runner-level
+  active-timer** (accumulate foreground seconds per question, pause on
+  tab-hidden, sum across revisits, persist through resume; re-add the submit
+  param → write `time_spent_sec`) that **serves CAT too**, then fills the two
+  placeholders. Everything else in the report is time-independent.
+
+  **Settled decisions (2026-07-11):** full scope (build every §11.5 section
+  incl. the 2nd/3rd-pass additions the prototype badges "PROPOSED");
+  single-open accordion everywhere (matches the prototype); peer min-N ≈ 25
+  + exact "what counts as a sitting" pinned at the peer slice (nothing before
+  it depends on it); per-question time = placeholder (above).
+
+  **Build slices (each built → Sam-tested on `localhost` desktop + 375px →
+  next):**
+  - **⬜ Report ① — Foundation + Verdict hero + Three readings.** The single
+    report data-loader (`lib/payments/readiness-report.ts` — one read: the
+    attempt + its 100 items ⋈ answers + credit/pack) → the derived model
+    (outcomes counts, points totals + selection recall/precision, band). Fill
+    the placeholder route: verdict hero (ring, band chip, band strip w/ the
+    piecewise marker, measured-not-predicted copy) + the outcomes + points
+    cards. The accordion shell + sticky mini-verdict + single-open sections
+    (rest as labelled "coming" rows). CSS (`.rs-report-*`, desktop +
+    `@media` mobile) + core animations + reduced-motion. → a working report.
+  - **⬜ Report ② — Where to focus.** The multi-axis breakdown engine over
+    the loaded items: Client Needs (L1→L2 scored → L3 wrong-topic checklist),
+    body system, difficulty, CJMM (case items only). Thin-slice honesty
+    (fractions, never a bare % on tiny slices); null-safe bucketing.
+  - **⬜ Report ③ — Your next moves.** Remediation cards off the 2–3 weakest
+    slices, deep-linking into the **practice builder pre-filtered by
+    category** (new wiring: `page.tsx` reads `searchParams` → `initialFilters`
+    → seed builder state; the CNC axis + reserved-question exclusion already
+    exist, so it practises the *category* with fresh questions, never the
+    pack's reserved items). + quick-wins (near-misses) + strengths mirror.
+  - **⬜ Report ④ — Trend + Pacing.** Trend built fully — a cross-pack own-rows
+    read of the student's prior USED sittings' scores + the first-sitting
+    empty state. **Pacing = placeholder** (time-dependent).
+  - **⬜ Report ⑤ — Per-question map.** 100 outcome-coloured cells (pop-in),
+    filter + group-by chips, inline detail card (beside on desktop / under-row
+    on mobile), the second-guessing panel off `answer_changes_json`, per-cell
+    window-gated review deep-link. **"Rushed" filter + per-cell time row =
+    placeholder** (time-dependent).
+  - **⬜ Report ⑥ — Peer comparison (the one new migration).** A
+    `SECURITY DEFINER` RPC `nclex_readiness_pack_peer_stats(p_pack_id)`
+    returning aggregate-only `{ n, your_percentile, histogram_buckets }` with
+    a min-N (≈25) suppression gate (RLS blocks a client-side cohort read).
+    Renders unlocked (histogram + "higher than N%") or the locked min-N empty
+    state (honest on a young product). Pins the "what counts as a sitting"
+    status policy + self-percentile-vs-histogram consistency.
+  - **⬜ Report ⑦ — Polish + QA.** The two-lifetimes review section (window
+    helper exists), full animation choreography, 375px QA across every
+    section, open-anchor polish, copy sync with the USED card + popup.
+  - **⬜ Future arc (separate) — per-question time engine** (runner
+    active-timer; serves CAT) → fills Report ④'s Pacing card + Report ⑤'s
+    time bits.
 - **⬜ Lazy-expiry (replaces the nightly sweep — settled 2026-07-11):**
   stamp `expired_at` **on the next touch** of a past-deadline unsat credit
   — on a packs-page read and (correctness-critical) at re-claim time —
