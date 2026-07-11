@@ -430,6 +430,26 @@ function RunnerShell({ data }: Props) {
     ? answersByItem.get(currentItem.attempt_item_id)
     : undefined;
 
+  // Review hardening: an item that reached review with NO answer row — a
+  // question never visited in an attempt finished BEFORE the completion
+  // fix stamped SKIPPED rows, or any stray gap — still renders. We
+  // synthesize a SKIPPED row so it flows down the exact same review path
+  // a real skipped answer does (correct answer + rationale + "skipped"),
+  // instead of a dead "Loading review data…" stub. Review mode only;
+  // answering mode owns the legitimately-empty case.
+  const reviewAnswerRow: AnswerRow | undefined =
+    itemMode === 'review' && currentItem
+      ? answerRowForCurrent ?? {
+          attempt_item_id:   currentItem.attempt_item_id,
+          answer_json:       null,
+          submission_status: 'SKIPPED',
+          is_correct:        false,
+          score_awarded:     0,
+          time_spent_sec:    null,
+          submitted_at:      null,
+        }
+      : answerRowForCurrent;
+
   const onPrev = () => setCurrent((c) => Math.max(0, c - 1));
   const onPick = (idx: number) => setCurrent(idx);
   const onNext = () => setCurrent((c) => Math.min(total - 1, c + 1));
@@ -818,12 +838,12 @@ function RunnerShell({ data }: Props) {
         }
       />
     );
-  } else if (answerRowForCurrent && unsealForCurrent) {
+  } else if (reviewAnswerRow && unsealForCurrent) {
     questionAreaInner = (
       <RunnerQuestionArea
         item={currentItem}
         itemMode="review"
-        answerRow={answerRowForCurrent}
+        answerRow={reviewAnswerRow}
         unseal={unsealForCurrent}
         topSlot={cjmmTopSlot}
         trendBadge={inTrend}
@@ -833,10 +853,13 @@ function RunnerShell({ data }: Props) {
       />
     );
   } else {
+    // Near-unreachable now: review synthesizes a skipped row (above) and
+    // the unsealed columns always load in review. Kept as an honest
+    // fallback — no longer a mislabeled "Loading…" that never resolves.
     questionAreaInner = (
       <div className="rn-q-wrap">
         <div className="rn-stem">{currentItem.stem_snapshot}</div>
-        <div className="rn-stub">Loading review data…</div>
+        <div className="rn-stub">Review details aren’t available for this question.</div>
       </div>
     );
   }
