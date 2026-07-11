@@ -167,12 +167,26 @@ export default async function CheckoutCallbackPage({
       // ACCESS_READY or ALREADY.
       tone = 'success';
       icon = 'check';
-      pill = result.status === 'ALREADY' ? 'Already confirmed' : 'Access ready';
-      heading = result.status === 'ALREADY' ? 'Payment already confirmed' : "You're in";
-      body =
+      // A readiness-only order grants credits, not access — the claim UI
+      // (Slice ②b.2) isn't live yet, so say the credits are ready and the
+      // packs come next; don't promise "access".
+      const readinessOnly = !!receipt?.isReadinessOnly;
+      pill =
         result.status === 'ALREADY'
-          ? 'This payment was already confirmed and your access is set up.'
+          ? 'Already confirmed'
+          : readinessOnly
+            ? 'Credits ready'
+            : 'Access ready';
+      heading = result.status === 'ALREADY' ? 'Payment already confirmed' : "You're in";
+      if (result.status === 'ALREADY') {
+        body = readinessOnly
+          ? 'This payment was already confirmed and your pack credits are on your account.'
+          : 'This payment was already confirmed and your access is set up.';
+      } else {
+        body = readinessOnly
+          ? 'Your payment is confirmed and your pack credits are on your account. Choosing your packs opens shortly.'
           : 'Your payment is confirmed and your access is ready.';
+      }
       primary = loggedIn
         ? { href: dest, label: receipt?.destinationLabel ?? 'Go to my learning' }
         : { href: '/login', label: 'Log in to continue' };

@@ -187,14 +187,14 @@ CREATE INDEX idx_nclex_case_study_tabs_case ON nclex_case_study_tabs(case_id);
 
 
 -- 7. QAcademy-owned readiness packs (curated assessments, sold separately)
+-- Reshaped 20260721120000: item_ids TEXT[] → the link table below;
+-- price_cents → the products catalogue (nclex_products).
 CREATE TABLE nclex_readiness_packs (
   pack_id                   TEXT PRIMARY KEY,
   title                     TEXT NOT NULL,
   description               TEXT,
-  item_ids                  TEXT[] NOT NULL DEFAULT '{}',
   n                         INTEGER,
   time_limit_sec            INTEGER,
-  price_cents               INTEGER,
   published                 BOOLEAN NOT NULL DEFAULT FALSE,
   publish_at                TIMESTAMPTZ,
   unpublish_at              TIMESTAMPTZ,
@@ -202,6 +202,22 @@ CREATE TABLE nclex_readiness_packs (
                               CHECK (status IN ('draft','active','archived')),
   created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 7b. Pack membership (20260721120000) — one row per question-in-a-pack,
+-- per-child rows for wrapper members (the nclex_attempt_items flattening
+-- pattern at authoring time — readiness-packs.md §6). Global
+-- UNIQUE(item_id): a question belongs to at most ONE pack, DB-enforced.
+-- id = '<pack_id>:<item_id>' — composite on purpose, so an audit row's
+-- entity_id names both halves even after the link row is deleted.
+CREATE TABLE nclex_readiness_pack_items (
+  id          TEXT PRIMARY KEY,
+  pack_id     TEXT NOT NULL REFERENCES nclex_readiness_packs(pack_id) ON DELETE CASCADE,
+  item_id     TEXT NOT NULL REFERENCES nclex_bank_items(item_id) ON DELETE RESTRICT,
+  position    INTEGER NOT NULL CHECK (position >= 1),   -- sat order; completeness owned by the publish gate
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (item_id),
+  UNIQUE (pack_id, position)
 );
 
 
@@ -1801,25 +1817,52 @@ CREATE TABLE nclex_config (
 
 -- nclex_products — QAcademy's buyable SKU catalogue (bank durations,
 -- readiness, trial). NOT programme fees. Dual-currency by column.
+--
+-- 20260724120000: the two columns divide cleanly — pack_type = WHAT it
+-- grants, kind = WHETHER you pay. The trial is a free BANK_DURATION
+-- pass (kind='TRIAL'), not its own pack_type; 'TRIAL' was dropped from
+-- the pack_type CHECK. A trial SUBSCRIPTION is identified by
+-- source='SELF_TRIAL_SIGNUP', not by its pack_type.
+-- 20260725120000: readiness_pack_count + bundled_readiness_credits
+-- collapsed into ONE readiness_credits — both answered "how many
+-- credits does activating this MINT?" (§3: bundled and standalone packs
+-- are granted by the identical credit mechanism). Provenance derives
+-- from pack_type.
 CREATE TABLE nclex_products (
   product_id            TEXT PRIMARY KEY,                          -- slug: BANK_30D, READINESS_ALL5, NCLEX_TRIAL
   name                  TEXT NOT NULL,
   kind                  TEXT NOT NULL DEFAULT 'PAID'
                         CHECK (kind IN ('PAID','TRIAL')),
   pack_type             TEXT NOT NULL
-                        CHECK (pack_type IN ('BANK_DURATION','READINESS','TRIAL')),
+                        CHECK (pack_type IN ('BANK_DURATION','READINESS')),
   duration_days         INTEGER,                                   -- NULL for readiness
-  readiness_pack_count  SMALLINT,                                  -- READINESS SKUs only — 1/3/5
-  bundled_readiness_credits SMALLINT NOT NULL DEFAULT 0,           -- BANK_DURATION only — free readiness credits with the pass
+  -- Credits minted on activation. READINESS: the SKU IS the count (>=1,
+  -- free integer — no 1/3/5 rule). BANK_DURATION: bundled sweetener (0 = none).
+  readiness_credits     SMALLINT NOT NULL DEFAULT 0,
+  -- price_minor_* is the exact integer Paystack charges. full_price_minor_*
+  -- (20260726120000) is the OPTIONAL pre-offer "was" price: decorative only,
+  -- struck through on sales cards, never charged; the "% off" is derived
+  -- from the pair. NULL = not on offer.
   price_minor_ghs       INTEGER NOT NULL DEFAULT 0,
   price_minor_usd       INTEGER NOT NULL DEFAULT 0,
+  full_price_minor_ghs  INTEGER,
+  full_price_minor_usd  INTEGER,
   status                TEXT NOT NULL DEFAULT 'ACTIVE'
                         CHECK (status IN ('ACTIVE','ARCHIVED')),
   sort_order            SMALLINT NOT NULL DEFAULT 0,
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT nclex_products_readiness_credits_positive
+    CHECK (pack_type <> 'READINESS' OR readiness_credits >= 1),
+  CONSTRAINT nclex_products_full_price_ghs_above_price
+    CHECK (full_price_minor_ghs IS NULL OR full_price_minor_ghs > price_minor_ghs),
+  CONSTRAINT nclex_products_full_price_usd_above_price
+    CHECK (full_price_minor_usd IS NULL OR full_price_minor_usd > price_minor_usd)
 );
 CREATE INDEX idx_nclex_products_status_sort ON nclex_products (status, sort_order);
+-- At most one trial product (the admin create form guards it too).
+CREATE UNIQUE INDEX idx_nclex_products_single_trial
+  ON nclex_products ((kind)) WHERE kind = 'TRIAL';
 
 -- nclex_payments — Paystack audit trail. One row per txn; polymorphic
 -- single-purpose rows (`purpose` enum + exactly one of product/programme).
@@ -1892,15 +1935,13 @@ CREATE TABLE nclex_subscriptions (
   user_id                UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
   product_id             TEXT NOT NULL REFERENCES nclex_products(product_id) ON DELETE RESTRICT,
   pack_type              TEXT NOT NULL
-                         CHECK (pack_type IN ('BANK_DURATION','READINESS','TRIAL')),  -- denormalised
+                         CHECK (pack_type = 'BANK_DURATION'),  -- denormalised; bank time only (20260728120000)
   source                 TEXT NOT NULL
                          CHECK (source IN ('SELF_PURCHASE','PROGRAMME_OPTIN','SELF_TRIAL_SIGNUP','ADMIN_GRANT')),
   status                 TEXT NOT NULL DEFAULT 'ACTIVE'
                          CHECK (status IN ('ACTIVE','EXPIRED','REVOKED')),
   started_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  end_at                 TIMESTAMPTZ,                              -- NULL for unactivated readiness
-  readiness_pack_id      TEXT REFERENCES nclex_readiness_packs(pack_id) ON DELETE RESTRICT,
-  readiness_activated_at TIMESTAMPTZ,
+  end_at                 TIMESTAMPTZ,                              -- NULL for lifetime; readiness grants no subscription at all
   payment_id             UUID REFERENCES nclex_payments(payment_id) ON DELETE RESTRICT,  -- NULL for trial/admin
   granted_by             UUID REFERENCES nclex_users(id) ON DELETE SET NULL,             -- ADMIN_GRANT only
   created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -1911,6 +1952,56 @@ CREATE INDEX idx_nclex_subscriptions_expiry ON nclex_subscriptions (end_at) WHER
 -- One subscription per payment (idempotent activation). Partial: trial /
 -- admin grants carry no payment_id. (migration 20260602120000)
 CREATE UNIQUE INDEX idx_nclex_subscriptions_payment ON nclex_subscriptions (payment_id) WHERE payment_id IS NOT NULL;
+
+
+-- nclex_readiness_credits — one row per readiness credit (§7). A credit
+-- arrives via a standalone READINESS purchase, a bundled credit on a
+-- longer bank pass, or an admin grant; the student claims it against a
+-- pack, then activates its own one-shot 21-day window. Status-free by
+-- design (Sam 2026-07-04): the lifecycle is strictly one-way, so the
+-- event timestamps ARE the state — the stage is derived in TS
+-- (creditStage). (migration 20260728120000)
+CREATE TABLE nclex_readiness_credits (
+  credit_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID NOT NULL REFERENCES nclex_users(id) ON DELETE CASCADE,
+  source          TEXT NOT NULL CHECK (source IN ('SELF_PURCHASE','BANK_BUNDLE','ADMIN_GRANT')),
+  payment_id      UUID REFERENCES nclex_payments(payment_id) ON DELETE RESTRICT,   -- NULL for admin grants
+  granted_by      UUID REFERENCES nclex_users(id) ON DELETE SET NULL,              -- admin grants only
+  pack_id         TEXT REFERENCES nclex_readiness_packs(pack_id) ON DELETE RESTRICT,  -- NULL before claim; RESTRICT = a claimed pack can't be deleted
+  attempt_id      UUID REFERENCES nclex_attempts(attempt_id) ON DELETE RESTRICT,   -- NULL before the sitting
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),   -- minted
+  claimed_at      TIMESTAMPTZ,                          -- pack picked (with pack_id)
+  activated_at    TIMESTAMPTZ,                          -- window started
+  expires_at      TIMESTAMPTZ,                          -- deadline = activation + 21d, frozen (with activated_at)
+  used_at         TIMESTAMPTZ,                          -- sitting completed (with attempt_id)
+  expired_at      TIMESTAMPTZ,                          -- lapse event (nightly sweep)
+  revoked_at      TIMESTAMPTZ,                          -- taken back
+  revoked_reason  TEXT,                                 -- why (with revoked_at)
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- provenance matches source; a claim names a pack; activation needs a
+  -- claim + sets a deadline; used needs activation + names an attempt;
+  -- expiry needs activation; revoke carries a reason; at most one ending.
+  CONSTRAINT nclex_readiness_credits_provenance CHECK (
+    (source IN ('SELF_PURCHASE','BANK_BUNDLE') AND payment_id IS NOT NULL AND granted_by IS NULL)
+    OR (source = 'ADMIN_GRANT' AND granted_by IS NOT NULL AND payment_id IS NULL)),
+  CONSTRAINT nclex_readiness_credits_claim_names_pack CHECK ((claimed_at IS NULL) = (pack_id IS NULL)),
+  CONSTRAINT nclex_readiness_credits_activation_requires_claim CHECK (activated_at IS NULL OR claimed_at IS NOT NULL),
+  CONSTRAINT nclex_readiness_credits_activation_sets_deadline CHECK ((activated_at IS NULL) = (expires_at IS NULL)),
+  CONSTRAINT nclex_readiness_credits_used_requires_activation CHECK (used_at IS NULL OR activated_at IS NOT NULL),
+  CONSTRAINT nclex_readiness_credits_used_names_attempt CHECK ((used_at IS NULL) = (attempt_id IS NULL)),
+  CONSTRAINT nclex_readiness_credits_expiry_requires_activation CHECK (expired_at IS NULL OR activated_at IS NOT NULL),
+  CONSTRAINT nclex_readiness_credits_revoke_has_reason CHECK ((revoked_at IS NULL) = (revoked_reason IS NULL)),
+  CONSTRAINT nclex_readiness_credits_one_ending CHECK (
+    (used_at IS NOT NULL)::int + (expired_at IS NOT NULL)::int + (revoked_at IS NOT NULL)::int <= 1)
+);
+CREATE INDEX idx_nclex_readiness_credits_user ON nclex_readiness_credits (user_id);
+CREATE INDEX idx_nclex_readiness_credits_payment ON nclex_readiness_credits (payment_id) WHERE payment_id IS NOT NULL;
+-- One LIVE claim per (student, pack) — one-shot-per-pack with teeth. A
+-- used claim stays live forever (can't re-sit); expired/revoked release
+-- the pack for a fresh credit (§2 r4).
+CREATE UNIQUE INDEX idx_nclex_readiness_credits_one_live_claim_per_pack
+  ON nclex_readiness_credits (user_id, pack_id)
+  WHERE pack_id IS NOT NULL AND expired_at IS NULL AND revoked_at IS NULL;
 
 
 -- RPC functions are large and tracked by their migration files

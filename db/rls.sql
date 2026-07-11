@@ -1604,6 +1604,8 @@ CREATE POLICY nclex_config_admin_write
 
 -- nclex_products — public reads ACTIVE SKUs (landing + checkout);
 -- SUPER_ADMIN manages (and can read ARCHIVED for historical payments).
+-- 20260723120000: PAYMENTS_MANAGE holders also manage — the Products
+-- & Pricing admin surface gates on that permission (layered rule).
 ALTER TABLE nclex_products ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY nclex_products_public_select
@@ -1615,6 +1617,12 @@ CREATE POLICY nclex_products_admin_all
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+CREATE POLICY nclex_products_payments_manage_all
+  ON nclex_products FOR ALL
+  TO authenticated
+  USING (nclex_user_has_permission('PAYMENTS_MANAGE'))
+  WITH CHECK (nclex_user_has_permission('PAYMENTS_MANAGE'));
 
 
 -- nclex_payments — owner reads own rows; SUPER_ADMIN reads all. No
@@ -1677,3 +1685,37 @@ CREATE POLICY nclex_pps_admin_all
   TO authenticated
   USING (nclex_user_has_role('SUPER_ADMIN'))
   WITH CHECK (nclex_user_has_role('SUPER_ADMIN'));
+
+
+-- ============================================================
+-- READINESS PACKS (Slice 1) — pack + membership link table
+-- Migration: db/migrations/20260721120000_readiness_pack_link_table.sql
+-- ============================================================
+
+-- nclex_readiness_packs — ANYONE (incl. anon) reads PUBLISHED + active
+-- packs; BANK_CURATE (SUPER_ADMIN via the helper) reads drafts + writes.
+-- RLS was entirely OFF on this table before Slice ①.
+-- 20260726120000: the read widened from `TO authenticated` to the public
+-- role — the public /readiness page lists each published pack's title,
+-- description, question count and time limit to logged-out visitors,
+-- exactly as /bank-access prices itself from nclex_products. Membership
+-- (nclex_readiness_pack_items) stays curator-only, so no question leaks.
+ALTER TABLE nclex_readiness_packs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_readiness_packs_public_select ON nclex_readiness_packs FOR SELECT
+  USING (published = TRUE AND status = 'active');
+
+CREATE POLICY nclex_readiness_packs_curate_all ON nclex_readiness_packs FOR ALL
+  TO authenticated
+  USING (nclex_user_has_permission('BANK_CURATE'))
+  WITH CHECK (nclex_user_has_permission('BANK_CURATE'));
+
+-- nclex_readiness_pack_items — curator-only. Students never read pack
+-- membership live: a sitting reads the attempt's frozen rows. Widen
+-- deliberately at the student slices if a real need appears.
+ALTER TABLE nclex_readiness_pack_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_readiness_pack_items_curate_all ON nclex_readiness_pack_items FOR ALL
+  TO authenticated
+  USING (nclex_user_has_permission('BANK_CURATE'))
+  WITH CHECK (nclex_user_has_permission('BANK_CURATE'));

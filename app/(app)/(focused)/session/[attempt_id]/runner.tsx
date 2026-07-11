@@ -61,6 +61,7 @@ import { ErrorToast } from '@/lib/toast/error-toast';
 import { FinishWithBlanksConfirm } from '@/lib/overlays/practice/finish-with-blanks-confirm';
 import { CaseExitConfirm } from '@/lib/overlays/practice/case-exit-confirm';
 import { ExitAttemptConfirm } from '@/lib/overlays/practice/exit-attempt-confirm';
+import { ReadinessExitConfirm } from '@/lib/overlays/practice/readiness-exit-confirm';
 import { ResultsPopup } from '@/lib/practice/runner/results-popup';
 import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
@@ -428,6 +429,26 @@ function RunnerShell({ data }: Props) {
   const answerRowForCurrent = currentItem
     ? answersByItem.get(currentItem.attempt_item_id)
     : undefined;
+
+  // Review hardening: an item that reached review with NO answer row — a
+  // question never visited in an attempt finished BEFORE the completion
+  // fix stamped SKIPPED rows, or any stray gap — still renders. We
+  // synthesize a SKIPPED row so it flows down the exact same review path
+  // a real skipped answer does (correct answer + rationale + "skipped"),
+  // instead of a dead "Loading review data…" stub. Review mode only;
+  // answering mode owns the legitimately-empty case.
+  const reviewAnswerRow: AnswerRow | undefined =
+    itemMode === 'review' && currentItem
+      ? answerRowForCurrent ?? {
+          attempt_item_id:   currentItem.attempt_item_id,
+          answer_json:       null,
+          submission_status: 'SKIPPED',
+          is_correct:        false,
+          score_awarded:     0,
+          time_spent_sec:    null,
+          submitted_at:      null,
+        }
+      : answerRowForCurrent;
 
   const onPrev = () => setCurrent((c) => Math.max(0, c - 1));
   const onPick = (idx: number) => setCurrent(idx);
@@ -817,12 +838,12 @@ function RunnerShell({ data }: Props) {
         }
       />
     );
-  } else if (answerRowForCurrent && unsealForCurrent) {
+  } else if (reviewAnswerRow && unsealForCurrent) {
     questionAreaInner = (
       <RunnerQuestionArea
         item={currentItem}
         itemMode="review"
-        answerRow={answerRowForCurrent}
+        answerRow={reviewAnswerRow}
         unseal={unsealForCurrent}
         topSlot={cjmmTopSlot}
         trendBadge={inTrend}
@@ -832,10 +853,13 @@ function RunnerShell({ data }: Props) {
       />
     );
   } else {
+    // Near-unreachable now: review synthesizes a skipped row (above) and
+    // the unsealed columns always load in review. Kept as an honest
+    // fallback — no longer a mislabeled "Loading…" that never resolves.
     questionAreaInner = (
       <div className="rn-q-wrap">
         <div className="rn-stem">{currentItem.stem_snapshot}</div>
-        <div className="rn-stub">Loading review data…</div>
+        <div className="rn-stub">Review details aren’t available for this question.</div>
       </div>
     );
   }
@@ -989,14 +1013,32 @@ function RunnerShell({ data }: Props) {
       )}
 
       {showExitConfirm && data.mode === 'live' && (
-        <ExitAttemptConfirm
-          isTimed={isTimed}
-          onCancel={() => setShowExitConfirm(false)}
-          onConfirm={() => {
-            setShowExitConfirm(false);
-            router.push(data.exitHref);
-          }}
-        />
+        data.attempt.source === 'READINESS_PACK' ? (
+          // One-shot pack: End & submit (score as-is) vs Leave (resumable) vs
+          // Keep going. End reuses the normal finish path — completeAttempt
+          // scores unreached questions as zero over the full pack (§2 r2).
+          <ReadinessExitConfirm
+            pending={submitting}
+            onEndSubmit={() => {
+              setShowExitConfirm(false);
+              onFinish();
+            }}
+            onLeave={() => {
+              setShowExitConfirm(false);
+              router.push(data.exitHref);
+            }}
+            onCancel={() => setShowExitConfirm(false)}
+          />
+        ) : (
+          <ExitAttemptConfirm
+            isTimed={isTimed}
+            onCancel={() => setShowExitConfirm(false)}
+            onConfirm={() => {
+              setShowExitConfirm(false);
+              router.push(data.exitHref);
+            }}
+          />
+        )
       )}
 
       {/* Slice 3a — results popup. Renders only in review mode (gated

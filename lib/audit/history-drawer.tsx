@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { loadAuditTimeline, type TimelineEntry } from './timeline-actions';
 import type { AuditRealm } from './authorship';
@@ -78,7 +78,22 @@ interface HistoryDrawerProps {
   onClose:  () => void;
 }
 
-function HistoryDrawer({ title, entries, loading, error, onClose }: HistoryDrawerProps) {
+/**
+ * The bare drawer chrome — overlay + panel + header + scrollable body —
+ * exported so surfaces with richer timelines (the readiness-pack
+ * history, whose entries merge two entity types) reuse the shell and
+ * only supply their own rows. The bank HistoryDrawer below is the
+ * reference consumer.
+ */
+export function AuditDrawerShell({
+  title,
+  onClose,
+  children,
+}: {
+  title:    string;
+  onClose:  () => void;
+  children: ReactNode;
+}) {
   // Escape closes, matching the modal-frame convention.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -121,51 +136,57 @@ function HistoryDrawer({ title, entries, loading, error, onClose }: HistoryDrawe
           </button>
         </header>
 
-        <div className="audit-drawer-body">
-          {loading && <p className="audit-drawer-muted">Loading history…</p>}
-
-          {error && <p className="audit-drawer-error">{error}</p>}
-
-          {!loading && !error && entries && entries.length === 0 && (
-            <p className="audit-drawer-muted">
-              No recorded history yet. Authorship is captured from each
-              future edit onward — items created before tracking show
-              nothing here until they&apos;re next saved.
-            </p>
-          )}
-
-          {!loading && !error && entries && entries.length > 0 && (
-            <ol className="audit-timeline">
-              {entries.map((e, i) => (
-                <li key={i} className="audit-timeline-row">
-                  <span
-                    className={
-                      e.action === 'created'
-                        ? 'audit-timeline-pip created'
-                        : 'audit-timeline-pip updated'
-                    }
-                    aria-hidden="true"
-                  />
-                  <div className="audit-timeline-text">
-                    <span className="audit-timeline-action">
-                      {e.action === 'created' ? 'Created' : 'Edited'}
-                      {' by '}
-                      <strong>{e.changedByName ?? 'System'}</strong>
-                    </span>
-                    <span className="audit-timeline-when">{formatWhen(e.changedAt)}</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
+        <div className="audit-drawer-body">{children}</div>
       </aside>
     </div>,
     document.body,
   );
 }
 
-function formatWhen(iso: string): string {
+function HistoryDrawer({ title, entries, loading, error, onClose }: HistoryDrawerProps) {
+  return (
+    <AuditDrawerShell title={title} onClose={onClose}>
+      {loading && <p className="audit-drawer-muted">Loading history…</p>}
+
+      {error && <p className="audit-drawer-error">{error}</p>}
+
+      {!loading && !error && entries && entries.length === 0 && (
+        <p className="audit-drawer-muted">
+          No recorded history yet. Authorship is captured from each
+          future edit onward — items created before tracking show
+          nothing here until they&apos;re next saved.
+        </p>
+      )}
+
+      {!loading && !error && entries && entries.length > 0 && (
+        <ol className="audit-timeline">
+          {entries.map((e, i) => (
+            <li key={i} className="audit-timeline-row">
+              <span
+                className={
+                  e.action === 'created'
+                    ? 'audit-timeline-pip created'
+                    : 'audit-timeline-pip updated'
+                }
+                aria-hidden="true"
+              />
+              <div className="audit-timeline-text">
+                <span className="audit-timeline-action">
+                  {e.action === 'created' ? 'Created' : 'Edited'}
+                  {' by '}
+                  <strong>{e.changedByName ?? 'System'}</strong>
+                </span>
+                <span className="audit-timeline-when">{formatWhen(e.changedAt)}</span>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+    </AuditDrawerShell>
+  );
+}
+
+export function formatWhen(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString(undefined, {
     year:   'numeric',

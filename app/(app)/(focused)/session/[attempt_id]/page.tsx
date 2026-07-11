@@ -30,6 +30,7 @@ import type {
 import { Runner } from './runner';
 import { expireAttemptAction } from './actions';
 import { resolveAttemptExitHref } from '@/lib/practice/runner/resolve-exit-href';
+import { reviewWindowOpen } from '@/lib/payments/readiness-window';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,6 +119,26 @@ export default async function SessionPage({ params }: PageProps) {
   // Bounce back to Practice rather than render a broken runner.
   if (attempt.status === 'ABANDONED') {
     redirect('/student/bank/practice');
+  }
+
+  // Readiness review-window gate (2b-iv, §11.5). A terminal readiness
+  // sitting is reviewable per-question only while its 21-day window runs;
+  // the score persists forever but per-question review closes at the
+  // credit's expires_at. Past that, send them to the permanent report
+  // page (which shows the score + an "answer review closed" note). The
+  // report page enforces the same boundary, so neither a bookmarked
+  // /session URL nor the report can outlive the window. Live sittings are
+  // untouched — the shot is still in progress.
+  if (attempt.source === 'READINESS_PACK' && attempt.status !== 'IN_PROGRESS') {
+    const { data: credit } = await supabase
+      .from('nclex_readiness_credits')
+      .select('expires_at')
+      .eq('attempt_id', attempt_id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!reviewWindowOpen(credit?.expires_at ?? null)) {
+      redirect(`/student/bank/packs/report/${attempt_id}`);
+    }
   }
 
   const isLive = attempt.status === 'IN_PROGRESS';

@@ -40,6 +40,11 @@ export interface ResultsContext {
   retakeAvailable: boolean;
   /** Programme only: "Attempt 1 of 3" / null for unlimited / null for bank. */
   attemptsLine:    string | null;
+  /** Readiness only: the permanent per-sitting report page. When set, the
+   *  popup renders the readiness variant — a "See your full report" CTA in
+   *  place of the inline review + retake (review is reached from the report).
+   *  Null for every other source. */
+  reportHref:      string | null;
 }
 
 /**
@@ -77,6 +82,25 @@ export async function getResultsContext(
         retakeLabel:     'Build another',
         retakeAvailable: true,
         attemptsLine:    null,
+        reportHref:      null,
+      },
+    };
+  }
+
+  // Readiness Pack — one-shot, no retake ever. The popup points at the
+  // permanent per-sitting report page (the report is the hub; per-question
+  // review is reached from there, window-gated). "Sat = closed forever"
+  // (§2 r4), so retakeAvailable is always false.
+  if (attempt.source === 'READINESS_PACK') {
+    return {
+      ok: true,
+      data: {
+        exitHref,
+        exitLabel:       'Back to packs',
+        retakeLabel:     '',
+        retakeAvailable: false,
+        attemptsLine:    null,
+        reportHref:      `/student/bank/packs/report/${attemptId}`,
       },
     };
   }
@@ -144,12 +168,12 @@ export async function getResultsContext(
         retakeLabel:     'Take again',
         retakeAvailable,
         attemptsLine,
+        reportHref:      null,
       },
     };
   }
 
-  // READINESS_PACK or anything else — sensible fallback so the popup
-  // still works. Build out when that source lands.
+  // Any other source — sensible fallback so the popup still works.
   return {
     ok: true,
     data: {
@@ -158,6 +182,7 @@ export async function getResultsContext(
       retakeLabel:     'Take again',
       retakeAvailable: false,
       attemptsLine:    null,
+      reportHref:      null,
     },
   };
 }

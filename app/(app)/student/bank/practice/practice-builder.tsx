@@ -67,26 +67,38 @@ interface PracticeBuilderProps {
   filterOptions: FilterOptions;
   resumable:    ResumableAttempt | null;
   recents:      RecentAttempt[];
+  /** Content-axis filters to pre-seed (e.g. a readiness-report remediation
+   *  deep-link, ?subcat=…). Pools stay UNSEEN so practice is fresh questions. */
+  initialFilters?: FilterPayload;
 }
 
 export function PracticeBuilder({
   filterOptions,
   resumable: initialResumable,
   recents,
+  initialFilters,
 }: PracticeBuilderProps) {
   const router = useRouter();
 
+  // Pre-seed the content filters from a deep-link (e.g. "practise this
+  // category" on the readiness report). Pools are left at the UNSEEN default.
+  const seed = parseFilterPayload(initialFilters);
+  const hasSeed =
+    seed.cnc.size + seed.subcat.size + seed.subject.size + seed.body.size +
+    seed.qtype.size + seed.diff.size + seed.tags.size + seed.topic.size +
+    seed.subtopic.size > 0;
+
   // ─── State ────────────────────────────────────────────────────────
   const [pools,   setPools]   = useState<Set<PoolId>>(new Set(['UNSEEN']));
-  const [cnc,     setCnc]     = useState<Set<string>>(new Set());
-  const [subcat,  setSubcat]  = useState<Set<string>>(new Set());
-  const [subject, setSubject] = useState<Set<string>>(new Set());
-  const [body,    setBody]    = useState<Set<string>>(new Set());
-  const [qtype,   setQtype]   = useState<Set<string>>(new Set());
-  const [diff,    setDiff]    = useState<Set<string>>(new Set());
-  const [tags,     setTags]     = useState<Set<string>>(new Set());
-  const [topic,    setTopic]    = useState<Set<string>>(new Set());
-  const [subtopic, setSubtopic] = useState<Set<string>>(new Set());
+  const [cnc,     setCnc]     = useState<Set<string>>(seed.cnc);
+  const [subcat,  setSubcat]  = useState<Set<string>>(seed.subcat);
+  const [subject, setSubject] = useState<Set<string>>(seed.subject);
+  const [body,    setBody]    = useState<Set<string>>(seed.body);
+  const [qtype,   setQtype]   = useState<Set<string>>(seed.qtype);
+  const [diff,    setDiff]    = useState<Set<string>>(seed.diff);
+  const [tags,     setTags]     = useState<Set<string>>(seed.tags);
+  const [topic,    setTopic]    = useState<Set<string>>(seed.topic);
+  const [subtopic, setSubtopic] = useState<Set<string>>(seed.subtopic);
   // topicQuery is currently unused — placeholder for the search-as-you-
   // type chip-cloud variant (deferred; plain checkbox grid for now).
   const [topicQuery] = useState<string>('');
@@ -98,7 +110,7 @@ export function PracticeBuilder({
   // Tab strip — Intent+Mode vs Filters. Default tab is the higher-
   // level decision (Intent+Mode) so the student doesn't fill out
   // filters and then discover their mode (e.g. CAT) doesn't use them.
-  const [activeTab, setActiveTab] = useState<'mode' | 'filters'>('mode');
+  const [activeTab, setActiveTab] = useState<'mode' | 'filters'>(hasSeed ? 'filters' : 'mode');
 
   // Entry-helper local state. Resumable can be cleared client-side
   // when the student clicks Start fresh (the discard RPC fires and we

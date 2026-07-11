@@ -42,7 +42,7 @@ import type {
 } from './programme-overview-types';
 
 const DAY_MS = 86_400_000;
-const CURRENCY_SYMBOL: Record<Currency, string> = { GHS: '₵', USD: '$' };
+const CURRENCY_PREFIX: Record<Currency, string> = { GHS: 'GHS ', USD: '$' };
 // A running cohort younger than this reads as "Just started" regardless of
 // its (necessarily low) completion — so a fresh cohort isn't flagged "watch".
 const JUST_STARTED_DAYS = 10;
@@ -316,7 +316,7 @@ const MONTHS = [
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function formatMoneyMinor(minor: number, currency: Currency): string {
-  return `${CURRENCY_SYMBOL[currency]}${Math.round(minor / 100).toLocaleString()}`;
+  return `${CURRENCY_PREFIX[currency]}${Math.round(minor / 100).toLocaleString()}`;
 }
 
 // "Ama Osei" → "AO"; single name → first two letters; empty → "?".

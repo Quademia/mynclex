@@ -177,7 +177,7 @@ export function ProgrammeOverview({ data }: { data: ProgrammeOverviewData }) {
                 </span>
               </div>
               <span className="pov-kpi-val">
-                {header.revenueLabel ?? `${header.currency === 'GHS' ? '₵' : '$'}0`}
+                {header.revenueLabel ?? `${header.currency === 'GHS' ? 'GHS ' : '$'}0`}
               </span>
               <span className="pov-kpi-label">Revenue received</span>
             </Link>

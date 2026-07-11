@@ -1141,8 +1141,14 @@
   pointer-events: none;
   font-weight: 600;
 }
+/* Clears the absolutely-positioned prefix. "$" is one glyph; "GHS" is
+ * three, so the padding follows the currency (2026-07-08, when the cedi
+ * sign was retired product-wide in favour of the ISO code). */
 .prog-input-price {
   padding-left: 26px;
+}
+.prog-price-input[data-ccy='GHS'] .prog-input-price {
+  padding-left: 48px;
 }
 
 /* Read-only derived readout (cohort end date) */

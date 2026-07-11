@@ -6,8 +6,11 @@
 //
 // Source-aware via the new `getResultsContext` action (one round trip
 // on mount):
-//   • CUSTOM_BUILT     → "Build another" + Exit to bank
+//   • CUSTOM_BUILT       → "Build another" + Exit to bank
 //   • PROGRAMME_ASSIGNED → "Take again" + Exit to curriculum + attempts line
+//   • READINESS_PACK     → "See your full report" (→ the permanent report
+//                          page) + Back to packs; no inline review, no
+//                          retake (one shot, "Exam complete" eyebrow)
 //
 // Pass/fail badge only renders when `pass_score` is set on the attempt
 // (programme quizzes today; bank Builder + future Readiness Packs may
@@ -81,7 +84,14 @@ export function ResultsPopup({
   const graded = passScore !== null && finalScore !== null;
   const passed = graded && finalScore >= passScore;
 
-  const eyebrow = source === 'CUSTOM_BUILT' ? 'Session complete' : 'Quiz complete';
+  // Readiness renders a distinct variant once the context arrives: the
+  // permanent report page is the hub, so the popup offers "See your full
+  // report" instead of the inline review + retake.
+  const isReadiness = source === 'READINESS_PACK';
+  const eyebrow =
+    source === 'CUSTOM_BUILT' ? 'Session complete'
+    : isReadiness ? 'Exam complete'
+    : 'Quiz complete';
 
   function onRestart() {
     if (!ctx?.retakeAvailable) return;
@@ -140,23 +150,39 @@ export function ResultsPopup({
           )}
 
           <div className="results-actions">
-            <button
-              type="button"
-              className="btn primary"
-              onClick={onReview}
-            >
-              Review attempt
-            </button>
-
-            {ctx?.retakeAvailable && (
+            {isReadiness ? (
+              // Readiness — the report page is the hub. Primary CTA goes
+              // there (per-question review is reached from the report,
+              // window-gated). No inline review, no retake (one shot).
               <button
                 type="button"
-                className="btn secondary"
-                onClick={onRestart}
-                disabled={restarting}
+                className="btn primary"
+                onClick={() => ctx?.reportHref && router.push(ctx.reportHref)}
+                disabled={!ctx?.reportHref}
               >
-                {restarting ? 'Starting…' : ctx.retakeLabel}
+                See your full report
               </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={onReview}
+                >
+                  Review attempt
+                </button>
+
+                {ctx?.retakeAvailable && (
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={onRestart}
+                    disabled={restarting}
+                  >
+                    {restarting ? 'Starting…' : ctx.retakeLabel}
+                  </button>
+                )}
+              </>
             )}
 
             <button

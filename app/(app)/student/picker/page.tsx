@@ -26,6 +26,7 @@ import { Footer } from '@/components/shell/footer';
 import { ProgrammeCards } from '@/components/nav/student/programme-cards';
 import { getMyAccessibleProgrammesAction } from '@/lib/programmes/student-actions';
 import { getMyBankAccess } from '@/lib/payments/entitlements';
+import { getMyCredits } from '@/lib/payments/readiness-credits-read';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +57,23 @@ export default async function PickerPage() {
     : null;
   const bankCtaLabel = bankAccess.active ? 'Open the bank' : 'Get access';
 
+  // Readiness door: ALWAYS shown (grouped with the bank rail, not a co-equal
+  // third product — 2026-07-09 IA decision). Owners (a non-revoked credit —
+  // claimed, running, sat, or waiting to be claimed) go to their packs page;
+  // a logged-in student with no credits gets a sell-state door pointing at the
+  // public /readiness page, so they can discover + buy rather than being shown
+  // nothing.
+  const credits = await getMyCredits();
+  const ownsReadiness = credits.total - credits.byStage.REVOKED > 0;
+  const readinessLine =
+    credits.byStage.UNCLAIMED > 0
+      ? `${credits.byStage.UNCLAIMED} credit${credits.byStage.UNCLAIMED === 1 ? '' : 's'} ready to claim`
+      : credits.byStage.ACTIVE > 0
+        ? `${credits.byStage.ACTIVE} window${credits.byStage.ACTIVE === 1 ? '' : 's'} open`
+        : ownsReadiness
+          ? 'Your one-shot mock exams — claim, activate, sit.'
+          : 'A curated, one-shot mock built like the real NCLEX. Sit it once for a formal readiness score — a true measure of where you stand, not just more practice.';
+
   return (
     <AppShell
       displayName={chrome.displayName}
@@ -85,21 +103,38 @@ export default async function PickerPage() {
               )}
             </div>
 
-            {/* Question Bank rail — the constant entry point */}
-            <aside className="picker-bank-rail">
-              <div className="bank-rail-eyebrow">Question Bank</div>
-              <div className="bank-rail-title">Self-study practice</div>
-              {bankStatusLine && (
-                <div className="bank-rail-status">{bankStatusLine}</div>
-              )}
-              <p className="bank-rail-desc">
-                Thousands of NCLEX-style questions. Practise any time — no
-                schedule, no cohort.
-              </p>
-              <Link href={bankHref} className="bank-rail-cta">
-                {bankCtaLabel} <span aria-hidden="true">→</span>
-              </Link>
-            </aside>
+            {/* Self-study side column: the constant Question Bank rail, and
+                — for readiness owners — a door to their packs below it. */}
+            <div className="picker-side">
+              <aside className="picker-bank-rail">
+                <div className="bank-rail-eyebrow">Question Bank</div>
+                <div className="bank-rail-title">Practise &amp; rehearse</div>
+                {bankStatusLine && (
+                  <div className="bank-rail-status">{bankStatusLine}</div>
+                )}
+                <p className="bank-rail-desc">
+                  Thousands of NCLEX-style questions with full rationales —
+                  learn by topic, or rehearse exam day with timed and
+                  CAT-adaptive modes. Unlimited, at your pace.
+                </p>
+                <Link href={bankHref} className="bank-rail-cta">
+                  {bankCtaLabel} <span aria-hidden="true">→</span>
+                </Link>
+              </aside>
+
+              <aside className="picker-bank-rail picker-readiness-rail">
+                <div className="bank-rail-eyebrow">Readiness Packs</div>
+                <div className="bank-rail-title">Test your readiness</div>
+                <p className="bank-rail-desc">{readinessLine}</p>
+                <Link
+                  href={ownsReadiness ? '/student/bank/packs' : '/readiness'}
+                  className="bank-rail-cta"
+                >
+                  {ownsReadiness ? 'View your packs' : 'Get readiness packs'}{' '}
+                  <span aria-hidden="true">→</span>
+                </Link>
+              </aside>
+            </div>
           </div>
         </div>
         <Footer />

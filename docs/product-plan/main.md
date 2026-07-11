@@ -758,6 +758,9 @@ scales with tutor success.
 - Sold as: single pack, three-pack bundle, all-packs bundle.
 - Independent of bank access — can be purchased with or without the
   bank.
+- **Canonical plan: [readiness-packs.md](readiness-packs.md)**
+  (created 2026-07-04 — consolidates format, pricing, reservation,
+  storage and the open build questions).
 
 ### Tutor revenue model
 

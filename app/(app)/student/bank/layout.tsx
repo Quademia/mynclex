@@ -6,16 +6,21 @@
 //   - the bank sidebar (left)
 //   - main content area (right)
 //
-// STUDENT role + active-bank-subscription gate lives here (Slice 5.6) —
-// descendant pages trust it. requireActiveBankSubscription bounces a
-// non-student to /no-access and a student without active bank access to
-// /bank-access (SUPER_ADMIN bypasses). The create-attempt RPC carries the
-// same check as the hard backstop.
+// Front-door gate (relaxed 2026-07-09): requireBankOrReadiness admits a
+// student with active bank access OR a readiness entitlement — so a
+// pack-owner with no bank subscription can reach the Readiness Packs page
+// (which lives in this sidebar). ENTRY only: the bank-consumption pages
+// (dashboard / practice / history / journey / profile) each keep their own
+// requireActiveBankSubscription() so a readiness-only student who clicks
+// them still bounces to the reason-aware access wall (/no-access?need=bank).
+// The Packs page adds no bank check. A student with neither entitlement
+// bounces to the same wall here. The create-attempt RPC carries the bank
+// check as the hard backstop.
 //
 // hasProgrammeEnrolment is hard-coded today; replace when the
 // nclex_enrolments table lands.
 
-import { requireActiveBankSubscription } from '@/lib/access';
+import { requireBankOrReadiness } from '@/lib/access';
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
 import { AppShell } from '@/components/shell/app-shell';
 import { Footer } from '@/components/shell/footer';
@@ -33,7 +38,7 @@ export default async function BankLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireActiveBankSubscription();
+  await requireBankOrReadiness();
   const chrome = await loadChromeData();
 
   // Placeholder — replace with a real enrolment check. Slice 10.1

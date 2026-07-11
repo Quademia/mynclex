@@ -56,6 +56,25 @@ export async function markStartedAction(
 }
 
 
+// Readiness preflight Start (step 2b-ii). Distinct from markStartedAction:
+// starting a readiness sitting IS spending the one-shot credit, so this goes
+// through nclex_start_readiness_attempt, which atomically stamps the credit's
+// used_at + attempt_id AND anchors the timer (§2 r1). Idempotent on re-entry.
+export async function startReadinessAttemptAction(
+  attemptId: string,
+): Promise<ActionResult<{ started_at: string }>> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data, error } = await supabase.rpc('nclex_start_readiness_attempt', {
+    p_attempt_id: attemptId,
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: { started_at: data as string } };
+}
+
+
 export async function submitAnswerAction(
   attemptItemId: string,
   answerJson:    BankItemAnswer,

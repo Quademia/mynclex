@@ -1,20 +1,26 @@
 // mynclex/app/(app)/admin/products/page.tsx
 //
-// Products & Pricing — placeholder. Gated on PAYMENTS_MANAGE.
+// Products & Pricing — the buyable-SKU catalogue (readiness-packs.md
+// §12 slice ①). Bank passes + the free trial + readiness packs, with
+// create / edit / retire / reactivate. Gated on PAYMENTS_MANAGE; the
+// matching RLS policy (20260723120000) is what lets this page read
+// ARCHIVED rows at all.
 
 import { requireAdminPermission, PERM_PAYMENTS_MANAGE } from '@/lib/access';
-import { Placeholder } from '@/components/nav/shared/placeholder';
+import { loadCatalogue } from '@/lib/products/queries';
+import { CatalogueView } from '@/lib/products/catalogue-view';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminProductsPage() {
-  await requireAdminPermission(PERM_PAYMENTS_MANAGE);
+  const { supabase } = await requireAdminPermission(PERM_PAYMENTS_MANAGE);
+  const { products, packCount } = await loadCatalogue(supabase);
 
   return (
-    <Placeholder
-      title="Products & Pricing"
-      subtitle="Bank duration packs + prices"
-      description="GHS + USD dual pricing, activate / retire products."
-    />
+    <main className="auth-list-page">
+      <div className="auth-list-inner pr-page">
+        <CatalogueView products={products} packCount={packCount} />
+      </div>
+    </main>
   );
 }
