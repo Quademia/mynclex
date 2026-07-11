@@ -1030,15 +1030,48 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
      pass-probability). Bands renamed 2026-07-06: **Building →
      Approaching → Ready → Excelling** (top band was "Exam-ready";
      rename rationale in `bank-consumption.html` §6, which stays
-     canonical for bands). **Headline % stays the canonical
-     `final_score`** (item-equivalent average,
-     `bank-marks-and-scoring.html` §7 — one formula everywhere;
-     bands are defined on it) **plus an explicit points line**
-     (e.g. "412 of 520 points" — earned vs max marks) so the
-     answer-level volume behind NGN partial credit is visible
-     (Sam's point: ~100 questions carry far more than 100 scoreable
-     answers; partial credit is already in the maths, the points
-     line makes it visible).
+     canonical for bands). **Headline % is the canonical
+     `final_score`** — the item-equivalent **average of each
+     question's own fraction** (`bank-marks-and-scoring.html` §7 —
+     one formula everywhere; every question equal weight; bands are
+     defined on it).
+   - **Three complementary readings, never a rival ratio — settled
+     2026-07-11 with Sam.** The hero carries three numbers that each
+     answer a *different* question and cannot be mistaken for
+     competing versions of one grade:
+     1. **% + band** — the per-question average above (the verdict).
+     2. **Question outcomes** — a count breakdown of the 100:
+        **fully correct · partially correct · all wrong**, from the
+        all-or-nothing `is_correct` flag. Genuinely distinct from the
+        % (a 3-of-4 SATA is *not* "fully correct" yet still feeds the
+        %), telling the nurse how many they truly nailed vs were only
+        close on.
+     3. **Points** — the answer-slot volume the % hides. A **point =
+        one scoreable answer-slot**; every question is worth its
+        `marks` (MCQ 1 · SATA #correct · Matrix #rows · Matrix-multi
+        #correct-cells · Cloze #blanks · Highlight #highlights · Drag
+        #slots · Bow-tie 5 = `computeMarksFromKey`). Show **total
+        answer-points** (e.g. 520) + **points earned**, covering all
+        100 questions uniformly; and for the **selection family**
+        (SATA / Select-N / Highlight / Matrix-multi) the recall /
+        precision detail — **correct answers found · missed · wrong
+        options selected** (the −1 picks). Single-answer / per-slot
+        types carry no wrong-pick line but still count toward the
+        totals — every question is part of the point system (Sam,
+        2026-07-11).
+   - **Framing rule (the trap it avoids):** points render as
+     **standalone counts / coverage, NEVER an "X of Y" fraction.**
+     The % is an *average of fractions*; a points *ratio*
+     (Σ `score_awarded` ÷ Σ `marks`) weights questions by answer-count
+     and so **diverges from the band** (an 80% average can read ~71%
+     by points). "430 of 520" invites the student to divide it and
+     see it disagree with the band; "there were 520 correct answers —
+     you found 430, missed 90, wrongly picked 45" does not (reads as
+     *what did I catch*, not *what's my grade*). Same reason
+     `final_score` is **not** redefined as a points ratio: it's the
+     canonical bank-wide formula, and re-weighting every question to
+     force "% = points" would ripple through all of practice, not
+     just this report.
    - **Peer comparator** (Sam's addition): "You scored higher than
      N% of takers of this pack." A pack is the fairest peer set in
      the product — identical 100 questions under identical
