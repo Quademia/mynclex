@@ -81,6 +81,10 @@ function DetailCard({
         <div><span>Body system</span><span>{it.bodySystem ?? '—'}</span></div>
         <div><span>Difficulty</span><span>{it.difficulty ?? '—'}</span></div>
         <div><span>You earned</span><span>{it.scoreAwarded} of {it.marks}</span></div>
+        {/* TODO(time-engine): fill "Time spent" once per-question timing is
+            captured (a separate runner arc). Placeholder kept so we don't
+            forget to wire it. */}
+        <div><span>Time spent</span><span className="rs-map-soon">Timing coming soon</span></div>
         <div>
           <span>Answer changes</span>
           <span>{it.changed && it.changeDir ? `1 · ${DIR_LABEL[it.changeDir]}` : 'None'}</span>
@@ -232,6 +236,15 @@ export default function PerQuestionMap({
             {ch.label}
           </button>
         ))}
+        {/* TODO(time-engine): enable once per-question timing is captured. */}
+        <button
+          type="button"
+          className="rs-map-chip"
+          disabled
+          title="Per-question timing is coming soon"
+        >
+          Rushed · soon
+        </button>
       </div>
 
       <div className="rs-map-chiprow">
