@@ -143,6 +143,9 @@ export function ReadinessPacksClient({ view }: { view: StudentReadinessView }) {
               onActivate={() => setDialog({ kind: 'activate', pack: p })}
               onBegin={() => doBegin(p)}
               onResume={() => p.resumeAttemptId && router.push(`/session/${p.resumeAttemptId}`)}
+              onReport={() =>
+                p.reportAttemptId && router.push(`/student/bank/packs/report/${p.reportAttemptId}`)
+              }
             />
           ))}
         </div>
@@ -240,6 +243,7 @@ function PackCard({
   onActivate,
   onBegin,
   onResume,
+  onReport,
 }: {
   pack: StudentPackCard;
   pending: boolean;
@@ -247,6 +251,7 @@ function PackCard({
   onActivate: () => void;
   onBegin: () => void;
   onResume: () => void;
+  onReport: () => void;
 }) {
   const specs = `${pack.n} questions · ${timeStr(pack.timeLimitSec)} · one shot`;
 
@@ -304,6 +309,15 @@ function PackCard({
             : 'Sit your one attempt any time before the window closes.'}
         </div>
       )}
+      {pack.state === 'USED' && (
+        <div className="rs-card-note">
+          {pack.reviewOpen
+            ? `You've sat this pack. Your score is saved — answer review is open for ${
+                pack.daysLeft === 1 ? '1 more day' : `${pack.daysLeft} more days`
+              }.`
+            : "You've sat this pack. Your score is saved; the answer-review window has closed."}
+        </div>
+      )}
       {pack.lapsed && (
         <div className="rs-card-note rs-card-note-muted">
           A previous window lapsed unused — no questions were seen, so it&apos;s fresh to claim again.
@@ -334,6 +348,11 @@ function PackCard({
         {pack.state === 'SITTING' && (
           <button type="button" className="rs-btn rs-btn-navy rs-btn-full" disabled={pending} onClick={onResume}>
             Resume exam
+          </button>
+        )}
+        {pack.state === 'USED' && (
+          <button type="button" className="rs-btn rs-btn-navy rs-btn-full" disabled={pending} onClick={onReport}>
+            See your full report
           </button>
         )}
       </div>

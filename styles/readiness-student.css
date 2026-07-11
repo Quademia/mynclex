@@ -119,9 +119,39 @@
 }
 .rs-toast button { background: transparent; border: none; color: var(--text-faint); font-size: 16px; line-height: 1; cursor: pointer; }
 
+/* ── per-sitting report (step 3 placeholder) ────────────────────── */
+.rs-report-back {
+  display: inline-flex; align-items: center; font-size: 13px; font-weight: 600;
+  color: var(--text-muted); text-decoration: none; margin-bottom: 14px;
+}
+.rs-report-back:hover { color: var(--text); text-decoration: none; }
+
+.rs-report {
+  background: var(--white); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: var(--shadow); padding: 26px 24px; max-width: 620px;
+}
+.rs-report-eyebrow { font-size: 12.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+.rs-report-score { display: flex; align-items: baseline; gap: 2px; margin-top: 14px; }
+.rs-report-num { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; color: var(--primary); line-height: 1; }
+.rs-report-pct { font-size: 26px; font-weight: 700; color: var(--primary); }
+.rs-report-unavail { font-size: 20px; font-weight: 600; color: var(--text-muted); }
+.rs-report-scorelabel { font-size: 13px; color: var(--text-faint); margin-top: 6px; }
+
+.rs-report-soon {
+  background: var(--bg-soft); border: 1px dashed var(--border-strong); border-radius: 10px;
+  padding: 16px 18px; margin-top: 22px;
+}
+.rs-report-soon-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+.rs-report-soon p { font-size: 13px; color: var(--text-muted); line-height: 1.55; margin: 0; }
+
+.rs-report-review { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
+.rs-report-review-note { font-size: 12.5px; color: var(--text-muted); margin-top: 10px; line-height: 1.45; }
+
 /* ── mobile ─────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .rs-card { flex-basis: 100%; max-width: none; }
   .rs-claimall { flex-direction: column; align-items: stretch; }
   .rs-claimall .rs-btn { width: 100%; }
+  .rs-report-num { font-size: 46px; }
 }

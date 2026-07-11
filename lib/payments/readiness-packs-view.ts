@@ -38,12 +38,19 @@ export interface StudentPackCard {
   state: PackCardState;
   /** An earlier credit on this pack lapsed unused — it's fresh again. */
   lapsed: boolean;
-  /** Whole days left in the window — ACTIVE/SITTING cards only, else null.
-   *  Clamped at 0 (a past-deadline credit reads ACTIVE until the sweep
-   *  stamps expired_at; the card can still show "0 days left"). */
+  /** Whole days left in the window — ACTIVE/SITTING/USED cards, else null.
+   *  For ACTIVE/SITTING it's time-to-sit; for USED it's the remaining
+   *  answer-review window (review closes at expires_at, the score persists
+   *  forever). Clamped at 0. */
   daysLeft: number | null;
   /** The in-progress sitting to resume — SITTING cards only, else null. */
   resumeAttemptId: string | null;
+  /** The finished sitting's attempt — USED cards only, else null. Powers
+   *  the "See your full report" link to the permanent report page. */
+  reportAttemptId: string | null;
+  /** USED only: is the 21-day answer-review window still open? Drives the
+   *  card note. Always false for non-USED. */
+  reviewOpen: boolean;
 }
 
 export interface StudentReadinessView {
@@ -144,10 +151,20 @@ export async function getStudentReadinessView(): Promise<StudentReadinessView> {
       state = live?.stage ?? (unclaimed > 0 ? 'CLAIMABLE' : 'CATALOGUE');
     }
 
+    // Days left in the window applies to ACTIVE/SITTING (time to sit) and
+    // USED (remaining answer-review window — the score persists, review
+    // closes at expires_at).
     const daysLeft =
-      (state === 'ACTIVE' || state === 'SITTING') && live?.expiresAt
+      (state === 'ACTIVE' || state === 'SITTING' || state === 'USED') && live?.expiresAt
         ? Math.max(0, Math.ceil((new Date(live.expiresAt).getTime() - now) / 86_400_000))
         : null;
+
+    // USED cards link to the permanent report; review stays open until the
+    // window deadline.
+    const reportAttemptId = state === 'USED' ? live?.attemptId ?? null : null;
+    const reviewOpen =
+      state === 'USED' && live?.expiresAt ? now < new Date(live.expiresAt).getTime() : false;
+
     return {
       packId: p.pack_id,
       num: packNumFromId(p.pack_id),
@@ -159,6 +176,8 @@ export async function getStudentReadinessView(): Promise<StudentReadinessView> {
       lapsed: !live && lapsedPacks.has(p.pack_id),
       daysLeft,
       resumeAttemptId,
+      reportAttemptId,
+      reviewOpen,
     };
   });
 
