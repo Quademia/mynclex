@@ -14,9 +14,15 @@ reworded to a fairness gate, no count]. All app-layer bar ⑥; tsc + eslint +
 `app/(app)/student/bank/packs/report/[attemptId]/` + `lib/payments/readiness-report.ts`
 + `readiness-breakdowns.ts` + `lib/scoring/detail.ts`. ⏭ NEXT = the
 **per-question time engine** [runner active-timer, serves CAT] to fill the two
-placeholders, THEN Report ⑦ polish/QA. ⚠ dev peer-test seed rows tagged
-`_peertest` (cleanup query in §12); the dup `20260726120000` migration filename
-is still the `main→prod` release blocker. Previously 2026-07-11: **design
+placeholders, THEN Report ⑦ polish/QA. **RELEASED to prod (PR #37,
+2026-07-11):** the whole readiness+products backlog (migrations `20260721`→
+`20260802`, prod was at `20260720`) shipped — migrate-prod + deploy-prod both
+green, prod tracker tail `20260802`, `mynclex.com` 200. The dup
+`20260726120000` filename was **reconciled** (readiness_packs_public_read →
+`20260726130000`) before the release, so the long-standing `main→prod` blocker
+is CLEARED. Readiness lands **dormant** on prod (no `PAYSTACK_SECRET_KEY`, no
+published packs) until deliberately enabled. ⚠ dev peer-test seed rows tagged
+`_peertest` (cleanup query in §12). Previously 2026-07-11: **design
 SETTLED + build SLICED into §12.** Layout **variant v3** [verdict rail +
 collapsible sections] adopted over v1/v2/v4 — the full story reorganised
 into a scannable accordion where collapsed summaries keep everything
