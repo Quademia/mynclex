@@ -1141,6 +1141,29 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
         surface; design the one-sitting-so-far empty state.
      7. **Pacing insight — keep, over ANSWERED questions only** (skipped/
         quit questions have no meaningful time and would skew it).
+   - **Third-pass additions agreed 2026-07-11** (after CD's second pass —
+     make the per-question map an *analysis*, and give Client Needs a
+     "where to focus" drill; keep everything else):
+     8. **Per-question map → analysis, not a lookup.** (a) **Filter /
+        re-sort** the 100 cells — by outcome (wrong/partial/correct),
+        category, difficulty, and "rushed" (low time-per-question); and
+        re-group by category/difficulty, not only sitting order. (b)
+        **Second-guessing panel** off `answer_changes_json` (the runner
+        already records every `{at, from, to}` change): "changed 12
+        answers — 8 right→wrong, 3 wrong→right", flag those cells.
+        Metadata-only, never reveal the answer outside the review window.
+     9. **Client Needs — a 3-level drill for "where to focus".**
+        **Levels 1–2 scored:** the real NCLEX tree **4 categories → 8
+        subcategories** (`classifications.ts`), category rollups
+        expandable to subcategories (HPM & PSI are 1:1 — no expand;
+        thin-slice raw counts). **Level 3 = a LIST, not a score:** on a
+        subcategory expand, show the **specific topics/subtopics of the
+        questions the student got wrong** as a focus checklist ("Review:
+        insulin administration · ECG interpretation"), tied into the
+        "Practise in the bank" remediation. **Do NOT %-score topic/
+        subtopic** — they're free-text, fine-grained, so on a 100-Q
+        sitting each holds ~1 question and a percentage is n=1 noise; a
+        checklist is the honest + more actionable form (Sam, 2026-07-11).
 6. **Pack publish gate — ✅ SETTLED 2026-07-04** (see §6 → *Publish
    gate & membership edits*): completeness-gated toggle + publish-all
    helper + un-publish stops new sales/claims only + **no membership
