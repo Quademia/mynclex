@@ -22,6 +22,7 @@ import WhereToFocus from './where-to-focus';
 import NextMoves from './next-moves';
 import TrendPacing from './trend-pacing';
 import PerQuestionMap from './per-question-map';
+import PeerComparison from './peer-comparison';
 
 type SectionKey = 'results' | 'focus' | 'moves' | 'insights' | 'map' | 'review';
 
@@ -469,12 +470,9 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
               </div>
             </div>
 
-            {/* Peer comparison — its own slice; placeholder keeps the shape. */}
             <div className="rs-rep-peer-soon">
               <div className="rs-rep-reading-h">Peer comparison</div>
-              <p className="rs-rep-foot">
-                How you compare to other nurses who sat this pack arrives in an upcoming update.
-              </p>
+              <PeerComparison peer={report.peer} />
             </div>
           </AccordionSection>
 

@@ -72,6 +72,20 @@ export interface ReportItem {
   changeDir: 'rightToWrong' | 'wrongToRight' | 'other' | null;
 }
 
+/** Peer comparator for this pack (aggregate-only, min-N gated). */
+export interface PeerStats {
+  /** Cohort size — terminal scored sittings of this pack. */
+  n: number;
+  /** True once n ≥ the min-N threshold; below it the comparison is hidden. */
+  unlocked: boolean;
+  /** Share of takers the caller scored above (0..100), when unlocked + scored. */
+  yourPercentile: number | null;
+  /** Which 10-point bucket (1..10) the caller falls in. */
+  yourBucket: number | null;
+  /** 10-point score histogram (only when unlocked). */
+  buckets: { lo: number; hi: number; count: number }[];
+}
+
 /** One prior sitting for the cross-pack trend (chronological). */
 export interface TrendPoint {
   attemptId: string;
@@ -99,6 +113,8 @@ export interface ReadinessReport {
   items: ReportItem[];
   /** This student's readiness sittings across all packs, chronological. */
   trend: TrendPoint[];
+  /** Peer comparator (null if the aggregate read failed). */
+  peer: PeerStats | null;
   /** 21-day answer-review window — open while now < expiresAt. */
   reviewOpen: boolean;
   expiresAt: string | null;
@@ -306,6 +322,30 @@ export async function getReadinessReport(
     isCurrent: h.attempt_id === attemptId,
   }));
 
+  // Peer comparator — an aggregate-only SECURITY DEFINER read (RLS blocks a
+  // client-side cohort read). Null on any failure; the section degrades to a
+  // "coming" state rather than erroring the whole report.
+  let peer: PeerStats | null = null;
+  const { data: peerRaw } = await supabase.rpc('nclex_readiness_pack_peer_stats', {
+    p_attempt_id: attemptId,
+  });
+  if (peerRaw && typeof peerRaw === 'object') {
+    const p = peerRaw as {
+      n?: number;
+      unlocked?: boolean;
+      your_percentile?: number | null;
+      your_bucket?: number | null;
+      buckets?: { lo: number; hi: number; count: number }[];
+    };
+    peer = {
+      n: p.n ?? 0,
+      unlocked: p.unlocked === true,
+      yourPercentile: p.your_percentile ?? null,
+      yourBucket: p.your_bucket ?? null,
+      buckets: p.buckets ?? [],
+    };
+  }
+
   const finalScore = attempt.final_score;
   const expiresAt = credit?.expires_at ?? null;
 
@@ -323,6 +363,7 @@ export async function getReadinessReport(
       points,
       items: reportItems,
       trend,
+      peer,
       reviewOpen: reviewWindowOpen(expiresAt),
       expiresAt,
     },
