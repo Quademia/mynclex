@@ -1,7 +1,23 @@
 # Readiness Packs
 
-Last updated: 2026-07-11 (**Results page (step 3) — design SETTLED +
-build SLICED into §12.** Layout **variant v3** [verdict rail +
+Last updated: 2026-07-11 (**Results page (step 3) — report slices ①–⑥ BUILT
++ Sam-tested + MERGED to `main`.** The permanent per-sitting report is
+functionally complete: verdict hero (ring adopts the band tone) + three
+readings, the Where-to-focus multi-axis breakdown + Client Needs 3-level
+drill, Your-next-moves remediation cards that deep-link into the
+subcategory-pre-filtered practice builder (fresh questions), Trend (cross-pack
+sparkline) + Pacing **placeholder**, the Per-question map + second-guessing
+[time bits = **visible placeholders**], and Peer comparison [ONE migration
+`20260802120000` — a SECURITY DEFINER aggregate w/ min-N 25; locked copy
+reworded to a fairness gate, no count]. All app-layer bar ⑥; tsc + eslint +
+152 vitest clean; new files under
+`app/(app)/student/bank/packs/report/[attemptId]/` + `lib/payments/readiness-report.ts`
++ `readiness-breakdowns.ts` + `lib/scoring/detail.ts`. ⏭ NEXT = the
+**per-question time engine** [runner active-timer, serves CAT] to fill the two
+placeholders, THEN Report ⑦ polish/QA. ⚠ dev peer-test seed rows tagged
+`_peertest` (cleanup query in §12); the dup `20260726120000` migration filename
+is still the `main→prod` release blocker. Previously 2026-07-11: **design
+SETTLED + build SLICED into §12.** Layout **variant v3** [verdict rail +
 collapsible sections] adopted over v1/v2/v4 — the full story reorganised
 into a scannable accordion where collapsed summaries keep everything
 visible; a **responsive** mobile pass reviewed at 375px [sticky
@@ -1915,48 +1931,70 @@ same; they differ only where the credits-only version is wrong.
   + exact "what counts as a sitting" pinned at the peer slice (nothing before
   it depends on it); per-question time = placeholder (above).
 
-  **Build slices (each built → Sam-tested on `localhost` desktop + 375px →
-  next):**
-  - **⬜ Report ① — Foundation + Verdict hero + Three readings.** The single
-    report data-loader (`lib/payments/readiness-report.ts` — one read: the
-    attempt + its 100 items ⋈ answers + credit/pack) → the derived model
-    (outcomes counts, points totals + selection recall/precision, band). Fill
-    the placeholder route: verdict hero (ring, band chip, band strip w/ the
-    piecewise marker, measured-not-predicted copy) + the outcomes + points
-    cards. The accordion shell + sticky mini-verdict + single-open sections
-    (rest as labelled "coming" rows). CSS (`.rs-report-*`, desktop +
-    `@media` mobile) + core animations + reduced-motion. → a working report.
-  - **⬜ Report ② — Where to focus.** The multi-axis breakdown engine over
-    the loaded items: Client Needs (L1→L2 scored → L3 wrong-topic checklist),
-    body system, difficulty, CJMM (case items only). Thin-slice honesty
-    (fractions, never a bare % on tiny slices); null-safe bucketing.
-  - **⬜ Report ③ — Your next moves.** Remediation cards off the 2–3 weakest
-    slices, deep-linking into the **practice builder pre-filtered by
-    category** (new wiring: `page.tsx` reads `searchParams` → `initialFilters`
-    → seed builder state; the CNC axis + reserved-question exclusion already
-    exist, so it practises the *category* with fresh questions, never the
-    pack's reserved items). + quick-wins (near-misses) + strengths mirror.
-  - **⬜ Report ④ — Trend + Pacing.** Trend built fully — a cross-pack own-rows
-    read of the student's prior USED sittings' scores + the first-sitting
-    empty state. **Pacing = placeholder** (time-dependent).
-  - **⬜ Report ⑤ — Per-question map.** 100 outcome-coloured cells (pop-in),
-    filter + group-by chips, inline detail card (beside on desktop / under-row
-    on mobile), the second-guessing panel off `answer_changes_json`, per-cell
-    window-gated review deep-link. **"Rushed" filter + per-cell time row =
+  **Build slices — ①–⑥ ✅ BUILT + Sam-tested (desktop + 375px) 2026-07-11,
+  MERGED to `main`; ⑦ ⏭ NEXT.** All app-layer + ONE migration (⑥). New report
+  files under `app/(app)/student/bank/packs/report/[attemptId]/` (`report-view`,
+  `where-to-focus`, `next-moves`, `trend-pacing`, `per-question-map`,
+  `peer-comparison`) + `lib/payments/readiness-report.ts` (the one shared read)
+  + `lib/payments/readiness-breakdowns.ts` (+ test) + `lib/scoring/detail.ts` +
+  `styles/readiness-student.css` (`.rs-rep/-wtf/-nm/-tp/-map/-peer-*`). Rebuilt
+  from the CD **v3 Responsive** prototype in app tokens. tsc + eslint + 152
+  vitest clean throughout.
+  - **✅ Report ① — Foundation + Verdict hero + Three readings** (`ea1dd0b`).
+    The single loader (attempt + 100 items ⋈ answers + credit/pack) → derived
+    model (outcomes, points found/missed/wrong via `lib/scoring/detail.ts`,
+    band). Verdict hero (ring, band, band strip w/ marker), outcomes + points
+    cards, the accordion shell + sticky mini-verdict (via IntersectionObserver —
+    the app scrolls `.product-content`, not `window`), core animations +
+    reduced-motion. **Refinement `e2d9acc`:** the ring arc adopts the band tone
+    (Building red … Excelling green) so ring+chip+strip read as one verdict.
+  - **✅ Report ② — Where to focus** (`19e8d33`; engine `readiness-breakdowns.ts`
+    + 9-case test). 4-axis tabbed breakdown — Client Needs L1→L2 scored → L3
+    wrong-topic **checklist** (1:1 HPM/PSI hang topics off the category), body
+    system (weakest-first), difficulty, CJMM (case items only). Bucket metric =
+    fully-correct **count** ("X of Y") so it's thin-slice honest by
+    construction. Colour bands: red <60 · amber 60–79 · green ≥80 (a separate
+    heuristic from the score bands — flagged for a future HelpBulb).
+  - **✅ Report ③ — Your next moves** (`537dda1`; `nextMoves` + 4 tests). 3
+    remediation cards off the weakest subcategories, each deep-linking into the
+    **practice builder pre-filtered by subcategory** (`page.tsx` reads
+    `?cnc/subcat/body/diff` → seeds content filters; **pools stay UNSEEN** so
+    practice is fresh questions; reserved-pack exclusion already guaranteed) +
+    quick-wins (near-misses) + strengths mirror. Slice ② topic-checklist
+    "Practise" links now target the subcategory too.
+  - **✅ Report ④ — Trend + Pacing** (`cf1f91c`). Trend built fully — a
+    cross-pack own-rows read of the student's terminal scored sittings +
+    sparkline + delta-since-last + first-sitting empty state. **Pacing =
     placeholder** (time-dependent).
-  - **⬜ Report ⑥ — Peer comparison (the one new migration).** A
-    `SECURITY DEFINER` RPC `nclex_readiness_pack_peer_stats(p_pack_id)`
-    returning aggregate-only `{ n, your_percentile, histogram_buckets }` with
-    a min-N (≈25) suppression gate (RLS blocks a client-side cohort read).
-    Renders unlocked (histogram + "higher than N%") or the locked min-N empty
-    state (honest on a young product). Pins the "what counts as a sitting"
-    status policy + self-percentile-vs-histogram consistency.
-  - **⬜ Report ⑦ — Polish + QA.** The two-lifetimes review section (window
-    helper exists), full animation choreography, 375px QA across every
-    section, open-anchor polish, copy sync with the USED card + popup.
+  - **✅ Report ⑤ — Per-question map** (`4e2999c`). 100 outcome-coloured cells
+    (white dot on changed), SHOW/GROUP chips + category/difficulty selects,
+    inline detail card (side panel desktop / **injected under the tapped row**
+    on mobile), second-guessing off `answer_changes_json` (each item carries
+    `changed` + net `changeDir` via re-scoring the first committed answer),
+    "Show them on the map", per-cell window-gated review. **Time bits = VISIBLE
+    placeholders** (`4be4546`, Sam's call — a disabled "Rushed · soon" chip + a
+    "Time spent · Timing coming soon" detail row, both `TODO(time-engine)`) so
+    we don't forget to wire them.
+  - **✅ Report ⑥ — Peer comparison (the one migration, `20260802120000`,
+    dev-applied)** (`c7f00f1`). `SECURITY DEFINER`
+    `nclex_readiness_pack_peer_stats(p_attempt_id)` → aggregate-only
+    `{ n, unlocked, your_percentile, your_bucket, buckets }`. Cohort = terminal
+    scored sittings of the pack (same set the trend counts); **min-N = 25**
+    (single constant); percentile computed against the same cohort as the
+    10-point histogram. Locked state **reworded (`272de53`, Sam)** to a
+    fairness gate w/ **no count** ("Your peer comparison is on its way — we only
+    show it once there's enough data to be genuinely fair") so it doesn't read
+    as low usage. **Dev seed:** 30 fake sittings each on Pack 1 (52%→"beat 19%",
+    mid) + Pack 5 (12%→"beat 6%", low), tagged `filters_json._peertest`; clean
+    up with `DELETE FROM nclex_attempts WHERE filters_json->>'_peertest'='true'`.
+  - **⏭ Report ⑦ — Polish + QA** (does NOT need the time engine — leaves the
+    two placeholders as-is). Full animation choreography, 375px sweep, open-anchor
+    settle, copy sync (USED card / results popup / report). **Sequencing (Sam,
+    2026-07-11): do the time engine FIRST** so ⑦ polishes the complete report
+    (pacing + map timing filled), not around placeholders.
   - **⬜ Future arc (separate) — per-question time engine** (runner
     active-timer; serves CAT) → fills Report ④'s Pacing card + Report ⑤'s
-    time bits.
+    time bits. **Now the agreed next build** (before ⑦).
 - **⬜ Lazy-expiry (replaces the nightly sweep — settled 2026-07-11):**
   stamp `expired_at` **on the next touch** of a past-deadline unsat credit
   — on a packs-page read and (correctness-critical) at re-claim time —
