@@ -17,6 +17,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ReadinessReport } from '@/lib/payments/readiness-report';
+import { weakestSubcategory } from '@/lib/payments/readiness-breakdowns';
+import WhereToFocus from './where-to-focus';
 
 type SectionKey = 'results' | 'focus' | 'moves' | 'insights' | 'map' | 'review';
 
@@ -24,7 +26,7 @@ interface SectionMeta {
   title: string;
   sub: string;
   summary: string;
-  summaryTone?: 'ok' | 'muted';
+  summaryTone?: 'ok' | 'muted' | 'danger';
 }
 
 function fmtDate(iso: string): string {
@@ -99,7 +101,13 @@ function AccordionSection({
   children: React.ReactNode;
 }) {
   const toneClass =
-    meta.summaryTone === 'muted' ? ' is-muted' : meta.summaryTone === 'ok' ? ' is-ok' : '';
+    meta.summaryTone === 'muted'
+      ? ' is-muted'
+      : meta.summaryTone === 'ok'
+        ? ' is-ok'
+        : meta.summaryTone === 'danger'
+          ? ' is-danger'
+          : '';
   return (
     <div className={`rs-rep-sec${open ? ' is-open' : ''}`} data-sec={sectionKey}>
       <button type="button" className="rs-rep-sec-head" onClick={onToggle}>
@@ -160,6 +168,7 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
 
   const count = useCountUp(pct ?? 0, mounted && pct !== null);
   const dl = daysLeft(expiresAt);
+  const weakest = weakestSubcategory(report.items);
 
   const openSection = (k: SectionKey) => {
     const opening = openSec !== k;
@@ -207,8 +216,8 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
     focus: {
       title: 'Where to focus',
       sub: 'Client needs · body system · difficulty · clinical judgment',
-      summary: 'Coming next',
-      summaryTone: 'muted',
+      summary: weakest ? `Weakest: ${weakest}` : 'Your remediation map',
+      summaryTone: weakest ? 'danger' : 'muted',
     },
     moves: {
       title: 'Your next moves',
@@ -462,7 +471,7 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
             open={openSec === 'focus'}
             onToggle={() => openSection('focus')}
           >
-            <ComingSoon what="Your remediation map" />
+            <WhereToFocus items={report.items} />
           </AccordionSection>
 
           <AccordionSection

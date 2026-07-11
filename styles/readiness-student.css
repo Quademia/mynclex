@@ -269,6 +269,52 @@
 @keyframes rr-barGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes rr-open { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 2600px; } }
 
+.rs-rep-sec-summary.is-danger { color: var(--danger); }
+
+/* ── Where to focus (Slice ②) ───────────────────────────────────── */
+.rs-wtf-tabs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
+.rs-wtf-tab { font: inherit; padding: 7px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--white); color: var(--text-muted); }
+.rs-wtf-tab:hover { background: var(--bg-soft); }
+.rs-wtf-tab.is-active { background: var(--primary); color: var(--white); border-color: var(--primary); }
+
+.rs-wtf-rows { display: flex; flex-direction: column; gap: 13px; }
+.rs-wtf-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 5px; }
+.rs-wtf-name { font-size: 13px; color: var(--text); font-weight: 500; }
+.rs-wtf-val { font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.rs-wtf-bar { height: 8px; background: var(--bg-soft); border-radius: 999px; overflow: hidden; }
+.rs-wtf-fill { height: 100%; border-radius: 999px; transform-origin: left; animation: rr-barGrow .7s cubic-bezier(.2,.7,.3,1) both; }
+.rs-wtf-ok { background: var(--success); }
+.rs-wtf-warn { background: var(--warning); }
+.rs-wtf-danger { background: var(--danger); }
+.rs-wtf-ok-t { color: var(--success); }
+.rs-wtf-warn-t { color: #b45309; }
+.rs-wtf-danger-t { color: var(--danger); }
+.rs-wtf-empty { font-size: 13px; color: var(--text-muted); padding: 8px 0; line-height: 1.5; }
+
+.rs-wtf-tree { display: flex; flex-direction: column; gap: 8px; }
+.rs-wtf-cat { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.rs-wtf-cat-head, .rs-wtf-sub-head {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+  background: transparent; border: none; cursor: pointer; font: inherit; text-align: left;
+}
+.rs-wtf-cat-head:hover:not(.is-flat), .rs-wtf-sub-head:hover:not(.is-flat) { background: var(--bg-soft); }
+.rs-wtf-cat-head.is-flat, .rs-wtf-sub-head.is-flat { cursor: default; }
+.rs-wtf-cat-head .rs-wtf-name { flex: none; width: 230px; }
+.rs-wtf-cat-name { font-weight: 600; color: var(--text); }
+.rs-wtf-cat-head .rs-wtf-bar, .rs-wtf-sub-head .rs-wtf-bar { flex: 1; }
+.rs-wtf-caret { flex: none; color: var(--text-muted); transition: transform .2s ease; }
+.rs-wtf-caret.is-open { transform: rotate(90deg); }
+.rs-wtf-caret-sp { width: 9px; flex: none; }
+.rs-wtf-sub { padding-left: 22px; }
+.rs-wtf-sub-head .rs-wtf-name { flex: none; width: 208px; font-weight: 500; color: var(--text-muted); }
+
+.rs-wtf-topics { margin: 2px 14px 12px 34px; background: var(--bg-soft); border: 1px dashed var(--border-strong); border-radius: 8px; padding: 11px 13px; }
+.rs-wtf-topics-h { font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; color: var(--text-muted); text-transform: uppercase; }
+.rs-wtf-topics-empty { font-size: 12.5px; color: var(--text-muted); margin: 0; }
+.rs-wtf-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.rs-wtf-chip { display: inline-flex; align-items: center; font-size: 12px; color: var(--text); background: var(--white); border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px; }
+.rs-wtf-practise { display: inline-block; margin-top: 10px; font-size: 12px; font-weight: 600; }
+
 /* ── mobile ─────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .rs-card { flex-basis: 100%; max-width: none; }
@@ -294,6 +340,15 @@
   .rs-rep-mini.is-shown { opacity: 1; transform: translateY(0); }
   .rs-rep-mini-pct { font-size: 17px; font-weight: 800; color: var(--primary); }
   .rs-rep-mini-pack { font-size: 12px; color: var(--text-faint); margin-left: auto; }
+
+  /* focus tree: names take a full line, bar+score wrap beneath */
+  .rs-wtf-cat-head, .rs-wtf-sub-head { flex-wrap: wrap; }
+  .rs-wtf-cat-head .rs-wtf-name, .rs-wtf-sub-head .rs-wtf-name { width: auto; flex: 1 1 auto; order: 1; }
+  .rs-wtf-caret, .rs-wtf-caret-sp { order: 0; }
+  .rs-wtf-val { order: 2; }
+  .rs-wtf-cat-head .rs-wtf-bar, .rs-wtf-sub-head .rs-wtf-bar { order: 3; flex-basis: 100%; }
+  .rs-wtf-sub { padding-left: 12px; }
+  .rs-wtf-topics { margin-left: 12px; margin-right: 8px; }
 }
 
 /* ── reduced motion — show end state, no entrance choreography ────── */

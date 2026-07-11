@@ -47,6 +47,26 @@ export interface ReadinessPoints {
   wrongPicked: number;
 }
 
+/** One delivered question, flattened for the report's breakdowns + map. */
+export interface ReportItem {
+  position: number;
+  questionType: string;
+  /** L1 client-needs category (may be null / off-canonical — bucket defensively). */
+  category: string | null;
+  /** L2 client-needs subcategory. */
+  subcategory: string | null;
+  bodySystem: string | null;
+  difficulty: string | null;
+  /** CJMM step — non-null only on case (NGN) children. */
+  cjmmStep: string | null;
+  topic: string | null;
+  subtopic: string | null;
+  isCorrect: boolean;
+  scoreAwarded: number;
+  marks: number;
+  answered: boolean;
+}
+
 export interface ReadinessReport {
   attemptId: string;
   packTitle: string;
@@ -61,6 +81,8 @@ export interface ReadinessReport {
   questionCount: number;
   outcomes: ReadinessOutcomes;
   points: ReadinessPoints;
+  /** Per-question rows in sitting order — the breakdown + map data. */
+  items: ReportItem[];
   /** 21-day answer-review window — open while now < expiresAt. */
   reviewOpen: boolean;
   expiresAt: string | null;
@@ -73,15 +95,19 @@ export type ReadinessReportResult =
 
 interface ItemRow {
   attempt_item_id: string;
+  position: number;
   question_type: QuestionType;
   marks_snapshot: number | null;
   correct_answer_snapshot_json: unknown;
+  cjmm_step: string | null;
+  classification_snapshot: Record<string, unknown> | null;
 }
 interface AnswerRow {
   attempt_item_id: string;
   is_correct: boolean | null;
   score_awarded: number | null;
   answer_json: unknown;
+  submission_status: string | null;
 }
 
 /**
@@ -129,11 +155,14 @@ export async function getReadinessReport(
   const [{ data: items }, { data: answers }] = await Promise.all([
     supabase
       .from('nclex_attempt_items')
-      .select('attempt_item_id, question_type, marks_snapshot, correct_answer_snapshot_json')
-      .eq('attempt_id', attemptId),
+      .select(
+        'attempt_item_id, position, question_type, marks_snapshot, correct_answer_snapshot_json, cjmm_step, classification_snapshot',
+      )
+      .eq('attempt_id', attemptId)
+      .order('position'),
     supabase
       .from('nclex_attempt_answers')
-      .select('attempt_item_id, is_correct, score_awarded, answer_json')
+      .select('attempt_item_id, is_correct, score_awarded, answer_json, submission_status')
       .eq('attempt_id', attemptId),
   ]);
 
@@ -143,15 +172,17 @@ export async function getReadinessReport(
 
   const outcomes: ReadinessOutcomes = { full: 0, partial: 0, wrong: 0, total: 0 };
   const points: ReadinessPoints = { total: 0, found: 0, missed: 0, wrongPicked: 0 };
+  const reportItems: ReportItem[] = [];
 
   for (const item of itemRows) {
     outcomes.total += 1;
     const ans = answerByItem.get(item.attempt_item_id);
     const score = ans?.score_awarded ?? 0;
     const marks = item.marks_snapshot ?? 1;
+    const isCorrect = ans?.is_correct === true;
 
     // Question outcome — all-or-nothing correct vs partial vs none.
-    if (ans?.is_correct) outcomes.full += 1;
+    if (isCorrect) outcomes.full += 1;
     else if (score > 0) outcomes.partial += 1;
     else outcomes.wrong += 1;
 
@@ -169,6 +200,25 @@ export async function getReadinessReport(
     } else {
       points.found += Math.min(Math.max(0, score), marks);
     }
+
+    const cls = item.classification_snapshot ?? {};
+    const str = (v: unknown): string | null =>
+      typeof v === 'string' && v.trim() !== '' ? v : null;
+    reportItems.push({
+      position: item.position,
+      questionType: item.question_type,
+      category: str(cls.client_needs_category),
+      subcategory: str(cls.client_needs_subcategory),
+      bodySystem: str(cls.body_system),
+      difficulty: str(cls.difficulty),
+      cjmmStep: str(item.cjmm_step),
+      topic: str(cls.topic),
+      subtopic: str(cls.subtopic),
+      isCorrect,
+      scoreAwarded: score,
+      marks,
+      answered: ans != null && ans.submission_status !== 'SKIPPED',
+    });
   }
   points.missed = Math.max(0, points.total - points.found);
 
@@ -187,6 +237,7 @@ export async function getReadinessReport(
       questionCount: outcomes.total,
       outcomes,
       points,
+      items: reportItems,
       reviewOpen: reviewWindowOpen(expiresAt),
       expiresAt,
     },
