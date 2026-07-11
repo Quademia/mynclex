@@ -1098,6 +1098,49 @@ does. The pool-exclusion rule is enforced from the pack side anyway.
      forever").
    - Pixels to CD (the results brief joins claiming + the admin
      picker on the CD-brief list).
+   - **CD prototype done + a second-pass addition list agreed
+     2026-07-11.** CD built the report faithfully from this spec —
+     verdict hero (animated ring + band strip w/ a "YOU" marker), the
+     three readings (incl. the counts-not-a-fraction framing verbatim),
+     peer bell curve + min-N locked state, the multi-axis breakdown w/
+     the thin-slice rule, and the two-lifetimes review section. **Keep
+     all of it.** The following ADDITIONS were agreed for a second pass
+     (each extends beyond the settled spec — badge PROPOSED in-page).
+     They push the report from *diagnostic* → *prescriptive*:
+     1. **Remediation throughline + "take it to your bank" (top
+        priority).** A "your next moves" section built off the 2–3
+        weakest breakdown slices, deep-linking into the **practice
+        builder with that category pre-filtered** — *"Weakest:
+        Pharmacology (2 of 6) → practise Pharmacology in the bank →"*.
+        Honesty rule: a pack's questions are **reserved** (out of the
+        general pool), so the action is "practise the **category**",
+        never "redo these questions".
+     2. **Quick wins — near-misses.** Surface the strongest of the
+        *partially-correct* count as the fastest gains ("one option
+        away on N questions"). Data = per-question score-vs-marks.
+     3. **CJMM (clinical-judgment) breakdown — the NGN differentiator.**
+        An axis by NCLEX CJMM step (Recognise cues → Analyse →
+        Prioritise → Generate → Take action → Evaluate; `cjmm_step` on
+        the case items). Only the ~18 case questions carry it → thin-
+        slice honesty applies. Speaks the language NGN actually tests;
+        nothing else on the page captures it.
+     4. **Band interpretation line + strengths mirror.** One honest
+        sentence per band ("Approaching — you're close; shore up your
+        weak areas before you book") — **never** a pass-probability
+        (the measured-not-predicted rule). And show **top** areas too,
+        not only deficits.
+     5. **Per-question map (Sam's idea) — CONFIRMED with its window
+        boundary:** the 100 outcome-coloured cells + per-cell detail
+        (type/system/difficulty/credit/time) are **permanent**; the
+        **deep-link into the question is window-gated** (matches the
+        two-lifetimes model).
+     6. **Readiness trend line graph — keep, but placed:** it only
+        means something after **≥2 sat packs** (5 packs, sat once each)
+        and is a **cross-pack** story → a compact "trending" strip
+        here, the full graph on the packs dashboard / Readiness Signal
+        surface; design the one-sitting-so-far empty state.
+     7. **Pacing insight — keep, over ANSWERED questions only** (skipped/
+        quit questions have no meaningful time and would skew it).
 6. **Pack publish gate — ✅ SETTLED 2026-07-04** (see §6 → *Publish
    gate & membership edits*): completeness-gated toggle + publish-all
    helper + un-publish stops new sales/claims only + **no membership
