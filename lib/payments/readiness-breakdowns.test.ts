@@ -22,6 +22,8 @@ function mk(o: Partial<ReportItem>): ReportItem {
     scoreAwarded: 0,
     marks: 1,
     answered: true,
+    changed: false,
+    changeDir: null,
     ...o,
   };
 }

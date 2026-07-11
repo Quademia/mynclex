@@ -21,6 +21,7 @@ import { weakestSubcategory, nextMoves } from '@/lib/payments/readiness-breakdow
 import WhereToFocus from './where-to-focus';
 import NextMoves from './next-moves';
 import TrendPacing from './trend-pacing';
+import PerQuestionMap from './per-question-map';
 
 type SectionKey = 'results' | 'focus' | 'moves' | 'insights' | 'map' | 'review';
 
@@ -76,18 +77,6 @@ function useCountUp(target: number, run: boolean, dur = 950): number {
 }
 
 // ── module-level presentational components (not defined during render) ──
-
-function ComingSoon({ what }: { what: string }) {
-  return (
-    <div className="rs-rep-soon">
-      <div className="rs-rep-soon-title">{what} is on its way</div>
-      <p>
-        This part of your report arrives in an upcoming update. Everything above is saved
-        permanently.
-      </p>
-    </div>
-  );
-}
 
 function AccordionSection({
   sectionKey,
@@ -176,6 +165,7 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
   const trendCurIdx = trend.length ? Math.max(1, trend.findIndex((t) => t.isCurrent)) : 0;
   const trendDelta =
     trend.length >= 2 ? (trend[trendCurIdx]?.pct ?? trend[trend.length - 1].pct) - trend[trendCurIdx - 1].pct : null;
+  const changedCount = report.items.filter((i) => i.changed).length;
 
   const openSection = (k: SectionKey) => {
     const opening = openSec !== k;
@@ -256,9 +246,9 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
     },
     map: {
       title: 'Per-question map',
-      sub: 'All 100 questions · filters · second-guessing',
-      summary: 'Coming next',
-      summaryTone: 'muted',
+      sub: `All ${report.items.length} questions · filters · second-guessing`,
+      summary: changedCount > 0 ? `${changedCount} answers changed` : `${report.items.length} questions`,
+      summaryTone: changedCount > 0 ? undefined : 'muted',
     },
     review: {
       title: 'Review window & your permanent result',
@@ -521,7 +511,7 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
             open={openSec === 'map'}
             onToggle={() => openSection('map')}
           >
-            <ComingSoon what="Your per-question map" />
+            <PerQuestionMap items={report.items} reviewOpen={reviewOpen} attemptId={attemptId} />
           </AccordionSection>
 
           <AccordionSection

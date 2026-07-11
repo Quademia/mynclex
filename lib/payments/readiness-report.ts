@@ -21,6 +21,7 @@ import { createClient } from '@/lib/supabase/server';
 import { scoreToBand, type BandInfo } from './readiness-band';
 import { reviewWindowOpen } from './readiness-window';
 import { pointsDetail } from '@/lib/scoring/detail';
+import { scoreAttempt } from '@/lib/scoring/dispatch';
 import type { QuestionType } from '@/lib/bank/classifications';
 import type { BankItemCorrect } from '@/lib/bank/types';
 import type { BankItemAnswer } from '@/lib/scoring/types';
@@ -65,6 +66,10 @@ export interface ReportItem {
   scoreAwarded: number;
   marks: number;
   answered: boolean;
+  /** The student revised their answer at least once (answer_changes_json>1). */
+  changed: boolean;
+  /** Net effect of the revision on all-or-nothing correctness. */
+  changeDir: 'rightToWrong' | 'wrongToRight' | 'other' | null;
 }
 
 /** One prior sitting for the cross-pack trend (chronological). */
@@ -119,6 +124,7 @@ interface AnswerRow {
   score_awarded: number | null;
   answer_json: unknown;
   submission_status: string | null;
+  answer_changes_json: unknown;
 }
 
 /**
@@ -173,7 +179,9 @@ export async function getReadinessReport(
       .order('position'),
     supabase
       .from('nclex_attempt_answers')
-      .select('attempt_item_id, is_correct, score_awarded, answer_json, submission_status')
+      .select(
+        'attempt_item_id, is_correct, score_awarded, answer_json, submission_status, answer_changes_json',
+      )
       .eq('attempt_id', attemptId),
   ]);
 
@@ -212,6 +220,34 @@ export async function getReadinessReport(
       points.found += Math.min(Math.max(0, score), marks);
     }
 
+    // Second-guessing: the runner appends one entry per material change to
+    // answer_changes_json ({at,from,to}), so >1 entry = a revision. Direction
+    // compares the first committed answer's correctness to the final.
+    const changesLog = Array.isArray(ans?.answer_changes_json)
+      ? (ans.answer_changes_json as { to?: unknown }[])
+      : [];
+    let changed = false;
+    let changeDir: ReportItem['changeDir'] = null;
+    if (changesLog.length > 1) {
+      changed = true;
+      let firstCorrect = false;
+      try {
+        firstCorrect = scoreAttempt(
+          item.question_type,
+          item.correct_answer_snapshot_json as BankItemCorrect,
+          (changesLog[0]?.to ?? null) as BankItemAnswer,
+        ).is_correct;
+      } catch {
+        firstCorrect = false;
+      }
+      changeDir =
+        firstCorrect && !isCorrect
+          ? 'rightToWrong'
+          : !firstCorrect && isCorrect
+            ? 'wrongToRight'
+            : 'other';
+    }
+
     const cls = item.classification_snapshot ?? {};
     const str = (v: unknown): string | null =>
       typeof v === 'string' && v.trim() !== '' ? v : null;
@@ -229,6 +265,8 @@ export async function getReadinessReport(
       scoreAwarded: score,
       marks,
       answered: ans != null && ans.submission_status !== 'SKIPPED',
+      changed,
+      changeDir,
     });
   }
   points.missed = Math.max(0, points.total - points.found);
