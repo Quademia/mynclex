@@ -20,10 +20,11 @@ export default function PeerComparison({ peer }: { peer: PeerStats | null }) {
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
         <div>
-          <div className="rs-peer-locked-h">Peer comparison unlocks as more nurses sit this pack</div>
+          <div className="rs-peer-locked-h">Your peer comparison is on its way</div>
           <p className="rs-peer-locked-p">
-            A fair comparison needs enough sittings on the identical questions
-            {peer && peer.n > 0 ? ` — ${peer.n} so far` : ''}. Yours will appear automatically.
+            We only show it once there&rsquo;s enough data behind it to be genuinely fair — so a
+            handful of early results can&rsquo;t skew where you stand. It&rsquo;ll appear here
+            automatically.
           </p>
         </div>
       </div>
