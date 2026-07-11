@@ -1,4 +1,4 @@
--- 20260726120000_readiness_packs_public_read.sql
+-- 20260726130000_readiness_packs_public_read.sql
 --
 -- The public /readiness page (readiness-packs.md §12 → Slice ①.3) lists
 -- every PUBLISHED pack with its own question count and time limit — the
