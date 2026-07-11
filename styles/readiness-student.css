@@ -336,6 +336,25 @@
 .rs-nm-strength-note { font-size: 11.5px; color: #4d7c0f; margin: 9px 0 0; }
 .rs-nm-link { display: inline-block; margin-top: 9px; font-size: 12px; font-weight: 600; color: #92400e; text-decoration: underline; }
 
+/* ── Trend & pacing (Slice ④; pacing = placeholder) ─────────────── */
+.rs-tp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.rs-tp-card { border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+.rs-tp-trend-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
+.rs-tp-delta { font-size: 24px; font-weight: 800; letter-spacing: -0.01em; line-height: 1; }
+.rs-tp-up { color: var(--success); }
+.rs-tp-down { color: var(--danger); }
+.rs-tp-flat { color: var(--text-muted); }
+.rs-tp-delta-sub { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+.rs-tp-spark { width: 220px; max-width: 58%; height: auto; flex: none; }
+.rs-tp-trend-foot { font-size: 12px; color: var(--text-faint); margin-top: 12px; }
+.rs-tp-link { display: inline-block; margin-top: 10px; font-size: 12.5px; font-weight: 600; }
+.rs-tp-empty { margin-top: 12px; }
+.rs-tp-empty-h { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.rs-tp-empty p { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin: 6px 0 0; }
+.rs-tp-empty .rs-tp-spark { width: 100%; max-width: none; margin-top: 12px; }
+.rs-tp-soon { margin-top: 12px; background: var(--bg-soft); border: 1px dashed var(--border-strong); border-radius: 8px; padding: 14px 15px; }
+.rs-tp-soon p { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; margin: 0; }
+
 /* ── mobile ─────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .rs-card { flex-basis: 100%; max-width: none; }
@@ -374,6 +393,9 @@
   .rs-nm-grid { grid-template-columns: 1fr; }
   .rs-nm-move { flex-wrap: wrap; }
   .rs-nm-practise { width: 100%; }
+
+  .rs-tp-grid { grid-template-columns: 1fr; }
+  .rs-tp-spark { max-width: 100%; }
 }
 
 /* ── reduced motion — show end state, no entrance choreography ────── */

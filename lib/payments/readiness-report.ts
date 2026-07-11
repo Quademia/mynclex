@@ -67,6 +67,15 @@ export interface ReportItem {
   answered: boolean;
 }
 
+/** One prior sitting for the cross-pack trend (chronological). */
+export interface TrendPoint {
+  attemptId: string;
+  packTitle: string;
+  pct: number;
+  satDate: string | null;
+  isCurrent: boolean;
+}
+
 export interface ReadinessReport {
   attemptId: string;
   packTitle: string;
@@ -83,6 +92,8 @@ export interface ReadinessReport {
   points: ReadinessPoints;
   /** Per-question rows in sitting order — the breakdown + map data. */
   items: ReportItem[];
+  /** This student's readiness sittings across all packs, chronological. */
+  trend: TrendPoint[];
   /** 21-day answer-review window — open while now < expiresAt. */
   reviewOpen: boolean;
   expiresAt: string | null;
@@ -222,6 +233,41 @@ export async function getReadinessReport(
   }
   points.missed = Math.max(0, points.total - points.found);
 
+  // Cross-pack trend — this student's own terminal readiness sittings with a
+  // score, chronological (own-rows read; each pack is a comparable measure of
+  // the same exam standard). Needs ≥2 to mean anything (else the empty state).
+  const { data: history } = await supabase
+    .from('nclex_attempts')
+    .select('attempt_id, readiness_pack_id, final_score, ended_at')
+    .eq('student_id', userId)
+    .eq('source', 'READINESS_PACK')
+    .in('status', ['COMPLETED', 'TIMED_OUT'])
+    .not('final_score', 'is', null)
+    .order('ended_at', { ascending: true });
+
+  const histRows = (history ?? []) as {
+    attempt_id: string;
+    readiness_pack_id: string | null;
+    final_score: number;
+    ended_at: string | null;
+  }[];
+  const packIds = [...new Set(histRows.map((h) => h.readiness_pack_id).filter(Boolean))] as string[];
+  const titleById = new Map<string, string>();
+  if (packIds.length) {
+    const { data: packs } = await supabase
+      .from('nclex_readiness_packs')
+      .select('pack_id, title')
+      .in('pack_id', packIds);
+    for (const p of packs ?? []) titleById.set(p.pack_id, p.title);
+  }
+  const trend: TrendPoint[] = histRows.map((h) => ({
+    attemptId: h.attempt_id,
+    packTitle: (h.readiness_pack_id && titleById.get(h.readiness_pack_id)) || 'Readiness Pack',
+    pct: Math.round(h.final_score * 100),
+    satDate: h.ended_at,
+    isCurrent: h.attempt_id === attemptId,
+  }));
+
   const finalScore = attempt.final_score;
   const expiresAt = credit?.expires_at ?? null;
 
@@ -238,6 +284,7 @@ export async function getReadinessReport(
       outcomes,
       points,
       items: reportItems,
+      trend,
       reviewOpen: reviewWindowOpen(expiresAt),
       expiresAt,
     },

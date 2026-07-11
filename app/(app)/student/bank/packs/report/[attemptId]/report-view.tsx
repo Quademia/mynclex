@@ -20,6 +20,7 @@ import type { ReadinessReport } from '@/lib/payments/readiness-report';
 import { weakestSubcategory, nextMoves } from '@/lib/payments/readiness-breakdowns';
 import WhereToFocus from './where-to-focus';
 import NextMoves from './next-moves';
+import TrendPacing from './trend-pacing';
 
 type SectionKey = 'results' | 'focus' | 'moves' | 'insights' | 'map' | 'review';
 
@@ -171,6 +172,10 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
   const dl = daysLeft(expiresAt);
   const weakest = weakestSubcategory(report.items);
   const nm = nextMoves(report.items);
+  const trend = report.trend;
+  const trendCurIdx = trend.length ? Math.max(1, trend.findIndex((t) => t.isCurrent)) : 0;
+  const trendDelta =
+    trend.length >= 2 ? (trend[trendCurIdx]?.pct ?? trend[trend.length - 1].pct) - trend[trendCurIdx - 1].pct : null;
 
   const openSection = (k: SectionKey) => {
     const opening = openSec !== k;
@@ -243,8 +248,11 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
     insights: {
       title: 'Trend & pacing',
       sub: 'Across packs · time per question',
-      summary: 'Coming next',
-      summaryTone: 'muted',
+      summary:
+        trendDelta === null
+          ? 'First sitting'
+          : `${trendDelta > 0 ? `▲ +${trendDelta}` : trendDelta < 0 ? `▼ ${trendDelta}` : '±0'} pts since last`,
+      summaryTone: trendDelta === null ? 'muted' : trendDelta >= 0 ? 'ok' : 'danger',
     },
     map: {
       title: 'Per-question map',
@@ -504,7 +512,7 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
             open={openSec === 'insights'}
             onToggle={() => openSection('insights')}
           >
-            <ComingSoon what="Your trend & pacing" />
+            <TrendPacing trend={report.trend} />
           </AccordionSection>
 
           <AccordionSection
