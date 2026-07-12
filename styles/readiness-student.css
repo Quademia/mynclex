@@ -208,6 +208,7 @@
 .rs-rep-reviewcard-title { font-size: 13px; font-weight: 700; color: var(--primary); }
 .rs-rep-reviewcard.is-open .rs-rep-reviewcard-title { color: var(--accent-dark); }
 .rs-rep-reviewcard-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.rs-rep-reviewcard-btn { display: flex; justify-content: center; width: 100%; margin-top: 10px; }
 
 /* accordion */
 .rs-rep-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }

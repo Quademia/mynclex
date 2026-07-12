@@ -280,6 +280,29 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
             ← Back to packs
           </a>
 
+          {/* Review-window card — first in the rail so the review entry point
+              is visible, not buried in the map/accordion. The Review-window
+              accordion section is independent and unaffected. */}
+          <div className={`rs-rep-reviewcard${reviewOpen ? ' is-open' : ''}`}>
+            <div className="rs-rep-reviewcard-title">
+              {reviewOpen && dl !== null
+                ? `Review open · ${dl} day${dl === 1 ? '' : 's'} left`
+                : 'Review closed'}
+            </div>
+            <div className="rs-rep-reviewcard-sub">
+              {expiresAt
+                ? reviewOpen
+                  ? `Until ${fmtDate(expiresAt)}`
+                  : `Closed ${fmtDate(expiresAt)}`
+                : 'Your score stays on record'}
+            </div>
+            {reviewOpen && (
+              <a className="rs-btn rs-btn-navy rs-rep-reviewcard-btn" href={`/session/${attemptId}`}>
+                Review your answers →
+              </a>
+            )}
+          </div>
+
           <div className="rs-rep-verdict" ref={verdictRef}>
             <div className="rs-rep-verdict-head">
               {packTitle}
@@ -397,21 +420,6 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
               </button>
             ))}
           </nav>
-
-          <div className={`rs-rep-reviewcard${reviewOpen ? ' is-open' : ''}`}>
-            <div className="rs-rep-reviewcard-title">
-              {reviewOpen && dl !== null
-                ? `Review open · ${dl} day${dl === 1 ? '' : 's'} left`
-                : 'Review closed'}
-            </div>
-            <div className="rs-rep-reviewcard-sub">
-              {expiresAt
-                ? reviewOpen
-                  ? `Until ${fmtDate(expiresAt)}`
-                  : `Closed ${fmtDate(expiresAt)}`
-                : 'Your score stays on record'}
-            </div>
-          </div>
         </aside>
 
         {/* ── accordion ── */}
