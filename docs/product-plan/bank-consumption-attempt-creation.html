@@ -758,6 +758,33 @@
   <code>created_at</code> on such a row is the moment time was first flushed, not a click — noted in §6.3.4.
 </p>
 
+<h4>Settled 2026-07-12 — meaning + storage (after the Slice-1 test)</h4>
+<p>
+  <strong>The meaning is "total engaged time on the question while the attempt is live."</strong> It accrues
+  while the question is on screen and visible, and the whole engine goes dead the instant the attempt is
+  finished — reopening a <em>completed</em> attempt to review it records nothing (the runner tracks only while
+  <code>isLive</code>). In Untimed Learning, going back to an already-submitted question mid-sitting (e.g. to
+  re-read the rationale) <strong>does</strong> keep adding to that question's total. <strong>This is by design,
+  not an anomaly</strong>: it's untimed <em>study</em> mode, we run no pacing on it, and "total time invested in
+  this question during the sitting" is the honest meaning. Where decision-time <em>would</em> matter — Timed
+  Sequential / readiness — the runner is forward-only with no mid-sitting rationale, so the number is already
+  clean decision-time there. The two never overlap.
+</p>
+<p>
+  <strong>Storage is the single <code>time_spent_sec</code> integer (the running sum) — NOT a per-visit segment
+  log.</strong> Considered and rejected a JSONB segment log (the <code>answer_changes_json</code> pattern):
+  it would have preserved revisit counts and a decision-vs-review split, but no built consumer needs that yet,
+  and both named consumers — the runner's review-mode <em>time-spent + scoring-rule</em> display, and future
+  bank <em>pacing</em> — read the total. Consciously accepted trade-off: <strong>per-visit granularity is not
+  retained and cannot be reconstructed from the sum.</strong>
+</p>
+<p>
+  <strong>Future trigger.</strong> If bank pacing is ever built and specifically wants strict <em>decision</em>
+  time (time until first commit, excluding post-submit rationale study), that is a <strong>separate capture</strong>
+  added at that point — it starts collecting from then, having not kept the earlier breakdown. For everything
+  currently planned, the total is sufficient.
+</p>
+
 <h4>Supersedes the earlier server-derive gesture</h4>
 <p>
   An earlier draft of this section suggested subtracting idle gaps server-side from
