@@ -336,7 +336,7 @@
 .rs-nm-strength-note { font-size: 11.5px; color: #4d7c0f; margin: 9px 0 0; }
 .rs-nm-link { display: inline-block; margin-top: 9px; font-size: 12px; font-weight: 600; color: #92400e; text-decoration: underline; }
 
-/* ── Trend & pacing (Slice ④; pacing = placeholder) ─────────────── */
+/* ── Trend & pacing (Slice ④; pacing wired in time-engine Slice ②) ── */
 .rs-tp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 .rs-tp-card { border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
 .rs-tp-trend-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
@@ -354,6 +354,22 @@
 .rs-tp-empty .rs-tp-spark { width: 100%; max-width: none; margin-top: 12px; }
 .rs-tp-soon { margin-top: 12px; background: var(--bg-soft); border: 1px dashed var(--border-strong); border-radius: 8px; padding: 14px 15px; }
 .rs-tp-soon p { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; margin: 0; }
+
+/* pacing card (Slice ② time-engine): avg + You-vs-exam-pace bars */
+.rs-tp-pace-head { display: flex; align-items: baseline; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.rs-tp-pace-num { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; line-height: 1; color: var(--primary); }
+.rs-tp-pace-sub { font-size: 12px; color: var(--text-muted); }
+.rs-tp-pace-bars { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.rs-tp-pace-row { display: flex; align-items: center; gap: 9px; }
+.rs-tp-pace-lbl { width: 64px; flex: none; font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.rs-tp-pace-lbl-muted { color: var(--text-faint); }
+.rs-tp-pace-track { flex: 1; height: 7px; background: var(--bg-soft); border-radius: 999px; overflow: hidden; }
+.rs-tp-pace-fill { display: block; height: 100%; border-radius: 999px; }
+.rs-tp-pace-you { background: var(--accent); }
+.rs-tp-pace-budget { background: var(--border-strong); }
+.rs-tp-pace-foot { font-size: 12px; color: var(--text-muted); margin-top: 11px; }
+.rs-tp-pace-foot strong { color: var(--text); }
+.rs-tp-pace-note { font-size: 11px; color: var(--text-faint); line-height: 1.45; margin-top: 8px; }
 
 /* ── Per-question map (Slice ⑤; time bits deferred) ─────────────── */
 .rs-map-sub { font-size: 12.5px; color: var(--text-faint); line-height: 1.45; margin: 0 0 14px; }

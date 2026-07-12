@@ -500,7 +500,7 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
             open={openSec === 'insights'}
             onToggle={() => openSection('insights')}
           >
-            <TrendPacing trend={report.trend} />
+            <TrendPacing trend={report.trend} pacing={report.pacing} />
           </AccordionSection>
 
           <AccordionSection

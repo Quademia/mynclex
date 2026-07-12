@@ -5,10 +5,12 @@
 // "Trend & pacing" (§11.5, Slice ④). Trend is built fully — a cross-pack
 // sparkline of this student's readiness sittings (each pack is a comparable
 // measure of the same exam standard), with a first-sitting empty state.
-// Pacing is a placeholder until the per-question time engine lands (a
-// separate runner arc that also serves CAT).
+// Pacing is live (Slice ② of the time engine): average engaged time per
+// answered question vs the pack's exam budget, with a graceful fallback for
+// pre-engine sittings that carry no captured time.
 
 import type { TrendPoint } from '@/lib/payments/readiness-report';
+import { formatSecsWords, type PacingStats } from '@/lib/payments/readiness-pacing';
 
 const W = 220;
 const H = 60;
@@ -95,19 +97,74 @@ function TrendCard({ trend }: { trend: TrendPoint[] }) {
   );
 }
 
-export default function TrendPacing({ trend }: { trend: TrendPoint[] }) {
-  return (
-    <div className="rs-tp-grid">
-      <TrendCard trend={trend} />
+function PacingCard({ pacing }: { pacing: PacingStats }) {
+  // Pre-engine sittings (or the rare all-skipped) carry no time — degrade
+  // gracefully rather than showing a fabricated pace.
+  if (!pacing.hasTime || pacing.avgAnsweredSec == null) {
+    return (
       <div className="rs-tp-card">
         <div className="rs-rep-reading-h">Pacing</div>
         <div className="rs-tp-soon">
           <p>
-            Your pace per question — and where you rushed — arrives once per-question timing is
-            captured. Your score and breakdowns above are complete.
+            Per-question timing wasn&rsquo;t captured for this sitting, so pacing isn&rsquo;t available
+            here. New sittings record it — your score and breakdowns above are complete.
           </p>
         </div>
       </div>
+    );
+  }
+
+  const avg = pacing.avgAnsweredSec;
+  const budget = pacing.budgetSec;
+  // Bars are proportional to time-per-question (longer = slower). Scale both
+  // to the slower of the two so the fuller bar reads as the slower pace.
+  const ref = budget != null ? Math.max(avg, budget) : avg;
+  const youW = Math.round((avg / ref) * 100);
+  const budgetW = budget != null ? Math.round((budget / ref) * 100) : null;
+
+  return (
+    <div className="rs-tp-card">
+      <div className="rs-rep-reading-h">Pacing</div>
+      <div className="rs-tp-pace-head">
+        <span className="rs-tp-pace-num">{formatSecsWords(avg)}</span>
+        <span className="rs-tp-pace-sub">average per answered question</span>
+      </div>
+      {budget != null && budgetW != null && (
+        <div className="rs-tp-pace-bars">
+          <div className="rs-tp-pace-row">
+            <span className="rs-tp-pace-lbl">You</span>
+            <span className="rs-tp-pace-track">
+              <span className="rs-tp-pace-fill rs-tp-pace-you" style={{ width: `${youW}%` }} />
+            </span>
+          </div>
+          <div className="rs-tp-pace-row">
+            <span className="rs-tp-pace-lbl rs-tp-pace-lbl-muted">Exam pace</span>
+            <span className="rs-tp-pace-track">
+              <span className="rs-tp-pace-fill rs-tp-pace-budget" style={{ width: `${budgetW}%` }} />
+            </span>
+          </div>
+        </div>
+      )}
+      <div className="rs-tp-pace-foot">
+        {pacing.spareSec != null && pacing.spareSec > 0 && (
+          <>
+            Finished with <strong>{formatSecsWords(pacing.spareSec)} to spare</strong> ·{' '}
+          </>
+        )}
+        {pacing.answeredCount} of {pacing.totalCount} answered
+      </div>
+      <p className="rs-tp-pace-note">
+        Computed over your answered questions only — skipped questions carry no meaningful time.
+      </p>
+    </div>
+  );
+}
+
+export default function TrendPacing({ trend, pacing }: { trend: TrendPoint[]; pacing: PacingStats }) {
+  return (
+    <div className="rs-tp-grid">
+      <TrendCard trend={trend} />
+      <PacingCard pacing={pacing} />
     </div>
   );
 }
