@@ -273,13 +273,23 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
         <span className="rs-rep-mini-pack">{packTitle}</span>
       </div>
 
+      {/* Page top bar — back link + the pack/date description. Full-width
+          above both panes so the back link no longer offsets the rail (the
+          two columns' first cards now align), and the description titles the
+          page instead of hiding in the verdict card. */}
+      <header className="rs-rep-topbar">
+        <a className="rs-report-back" href="/student/bank/packs">
+          ← Back to packs
+        </a>
+        <div className="rs-rep-topbar-title">
+          {packTitle}
+          {satDate && <> · {fmtDate(satDate)}</>}
+        </div>
+      </header>
+
       <div className="rs-rep-shell">
         {/* ── rail (desktop) / top block (mobile) ── */}
         <aside className="rs-rep-rail">
-          <a className="rs-report-back" href="/student/bank/packs">
-            ← Back to packs
-          </a>
-
           {/* Review-window card — first in the rail so the review entry point
               is visible, not buried in the map/accordion. The Review-window
               accordion section is independent and unaffected. */}
@@ -304,11 +314,6 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
           </div>
 
           <div className="rs-rep-verdict" ref={verdictRef}>
-            <div className="rs-rep-verdict-head">
-              {packTitle}
-              {satDate && <> · {fmtDate(satDate)}</>}
-            </div>
-
             <div className="rs-rep-ringrow">
               <div className="rs-rep-ring">
                 <svg viewBox="0 0 120 120" width="120" height="120">

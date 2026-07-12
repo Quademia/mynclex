@@ -153,6 +153,11 @@
 }
 .rs-report-back:hover { color: var(--text); text-decoration: none; }
 
+/* page top bar — back link + pack/date page title (aligns the two panes) */
+.rs-rep-topbar { margin-bottom: 18px; }
+.rs-rep-topbar .rs-report-back { margin-bottom: 6px; }
+.rs-rep-topbar-title { font-size: 20px; font-weight: 800; color: var(--primary); letter-spacing: -0.01em; }
+
 .rs-rep { position: relative; }
 
 /* sticky mini-verdict — mobile only (see @media); hidden on desktop */
