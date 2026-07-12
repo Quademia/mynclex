@@ -656,8 +656,9 @@ Runner mounts → reads from those 5 tables → renders Q1
 </p>
 <ul>
   <li><strong>Untimed modes</strong> render a <em>stopwatch</em> — count-up from <code>started_at</code>,
-    permanently neutral grey, no animations, no warnings. Surfaces the time-per-question data we already
-    track for analytics (parent §12).</li>
+    permanently neutral grey, no animations, no warnings. This attempt-level stopwatch is <em>independent</em>
+    of the per-question engaged-time engine (attempt-creation §6.3.2) — different clock, different rule; the two
+    do not sum.</li>
   <li><strong>Timed modes</strong> render a <em>countdown</em> — counts down toward
     <code>started_at + duration_seconds</code>, escalates tone at warning tiers, locks visibility once
     the first warning fires.</li>
