@@ -21,6 +21,7 @@ import { weakestSubcategory, nextMoves } from '@/lib/payments/readiness-breakdow
 import WhereToFocus from './where-to-focus';
 import NextMoves from './next-moves';
 import TrendPacing from './trend-pacing';
+import { formatSecsWords } from '@/lib/payments/readiness-pacing';
 import PerQuestionMap from './per-question-map';
 import PeerComparison from './peer-comparison';
 
@@ -125,7 +126,7 @@ function AccordionSection({
 }
 
 export default function ReadinessReportView({ report }: { report: ReadinessReport }) {
-  const { pct, band, outcomes, points, packTitle, satDate, reviewOpen, expiresAt, attemptId } =
+  const { pct, band, outcomes, points, peer, pacing, packTitle, satDate, reviewOpen, expiresAt, attemptId } =
     report;
 
   const [mounted, setMounted] = useState(false);
@@ -365,6 +366,23 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
                 {points.found} of {points.total}
               </strong>
             </div>
+            {/* Beat + Pace brought from the CD glance card. Each hides
+                gracefully — Beat when the peer set is below min-N (matches the
+                fairness-gated peer section), Pace on pre-engine sittings with
+                no captured time. "Since Pack 1" deliberately dropped — the
+                Trend card already shows that delta. */}
+            {peer?.unlocked && peer.yourPercentile !== null && (
+              <div className="rs-rep-stat">
+                <span>Beat</span>
+                <strong>{peer.yourPercentile}% of peers</strong>
+              </div>
+            )}
+            {pacing.hasTime && pacing.avgAnsweredSec !== null && (
+              <div className="rs-rep-stat">
+                <span>Pace</span>
+                <strong>{formatSecsWords(pacing.avgAnsweredSec)} avg</strong>
+              </div>
+            )}
           </div>
 
           <nav className="rs-rep-nav">
