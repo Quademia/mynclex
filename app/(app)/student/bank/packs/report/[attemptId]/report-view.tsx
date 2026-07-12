@@ -172,17 +172,21 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
   const openSection = (k: SectionKey) => {
     const opening = openSec !== k;
     setOpenSec(opening ? k : '');
-    if (opening) {
-      window.setTimeout(() => {
-        const el = mainRef.current?.querySelector<HTMLElement>(`[data-sec="${k}"]`);
-        if (!el) return;
-        const top = el.getBoundingClientRect().top;
-        const offset = window.innerWidth < 768 ? 60 : 12;
-        if (top < offset || top > window.innerHeight - 120) {
-          window.scrollTo({ top: top + window.scrollY - offset, behavior: 'smooth' });
-        }
-      }, 120);
-    }
+    if (!opening) return;
+    // Settle the just-opened section under the top of the scroll area. The
+    // app shell scrolls an inner `.product-content` container, NOT window —
+    // so we scroll that element (a window.scrollTo here was a silent no-op,
+    // which is why opening a lower section left its header off-screen). On
+    // mobile we clear the sticky mini-verdict bar; on desktop a small gap.
+    window.setTimeout(() => {
+      const el = mainRef.current?.querySelector<HTMLElement>(`[data-sec="${k}"]`);
+      const scroller = el?.closest<HTMLElement>('.product-content');
+      if (!el || !scroller) return;
+      const offset = window.innerWidth < 768 ? 64 : 16;
+      const rel = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      if (Math.abs(rel - offset) < 6) return; // already settled — no jitter
+      scroller.scrollTo({ top: scroller.scrollTop + rel - offset, behavior: 'smooth' });
+    }, 120);
   };
 
   // ── verdict ring geometry ──────────────────────────────────────────

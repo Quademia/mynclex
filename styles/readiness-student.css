@@ -230,6 +230,23 @@
 .rs-rep-sec-summary.is-ok { color: var(--accent-dark); }
 .rs-rep-sec-body { border-top: 1px solid var(--border); padding: 18px; animation: rr-open .35s ease both; }
 
+/* ⑦ entrance choreography — the rail cards and accordion sections rise in on
+   load, rail leading into the sections. Pure CSS so it fires on first paint
+   without waiting for hydration (no invisible-until-JS risk); the
+   reduced-motion block below turns it off. */
+@keyframes rr-rise { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+.rs-rep-rail > *,
+.rs-rep-main > .rs-rep-sec { animation: rr-rise .5s cubic-bezier(.2,.7,.3,1) both; }
+.rs-rep-rail > *:nth-child(2) { animation-delay: .06s; }
+.rs-rep-rail > *:nth-child(3) { animation-delay: .12s; }
+.rs-rep-rail > *:nth-child(4) { animation-delay: .18s; }
+.rs-rep-main > .rs-rep-sec:nth-child(1) { animation-delay: .10s; }
+.rs-rep-main > .rs-rep-sec:nth-child(2) { animation-delay: .15s; }
+.rs-rep-main > .rs-rep-sec:nth-child(3) { animation-delay: .20s; }
+.rs-rep-main > .rs-rep-sec:nth-child(4) { animation-delay: .25s; }
+.rs-rep-main > .rs-rep-sec:nth-child(5) { animation-delay: .30s; }
+.rs-rep-main > .rs-rep-sec:nth-child(6) { animation-delay: .35s; }
+
 /* the three readings */
 .rs-rep-readings { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .rs-rep-reading { min-width: 0; }
@@ -273,7 +290,11 @@
 .rs-rep-permanent p { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; margin: 0; }
 
 @keyframes rr-barGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes rr-open { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 2600px; } }
+/* Reveal is opacity + a short slide — NOT a max-height grow. The old
+   0→2600px max-height animation clipped any section taller than the cap
+   (.rs-rep-sec is overflow:hidden), which a fully-drilled focus tree or the
+   mobile per-question map can exceed. Fade/slide has no such ceiling. */
+@keyframes rr-open { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 
 .rs-rep-sec-summary.is-danger { color: var(--danger); }
 
@@ -478,17 +499,32 @@
   .rs-rep-readings { grid-template-columns: 1fr; }
   .rs-rep-review-grid { grid-template-columns: 1fr; }
 
-  /* sticky mini-verdict */
+  /* sticky mini-verdict — collapsed to zero height while hidden so it
+     reserves NO space in normal flow (a sticky in-flow element otherwise
+     leaves its full height as a gap at the top of the report). It expands
+     only once scrolled past the verdict (.is-shown, toggled in JS). */
   .rs-rep-mini {
     display: flex; align-items: center; gap: 10px;
     position: sticky; top: 0; z-index: 20;
-    margin: 0 -16px 12px; padding: 10px 16px;
-    background: var(--white); border-bottom: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    margin: 0 -16px; padding: 0 16px;
+    height: 0; overflow: hidden;
+    background: var(--white); border-bottom: 0 solid var(--border);
     opacity: 0; transform: translateY(-100%); pointer-events: none;
     transition: opacity .2s ease, transform .2s ease;
   }
-  .rs-rep-mini.is-shown { opacity: 1; transform: translateY(0); }
+  .rs-rep-mini.is-shown {
+    height: auto; overflow: visible;
+    margin-bottom: 12px; padding: 10px 16px;
+    border-bottom-width: 1px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    opacity: 1; transform: translateY(0); pointer-events: auto;
+  }
+
+  /* accordion header: the right-side summary wraps to its own full-width
+     line beneath the title instead of squeezing the title into a narrow
+     column (which forced "Where to focus" to wrap letter-per-line). */
+  .rs-rep-sec-head { flex-wrap: wrap; row-gap: 3px; }
+  .rs-rep-sec-summary { flex-basis: 100%; text-align: left; margin-left: 22px; }
   .rs-rep-mini-pct { font-size: 17px; font-weight: 800; color: var(--primary); }
   .rs-rep-mini-pack { font-size: 12px; color: var(--text-faint); margin-left: auto; }
 
@@ -527,4 +563,5 @@
   .rs-rep-ring-prog { transition: none !important; }
   .rs-wtf-fill, .rs-map-cell, .rs-peer-bar { animation: none; }
   .rs-wtf-caret { transition: none; }
+  .rs-rep-rail > *, .rs-rep-main > .rs-rep-sec { animation: none; }
 }
