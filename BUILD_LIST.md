@@ -24,6 +24,26 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > - **Slice 3 — in-note embed player parity** (`bd60fb8`): single-shot, no migration.
 > **⏭ NEXT:** Report ⑦ polish/QA; time now unblocks CAT.
 
+> **READINESS REPORT ⑦ — Polish + QA ✅ BUILT + MERGED to `main` 2026-07-12
+> (commit `824231c`; NOT prod; app-layer, no migration).** The finishing pass
+> now that the time engine filled the placeholders. QA sweep (desktop + 375px)
+> then the fixes: **open-anchor settle** (scroll the real `.product-content`
+> container — the old `window.scrollTo` was a no-op, so opening a lower section
+> left its header off-screen) · **mobile top-gap** closed (the sticky
+> mini-verdict reserved its height while hidden → collapse to 0 until shown) ·
+> **mobile header-crush** fixed (long summary drops to its own line; "Where to
+> focus" stops wrapping letter-per-line) · **latent reveal-clip** fixed
+> (`rr-open` capped `max-height` at 2600px under `overflow:hidden` → now
+> opacity+slide, no clip) · subtle **entrance choreography** (reduced-motion
+> safe). Only `report-view.tsx` + `readiness-student.css`. Parked (design call):
+> the shared results-popup copy. **⏭ NEXT (next session) = the one remaining
+> designed readiness slice — lazy-expiry (`expired_at` stamp-on-touch,
+> correctness; replaces the never-built nightly sweep) — then a `main→prod`
+> release + `PAYSTACK_SECRET_KEY` on prod. (The pack audit READOUT is already
+> DONE — shipped 2026-07-08 as the pack-detail History drawer; a stale §12 ⬜
+> had it looking outstanding.)** Full detail:
+> [readiness-packs.md](docs/product-plan/readiness-packs.md) → §12.
+>
 > **READINESS REPORT — ✅ ⑦-style improvements BUILT + MERGED to `main`
 > 2026-07-12 (NOT prod).** Beat + Pace in the rail glance card (`c7d7c0e`; "Since
 > Pack 1" dropped) · Review surfaced — card moved first in the rail + a Review

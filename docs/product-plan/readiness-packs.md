@@ -1,6 +1,34 @@
 # Readiness Packs
 
-Last updated: 2026-07-12 (**Per-question time engine BUILT (Slices 1–3) +
+Last updated: 2026-07-12 (**Report ⑦ (polish/QA) BUILT + MERGED to `main`
+— NOT prod (commit `824231c`; app-layer, no migration; tsc + report-view
+eslint clean).** The finishing pass now that the time engine filled the two
+placeholders — a QA sweep (desktop + 375px, all six sections, live time
+data) then the fixes: **open-anchor settle** now scrolls the real
+`.product-content` container (opening a lower section used to leave its
+header off-screen — the old `window.scrollTo` was a silent no-op because the
+shell scrolls an inner element); the **mobile top-gap** closed (the sticky
+mini-verdict was a `display:flex` in-flow element reserving its full height
+while hidden — collapsed to 0 height until `.is-shown`); the **accordion
+header crush** fixed at 375px (long right-side summary no longer squeezes the
+title into a narrow wrapping column — it drops to its own full-width line, so
+"Where to focus" stops wrapping letter-per-line); a **latent reveal-clip**
+fixed (`rr-open` animated `max-height` 0→2600px while `.rs-rep-sec` is
+`overflow:hidden`, permanently clipping any section taller than the cap — now
+opacity + short slide, no ceiling); and a subtle **entrance choreography**
+(rail cards + accordion sections rise in on load, pure CSS so it fires
+pre-hydration, reduced-motion off). **⏭ NEXT (next session) = the one remaining
+designed readiness slice — lazy-expiry** (§7/§12 — stamp `expired_at` on the
+next touch [packs-page read + re-claim time] instead of the never-built nightly
+sweep; correctness-relevant for the no-double-claim guard + finalising a sitting
+abandoned while the clock ran out). **(Correction: the pack audit READOUT is NOT
+outstanding — it shipped 2026-07-08 as the pack-detail History drawer,
+`lib/bank/packs/history-drawer.tsx`; the §12 ⬜ was stale and is now ✅.)** After
+lazy-expiry, a `main→prod` release + setting `PAYSTACK_SECRET_KEY` on prod would
+take readiness out of dormancy.
+Parked/optional: the readiness results-popup copy (shows `%` + a fractional
+"X of N correct" + no band, matching no number on the report). **Previously
+2026-07-12 (same day): Per-question time engine BUILT (Slices 1–3) +
 report ⑦-style improvements — on `main`, NOT prod.** The report's two time
 **placeholders are now LIVE**: the runner captures per-question **engaged** time
 into `nclex_attempt_answers.time_spent_sec` (engine spec'd in
@@ -1367,21 +1395,17 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   (Sam's catch): `.auth-toast` moved below the 56px topbar
   (top 24→68px) — it was colliding with the user-menu corner.
 
-- **⬜ Pack audit READOUT (planned 2026-07-08 — Sam: definitely
-  needed).** The capture side has run since Slice ① (triggers on the
-  pack + link tables, `deleted` action, composite link ids that
-  survive deletion) — but there is NO UI over it yet; pack history is
-  only reachable by querying the log directly. Build the readout:
-  a **History drawer on pack detail** (point the existing
-  entity-generic audit drawer — the bank-list one — at the pack +
-  membership entities), showing who created/edited the pack and who
-  added/removed which question, when. **Why it matters: several
-  curators will work the same packs** — the log is how the team
-  reviews each other's changes, and it's the §6 no-membership-lock
-  decision's answer to "which questions did this pack hold on date
-  X". Sequencing: **pulled EARLIER (Sam, same day) — build soon, a
-  next-session candidate**, ahead of the multi-curator earmarking
-  pass; small slice — readout only, capture is done.
+- **✅ Pack audit READOUT — DONE 2026-07-08.** The capture side had run
+  since Slice ① (triggers on the pack + link tables, `deleted` action,
+  composite link ids that survive deletion); this added the UI over it:
+  a **History drawer on pack detail** (`lib/bank/packs/history-drawer.tsx`
+  → the shared `AuditDrawerShell`), with pack-flavoured rows the bank
+  drawer lacks (membership adds/removes as `deleted` pips, question id +
+  stem lines under the action) + a header authorship line where "Last
+  edit" is the newest event across the WHOLE pack story (membership
+  included). This is how curators review each other's changes on a
+  shared pack, and the §6 no-membership-lock decision's answer to "which
+  questions did this pack hold on date X".
 
 **Student side (sequenced after admin; slice boundaries firm up when
 we get there — roughly the §10 gaps list):**
@@ -2013,11 +2037,42 @@ same; they differ only where the credits-only version is wrong.
     as low usage. **Dev seed:** 30 fake sittings each on Pack 1 (52%→"beat 19%",
     mid) + Pack 5 (12%→"beat 6%", low), tagged `filters_json._peertest`; clean
     up with `DELETE FROM nclex_attempts WHERE filters_json->>'_peertest'='true'`.
-  - **⏭ Report ⑦ — Polish + QA** (does NOT need the time engine — leaves the
-    two placeholders as-is). Full animation choreography, 375px sweep, open-anchor
-    settle, copy sync (USED card / results popup / report). **Sequencing (Sam,
-    2026-07-11): do the time engine FIRST** so ⑦ polishes the complete report
-    (pacing + map timing filled), not around placeholders.
+  - **✅ Report ⑦ — Polish + QA (BUILT + MERGED to `main` 2026-07-12,
+    commit `824231c`; NOT prod; app-layer, no migration).** Done after the
+    time engine filled the placeholders, so ⑦ polished the *complete* report.
+    QA sweep first (desktop + 375px, all six sections, live time data), then:
+    (1) **open-anchor settle** — `openSection` scrolled `window`, but the app
+    shell scrolls the inner `.product-content` container, so the scroll was a
+    silent no-op and opening a lower section left its header off-screen; now
+    scrolls the real container (settles under the sticky mini-verdict on
+    mobile / near the top on desktop); (2) **mobile top-gap** — the sticky
+    mini-verdict is a `display:flex` in-flow element that reserved its full
+    height as dead space while hidden; collapsed to 0 height until `.is-shown`;
+    (3) **mobile header crush** — the accordion header's long right-side
+    summary squeezed the title into a narrow wrapping column ("Where / to /
+    focus"); the summary now wraps to its own full-width line below the title;
+    (4) **latent reveal-clip fix** — `rr-open` animated `max-height` 0→2600px
+    while `.rs-rep-sec` is `overflow:hidden`, permanently clipping any section
+    taller than the cap (fully-drilled focus tree / mobile per-question map);
+    reveal is now opacity + short slide, no ceiling; (5) **entrance
+    choreography** — rail cards + accordion sections rise in on load (pure CSS,
+    fires pre-hydration so no invisible-until-JS risk; reduced-motion off).
+    Only `report-view.tsx` + `readiness-student.css` touched. **Copy-sync
+    note:** band + % are already consistent across the card/report
+    (both `scoreToBand`); the outlier is the shared results popup (fractional
+    "X of N correct", no band) — left as a **parked design decision** (the popup
+    is universal across quiz types). Days-left (`Math.ceil`) left as-is — all
+    surfaces share the one formula; the 21↔20 flip is just `ceil` ticking as the
+    window crosses its activation-time-of-day, not a cross-surface mismatch.
+
+  **⏭ THE ONE REMAINING DESIGNED READINESS SLICE (agreed 2026-07-12, next
+  session):**
+  - **⏭ Lazy-expiry** — see the ⬜ item below (stamp `expired_at` on next touch,
+    correctness-relevant; replaces the never-built nightly sweep).
+  - (The pack audit READOUT is already DONE — shipped 2026-07-08 as the
+    pack-detail History drawer; the admin-side item above is marked ✅.)
+  - After lazy-expiry: a `main→prod` release + `PAYSTACK_SECRET_KEY` on the prod
+    Worker takes readiness out of its dormant prod state.
   - **⬜ Future arc (separate) — per-question time engine** (runner
     active-timer; serves CAT) → fills Report ④'s Pacing card + Report ⑤'s
     time bits. **Now the agreed next build** (before ⑦).
