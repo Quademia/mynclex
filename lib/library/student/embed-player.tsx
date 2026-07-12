@@ -17,7 +17,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   McqRunner,
   TfRunner,
@@ -47,6 +47,7 @@ import type {
 } from '@/lib/bank/types';
 import { formatRelative } from '../format';
 import { useEmbedPlayGuard } from './embed-play-guard';
+import { createSegment, moveTo, pause, resume, bank, type Segment } from '@/lib/practice/runner/time-tracker';
 import {
   loadEmbedBlock,
   loadEmbedPlayReview,
@@ -179,6 +180,33 @@ function EmbedPlayerRun({
 
   const q = questions[idx];
 
+  // Per-question engaged time (time engine, attempt-creation §6.3.2). The
+  // in-note player reuses the runner's pure tracker, but single-shot: time
+  // from when a question is shown until Submit, pausing while the screen is
+  // away. The write is append-only (submitEmbedAnswer), so this is naturally
+  // decision time. Read at submit and passed to the existing timeSpentSec slot
+  // (feeds the deferred tutor "time-on-block" analytics metric).
+  const segRef = useRef<Segment>(createSegment());
+
+  // Open a fresh segment whenever a new question is shown for answering.
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    segRef.current = moveTo(segRef.current, `q-${idx}`, performance.now()).seg;
+  }, [phase, idx]);
+
+  // Screen-away pause/resume so idle time isn't counted (only whole-screen
+  // departures — the pure tracker excludes the gap).
+  useEffect(() => {
+    const onVis = () => {
+      const now = performance.now();
+      segRef.current = document.hidden
+        ? pause(segRef.current, now).seg
+        : resume(segRef.current, now);
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
   // Slice 8c — note-anchored resolver for bankImage nodes in embedded
   // stems (the attempt anchor doesn't exist here; the gate is the note).
   const resolveImageUrl: BankImageResolver = (id) =>
@@ -218,12 +246,16 @@ function EmbedPlayerRun({
     if (review || submitting || !playId || !isComplete(q, answer)) return;
     setSubmitting(true);
     setError(null);
+    // Bank the engaged time for this question (excludes any screen-away gaps).
+    const banked = bank(segRef.current, performance.now());
+    segRef.current = banked.seg;
     const res = await submitEmbedAnswer({
       noteId,
       blockId,
       itemId: q.itemId,
       playId,
       answer,
+      timeSpentSec: banked.flush?.seconds ?? 0,
     });
     setSubmitting(false);
     if (!res.ok) {
