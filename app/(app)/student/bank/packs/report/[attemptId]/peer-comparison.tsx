@@ -82,7 +82,7 @@ export default function PeerComparison({ peer }: { peer: PeerStats | null }) {
         </div>
       </div>
       <p className="rs-peer-foot">
-        Bar height = nurses in each 10-point bracket, yours in navy · {peer.n} nurses have sat this pack.
+        Bar height = nurses in each 10-point bracket, yours in navy.
       </p>
     </div>
   );
