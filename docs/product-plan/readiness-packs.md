@@ -1,6 +1,26 @@
 # Readiness Packs
 
-Last updated: 2026-07-11 (**Results page (step 3) — report slices ①–⑥ BUILT
+Last updated: 2026-07-12 (**Per-question time engine BUILT (Slices 1–3) +
+report ⑦-style improvements — on `main`, NOT prod.** The report's two time
+**placeholders are now LIVE**: the runner captures per-question **engaged** time
+into `nclex_attempt_answers.time_spent_sec` (engine spec'd in
+bank-consumption-attempt-creation.html §6.3.2, migration `20260803120000`), so
+the **Pacing card** (avg per answered Q · You-vs-exam-pace bars · "finished with
+N to spare") and the per-question-map **Time spent** row are real, and the map
+gained a **Rushed** filter. Report improvements: **Beat + Pace** in the rail
+glance card ["Since Pack 1" dropped — the Trend card shows that delta];
+**Review surfaced** [the Review-window card moved to the TOP of the rail + a
+"Review your answers →" button — launch was buried in the map/accordion]; a
+**page top bar** [back link + "Pack N · date" title lifted out of the rail/verdict
+→ the two panes' first cards now ALIGN + the verdict opens clean on the ring];
+the **peer histogram** got a nurse-count **Y-axis** + on-bar counts [magnitudes
+were hover-only; the "N nurses have sat" cohort-size line dropped]; and a shell
+**`scrollbar-gutter: stable`** fix stopped the ~15px accordion width-jitter. The
+in-note embed player also captures time now (Slice 3, single-shot). All app-layer
+bar the one time-engine migration. ⚠ dev `38d3c02c` (Pack-1 52%) carries a
+synthetic `time_spent_sec` seed = cleanup candidate; peer `_peertest` rows remain.
+⏭ NEXT = Report ⑦ polish/QA; per-question time now also unblocks CAT. **Previously
+2026-07-11:** Results page (step 3) — report slices ①–⑥ BUILT
 + Sam-tested + MERGED to `main`.** The permanent per-sitting report is
 functionally complete: verdict hero (ring adopts the band tone) + three
 readings, the Where-to-focus multi-axis breakdown + Client Needs 3-level
