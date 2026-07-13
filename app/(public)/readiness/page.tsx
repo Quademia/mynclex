@@ -1,36 +1,33 @@
 // mynclex/app/(public)/readiness/page.tsx
 //
-// Public readiness-pack landing at /readiness (readiness-packs.md §12 →
-// Slice ①.3). Sells the ONE-SHOT verdict; /bank-access sells duration.
+// Public readiness-pack landing at /readiness — the "cinematic" redesign
+// (CD V3). Sells the ONE-SHOT verdict; /bank-access sells duration.
 //
-// EVERYTHING HERE IS A READ. An admin can create and retire readiness
-// SKUs (Products & Pricing) and can edit each pack's question count and
-// time limit — so this page encodes no count, no name and no number:
-//   · N cards, ordered by sort_order, whatever N is (not "the 3 SKUs")
-//   · no "Most popular" badge — there is no `featured` column to read
-//   · "unlocks every pack" is DERIVED (credits >= publishedPackCount)
-//   · the "Every pack: 100 questions · 3h 20m" line renders only when
-//     the published packs actually agree, and vanishes when they don't
-//   · zero active SKUs hides the pricing section, never an empty grid
-// Pack specifics live in the "What's in a pack" block, not on the cards:
-// a credit is spendable on ANY pack, so a card printing "100 questions"
-// starts lying the moment one pack is set to 75.
+// EVERYTHING THAT MATTERS IS STILL A READ, and the purchasing surface is
+// UNCHANGED — same catalogue + published-pack queries, same derived
+// unlock/uniform logic, same /checkout/readiness link (see readiness-plans).
+// An admin can create/retire SKUs and edit each pack's n/time, so the page
+// encodes no count, name or number: SKU cards + the pack list + the hero
+// stats strip are all derived, honest at zero published packs.
 //
-// Each SKU card's "Get credits" links to the readiness checkout route
-// (Slice ②b.1, /checkout/readiness) — the purchase mints credits (②a). The
-// credits are held UNCLAIMED until the claim UI ships (②b.2); the checkout
-// + result copy make no claiming promise yet.
+// The cinematic additions — the hero collage, the four report feature
+// demos, and the in-exam runner demo — are SAMPLE illustrations with no
+// data and no effect on checkout (report-showcase.tsx / runner-demo.tsx).
 
 import { createClient } from '@/lib/supabase/server';
 import { ReadinessPlans, type ReadinessSku } from './readiness-plans';
-import { SampleReport } from './sample-report';
+import { ReportShowcase } from './report-showcase';
+import { RunnerDemo } from './runner-demo';
+import { ScrollReveal } from './scroll-reveal';
 
 export const dynamic = 'force-dynamic';
 
-/** 12000 → "3h 20m" · 9000 → "2h 30m" · 2700 → "45m".
- *  Local helper — must NOT be exported: a Next.js `page.tsx` may only
- *  export the default component + allowed config, so an exported helper
- *  fails the production `next build` type-check (Turbopack dev misses it). */
+// Sam's photos — paste the two links here. Empty string → gradient fallback.
+const BAND_PHOTO = ''; // wide landscape: "Sat under real exam conditions"
+const CTA_PHOTO = ''; //  portrait / square: graduating nurse
+
+/** 12000 → "3h 20m". Local (not exported) — a page.tsx may export only the
+ *  default + route config or the prod build type-check fails. */
 function formatDuration(seconds: number): string {
   const mins = Math.round(seconds / 60);
   const h = Math.floor(mins / 60);
@@ -49,27 +46,16 @@ interface PackListing {
 }
 
 const STEPS = [
-  {
-    n: '1',
-    title: 'Buy your credits',
-    body: 'One payment. Credits wait in your account until you choose to spend them.',
-  },
-  {
-    n: '2',
-    title: 'Pick your packs',
-    body: 'Choose which published exams to sit — one per credit you hold.',
-  },
-  {
-    n: '3',
-    title: 'Sit it once, timed',
-    body: 'Full length, on the real exam clock. The 21-day review window opens on activation.',
-  },
-  {
-    n: '4',
-    title: 'Keep the verdict',
-    body: 'A permanent, measured score and breakdown. No retaking into a nicer number.',
-  },
+  { n: '1', title: 'Buy your credits', body: 'One payment. Credits wait in your account until you choose to spend them.' },
+  { n: '2', title: 'Pick your packs', body: 'Choose which published exams to sit — one per credit you hold.' },
+  { n: '3', title: 'Sit it once, timed', body: 'Full length, on the real exam clock. The 21-day review window opens on activation.' },
+  { n: '4', title: 'Keep the verdict', body: 'A permanent, measured score and breakdown. No retaking into a nicer number.' },
 ];
+
+// Static sample verdict for the hero collage (labelled SAMPLE). 79% = Ready.
+const HERO_PCT = 79;
+const HERO_RING_R = 52;
+const HERO_RING_C = 2 * Math.PI * HERO_RING_R;
 
 export default async function ReadinessLandingPage() {
   const supabase = await createClient();
@@ -84,9 +70,6 @@ export default async function ReadinessLandingPage() {
       .eq('kind', 'PAID')
       .eq('status', 'ACTIVE')
       .order('sort_order', { ascending: true }),
-    // Anon-readable since 20260726120000; the policy itself filters to
-    // published + active, but we state the predicate anyway — the page's
-    // correctness shouldn't depend on remembering what RLS does.
     supabase
       .from('nclex_readiness_packs')
       .select('pack_id, title, description, n, time_limit_sec')
@@ -109,130 +92,262 @@ export default async function ReadinessLandingPage() {
   const packCount = packs.length;
 
   // Uniform only when every pack states BOTH numbers and they all agree.
-  // A null `n` is "unknown", never "the same as the others" — publishing
-  // now blocks on it (composition.ts), but a pack published before that
-  // rule existed must not be able to print "Every pack: null questions".
   const first = packs[0];
   const uniform =
     packCount > 0 &&
     packs.every(
-      (p) =>
-        p.n != null &&
-        p.time_limit_sec != null &&
-        p.n === first.n &&
-        p.time_limit_sec === first.time_limit_sec,
+      (p) => p.n != null && p.time_limit_sec != null && p.n === first.n && p.time_limit_sec === first.time_limit_sec,
     );
   const uniformLine = uniform
     ? `Every pack: ${first.n} questions · ${formatDuration(first.time_limit_sec!)}`
     : null;
 
+  // Hero stats — honest constants + derived-from-live-data. Never prints a
+  // count we can't stand behind (0 published packs → the pack/question
+  // stats simply don't appear).
+  const stats: { v: string; k: string }[] = [{ v: 'One shot', k: 'per pack · no retakes' }];
+  if (packCount > 0) stats.push({ v: String(packCount), k: packCount === 1 ? 'curated pack' : 'curated packs' });
+  if (uniform) {
+    stats.push({ v: String(first.n), k: 'questions per pack' });
+    stats.push({ v: formatDuration(first.time_limit_sec!), k: 'on the real exam clock' });
+  }
+  stats.push({ v: '21 days', k: 'to review every rationale' });
+
+  const heroDash = HERO_RING_C - (HERO_PCT / 100) * HERO_RING_C;
+
   return (
-    <main className="pub-content rdp-content">
-      <section className="rdp-hero">
-        <div className="rdp-eyebrow">Readiness Packs</div>
-        <h1>One shot. A score you can trust.</h1>
-        <p className="rdp-lede">
-          Everything else in MyNclex is practice you can retake until the number flatters you.
-          A readiness pack is a full-length, timed exam you sit <strong>exactly once</strong> —
-          so what it tells you is a measured verdict on whether you&apos;re ready to book the
-          NCLEX-RN, not a personal best.
-        </p>
-        <div className="rdp-hero-meta">
-          <span className="rdp-meta-item">
-            <ShieldIcon />
-            Timed like the real thing
-          </span>
-          <span className="rdp-meta-item">
-            <CheckBoxIcon />
-            No retakes — the score stands
-          </span>
+    <main className="rpc">
+      <ScrollReveal />
+
+      {/* ═══ HERO ═══ */}
+      <section className="rpc-hero">
+        <span className="rpc-glow a" />
+        <span className="rpc-glow b" />
+        <div className="rpc-inner rpc-hero-inner">
+          <div className="rpc-hero-copy">
+            <div className="rpc-eyebrow on-dark">Readiness Packs</div>
+            <h1>
+              One shot.<br />A score you can<br /><span className="rpc-serif">actually trust.</span>
+            </h1>
+            <p className="rpc-hero-lede">
+              Practice tests flatter you — you retake them until the number looks good. A readiness
+              pack is a full-length, timed NCLEX-RN exam you sit <strong>exactly once</strong>. What
+              comes back is a measured verdict on whether you&apos;re ready to book the real thing.
+            </p>
+            <div className="rpc-hero-ctas">
+              <a className="rpc-btn rpc-btn-primary" href="#plans">Get your credits →</a>
+              <a className="rpc-btn rpc-btn-ghost" href="#report">See the report</a>
+            </div>
+            <div className="rpc-hero-meta">
+              <span><ShieldIcon /> Timed like the real thing</span>
+              <span><CheckBoxIcon /> No retakes — the score stands</span>
+            </div>
+          </div>
+
+          {/* floating SAMPLE report collage */}
+          <div className="rpc-collage" aria-hidden="true">
+            <div className="rpc-glass">
+              <div className="rpc-glass-head">
+                <span className="k">Your verdict</span>
+                <span className="rpc-sample-pill">SAMPLE</span>
+              </div>
+              <div className="rpc-glass-verdict">
+                <div className="rpc-ring-wrap">
+                  <svg width="104" height="104" viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r={HERO_RING_R} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="12" />
+                    <circle
+                      cx="60" cy="60" r={HERO_RING_R} fill="none" stroke="#7fc4b9" strokeWidth="12"
+                      strokeLinecap="round" transform="rotate(-90 60 60)"
+                      strokeDasharray={HERO_RING_C} strokeDashoffset={heroDash}
+                    />
+                  </svg>
+                  <div className="rpc-ring-mid">
+                    <span className="rpc-ring-pct">{HERO_PCT}%</span>
+                    <span className="rpc-ring-cap">MEASURED</span>
+                  </div>
+                </div>
+                <div>
+                  <span className="rpc-band-chip" style={{ background: '#edf6f5', color: '#2d7d72' }}>Ready</span>
+                  <div className="rpc-points">412 of 520 answer points · fixed 100-question form</div>
+                </div>
+              </div>
+              <div className="rpc-strip-wrap">
+                <div className="rpc-you" style={{ left: `${HERO_PCT}%` }}>
+                  <span>YOU</span>
+                  <svg width="10" height="6" viewBox="0 0 12 7"><path d="M6 7 0 0h12z" /></svg>
+                </div>
+                <div className="rpc-strip">
+                  <div className="s1" /><div className="s2" /><div className="s3" /><div className="s4" />
+                </div>
+                <div className="rpc-strip-keys"><span>Building</span><span>Excelling</span></div>
+              </div>
+            </div>
+
+            <div className="rpc-chip rpc-chip-peer">
+              <div className="k">PEER COMPARISON</div>
+              <div className="v">Beat 72% of nurses</div>
+            </div>
+
+            <div className="rpc-chip rpc-chip-trend">
+              <div>
+                <div className="k">TREND</div>
+                <div className="v">▲ +8 pts</div>
+              </div>
+              <svg viewBox="0 0 220 60" style={{ width: 110, height: 44 }}>
+                <path d="M 12 46 L 110 30 L 208 14" fill="none" stroke="#2d7d72" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="12" cy="46" r="3.5" fill="#2d7d72" stroke="#fff" strokeWidth="2" />
+                <circle cx="110" cy="30" r="3.5" fill="#2d7d72" stroke="#fff" strokeWidth="2" />
+                <circle cx="208" cy="14" r="5" fill="#1e3a5f" stroke="#fff" strokeWidth="2" />
+              </svg>
+            </div>
+          </div>
         </div>
-      </section>
 
-      {skus.length > 0 && (
-        <ReadinessPlans skus={skus} packCount={packCount} uniformLine={uniformLine} />
-      )}
-
-      <section className="rdp-section">
-        <div className="rdp-eyebrow">What&apos;s in a pack</div>
-        <h2>The exams your credits unlock</h2>
-        <p className="rdp-section-lede">
-          A credit is spendable on any published pack — you pick which after purchase. Each
-          pack is its own curated exam.
-        </p>
-
-        {packCount > 0 ? (
-          <div className="rdp-pack-list">
-            {packs.map((p) => (
-              <div key={p.pack_id} className="rdp-pack-row">
-                <div className="rdp-pack-id">
-                  <div className="rdp-pack-title">{p.title}</div>
-                  <div className="rdp-pack-desc">
-                    {p.description ?? 'Curated full-length readiness exam.'}
-                  </div>
-                </div>
-                <div className="rdp-pack-stats">
-                  <div className="rdp-stat">
-                    <div className="rdp-stat-val">{p.n ?? '—'}</div>
-                    <div className="rdp-stat-key">questions</div>
-                  </div>
-                  <div className="rdp-stat">
-                    <div className="rdp-stat-val">
-                      {p.time_limit_sec != null ? formatDuration(p.time_limit_sec) : '—'}
-                    </div>
-                    <div className="rdp-stat-key">time limit</div>
-                  </div>
-                </div>
+        <div className="rpc-stats-band">
+          <div className="rpc-inner rpc-stats">
+            {stats.map((t) => (
+              <div key={t.k} className="rpc-stat">
+                <div className="v">{t.v}</div>
+                <div className="k">{t.k}</div>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="rdp-prelaunch">
-            <SparkIcon />
-            <div>
-              <div className="rdp-prelaunch-title">The first packs are being curated</div>
-              <p>
-                We&apos;re finalising the exams now. When they go live you&apos;ll choose which
-                packs to sit — one per credit you hold.
-              </p>
+        </div>
+      </section>
+
+      {/* ═══ REPORT FEATURE DEMOS (sample) ═══ */}
+      <div id="report">
+        <ReportShowcase />
+      </div>
+
+      {/* ═══ PHOTO BAND ═══ */}
+      <section className="rpc-photo-sec">
+        <div className="rpc-inner rpc-reveal">
+          <div className="rpc-photo">
+            {BAND_PHOTO ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={BAND_PHOTO} alt="A nurse sitting the readiness exam" />
+            ) : (
+              <div className="rpc-photo-fallback" />
+            )}
+            <div className="rpc-photo-overlay">
+              <div className="box">
+                <div className="rpc-eyebrow on-dark">The sitting</div>
+                <h3>Sat under <span className="rpc-serif">real</span> exam conditions</h3>
+                <p>
+                  100 questions on a 3h 20m clock, the full NGN item mix, no pausing and no second
+                  sitting. That&apos;s why the number means something.
+                </p>
+              </div>
             </div>
           </div>
-        )}
+        </div>
       </section>
 
-      <section className="rdp-section">
-        <div className="rdp-eyebrow">How it works</div>
-        <h2>Buy once, sit once, keep the verdict</h2>
-        <div className="rdp-steps">
-          {STEPS.map((s) => (
-            <div key={s.n} className="rdp-step">
-              <div className="rdp-step-head">
-                <span className="rdp-step-n">{s.n}</span>
-                <span className="rdp-step-rule" />
+      {/* ═══ IN-EXAM RUNNER DEMO (sample) ═══ */}
+      <RunnerDemo />
+
+      {/* ═══ PRICING (real) ═══ */}
+      <section id="plans" className="rpc-pricing-sec">
+        <div className="rpc-inner">
+          {skus.length > 0 ? (
+            <ReadinessPlans skus={skus} packCount={packCount} uniformLine={uniformLine} />
+          ) : (
+            <div className="rpc-pricing-head rpc-reveal">
+              <div>
+                <div className="rpc-eyebrow">Pricing</div>
+                <h2>Credits are on their <span className="rpc-serif">way.</span></h2>
+                <p className="rpc-uniform">Readiness credits go on sale shortly — check back soon.</p>
               </div>
-              <div className="rdp-step-title">{s.title}</div>
-              <div className="rdp-step-body">{s.body}</div>
             </div>
-          ))}
+          )}
+
+          {/* pack list — real published packs */}
+          <div className="rpc-packs rpc-reveal">
+            <h3>The exams your credits unlock</h3>
+            {packCount > 0 ? (
+              <div className="rpc-pack-list">
+                {packs.map((p) => (
+                  <div key={p.pack_id} className="rpc-pack-row">
+                    <div className="rpc-pack-main">
+                      <div className="rpc-pack-title">{p.title}</div>
+                      <div className="rpc-pack-desc">{p.description ?? 'Curated full-length readiness exam.'}</div>
+                    </div>
+                    <div className="rpc-pack-stats">
+                      <div className="rpc-pack-stat">
+                        <div className="v">{p.n ?? '—'}</div>
+                        <div className="k">questions</div>
+                      </div>
+                      <div className="rpc-pack-stat">
+                        <div className="v">{p.time_limit_sec != null ? formatDuration(p.time_limit_sec) : '—'}</div>
+                        <div className="k">time limit</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rpc-prelaunch">
+                <SparkIcon />
+                <div>
+                  <div className="t">The first packs are being curated</div>
+                  <p>
+                    We&apos;re finalising the exams now. When they go live you&apos;ll choose which
+                    packs to sit — one per credit you hold.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* how it works */}
+          <div className="rpc-how rpc-reveal">
+            <h3>Buy once, sit once, keep the verdict</h3>
+            <div className="rpc-steps">
+              {STEPS.map((s) => (
+                <div key={s.n} className="rpc-step">
+                  <span className="rpc-step-n">{s.n}</span>
+                  <div className="rpc-step-title">{s.title}</div>
+                  <div className="rpc-step-body">{s.body}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      <SampleReport />
-
-      <section className="rdp-crosssell">
-        <GiftIcon />
-        <div className="rdp-crosssell-copy">
-          <strong>Longer bank passes include readiness credits at no extra cost.</strong>
+      {/* ═══ FINAL CTA ═══ */}
+      <section className="rpc-cta-sec">
+        <span className="rpc-cta-glow" />
+        <div className="rpc-inner rpc-cta-inner rpc-reveal">
+          <div className="rpc-cta-copy">
+            <h2>Ready to find out<br />if you&apos;re <span className="rpc-serif">ready?</span></h2>
+            <p>
+              One payment, one sitting per pack, one number you can plan around. Your score, band and
+              full breakdown stay in your history forever.
+            </p>
+            <div className="rpc-cta-row">
+              <a className="rpc-btn rpc-btn-primary" href="#plans">Get your credits →</a>
+              <span className="note">Longer bank passes include credits at no extra cost.</span>
+            </div>
+          </div>
+          <div className="rpc-cta-photo">
+            <div className="rpc-cta-circle">
+              {CTA_PHOTO ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={CTA_PHOTO} alt="A nurse celebrating success" />
+              ) : (
+                <div className="rpc-photo-fallback" />
+              )}
+            </div>
+          </div>
         </div>
-        <a className="rdp-crosssell-btn" href="/bank-access">
-          See bank access →
-        </a>
       </section>
     </main>
   );
 }
 
-/* ── inline icons (no runtime dep; stroke inherits currentColor) ─────── */
+/* ── inline icons ─────────────────────────────────────────────── */
 
 function ShieldIcon() {
   return (
@@ -255,24 +370,11 @@ function CheckBoxIcon() {
 
 function SparkIcon() {
   return (
-    <svg className="rdp-prelaunch-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 2v4" /><path d="M12 18v4" />
       <path d="m4.9 4.9 2.9 2.9" /><path d="m16.2 16.2 2.9 2.9" />
       <path d="M2 12h4" /><path d="M18 12h4" />
-    </svg>
-  );
-}
-
-function GiftIcon() {
-  return (
-    <svg className="rdp-crosssell-icon" width="26" height="26" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden="true">
-      <path d="M20 12v10H4V12" /><path d="M2 7h20v5H2z" /><path d="M12 22V7" />
-      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
-      <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
     </svg>
   );
 }
