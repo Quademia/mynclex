@@ -24,6 +24,25 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > - **Slice 3 — in-note embed player parity** (`bd60fb8`): single-shot, no migration.
 > **⏭ NEXT:** Report ⑦ polish/QA; time now unblocks CAT.
 
+> **READINESS LAZY-EXPIRY — ✅ BUILT + Sam-tested + MERGED to `main` 2026-07-13
+> (commit `6b9d15d`; NOT prod; app-layer, NO migration — the `expired_at` column
+> + one-live-claim index already existed, only the *writer* changed; tsc + eslint
+> clean; vitest 169 → 176).** The **last designed readiness slice**. Stamps
+> `expired_at` on the next touch of a past-deadline unsat credit — a packs-page
+> read + (correctness-critical) re-claim time — instead of the retired nightly
+> cron; mirrors the `/session` lazy-expiry. Why it matters: the one-live-claim
+> unique index counts a lapsed-but-unstamped credit as still holding the
+> `(user, pack)` slot, so re-claiming that pack `23505`'d until the stamp landed.
+> New pure `isLapsedLive()` (+7 tests) + service-role
+> `lib/payments/readiness-expiry.ts` `sweepLapsedReadinessCredits(userId, packId?)`
+> (idempotent, best-effort), wired into the packs read (self-heals + sweeps) and
+> both claim actions. Verified DB-level (sweep stamps only the lapsed row ·
+> idempotent · re-claim succeeds after stamp · a live pack collides) + Sam's
+> browser test fired the real sweep. **The WHOLE designed readiness build is now
+> complete on `main`.** **⏭ NEXT = prod-release work ONLY: a `main→prod` release +
+> `PAYSTACK_SECRET_KEY` on the prod Worker** to un-dormant readiness. Full detail:
+> [readiness-packs.md](docs/product-plan/readiness-packs.md) → §12.
+>
 > **READINESS REPORT ⑦ — Polish + QA ✅ BUILT + MERGED to `main` 2026-07-12
 > (commit `824231c`; NOT prod; app-layer, no migration).** The finishing pass
 > now that the time engine filled the placeholders. QA sweep (desktop + 375px)
@@ -36,12 +55,10 @@ Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 > (`rr-open` capped `max-height` at 2600px under `overflow:hidden` → now
 > opacity+slide, no clip) · subtle **entrance choreography** (reduced-motion
 > safe). Only `report-view.tsx` + `readiness-student.css`. Parked (design call):
-> the shared results-popup copy. **⏭ NEXT (next session) = the one remaining
-> designed readiness slice — lazy-expiry (`expired_at` stamp-on-touch,
-> correctness; replaces the never-built nightly sweep) — then a `main→prod`
-> release + `PAYSTACK_SECRET_KEY` on prod. (The pack audit READOUT is already
-> DONE — shipped 2026-07-08 as the pack-detail History drawer; a stale §12 ⬜
-> had it looking outstanding.)** Full detail:
+> the shared results-popup copy. **✅ Followed by lazy-expiry (2026-07-13,
+> `6b9d15d`) — see the block above; that completed the designed readiness build.
+> (The pack audit READOUT is DONE — shipped 2026-07-08 as the pack-detail History
+> drawer; a stale §12 ⬜ had it looking outstanding.)** Full detail:
 > [readiness-packs.md](docs/product-plan/readiness-packs.md) → §12.
 >
 > **READINESS REPORT — ✅ ⑦-style improvements BUILT + MERGED to `main`

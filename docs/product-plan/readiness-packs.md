@@ -17,15 +17,18 @@ fixed (`rr-open` animated `max-height` 0→2600px while `.rs-rep-sec` is
 `overflow:hidden`, permanently clipping any section taller than the cap — now
 opacity + short slide, no ceiling); and a subtle **entrance choreography**
 (rail cards + accordion sections rise in on load, pure CSS so it fires
-pre-hydration, reduced-motion off). **⏭ NEXT (next session) = the one remaining
-designed readiness slice — lazy-expiry** (§7/§12 — stamp `expired_at` on the
-next touch [packs-page read + re-claim time] instead of the never-built nightly
-sweep; correctness-relevant for the no-double-claim guard + finalising a sitting
-abandoned while the clock ran out). **(Correction: the pack audit READOUT is NOT
-outstanding — it shipped 2026-07-08 as the pack-detail History drawer,
-`lib/bank/packs/history-drawer.tsx`; the §12 ⬜ was stale and is now ✅.)** After
-lazy-expiry, a `main→prod` release + setting `PAYSTACK_SECRET_KEY` on prod would
-take readiness out of dormancy.
+pre-hydration, reduced-motion off). **✅ 2026-07-13: LAZY-EXPIRY BUILT +
+Sam-tested + MERGED to `main` (`6b9d15d`; app-layer, no migration) — the last
+designed readiness slice.** Stamps `expired_at` on the next touch (packs-page
+read + re-claim time) instead of the never-built nightly sweep;
+correctness-relevant for the no-double-claim guard (a lapsed-but-unstamped
+credit otherwise blocks a legitimate re-claim with a `23505`). Details in §12 →
+*Lazy-expiry* + §7 → *Lapse mechanism*. **The WHOLE designed readiness build is
+now complete on `main` — nothing designed remains.** **⏭ NEXT = prod-release
+work only:** a `main→prod` release + setting `PAYSTACK_SECRET_KEY` on the prod
+Worker takes readiness out of dormancy. **(The pack audit READOUT shipped
+2026-07-08 as the pack-detail History drawer, `lib/bank/packs/history-drawer.tsx`
+— §12 marked ✅.)**
 Parked/optional: the readiness results-popup copy (shows `%` + a fractional
 "X of N correct" + no band, matching no number on the report). **Previously
 2026-07-12 (same day): Per-question time engine BUILT (Slices 1–3) +
@@ -1312,7 +1315,7 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   **packs list**: the 5 packs, status, fill progress ("Pack 1 —
   64/100"); the blueprint-health hint joins in Slice ③ with the
   meter maths.
-- **🔨 Slice ② — Pack detail + picker + machine-managed visibility.**
+- **✅ Slice ② — Pack detail + picker + machine-managed visibility — COMPLETE.**
   **②a (detail spine) ✅ BUILT + Sam-tested 2026-07-07** from the CD
   "Readiness Packs Admin" prototype (concept-not-source): new
   `lib/bank/packs/` module; `/admin/packs/[pack_id]` detail (members in
@@ -1338,9 +1341,8 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   arrows reused from the insert arc. **The visibility flag goes
   machine-managed** (per the §4 per-entity rule): add → flag(s) off
   in the same save; removal leaves hidden (never auto-expose).
-- **🔨 Slice ③ — Meters + publish gate + reserved-stock lens.**
-  **Meters + gate + list hint BUILT 2026-07-07 (second session,
-  awaiting Sam's test):** Composition meters on pack detail (fill ·
+- **✅ Slice ③ — Meters + publish gate + reserved-stock lens — COMPLETE + Sam-tested.**
+  **Meters + gate + list hint BUILT 2026-07-07 (second session):** Composition meters on pack detail (fill ·
   mix vs the §5 guideline · the blueprint meter vs the NCSBN 2023
   ranges [new `CLIENT_NEEDS_BLUEPRINT_RANGES` in classifications.ts]
   — guidance, never a block; pure maths in
@@ -1711,9 +1713,10 @@ same; they differ only where the credits-only version is wrong.
   see §12 *Lazy-expiry* slice), the 21-day window, the "Claim all" button,
   and every surface in §11.10.
 
-- **🔨 Slice ②b — the readiness checkout, the surface + claiming, the
-  sitting, results.** Split into build steps; the CD "Readiness
-  Claiming" prototype (2026-07-09) drives the surface pixels.
+- **✅ Slice ②b — the readiness checkout, the surface + claiming, the
+  sitting, results — COMPLETE (all steps merged to `main`).** Split into
+  build steps; the CD "Readiness Claiming" prototype (2026-07-09) drove the
+  surface pixels.
 
   - **②b.1 — the readiness checkout route ✅ BUILT + Sam-tested + MERGED
     to `main` 2026-07-08.** A student can buy readiness credits: new
@@ -1793,7 +1796,8 @@ same; they differ only where the credits-only version is wrong.
     change, not just typecheck.** (Same family as the `export type`
     gotcha.)
 
-  - **🔨 ②b.2 step 2b — the one-shot runner** (the sitting behind "Begin
+  - **✅ ②b.2 step 2b — the one-shot runner — COMPLETE** (2b-i…2b-iv built +
+    Sam-tested + merged to `main`; the sitting behind "Begin
     exam") lights up the rest of the ACTIVE card + the USED state. **Step 3
     — results** (§11.5, the standalone permanent report page) is a
     SEPARATE slice after it. "Build everything" (Sam, 2026-07-09 — no real
@@ -1897,10 +1901,12 @@ same; they differ only where the credits-only version is wrong.
       ("N days of review left", **calm** tone) → "Review closed", with the tone
       deliberately flipping urgent→calm the moment you sit; no bar on
       catalogue/claim/lapsed.
-- **🔨 Results page (step 3) — the permanent per-sitting report per §11.5.
-  Design SETTLED 2026-07-11 (variant chosen + mobile prototype reviewed);
-  build sliced, NOT started.** The placeholder route + the window-gated
-  Review entry already exist (2b-iv) — these slices fill it in.
+- **✅ Results page (step 3) — the permanent per-sitting report per §11.5 —
+  COMPLETE.** Design SETTLED 2026-07-11 (variant chosen + mobile prototype
+  reviewed); **report slices ①–⑦ BUILT + Sam-tested + MERGED to `main`
+  (2026-07-11 → 07-12; the per-question time engine filled the Pacing card +
+  the map's time bits; Report ⑦ = polish/QA).** The placeholder route + the
+  window-gated Review entry (2b-iv) were filled in by these slices.
 
   **Design decision — variant v3 ("verdict rail + collapsible sections"),
   responsive.** CD produced four layout variants over the settled §11.5
@@ -2065,26 +2071,40 @@ same; they differ only where the credits-only version is wrong.
     surfaces share the one formula; the 21↔20 flip is just `ceil` ticking as the
     window crosses its activation-time-of-day, not a cross-surface mismatch.
 
-  **⏭ THE ONE REMAINING DESIGNED READINESS SLICE (agreed 2026-07-12, next
-  session):**
-  - **⏭ Lazy-expiry** — see the ⬜ item below (stamp `expired_at` on next touch,
-    correctness-relevant; replaces the never-built nightly sweep).
-  - (The pack audit READOUT is already DONE — shipped 2026-07-08 as the
-    pack-detail History drawer; the admin-side item above is marked ✅.)
-  - After lazy-expiry: a `main→prod` release + `PAYSTACK_SECRET_KEY` on the prod
-    Worker takes readiness out of its dormant prod state.
-  - **⬜ Future arc (separate) — per-question time engine** (runner
-    active-timer; serves CAT) → fills Report ④'s Pacing card + Report ⑤'s
-    time bits. **Now the agreed next build** (before ⑦).
-- **⬜ Lazy-expiry (replaces the nightly sweep — settled 2026-07-11):**
-  stamp `expired_at` **on the next touch** of a past-deadline unsat credit
-  — on a packs-page read and (correctness-critical) at re-claim time —
-  instead of a scheduled job. Card display already derives "lapsed" live
-  from `expires_at`; this slice adds the write-through + folds the
-  re-claim guard's time check into the claim action. `expired_at` column
-  + the no-double-claim rule unchanged (only the *writer* changes). Reuse
-  the `/session` lazy-expiry pattern; the **same pass finalises an
-  abandoned sitting** whose clock ran out while the student was away. Full
+  **✅ THE WHOLE DESIGNED READINESS BUILD IS COMPLETE ON `main` (2026-07-13).**
+  - **✅ Lazy-expiry** — BUILT + Sam-tested + merged (`6b9d15d`); see the ✅ item
+    below.
+  - (The pack audit READOUT is DONE — shipped 2026-07-08 as the pack-detail
+    History drawer; the admin-side item above is marked ✅.)
+  - **⏭ Only prod-release work remains:** a `main→prod` release +
+    `PAYSTACK_SECRET_KEY` on the prod Worker takes readiness out of its dormant
+    prod state.
+  - **✅ Per-question time engine (separate arc)** — BUILT (Slices 1–3, mig
+    `20260803120000`, merged to `main` 2026-07-12; runner active-timer, serves
+    CAT) → filled Report ④'s Pacing card + Report ⑤'s time bits.
+- **✅ Lazy-expiry (replaces the nightly sweep — settled 2026-07-11) — BUILT +
+  Sam-tested + MERGED to `main` 2026-07-13 (`6b9d15d`; app-layer, NO migration —
+  the `expired_at` column + one-live-claim index already existed; tsc + eslint
+  clean; vitest 169→176).** Stamps `expired_at` **on the next touch** of a
+  past-deadline unsat credit — on a packs-page read and (correctness-critical)
+  at re-claim time — instead of a scheduled job. Pieces: new pure
+  `isLapsedLive(credit, nowMs)` in `readiness-credits.ts` (+7 tests); new
+  service-role `lib/payments/readiness-expiry.ts` →
+  `sweepLapsedReadinessCredits(userId, packId?)` (idempotent + race-safe by its
+  WHERE clause, best-effort); wired into the packs read
+  (`readiness-packs-view.ts` sweeps before reading, and uses `isLapsedLive` so
+  the card self-heals even if the best-effort write didn't land this render);
+  folded into BOTH claim actions (`readiness-claim.ts` — scoped to the pack in
+  single-claim, before the read in claim-all). **The `expired_at` column + the
+  no-double-claim rule are unchanged — only the *writer* changed.** Why
+  correctness-critical: the one-live-claim unique index counts a lapsed-but-
+  unstamped credit as still holding the (user, pack) slot, so re-claiming that
+  pack `23505`'d until the stamp lands. Verified on dev at the DB level (the
+  login-gated UI leg was Sam's browser test, which fired the sweep and stamped
+  his lapsed Pack-2 credit on page load): the sweep stamps only the lapsed row
+  respecting both CHECKs · idempotent · re-claim succeeds after the stamp · a
+  still-live pack correctly collides. The abandoned-sitting finalisation is left
+  to the existing `/session` lazy-expiry (not folded into the packs page). Full
   rationale: §7 → *Lapse mechanism*.
 
 ---
