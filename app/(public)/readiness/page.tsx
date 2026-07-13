@@ -16,6 +16,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { ReadinessPlans, type ReadinessSku } from './readiness-plans';
+import { HeroCollage } from './hero-collage';
 import { ReportShowcase } from './report-showcase';
 import { RunnerDemo } from './runner-demo';
 import { ScrollReveal } from './scroll-reveal';
@@ -51,11 +52,6 @@ const STEPS = [
   { n: '3', title: 'Sit it once, timed', body: 'Full length, on the real exam clock. The 21-day review window opens on activation.' },
   { n: '4', title: 'Keep the verdict', body: 'A permanent, measured score and breakdown. No retaking into a nicer number.' },
 ];
-
-// Static sample verdict for the hero collage (labelled SAMPLE). 79% = Ready.
-const HERO_PCT = 79;
-const HERO_RING_R = 52;
-const HERO_RING_C = 2 * Math.PI * HERO_RING_R;
 
 export default async function ReadinessLandingPage() {
   const supabase = await createClient();
@@ -113,8 +109,6 @@ export default async function ReadinessLandingPage() {
   }
   stats.push({ v: '21 days', k: 'to review every rationale' });
 
-  const heroDash = HERO_RING_C - (HERO_PCT / 100) * HERO_RING_C;
-
   return (
     <main className="rpc">
       <ScrollReveal />
@@ -144,63 +138,8 @@ export default async function ReadinessLandingPage() {
             </div>
           </div>
 
-          {/* floating SAMPLE report collage */}
-          <div className="rpc-collage" aria-hidden="true">
-            <div className="rpc-glass">
-              <div className="rpc-glass-head">
-                <span className="k">Your verdict</span>
-                <span className="rpc-sample-pill">SAMPLE</span>
-              </div>
-              <div className="rpc-glass-verdict">
-                <div className="rpc-ring-wrap">
-                  <svg width="104" height="104" viewBox="0 0 120 120">
-                    <circle cx="60" cy="60" r={HERO_RING_R} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="12" />
-                    <circle
-                      cx="60" cy="60" r={HERO_RING_R} fill="none" stroke="#7fc4b9" strokeWidth="12"
-                      strokeLinecap="round" transform="rotate(-90 60 60)"
-                      strokeDasharray={HERO_RING_C} strokeDashoffset={heroDash}
-                    />
-                  </svg>
-                  <div className="rpc-ring-mid">
-                    <span className="rpc-ring-pct">{HERO_PCT}%</span>
-                    <span className="rpc-ring-cap">MEASURED</span>
-                  </div>
-                </div>
-                <div>
-                  <span className="rpc-band-chip" style={{ background: '#edf6f5', color: '#2d7d72' }}>Ready</span>
-                  <div className="rpc-points">412 of 520 answer points · fixed 100-question form</div>
-                </div>
-              </div>
-              <div className="rpc-strip-wrap">
-                <div className="rpc-you" style={{ left: `${HERO_PCT}%` }}>
-                  <span>YOU</span>
-                  <svg width="10" height="6" viewBox="0 0 12 7"><path d="M6 7 0 0h12z" /></svg>
-                </div>
-                <div className="rpc-strip">
-                  <div className="s1" /><div className="s2" /><div className="s3" /><div className="s4" />
-                </div>
-                <div className="rpc-strip-keys"><span>Building</span><span>Excelling</span></div>
-              </div>
-            </div>
-
-            <div className="rpc-chip rpc-chip-peer">
-              <div className="k">PEER COMPARISON</div>
-              <div className="v">Beat 72% of nurses</div>
-            </div>
-
-            <div className="rpc-chip rpc-chip-trend">
-              <div>
-                <div className="k">TREND</div>
-                <div className="v">▲ +8 pts</div>
-              </div>
-              <svg viewBox="0 0 220 60" style={{ width: 110, height: 44 }}>
-                <path d="M 12 46 L 110 30 L 208 14" fill="none" stroke="#2d7d72" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="12" cy="46" r="3.5" fill="#2d7d72" stroke="#fff" strokeWidth="2" />
-                <circle cx="110" cy="30" r="3.5" fill="#2d7d72" stroke="#fff" strokeWidth="2" />
-                <circle cx="208" cy="14" r="5" fill="#1e3a5f" stroke="#fff" strokeWidth="2" />
-              </svg>
-            </div>
-          </div>
+          {/* floating SAMPLE report collage — cycles through the bands */}
+          <HeroCollage />
         </div>
 
         <div className="rpc-stats-band">

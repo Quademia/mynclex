@@ -14,20 +14,13 @@
 // re-syncing if that design moves.
 
 import { useEffect, useMemo, useState } from 'react';
+import {
+  SAMPLE_SCORES, VERDICT_RING_R, VERDICT_RING_C, VERDICT_CYCLE_MS,
+  bandForPct, pointsForPct,
+} from './sample-verdict';
 
 type Axis = 'needs' | 'systems' | 'difficulty' | 'cjmm';
 type MapFilter = 'all' | 'full' | 'partial' | 'wrong' | 'changed';
-
-const SCORES = [52, 68, 79, 91];
-const RING_R = 52;
-const RING_C = 2 * Math.PI * RING_R;
-
-function bandFor(pct: number) {
-  if (pct < 60) return { label: 'Building', bg: '#fee2e2', fg: '#b91c1c', ring: '#dc2626' };
-  if (pct < 75) return { label: 'Approaching', bg: '#fef3c7', fg: '#b45309', ring: '#d97706' };
-  if (pct < 85) return { label: 'Ready', bg: '#edf6f5', fg: '#2d7d72', ring: '#2d7d72' };
-  return { label: 'Excelling', bg: '#dcfce7', fg: '#15803d', ring: '#16a34a' };
-}
 
 const AXES: Record<Axis, { name: string; got: number; total: number }[]> = {
   needs: [
@@ -108,19 +101,19 @@ export function ReportShowcase() {
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const t = reduce
       ? undefined
-      : setInterval(() => setScoreIdx((i) => (i + 1) % SCORES.length), 8000);
+      : setInterval(() => setScoreIdx((i) => (i + 1) % SAMPLE_SCORES.length), VERDICT_CYCLE_MS);
     return () => {
       cancelAnimationFrame(raf);
       if (t) clearInterval(t);
     };
   }, []);
 
-  const pct = SCORES[scoreIdx];
-  const band = bandFor(pct);
-  const pointsLine = `${Math.round((pct / 100) * 520)} of 520 answer points`;
+  const pct = SAMPLE_SCORES[scoreIdx];
+  const band = bandForPct(pct);
+  const pointsLine = pointsForPct(pct);
   const ringStyle = {
-    strokeDasharray: RING_C,
-    strokeDashoffset: mounted ? RING_C - (pct / 100) * RING_C : RING_C,
+    strokeDasharray: VERDICT_RING_C,
+    strokeDashoffset: mounted ? VERDICT_RING_C - (pct / 100) * VERDICT_RING_C : VERDICT_RING_C,
     transition: 'stroke-dashoffset 1.1s cubic-bezier(.2,.7,.3,1)',
   } as const;
   const youLeft = mounted ? pct : 50;
@@ -186,9 +179,9 @@ export function ReportShowcase() {
             <div className="rpc-vcard">
               <div className="rpc-ring-wrap">
                 <svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
-                  <circle cx="60" cy="60" r={RING_R} fill="none" stroke="#eef0f3" strokeWidth="12" />
+                  <circle cx="60" cy="60" r={VERDICT_RING_R} fill="none" stroke="#eef0f3" strokeWidth="12" />
                   <circle
-                    cx="60" cy="60" r={RING_R} fill="none" stroke={band.ring} strokeWidth="12"
+                    cx="60" cy="60" r={VERDICT_RING_R} fill="none" stroke={band.ring} strokeWidth="12"
                     strokeLinecap="round" transform="rotate(-90 60 60)" style={ringStyle}
                   />
                 </svg>
