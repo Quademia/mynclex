@@ -23,7 +23,8 @@
 // by RLS); the card shows the pack's own n + time.
 
 import { createClient } from '@/lib/supabase/server';
-import { creditStage } from './readiness-credits';
+import { creditStage, isLapsedLive } from './readiness-credits';
+import { sweepLapsedReadinessCredits } from './readiness-expiry';
 
 export type PackCardState = 'CATALOGUE' | 'CLAIMABLE' | 'CLAIMED' | 'ACTIVE' | 'SITTING' | 'USED';
 
@@ -80,6 +81,14 @@ export async function getStudentReadinessView(): Promise<StudentReadinessView> {
   } = await supabase.auth.getUser();
   if (!user) return EMPTY;
 
+  // Lazy-expiry write-through (§7 Lapse mechanism): stamp expired_at on any
+  // of this student's windows that have lapsed unused, so the reads below
+  // derive EXPIRED from the row and — the point of persisting it — the
+  // one-live-claim index frees the pack for a fresh claim. There is no
+  // nightly sweep; the next touch self-heals the row. Best-effort: if the
+  // write fails the derivation below still shows the card as lapsed live.
+  await sweepLapsedReadinessCredits(user.id);
+
   const [{ data: packRows }, { data: creditRows }] = await Promise.all([
     supabase
       .from('nclex_readiness_packs')
@@ -93,12 +102,20 @@ export async function getStudentReadinessView(): Promise<StudentReadinessView> {
       .eq('user_id', user.id),
   ]);
 
-  const credits = (creditRows ?? []).map((c) => ({
-    packId: c.pack_id as string | null,
-    attemptId: c.attempt_id as string | null,
-    stage: creditStage(c),
-    expiresAt: c.expires_at as string | null,
-  }));
+  const now = Date.now();
+  const credits = (creditRows ?? []).map((c) => {
+    // Display never waits on the stamp: a past-deadline ACTIVE credit reads
+    // EXPIRED live, so the card flips to lapsed/claimable even in the rare
+    // render where the best-effort sweep above didn't land (§7).
+    let stage = creditStage(c);
+    if (stage === 'ACTIVE' && isLapsedLive(c, now)) stage = 'EXPIRED';
+    return {
+      packId: c.pack_id as string | null,
+      attemptId: c.attempt_id as string | null,
+      stage,
+      expiresAt: c.expires_at as string | null,
+    };
+  });
 
   // A USED credit carries its sitting's attempt_id. Read those attempts'
   // status to split "sitting in progress" (resume) from "finished" (results),
@@ -138,7 +155,6 @@ export async function getStudentReadinessView(): Promise<StudentReadinessView> {
     }
   }
 
-  const now = Date.now();
   const packs: StudentPackCard[] = (packRows ?? []).map((p) => {
     const live = liveByPack.get(p.pack_id);
 
