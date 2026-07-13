@@ -23,9 +23,9 @@ import { ScrollReveal } from './scroll-reveal';
 
 export const dynamic = 'force-dynamic';
 
-// Sam's photos — paste the two links here. Empty string → gradient fallback.
-const BAND_PHOTO = ''; // wide landscape: "Sat under real exam conditions"
-const CTA_PHOTO = ''; //  portrait / square: graduating nurse
+// Marketing photos (hosted on Cloudinary). Empty string → gradient fallback.
+const BAND_PHOTO = 'https://res.cloudinary.com/dbyufeays/image/upload/v1783980651/iDRaz_eewajr.jpg'; // wide landscape: "Sat under real exam conditions"
+const CTA_PHOTO = 'https://res.cloudinary.com/dbyufeays/image/upload/v1783980787/LKTR5_p8rczm.jpg'; //  portrait / square: graduating nurse
 
 /** 12000 → "3h 20m". Local (not exported) — a page.tsx may export only the
  *  default + route config or the prod build type-check fails. */
