@@ -8,6 +8,67 @@ where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
 
+> **PER-QUESTION TIME ENGINE — ✅ Slices 1–3 BUILT + Sam-tested + MERGED to
+> `main` 2026-07-12 (NOT prod).** The runner-level capability that fills
+> `nclex_attempt_answers.time_spent_sec` (empty since slice 2.1). Spec:
+> [bank-consumption-attempt-creation.html](docs/product-plan/bank-consumption-attempt-creation.html)
+> → §6.3.2 (engaged time; pauses on the Page-Visibility signal — wrapper-tabs /
+> scroll don't; independent of the attempt clock, they don't sum; additive
+> persist; total-only storage, decision-time pacing deferred).
+> - **Slice 1 — capture** (`ad493cf`, mig `20260803120000`): pure
+>   `lib/practice/runner/time-tracker.ts` (+11 tests) + `use-question-timer` hook
+>   + additive RPC `nclex_add_answer_time` (ensure-row DRAFT+NULL for read-then-skip;
+>   `_flushDrafts` skips it, complete/expire convert → SKIPPED keeping the time).
+> - **Slice 2 — readiness report reads it** (`471d524`): pure `readiness-pacing.ts`
+>   (+6 tests); map **Time spent** + **Rushed** filter; the designed **Pacing card**.
+> - **Slice 3 — in-note embed player parity** (`bd60fb8`): single-shot, no migration.
+> **⏭ NEXT:** Report ⑦ polish/QA; time now unblocks CAT.
+
+> **READINESS LAZY-EXPIRY — ✅ BUILT + Sam-tested + MERGED to `main` 2026-07-13
+> (commit `6b9d15d`; NOT prod; app-layer, NO migration — the `expired_at` column
+> + one-live-claim index already existed, only the *writer* changed; tsc + eslint
+> clean; vitest 169 → 176).** The **last designed readiness slice**. Stamps
+> `expired_at` on the next touch of a past-deadline unsat credit — a packs-page
+> read + (correctness-critical) re-claim time — instead of the retired nightly
+> cron; mirrors the `/session` lazy-expiry. Why it matters: the one-live-claim
+> unique index counts a lapsed-but-unstamped credit as still holding the
+> `(user, pack)` slot, so re-claiming that pack `23505`'d until the stamp landed.
+> New pure `isLapsedLive()` (+7 tests) + service-role
+> `lib/payments/readiness-expiry.ts` `sweepLapsedReadinessCredits(userId, packId?)`
+> (idempotent, best-effort), wired into the packs read (self-heals + sweeps) and
+> both claim actions. Verified DB-level (sweep stamps only the lapsed row ·
+> idempotent · re-claim succeeds after stamp · a live pack collides) + Sam's
+> browser test fired the real sweep. **The WHOLE designed readiness build is now
+> complete on `main`.** **⏭ NEXT = prod-release work ONLY: a `main→prod` release +
+> `PAYSTACK_SECRET_KEY` on the prod Worker** to un-dormant readiness. Full detail:
+> [readiness-packs.md](docs/product-plan/readiness-packs.md) → §12.
+>
+> **READINESS REPORT ⑦ — Polish + QA ✅ BUILT + MERGED to `main` 2026-07-12
+> (commit `824231c`; NOT prod; app-layer, no migration).** The finishing pass
+> now that the time engine filled the placeholders. QA sweep (desktop + 375px)
+> then the fixes: **open-anchor settle** (scroll the real `.product-content`
+> container — the old `window.scrollTo` was a no-op, so opening a lower section
+> left its header off-screen) · **mobile top-gap** closed (the sticky
+> mini-verdict reserved its height while hidden → collapse to 0 until shown) ·
+> **mobile header-crush** fixed (long summary drops to its own line; "Where to
+> focus" stops wrapping letter-per-line) · **latent reveal-clip** fixed
+> (`rr-open` capped `max-height` at 2600px under `overflow:hidden` → now
+> opacity+slide, no clip) · subtle **entrance choreography** (reduced-motion
+> safe). Only `report-view.tsx` + `readiness-student.css`. Parked (design call):
+> the shared results-popup copy. **✅ Followed by lazy-expiry (2026-07-13,
+> `6b9d15d`) — see the block above; that completed the designed readiness build.
+> (The pack audit READOUT is DONE — shipped 2026-07-08 as the pack-detail History
+> drawer; a stale §12 ⬜ had it looking outstanding.)** Full detail:
+> [readiness-packs.md](docs/product-plan/readiness-packs.md) → §12.
+>
+> **READINESS REPORT — ✅ ⑦-style improvements BUILT + MERGED to `main`
+> 2026-07-12 (NOT prod).** Beat + Pace in the rail glance card (`c7d7c0e`; "Since
+> Pack 1" dropped) · Review surfaced — card moved first in the rail + a Review
+> button (`bf27fd0`) · page top bar (back + pack/date title) aligning the two
+> panes (`f3f7551`) · peer histogram nurse-count Y-axis + on-bar counts, cohort
+> line dropped (`2a3c88a`, `c4b4e4f`) · shell `scrollbar-gutter: stable` fix for
+> the accordion width-jitter (`bd55f90`, app-wide).
+
 > **TREND RICH MULTI-CHART — ✅ Slices 1–4 COMPLETE + Sam-tested + RELEASED to
 > PROD 2026-07-02 (PR #34)
 > (Slices 1–3 `2026-07-01`, Slice 4 `2026-07-02`; app-layer +

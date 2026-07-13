@@ -1,6 +1,57 @@
 # Readiness Packs
 
-Last updated: 2026-07-11 (**Results page (step 3) — report slices ①–⑥ BUILT
+Last updated: 2026-07-12 (**Report ⑦ (polish/QA) BUILT + MERGED to `main`
+— NOT prod (commit `824231c`; app-layer, no migration; tsc + report-view
+eslint clean).** The finishing pass now that the time engine filled the two
+placeholders — a QA sweep (desktop + 375px, all six sections, live time
+data) then the fixes: **open-anchor settle** now scrolls the real
+`.product-content` container (opening a lower section used to leave its
+header off-screen — the old `window.scrollTo` was a silent no-op because the
+shell scrolls an inner element); the **mobile top-gap** closed (the sticky
+mini-verdict was a `display:flex` in-flow element reserving its full height
+while hidden — collapsed to 0 height until `.is-shown`); the **accordion
+header crush** fixed at 375px (long right-side summary no longer squeezes the
+title into a narrow wrapping column — it drops to its own full-width line, so
+"Where to focus" stops wrapping letter-per-line); a **latent reveal-clip**
+fixed (`rr-open` animated `max-height` 0→2600px while `.rs-rep-sec` is
+`overflow:hidden`, permanently clipping any section taller than the cap — now
+opacity + short slide, no ceiling); and a subtle **entrance choreography**
+(rail cards + accordion sections rise in on load, pure CSS so it fires
+pre-hydration, reduced-motion off). **✅ 2026-07-13: LAZY-EXPIRY BUILT +
+Sam-tested + MERGED to `main` (`6b9d15d`; app-layer, no migration) — the last
+designed readiness slice.** Stamps `expired_at` on the next touch (packs-page
+read + re-claim time) instead of the never-built nightly sweep;
+correctness-relevant for the no-double-claim guard (a lapsed-but-unstamped
+credit otherwise blocks a legitimate re-claim with a `23505`). Details in §12 →
+*Lazy-expiry* + §7 → *Lapse mechanism*. **The WHOLE designed readiness build is
+now complete on `main` — nothing designed remains.** **⏭ NEXT = prod-release
+work only:** a `main→prod` release + setting `PAYSTACK_SECRET_KEY` on the prod
+Worker takes readiness out of dormancy. **(The pack audit READOUT shipped
+2026-07-08 as the pack-detail History drawer, `lib/bank/packs/history-drawer.tsx`
+— §12 marked ✅.)**
+Parked/optional: the readiness results-popup copy (shows `%` + a fractional
+"X of N correct" + no band, matching no number on the report). **Previously
+2026-07-12 (same day): Per-question time engine BUILT (Slices 1–3) +
+report ⑦-style improvements — on `main`, NOT prod.** The report's two time
+**placeholders are now LIVE**: the runner captures per-question **engaged** time
+into `nclex_attempt_answers.time_spent_sec` (engine spec'd in
+bank-consumption-attempt-creation.html §6.3.2, migration `20260803120000`), so
+the **Pacing card** (avg per answered Q · You-vs-exam-pace bars · "finished with
+N to spare") and the per-question-map **Time spent** row are real, and the map
+gained a **Rushed** filter. Report improvements: **Beat + Pace** in the rail
+glance card ["Since Pack 1" dropped — the Trend card shows that delta];
+**Review surfaced** [the Review-window card moved to the TOP of the rail + a
+"Review your answers →" button — launch was buried in the map/accordion]; a
+**page top bar** [back link + "Pack N · date" title lifted out of the rail/verdict
+→ the two panes' first cards now ALIGN + the verdict opens clean on the ring];
+the **peer histogram** got a nurse-count **Y-axis** + on-bar counts [magnitudes
+were hover-only; the "N nurses have sat" cohort-size line dropped]; and a shell
+**`scrollbar-gutter: stable`** fix stopped the ~15px accordion width-jitter. The
+in-note embed player also captures time now (Slice 3, single-shot). All app-layer
+bar the one time-engine migration. ⚠ dev `38d3c02c` (Pack-1 52%) carries a
+synthetic `time_spent_sec` seed = cleanup candidate; peer `_peertest` rows remain.
+⏭ NEXT = Report ⑦ polish/QA; per-question time now also unblocks CAT. **Previously
+2026-07-11:** Results page (step 3) — report slices ①–⑥ BUILT
 + Sam-tested + MERGED to `main`.** The permanent per-sitting report is
 functionally complete: verdict hero (ring adopts the band tone) + three
 readings, the Where-to-focus multi-axis breakdown + Client Needs 3-level
@@ -14,9 +65,15 @@ reworded to a fairness gate, no count]. All app-layer bar ⑥; tsc + eslint +
 `app/(app)/student/bank/packs/report/[attemptId]/` + `lib/payments/readiness-report.ts`
 + `readiness-breakdowns.ts` + `lib/scoring/detail.ts`. ⏭ NEXT = the
 **per-question time engine** [runner active-timer, serves CAT] to fill the two
-placeholders, THEN Report ⑦ polish/QA. ⚠ dev peer-test seed rows tagged
-`_peertest` (cleanup query in §12); the dup `20260726120000` migration filename
-is still the `main→prod` release blocker. Previously 2026-07-11: **design
+placeholders, THEN Report ⑦ polish/QA. **RELEASED to prod (PR #37,
+2026-07-11):** the whole readiness+products backlog (migrations `20260721`→
+`20260802`, prod was at `20260720`) shipped — migrate-prod + deploy-prod both
+green, prod tracker tail `20260802`, `mynclex.com` 200. The dup
+`20260726120000` filename was **reconciled** (readiness_packs_public_read →
+`20260726130000`) before the release, so the long-standing `main→prod` blocker
+is CLEARED. Readiness lands **dormant** on prod (no `PAYSTACK_SECRET_KEY`, no
+published packs) until deliberately enabled. ⚠ dev peer-test seed rows tagged
+`_peertest` (cleanup query in §12). Previously 2026-07-11: **design
 SETTLED + build SLICED into §12.** Layout **variant v3** [verdict rail +
 collapsible sections] adopted over v1/v2/v4 — the full story reorganised
 into a scannable accordion where collapsed summaries keep everything
@@ -1258,7 +1315,7 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   **packs list**: the 5 packs, status, fill progress ("Pack 1 —
   64/100"); the blueprint-health hint joins in Slice ③ with the
   meter maths.
-- **🔨 Slice ② — Pack detail + picker + machine-managed visibility.**
+- **✅ Slice ② — Pack detail + picker + machine-managed visibility — COMPLETE.**
   **②a (detail spine) ✅ BUILT + Sam-tested 2026-07-07** from the CD
   "Readiness Packs Admin" prototype (concept-not-source): new
   `lib/bank/packs/` module; `/admin/packs/[pack_id]` detail (members in
@@ -1284,9 +1341,8 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   arrows reused from the insert arc. **The visibility flag goes
   machine-managed** (per the §4 per-entity rule): add → flag(s) off
   in the same save; removal leaves hidden (never auto-expose).
-- **🔨 Slice ③ — Meters + publish gate + reserved-stock lens.**
-  **Meters + gate + list hint BUILT 2026-07-07 (second session,
-  awaiting Sam's test):** Composition meters on pack detail (fill ·
+- **✅ Slice ③ — Meters + publish gate + reserved-stock lens — COMPLETE + Sam-tested.**
+  **Meters + gate + list hint BUILT 2026-07-07 (second session):** Composition meters on pack detail (fill ·
   mix vs the §5 guideline · the blueprint meter vs the NCSBN 2023
   ranges [new `CLIENT_NEEDS_BLUEPRINT_RANGES` in classifications.ts]
   — guidance, never a block; pure maths in
@@ -1341,21 +1397,17 @@ here as each slice lands. Status legend: ✅ done · 🔨 in progress ·
   (Sam's catch): `.auth-toast` moved below the 56px topbar
   (top 24→68px) — it was colliding with the user-menu corner.
 
-- **⬜ Pack audit READOUT (planned 2026-07-08 — Sam: definitely
-  needed).** The capture side has run since Slice ① (triggers on the
-  pack + link tables, `deleted` action, composite link ids that
-  survive deletion) — but there is NO UI over it yet; pack history is
-  only reachable by querying the log directly. Build the readout:
-  a **History drawer on pack detail** (point the existing
-  entity-generic audit drawer — the bank-list one — at the pack +
-  membership entities), showing who created/edited the pack and who
-  added/removed which question, when. **Why it matters: several
-  curators will work the same packs** — the log is how the team
-  reviews each other's changes, and it's the §6 no-membership-lock
-  decision's answer to "which questions did this pack hold on date
-  X". Sequencing: **pulled EARLIER (Sam, same day) — build soon, a
-  next-session candidate**, ahead of the multi-curator earmarking
-  pass; small slice — readout only, capture is done.
+- **✅ Pack audit READOUT — DONE 2026-07-08.** The capture side had run
+  since Slice ① (triggers on the pack + link tables, `deleted` action,
+  composite link ids that survive deletion); this added the UI over it:
+  a **History drawer on pack detail** (`lib/bank/packs/history-drawer.tsx`
+  → the shared `AuditDrawerShell`), with pack-flavoured rows the bank
+  drawer lacks (membership adds/removes as `deleted` pips, question id +
+  stem lines under the action) + a header authorship line where "Last
+  edit" is the newest event across the WHOLE pack story (membership
+  included). This is how curators review each other's changes on a
+  shared pack, and the §6 no-membership-lock decision's answer to "which
+  questions did this pack hold on date X".
 
 **Student side (sequenced after admin; slice boundaries firm up when
 we get there — roughly the §10 gaps list):**
@@ -1661,9 +1713,10 @@ same; they differ only where the credits-only version is wrong.
   see §12 *Lazy-expiry* slice), the 21-day window, the "Claim all" button,
   and every surface in §11.10.
 
-- **🔨 Slice ②b — the readiness checkout, the surface + claiming, the
-  sitting, results.** Split into build steps; the CD "Readiness
-  Claiming" prototype (2026-07-09) drives the surface pixels.
+- **✅ Slice ②b — the readiness checkout, the surface + claiming, the
+  sitting, results — COMPLETE (all steps merged to `main`).** Split into
+  build steps; the CD "Readiness Claiming" prototype (2026-07-09) drove the
+  surface pixels.
 
   - **②b.1 — the readiness checkout route ✅ BUILT + Sam-tested + MERGED
     to `main` 2026-07-08.** A student can buy readiness credits: new
@@ -1743,7 +1796,8 @@ same; they differ only where the credits-only version is wrong.
     change, not just typecheck.** (Same family as the `export type`
     gotcha.)
 
-  - **🔨 ②b.2 step 2b — the one-shot runner** (the sitting behind "Begin
+  - **✅ ②b.2 step 2b — the one-shot runner — COMPLETE** (2b-i…2b-iv built +
+    Sam-tested + merged to `main`; the sitting behind "Begin
     exam") lights up the rest of the ACTIVE card + the USED state. **Step 3
     — results** (§11.5, the standalone permanent report page) is a
     SEPARATE slice after it. "Build everything" (Sam, 2026-07-09 — no real
@@ -1847,10 +1901,12 @@ same; they differ only where the credits-only version is wrong.
       ("N days of review left", **calm** tone) → "Review closed", with the tone
       deliberately flipping urgent→calm the moment you sit; no bar on
       catalogue/claim/lapsed.
-- **🔨 Results page (step 3) — the permanent per-sitting report per §11.5.
-  Design SETTLED 2026-07-11 (variant chosen + mobile prototype reviewed);
-  build sliced, NOT started.** The placeholder route + the window-gated
-  Review entry already exist (2b-iv) — these slices fill it in.
+- **✅ Results page (step 3) — the permanent per-sitting report per §11.5 —
+  COMPLETE.** Design SETTLED 2026-07-11 (variant chosen + mobile prototype
+  reviewed); **report slices ①–⑦ BUILT + Sam-tested + MERGED to `main`
+  (2026-07-11 → 07-12; the per-question time engine filled the Pacing card +
+  the map's time bits; Report ⑦ = polish/QA).** The placeholder route + the
+  window-gated Review entry (2b-iv) were filled in by these slices.
 
   **Design decision — variant v3 ("verdict rail + collapsible sections"),
   responsive.** CD produced four layout variants over the settled §11.5
@@ -1987,23 +2043,68 @@ same; they differ only where the credits-only version is wrong.
     as low usage. **Dev seed:** 30 fake sittings each on Pack 1 (52%→"beat 19%",
     mid) + Pack 5 (12%→"beat 6%", low), tagged `filters_json._peertest`; clean
     up with `DELETE FROM nclex_attempts WHERE filters_json->>'_peertest'='true'`.
-  - **⏭ Report ⑦ — Polish + QA** (does NOT need the time engine — leaves the
-    two placeholders as-is). Full animation choreography, 375px sweep, open-anchor
-    settle, copy sync (USED card / results popup / report). **Sequencing (Sam,
-    2026-07-11): do the time engine FIRST** so ⑦ polishes the complete report
-    (pacing + map timing filled), not around placeholders.
-  - **⬜ Future arc (separate) — per-question time engine** (runner
-    active-timer; serves CAT) → fills Report ④'s Pacing card + Report ⑤'s
-    time bits. **Now the agreed next build** (before ⑦).
-- **⬜ Lazy-expiry (replaces the nightly sweep — settled 2026-07-11):**
-  stamp `expired_at` **on the next touch** of a past-deadline unsat credit
-  — on a packs-page read and (correctness-critical) at re-claim time —
-  instead of a scheduled job. Card display already derives "lapsed" live
-  from `expires_at`; this slice adds the write-through + folds the
-  re-claim guard's time check into the claim action. `expired_at` column
-  + the no-double-claim rule unchanged (only the *writer* changes). Reuse
-  the `/session` lazy-expiry pattern; the **same pass finalises an
-  abandoned sitting** whose clock ran out while the student was away. Full
+  - **✅ Report ⑦ — Polish + QA (BUILT + MERGED to `main` 2026-07-12,
+    commit `824231c`; NOT prod; app-layer, no migration).** Done after the
+    time engine filled the placeholders, so ⑦ polished the *complete* report.
+    QA sweep first (desktop + 375px, all six sections, live time data), then:
+    (1) **open-anchor settle** — `openSection` scrolled `window`, but the app
+    shell scrolls the inner `.product-content` container, so the scroll was a
+    silent no-op and opening a lower section left its header off-screen; now
+    scrolls the real container (settles under the sticky mini-verdict on
+    mobile / near the top on desktop); (2) **mobile top-gap** — the sticky
+    mini-verdict is a `display:flex` in-flow element that reserved its full
+    height as dead space while hidden; collapsed to 0 height until `.is-shown`;
+    (3) **mobile header crush** — the accordion header's long right-side
+    summary squeezed the title into a narrow wrapping column ("Where / to /
+    focus"); the summary now wraps to its own full-width line below the title;
+    (4) **latent reveal-clip fix** — `rr-open` animated `max-height` 0→2600px
+    while `.rs-rep-sec` is `overflow:hidden`, permanently clipping any section
+    taller than the cap (fully-drilled focus tree / mobile per-question map);
+    reveal is now opacity + short slide, no ceiling; (5) **entrance
+    choreography** — rail cards + accordion sections rise in on load (pure CSS,
+    fires pre-hydration so no invisible-until-JS risk; reduced-motion off).
+    Only `report-view.tsx` + `readiness-student.css` touched. **Copy-sync
+    note:** band + % are already consistent across the card/report
+    (both `scoreToBand`); the outlier is the shared results popup (fractional
+    "X of N correct", no band) — left as a **parked design decision** (the popup
+    is universal across quiz types). Days-left (`Math.ceil`) left as-is — all
+    surfaces share the one formula; the 21↔20 flip is just `ceil` ticking as the
+    window crosses its activation-time-of-day, not a cross-surface mismatch.
+
+  **✅ THE WHOLE DESIGNED READINESS BUILD IS COMPLETE ON `main` (2026-07-13).**
+  - **✅ Lazy-expiry** — BUILT + Sam-tested + merged (`6b9d15d`); see the ✅ item
+    below.
+  - (The pack audit READOUT is DONE — shipped 2026-07-08 as the pack-detail
+    History drawer; the admin-side item above is marked ✅.)
+  - **⏭ Only prod-release work remains:** a `main→prod` release +
+    `PAYSTACK_SECRET_KEY` on the prod Worker takes readiness out of its dormant
+    prod state.
+  - **✅ Per-question time engine (separate arc)** — BUILT (Slices 1–3, mig
+    `20260803120000`, merged to `main` 2026-07-12; runner active-timer, serves
+    CAT) → filled Report ④'s Pacing card + Report ⑤'s time bits.
+- **✅ Lazy-expiry (replaces the nightly sweep — settled 2026-07-11) — BUILT +
+  Sam-tested + MERGED to `main` 2026-07-13 (`6b9d15d`; app-layer, NO migration —
+  the `expired_at` column + one-live-claim index already existed; tsc + eslint
+  clean; vitest 169→176).** Stamps `expired_at` **on the next touch** of a
+  past-deadline unsat credit — on a packs-page read and (correctness-critical)
+  at re-claim time — instead of a scheduled job. Pieces: new pure
+  `isLapsedLive(credit, nowMs)` in `readiness-credits.ts` (+7 tests); new
+  service-role `lib/payments/readiness-expiry.ts` →
+  `sweepLapsedReadinessCredits(userId, packId?)` (idempotent + race-safe by its
+  WHERE clause, best-effort); wired into the packs read
+  (`readiness-packs-view.ts` sweeps before reading, and uses `isLapsedLive` so
+  the card self-heals even if the best-effort write didn't land this render);
+  folded into BOTH claim actions (`readiness-claim.ts` — scoped to the pack in
+  single-claim, before the read in claim-all). **The `expired_at` column + the
+  no-double-claim rule are unchanged — only the *writer* changed.** Why
+  correctness-critical: the one-live-claim unique index counts a lapsed-but-
+  unstamped credit as still holding the (user, pack) slot, so re-claiming that
+  pack `23505`'d until the stamp lands. Verified on dev at the DB level (the
+  login-gated UI leg was Sam's browser test, which fired the sweep and stamped
+  his lapsed Pack-2 credit on page load): the sweep stamps only the lapsed row
+  respecting both CHECKs · idempotent · re-claim succeeds after the stamp · a
+  still-live pack correctly collides. The abandoned-sitting finalisation is left
+  to the existing `/session` lazy-expiry (not folded into the packs page). Full
   rationale: §7 → *Lapse mechanism*.
 
 ---

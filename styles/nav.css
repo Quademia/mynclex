@@ -53,6 +53,10 @@
   background: var(--white);
   /* The only scrollable region in the locked shell. */
   overflow-y: auto;
+  /* Reserve the scrollbar gutter permanently so content width doesn't jump
+   * 15px when the scrollbar appears/disappears (e.g. expanding/collapsing the
+   * readiness report's accordions). Consistent width across every surface. */
+  scrollbar-gutter: stable;
   min-height: 0;
   /* Flex column so the trailing <Footer /> can push to the bottom
    * of the scroll area when page content is short. On tall pages

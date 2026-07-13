@@ -21,6 +21,7 @@ import { weakestSubcategory, nextMoves } from '@/lib/payments/readiness-breakdow
 import WhereToFocus from './where-to-focus';
 import NextMoves from './next-moves';
 import TrendPacing from './trend-pacing';
+import { formatSecsWords } from '@/lib/payments/readiness-pacing';
 import PerQuestionMap from './per-question-map';
 import PeerComparison from './peer-comparison';
 
@@ -125,7 +126,7 @@ function AccordionSection({
 }
 
 export default function ReadinessReportView({ report }: { report: ReadinessReport }) {
-  const { pct, band, outcomes, points, packTitle, satDate, reviewOpen, expiresAt, attemptId } =
+  const { pct, band, outcomes, points, peer, pacing, packTitle, satDate, reviewOpen, expiresAt, attemptId } =
     report;
 
   const [mounted, setMounted] = useState(false);
@@ -171,17 +172,21 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
   const openSection = (k: SectionKey) => {
     const opening = openSec !== k;
     setOpenSec(opening ? k : '');
-    if (opening) {
-      window.setTimeout(() => {
-        const el = mainRef.current?.querySelector<HTMLElement>(`[data-sec="${k}"]`);
-        if (!el) return;
-        const top = el.getBoundingClientRect().top;
-        const offset = window.innerWidth < 768 ? 60 : 12;
-        if (top < offset || top > window.innerHeight - 120) {
-          window.scrollTo({ top: top + window.scrollY - offset, behavior: 'smooth' });
-        }
-      }, 120);
-    }
+    if (!opening) return;
+    // Settle the just-opened section under the top of the scroll area. The
+    // app shell scrolls an inner `.product-content` container, NOT window —
+    // so we scroll that element (a window.scrollTo here was a silent no-op,
+    // which is why opening a lower section left its header off-screen). On
+    // mobile we clear the sticky mini-verdict bar; on desktop a small gap.
+    window.setTimeout(() => {
+      const el = mainRef.current?.querySelector<HTMLElement>(`[data-sec="${k}"]`);
+      const scroller = el?.closest<HTMLElement>('.product-content');
+      if (!el || !scroller) return;
+      const offset = window.innerWidth < 768 ? 64 : 16;
+      const rel = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      if (Math.abs(rel - offset) < 6) return; // already settled — no jitter
+      scroller.scrollTo({ top: scroller.scrollTop + rel - offset, behavior: 'smooth' });
+    }, 120);
   };
 
   // ── verdict ring geometry ──────────────────────────────────────────
@@ -272,19 +277,47 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
         <span className="rs-rep-mini-pack">{packTitle}</span>
       </div>
 
+      {/* Page top bar — back link + the pack/date description. Full-width
+          above both panes so the back link no longer offsets the rail (the
+          two columns' first cards now align), and the description titles the
+          page instead of hiding in the verdict card. */}
+      <header className="rs-rep-topbar">
+        <a className="rs-report-back" href="/student/bank/packs">
+          ← Back to packs
+        </a>
+        <div className="rs-rep-topbar-title">
+          {packTitle}
+          {satDate && <> · {fmtDate(satDate)}</>}
+        </div>
+      </header>
+
       <div className="rs-rep-shell">
         {/* ── rail (desktop) / top block (mobile) ── */}
         <aside className="rs-rep-rail">
-          <a className="rs-report-back" href="/student/bank/packs">
-            ← Back to packs
-          </a>
+          {/* Review-window card — first in the rail so the review entry point
+              is visible, not buried in the map/accordion. The Review-window
+              accordion section is independent and unaffected. */}
+          <div className={`rs-rep-reviewcard${reviewOpen ? ' is-open' : ''}`}>
+            <div className="rs-rep-reviewcard-title">
+              {reviewOpen && dl !== null
+                ? `Review open · ${dl} day${dl === 1 ? '' : 's'} left`
+                : 'Review closed'}
+            </div>
+            <div className="rs-rep-reviewcard-sub">
+              {expiresAt
+                ? reviewOpen
+                  ? `Until ${fmtDate(expiresAt)}`
+                  : `Closed ${fmtDate(expiresAt)}`
+                : 'Your score stays on record'}
+            </div>
+            {reviewOpen && (
+              <a className="rs-btn rs-btn-navy rs-rep-reviewcard-btn" href={`/session/${attemptId}`}>
+                Review your answers →
+              </a>
+            )}
+          </div>
 
           <div className="rs-rep-verdict" ref={verdictRef}>
-            <div className="rs-rep-verdict-head">
-              {packTitle}
-              {satDate && <> · {fmtDate(satDate)}</>}
-            </div>
-
             <div className="rs-rep-ringrow">
               <div className="rs-rep-ring">
                 <svg viewBox="0 0 120 120" width="120" height="120">
@@ -365,6 +398,23 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
                 {points.found} of {points.total}
               </strong>
             </div>
+            {/* Beat + Pace brought from the CD glance card. Each hides
+                gracefully — Beat when the peer set is below min-N (matches the
+                fairness-gated peer section), Pace on pre-engine sittings with
+                no captured time. "Since Pack 1" deliberately dropped — the
+                Trend card already shows that delta. */}
+            {peer?.unlocked && peer.yourPercentile !== null && (
+              <div className="rs-rep-stat">
+                <span>Beat</span>
+                <strong>{peer.yourPercentile}% of peers</strong>
+              </div>
+            )}
+            {pacing.hasTime && pacing.avgAnsweredSec !== null && (
+              <div className="rs-rep-stat">
+                <span>Pace</span>
+                <strong>{formatSecsWords(pacing.avgAnsweredSec)} avg</strong>
+              </div>
+            )}
           </div>
 
           <nav className="rs-rep-nav">
@@ -379,21 +429,6 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
               </button>
             ))}
           </nav>
-
-          <div className={`rs-rep-reviewcard${reviewOpen ? ' is-open' : ''}`}>
-            <div className="rs-rep-reviewcard-title">
-              {reviewOpen && dl !== null
-                ? `Review open · ${dl} day${dl === 1 ? '' : 's'} left`
-                : 'Review closed'}
-            </div>
-            <div className="rs-rep-reviewcard-sub">
-              {expiresAt
-                ? reviewOpen
-                  ? `Until ${fmtDate(expiresAt)}`
-                  : `Closed ${fmtDate(expiresAt)}`
-                : 'Your score stays on record'}
-            </div>
-          </div>
         </aside>
 
         {/* ── accordion ── */}
@@ -500,7 +535,7 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
             open={openSec === 'insights'}
             onToggle={() => openSection('insights')}
           >
-            <TrendPacing trend={report.trend} />
+            <TrendPacing trend={report.trend} pacing={report.pacing} />
           </AccordionSection>
 
           <AccordionSection

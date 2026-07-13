@@ -153,6 +153,11 @@
 }
 .rs-report-back:hover { color: var(--text); text-decoration: none; }
 
+/* page top bar — back link + pack/date page title (aligns the two panes) */
+.rs-rep-topbar { margin-bottom: 18px; }
+.rs-rep-topbar .rs-report-back { margin-bottom: 6px; }
+.rs-rep-topbar-title { font-size: 20px; font-weight: 800; color: var(--primary); letter-spacing: -0.01em; }
+
 .rs-rep { position: relative; }
 
 /* sticky mini-verdict — mobile only (see @media); hidden on desktop */
@@ -208,6 +213,7 @@
 .rs-rep-reviewcard-title { font-size: 13px; font-weight: 700; color: var(--primary); }
 .rs-rep-reviewcard.is-open .rs-rep-reviewcard-title { color: var(--accent-dark); }
 .rs-rep-reviewcard-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.rs-rep-reviewcard-btn { display: flex; justify-content: center; width: 100%; margin-top: 10px; }
 
 /* accordion */
 .rs-rep-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
@@ -223,6 +229,23 @@
 .rs-rep-sec-summary.is-muted { color: var(--text-faint); font-weight: 500; }
 .rs-rep-sec-summary.is-ok { color: var(--accent-dark); }
 .rs-rep-sec-body { border-top: 1px solid var(--border); padding: 18px; animation: rr-open .35s ease both; }
+
+/* ⑦ entrance choreography — the rail cards and accordion sections rise in on
+   load, rail leading into the sections. Pure CSS so it fires on first paint
+   without waiting for hydration (no invisible-until-JS risk); the
+   reduced-motion block below turns it off. */
+@keyframes rr-rise { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+.rs-rep-rail > *,
+.rs-rep-main > .rs-rep-sec { animation: rr-rise .5s cubic-bezier(.2,.7,.3,1) both; }
+.rs-rep-rail > *:nth-child(2) { animation-delay: .06s; }
+.rs-rep-rail > *:nth-child(3) { animation-delay: .12s; }
+.rs-rep-rail > *:nth-child(4) { animation-delay: .18s; }
+.rs-rep-main > .rs-rep-sec:nth-child(1) { animation-delay: .10s; }
+.rs-rep-main > .rs-rep-sec:nth-child(2) { animation-delay: .15s; }
+.rs-rep-main > .rs-rep-sec:nth-child(3) { animation-delay: .20s; }
+.rs-rep-main > .rs-rep-sec:nth-child(4) { animation-delay: .25s; }
+.rs-rep-main > .rs-rep-sec:nth-child(5) { animation-delay: .30s; }
+.rs-rep-main > .rs-rep-sec:nth-child(6) { animation-delay: .35s; }
 
 /* the three readings */
 .rs-rep-readings { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -267,7 +290,11 @@
 .rs-rep-permanent p { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; margin: 0; }
 
 @keyframes rr-barGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes rr-open { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 2600px; } }
+/* Reveal is opacity + a short slide — NOT a max-height grow. The old
+   0→2600px max-height animation clipped any section taller than the cap
+   (.rs-rep-sec is overflow:hidden), which a fully-drilled focus tree or the
+   mobile per-question map can exceed. Fade/slide has no such ceiling. */
+@keyframes rr-open { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 
 .rs-rep-sec-summary.is-danger { color: var(--danger); }
 
@@ -336,7 +363,7 @@
 .rs-nm-strength-note { font-size: 11.5px; color: #4d7c0f; margin: 9px 0 0; }
 .rs-nm-link { display: inline-block; margin-top: 9px; font-size: 12px; font-weight: 600; color: #92400e; text-decoration: underline; }
 
-/* ── Trend & pacing (Slice ④; pacing = placeholder) ─────────────── */
+/* ── Trend & pacing (Slice ④; pacing wired in time-engine Slice ②) ── */
 .rs-tp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 .rs-tp-card { border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
 .rs-tp-trend-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
@@ -354,6 +381,22 @@
 .rs-tp-empty .rs-tp-spark { width: 100%; max-width: none; margin-top: 12px; }
 .rs-tp-soon { margin-top: 12px; background: var(--bg-soft); border: 1px dashed var(--border-strong); border-radius: 8px; padding: 14px 15px; }
 .rs-tp-soon p { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; margin: 0; }
+
+/* pacing card (Slice ② time-engine): avg + You-vs-exam-pace bars */
+.rs-tp-pace-head { display: flex; align-items: baseline; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.rs-tp-pace-num { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; line-height: 1; color: var(--primary); }
+.rs-tp-pace-sub { font-size: 12px; color: var(--text-muted); }
+.rs-tp-pace-bars { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.rs-tp-pace-row { display: flex; align-items: center; gap: 9px; }
+.rs-tp-pace-lbl { width: 64px; flex: none; font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.rs-tp-pace-lbl-muted { color: var(--text-faint); }
+.rs-tp-pace-track { flex: 1; height: 7px; background: var(--bg-soft); border-radius: 999px; overflow: hidden; }
+.rs-tp-pace-fill { display: block; height: 100%; border-radius: 999px; }
+.rs-tp-pace-you { background: var(--accent); }
+.rs-tp-pace-budget { background: var(--border-strong); }
+.rs-tp-pace-foot { font-size: 12px; color: var(--text-muted); margin-top: 11px; }
+.rs-tp-pace-foot strong { color: var(--text); }
+.rs-tp-pace-note { font-size: 11px; color: var(--text-faint); line-height: 1.45; margin-top: 8px; }
 
 /* ── Per-question map (Slice ⑤; time bits deferred) ─────────────── */
 .rs-map-sub { font-size: 12.5px; color: var(--text-faint); line-height: 1.45; margin: 0 0 14px; }
@@ -427,7 +470,12 @@
 
 .rs-peer-line { font-size: 14px; color: var(--text); margin-top: 8px; }
 .rs-peer-line strong { color: var(--primary); font-size: 16px; }
-.rs-peer-hist { display: flex; align-items: flex-end; gap: 4px; height: 110px; margin-top: 16px; }
+.rs-peer-chart { display: flex; align-items: flex-start; gap: 7px; margin-top: 16px; }
+.rs-peer-yaxis { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; height: 110px; flex: none; }
+.rs-peer-ytick { font-size: 9px; color: var(--text-faint); line-height: 1; }
+.rs-peer-plot { flex: 1; min-width: 0; }
+.rs-peer-hist { display: flex; align-items: flex-end; gap: 4px; height: 110px; }
+.rs-peer-count { font-size: 9px; font-weight: 700; color: var(--text-muted); text-align: center; line-height: 1; min-height: 10px; margin-bottom: 2px; }
 .rs-peer-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
 .rs-peer-you { visibility: hidden; text-align: center; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; color: var(--primary); margin-bottom: 3px; }
 .rs-peer-you.is-shown { visibility: visible; }
@@ -451,17 +499,32 @@
   .rs-rep-readings { grid-template-columns: 1fr; }
   .rs-rep-review-grid { grid-template-columns: 1fr; }
 
-  /* sticky mini-verdict */
+  /* sticky mini-verdict — collapsed to zero height while hidden so it
+     reserves NO space in normal flow (a sticky in-flow element otherwise
+     leaves its full height as a gap at the top of the report). It expands
+     only once scrolled past the verdict (.is-shown, toggled in JS). */
   .rs-rep-mini {
     display: flex; align-items: center; gap: 10px;
     position: sticky; top: 0; z-index: 20;
-    margin: 0 -16px 12px; padding: 10px 16px;
-    background: var(--white); border-bottom: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    margin: 0 -16px; padding: 0 16px;
+    height: 0; overflow: hidden;
+    background: var(--white); border-bottom: 0 solid var(--border);
     opacity: 0; transform: translateY(-100%); pointer-events: none;
     transition: opacity .2s ease, transform .2s ease;
   }
-  .rs-rep-mini.is-shown { opacity: 1; transform: translateY(0); }
+  .rs-rep-mini.is-shown {
+    height: auto; overflow: visible;
+    margin-bottom: 12px; padding: 10px 16px;
+    border-bottom-width: 1px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    opacity: 1; transform: translateY(0); pointer-events: auto;
+  }
+
+  /* accordion header: the right-side summary wraps to its own full-width
+     line beneath the title instead of squeezing the title into a narrow
+     column (which forced "Where to focus" to wrap letter-per-line). */
+  .rs-rep-sec-head { flex-wrap: wrap; row-gap: 3px; }
+  .rs-rep-sec-summary { flex-basis: 100%; text-align: left; margin-left: 22px; }
   .rs-rep-mini-pct { font-size: 17px; font-weight: 800; color: var(--primary); }
   .rs-rep-mini-pack { font-size: 12px; color: var(--text-faint); margin-left: auto; }
 
@@ -500,4 +563,5 @@
   .rs-rep-ring-prog { transition: none !important; }
   .rs-wtf-fill, .rs-map-cell, .rs-peer-bar { animation: none; }
   .rs-wtf-caret { transition: none; }
+  .rs-rep-rail > *, .rs-rep-main > .rs-rep-sec { animation: none; }
 }

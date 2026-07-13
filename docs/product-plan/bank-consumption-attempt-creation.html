@@ -656,28 +656,167 @@
   Case-level history-state under STUDY/EXAM intent is its own design problem — flagged for a follow-up pass.
 </div>
 
-<h3>6.3.2 Time per question — store explicitly, runner computes</h3>
+<h3>6.3.2 Time per question — the per-question time engine <span class="status settled">design settled 2026-07-12</span></h3>
 <p>
   The number is stored, not derived from <code>submitted_at − created_at</code>. Two reasons Postgres can't
   derive it:
 </p>
 <ol>
-  <li><strong>STUDY engagement-clock pauses during inactivity</strong> (per §6.1.2). Wall-clock subtraction would over-count the time a STUDY student spent on a sandwich break.</li>
+  <li><strong>Active time excludes screen-away gaps.</strong> Wall-clock subtraction would over-count the time a student spent with the tab backgrounded, the phone locked, or otherwise away from the question.</li>
   <li><strong>Free-nav modes (Untimed Test, Timed Free Nav) allow re-visits.</strong> "Time on Q1" is the sum of multiple visit durations — Postgres has no concept of these visits.</li>
 </ol>
 
+<div class="callout">
+  <strong>Status (2026-07-12):</strong> the column has existed since slice 2.1 but was never populated — the
+  runner writes <code>null</code> (<code>runner.tsx</code>), and the obsolete <code>p_time_spent_sec</code>
+  submit-RPC parameter was dropped in <code>20260509130000</code> precisely because nothing computed it. This
+  section specifies the engine that fills it. It is a <em>runner / attempt-level</em> capability — bank
+  practice, readiness sittings, and future CAT all get honest per-question time, and the readiness results
+  report (readiness-packs.md §11.5) is merely its <em>first reader</em>. This is not a readiness feature.
+</div>
+
+<h4>The capture mechanic — engaged segments</h4>
 <p>
-  The runner tracks engagement (STUDY) or wall (EXAM) time per visit and writes the final aggregate to
-  <code>time_spent_sec</code> at submission.
+  The runner always has exactly one question on screen. It keeps a per-question running total of
+  <strong>engaged seconds</strong>, added to in segments. An <em>engaged segment</em> is a continuous stretch
+  where both are true: this question is the active one <strong>and</strong> the document is visible. A segment
+  <strong>ends</strong> — banking its elapsed seconds onto the active question — on any of:
+</p>
+<ul>
+  <li>moving to another question (Next / Prev / jump);</li>
+  <li>the screen going away — the browser's Page Visibility signal fires <code>hidden</code> (tab switch, app switch, phone screen-lock, minimise);</li>
+  <li>submitting the question;</li>
+  <li>the page closing (a final flush via <code>navigator.sendBeacon</code>, so the last question isn't lost).</li>
+</ul>
+<p>
+  A new segment <strong>starts</strong> on arriving at a question, or when the document becomes visible again.
+  The stretch between "screen went away" and "screen came back" is simply never counted — that is what makes
+  this <strong>active (engagement) time</strong>, not wall-clock. It is a proxy for attention ("the question
+  was on-screen and in front"), not literal attention; it catches the distortions that actually wreck the data
+  (walked away, phone locked) and lets small on-screen zone-outs wash out.
+</p>
+<div class="callout">
+  <strong>Only whole-screen departures pause the clock — never anything inside the question.</strong> Flipping
+  between a case study's wrapper tabs (Nurses' Notes / Vital Signs / Labs), scrolling, expanding an image, or
+  opening the calculator all stay on the same page, so the visibility signal never fires and the timer keeps
+  running. Reading the stimulus <em>is</em> working on the question. We also do <strong>not</strong> pause on
+  stillness (no idle / mouse-movement detection): a student reading a long case stimulus for 90 seconds without
+  touching anything is engaged, not idle, and pausing there would corrupt the number. In a case study, time is
+  measured <em>per child question</em>, so stimulus reading done on child 1 lands on child 1 and children 2–6
+  may then read fast — expected and honest.
+</div>
+
+<h4>Two independent clocks — they do not sum, by design</h4>
+<p>
+  This engine is <strong>independent of the attempt clock</strong> (the topbar countdown / stopwatch, runner
+  §8) and does not touch it — not <code>duration_seconds</code>, the countdown, the auto-submit, or how the
+  exam is governed. They answer different questions and obey opposite rules:
+</p>
+<table>
+  <thead>
+    <tr><th></th><th>Attempt clock (exists)</th><th>Per-question engine (this)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Question it answers</td><td>"How much exam time is left?"</td><td>"Where did attention go?"</td></tr>
+    <tr><td>Counts screen-away time?</td><td><strong>Yes</strong> — unforgiving wall-clock (the exam rule; walking away burns real exam time, exactly like the real NCLEX; pausing it would be a cheat)</td><td><strong>No</strong> — forgiving engagement time (a diagnostic; counting a break as think-time would be a lie)</td></tr>
+    <tr><td>Purpose</td><td>Governs the exam / auto-submit</td><td>Analytics · pacing · the report</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>Consequence:</strong> the per-question active times will <strong>not</strong> add up to the wall-clock
+  elapsed — Σ(engaged seconds) ≤ total exam time, and usually strictly less, because away-time lives in the
+  attempt clock and nowhere in the per-question numbers. This is correct and must <strong>never</strong> be
+  "reconciled": forcing them to total the exam time would mean stuffing away-time into some question, corrupting
+  the diagnostic. Where the report shows both (e.g. "you used 2h50m of your 3h20m" alongside "here's where your
+  engaged time went"), they are two distinctly-labelled readings; the per-question sum is never presented as the
+  student's exam time.
 </p>
 
+<h4>Trust — durations, not clock readings</h4>
 <p>
-  <strong>Mode caveat for analytics.</strong> The number is genuinely useful for sequential modes
-  (Timed Sequential, CAT) where one question = one continuous visit. Free-nav modes record a real number,
-  but it sums multiple visits with attention gaps — pacing analytics (parent §14: pacing trends, fast-guess
-  detection, time-vs-correctness) should filter to sequential modes when surfacing the metric. The column is
-  captured for all modes so we don't lose data; the analytics layer owns the filter.
+  The runner measures each segment with the browser's <strong>monotonic</strong> timer
+  (<code>performance.now()</code>), which is immune to the device clock being wrong or changed mid-sitting, and
+  sends the server a <strong>duration delta</strong> ("+14 s"), never an absolute timestamp. So there is nothing
+  to spoof by changing the date, and a misset clock distorts nothing. The persist RPC sanity-clamps each delta
+  (≥ 0, and caps a single delta at the attempt's own <code>duration_seconds</code> as a stuck-timer guard).
 </p>
+
+<h4>Persistence — additive, and it survives a skip</h4>
+<p>
+  Because time accumulates across revisits and across visibility gaps, the write is <strong>additive</strong>
+  (<code>time_spent_sec = COALESCE(time_spent_sec, 0) + delta</code>), not an overwrite. These tables accept
+  writes only through <code>SECURITY DEFINER</code> RPCs (students can't write them directly), so this is a
+  small new RPC in the same shape as the rest of the attempt write-path — the runner calls it on each segment
+  end, coalescing sub-second deltas to avoid chatter.
+</p>
+<p>
+  <strong>Skipped-but-read is captured (decision 2026-07-12).</strong> <code>time_spent_sec</code> lives on the
+  answer row, which is otherwise created lazily on first interaction — but a student can read a question for 40
+  seconds and skip it without ever clicking, leaving no row to hang the time on. Time spent on a question you
+  skipped is real pacing data (often where the clock is burned), so the persist RPC <strong>ensures the row
+  exists</strong> (inserting a blank <code>DRAFT</code> row if needed) before adding the delta. One consequence:
+  <code>created_at</code> on such a row is the moment time was first flushed, not a click — noted in §6.3.4.
+</p>
+
+<h4>Settled 2026-07-12 — meaning + storage (after the Slice-1 test)</h4>
+<p>
+  <strong>The meaning is "total engaged time on the question while the attempt is live."</strong> It accrues
+  while the question is on screen and visible, and the whole engine goes dead the instant the attempt is
+  finished — reopening a <em>completed</em> attempt to review it records nothing (the runner tracks only while
+  <code>isLive</code>). In Untimed Learning, going back to an already-submitted question mid-sitting (e.g. to
+  re-read the rationale) <strong>does</strong> keep adding to that question's total. <strong>This is by design,
+  not an anomaly</strong>: it's untimed <em>study</em> mode, we run no pacing on it, and "total time invested in
+  this question during the sitting" is the honest meaning. Where decision-time <em>would</em> matter — Timed
+  Sequential / readiness — the runner is forward-only with no mid-sitting rationale, so the number is already
+  clean decision-time there. The two never overlap.
+</p>
+<p>
+  <strong>Storage is the single <code>time_spent_sec</code> integer (the running sum) — NOT a per-visit segment
+  log.</strong> Considered and rejected a JSONB segment log (the <code>answer_changes_json</code> pattern):
+  it would have preserved revisit counts and a decision-vs-review split, but no built consumer needs that yet,
+  and both named consumers — the runner's review-mode <em>time-spent + scoring-rule</em> display, and future
+  bank <em>pacing</em> — read the total. Consciously accepted trade-off: <strong>per-visit granularity is not
+  retained and cannot be reconstructed from the sum.</strong>
+</p>
+<p>
+  <strong>Future trigger.</strong> If bank pacing is ever built and specifically wants strict <em>decision</em>
+  time (time until first commit, excluding post-submit rationale study), that is a <strong>separate capture</strong>
+  added at that point — it starts collecting from then, having not kept the earlier breakdown. For everything
+  currently planned, the total is sufficient.
+</p>
+
+<h4>Supersedes the earlier server-derive gesture</h4>
+<p>
+  An earlier draft of this section suggested subtracting idle gaps server-side from
+  <code>last_activity_at</code>. That is <strong>superseded</strong>: <code>last_activity_at</code> is one coarse
+  timestamp for the whole attempt and cannot attribute idle time to a specific question, whereas the runner
+  knows the exact moment the screen leaves <em>which</em> question. The client-measured engaged-segment model
+  above is the mechanism of record.
+</p>
+
+<h4>Mode note for analytics</h4>
+<p>
+  Now that away-gaps are excluded, the number is cleanest in sequential modes (Timed Sequential — i.e. readiness
+  sittings — and CAT), where one question = one continuous visit. Free-nav modes still record a real,
+  gap-excluded number, but revisits make "time on Q1" a sum of stretches, so pacing surfacing (parent §14) leans
+  on sequential sittings. The column is captured for all modes; the analytics layer owns any mode filter.
+</p>
+
+<h4>Build slices</h4>
+<ol>
+  <li><strong>Slice 1 — the time engine (runner capture + additive persist).</strong> The per-question
+    accumulator, the visibility-pause, the four flush points (nav-away, screen-away, submit, page-close), and the
+    additive ensure-row RPC. One migration (the RPC). Applies uniformly to every mode. <em>Done when:</em> a test
+    sitting shows real per-question seconds in the DB, a deliberate mid-question tab-switch does not inflate that
+    question, and a read-then-skip question still records its time.</li>
+  <li><strong>Slice 2 — the readiness report reads real time.</strong> Point the report at the populated column:
+    real seconds on the per-question map (replacing the visible placeholders), and pacing computed from real data
+    (per-question time vs the pack's per-question budget → "lingered" / "rushed"). Remove the placeholder
+    treatment. <em>Done when:</em> the report shows honest time with no placeholders.</li>
+  <li><strong>Slice 3 — parity + hygiene (defer-able).</strong> Align the library in-note embed player to the
+    same capture (it already passes a currently-null <code>timeSpentSec</code>); confirm the runner §8 clock
+    cross-reference. Off the readiness critical path — can take its own session.</li>
+</ol>
 
 <h3>6.3.3 answer_changes_json — full event log, not counts</h3>
 <p>
@@ -727,7 +866,7 @@
     </tr>
     <tr>
       <td><code>first_interaction_at</code> separate from <code>created_at</code></td>
-      <td>Not captured. Row is inserted on first interaction, so the two timestamps would be identical. Splitting them would only matter if we wanted "stare time before first touch" — not on the v1 analytics plan (parent §14 names total time as the metric). If a future analytic needs it, the runner can compute and store as a single number.</td>
+      <td>Not captured. The row is normally inserted on first interaction, so <code>created_at</code> and a would-be <code>first_interaction_at</code> coincide. <strong>Caveat (2026-07-12):</strong> under the per-question time engine (§6.3.2), a read-then-skip row may instead be created by the time-flush before any click, so <code>created_at</code> is then the first flush, not a first touch. <code>first_interaction_at</code> stays uncaptured either way; <code>time_spent_sec</code> is the metric parent §14 names.</td>
     </tr>
     <tr>
       <td>Pre-discard status (for soft-delete forensics)</td>

@@ -68,7 +68,8 @@ import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
 import { Preflight }          from './preflight';
-import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction } from './actions';
+import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction } from './actions';
+import { useQuestionTimer } from './use-question-timer';
 
 interface Props {
   data: RunnerData;
@@ -267,6 +268,21 @@ function RunnerShell({ data }: Props) {
     setClockHidden((h) => !h);
   };
 
+  // ── Per-question time engine (attempt-creation §6.3.2) ────────────
+  // Independent of the attempt clock above — this measures ENGAGED time
+  // per question (pauses on screen-away), the attempt clock measures
+  // wall-clock time left. The two don't sum. Tracks only in live mode
+  // with a started clock; review mode passes null → nothing counted.
+  // Flushes are fire-and-forget (additive RPC self-heals); flushActive()
+  // is awaited by the finish handlers so the last segment lands before
+  // the attempt goes terminal.
+  const timerEnabled = isLive && startedAtMs !== null;
+  const { flushActive } = useQuestionTimer({
+    activeItemId: data.items[current]?.attempt_item_id ?? null,
+    enabled:      timerEnabled,
+    onFlush:      recordQuestionTimeAction,
+  });
+
   // Auto-expire when the countdown hits zero. Single-shot via
   // `firedExpire` so a second tick at zero doesn't double-call. Server
   // RPC is idempotent anyway, but skipping the call keeps the network
@@ -280,12 +296,13 @@ function RunnerShell({ data }: Props) {
 
     setFiredExpire(true);
     startSubmit(async () => {
+      await flushActive(); // bank the last segment before status flips
       const r = await expireAttemptAction(data.attempt.attempt_id);
       if (!r.ok) { setError(r.error); return; }
       setShowResults(true);
       router.refresh();
     });
-  }, [isLive, isTimed, remainingSec, firedExpire, data.attempt.attempt_id, router]);
+  }, [isLive, isTimed, remainingSec, firedExpire, data.attempt.attempt_id, router, flushActive]);
 
   // Server answers + client overlays. Client wins on conflict — student
   // just submitted in this session, so their fresh row is authoritative.
@@ -598,6 +615,7 @@ function RunnerShell({ data }: Props) {
 
   const onFinish = () => {
     startSubmit(async () => {
+      await flushActive(); // bank the last segment before status flips
       const r = await completeAttemptAction(data.attempt.attempt_id);
       if (!r.ok) { setError(r.error); return; }
       // The page re-fetches in review mode (status flipped to COMPLETED);
@@ -663,6 +681,7 @@ function RunnerShell({ data }: Props) {
       if (!r.ok) { setError(r.error); return; }
       mergeSubmitResult(r.data, submission, setClientAnswers, setClientUnseal);
 
+      await flushActive(); // bank the last segment before status flips
       const r2 = await completeAttemptAction(data.attempt.attempt_id);
       if (!r2.ok) { setError(r2.error); return; }
       setShowResults(true);

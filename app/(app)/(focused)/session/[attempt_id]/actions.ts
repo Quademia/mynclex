@@ -181,6 +181,12 @@ async function _flushDrafts(
     const item = itemMap.get(draft.attempt_item_id);
     if (!item) continue;
 
+    // Skip time-only placeholders — a DRAFT with a NULL answer_json is a
+    // read-then-skip row created by the per-question time engine
+    // (nclex_add_answer_time), not a real answer to submit. The complete /
+    // expire RPCs convert these to SKIPPED, preserving time_spent_sec.
+    if (draft.answer_json === null || draft.answer_json === undefined) continue;
+
     const { score_awarded, is_correct } = scoreAttempt(
       item.question_type as QuestionType,
       item.correct_answer_snapshot_json,
@@ -242,6 +248,29 @@ export async function saveProgressAction(
   });
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: undefined };
+}
+
+
+// Per-question time flush (per-question time engine, attempt-creation
+// §6.3.2). Called fire-and-forget from the runner's useQuestionTimer hook
+// on each engaged-segment end — one additive "+seconds on item" write.
+// Deliberately returns void and swallows failures: a dropped time flush
+// must never disrupt the sitting. The additive model self-heals on the
+// next flush, and flushActive() awaits this before finish so the last
+// segment lands. `seconds` is whole seconds; the RPC clamps for sanity.
+export async function recordQuestionTimeAction(
+  attemptItemId: string,
+  seconds:       number,
+): Promise<void> {
+  if (!Number.isFinite(seconds) || seconds <= 0) return;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.rpc('nclex_add_answer_time', {
+    p_attempt_item_id: attemptItemId,
+    p_delta_sec:       Math.floor(seconds),
+  });
 }
 
 

@@ -25,6 +25,7 @@ import { scoreAttempt } from '@/lib/scoring/dispatch';
 import type { QuestionType } from '@/lib/bank/classifications';
 import type { BankItemCorrect } from '@/lib/bank/types';
 import type { BankItemAnswer } from '@/lib/scoring/types';
+import { summarizePacing, isRushed, perQuestionBudgetSec, type PacingStats } from './readiness-pacing';
 
 export interface ReadinessOutcomes {
   /** Every one of the question's answer-slots correct (is_correct). */
@@ -70,6 +71,10 @@ export interface ReportItem {
   changed: boolean;
   /** Net effect of the revision on all-or-nothing correctness. */
   changeDir: 'rightToWrong' | 'wrongToRight' | 'other' | null;
+  /** Engaged seconds on this question (time engine); null if uncaptured (pre-engine sitting). */
+  timeSpentSec: number | null;
+  /** Answered in well under the pack's per-question budget — a fast-guess signal. */
+  rushed: boolean;
 }
 
 /** Peer comparator for this pack (aggregate-only, min-N gated). */
@@ -115,6 +120,8 @@ export interface ReadinessReport {
   trend: TrendPoint[];
   /** Peer comparator (null if the aggregate read failed). */
   peer: PeerStats | null;
+  /** Per-question pacing vs the pack's exam budget. */
+  pacing: PacingStats;
   /** 21-day answer-review window — open while now < expiresAt. */
   reviewOpen: boolean;
   expiresAt: string | null;
@@ -141,6 +148,7 @@ interface AnswerRow {
   answer_json: unknown;
   submission_status: string | null;
   answer_changes_json: unknown;
+  time_spent_sec: number | null;
 }
 
 /**
@@ -156,7 +164,7 @@ export async function getReadinessReport(
 
   const { data: attempt, error: aErr } = await supabase
     .from('nclex_attempts')
-    .select('attempt_id, student_id, source, status, final_score, ended_at, readiness_pack_id')
+    .select('attempt_id, student_id, source, status, final_score, ended_at, readiness_pack_id, duration_seconds, started_at')
     .eq('attempt_id', attemptId)
     .maybeSingle();
 
@@ -196,7 +204,7 @@ export async function getReadinessReport(
     supabase
       .from('nclex_attempt_answers')
       .select(
-        'attempt_item_id, is_correct, score_awarded, answer_json, submission_status, answer_changes_json',
+        'attempt_item_id, is_correct, score_awarded, answer_json, submission_status, answer_changes_json, time_spent_sec',
       )
       .eq('attempt_id', attemptId),
   ]);
@@ -208,6 +216,9 @@ export async function getReadinessReport(
   const outcomes: ReadinessOutcomes = { full: 0, partial: 0, wrong: 0, total: 0 };
   const points: ReadinessPoints = { total: 0, found: 0, missed: 0, wrongPicked: 0 };
   const reportItems: ReportItem[] = [];
+  // Per-question budget = the pack's exam pace (duration ÷ delivered count).
+  // Drives the "rushed" flag per item + the pacing card.
+  const budgetSec = perQuestionBudgetSec(attempt.duration_seconds ?? null, itemRows.length);
 
   for (const item of itemRows) {
     outcomes.total += 1;
@@ -267,6 +278,8 @@ export async function getReadinessReport(
     const cls = item.classification_snapshot ?? {};
     const str = (v: unknown): string | null =>
       typeof v === 'string' && v.trim() !== '' ? v : null;
+    const answered = ans != null && ans.submission_status !== 'SKIPPED';
+    const timeSpentSec = ans?.time_spent_sec ?? null;
     reportItems.push({
       position: item.position,
       questionType: item.question_type,
@@ -280,9 +293,11 @@ export async function getReadinessReport(
       isCorrect,
       scoreAwarded: score,
       marks,
-      answered: ans != null && ans.submission_status !== 'SKIPPED',
+      answered,
       changed,
       changeDir,
+      timeSpentSec,
+      rushed: isRushed(timeSpentSec, answered, budgetSec),
     });
   }
   points.missed = Math.max(0, points.total - points.found);
@@ -346,6 +361,18 @@ export async function getReadinessReport(
     };
   }
 
+  // Pacing — engaged time per answered question vs the exam budget. Wall time
+  // used (for "finished with N to spare") is the independent attempt clock,
+  // not the engaged-time sum (§6.3.2 — the two clocks don't sum).
+  const wallUsedSec =
+    attempt.started_at && attempt.ended_at
+      ? (Date.parse(attempt.ended_at) - Date.parse(attempt.started_at)) / 1000
+      : null;
+  const pacing = summarizePacing(
+    reportItems.map((it) => ({ timeSpentSec: it.timeSpentSec, answered: it.answered })),
+    { durationSec: attempt.duration_seconds ?? null, wallUsedSec },
+  );
+
   const finalScore = attempt.final_score;
   const expiresAt = credit?.expires_at ?? null;
 
@@ -364,6 +391,7 @@ export async function getReadinessReport(
       items: reportItems,
       trend,
       peer,
+      pacing,
       reviewOpen: reviewWindowOpen(expiresAt),
       expiresAt,
     },

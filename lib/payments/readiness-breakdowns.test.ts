@@ -24,6 +24,8 @@ function mk(o: Partial<ReportItem>): ReportItem {
     answered: true,
     changed: false,
     changeDir: null,
+    timeSpentSec: null,
+    rushed: false,
     ...o,
   };
 }

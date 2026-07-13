@@ -8,8 +8,9 @@
 // reads answer_changes_json (revisions + their net direction); changed cells
 // carry a white dot. The per-cell "Open in review" is window-gated.
 //
-// Time-dependent bits (a "Rushed" filter + a "Time spent" row) are omitted
-// until the per-question time engine lands (a separate runner arc).
+// Time bits are live (Slice ② of the time engine): a "Time spent" row in the
+// detail (with a "· rushed" tag) and a "Rushed" outcome filter, both reading
+// ReportItem.timeSpentSec / .rushed.
 //
 // Responsive: the detail sits in a side panel on desktop; on mobile it
 // injects full-width directly under the tapped cell's row (CSS toggles which
@@ -18,9 +19,10 @@
 
 import { Fragment, useState } from 'react';
 import type { ReportItem } from '@/lib/payments/readiness-report';
+import { formatSecsWords } from '@/lib/payments/readiness-pacing';
 
 type Outcome = 'full' | 'partial' | 'wrong';
-type OutcomeFilter = 'all' | Outcome | 'changed';
+type OutcomeFilter = 'all' | Outcome | 'changed' | 'rushed';
 
 function outcomeOf(it: ReportItem): Outcome {
   return it.isCorrect ? 'full' : it.scoreAwarded > 0 ? 'partial' : 'wrong';
@@ -81,10 +83,14 @@ function DetailCard({
         <div><span>Body system</span><span>{it.bodySystem ?? '—'}</span></div>
         <div><span>Difficulty</span><span>{it.difficulty ?? '—'}</span></div>
         <div><span>You earned</span><span>{it.scoreAwarded} of {it.marks}</span></div>
-        {/* TODO(time-engine): fill "Time spent" once per-question timing is
-            captured (a separate runner arc). Placeholder kept so we don't
-            forget to wire it. */}
-        <div><span>Time spent</span><span className="rs-map-soon">Timing coming soon</span></div>
+        <div>
+          <span>Time spent</span>
+          <span>
+            {it.timeSpentSec != null
+              ? `${formatSecsWords(it.timeSpentSec)}${it.rushed ? ' · rushed' : ''}`
+              : '—'}
+          </span>
+        </div>
         <div>
           <span>Answer changes</span>
           <span>{it.changed && it.changeDir ? `1 · ${DIR_LABEL[it.changeDir]}` : 'None'}</span>
@@ -177,13 +183,19 @@ export default function PerQuestionMap({
   const cPartial = cells.filter((c) => c.outcome === 'partial').length;
   const cWrong = cells.filter((c) => c.outcome === 'wrong').length;
   const cChanged = cells.filter((c) => c.it.changed).length;
+  const cRushed = cells.filter((c) => c.it.rushed).length;
   const r2w = cells.filter((c) => c.it.changeDir === 'rightToWrong').length;
   const w2r = cells.filter((c) => c.it.changeDir === 'wrongToRight').length;
   const other = cChanged - r2w - w2r;
 
   const shown = cells.filter(
     (c) =>
-      (outcome === 'all' || (outcome === 'changed' ? c.it.changed : c.outcome === outcome)) &&
+      (outcome === 'all' ||
+        (outcome === 'changed'
+          ? c.it.changed
+          : outcome === 'rushed'
+            ? c.it.rushed
+            : c.outcome === outcome)) &&
       (cat === 'all' || c.it.category === cat) &&
       (diff === 'all' || c.it.difficulty === diff),
   );
@@ -209,6 +221,7 @@ export default function PerQuestionMap({
     { k: 'full', label: `Correct · ${cFull}` },
     { k: 'partial', label: `Partial · ${cPartial}` },
     { k: 'wrong', label: `Wrong · ${cWrong}` },
+    { k: 'rushed', label: `Rushed · ${cRushed}` },
     { k: 'changed', label: `Changed · ${cChanged}` },
   ];
   const groupChips: { k: typeof group; label: string }[] = [
@@ -236,15 +249,6 @@ export default function PerQuestionMap({
             {ch.label}
           </button>
         ))}
-        {/* TODO(time-engine): enable once per-question timing is captured. */}
-        <button
-          type="button"
-          className="rs-map-chip"
-          disabled
-          title="Per-question timing is coming soon"
-        >
-          Rushed · soon
-        </button>
       </div>
 
       <div className="rs-map-chiprow">

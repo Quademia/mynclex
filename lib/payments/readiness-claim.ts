@@ -15,6 +15,7 @@
 // action here touches activated_at.
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { sweepLapsedReadinessCredits } from './readiness-expiry';
 import { revalidatePath } from 'next/cache';
 
 const PACKS_PATH = '/student/bank/packs';
@@ -48,6 +49,12 @@ export async function claimReadinessPack(packId: string): Promise<ClaimResult> {
     return { ok: false, error: "That pack isn't available." };
   }
 
+  // Correctness-critical lazy-expiry (§7): if an earlier credit on THIS
+  // pack has lapsed unused, stamp its expired_at first so the
+  // one-live-claim index releases the slot — otherwise the fresh claim
+  // below collides (23505) and is wrongly refused as "already held".
+  await sweepLapsedReadinessCredits(userId, packId);
+
   const creditId = await findUnclaimedCredit(admin, userId);
   if (!creditId) return { ok: false, error: 'You have no credits left to claim.' };
 
@@ -76,6 +83,12 @@ export async function claimAllReadiness(): Promise<ClaimResult & { claimed?: num
   if (!userId) return { ok: false, error: 'Please sign in to claim your packs.' };
 
   const admin = createServiceRoleClient();
+
+  // Lazy-expiry first (§7): stamp any of this student's lapsed windows so
+  // the read below sees them as EXPIRED — otherwise a lapsed-but-unstamped
+  // claim still counts as "live" here and its pack is wrongly skipped as
+  // already held, and its index slot would block the re-claim.
+  await sweepLapsedReadinessCredits(userId);
 
   const [{ data: packs }, { data: credits }] = await Promise.all([
     admin

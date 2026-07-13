@@ -11,6 +11,15 @@
 
 import type { PeerStats } from '@/lib/payments/readiness-report';
 
+// A "nice" top gridline value at or just above the tallest bar's count, so
+// the Y-axis reads in round numbers and every bar sits below the top tick
+// (headroom for the on-bar count label).
+function niceTop(m: number): number {
+  if (m <= 5) return m + 1;
+  if (m <= 10) return Math.ceil((m + 1) / 2) * 2;
+  return Math.ceil((m + 1) / 5) * 5;
+}
+
 export default function PeerComparison({ peer }: { peer: PeerStats | null }) {
   if (!peer || !peer.unlocked) {
     return (
@@ -31,36 +40,49 @@ export default function PeerComparison({ peer }: { peer: PeerStats | null }) {
     );
   }
 
-  const max = Math.max(1, ...peer.buckets.map((b) => b.count));
+  const maxCount = Math.max(1, ...peer.buckets.map((b) => b.count));
+  const top = niceTop(maxCount);
+  const midTick = Math.round(top / 2);
   return (
     <div className="rs-peer">
       <div className="rs-peer-line">
         You scored higher than <strong>{peer.yourPercentile}%</strong> of nurses who sat this pack.
       </div>
-      <div className="rs-peer-hist">
-        {peer.buckets.map((b, i) => {
-          const isYou = peer.yourBucket === i + 1;
-          return (
-            <div key={i} className="rs-peer-col">
-              <span className={`rs-peer-you${isYou ? ' is-shown' : ''}`}>YOU</span>
-              <div
-                className={`rs-peer-bar${isYou ? ' is-you' : ''}`}
-                style={{ height: `${Math.max(3, Math.round((b.count / max) * 100))}%` }}
-                title={`${b.lo}–${b.hi}%: ${b.count}`}
-              />
-            </div>
-          );
-        })}
-      </div>
-      <div className="rs-peer-axis">
-        {peer.buckets.map((b, i) => (
-          <span key={i} className="rs-peer-tick">
-            {i % 2 === 0 ? b.lo : ''}
-          </span>
-        ))}
+      <div className="rs-peer-chart">
+        {/* Y-axis: nurse-count scale, so bar heights read as real numbers. */}
+        <div className="rs-peer-yaxis" aria-hidden>
+          <span className="rs-peer-ytick">{top}</span>
+          <span className="rs-peer-ytick">{midTick}</span>
+          <span className="rs-peer-ytick">0</span>
+        </div>
+        <div className="rs-peer-plot">
+          <div className="rs-peer-hist">
+            {peer.buckets.map((b, i) => {
+              const isYou = peer.yourBucket === i + 1;
+              return (
+                <div key={i} className="rs-peer-col">
+                  <span className={`rs-peer-you${isYou ? ' is-shown' : ''}`}>YOU</span>
+                  <span className="rs-peer-count">{b.count > 0 ? b.count : ''}</span>
+                  <div
+                    className={`rs-peer-bar${isYou ? ' is-you' : ''}`}
+                    style={{ height: b.count > 0 ? `${Math.max(4, (b.count / top) * 100)}%` : '0' }}
+                    title={`${b.lo}–${b.hi}%: ${b.count} nurse${b.count === 1 ? '' : 's'}`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="rs-peer-axis">
+            {peer.buckets.map((b, i) => (
+              <span key={i} className="rs-peer-tick">
+                {i % 2 === 0 ? b.lo : ''}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
       <p className="rs-peer-foot">
-        Each bar is a 10-point score bracket — yours in navy · {peer.n} nurses have sat this pack.
+        Bar height = nurses in each 10-point bracket, yours in navy.
       </p>
     </div>
   );
