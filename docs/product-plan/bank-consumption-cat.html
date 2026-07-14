@@ -1676,6 +1676,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 <p><strong>Carried forward — settle in subsequent planning sessions:</strong></p>
 <ul>
   <li><strong>Wrapper administration mechanics (§7.4, reopened by the 2026-07-14 reversal)</strong> — block administration rule, theta-update policy inside a case block, effective wrapper difficulty for selection, wrapper-level exposure window. Settle when the CAT build slice starts.</li>
+  <li><strong>Classification vocabulary drift vs the 2026 test plan (flagged 2026-07-14).</strong> The 2026 NCLEX-RN Test Plan (effective April 2026, reviewed against the doc this session) renamed one subcategory: <em>"Safety and Infection Control" → "Safety and Infection Prevention and Control."</em> <code>lib/bank/classifications.ts</code> still uses the old name, and all existing bank rows are classified with it. Blueprint <em>percentages</em> are unchanged, so the meter/tiebreaker logic is unaffected. The seed pool deliberately uses the OLD codebase string for consistency. Renaming the enum + migrating existing rows is a small, separate codebase-accuracy fix — not done here.</li>
 </ul>
 <p>Everything else structural is locked. The remaining work is execution:</p>
 <ul>
@@ -1691,6 +1692,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
       <li><strong>Grand total to generate: ~2,090 questions</strong> (1,800 standalone + 216 case children + ~75 trend-linked). Existing dev wrappers (23 cases with published children, 23 published trend questions at audit) are treated as bonus stock, not counted — most lack difficulty labels and band coverage.</li>
     </ul>
   </li>
+  <li><strong>Seed pipeline — built + proven end-to-end 2026-07-14.</strong> The generator lives at <code>db/seed/cat-pool/build.mjs</code>: it consumes plain-text item definitions from <code>data/*.json</code> (authored by the generation workflow), deterministically assembles the exact <code>nclex_bank_items</code> content/correct JSONB, computes <code>marks</code> (ported verbatim from <code>lib/scoring/dispatch.ts</code> → <code>computeMarksFromKey</code>), hard-validates every row, and emits SQL split by band. Storage is <strong>plain text</strong> (not Tiptap) — the runner's <code>parseRichDoc()</code> wraps any non-Tiptap string as paragraphs, so plain strings render correctly; confirmed against the render path. All 11 standalone question types round-trip through the real scoring engine (<code>db/seed/cat-pool/scoring-roundtrip.test.ts</code>): builder marks == runner marks, and a fully-correct answer earns full credit and reads as correct via <code>scoreAttempt</code>. IDs use a clean <code>300000+</code> band (disjoint sub-range per workflow agent, no collision with the ~99961 existing max). Remaining execution: fan out the authoring workflow (Phase 1 standalone, then Phase 2 wrappers), build → commit → apply → read-back verify.</li>
 </ul>
 
 <p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>
