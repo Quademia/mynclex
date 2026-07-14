@@ -162,9 +162,12 @@
   <strong>§7.4 reversed</strong> — case studies and trend-linked questions are IN scope for v1 CAT (real NCLEX
   serves case studies; "practise on the real thing"), with the administration mechanics — block rule,
   in-block theta updates, wrapper difficulty, wrapper-level exposure — left open for the build slice;
-  §7.3 / §11 / §12.5 / §18 / §19 updated to match. <strong>§19 — dev-bank CAT test pool</strong>: seed ~1,200+
-  synthetic dev-only items, realistic NCLEX-style type mix, roughly even difficulty bands, batch-tagged
-  and one-line deletable, because the current CAT-eligible dev pool (~105 items) can't sustain a full
+  §7.3 / §11 / §12.5 / §18 / §19 updated to match. <strong>§19 — dev-bank CAT test pool</strong>, sized by the
+  rotation maths (last-3-CATs window ⇒ 4 exams' worth per difficulty band; worst case 4 × 150 = 600/band):
+  seed <strong>1,800 standalone items (600/band) + 36 case studies (12/band, 216 children) + 30 trend
+  datasets (10/band, ~75 linked questions) ≈ 2,090 questions</strong> — synthetic, dev-only, realistic
+  NCLEX-style type mix, batch-tagged and one-line deletable, delivered as committed <code>db/seed-*-dev.sql</code>
+  files then applied to dev; because the CAT-eligible dev pool at audit (~105 items) can't sustain a full
   85–150-question CAT at the ability tails.)
   Previous update: 2026-05-05 (§3.2 — "How CAT works" help page path changed from
   <code>/student/bank/help/cat</code> to <code>/help/cat</code>: top-level, audience-neutral, public. Help is
@@ -1680,6 +1683,14 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li><strong>Fill in <code>create_cat_attempt</code> and <code>cat_next_item</code> bodies</strong> with real Rasch math — separate build slice after the schema lands.</li>
   <li><strong>Empirical recalibration job</strong> — schedule, runtime location (Supabase pg_cron vs Cloudflare Worker), and the actual calibration code. Specced at planning level in §5 / §17 / §10.5; build slice still TBD.</li>
   <li><strong>Dev-bank CAT test pool (settled 2026-07-14, Sam).</strong> The dev bank's CAT-eligible pool (~105 standalone items at audit time — most of the 999 rows are case children, unpublished, builder-hidden, or unlabelled) cannot sustain a 85–150-question CAT at the ability tails (only ~23 Easy / ~27 Hard eligible). Decision (size finalised 2026-07-14 after the rotation maths): seed <strong>1,800 synthetic, dev-only</strong> items — <strong>600 per difficulty band</strong>. The sizing rule: the last-3-CATs exposure window (§15.2) means zero-repeat rotation needs 4 exams' worth of questions in a student's difficulty band; worst case is a max-length exam (150), so 4 × 150 = 600 per band. At 600/band, any single student can retake max-length CATs at any ability level indefinitely without repeats; the §7.5 fallback path gets tested deliberately (thinned band) rather than tripped over. Realistic NCLEX-style mix (mostly MCQ/SATA with a spread of the other standalone types), blueprint-shaped Client Needs categories, all <code>is_published = TRUE</code> + <code>is_builder_visible = TRUE</code>. Delivered as committed seed files in <code>db/</code> (house convention — <code>seed-*-dev.sql</code>; the durable, re-runnable artifact) and then applied to dev. Batch-tagged (<code>batch_id</code>) for one-line deletion; never ships to prod; readiness-pack-reserved items (<code>is_builder_visible = FALSE</code>) are untouched. Difficulty labels matter most — day-one <code>difficulty_irt</code> derives from them (§5.1).</li>
+  <li><strong>Dev-bank CAT wrapper pool (settled 2026-07-14, Sam).</strong> Follows from the §7.4 reversal — wrappers need test stock too. Sizing mirrors real NGN NCLEX and reuses the rotation rule:
+    <ul>
+      <li><strong>Cases: 36 (12 per difficulty band) = 216 child questions.</strong> Real NGN serves every candidate exactly <strong>3 case studies (18 questions) regardless of exam length</strong>; assume our engine mirrors that (it's an open §7.4 mechanic, but sizing must assume it). Zero-repeat rotation with wrapper-level exposure = 4 × 3 = 12 cases; per-band because wrapper difficulty-matching is also open — sizing for the difficulty-matched worst case covers either outcome.</li>
+      <li><strong>Trends: 30 datasets (10 per band), 2–3 linked questions each ≈ 75 questions.</strong> Target ~4–6 trend-linked questions per max-length exam (matches real NGN's modest trend presence); 4 × 6 = 24 per band.</li>
+      <li><strong>Composition check:</strong> a max-length exam = 18 case + ~6 trend + ~126 standalone; at min length, 18/85 ≈ 21% case questions — close to real NGN proportions. Wrappers displace ~24 standalone picks per exam, so the 1,800 standalone pool gains margin rather than losing it.</li>
+      <li><strong>Grand total to generate: ~2,090 questions</strong> (1,800 standalone + 216 case children + ~75 trend-linked). Existing dev wrappers (23 cases with published children, 23 published trend questions at audit) are treated as bonus stock, not counted — most lack difficulty labels and band coverage.</li>
+    </ul>
+  </li>
 </ul>
 
 <p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>
