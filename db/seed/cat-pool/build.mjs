@@ -250,7 +250,13 @@ const invokedDirectly = process.argv[1] && process.argv[1].endsWith('build.mjs')
 if (!invokedDirectly) { /* imported as a module — export functions only */ }
 else {
 const args = process.argv.slice(2);
-const files = readdirSync(DATA_DIR).filter((f) => f.endsWith('.json')).sort();
+// --file <name>: validate/emit only one data file (agents self-check their own
+// output during the workflow, before other files exist). Otherwise all of data/.
+const fileArgIdx = args.indexOf('--file');
+const onlyFile = fileArgIdx >= 0 ? args[fileArgIdx + 1] : null;
+const files = onlyFile
+  ? [onlyFile.replace(/^.*\//, '')]
+  : readdirSync(DATA_DIR).filter((f) => f.endsWith('.json')).sort();
 const rows = [];
 const seenIds = new Set();
 let errors = 0;
@@ -271,7 +277,15 @@ for (const f of files) {
 }
 
 console.log(`Parsed ${files.length} file(s) → ${rows.length} valid item(s), ${errors} error(s).`);
-if (errors > 0) { console.error('Refusing to emit — fix errors first.'); process.exit(1); }
+// Strict by default: any invalid item fails the build. With --skip-invalid the
+// aggregate build drops bad items and proceeds (used when many agents each
+// contribute a file and a handful of rows may be malformed — the dropped ones
+// are logged above and topped up in a later round).
+if (errors > 0 && !args.includes('--skip-invalid')) {
+  console.error('Refusing to emit — fix errors first (or pass --skip-invalid).');
+  process.exit(1);
+}
+if (errors > 0) console.warn(`--skip-invalid: dropped ${errors} invalid item(s), emitting ${rows.length}.`);
 
 if (args.includes('--stats')) {
   const by = (fn) => rows.reduce((m, r) => ((m[fn(r)] = (m[fn(r)] || 0) + 1), m), {});
