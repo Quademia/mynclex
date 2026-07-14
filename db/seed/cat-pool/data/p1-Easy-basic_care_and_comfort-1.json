@@ -1,0 +1,358 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_311001", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Integumentary", "topic": "Pressure-injury prevention", "subtopic": "Repositioning", "bloom": "Apply",
+    "stem": "A nurse is caring for a bedbound client who cannot reposition independently. To prevent pressure injuries, how often should the nurse reposition the client?",
+    "options": [
+      {"text": "Every 2 hours", "correct": true, "feedback": "Correct. Repositioning at least every 2 hours relieves prolonged pressure over bony prominences."},
+      {"text": "Every 8 hours", "correct": false, "feedback": "Incorrect. This interval is far too long and allows tissue ischemia."},
+      {"text": "Once per shift", "correct": false, "feedback": "Incorrect. This does not relieve pressure often enough."},
+      {"text": "Only when the client requests it", "correct": false, "feedback": "Incorrect. An immobile client may not sense the need."}
+    ],
+    "rationale": "Repositioning an immobile client at least every 2 hours is the standard measure to prevent pressure injuries."
+  },
+  {
+    "item_id": "NCLEX_MCQ_311002", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "GI", "topic": "Enteral tube feeding", "subtopic": "Aspiration prevention", "bloom": "Apply",
+    "stem": "A nurse is administering a continuous enteral feeding through a nasogastric tube. To reduce the risk of aspiration, the nurse should keep the head of the bed elevated to at least which position?",
+    "options": [
+      {"text": "30 to 45 degrees", "correct": true, "feedback": "Correct. Elevating the head of the bed 30 to 45 degrees reduces reflux and aspiration risk."},
+      {"text": "Flat (0 degrees)", "correct": false, "feedback": "Incorrect. Lying flat increases aspiration risk."},
+      {"text": "10 degrees", "correct": false, "feedback": "Incorrect. This is not high enough to reduce reflux."},
+      {"text": "Prone position", "correct": false, "feedback": "Incorrect. Prone positioning is inappropriate during feeding."}
+    ],
+    "rationale": "Keeping the head of the bed at 30 to 45 degrees during and after enteral feeding minimizes aspiration."
+  },
+  {
+    "item_id": "NCLEX_MCQ_311003", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Musculoskeletal", "topic": "Assistive devices", "subtopic": "Cane use", "bloom": "Apply",
+    "stem": "A nurse teaches a client with left-leg weakness how to use a cane. On which side should the client hold the cane?",
+    "options": [
+      {"text": "The right (stronger) side", "correct": true, "feedback": "Correct. The cane is held on the stronger side to provide support opposite the weak leg."},
+      {"text": "The left (weaker) side", "correct": false, "feedback": "Incorrect. Holding it on the weak side does not offload the affected leg."},
+      {"text": "Either side, whichever feels comfortable", "correct": false, "feedback": "Incorrect. Correct placement affects stability and safety."},
+      {"text": "In front of the body with both hands", "correct": false, "feedback": "Incorrect. A standard cane is held in one hand."}
+    ],
+    "rationale": "A cane is held on the stronger side, opposite the affected leg, to widen the base of support."
+  },
+  {
+    "item_id": "NCLEX_MCQ_311004", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Pain assessment", "subtopic": "Self-report", "bloom": "Understand",
+    "stem": "A nurse is assessing pain in an alert adult client. Which is considered the most reliable indicator of the client's pain?",
+    "options": [
+      {"text": "The client's self-report of pain", "correct": true, "feedback": "Correct. Self-report is the single most reliable indicator of pain."},
+      {"text": "The client's vital signs", "correct": false, "feedback": "Incorrect. Vital signs are supportive but not the most reliable."},
+      {"text": "The nurse's observation of behavior", "correct": false, "feedback": "Incorrect. Behavior is used mainly when self-report is unavailable."},
+      {"text": "The family's description of pain", "correct": false, "feedback": "Incorrect. Family report is secondary to the client's own report."}
+    ],
+    "rationale": "For an alert client, the client's self-report is the most reliable measure of pain."
+  },
+  {
+    "item_id": "NCLEX_MCQ_311005", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Renal/Genitourinary", "topic": "Intake and output", "subtopic": "Measurement", "bloom": "Apply",
+    "stem": "A nurse is recording intake and output for a client. Which item should be documented as intake?",
+    "options": [
+      {"text": "Gelatin dessert eaten at lunch", "correct": true, "feedback": "Correct. Foods that are liquid at room temperature, such as gelatin, count as fluid intake."},
+      {"text": "Emesis of 100 mL", "correct": false, "feedback": "Incorrect. Emesis is recorded as output."},
+      {"text": "Urine of 250 mL", "correct": false, "feedback": "Incorrect. Urine is output."},
+      {"text": "Liquid stool", "correct": false, "feedback": "Incorrect. Liquid stool is recorded as output."}
+    ],
+    "rationale": "Substances liquid at room temperature, including gelatin, ice cream, and broth, are counted as fluid intake."
+  },
+  {
+    "item_id": "NCLEX_MCQ_311006", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Neurological", "topic": "Nonpharmacologic comfort", "subtopic": "Environment", "bloom": "Apply",
+    "stem": "A nurse wants to promote sleep for a hospitalized client without using medication. Which nonpharmacologic intervention is most appropriate?",
+    "options": [
+      {"text": "Dim the lights and cluster nighttime care", "correct": true, "feedback": "Correct. Reducing light and grouping care minimizes sleep interruptions."},
+      {"text": "Offer a caffeinated beverage in the evening", "correct": false, "feedback": "Incorrect. Caffeine interferes with sleep."},
+      {"text": "Schedule vital signs every hour overnight", "correct": false, "feedback": "Incorrect. Frequent interruptions disrupt sleep."},
+      {"text": "Keep the television on for background noise", "correct": false, "feedback": "Incorrect. Noise and light can impair sleep."}
+    ],
+    "rationale": "Dimming lights and clustering care reduce nighttime disruptions and support restful sleep."
+  },
+  {
+    "item_id": "NCLEX_MCQ_311007", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Integumentary", "topic": "Postmortem care", "subtopic": "Body positioning", "bloom": "Apply",
+    "stem": "A nurse is providing postmortem care shortly after a client's death. Which action should the nurse take to prevent discoloration of the face?",
+    "options": [
+      {"text": "Elevate the head of the bed slightly", "correct": true, "feedback": "Correct. Slight head elevation prevents pooling of blood and facial discoloration."},
+      {"text": "Place the body flat with the head lowered", "correct": false, "feedback": "Incorrect. A lowered head promotes facial discoloration."},
+      {"text": "Turn the body prone", "correct": false, "feedback": "Incorrect. Prone positioning is inappropriate."},
+      {"text": "Remove the pillow entirely", "correct": false, "feedback": "Incorrect. Leaving the head flat can cause discoloration."}
+    ],
+    "rationale": "Elevating the head slightly during postmortem care prevents blood pooling and facial discoloration."
+  },
+  {
+    "item_id": "NCLEX_MCQ_311008", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Musculoskeletal", "topic": "Range of motion", "subtopic": "Passive ROM", "bloom": "Understand",
+    "stem": "A nurse performs passive range-of-motion exercises for an immobile client. What is the primary purpose of this intervention?",
+    "options": [
+      {"text": "To maintain joint mobility and prevent contractures", "correct": true, "feedback": "Correct. Passive ROM keeps joints flexible and prevents contractures."},
+      {"text": "To increase the client's muscle strength", "correct": false, "feedback": "Incorrect. Passive ROM does not build strength."},
+      {"text": "To replace the need for repositioning", "correct": false, "feedback": "Incorrect. Repositioning is still required."},
+      {"text": "To measure the client's pain tolerance", "correct": false, "feedback": "Incorrect. That is not the purpose of ROM."}
+    ],
+    "rationale": "Passive range of motion maintains joint flexibility and prevents contractures in immobile clients."
+  },
+  {
+    "item_id": "NCLEX_MCQ_311009", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Dignity and privacy", "subtopic": "Personal care", "bloom": "Apply",
+    "stem": "A nurse is preparing to give a bed bath to a client. Which action best preserves the client's dignity and privacy?",
+    "options": [
+      {"text": "Close the door and keep the client covered except the area being washed", "correct": true, "feedback": "Correct. Closing the door and draping maintains privacy and dignity."},
+      {"text": "Leave the curtain open to allow staff to assist quickly", "correct": false, "feedback": "Incorrect. This exposes the client unnecessarily."},
+      {"text": "Uncover the entire body for efficiency", "correct": false, "feedback": "Incorrect. Full exposure compromises dignity."},
+      {"text": "Discuss the client's condition with visitors during the bath", "correct": false, "feedback": "Incorrect. This violates privacy and confidentiality."}
+    ],
+    "rationale": "Providing privacy by closing the door and keeping the client draped preserves dignity during personal care."
+  },
+  {
+    "item_id": "NCLEX_MCQ_311010", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Renal/Genitourinary", "topic": "Bladder elimination", "subtopic": "Urinary retention", "bloom": "Apply",
+    "stem": "A postoperative client has not voided for 8 hours and reports lower abdominal fullness. Which nonpharmacologic action should the nurse try first to promote voiding?",
+    "options": [
+      {"text": "Run warm water over the client's hands or turn on running water", "correct": true, "feedback": "Correct. Sensory cues such as running water can stimulate voiding."},
+      {"text": "Insert an indwelling urinary catheter immediately", "correct": false, "feedback": "Incorrect. Catheterization requires an order and is not the first noninvasive step."},
+      {"text": "Restrict the client's oral fluids", "correct": false, "feedback": "Incorrect. Fluid restriction does not promote voiding."},
+      {"text": "Tell the client to wait until the urge is stronger", "correct": false, "feedback": "Incorrect. Delay can worsen retention."}
+    ],
+    "rationale": "Noninvasive measures such as running water and warmth are tried first to stimulate voiding before catheterization."
+  },
+  {
+    "item_id": "NCLEX_MCQ_311011", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Cast care", "subtopic": "Neurovascular checks", "bloom": "Apply",
+    "stem": "A nurse cares for a client with a newly applied leg cast. Which assessment is the priority to monitor for complications?",
+    "options": [
+      {"text": "Neurovascular status of the toes (color, warmth, movement, sensation)", "correct": true, "feedback": "Correct. Neurovascular checks detect compromised circulation early."},
+      {"text": "The client's appetite", "correct": false, "feedback": "Incorrect. This is not the priority for a new cast."},
+      {"text": "The client's sleep pattern", "correct": false, "feedback": "Incorrect. Not the priority."},
+      {"text": "The color of the cast material", "correct": false, "feedback": "Incorrect. Cast color is not a complication indicator."}
+    ],
+    "rationale": "Neurovascular assessment distal to a new cast detects impaired circulation and nerve compromise early."
+  },
+  {
+    "item_id": "NCLEX_MCQ_311012", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "GI", "topic": "Nutrition", "subtopic": "Feeding safety", "bloom": "Apply",
+    "stem": "A nurse assists an older adult with dysphagia at mealtime. Which action best promotes safe swallowing?",
+    "options": [
+      {"text": "Position the client upright and encourage small bites", "correct": true, "feedback": "Correct. Upright positioning and small bites reduce aspiration risk."},
+      {"text": "Have the client lie back to relax", "correct": false, "feedback": "Incorrect. A reclined position increases aspiration risk."},
+      {"text": "Offer thin liquids rapidly to finish quickly", "correct": false, "feedback": "Incorrect. Thin liquids and rushing increase aspiration risk."},
+      {"text": "Encourage the client to talk while eating", "correct": false, "feedback": "Incorrect. Talking while eating raises aspiration risk."}
+    ],
+    "rationale": "Upright positioning with small bites promotes safe swallowing in clients with dysphagia."
+  },
+  {
+    "item_id": "NCLEX_SATA_311013", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Integumentary", "topic": "Pressure-injury prevention", "bloom": "Apply",
+    "stem": "A nurse plans care to prevent pressure injuries in an immobile client. Which interventions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Reposition the client at least every 2 hours", "correct": true},
+      {"text": "Keep the skin clean and dry", "correct": true},
+      {"text": "Use pillows to offload bony prominences", "correct": true},
+      {"text": "Massage vigorously over reddened bony areas", "correct": false},
+      {"text": "Leave the client in one position to avoid disturbing sleep", "correct": false},
+      {"text": "Inspect the skin regularly", "correct": true}
+    ],
+    "rationale": "Repositioning, skin hygiene, offloading, and regular skin inspection prevent pressure injuries; massaging reddened areas is contraindicated."
+  },
+  {
+    "item_id": "NCLEX_SATA_311014", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Nonpharmacologic pain management", "bloom": "Apply",
+    "stem": "A nurse plans nonpharmacologic comfort measures for a client with chronic pain. Which measures are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Guided imagery", "correct": true},
+      {"text": "Application of heat or cold as prescribed", "correct": true},
+      {"text": "Repositioning for comfort", "correct": true},
+      {"text": "Distraction with music", "correct": true},
+      {"text": "Withholding all fluids", "correct": false},
+      {"text": "Placing the client on strict bed rest indefinitely", "correct": false}
+    ],
+    "rationale": "Guided imagery, heat/cold, repositioning, and distraction are nonpharmacologic comfort measures; the other options are not."
+  },
+  {
+    "item_id": "NCLEX_SATA_311015", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "GI", "topic": "Enteral tube feeding", "bloom": "Apply",
+    "stem": "A nurse is caring for a client receiving enteral tube feedings. Which nursing actions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Keep the head of the bed elevated at least 30 degrees", "correct": true},
+      {"text": "Verify tube placement before intermittent feedings", "correct": true},
+      {"text": "Flush the tube with water as ordered", "correct": true},
+      {"text": "Lay the client flat during the feeding", "correct": false},
+      {"text": "Hang formula that has been open for 48 hours at room temperature", "correct": false}
+    ],
+    "rationale": "Elevating the head of the bed, verifying placement, and flushing the tube are correct; lying flat and using expired formula increase risk."
+  },
+  {
+    "item_id": "NCLEX_SATA_311016", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Musculoskeletal", "topic": "Fall and mobility safety", "bloom": "Apply",
+    "stem": "A nurse assists a weak client with ambulation using a gait belt. Which actions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Apply the gait belt snugly around the client's waist", "correct": true},
+      {"text": "Ensure the client wears nonskid footwear", "correct": true},
+      {"text": "Stand slightly behind and to the side of the client", "correct": true},
+      {"text": "Pull the client forward by the arms to speed up walking", "correct": false},
+      {"text": "Have the client walk in socks on a wet floor", "correct": false}
+    ],
+    "rationale": "A snug gait belt, nonskid footwear, and proper nurse positioning promote safe ambulation."
+  },
+  {
+    "item_id": "NCLEX_SATA_311017", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "GI", "topic": "Bowel elimination", "bloom": "Apply",
+    "stem": "A nurse teaches a client measures to promote normal bowel elimination and prevent constipation. Which measures should the nurse include? Select all that apply.",
+    "options": [
+      {"text": "Increase dietary fiber intake", "correct": true},
+      {"text": "Drink adequate fluids", "correct": true},
+      {"text": "Engage in regular physical activity", "correct": true},
+      {"text": "Ignore the urge to defecate until convenient", "correct": false},
+      {"text": "Use enemas daily as routine", "correct": false}
+    ],
+    "rationale": "Fiber, fluids, and activity promote normal elimination; suppressing the urge and daily enemas are harmful."
+  },
+  {
+    "item_id": "NCLEX_TF_311018", "type": "TF", "difficulty": "Easy", "answer": "True",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Renal/Genitourinary", "topic": "Intake and output", "bloom": "Understand",
+    "stem": "When measuring a client's intake and output, ice chips should be recorded as approximately half of their measured volume.",
+    "rationale": "Ice chips melt to roughly half their volume, so they are recorded as about 50 percent of the amount given."
+  },
+  {
+    "item_id": "NCLEX_SELN_311019", "type": "SELECT_N", "difficulty": "Easy", "select_count": 2,
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Integumentary", "topic": "Eye irrigation", "bloom": "Apply",
+    "stem": "A nurse performs eye irrigation for a client with a chemical splash. Which 2 actions are appropriate?",
+    "options": [
+      {"text": "Direct the irrigating solution from the inner to the outer canthus", "correct": true},
+      {"text": "Have the client turn the head toward the affected side", "correct": true},
+      {"text": "Aim the stream directly onto the cornea with force", "correct": false},
+      {"text": "Direct flow from the outer to the inner canthus", "correct": false},
+      {"text": "Withhold irrigation until the provider arrives", "correct": false}
+    ],
+    "rationale": "Irrigate from inner to outer canthus with the head turned toward the affected side to avoid cross-contamination."
+  },
+  {
+    "item_id": "NCLEX_MAT_311020", "type": "MATRIX", "difficulty": "Easy", "row_label": "Item",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Renal/Genitourinary", "topic": "Intake and output", "bloom": "Understand",
+    "stem": "For each item, click to specify whether it is recorded as intake or output.",
+    "columns": ["Intake", "Output"],
+    "rows": [
+      {"text": "Apple juice consumed", "answer": 0},
+      {"text": "Urine in the drainage bag", "answer": 1},
+      {"text": "IV fluids infused", "answer": 0},
+      {"text": "Wound drainage", "answer": 1},
+      {"text": "Broth eaten at lunch", "answer": 0}
+    ],
+    "rationale": "Fluids taken in count as intake; urine and drainage count as output."
+  },
+  {
+    "item_id": "NCLEX_MMR_311021", "type": "MATRIX_MR", "difficulty": "Easy", "row_label": "Comfort measure",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Nonpharmacologic comfort", "bloom": "Understand",
+    "stem": "For each comfort need, select all appropriate nonpharmacologic measures (may support more than one).",
+    "columns": ["Promotes sleep", "Relieves pain", "Preserves dignity"],
+    "rows": [
+      {"text": "Dimming the lights and reducing noise", "answers": [0]},
+      {"text": "Applying a warm compress as prescribed", "answers": [1]},
+      {"text": "Repositioning for comfort", "answers": [0, 1]},
+      {"text": "Draping the client during a bath", "answers": [2]}
+    ],
+    "rationale": "Each nonpharmacologic measure maps to the comfort needs it addresses."
+  },
+  {
+    "item_id": "NCLEX_CLZ_311022", "type": "CLOZE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Musculoskeletal", "topic": "Assistive devices", "bloom": "Apply",
+    "stem": "When a client with weakness on one side climbs stairs with a cane, the {1} leg leads going up, and the {2} leg leads going down.",
+    "blanks": [
+      {"choices": [{"text": "stronger", "correct": true}, {"text": "weaker"}, {"text": "either"}]},
+      {"choices": [{"text": "weaker", "correct": true}, {"text": "stronger"}, {"text": "either"}]}
+    ],
+    "rationale": "Up with the good (stronger) leg, down with the bad (weaker) leg is the rule for safe stair climbing."
+  },
+  {
+    "item_id": "NCLEX_HL_311023", "type": "HIGHLIGHT", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Integumentary", "topic": "Pressure-injury assessment", "bloom": "Analyze",
+    "stem": "The nurse inspects the skin of an immobile client. Highlight the findings that indicate an early pressure injury. Over the sacrum there is [[nonblanchable redness]]. The heels show [[intact, warm skin]]. There is an area of [[skin breakdown]] on the left hip. The forearm has a [[healed old scar]].",
+    "chunks": [
+      {"text": "nonblanchable redness", "correct": true, "feedback": "Nonblanchable redness is a stage 1 pressure injury."},
+      {"text": "intact, warm skin", "correct": false, "feedback": "Normal skin — not a pressure injury."},
+      {"text": "skin breakdown", "correct": true, "feedback": "Open skin breakdown indicates tissue damage."},
+      {"text": "healed old scar", "correct": false, "feedback": "An old scar is not an early pressure injury."}
+    ],
+    "rationale": "Nonblanchable redness and skin breakdown indicate pressure injury; intact skin and old scars do not."
+  },
+  {
+    "item_id": "NCLEX_BT_311024", "type": "BOWTIE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Integumentary", "topic": "Pressure-injury prevention", "bloom": "Apply",
+    "stem": "A bedbound client is at risk for a pressure injury. Complete the diagram by selecting the priority actions, the client problem, and the parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Reposition every 2 hours", "correct": true},
+      {"text": "Keep skin clean and dry", "correct": true},
+      {"text": "Massage reddened bony areas"},
+      {"text": "Restrict all fluids"}
+    ]},
+    "centre": {"label": "Client problem", "tokens": [
+      {"text": "Risk for pressure injury", "correct": true},
+      {"text": "Risk for hyperglycemia"},
+      {"text": "Risk for seizure"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Skin over bony prominences", "correct": true},
+      {"text": "Braden Scale score", "correct": true},
+      {"text": "Pupil size"},
+      {"text": "Deep tendon reflexes"}
+    ]},
+    "rationale": "For pressure-injury risk, reposition and keep skin dry while monitoring skin and Braden Scale score."
+  },
+  {
+    "item_id": "NCLEX_DCZ_311025", "type": "DRAG_CLOZE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "GI", "topic": "Enteral tube feeding", "bloom": "Apply",
+    "stem": "During enteral feeding, the nurse keeps the head of the bed elevated at least [1] degrees and verifies [2] before an intermittent feeding.",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["30", "tube placement", "10", "the client's weight"],
+    "rationale": "The head of the bed is kept at least 30 degrees, and tube placement is verified before feeding."
+  },
+  {
+    "item_id": "NCLEX_DO_311026", "type": "DRAG_ORDER", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Integumentary", "topic": "Bed bath", "bloom": "Apply",
+    "stem": "A nurse gives a complete bed bath. Place the steps in the correct order.",
+    "tokens": ["Provide privacy and gather supplies", "Wash the face and neck", "Wash the arms, chest, and abdomen", "Wash the legs and feet", "Wash the perineal area last", "Offer a snack"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  },
+  {
+    "item_id": "NCLEX_MCQ_311027", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Complementary therapies", "subtopic": "Relaxation", "bloom": "Understand",
+    "stem": "A nurse offers a complementary therapy to help a client relax and reduce mild anxiety. Which is an example of a complementary relaxation therapy?",
+    "options": [
+      {"text": "Deep-breathing and guided imagery", "correct": true, "feedback": "Correct. These are complementary relaxation therapies."},
+      {"text": "Administering an IV opioid", "correct": false, "feedback": "Incorrect. This is a pharmacologic, not complementary, therapy."},
+      {"text": "Applying wrist restraints", "correct": false, "feedback": "Incorrect. Restraints are not a comfort therapy."},
+      {"text": "Inserting a urinary catheter", "correct": false, "feedback": "Incorrect. This is an invasive procedure, not a relaxation therapy."}
+    ],
+    "rationale": "Deep-breathing and guided imagery are complementary, nonpharmacologic relaxation therapies."
+  }
+]
