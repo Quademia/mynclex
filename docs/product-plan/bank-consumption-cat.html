@@ -156,7 +156,15 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-05-05 (§3.2 — "How CAT works" help page path changed from
+  Living planning document. Last updated: 2026-07-14 (two decisions captured from a pre-build session with Sam:
+  <strong>§7.4 reversed</strong> — case studies and trend-linked questions are IN scope for v1 CAT (real NCLEX
+  serves case studies; "practise on the real thing"), with the administration mechanics — block rule,
+  in-block theta updates, wrapper difficulty, wrapper-level exposure — left open for the build slice;
+  §7.3 / §11 / §12.5 / §18 / §19 updated to match. <strong>§19 — dev-bank CAT test pool</strong>: seed ~1,200+
+  synthetic dev-only items, realistic NCLEX-style type mix, roughly even difficulty bands, batch-tagged
+  and one-line deletable, because the current CAT-eligible dev pool (~105 items) can't sustain a full
+  75–145-question CAT at the ability tails.)
+  Previous update: 2026-05-05 (§3.2 — "How CAT works" help page path changed from
   <code>/student/bank/help/cat</code> to <code>/help/cat</code>: top-level, audience-neutral, public. Help is
   content not workflow; same logic as the runner at <code>/session/[attempt_id]</code>. Earlier same day:
   18 of 20 sections settled across two seed
@@ -629,24 +637,37 @@
   <li>Not seen in the student's last 3 CAT attempts (cross-CAT exposure window — settled in §15.2).</li>
   <li><code>is_published = TRUE</code>.</li>
   <li><code>is_builder_visible = TRUE</code> (keeps readiness-pack reserved questions out of CAT, same rule as everywhere else).</li>
-  <li>Standalone question only — no case-study children, no trend-linked questions in v1 (see §7.4).</li>
+  <li>Standalone questions AND wrappers (case studies, trend-linked) are both eligible — direction reversed 2026-07-14; wrapper administration mechanics are open build decisions (see §7.4).</li>
 </ul>
 
-<h3>7.4 Cases and trends in CAT — standalone-only for v1</h3>
+<h3>7.4 Cases and trends in CAT — INCLUDED in v1 <span class="status open">mechanics open</span></h3>
 <p>
-  Real NCLEX includes case studies in CAT. We don't, in v1. Three reasons:
+  <strong>Direction reversed 2026-07-14 (Sam).</strong> Wrappers — case studies and trend-linked
+  questions — are IN scope for v1 CAT. Real NCLEX includes case studies in its adaptive exam, and
+  MyNclex's promise is "practise on the real thing"; a CAT that never serves a wrapper is not the
+  real thing. The original standalone-only default (settled 2026-05-04) is superseded.
+</p>
+<p>
+  The original deferral reasons stand as <em>costs we're accepting</em>, not as reasons to wait —
+  recorded here so the build slice designs around them deliberately:
 </p>
 <ul>
-  <li>Case-study children aren't psychometrically independent — the 6 questions correlate heavily because they're built on the same scenario, which violates IRT's local-independence assumption.</li>
-  <li>A case study takes ~6 questions to deliver as an atomic block, which locks the engine out of difficulty-tracking for that whole block.</li>
-  <li>Simpler selection logic in v1.</li>
+  <li>Case-study children aren't psychometrically independent — the 6 questions correlate heavily because they're built on the same scenario, which strains IRT's local-independence assumption. (UWorld/Archer-class products accept the same compromise.)</li>
+  <li>A case study delivers as an atomic ~6-question block, which locks the engine out of item-by-item difficulty adaptation for the duration of the block.</li>
+  <li>Trend-linked questions carry shared dataset context that has to travel with them into the adaptive sequence.</li>
 </ul>
 <p>
-  Trend-linked questions are also excluded from v1 CAT — they're not atomic the way cases are, but trends carry
-  shared dataset context that's awkward to drop into an adaptive sequence cleanly.
+  <strong>Open build mechanics — settle when the CAT slice is built, not before:</strong>
 </p>
+<ul>
+  <li><strong>Block administration rule</strong> — when the engine picks a case, it commits to the whole wrapper as an atomic block, then resumes item-level adaptive selection after the block. Exact rule for <em>when</em> a case is pickable (theta band? cadence? max cases per attempt?) is undecided.</li>
+  <li><strong>Theta updates inside a block</strong> — update per child answer, or once at end-of-block (dampened for the correlation)? Undecided.</li>
+  <li><strong>Wrapper difficulty</strong> — a case needs an effective difficulty for selection (children's mean? curator label on the wrapper?). Undecided.</li>
+  <li><strong>Exposure rules for wrappers</strong> — the last-3-CATs window (§15.2) should apply at wrapper level (seeing the same scenario again is the leak, not the individual child). To confirm.</li>
+</ul>
 <p>
-  Adding cases and/or trends is a v2 enhancement once the standalone CAT engine is calibrated and trusted.
+  §11's snapshot design already anticipated this: case/trend snapshot behaviour for CAT is specified
+  there and needs no rework — only activation.
 </p>
 
 <h3>7.5 Bank-exhaustion fallback</h3>
@@ -914,7 +935,7 @@
 <ul>
   <li>Each time <code>create_cat_attempt</code> or <code>cat_next_item</code> picks an item, it inserts a row into <code>nclex_attempt_items</code> with the full snapshot — stem, instruction, content JSONB, correct JSONB, rationale, classification, marks. Same column shape as fixed-length attempts.</li>
   <li>If the item is trend-linked, the linked dataset is snapshotted into <code>nclex_attempt_trend_snapshots</code> (if not already there for this attempt) at the moment the trend item is picked.</li>
-  <li>If the item is a case-study child (only relevant if §7.4 settles "include cases"), the case is snapshotted into <code>nclex_attempt_case_snapshots</code> at the moment the first child is picked, and all 6 children get queued.</li>
+  <li>If the item is a case-study child (active — §7.4 settled "include cases" on 2026-07-14), the case is snapshotted into <code>nclex_attempt_case_snapshots</code> at the moment the first child is picked, and all 6 children get queued.</li>
 </ul>
 
 <h3>11.1 Why snapshot, restated for CAT context</h3>
@@ -1016,7 +1037,7 @@
 <ul>
   <li><code>nclex_bank_items.difficulty</code> (existing TEXT column) — unchanged. Curator UI unchanged.</li>
   <li><code>nclex_attempt_answers</code> shape — unchanged. CAT answers look identical to fixed-length answers.</li>
-  <li><code>nclex_attempt_case_snapshots</code> + <code>nclex_attempt_trend_snapshots</code> — unchanged. (CAT pulls standalone-only in v1 per §7.4, so case/trend snapshots aren't generated for CAT attempts; the tables themselves stay as-is.)</li>
+  <li><code>nclex_attempt_case_snapshots</code> + <code>nclex_attempt_trend_snapshots</code> — unchanged in shape. (Since the 2026-07-14 reversal of §7.4, CAT attempts DO generate case/trend snapshot rows when a wrapper is administered — same mechanism as fixed-length modes, no schema change needed.)</li>
   <li>RLS policies — same shape, just need to be re-checked when the new columns land (build-time concern).</li>
 </ul>
 
@@ -1614,7 +1635,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li><strong>Pearson VUE-grade exposure control</strong> — we use a recency-window exposure filter (§15.2), not the multi-factor exposure-control schemes used in production high-stakes testing.</li>
   <li><strong>Hard content-blueprint enforcement</strong> — soft constraint only for v1 (§8 default).</li>
   <li><strong>Multi-stage testing (MST)</strong> — adaptive at the section level, not the item level. Not on the v1 roadmap.</li>
-  <li><strong>Cases / trends in CAT</strong> — standalone-only for v1 (§7.4 default).</li>
+  <li><strong>Cases / trends in CAT</strong> — <em>no longer out of scope.</em> Reversed 2026-07-14: wrappers are IN for v1 (§7.4); administration mechanics settle at build time.</li>
   <li><strong>CAT in tutored programmes or readiness packs</strong> — CAT is custom-built only in v1. Programme activities and readiness packs use fixed-length modes only.</li>
   <li><strong>Cross-CAT theta carry-over</strong> — every CAT starts at medium; prior CATs don't influence the next CAT's starting point (§15.3 default).</li>
   <li><strong>Tutor-facing CAT analytics</strong> — tutors don't get to see student CAT results in v1 (CAT is a personal assessment tool). Could surface in v2.</li>
@@ -1629,7 +1650,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li>§4 — IRT model: Rasch (1PL), TypeScript live engine in existing stack, recalibration uses heavier offline tooling separately (settled 2026-05-04).</li>
   <li>§5 — Calibration plan: Easy/Medium/Hard → −1.0/0.0/+1.0, separate <code>difficulty_irt</code> NUMERIC column on <code>nclex_bank_items</code>, weekly batch recalibration (Sundays 02:00 UTC) with 30-response threshold and 70/30 dampened blend, plus manual trigger (settled 2026-05-04).</li>
   <li>§6 — Starting difficulty: always theta = 0.0, no carry-over (settled 2026-05-04).</li>
-  <li>§7 — Selection rule: closest difficulty + category as tiebreaker; cases/trends excluded for v1; bank-exhaustion fallback locked (settled 2026-05-04).</li>
+  <li>§7 — Selection rule: closest difficulty + category as tiebreaker; bank-exhaustion fallback locked (settled 2026-05-04). §7.4 reversed 2026-07-14: cases/trends are now IN for v1; wrapper administration mechanics remain open (see carried-forward list below).</li>
   <li>§8 — Content blueprint: tiebreaker only, never overrides difficulty; monitoring logged for curator dashboard (settled 2026-05-04).</li>
   <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 75/145, time limit 4 hours, inconclusive framing (settled 2026-05-04).</li>
   <li>§10 — Architecture: two-RPC flow (<code>create_cat_attempt</code> + <code>cat_next_item</code>), both atomic transactions; pessimistic UI with graceful degradation (current Q stays visible dimmed; spinner at 300ms; "still loading" at 3s; error+retry at 10s); 2-retry silent backoff on network failure, immediate error on server-side throw; engine runtime location (Supabase RPC vs Edge Function vs Worker) deferred to build time with PL/pgSQL recommendation (settled 2026-05-05).</li>
@@ -1643,11 +1664,15 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 </ul>
 
 <p><strong>Carried forward — settle in subsequent planning sessions:</strong></p>
-<p>None at planning level. All structural and build-handoff decisions are locked. The remaining work is execution:</p>
+<ul>
+  <li><strong>Wrapper administration mechanics (§7.4, reopened by the 2026-07-14 reversal)</strong> — block administration rule, theta-update policy inside a case block, effective wrapper difficulty for selection, wrapper-level exposure window. Settle when the CAT build slice starts.</li>
+</ul>
+<p>Everything else structural is locked. The remaining work is execution:</p>
 <ul>
   <li><strong>Apply the §12.7 migration to dev.</strong> Sam's sign-off after dev verification gates the prod run.</li>
   <li><strong>Fill in <code>create_cat_attempt</code> and <code>cat_next_item</code> bodies</strong> with real Rasch math — separate build slice after the schema lands.</li>
   <li><strong>Empirical recalibration job</strong> — schedule, runtime location (Supabase pg_cron vs Cloudflare Worker), and the actual calibration code. Specced at planning level in §5 / §17 / §10.5; build slice still TBD.</li>
+  <li><strong>Dev-bank CAT test pool (settled 2026-07-14, Sam).</strong> The dev bank's CAT-eligible pool (~105 standalone items at audit time — most of the 999 rows are case children, unpublished, builder-hidden, or unlabelled) cannot sustain a 75–145-question CAT at the ability tails (only ~23 Easy / ~27 Hard eligible). Decision: seed <strong>~1,200+ synthetic, dev-only</strong> items — realistic NCLEX-style mix (mostly MCQ/SATA with a spread of the other standalone types), roughly even Easy/Medium/Hard bands so the tails are stress-testable, blueprint-shaped Client Needs categories, all <code>is_published = TRUE</code> + <code>is_builder_visible = TRUE</code>. Batch-tagged (<code>batch_id</code>) for one-line deletion; never ships to prod; readiness-pack-reserved items (<code>is_builder_visible = FALSE</code>) are untouched. Difficulty labels matter most — day-one <code>difficulty_irt</code> derives from them (§5.1).</li>
 </ul>
 
 <p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>
