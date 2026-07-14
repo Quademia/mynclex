@@ -1,0 +1,350 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_308001", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal care", "subtopic": "Folic acid", "bloom": "Understand",
+    "stem": "A nurse is teaching a woman planning pregnancy about preventing neural tube defects. Which supplement should the nurse emphasize taking before and during early pregnancy?",
+    "options": [
+      {"text": "Folic acid", "correct": true, "feedback": "Correct. Folic acid before conception and in early pregnancy prevents neural tube defects."},
+      {"text": "Vitamin C", "correct": false, "feedback": "Incorrect. Vitamin C is not linked to neural tube defect prevention."},
+      {"text": "Vitamin E", "correct": false, "feedback": "Incorrect. Vitamin E does not prevent neural tube defects."},
+      {"text": "Vitamin K", "correct": false, "feedback": "Incorrect. Vitamin K supports clotting, not neural tube formation."}
+    ],
+    "rationale": "Adequate folic acid intake before and during early pregnancy reduces the risk of neural tube defects."
+  },
+  {
+    "item_id": "NCLEX_MCQ_308002", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Growth and development", "subtopic": "Infant milestones", "bloom": "Remember",
+    "stem": "At which age does a nurse typically expect a healthy infant to begin sitting without support?",
+    "options": [
+      {"text": "2 months", "correct": false, "feedback": "Incorrect. At 2 months infants have minimal head control."},
+      {"text": "6 months", "correct": true, "feedback": "Correct. Most infants sit without support around 6 months."},
+      {"text": "12 months", "correct": false, "feedback": "Incorrect. By 12 months infants are typically standing or walking."},
+      {"text": "18 months", "correct": false, "feedback": "Incorrect. This is far later than the expected milestone."}
+    ],
+    "rationale": "Sitting without support is an expected gross motor milestone around 6 months of age."
+  },
+  {
+    "item_id": "NCLEX_MCQ_308003", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Immune", "topic": "Immunizations", "subtopic": "Childhood schedule", "bloom": "Remember",
+    "stem": "A nurse reviews the immunization record of a 12-month-old child. Which vaccine is typically first given at this age?",
+    "options": [
+      {"text": "Measles, mumps, and rubella (MMR)", "correct": true, "feedback": "Correct. The first MMR dose is given at 12 to 15 months."},
+      {"text": "Hepatitis B first dose", "correct": false, "feedback": "Incorrect. The first hepatitis B dose is given at birth."},
+      {"text": "Rotavirus first dose", "correct": false, "feedback": "Incorrect. Rotavirus begins at 2 months."},
+      {"text": "Tetanus, diphtheria (Td) booster", "correct": false, "feedback": "Incorrect. Td boosters are given in adolescence and adulthood."}
+    ],
+    "rationale": "The first MMR vaccine is scheduled at 12 to 15 months of age."
+  },
+  {
+    "item_id": "NCLEX_MCQ_308004", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Medical-Surgical", "body_system": "Reproductive", "topic": "Cancer screening", "subtopic": "Mammography", "bloom": "Understand",
+    "stem": "A 52-year-old woman asks about routine breast cancer screening. Which screening test should the nurse recommend?",
+    "options": [
+      {"text": "Mammography", "correct": true, "feedback": "Correct. Mammography is the standard screening test for breast cancer."},
+      {"text": "Colonoscopy", "correct": false, "feedback": "Incorrect. Colonoscopy screens for colorectal cancer."},
+      {"text": "Pap smear", "correct": false, "feedback": "Incorrect. The Pap smear screens for cervical cancer."},
+      {"text": "Bone density scan", "correct": false, "feedback": "Incorrect. A bone density scan screens for osteoporosis."}
+    ],
+    "rationale": "Mammography is the recommended screening test for early detection of breast cancer."
+  },
+  {
+    "item_id": "NCLEX_MCQ_308005", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Postpartum care", "subtopic": "Breastfeeding", "bloom": "Apply",
+    "stem": "A nurse teaches a new mother about breastfeeding. Which statement indicates the client understands proper latch?",
+    "options": [
+      {"text": "The baby's mouth covers much of the areola, not just the nipple", "correct": true, "feedback": "Correct. A wide latch over the areola promotes effective feeding and prevents soreness."},
+      {"text": "The baby should latch onto the nipple tip only", "correct": false, "feedback": "Incorrect. Latching only the nipple causes soreness and poor feeding."},
+      {"text": "I should hear a clicking sound while feeding", "correct": false, "feedback": "Incorrect. Clicking suggests a poor latch."},
+      {"text": "Feeding should be limited to two minutes per side", "correct": false, "feedback": "Incorrect. Feeding time should follow the infant's cues."}
+    ],
+    "rationale": "A proper latch covers much of the areola, allowing effective milk transfer and reducing nipple trauma."
+  },
+  {
+    "item_id": "NCLEX_MCQ_308006", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Cardiovascular", "topic": "Lifestyle education", "subtopic": "Physical activity", "bloom": "Understand",
+    "stem": "A nurse counsels a healthy adult about physical activity. Which weekly amount of moderate-intensity aerobic activity should the nurse recommend?",
+    "options": [
+      {"text": "At least 150 minutes", "correct": true, "feedback": "Correct. Guidelines recommend at least 150 minutes of moderate activity weekly."},
+      {"text": "At least 30 minutes", "correct": false, "feedback": "Incorrect. This is less than the weekly recommendation."},
+      {"text": "At least 500 minutes", "correct": false, "feedback": "Incorrect. This exceeds the standard recommendation."},
+      {"text": "No structured activity is needed", "correct": false, "feedback": "Incorrect. Regular activity is recommended for health maintenance."}
+    ],
+    "rationale": "Adults should perform at least 150 minutes of moderate-intensity aerobic activity per week."
+  },
+  {
+    "item_id": "NCLEX_MCQ_308007", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Adolescent health", "subtopic": "Safety education", "bloom": "Apply",
+    "stem": "A nurse provides safety teaching to the parents of a 16-year-old who just obtained a driver's permit. Which topic is the priority?",
+    "options": [
+      {"text": "Consistent seat belt use and avoiding distracted driving", "correct": true, "feedback": "Correct. Motor vehicle crashes are a leading cause of adolescent death."},
+      {"text": "Choosing a nutritious breakfast", "correct": false, "feedback": "Incorrect. Important but not the safety priority for a new driver."},
+      {"text": "Establishing a consistent bedtime", "correct": false, "feedback": "Incorrect. Not the priority safety concern here."},
+      {"text": "Limiting screen time on weekends", "correct": false, "feedback": "Incorrect. Not the leading safety risk for a new driver."}
+    ],
+    "rationale": "Motor vehicle crashes are a leading cause of death in adolescents, making driving safety the priority."
+  },
+  {
+    "item_id": "NCLEX_MCQ_308008", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Older adult health", "subtopic": "Fall prevention", "bloom": "Apply",
+    "stem": "A nurse teaches an older adult about home safety. Which suggestion best reduces the risk of falls?",
+    "options": [
+      {"text": "Remove loose throw rugs from walkways", "correct": true, "feedback": "Correct. Loose rugs are a common tripping hazard for older adults."},
+      {"text": "Keep the home dimly lit to save energy", "correct": false, "feedback": "Incorrect. Poor lighting increases fall risk."},
+      {"text": "Wear socks without shoes indoors", "correct": false, "feedback": "Incorrect. Socks alone are slippery and increase fall risk."},
+      {"text": "Store frequently used items on high shelves", "correct": false, "feedback": "Incorrect. Reaching high shelves increases fall risk."}
+    ],
+    "rationale": "Removing loose rugs and other tripping hazards is a key strategy to prevent falls in older adults."
+  },
+  {
+    "item_id": "NCLEX_MCQ_308009", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Respiratory", "topic": "High-risk behavior", "subtopic": "Smoking cessation", "bloom": "Understand",
+    "stem": "A nurse discusses the benefits of smoking cessation with a client. Which statement by the nurse is accurate?",
+    "options": [
+      {"text": "Quitting smoking lowers your risk of heart disease and lung cancer", "correct": true, "feedback": "Correct. Cessation reduces cardiovascular and cancer risk."},
+      {"text": "The damage from smoking cannot be reduced by quitting", "correct": false, "feedback": "Incorrect. Quitting reduces future health risks."},
+      {"text": "Switching to menthol cigarettes is a safe alternative", "correct": false, "feedback": "Incorrect. Menthol cigarettes are not safer."},
+      {"text": "Only smoking outdoors eliminates all health risks", "correct": false, "feedback": "Incorrect. Location does not remove smoking risks."}
+    ],
+    "rationale": "Smoking cessation reduces the risk of cardiovascular disease and cancer at any age."
+  },
+  {
+    "item_id": "NCLEX_MCQ_308010", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "GI", "topic": "Infant nutrition", "subtopic": "Solid foods", "bloom": "Understand",
+    "stem": "A parent asks when to introduce solid foods to their infant. Which age should the nurse recommend?",
+    "options": [
+      {"text": "Around 6 months", "correct": true, "feedback": "Correct. Solid foods are generally introduced around 6 months."},
+      {"text": "At 2 weeks", "correct": false, "feedback": "Incorrect. This is far too early for solid foods."},
+      {"text": "At 2 months", "correct": false, "feedback": "Incorrect. The digestive system is not ready at 2 months."},
+      {"text": "At 12 months", "correct": false, "feedback": "Incorrect. Solids are usually started earlier than 12 months."}
+    ],
+    "rationale": "Solid foods are typically introduced around 6 months when infants show developmental readiness."
+  },
+  {
+    "item_id": "NCLEX_MCQ_308011", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Health assessment", "subtopic": "Vital signs", "bloom": "Remember",
+    "stem": "During a routine adult health check, which resting heart rate would the nurse consider within the normal range?",
+    "options": [
+      {"text": "72 beats per minute", "correct": true, "feedback": "Correct. A normal adult resting heart rate is 60 to 100 beats per minute."},
+      {"text": "45 beats per minute", "correct": false, "feedback": "Incorrect. This is below the normal resting range."},
+      {"text": "120 beats per minute", "correct": false, "feedback": "Incorrect. This is above the normal resting range."},
+      {"text": "38 beats per minute", "correct": false, "feedback": "Incorrect. This is bradycardic for a healthy adult."}
+    ],
+    "rationale": "A normal adult resting heart rate ranges from 60 to 100 beats per minute."
+  },
+  {
+    "item_id": "NCLEX_MCQ_308012", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "GI", "topic": "Cancer screening", "subtopic": "Colorectal", "bloom": "Remember",
+    "stem": "At what age is routine colorectal cancer screening generally recommended to begin for average-risk adults?",
+    "options": [
+      {"text": "45 years", "correct": true, "feedback": "Correct. Current guidelines recommend starting at age 45 for average-risk adults."},
+      {"text": "18 years", "correct": false, "feedback": "Incorrect. This is far earlier than recommended."},
+      {"text": "75 years", "correct": false, "feedback": "Incorrect. Screening typically begins well before this age."},
+      {"text": "30 years", "correct": false, "feedback": "Incorrect. This is earlier than the standard recommendation."}
+    ],
+    "rationale": "Routine colorectal cancer screening for average-risk adults generally begins at age 45."
+  },
+  {
+    "item_id": "NCLEX_SATA_308013", "type": "SATA", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal education", "subtopic": "Warning signs", "bloom": "Understand",
+    "stem": "A nurse teaches a pregnant client about danger signs to report immediately. Which findings should the client be instructed to report? Select all that apply.",
+    "options": [
+      {"text": "Vaginal bleeding", "correct": true},
+      {"text": "Severe headache", "correct": true},
+      {"text": "Sudden swelling of the face and hands", "correct": true},
+      {"text": "Mild fatigue in the afternoon", "correct": false},
+      {"text": "Occasional mild nausea in the first trimester", "correct": false}
+    ],
+    "rationale": "Bleeding, severe headache, and sudden facial or hand edema can signal serious complications and must be reported."
+  },
+  {
+    "item_id": "NCLEX_SATA_308014", "type": "SATA", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Cardiovascular", "topic": "Heart health", "subtopic": "Lifestyle", "bloom": "Understand",
+    "stem": "A nurse teaches an adult about reducing cardiovascular risk. Which lifestyle measures should the nurse include? Select all that apply.",
+    "options": [
+      {"text": "Eat a diet low in saturated fat and sodium", "correct": true},
+      {"text": "Engage in regular physical activity", "correct": true},
+      {"text": "Avoid tobacco use", "correct": true},
+      {"text": "Increase daily intake of fried foods", "correct": false},
+      {"text": "Maintain a sedentary routine", "correct": false}
+    ],
+    "rationale": "A healthy diet, regular activity, and tobacco avoidance reduce cardiovascular risk."
+  },
+  {
+    "item_id": "NCLEX_SATA_308015", "type": "SATA", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Integumentary", "topic": "Child safety", "subtopic": "Injury prevention", "bloom": "Apply",
+    "stem": "A nurse teaches parents of a toddler about home injury prevention. Which instructions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Store cleaning products in locked cabinets", "correct": true},
+      {"text": "Place safety gates at the top of stairs", "correct": true},
+      {"text": "Set the water heater to a safe temperature to prevent burns", "correct": true},
+      {"text": "Keep small objects within the child's reach", "correct": false},
+      {"text": "Leave medication bottles on the kitchen counter", "correct": false}
+    ],
+    "rationale": "Locking chemicals, using stair gates, and limiting water temperature reduce common toddler injuries."
+  },
+  {
+    "item_id": "NCLEX_SATA_308016", "type": "SATA", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Older adult health", "subtopic": "Bone health", "bloom": "Understand",
+    "stem": "A nurse counsels a postmenopausal woman about osteoporosis prevention. Which recommendations should the nurse include? Select all that apply.",
+    "options": [
+      {"text": "Perform weight-bearing exercise regularly", "correct": true},
+      {"text": "Ensure adequate calcium and vitamin D intake", "correct": true},
+      {"text": "Avoid smoking and excessive alcohol", "correct": true},
+      {"text": "Remain sedentary to protect the bones", "correct": false},
+      {"text": "Eliminate all dairy from the diet", "correct": false}
+    ],
+    "rationale": "Weight-bearing exercise, calcium and vitamin D, and avoiding smoking and alcohol support bone health."
+  },
+  {
+    "item_id": "NCLEX_SATA_308017", "type": "SATA", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Immune", "topic": "Adult immunizations", "subtopic": "Older adult", "bloom": "Remember",
+    "stem": "A nurse reviews recommended vaccines for a healthy 66-year-old adult. Which vaccines are routinely recommended? Select all that apply.",
+    "options": [
+      {"text": "Annual influenza vaccine", "correct": true},
+      {"text": "Pneumococcal vaccine", "correct": true},
+      {"text": "Shingles (herpes zoster) vaccine", "correct": true},
+      {"text": "Rotavirus vaccine", "correct": false},
+      {"text": "Newborn hepatitis B birth dose", "correct": false}
+    ],
+    "rationale": "Influenza, pneumococcal, and shingles vaccines are routinely recommended for older adults."
+  },
+  {
+    "item_id": "NCLEX_SELN_308018", "type": "SELECT_N", "difficulty": "Easy", "select_count": 3,
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Readiness to learn", "subtopic": "Teaching", "bloom": "Apply",
+    "stem": "Which 3 findings indicate that a client is ready to learn new health information?",
+    "options": [
+      {"text": "The client asks questions about the condition", "correct": true},
+      {"text": "The client is free of severe pain", "correct": true},
+      {"text": "The client states a goal to manage the illness", "correct": true},
+      {"text": "The client is highly anxious and unable to focus", "correct": false},
+      {"text": "The client is heavily sedated", "correct": false},
+      {"text": "The client refuses to discuss the diagnosis", "correct": false}
+    ],
+    "rationale": "Asking questions, comfort, and expressed motivation signal readiness to learn."
+  },
+  {
+    "item_id": "NCLEX_TF_308019", "type": "TF", "difficulty": "Easy", "answer": "True",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Newborn care", "subtopic": "Safe sleep", "bloom": "Understand",
+    "stem": "Placing a healthy newborn on the back to sleep reduces the risk of sudden infant death syndrome (SIDS).",
+    "rationale": "The supine sleep position is recommended to reduce the risk of SIDS."
+  },
+  {
+    "item_id": "NCLEX_TF_308020", "type": "TF", "difficulty": "Easy", "answer": "False",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Integumentary", "topic": "Skin cancer prevention", "subtopic": "Sun safety", "bloom": "Understand",
+    "stem": "Clients should be taught that sunscreen is only necessary on sunny days and can be skipped when it is cloudy.",
+    "rationale": "Ultraviolet rays penetrate clouds, so sunscreen is recommended even on cloudy days."
+  },
+  {
+    "item_id": "NCLEX_MAT_308021", "type": "MATRIX", "difficulty": "Easy", "row_label": "Milestone",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Developmental milestones", "subtopic": "Age expectations", "bloom": "Understand",
+    "stem": "For each developmental milestone, click to specify whether it is typically expected in infancy (birth to 12 months) or in the toddler period (1 to 3 years).",
+    "columns": ["Infancy", "Toddler"],
+    "rows": [
+      {"text": "Sits without support", "answer": 0},
+      {"text": "Walks up stairs", "answer": 1},
+      {"text": "Says first single words", "answer": 0},
+      {"text": "Speaks in short two-word phrases", "answer": 1}
+    ],
+    "rationale": "Sitting and first words occur in infancy; stair climbing and two-word phrases emerge in the toddler years."
+  },
+  {
+    "item_id": "NCLEX_MMR_308022", "type": "MATRIX_MR", "difficulty": "Easy", "row_label": "Vaccine",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Immune", "topic": "Immunization audience", "subtopic": "Age groups", "bloom": "Understand",
+    "stem": "For each vaccine, select all groups for whom it is routinely recommended.",
+    "columns": ["Infants/Children", "Older Adults"],
+    "rows": [
+      {"text": "Influenza vaccine", "answers": [0, 1]},
+      {"text": "Rotavirus vaccine", "answers": [0]},
+      {"text": "Shingles (herpes zoster) vaccine", "answers": [1]}
+    ],
+    "rationale": "Influenza is recommended across ages; rotavirus is for infants; shingles is for older adults."
+  },
+  {
+    "item_id": "NCLEX_CLZ_308023", "type": "CLOZE", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Endocrine", "topic": "Health screening", "subtopic": "Diabetes", "bloom": "Apply",
+    "stem": "A nurse advises a healthy adult about routine screening. Blood pressure should be checked to screen for {1}, and a fasting blood glucose or A1C is used to screen for {2}.",
+    "blanks": [
+      {"choices": [{"text": "hypertension", "correct": true}, {"text": "anemia"}, {"text": "asthma"}]},
+      {"choices": [{"text": "diabetes", "correct": true}, {"text": "glaucoma"}, {"text": "arthritis"}]}
+    ],
+    "rationale": "Blood pressure screens for hypertension; fasting glucose or A1C screens for diabetes."
+  },
+  {
+    "item_id": "NCLEX_HL_308024", "type": "HIGHLIGHT", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal warning signs", "subtopic": "Assessment", "bloom": "Analyze",
+    "stem": "Highlight the findings a nurse should teach a pregnant client to report right away. The client reports [[vaginal bleeding]], mild [[occasional heartburn]], [[blurred vision]], normal [[fetal movement]], and [[persistent severe headache]].",
+    "chunks": [
+      {"text": "vaginal bleeding", "correct": true, "feedback": "Bleeding may indicate a serious complication."},
+      {"text": "occasional heartburn", "correct": false, "feedback": "Mild heartburn is a common, expected discomfort."},
+      {"text": "blurred vision", "correct": true, "feedback": "Visual changes may signal preeclampsia."},
+      {"text": "fetal movement", "correct": false, "feedback": "Normal fetal movement is reassuring."},
+      {"text": "persistent severe headache", "correct": true, "feedback": "Severe headache may signal preeclampsia."}
+    ],
+    "rationale": "Bleeding, visual changes, and severe headache are warning signs requiring immediate reporting."
+  },
+  {
+    "item_id": "NCLEX_BT_308025", "type": "BOWTIE", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Cardiovascular", "topic": "Health maintenance", "subtopic": "Risk reduction", "bloom": "Apply",
+    "stem": "An adult with a family history of heart disease wants to reduce risk. Complete the diagram by selecting actions to take, the focus, and parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Adopt a low-sodium, low-fat diet", "correct": true},
+      {"text": "Exercise regularly", "correct": true},
+      {"text": "Begin daily tobacco use"},
+      {"text": "Increase fried food intake"}
+    ]},
+    "centre": {"label": "Focus", "tokens": [
+      {"text": "Cardiovascular risk reduction", "correct": true},
+      {"text": "Increasing body weight"},
+      {"text": "Reducing physical activity"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Blood pressure", "correct": true},
+      {"text": "Cholesterol levels", "correct": true},
+      {"text": "Hair growth"},
+      {"text": "Nail length"}
+    ]},
+    "rationale": "Diet and exercise reduce cardiovascular risk; blood pressure and cholesterol are monitored."
+  },
+  {
+    "item_id": "NCLEX_DCZ_308026", "type": "DRAG_CLOZE", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Adult screening", "subtopic": "Recommendations", "bloom": "Remember",
+    "stem": "A nurse teaches about routine adult screening. Colorectal cancer screening for average-risk adults typically begins at age [1], and breast cancer screening uses [2].",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["45 years", "mammography", "18 years"],
+    "rationale": "Colorectal screening begins at 45 for average-risk adults; mammography screens for breast cancer."
+  },
+  {
+    "item_id": "NCLEX_DO_308027", "type": "DRAG_ORDER", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Health teaching", "subtopic": "Teaching process", "bloom": "Apply",
+    "stem": "A nurse plans a health-education session for a client. Place the teaching steps in the correct order.",
+    "tokens": ["Assess the client's learning needs and readiness", "Set mutual learning goals", "Provide the health teaching", "Have the client demonstrate or restate the information", "Document the teaching and response"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]
