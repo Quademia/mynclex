@@ -156,14 +156,16 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-14 (two decisions captured from a pre-build session with Sam:
+  Living planning document. Last updated: 2026-07-14 (three changes captured from a pre-build session with Sam.
+  <strong>§9.2 corrected</strong> — min/max question counts were the pre-NGN 75/145; the NGN NCLEX-RN
+  (April 2023) uses 85/150, corrected throughout the doc. Plus two decisions:
   <strong>§7.4 reversed</strong> — case studies and trend-linked questions are IN scope for v1 CAT (real NCLEX
   serves case studies; "practise on the real thing"), with the administration mechanics — block rule,
   in-block theta updates, wrapper difficulty, wrapper-level exposure — left open for the build slice;
   §7.3 / §11 / §12.5 / §18 / §19 updated to match. <strong>§19 — dev-bank CAT test pool</strong>: seed ~1,200+
   synthetic dev-only items, realistic NCLEX-style type mix, roughly even difficulty bands, batch-tagged
   and one-line deletable, because the current CAT-eligible dev pool (~105 items) can't sustain a full
-  75–145-question CAT at the ability tails.)
+  85–150-question CAT at the ability tails.)
   Previous update: 2026-05-05 (§3.2 — "How CAT works" help page path changed from
   <code>/student/bank/help/cat</code> to <code>/help/cat</code>: top-level, audience-neutral, public. Help is
   content not workflow; same logic as the runner at <code>/session/[attempt_id]</code>. Earlier same day:
@@ -256,7 +258,7 @@
 <h3>2.1 From parent <code>bank-consumption.html</code> §16</h3>
 <ul>
   <li><strong>CAT ships in v1.</strong> Not deferred. Justified as the single most important mode for NCLEX fidelity — every prep platform that claims realism has to grapple with it.</li>
-  <li><strong>Concept summary.</strong> Difficulty per question, ability estimate updates after each answer, next item picked by ability match, terminates on confidence (NCLEX terminates at 75–145 questions), pass/fail outcome, no raw score.</li>
+  <li><strong>Concept summary.</strong> Difficulty per question, ability estimate updates after each answer, next item picked by ability match, terminates on confidence (NCLEX terminates at 85–150 questions), pass/fail outcome, no raw score.</li>
   <li><strong>v1 build components named</strong> (specifics unsettled): IRT-based ability estimator (Rasch or 2PL), question-selection strategy, termination logic, result-presentation language.</li>
 </ul>
 
@@ -271,7 +273,7 @@
   <li>CAT only appears under EXAM intent.</li>
   <li>When CAT is selected: content filters collapse with the message <em>"CAT pulls from the full bank to simulate the real exam. Filters don't apply."</em></li>
   <li>Pool filters also collapse with the same reasoning.</li>
-  <li>Question count UI hides, replaced with the static label <em>"75–145 questions, terminates when confidence is reached."</em></li>
+  <li>Question count UI hides, replaced with the static label <em>"85–150 questions, terminates when confidence is reached."</em></li>
   <li>Recent Quizzes CAT chip shows "Exam · CAT" with no filters — tapping restores Exam intent + CAT mode.</li>
 </ul>
 
@@ -351,7 +353,7 @@
 </p>
 <p>Five sections:</p>
 <ol>
-  <li><strong>What CAT does.</strong> Short paragraph: the test adapts to the student's ability, asks 75–145 questions, terminates when confident. Frames CAT as an exam-style measure, not a study tool.</li>
+  <li><strong>What CAT does.</strong> Short paragraph: the test adapts to the student's ability, asks 85–150 questions, terminates when confident. Frames CAT as an exam-style measure, not a study tool.</li>
   <li><strong>Why questions feel hard.</strong> The engine deliberately serves questions at the student's level; getting roughly half wrong is normal and expected, not a sign of weakness.</li>
   <li><strong>What the verdict means.</strong> Above standard / Below standard / Inconclusive, with the honest framing. We don't predict real-NCLEX outcomes.</li>
   <li><strong>How calibration works.</strong> Early items use curator-assigned difficulty; over time, real student responses recalibrate. Acknowledges the system improves with use.</li>
@@ -780,8 +782,8 @@
 <h2 id="s9">9. Termination logic <span class="status settled">settled</span></h2>
 <p>
   Real NCLEX terminates a CAT under one of three conditions: (1) confidence reached, (2) max questions reached
-  (145), (3) time limit reached. We mirror the same shape with our own thresholds. All four sub-decisions locked
-  2026-05-04.
+  (150), (3) time limit reached. We mirror the same shape with our own thresholds. All four sub-decisions locked
+  2026-05-04; min/max counts corrected 2026-07-14 (see §9.2).
 </p>
 
 <h3>9.1 Confidence threshold</h3>
@@ -798,15 +800,20 @@
 </p>
 <p>
   <strong>Why SE ≤ 0.40:</strong> standard CAT systems use 0.30–0.50. 0.40 sits in the middle — confident enough
-  to give a meaningful verdict, loose enough that we don't push too many students to the 145 ceiling.
+  to give a meaningful verdict, loose enough that we don't push too many students to the 150 ceiling.
 </p>
 
 <h3>9.2 Min and max question counts</h3>
 <ul>
-  <li><strong>Min: 75.</strong> The engine cannot terminate before this even if SE converges fast.</li>
-  <li><strong>Max: 145.</strong> The engine forces termination at this count regardless of SE.</li>
+  <li><strong>Min: 85.</strong> The engine cannot terminate before this even if SE converges fast.</li>
+  <li><strong>Max: 150.</strong> The engine forces termination at this count regardless of SE.</li>
 </ul>
 <p>Both match real NCLEX exactly. No reason to deviate — students practising for NCLEX should experience NCLEX's range.</p>
+<p>
+  <strong>Corrected 2026-07-14 (Sam):</strong> earlier drafts of this doc used 75/145 — the pre-NGN
+  NCLEX-RN range. The NGN test plan (live since April 2023) uses <strong>85 minimum / 150 maximum</strong>,
+  and since our rationale is "match real NCLEX exactly," the numbers are corrected throughout this doc.
+</p>
 
 <h3>9.3 Time limit</h3>
 <p>
@@ -820,14 +827,14 @@
 <ul>
   <li><code>CONFIDENCE_PASS</code> — SE ≤ 0.40 with theta clearly above 0.0. Verdict = ABOVE_STANDARD.</li>
   <li><code>CONFIDENCE_FAIL</code> — SE ≤ 0.40 with theta clearly below 0.0. Verdict = BELOW_STANDARD.</li>
-  <li><code>MAX_ITEMS_INCONCLUSIVE</code> — 145 questions reached, SE still too wide for a confident verdict. Verdict = INCONCLUSIVE.</li>
+  <li><code>MAX_ITEMS_INCONCLUSIVE</code> — 150 questions reached, SE still too wide for a confident verdict. Verdict = INCONCLUSIVE.</li>
   <li><code>TIME</code> — 4-hour time limit reached. Scored against current theta. Verdict follows the same rule as CONFIDENCE_* (above/below 0.0) if SE is acceptable, otherwise INCONCLUSIVE.</li>
   <li><code>ABANDONED</code> — student manually discarded mid-CAT, or browser-close. No verdict produced.</li>
 </ul>
 
 <h3>9.5 Inconclusive verdict — framing</h3>
 <p>
-  When the verdict is INCONCLUSIVE, the engine asked 145 questions and still couldn't confidently call it. This
+  When the verdict is INCONCLUSIVE, the engine asked 150 questions and still couldn't confidently call it. This
   isn't a fail and isn't a pass — it's "the data we got doesn't give a clear picture." Three honest causes:
 </p>
 <ol>
@@ -837,7 +844,7 @@
 </ol>
 <p>
   <strong>Result-screen copy (provisional, finalised in §13):</strong>
-  Headline "Inconclusive." Body: <em>"After 145 questions, your performance didn't give us a clear above-or-below
+  Headline "Inconclusive." Body: <em>"After 150 questions, your performance didn't give us a clear above-or-below
   standard read. This usually means your ability is sitting right around the boundary, or your answers were
   inconsistent (mixing strong and weak performance). More practice will help — focus on the categories where
   you scored lowest, then try another CAT in a few days."</em>
@@ -895,7 +902,7 @@
   <li>Scores the last answer using the existing per-question scoring functions (reused unchanged from <code>bank-marks-and-scoring.html</code>).</li>
   <li>Writes the answer into <code>nclex_attempt_answers</code>.</li>
   <li>Updates theta and SE using Rasch (1PL) update math per §4.</li>
-  <li>Checks termination conditions per §9: if SE ≤ 0.40 and items ≥ 75, OR items = 145, OR time ≥ 4 hours → terminate, write <code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>, return <code>{ status: 'COMPLETE', verdict_payload }</code>.</li>
+  <li>Checks termination conditions per §9: if SE ≤ 0.40 and items ≥ 85, OR items = 150, OR time ≥ 4 hours → terminate, write <code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>, return <code>{ status: 'COMPLETE', verdict_payload }</code>.</li>
   <li>Otherwise: pick next item per §7, snapshot into <code>nclex_attempt_items</code> with the pre-update theta/SE captured in <code>cat_theta_before</code>/<code>cat_se_before</code>, return <code>{ status: 'CONTINUE', next_item_payload }</code>.</li>
 </ul>
 
@@ -944,7 +951,7 @@
 </p>
 <ol>
   <li>
-    <strong>Integrity.</strong> CAT exams take 75–145 questions. The window during which a curator might edit a
+    <strong>Integrity.</strong> CAT exams take 85–150 questions. The window during which a curator might edit a
     question while the student is mid-exam is bigger than for any other mode. CAT's whole legitimacy depends on
     the ability estimate being a coherent measurement against a fixed answer key — if question 47's <code>correct</code>
     JSONB changes between when the student answered it and when the engine reads it, the entire ability
@@ -1264,7 +1271,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 <p><strong>INCONCLUSIVE</strong> (also drafted in §9.5)</p>
 <ul>
   <li>Headline: <em>"Inconclusive"</em></li>
-  <li>Body: <em>"After 145 questions, your performance didn't give us a clear above-or-below standard read. This usually means your ability is sitting right around the boundary, or your answers were inconsistent. More practice will help — focus on the categories where you scored lowest, then try another CAT in a few days."</em></li>
+  <li>Body: <em>"After 150 questions, your performance didn't give us a clear above-or-below standard read. This usually means your ability is sitting right around the boundary, or your answers were inconsistent. More practice will help — focus on the categories where you scored lowest, then try another CAT in a few days."</em></li>
 </ul>
 <p><strong>ABANDONED</strong> (no verdict)</p>
 <ul>
@@ -1464,7 +1471,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 <p>
   <strong>Show only the current question number (e.g. "Question 27"), no "of N" cap.</strong> CAT can't show a
   count target because the terminating question count is unknown. Students familiar with CAT know the test
-  terminates at 75–145; we don't need to engineer a "Q5 of 75 minimum" display to communicate that.
+  terminates at 85–150; we don't need to engineer a "Q5 of 85 minimum" display to communicate that.
 </p>
 <p>
   The runner's existing progress bar (used for fixed-length modes) renders differently in CAT mode: it shows
@@ -1652,7 +1659,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li>§6 — Starting difficulty: always theta = 0.0, no carry-over (settled 2026-05-04).</li>
   <li>§7 — Selection rule: closest difficulty + category as tiebreaker; bank-exhaustion fallback locked (settled 2026-05-04). §7.4 reversed 2026-07-14: cases/trends are now IN for v1; wrapper administration mechanics remain open (see carried-forward list below).</li>
   <li>§8 — Content blueprint: tiebreaker only, never overrides difficulty; monitoring logged for curator dashboard (settled 2026-05-04).</li>
-  <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 75/145, time limit 4 hours, inconclusive framing (settled 2026-05-04).</li>
+  <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 85/150 (corrected 2026-07-14 from the pre-NGN 75/145), time limit 4 hours, inconclusive framing (settled 2026-05-04).</li>
   <li>§10 — Architecture: two-RPC flow (<code>create_cat_attempt</code> + <code>cat_next_item</code>), both atomic transactions; pessimistic UI with graceful degradation (current Q stays visible dimmed; spinner at 300ms; "still loading" at 3s; error+retry at 10s); 2-retry silent backoff on network failure, immediate error on server-side throw; engine runtime location (Supabase RPC vs Edge Function vs Worker) deferred to build time with PL/pgSQL recommendation (settled 2026-05-05).</li>
   <li>§11 — Snapshot strategy: per-question at administration time (settled at file creation).</li>
   <li>§12 — Schema additions: build-handoff package locked. Two new columns on <code>nclex_bank_items</code> (<code>difficulty_irt</code> NUMERIC, <code>difficulty_source</code> TEXT with CHECK), mirrored on <code>nclex_tutor_questions</code> for v2 parity. Five new columns on <code>nclex_attempts</code> (<code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>); four new columns on <code>nclex_attempt_items</code> (<code>cat_theta_before</code>, <code>cat_se_before</code>, <code>cat_item_difficulty</code>, <code>cat_item_difficulty_source</code>). One new audit table <code>nclex_bank_item_calibration_history</code> with FK + ON DELETE CASCADE. Two RPC stubs (<code>create_cat_attempt</code>, <code>cat_next_item</code>) raising "not yet implemented." Verification queries + rollback SQL alongside. Termination reasons collapsed from 5 to 4; audit-table column names rationalised — see §12.7.11 (settled 2026-05-05).</li>
@@ -1672,7 +1679,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li><strong>Apply the §12.7 migration to dev.</strong> Sam's sign-off after dev verification gates the prod run.</li>
   <li><strong>Fill in <code>create_cat_attempt</code> and <code>cat_next_item</code> bodies</strong> with real Rasch math — separate build slice after the schema lands.</li>
   <li><strong>Empirical recalibration job</strong> — schedule, runtime location (Supabase pg_cron vs Cloudflare Worker), and the actual calibration code. Specced at planning level in §5 / §17 / §10.5; build slice still TBD.</li>
-  <li><strong>Dev-bank CAT test pool (settled 2026-07-14, Sam).</strong> The dev bank's CAT-eligible pool (~105 standalone items at audit time — most of the 999 rows are case children, unpublished, builder-hidden, or unlabelled) cannot sustain a 75–145-question CAT at the ability tails (only ~23 Easy / ~27 Hard eligible). Decision: seed <strong>~1,200+ synthetic, dev-only</strong> items — realistic NCLEX-style mix (mostly MCQ/SATA with a spread of the other standalone types), roughly even Easy/Medium/Hard bands so the tails are stress-testable, blueprint-shaped Client Needs categories, all <code>is_published = TRUE</code> + <code>is_builder_visible = TRUE</code>. Batch-tagged (<code>batch_id</code>) for one-line deletion; never ships to prod; readiness-pack-reserved items (<code>is_builder_visible = FALSE</code>) are untouched. Difficulty labels matter most — day-one <code>difficulty_irt</code> derives from them (§5.1).</li>
+  <li><strong>Dev-bank CAT test pool (settled 2026-07-14, Sam).</strong> The dev bank's CAT-eligible pool (~105 standalone items at audit time — most of the 999 rows are case children, unpublished, builder-hidden, or unlabelled) cannot sustain a 85–150-question CAT at the ability tails (only ~23 Easy / ~27 Hard eligible). Decision: seed <strong>~1,200+ synthetic, dev-only</strong> items — realistic NCLEX-style mix (mostly MCQ/SATA with a spread of the other standalone types), roughly even Easy/Medium/Hard bands so the tails are stress-testable, blueprint-shaped Client Needs categories, all <code>is_published = TRUE</code> + <code>is_builder_visible = TRUE</code>. Batch-tagged (<code>batch_id</code>) for one-line deletion; never ships to prod; readiness-pack-reserved items (<code>is_builder_visible = FALSE</code>) are untouched. Difficulty labels matter most — day-one <code>difficulty_irt</code> derives from them (§5.1).</li>
 </ul>
 
 <p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>
