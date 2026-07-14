@@ -1,6 +1,6 @@
 [
   {
-    "item_id": "NCLEX_MCQ_300001", "type": "MCQ", "difficulty": "Easy",
+    "item_id": "NCLEX_MCQ_399001", "type": "MCQ", "difficulty": "Easy",
     "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
     "subject": "Fundamentals of Nursing", "body_system": "Neurological", "topic": "Fall prevention", "subtopic": "Restraint alternatives", "bloom": "Apply",
     "stem": "A nurse is caring for an older adult client who is confused and attempting to climb out of bed. Which action should the nurse take FIRST?",
@@ -13,14 +13,14 @@
     "rationale": "The least restrictive intervention that addresses immediate safety is chosen before restraints."
   },
   {
-    "item_id": "NCLEX_TF_300001", "type": "TF", "difficulty": "Easy", "answer": "True",
+    "item_id": "NCLEX_TF_399001", "type": "TF", "difficulty": "Easy", "answer": "True",
     "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
     "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Shock", "bloom": "Understand",
     "stem": "A client with a blood pressure of 85/50 mmHg and a heart rate of 120 bpm is likely experiencing compensatory shock.",
     "rationale": "Tachycardia with hypotension reflects the compensatory stage of shock."
   },
   {
-    "item_id": "NCLEX_SATA_300001", "type": "SATA", "difficulty": "Medium",
+    "item_id": "NCLEX_SATA_399001", "type": "SATA", "difficulty": "Medium",
     "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
     "subject": "Pharmacology", "body_system": "Cardiovascular", "topic": "Digoxin toxicity", "bloom": "Analyze",
     "stem": "A nurse assesses a client taking digoxin. Which findings indicate possible digoxin toxicity? Select all that apply.",
@@ -34,7 +34,7 @@
     "rationale": "GI upset, visual halos, and bradycardia are classic signs of digoxin toxicity."
   },
   {
-    "item_id": "NCLEX_SELN_300001", "type": "SELECT_N", "difficulty": "Medium", "select_count": 3,
+    "item_id": "NCLEX_SELN_399001", "type": "SELECT_N", "difficulty": "Medium", "select_count": 3,
     "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
     "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Delegation", "bloom": "Apply",
     "stem": "Which 3 tasks can the nurse appropriately delegate to unlicensed assistive personnel?",
@@ -48,7 +48,7 @@
     "rationale": "UAP may perform stable ADLs and data collection, not assessment or medication administration."
   },
   {
-    "item_id": "NCLEX_MAT_300001", "type": "MATRIX", "difficulty": "Hard", "row_label": "Finding",
+    "item_id": "NCLEX_MAT_399001", "type": "MATRIX", "difficulty": "Hard", "row_label": "Finding",
     "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
     "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Thyroid disorders", "bloom": "Analyze",
     "stem": "For each finding, click to specify whether it is associated with hypothyroidism or hyperthyroidism.",
@@ -62,7 +62,7 @@
     "rationale": "Hypothyroidism slows metabolism; hyperthyroidism accelerates it."
   },
   {
-    "item_id": "NCLEX_MMR_300001", "type": "MATRIX_MR", "difficulty": "Hard", "row_label": "Medication",
+    "item_id": "NCLEX_MMR_399001", "type": "MATRIX_MR", "difficulty": "Hard", "row_label": "Medication",
     "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
     "subject": "Pharmacology", "body_system": "Multisystem", "topic": "Medication routes", "bloom": "Analyze",
     "stem": "For each medication, select all appropriate routes of administration (may support more than one).",
@@ -75,7 +75,7 @@
     "rationale": "Routes reflect each drug's approved administration options."
   },
   {
-    "item_id": "NCLEX_CLZ_300001", "type": "CLOZE", "difficulty": "Medium",
+    "item_id": "NCLEX_CLZ_399001", "type": "CLOZE", "difficulty": "Medium",
     "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
     "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Heart failure", "bloom": "Analyze",
     "stem": "Based on the assessment, the client is most likely experiencing {1}, evidenced by the presence of {2}.",
@@ -86,7 +86,7 @@
     "rationale": "Elevated BNP with bilateral crackles indicates heart failure exacerbation."
   },
   {
-    "item_id": "NCLEX_HL_300001", "type": "HIGHLIGHT", "difficulty": "Hard",
+    "item_id": "NCLEX_HL_399001", "type": "HIGHLIGHT", "difficulty": "Hard",
     "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
     "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Assessment cues", "bloom": "Analyze",
     "stem": "Highlight the findings that require immediate follow-up. Client reports feeling a little better. Temperature [[37.0°C]]. SpO2 93% on 4L. BP [[184/96]]. HR [[118]]. Urine output [[15 mL/hr]]. Reports [[new-onset chest pressure]].",
@@ -100,7 +100,7 @@
     "rationale": "Elevated BP/HR, oliguria, and new chest pressure are all concerning cues."
   },
   {
-    "item_id": "NCLEX_BT_300001", "type": "BOWTIE", "difficulty": "Hard",
+    "item_id": "NCLEX_BT_399001", "type": "BOWTIE", "difficulty": "Hard",
     "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
     "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Heart failure", "bloom": "Evaluate",
     "stem": "Complete the diagram by selecting the condition, actions to take, and parameters to monitor.",
@@ -124,7 +124,7 @@
     "rationale": "HF exacerbation is managed with diuresis and positioning, monitoring weight and oxygenation."
   },
   {
-    "item_id": "NCLEX_DCZ_300001", "type": "DRAG_CLOZE", "difficulty": "Medium",
+    "item_id": "NCLEX_DCZ_399001", "type": "DRAG_CLOZE", "difficulty": "Medium",
     "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
     "subject": "Pharmacology", "body_system": "Genitourinary", "topic": "Electrolytes", "bloom": "Apply",
     "stem": "A client taking furosemide has a potassium level of [1]; the nurse anticipates a replacement goal of [2].",
@@ -133,7 +133,7 @@
     "rationale": "Furosemide causes hypokalemia; the goal is a normal potassium of ~4.2 mEq/L."
   },
   {
-    "item_id": "NCLEX_DO_300001", "type": "DRAG_ORDER", "difficulty": "Medium",
+    "item_id": "NCLEX_DO_399001", "type": "DRAG_ORDER", "difficulty": "Medium",
     "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
     "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Emergency response", "bloom": "Apply",
     "stem": "A postoperative client suddenly reports shortness of breath. Place the nurse's actions in priority order.",

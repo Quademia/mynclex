@@ -31,6 +31,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, 'data');
 const OUT_DIR = join(__dirname, '..', '..'); // db/
 const BATCH_ID = 'DEV_CAT_POOL';
+const QUESTION_REF = 'CATPREP'; // human-facing identifier, shown in the admin bank UI
 
 // ── vocabulary (must mirror lib/bank/classifications.ts EXACTLY) ──────────────
 const QUESTION_TYPES = ['MCQ', 'TF', 'SATA', 'SELECT_N', 'MATRIX', 'MATRIX_MR',
@@ -236,12 +237,12 @@ function rowSql(r) {
   const d = r.def;
   return `('${d.item_id}', '${d.type}', ${q(d.stem)}, ${q(d.rationale)}, ${jq(r.content)}, ${jq(r.correct)}, ` +
     `${q(d.category)}, ${q(d.subcategory)}, ${q(d.subject)}, ${q(d.body_system)}, ${q(d.topic)}, ${q(d.subtopic)}, ` +
-    `${q(d.difficulty)}, ${q(d.bloom)}, '{}', ${r.marks}, TRUE, TRUE, FALSE, '${BATCH_ID}')`;
+    `${q(d.difficulty)}, ${q(d.bloom)}, '{}', ${r.marks}, TRUE, TRUE, FALSE, '${BATCH_ID}', '${QUESTION_REF}')`;
 }
 
 const COLS = `item_id, question_type, stem, rationale, content, correct, ` +
   `client_needs_category, client_needs_subcategory, nursing_subject, body_system, topic, subtopic, ` +
-  `difficulty, bloom_level, tags, marks, is_published, is_builder_visible, is_free_sample, batch_id`;
+  `difficulty, bloom_level, tags, marks, is_published, is_builder_visible, is_free_sample, batch_id, question_ref`;
 
 // ── main ─────────────────────────────────────────────────────────────────────
 // Guard: only run the file-reading/emit pipeline when invoked directly
