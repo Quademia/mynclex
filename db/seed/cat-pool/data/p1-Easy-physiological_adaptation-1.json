@@ -1,0 +1,372 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_320001", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Chest tube management", "bloom": "Apply",
+    "stem": "A nurse is caring for a client with a chest tube connected to a water-seal drainage system. The nurse notes gentle bubbling in the water-seal chamber that fluctuates with respiration. Which action should the nurse take?",
+    "options": [
+      {"text": "Continue to monitor, as this is an expected finding", "correct": true, "feedback": "Correct. Tidaling (fluctuation with respiration) reflects normal function."},
+      {"text": "Clamp the chest tube immediately", "correct": false, "feedback": "Incorrect. Clamping can cause a tension pneumothorax."},
+      {"text": "Notify the provider of a system malfunction", "correct": false, "feedback": "Incorrect. This is a normal finding, not a malfunction."},
+      {"text": "Milk the tubing toward the drainage collection chamber", "correct": false, "feedback": "Incorrect. Milking is not routinely done and can damage tissue."}
+    ],
+    "rationale": "Fluctuation in the water-seal chamber with respiration (tidaling) is a normal, expected finding."
+  },
+  {
+    "item_id": "NCLEX_MCQ_320002", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "Ostomy care", "bloom": "Apply",
+    "stem": "A nurse is teaching a client about caring for a new colostomy. Which stoma appearance should the nurse teach the client to report to the provider?",
+    "options": [
+      {"text": "A pink, moist stoma", "correct": false, "feedback": "Incorrect. Pink and moist is a healthy stoma."},
+      {"text": "A dark purple or black stoma", "correct": true, "feedback": "Correct. A dusky, purple, or black stoma suggests impaired blood flow."},
+      {"text": "A stoma that protrudes slightly above the skin", "correct": false, "feedback": "Incorrect. A slightly protruding stoma is normal."},
+      {"text": "Minor bleeding when cleansing the stoma", "correct": false, "feedback": "Incorrect. Slight bleeding with cleansing is common."}
+    ],
+    "rationale": "A dark purple or black stoma indicates ischemia and must be reported immediately."
+  },
+  {
+    "item_id": "NCLEX_MCQ_320003", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Hemodialysis", "bloom": "Apply",
+    "stem": "A nurse is assessing an arteriovenous (AV) fistula in a client's left arm before hemodialysis. Which finding indicates the fistula is patent and functioning?",
+    "options": [
+      {"text": "A palpable thrill and audible bruit over the site", "correct": true, "feedback": "Correct. A thrill and bruit confirm blood flow through the fistula."},
+      {"text": "A blood pressure cuff reading obtained from that arm", "correct": false, "feedback": "Incorrect. BP should never be taken in the fistula arm."},
+      {"text": "Absence of a pulse distal to the fistula", "correct": false, "feedback": "Incorrect. This suggests compromised circulation."},
+      {"text": "Cool, pale skin over the fistula", "correct": false, "feedback": "Incorrect. This suggests poor perfusion."}
+    ],
+    "rationale": "A palpable thrill and audible bruit confirm a patent, functioning AV fistula."
+  },
+  {
+    "item_id": "NCLEX_MCQ_320004", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Suctioning", "bloom": "Apply",
+    "stem": "A nurse is preparing to perform endotracheal suctioning on a client. Which intervention should the nurse implement to reduce the risk of hypoxemia?",
+    "options": [
+      {"text": "Hyperoxygenate the client before suctioning", "correct": true, "feedback": "Correct. Pre-oxygenation prevents suction-induced hypoxemia."},
+      {"text": "Apply suction while inserting the catheter", "correct": false, "feedback": "Incorrect. Suction is applied only during withdrawal."},
+      {"text": "Suction continuously for 30 seconds", "correct": false, "feedback": "Incorrect. Suctioning should not exceed 10-15 seconds."},
+      {"text": "Instill 10 mL of saline before each pass", "correct": false, "feedback": "Incorrect. Routine saline instillation is not recommended."}
+    ],
+    "rationale": "Hyperoxygenation before suctioning helps prevent suction-induced hypoxemia."
+  },
+  {
+    "item_id": "NCLEX_MCQ_320005", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Fluid and electrolyte imbalance", "bloom": "Understand",
+    "stem": "A client's serum sodium level is 128 mEq/L. The nurse recognizes this laboratory value as indicating which condition?",
+    "options": [
+      {"text": "Hyponatremia", "correct": true, "feedback": "Correct. Normal sodium is 135-145 mEq/L; 128 is low."},
+      {"text": "Hypernatremia", "correct": false, "feedback": "Incorrect. Hypernatremia is a high sodium level."},
+      {"text": "Hyperkalemia", "correct": false, "feedback": "Incorrect. This value describes sodium, not potassium."},
+      {"text": "Normal sodium level", "correct": false, "feedback": "Incorrect. 128 mEq/L is below the normal range."}
+    ],
+    "rationale": "A serum sodium of 128 mEq/L is below the normal range of 135-145 mEq/L, indicating hyponatremia."
+  },
+  {
+    "item_id": "NCLEX_MCQ_320006", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Pediatrics", "body_system": "Hematologic", "topic": "Phototherapy", "bloom": "Apply",
+    "stem": "A nurse is caring for a newborn receiving phototherapy for hyperbilirubinemia. Which nursing action is appropriate?",
+    "options": [
+      {"text": "Cover the newborn's eyes with protective shields", "correct": true, "feedback": "Correct. Eye shields protect the retina from the light."},
+      {"text": "Dress the newborn in a long-sleeved gown", "correct": false, "feedback": "Incorrect. Skin exposure maximizes light effectiveness."},
+      {"text": "Apply lotion to the skin before treatment", "correct": false, "feedback": "Incorrect. Lotions can cause burns under phototherapy."},
+      {"text": "Keep the newborn at least 3 feet from the light", "correct": false, "feedback": "Incorrect. The light is positioned per protocol, not 3 feet away."}
+    ],
+    "rationale": "Eye shields protect the newborn's retina from potential damage during phototherapy."
+  },
+  {
+    "item_id": "NCLEX_MCQ_320007", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Sepsis", "bloom": "Understand",
+    "stem": "A nurse is reviewing findings for a client with suspected sepsis. Which set of vital signs is most consistent with early sepsis?",
+    "options": [
+      {"text": "Temperature 38.9°C, heart rate 112 bpm, respirations 24/min", "correct": true, "feedback": "Correct. Fever, tachycardia, and tachypnea are classic early sepsis signs."},
+      {"text": "Temperature 36.5°C, heart rate 68 bpm, respirations 14/min", "correct": false, "feedback": "Incorrect. These are normal vital signs."},
+      {"text": "Temperature 37.0°C, heart rate 60 bpm, respirations 12/min", "correct": false, "feedback": "Incorrect. These reflect a stable client."},
+      {"text": "Temperature 36.8°C, blood pressure 130/80 mmHg, respirations 16/min", "correct": false, "feedback": "Incorrect. These are within normal limits."}
+    ],
+    "rationale": "Fever, tachycardia, and tachypnea are hallmark systemic responses in early sepsis."
+  },
+  {
+    "item_id": "NCLEX_MCQ_320008", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Integumentary", "topic": "Wound care", "bloom": "Apply",
+    "stem": "A nurse is changing a dressing on a client's surgical wound. Which principle should the nurse follow to prevent infection?",
+    "options": [
+      {"text": "Use sterile technique when handling the wound", "correct": true, "feedback": "Correct. Sterile technique prevents wound contamination."},
+      {"text": "Clean the wound from the outer edges toward the center", "correct": false, "feedback": "Incorrect. Clean from center outward, least to most contaminated."},
+      {"text": "Reuse the same gauze to cover the entire wound", "correct": false, "feedback": "Incorrect. This spreads contamination."},
+      {"text": "Leave the old dressing off for one hour before reapplying", "correct": false, "feedback": "Incorrect. This exposes the wound to contamination."}
+    ],
+    "rationale": "Sterile technique during a surgical dressing change prevents introduction of pathogens."
+  },
+  {
+    "item_id": "NCLEX_MCQ_320009", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Telemetry", "bloom": "Understand",
+    "stem": "A nurse observes a client's cardiac monitor showing a regular rhythm with a rate of 40 bpm, a P wave before each QRS, and a normal PR interval. The nurse identifies this rhythm as which of the following?",
+    "options": [
+      {"text": "Sinus bradycardia", "correct": true, "feedback": "Correct. A rate under 60 with normal conduction is sinus bradycardia."},
+      {"text": "Sinus tachycardia", "correct": false, "feedback": "Incorrect. Tachycardia has a rate over 100."},
+      {"text": "Atrial fibrillation", "correct": false, "feedback": "Incorrect. A-fib is irregular with no clear P waves."},
+      {"text": "Ventricular fibrillation", "correct": false, "feedback": "Incorrect. V-fib is a chaotic, lethal rhythm with no organized complexes."}
+    ],
+    "rationale": "A regular rhythm under 60 bpm with normal P waves and PR interval is sinus bradycardia."
+  },
+  {
+    "item_id": "NCLEX_MCQ_320010", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Increased intracranial pressure", "bloom": "Understand",
+    "stem": "A nurse is monitoring a client with a head injury for increased intracranial pressure (ICP). Which early sign should the nurse recognize?",
+    "options": [
+      {"text": "Decreasing level of consciousness", "correct": true, "feedback": "Correct. A change in level of consciousness is the earliest sign of rising ICP."},
+      {"text": "Fixed, dilated pupils", "correct": false, "feedback": "Incorrect. This is a late sign."},
+      {"text": "Cushing's triad", "correct": false, "feedback": "Incorrect. Cushing's triad is a late, ominous sign."},
+      {"text": "Absent gag reflex", "correct": false, "feedback": "Incorrect. This occurs with severe, late deterioration."}
+    ],
+    "rationale": "A declining level of consciousness is the earliest and most sensitive indicator of increased ICP."
+  },
+  {
+    "item_id": "NCLEX_MCQ_320011", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Temperature regulation", "bloom": "Apply",
+    "stem": "A nurse is caring for a client with a temperature of 40.0°C. Which intervention should the nurse implement to help lower the client's temperature?",
+    "options": [
+      {"text": "Apply a cooling blanket as prescribed", "correct": true, "feedback": "Correct. A cooling blanket promotes heat loss for high fever."},
+      {"text": "Cover the client with several warm blankets", "correct": false, "feedback": "Incorrect. This traps heat and worsens the fever."},
+      {"text": "Encourage the client to wear thick clothing", "correct": false, "feedback": "Incorrect. This retains body heat."},
+      {"text": "Restrict all oral fluids", "correct": false, "feedback": "Incorrect. Fluids are needed to replace losses in fever."}
+    ],
+    "rationale": "A cooling blanket promotes heat dissipation and helps reduce a high fever."
+  },
+  {
+    "item_id": "NCLEX_MCQ_320012", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Mechanical ventilation", "bloom": "Apply",
+    "stem": "A high-pressure alarm sounds on the ventilator of a client who is intubated and coughing forcefully. Which is the most likely cause?",
+    "options": [
+      {"text": "Secretions obstructing the airway", "correct": true, "feedback": "Correct. Secretions or coughing increase airway resistance and pressure."},
+      {"text": "A disconnection in the ventilator circuit", "correct": false, "feedback": "Incorrect. A disconnection triggers a low-pressure alarm."},
+      {"text": "A cuff leak in the endotracheal tube", "correct": false, "feedback": "Incorrect. A leak causes a low-pressure alarm."},
+      {"text": "The client being extubated", "correct": false, "feedback": "Incorrect. Extubation causes a low-pressure/apnea alarm."}
+    ],
+    "rationale": "A high-pressure alarm indicates increased airway resistance, commonly from secretions, coughing, or kinking."
+  },
+  {
+    "item_id": "NCLEX_MCQ_320013", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "Postoperative care", "bloom": "Apply",
+    "stem": "A nurse is caring for a client on the first day after abdominal surgery who has a nasogastric tube set to low intermittent suction. The nurse notes the tube has stopped draining. Which action should the nurse take first?",
+    "options": [
+      {"text": "Check the tube for kinks or obstruction", "correct": true, "feedback": "Correct. Assessing for a mechanical cause is the first, least invasive step."},
+      {"text": "Remove the nasogastric tube", "correct": false, "feedback": "Incorrect. Removal requires an order and is not the first action."},
+      {"text": "Increase the suction to high continuous", "correct": false, "feedback": "Incorrect. This can damage gastric mucosa."},
+      {"text": "Advance the tube 5 cm further", "correct": false, "feedback": "Incorrect. Repositioning is not done without assessment or order."}
+    ],
+    "rationale": "Checking the tube for kinks or obstruction is the first and least invasive step when an NG tube stops draining."
+  },
+  {
+    "item_id": "NCLEX_SATA_320014", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Hypovolemic shock", "bloom": "Understand",
+    "stem": "A nurse is assessing a client for signs of hypovolemic shock. Which findings should the nurse expect? Select all that apply.",
+    "options": [
+      {"text": "Tachycardia", "correct": true},
+      {"text": "Hypotension", "correct": true},
+      {"text": "Cool, clammy skin", "correct": true},
+      {"text": "Decreased urine output", "correct": true},
+      {"text": "Bounding peripheral pulses", "correct": false},
+      {"text": "Flushed, warm skin", "correct": false}
+    ],
+    "rationale": "Hypovolemic shock produces tachycardia, hypotension, cool clammy skin, and oliguria as the body compensates for low volume."
+  },
+  {
+    "item_id": "NCLEX_SATA_320015", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Hyperkalemia", "bloom": "Understand",
+    "stem": "A nurse is caring for a client with a serum potassium of 6.5 mEq/L. Which findings should the nurse monitor for? Select all that apply.",
+    "options": [
+      {"text": "Cardiac dysrhythmias", "correct": true},
+      {"text": "Muscle weakness", "correct": true},
+      {"text": "Peaked T waves on the ECG", "correct": true},
+      {"text": "Constipation", "correct": false},
+      {"text": "Increased urine output", "correct": false},
+      {"text": "Hypertension", "correct": false}
+    ],
+    "rationale": "Hyperkalemia causes cardiac dysrhythmias, peaked T waves, and muscle weakness due to altered membrane excitability."
+  },
+  {
+    "item_id": "NCLEX_SATA_320016", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Chest tube care", "bloom": "Apply",
+    "stem": "A nurse is caring for a client with a chest tube. Which findings should the nurse report to the provider immediately? Select all that apply.",
+    "options": [
+      {"text": "Continuous vigorous bubbling in the water-seal chamber", "correct": true},
+      {"text": "Sudden onset of severe shortness of breath", "correct": true},
+      {"text": "Drainage of more than 100 mL of bright red blood per hour", "correct": true},
+      {"text": "Gentle tidaling in the water-seal chamber", "correct": false},
+      {"text": "An intact occlusive dressing at the insertion site", "correct": false}
+    ],
+    "rationale": "Continuous vigorous bubbling suggests an air leak, sudden dyspnea suggests displacement, and heavy bright-red drainage suggests hemorrhage."
+  },
+  {
+    "item_id": "NCLEX_SATA_320017", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Dehydration", "bloom": "Understand",
+    "stem": "A nurse is assessing an older adult client for fluid volume deficit. Which findings support this diagnosis? Select all that apply.",
+    "options": [
+      {"text": "Dry mucous membranes", "correct": true},
+      {"text": "Poor skin turgor", "correct": true},
+      {"text": "Concentrated, dark urine", "correct": true},
+      {"text": "Bounding, full pulses", "correct": false},
+      {"text": "Jugular vein distension", "correct": false},
+      {"text": "Crackles in the lung bases", "correct": false}
+    ],
+    "rationale": "Fluid volume deficit causes dry mucous membranes, poor skin turgor, and concentrated urine; the other options indicate fluid overload."
+  },
+  {
+    "item_id": "NCLEX_SATA_320018", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Fluid overload", "bloom": "Understand",
+    "stem": "A nurse is monitoring a client for fluid volume overload. Which assessment findings should the nurse expect? Select all that apply.",
+    "options": [
+      {"text": "Peripheral edema", "correct": true},
+      {"text": "Weight gain", "correct": true},
+      {"text": "Bounding pulses", "correct": true},
+      {"text": "Sunken eyes", "correct": false},
+      {"text": "Decreased blood pressure", "correct": false}
+    ],
+    "rationale": "Fluid overload produces edema, weight gain, and bounding pulses from excess circulating volume."
+  },
+  {
+    "item_id": "NCLEX_SATA_320019", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Integumentary", "topic": "Wound healing", "bloom": "Understand",
+    "stem": "A nurse is assessing a surgical wound for signs of infection. Which findings indicate a possible wound infection? Select all that apply.",
+    "options": [
+      {"text": "Purulent drainage", "correct": true},
+      {"text": "Increasing redness around the wound", "correct": true},
+      {"text": "Warmth at the wound site", "correct": true},
+      {"text": "Approximated wound edges", "correct": false},
+      {"text": "Pink granulation tissue", "correct": false}
+    ],
+    "rationale": "Purulent drainage, spreading redness, and warmth are classic signs of wound infection."
+  },
+  {
+    "item_id": "NCLEX_SELN_320020", "type": "SELECT_N", "difficulty": "Easy", "select_count": 2,
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Peritoneal dialysis", "bloom": "Apply",
+    "stem": "A nurse is caring for a client receiving peritoneal dialysis. Which 2 findings should the nurse report to the provider immediately?",
+    "options": [
+      {"text": "Cloudy dialysate outflow", "correct": true},
+      {"text": "Fever of 38.6°C", "correct": true},
+      {"text": "Clear, pale-yellow dialysate outflow", "correct": false},
+      {"text": "Mild fullness during the dwell", "correct": false},
+      {"text": "Warmed dialysate solution before instillation", "correct": false}
+    ],
+    "rationale": "Cloudy outflow and fever are signs of peritonitis, a serious complication requiring prompt reporting."
+  },
+  {
+    "item_id": "NCLEX_TF_320021", "type": "TF", "difficulty": "Easy", "answer": "True",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Impaired oxygenation", "bloom": "Understand",
+    "stem": "Cyanosis of the lips and nail beds is a sign of inadequate tissue oxygenation.",
+    "rationale": "Central cyanosis reflects reduced oxygen saturation of hemoglobin and indicates impaired oxygenation."
+  },
+  {
+    "item_id": "NCLEX_MAT_320022", "type": "MATRIX", "difficulty": "Easy", "row_label": "Finding",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Fluid and electrolyte imbalance", "bloom": "Understand",
+    "stem": "For each finding, click to specify whether it is associated with hypocalcemia or hypercalcemia.",
+    "columns": ["Hypocalcemia", "Hypercalcemia"],
+    "rows": [
+      {"text": "Positive Trousseau's sign", "answer": 0},
+      {"text": "Muscle cramps and tetany", "answer": 0},
+      {"text": "Decreased deep tendon reflexes", "answer": 1},
+      {"text": "Constipation", "answer": 1}
+    ],
+    "rationale": "Low calcium increases neuromuscular excitability (tetany, Trousseau's); high calcium depresses it (weak reflexes, constipation)."
+  },
+  {
+    "item_id": "NCLEX_MMR_320023", "type": "MATRIX_MR", "difficulty": "Easy", "row_label": "Condition",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Acid-base balance", "bloom": "Understand",
+    "stem": "For each acid-base disturbance, select all matching arterial blood gas findings.",
+    "columns": ["Low pH", "High pH", "High CO2"],
+    "rows": [
+      {"text": "Respiratory acidosis", "answers": [0, 2]},
+      {"text": "Respiratory alkalosis", "answers": [1]},
+      {"text": "Metabolic acidosis", "answers": [0]}
+    ],
+    "rationale": "Respiratory acidosis shows a low pH with retained CO2; respiratory alkalosis shows a high pH; metabolic acidosis shows a low pH."
+  },
+  {
+    "item_id": "NCLEX_CLZ_320024", "type": "CLOZE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Hypoglycemia", "bloom": "Apply",
+    "stem": "A client is diaphoretic, shaky, and confused with a blood glucose of 52 mg/dL. The nurse recognizes this as {1} and, if the client can swallow, should first provide {2}.",
+    "blanks": [
+      {"choices": [{"text": "hypoglycemia", "correct": true}, {"text": "hyperglycemia"}, {"text": "diabetic ketoacidosis"}]},
+      {"choices": [{"text": "15 g of fast-acting oral carbohydrate", "correct": true}, {"text": "a dose of long-acting insulin"}, {"text": "a high-protein meal"}]}
+    ],
+    "rationale": "A glucose of 52 mg/dL with adrenergic symptoms is hypoglycemia, treated with 15 g of fast-acting carbohydrate when the client can swallow."
+  },
+  {
+    "item_id": "NCLEX_HL_320025", "type": "HIGHLIGHT", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Complication recognition", "bloom": "Analyze",
+    "stem": "The nurse reviews a postoperative client's assessment. Highlight the findings that require immediate follow-up. Temperature [[37.1°C]]. Blood pressure [[88/54]]. Heart rate [[126]]. SpO2 [[97% on room air]]. Reports [[increasing incisional pain unrelieved by medication]].",
+    "chunks": [
+      {"text": "37.1°C", "correct": false, "feedback": "Normal temperature."},
+      {"text": "88/54", "correct": true, "feedback": "Hypotension — needs follow-up."},
+      {"text": "126", "correct": true, "feedback": "Tachycardia — needs follow-up."},
+      {"text": "97% on room air", "correct": false, "feedback": "Normal oxygen saturation."},
+      {"text": "increasing incisional pain unrelieved by medication", "correct": true, "feedback": "Unrelieved worsening pain may signal a complication."}
+    ],
+    "rationale": "Hypotension, tachycardia, and worsening unrelieved pain are concerning postoperative cues requiring follow-up."
+  },
+  {
+    "item_id": "NCLEX_BT_320026", "type": "BOWTIE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Impaired oxygenation", "bloom": "Apply",
+    "stem": "A client with pneumonia has an SpO2 of 88% and increased work of breathing. Complete the diagram by selecting the condition, actions to take, and parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Administer prescribed oxygen", "correct": true},
+      {"text": "Raise the head of the bed", "correct": true},
+      {"text": "Lay the client flat"},
+      {"text": "Restrict all fluids"}
+    ]},
+    "centre": {"label": "Condition", "tokens": [
+      {"text": "Impaired gas exchange", "correct": true},
+      {"text": "Fluid volume deficit"},
+      {"text": "Hyperglycemia"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Oxygen saturation", "correct": true},
+      {"text": "Respiratory rate", "correct": true},
+      {"text": "Blood glucose"},
+      {"text": "Deep tendon reflexes"}
+    ]},
+    "rationale": "Impaired gas exchange is managed with oxygen and upright positioning while monitoring oxygenation and respiratory rate."
+  },
+  {
+    "item_id": "NCLEX_DCZ_320027", "type": "DRAG_CLOZE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Acid-base balance", "bloom": "Understand",
+    "stem": "A client who is hyperventilating from anxiety blows off excess carbon dioxide, which causes the pH to [1] and results in respiratory [2].",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["rise", "alkalosis", "acidosis"],
+    "rationale": "Hyperventilation lowers CO2, raising pH and producing respiratory alkalosis."
+  },
+  {
+    "item_id": "NCLEX_DO_320028", "type": "DRAG_ORDER", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Emergency care procedures", "bloom": "Apply",
+    "stem": "A client's chest tube becomes accidentally disconnected from the drainage system. Place the nurse's actions in priority order.",
+    "tokens": ["Submerge the tube end in sterile water", "Reconnect a new sterile drainage system", "Notify the provider", "Assess the client's respiratory status", "Document the event"],
+    "order": [{"token": 3}, {"token": 0}, {"token": 1}, {"token": 2}, {"token": 4}]
+  }
+]

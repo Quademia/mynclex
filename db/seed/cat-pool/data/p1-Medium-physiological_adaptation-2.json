@@ -1,0 +1,377 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_344001", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Chest tube management", "subtopic": "Tidaling", "bloom": "Analyze",
+    "stem": "A nurse observes that the water-seal chamber of a client's chest drainage system no longer fluctuates (tidals) with respiration. The client had continuous tidaling since insertion. Which action should the nurse take FIRST?",
+    "options": [
+      {"text": "Check the tubing for kinks or dependent loops", "correct": true, "feedback": "Correct. Cessation of tidaling most often means the tubing is obstructed or the lung has re-expanded; assess for obstruction first."},
+      {"text": "Clamp the chest tube and notify the provider", "correct": false, "feedback": "Incorrect. Clamping a functioning chest tube risks tension pneumothorax."},
+      {"text": "Strip and milk the entire length of tubing", "correct": false, "feedback": "Incorrect. Aggressive stripping generates high negative pressure and is not the first assessment."},
+      {"text": "Increase the wall suction pressure", "correct": false, "feedback": "Incorrect. Suction is set by the water column, not wall pressure, and this does not address obstruction."}
+    ],
+    "rationale": "Absent tidaling signals either lung re-expansion or an obstruction; the nurse assesses the tubing for kinks/loops before other actions."
+  },
+  {
+    "item_id": "NCLEX_MCQ_344002", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Mechanical ventilation", "subtopic": "High-pressure alarm", "bloom": "Analyze",
+    "stem": "A client on a volume-controlled ventilator triggers a high-pressure alarm. The client is coughing and the SpO2 is dropping. Which is the most likely cause the nurse should address?",
+    "options": [
+      {"text": "Secretions obstructing the airway", "correct": true, "feedback": "Correct. Increased airway resistance from secretions raises peak pressure; suctioning is indicated."},
+      {"text": "A disconnection at the ventilator circuit", "correct": false, "feedback": "Incorrect. A disconnection triggers a low-pressure alarm."},
+      {"text": "A cuff leak around the endotracheal tube", "correct": false, "feedback": "Incorrect. A leak lowers pressure and triggers a low-pressure alarm."},
+      {"text": "The tidal volume set too low", "correct": false, "feedback": "Incorrect. Low tidal volume does not raise peak airway pressure."}
+    ],
+    "rationale": "High-pressure alarms reflect increased resistance/decreased compliance—commonly secretions, coughing, or biting; suctioning addresses the obstruction."
+  },
+  {
+    "item_id": "NCLEX_MCQ_344003", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Hemodialysis", "subtopic": "AV fistula", "bloom": "Apply",
+    "stem": "A nurse is caring for a client with a newly placed arteriovenous (AV) fistula in the left arm. Which finding requires immediate provider notification?",
+    "options": [
+      {"text": "Absence of a bruit and thrill over the fistula", "correct": true, "feedback": "Correct. A missing bruit/thrill indicates the fistula has clotted—an emergency for access patency."},
+      {"text": "A palpable thrill on light palpation", "correct": false, "feedback": "Incorrect. A thrill is the expected sign of a patent fistula."},
+      {"text": "Mild bruising at the surgical site", "correct": false, "feedback": "Incorrect. Mild bruising after placement is expected."},
+      {"text": "An audible swishing sound on auscultation", "correct": false, "feedback": "Incorrect. A bruit is the normal auscultatory finding of patency."}
+    ],
+    "rationale": "A patent fistula has a palpable thrill and audible bruit; loss of both signals thrombosis requiring urgent intervention."
+  },
+  {
+    "item_id": "NCLEX_MCQ_344004", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "Ostomy care", "subtopic": "Stoma assessment", "bloom": "Analyze",
+    "stem": "On the first postoperative day, a nurse assesses a new colostomy and notes the stoma is dusky purple and dry. What does this finding indicate?",
+    "options": [
+      {"text": "Compromised blood supply to the stoma", "correct": true, "feedback": "Correct. A dusky, dark, or dry stoma signals ischemia and must be reported immediately."},
+      {"text": "Normal expected postoperative appearance", "correct": false, "feedback": "Incorrect. A healthy stoma is pink-to-red, moist, and shiny."},
+      {"text": "Adequate perfusion with mild edema", "correct": false, "feedback": "Incorrect. Adequate perfusion produces a pink/red color."},
+      {"text": "Expected bruising from surgical manipulation", "correct": false, "feedback": "Incorrect. Dusky/purple with dryness reflects ischemia, not simple bruising."}
+    ],
+    "rationale": "A viable stoma is pink/red and moist; a purple, dusky, or dry stoma indicates ischemia or necrosis requiring urgent reporting."
+  },
+  {
+    "item_id": "NCLEX_MCQ_344005", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Sepsis", "subtopic": "Early recognition", "bloom": "Analyze",
+    "stem": "A client with a urinary tract infection has a temperature of 38.9°C, heart rate 112, respiratory rate 24, and blood pressure 92/56. Lactate is 3.2 mmol/L. Which condition should the nurse suspect?",
+    "options": [
+      {"text": "Sepsis with hypoperfusion", "correct": true, "feedback": "Correct. Infection plus tachycardia, tachypnea, hypotension, and elevated lactate indicate sepsis with tissue hypoperfusion."},
+      {"text": "Simple dehydration", "correct": false, "feedback": "Incorrect. Dehydration does not explain the elevated lactate with a known infection source."},
+      {"text": "An anaphylactic reaction", "correct": false, "feedback": "Incorrect. There is no allergen exposure, wheezing, or urticaria described."},
+      {"text": "Neurogenic shock", "correct": false, "feedback": "Incorrect. Neurogenic shock features bradycardia, not tachycardia."}
+    ],
+    "rationale": "A known infection with SIRS criteria, hypotension, and lactate >2 mmol/L reflects sepsis with hypoperfusion."
+  },
+  {
+    "item_id": "NCLEX_MCQ_344006", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Increased intracranial pressure", "subtopic": "Cushing triad", "bloom": "Analyze",
+    "stem": "A nurse monitors a client with a traumatic brain injury and notes blood pressure rising to 168/62, heart rate 48, and irregular respirations. Which complication do these findings indicate?",
+    "options": [
+      {"text": "Increased intracranial pressure (Cushing triad)", "correct": true, "feedback": "Correct. Widening pulse pressure, bradycardia, and irregular respirations are the Cushing triad of rising ICP."},
+      {"text": "Hypovolemic shock", "correct": false, "feedback": "Incorrect. Hypovolemic shock causes hypotension and tachycardia."},
+      {"text": "Autonomic dysreflexia", "correct": false, "feedback": "Incorrect. Dysreflexia occurs with spinal cord injury above T6, not TBI."},
+      {"text": "Diabetes insipidus", "correct": false, "feedback": "Incorrect. DI presents with polyuria and hypernatremia, not this vital-sign pattern."}
+    ],
+    "rationale": "The Cushing triad—hypertension with widened pulse pressure, bradycardia, and irregular respirations—is a late sign of increased ICP."
+  },
+  {
+    "item_id": "NCLEX_MCQ_344007", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Diabetic ketoacidosis", "subtopic": "Potassium management", "bloom": "Apply",
+    "stem": "A client in diabetic ketoacidosis is receiving an insulin infusion. The serum potassium is now 3.3 mEq/L. Which action should the nurse anticipate?",
+    "options": [
+      {"text": "Adding potassium replacement to the IV fluids", "correct": true, "feedback": "Correct. Insulin drives potassium into cells; with a low level, replacement is added to prevent life-threatening hypokalemia."},
+      {"text": "Stopping the insulin infusion permanently", "correct": false, "feedback": "Incorrect. Insulin is needed to correct the ketoacidosis; potassium is replaced instead."},
+      {"text": "Administering sodium bicarbonate", "correct": false, "feedback": "Incorrect. Bicarbonate is reserved for severe acidosis and would worsen hypokalemia."},
+      {"text": "Restricting all IV fluids", "correct": false, "feedback": "Incorrect. DKA requires aggressive fluid resuscitation."}
+    ],
+    "rationale": "Insulin shifts potassium intracellularly; a level of 3.3 mEq/L requires replacement to avoid dangerous hypokalemia during DKA treatment."
+  },
+  {
+    "item_id": "NCLEX_MCQ_344008", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Telemetry", "subtopic": "Ventricular tachycardia", "bloom": "Analyze",
+    "stem": "A telemetry monitor shows a wide-complex regular rhythm at 180 bpm. The client is alert, reports palpitations, and has a blood pressure of 118/70. Which is the nurse's priority action?",
+    "options": [
+      {"text": "Prepare for antiarrhythmic administration per protocol", "correct": true, "feedback": "Correct. Stable ventricular tachycardia with a pulse is treated pharmacologically per ACLS."},
+      {"text": "Deliver an unsynchronized defibrillation shock", "correct": false, "feedback": "Incorrect. Defibrillation is for pulseless VT/VF, not a stable client with a pulse."},
+      {"text": "Begin chest compressions immediately", "correct": false, "feedback": "Incorrect. The client has a pulse and is alert; CPR is not indicated."},
+      {"text": "Withhold treatment and continue monitoring", "correct": false, "feedback": "Incorrect. Sustained VT requires intervention even when the client is stable."}
+    ],
+    "rationale": "Stable (perfusing) ventricular tachycardia is managed with antiarrhythmics; defibrillation is reserved for pulseless rhythms."
+  },
+  {
+    "item_id": "NCLEX_MCQ_344009", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Pediatrics", "body_system": "Hematologic", "topic": "Phototherapy", "subtopic": "Neonatal hyperbilirubinemia", "bloom": "Apply",
+    "stem": "A newborn is receiving phototherapy for hyperbilirubinemia. Which nursing action best supports safe and effective treatment?",
+    "options": [
+      {"text": "Cover the newborn's eyes and maximize skin exposure", "correct": true, "feedback": "Correct. Eye shields prevent retinal damage while maximal skin exposure increases light-mediated bilirubin breakdown."},
+      {"text": "Dress the newborn warmly and limit feedings", "correct": false, "feedback": "Incorrect. Clothing blocks light and feedings must increase to promote bilirubin excretion."},
+      {"text": "Apply lotion to the skin before therapy", "correct": false, "feedback": "Incorrect. Lotions can cause burns under phototherapy lights."},
+      {"text": "Keep the newborn under lights continuously without repositioning", "correct": false, "feedback": "Incorrect. Frequent repositioning exposes all skin surfaces and prevents pressure areas."}
+    ],
+    "rationale": "Effective phototherapy requires eye protection, maximal skin exposure, frequent repositioning, and increased feedings to excrete bilirubin."
+  },
+  {
+    "item_id": "NCLEX_MCQ_344010", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Peritoneal dialysis", "subtopic": "Peritonitis", "bloom": "Analyze",
+    "stem": "A client on peritoneal dialysis reports abdominal pain, and the nurse notes cloudy dialysate return and a fever. Which complication should the nurse suspect?",
+    "options": [
+      {"text": "Peritonitis", "correct": true, "feedback": "Correct. Cloudy effluent with abdominal pain and fever is the hallmark of PD-associated peritonitis."},
+      {"text": "Catheter migration", "correct": false, "feedback": "Incorrect. Migration causes poor drainage, not cloudy fluid with fever."},
+      {"text": "Dialysate leak", "correct": false, "feedback": "Incorrect. A leak presents as fluid at the exit site, not cloudy return with fever."},
+      {"text": "Hypervolemia", "correct": false, "feedback": "Incorrect. Hypervolemia causes edema and hypertension, not cloudy effluent."}
+    ],
+    "rationale": "Cloudy dialysate outflow with abdominal pain and fever indicates peritonitis, the most common serious PD complication."
+  },
+  {
+    "item_id": "NCLEX_MCQ_344011", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Suctioning", "subtopic": "Complication prevention", "bloom": "Apply",
+    "stem": "A nurse is performing endotracheal suctioning on a client whose heart rate drops from 88 to 52 during the procedure. What should the nurse do FIRST?",
+    "options": [
+      {"text": "Stop suctioning and oxygenate the client", "correct": true, "feedback": "Correct. Bradycardia during suctioning reflects vagal stimulation/hypoxia; stopping and hyperoxygenating restores stability."},
+      {"text": "Increase the suction pressure to finish quickly", "correct": false, "feedback": "Incorrect. Higher pressure worsens hypoxia and mucosal trauma."},
+      {"text": "Continue suctioning for a full 30 seconds", "correct": false, "feedback": "Incorrect. Prolonged suctioning intensifies hypoxia and bradycardia."},
+      {"text": "Instill saline and repeat the pass", "correct": false, "feedback": "Incorrect. Saline instillation is not evidence-based and delays reoxygenation."}
+    ],
+    "rationale": "Suction-induced bradycardia signals vagal response and hypoxemia; the nurse stops and oxygenates before proceeding."
+  },
+  {
+    "item_id": "NCLEX_MCQ_344012", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Fluid and electrolyte imbalance", "subtopic": "Hyperkalemia", "bloom": "Analyze",
+    "stem": "A client with acute kidney injury has a potassium of 6.8 mEq/L. The ECG shows peaked T waves and a widening QRS. Which prescription should the nurse anticipate administering FIRST?",
+    "options": [
+      {"text": "IV calcium gluconate", "correct": true, "feedback": "Correct. Calcium gluconate stabilizes the cardiac membrane immediately, protecting against lethal arrhythmias."},
+      {"text": "Oral sodium polystyrene sulfonate", "correct": false, "feedback": "Incorrect. It removes potassium slowly and does not protect the heart acutely."},
+      {"text": "Intravenous furosemide alone", "correct": false, "feedback": "Incorrect. Diuresis is limited in AKI and is not the immediate cardioprotective step."},
+      {"text": "A potassium-sparing diuretic", "correct": false, "feedback": "Incorrect. This would raise potassium further."}
+    ],
+    "rationale": "With ECG changes of severe hyperkalemia, IV calcium is given first to stabilize the myocardium before potassium-lowering measures."
+  },
+  {
+    "item_id": "NCLEX_MCQ_344013", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Integumentary", "topic": "Wound care", "subtopic": "Dehiscence", "bloom": "Apply",
+    "stem": "A postoperative client coughs and suddenly reports that the abdominal incision has 'given way.' The nurse observes a loop of bowel protruding through the wound. What is the nurse's priority action?",
+    "options": [
+      {"text": "Cover the wound with sterile saline-moistened gauze", "correct": true, "feedback": "Correct. Evisceration requires covering exposed viscera with sterile moist dressings to prevent drying while awaiting surgery."},
+      {"text": "Attempt to reinsert the bowel into the abdomen", "correct": false, "feedback": "Incorrect. Never push exposed organs back in; this causes contamination and injury."},
+      {"text": "Apply a dry pressure dressing firmly", "correct": false, "feedback": "Incorrect. Dry pressure damages exposed tissue; moist coverage is required."},
+      {"text": "Position the client with legs flat and straight", "correct": false, "feedback": "Incorrect. Low-Fowler with knees bent reduces abdominal tension."}
+    ],
+    "rationale": "For wound evisceration, cover the viscera with sterile saline-soaked gauze, position with knees flexed, and notify the surgeon urgently."
+  },
+  {
+    "item_id": "NCLEX_SATA_344014", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Shock", "subtopic": "Hypovolemic shock", "bloom": "Analyze",
+    "stem": "A nurse assesses a client with suspected hypovolemic shock. Which findings support this diagnosis? Select all that apply.",
+    "options": [
+      {"text": "Tachycardia", "correct": true},
+      {"text": "Cool, clammy skin", "correct": true},
+      {"text": "Decreased urine output", "correct": true},
+      {"text": "Narrowing pulse pressure", "correct": true},
+      {"text": "Bounding peripheral pulses", "correct": false},
+      {"text": "Warm, flushed skin", "correct": false}
+    ],
+    "rationale": "Hypovolemic shock produces compensatory tachycardia, vasoconstriction (cool clammy skin), oliguria, and a narrowed pulse pressure."
+  },
+  {
+    "item_id": "NCLEX_SATA_344015", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Chest tube management", "subtopic": "Emergency response", "bloom": "Apply",
+    "stem": "A nurse discovers that a client's chest tube has become disconnected from the drainage system. Which actions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Submerge the end of the chest tube in sterile water", "correct": true},
+      {"text": "Notify the provider", "correct": true},
+      {"text": "Assess respiratory status and oxygen saturation", "correct": true},
+      {"text": "Prepare a new sterile drainage system", "correct": true},
+      {"text": "Clamp the chest tube for an extended period", "correct": false},
+      {"text": "Reconnect using non-sterile tape without cleaning", "correct": false}
+    ],
+    "rationale": "A disconnected chest tube is placed in sterile water to re-establish a water seal while assessing the client and setting up a new system."
+  },
+  {
+    "item_id": "NCLEX_SATA_344016", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Addisonian crisis", "subtopic": "Acute adrenal insufficiency", "bloom": "Analyze",
+    "stem": "A client with Addison's disease is admitted in adrenal crisis. Which findings does the nurse expect? Select all that apply.",
+    "options": [
+      {"text": "Hypotension", "correct": true},
+      {"text": "Hyperkalemia", "correct": true},
+      {"text": "Hyponatremia", "correct": true},
+      {"text": "Hypoglycemia", "correct": true},
+      {"text": "Hypertension", "correct": false},
+      {"text": "Hypokalemia", "correct": false}
+    ],
+    "rationale": "Cortisol and aldosterone deficiency in adrenal crisis produce hypotension, hyperkalemia, hyponatremia, and hypoglycemia."
+  },
+  {
+    "item_id": "NCLEX_SATA_344017", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Acute respiratory distress", "subtopic": "Hypoxemia recognition", "bloom": "Analyze",
+    "stem": "A nurse assesses a client with worsening pneumonia for signs of impaired oxygenation. Which findings indicate hypoxemia? Select all that apply.",
+    "options": [
+      {"text": "Restlessness and confusion", "correct": true},
+      {"text": "Tachypnea", "correct": true},
+      {"text": "Use of accessory muscles", "correct": true},
+      {"text": "Central cyanosis", "correct": true},
+      {"text": "Bradypnea with calm affect", "correct": false},
+      {"text": "Warm dry skin with slow respirations", "correct": false}
+    ],
+    "rationale": "Early hypoxemia causes restlessness, tachypnea, and accessory muscle use; central cyanosis is a late sign."
+  },
+  {
+    "item_id": "NCLEX_SATA_344018", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "Postoperative care", "subtopic": "Paralytic ileus", "bloom": "Analyze",
+    "stem": "A nurse monitors a client 2 days after abdominal surgery for paralytic ileus. Which assessment findings support this complication? Select all that apply.",
+    "options": [
+      {"text": "Absent bowel sounds", "correct": true},
+      {"text": "Abdominal distension", "correct": true},
+      {"text": "Failure to pass flatus", "correct": true},
+      {"text": "Nausea and vomiting", "correct": true},
+      {"text": "Frequent loose stools", "correct": false},
+      {"text": "Hyperactive high-pitched bowel sounds", "correct": false}
+    ],
+    "rationale": "Paralytic ileus presents with absent bowel sounds, distension, no flatus, and nausea/vomiting from stalled peristalsis."
+  },
+  {
+    "item_id": "NCLEX_SATA_344019", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Temperature regulation", "subtopic": "Heat stroke", "bloom": "Apply",
+    "stem": "A client is brought to the emergency department with suspected heat stroke. Which interventions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Remove excess clothing", "correct": true},
+      {"text": "Apply cool packs to the axillae and groin", "correct": true},
+      {"text": "Initiate IV fluid resuscitation", "correct": true},
+      {"text": "Monitor core temperature continuously", "correct": true},
+      {"text": "Administer antipyretics as the primary cooling method", "correct": false},
+      {"text": "Wrap the client in warm blankets", "correct": false}
+    ],
+    "rationale": "Heat stroke is managed with active external cooling, fluid resuscitation, and continuous temperature monitoring; antipyretics are ineffective for environmental hyperthermia."
+  },
+  {
+    "item_id": "NCLEX_SELN_344020", "type": "SELECT_N", "difficulty": "Medium", "select_count": 3,
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Fluid and electrolyte imbalance", "subtopic": "Hypomagnesemia", "bloom": "Analyze",
+    "stem": "A client's serum magnesium is 1.1 mEq/L. Which 3 findings should the nurse expect with this imbalance?",
+    "options": [
+      {"text": "Positive Trousseau's sign", "correct": true},
+      {"text": "Hyperactive deep tendon reflexes", "correct": true},
+      {"text": "Cardiac dysrhythmias (torsades de pointes)", "correct": true},
+      {"text": "Diminished deep tendon reflexes", "correct": false},
+      {"text": "Bradycardia with warm flushed skin", "correct": false},
+      {"text": "Respiratory depression", "correct": false}
+    ],
+    "rationale": "Hypomagnesemia increases neuromuscular excitability—positive Trousseau's, hyperreflexia—and predisposes to torsades de pointes."
+  },
+  {
+    "item_id": "NCLEX_TF_344021", "type": "TF", "difficulty": "Medium", "answer": "False",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Chest tube management", "subtopic": "Air leak", "bloom": "Understand",
+    "stem": "Continuous bubbling in the water-seal chamber of a chest drainage system during both inspiration and expiration is a normal, expected finding.",
+    "rationale": "Continuous bubbling in the water-seal chamber indicates an air leak in the system and must be investigated, not a normal finding."
+  },
+  {
+    "item_id": "NCLEX_MAT_344022", "type": "MATRIX", "difficulty": "Medium", "row_label": "Arterial blood gas",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Acid-base balance", "subtopic": "ABG interpretation", "bloom": "Analyze",
+    "stem": "For each arterial blood gas result, click to classify the primary acid-base disturbance.",
+    "columns": ["Respiratory acidosis", "Metabolic acidosis"],
+    "rows": [
+      {"text": "pH 7.28, PaCO2 58, HCO3 25 (COPD exacerbation)", "answer": 0},
+      {"text": "pH 7.30, PaCO2 38, HCO3 16 (diabetic ketoacidosis)", "answer": 1},
+      {"text": "pH 7.26, PaCO2 60, HCO3 26 (opioid overdose, hypoventilation)", "answer": 0},
+      {"text": "pH 7.25, PaCO2 36, HCO3 14 (severe diarrhea)", "answer": 1}
+    ],
+    "rationale": "A high PaCO2 with low pH indicates respiratory acidosis; a low HCO3 with low pH and normal/low PaCO2 indicates metabolic acidosis."
+  },
+  {
+    "item_id": "NCLEX_MMR_344023", "type": "MATRIX_MR", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Shock", "subtopic": "Shock classification", "bloom": "Analyze",
+    "stem": "For each clinical feature, select all types of shock in which it is commonly seen.",
+    "columns": ["Hypovolemic", "Septic", "Cardiogenic"],
+    "rows": [
+      {"text": "Tachycardia", "answers": [0, 1, 2]},
+      {"text": "Warm flushed skin in early phase", "answers": [1]},
+      {"text": "Jugular venous distension/pulmonary congestion", "answers": [2]},
+      {"text": "Fluid loss as the primary trigger", "answers": [0]}
+    ],
+    "rationale": "Tachycardia is common to all shock states; early septic shock causes warm vasodilated skin; cardiogenic shock produces congestion; hypovolemia stems from fluid loss."
+  },
+  {
+    "item_id": "NCLEX_CLZ_344024", "type": "CLOZE", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "SIADH", "subtopic": "Sodium imbalance", "bloom": "Analyze",
+    "stem": "A client with a small-cell lung cancer has a serum sodium of 118 mEq/L, concentrated urine, and low serum osmolality. The nurse recognizes these findings are consistent with {1}, and the priority intervention is {2}.",
+    "blanks": [
+      {"choices": [{"text": "SIADH", "correct": true}, {"text": "diabetes insipidus"}, {"text": "adrenal crisis"}]},
+      {"choices": [{"text": "fluid restriction", "correct": true}, {"text": "administering IV free water"}, {"text": "encouraging increased oral fluids"}]}
+    ],
+    "rationale": "SIADH causes dilutional hyponatremia with concentrated urine and low serum osmolality; fluid restriction is the cornerstone treatment."
+  },
+  {
+    "item_id": "NCLEX_HL_344025", "type": "HIGHLIGHT", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Complication recognition", "subtopic": "Cardiac tamponade", "bloom": "Analyze",
+    "stem": "A nurse assesses a client 6 hours after cardiac surgery. Highlight the findings that suggest cardiac tamponade. The client is alert. Blood pressure [[86/68]]. Heart sounds are [[muffled and distant]]. There is [[jugular venous distension]]. Temperature is [[37.1°C]]. The chest-tube drainage has [[abruptly stopped]]. Skin is warm and dry.",
+    "chunks": [
+      {"text": "86/68", "correct": true, "feedback": "Narrowed pulse pressure/hypotension is part of Beck's triad."},
+      {"text": "muffled and distant", "correct": true, "feedback": "Muffled heart sounds are a classic tamponade sign."},
+      {"text": "jugular venous distension", "correct": true, "feedback": "JVD from impaired venous return completes Beck's triad."},
+      {"text": "37.1°C", "correct": false, "feedback": "A normal temperature is unrelated to tamponade."},
+      {"text": "abruptly stopped", "correct": true, "feedback": "Sudden cessation of chest-tube drainage can precede tamponade from clot accumulation."}
+    ],
+    "rationale": "Cardiac tamponade features Beck's triad—hypotension with narrowed pulse pressure, muffled heart sounds, and JVD—often with an abrupt drop in chest-tube output."
+  },
+  {
+    "item_id": "NCLEX_BT_344026", "type": "BOWTIE", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pulmonary embolism", "subtopic": "Acute complication", "bloom": "Evaluate",
+    "stem": "A postoperative client suddenly develops dyspnea, pleuritic chest pain, tachycardia, and a drop in SpO2. Complete the diagram by selecting the condition, actions to take, and parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Administer supplemental oxygen", "correct": true},
+      {"text": "Elevate the head of the bed", "correct": true},
+      {"text": "Encourage vigorous ambulation", "correct": false},
+      {"text": "Massage the affected calf", "correct": false}
+    ]},
+    "centre": {"label": "Condition", "tokens": [
+      {"text": "Pulmonary embolism", "correct": true},
+      {"text": "Pneumothorax"},
+      {"text": "Myocardial infarction"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Oxygen saturation", "correct": true},
+      {"text": "Respiratory rate and effort", "correct": true},
+      {"text": "Bowel sounds", "correct": false},
+      {"text": "Deep tendon reflexes", "correct": false}
+    ]},
+    "rationale": "Acute PE is managed with oxygen and upright positioning while monitoring oxygenation and respiratory status; ambulation and calf massage risk dislodging further emboli."
+  },
+  {
+    "item_id": "NCLEX_DCZ_344027", "type": "DRAG_CLOZE", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Fluid and electrolyte imbalance", "subtopic": "Hypercalcemia", "bloom": "Apply",
+    "stem": "A client with hyperparathyroidism has a serum calcium of [1] mg/dL, and the nurse expects the deep tendon reflexes to be [2].",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["12.5", "diminished", "9.0", "brisk"],
+    "rationale": "Hyperparathyroidism causes hypercalcemia (calcium ~12.5 mg/dL), which depresses neuromuscular excitability and diminishes deep tendon reflexes."
+  },
+  {
+    "item_id": "NCLEX_DO_344028", "type": "DRAG_ORDER", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Emergency care procedures", "subtopic": "Thyroid storm", "bloom": "Apply",
+    "stem": "A client is experiencing thyroid storm with fever 40°C, heart rate 160, and agitation. Place the nurse's actions in priority order.",
+    "tokens": ["Ensure a patent airway and apply oxygen", "Initiate active cooling measures", "Administer prescribed beta-blocker and antithyroid medication", "Continuously monitor cardiac rhythm", "Document the interventions and response"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

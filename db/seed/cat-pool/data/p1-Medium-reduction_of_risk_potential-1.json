@@ -1,0 +1,323 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_340001", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "ECG monitoring", "subtopic": "Rhythm interpretation", "bloom": "Analyze",
+    "stem": "A nurse reviews the telemetry of a client and notes a regular rhythm at 40 bpm with more P waves than QRS complexes and a progressively lengthening PR interval until a QRS is dropped. Which action should the nurse take first?",
+    "options": [
+      {"text": "Continue monitoring and document the rhythm", "correct": false, "feedback": "Incorrect. Symptomatic bradycardia at 40 bpm warrants intervention, not passive monitoring."},
+      {"text": "Assess the client's blood pressure and level of consciousness", "correct": true, "feedback": "Correct. Determining hemodynamic tolerance of the bradyarrhythmia guides the urgency of treatment."},
+      {"text": "Prepare to administer a beta-blocker", "correct": false, "feedback": "Incorrect. Beta-blockers further slow the heart rate and are contraindicated."},
+      {"text": "Perform synchronized cardioversion", "correct": false, "feedback": "Incorrect. Cardioversion treats tachyarrhythmias, not a bradycardic block."}
+    ],
+    "rationale": "A second-degree AV block (Mobitz I) with bradycardia requires the nurse to first assess perfusion/hemodynamic status before treatment."
+  },
+  {
+    "item_id": "NCLEX_MCQ_340002", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "NG tube", "subtopic": "Placement verification", "bloom": "Apply",
+    "stem": "A nurse prepares to administer medication through a newly inserted nasogastric tube. Which method is the most reliable to verify tube placement before use?",
+    "options": [
+      {"text": "Auscultate over the epigastrium while injecting air", "correct": false, "feedback": "Incorrect. The air-bolus 'whoosh' test is unreliable and no longer recommended."},
+      {"text": "Confirm placement with a radiograph", "correct": true, "feedback": "Correct. X-ray is the gold standard for verifying initial NG tube placement."},
+      {"text": "Place the tube's end in water and observe for bubbling", "correct": false, "feedback": "Incorrect. Bubbling is not a valid indicator of gastric placement."},
+      {"text": "Aspirate and measure the length of external tubing", "correct": false, "feedback": "Incorrect. External length checks confirm migration later but not initial placement."}
+    ],
+    "rationale": "Radiographic confirmation is the gold standard before first use of a newly placed NG tube."
+  },
+  {
+    "item_id": "NCLEX_MCQ_340003", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Diagnostic-test monitoring", "subtopic": "Contrast studies", "bloom": "Analyze",
+    "stem": "A client with type 2 diabetes taking metformin is scheduled for a CT scan with iodinated contrast. Which laboratory value should the nurse prioritize reviewing before the procedure?",
+    "options": [
+      {"text": "Serum creatinine", "correct": true, "feedback": "Correct. Impaired renal function increases the risk of contrast-induced nephropathy and lactic acidosis with metformin."},
+      {"text": "Serum sodium", "correct": false, "feedback": "Incorrect. Sodium is not the primary concern with contrast and metformin."},
+      {"text": "Hemoglobin A1c", "correct": false, "feedback": "Incorrect. A1c reflects long-term glucose control, not procedural risk."},
+      {"text": "White blood cell count", "correct": false, "feedback": "Incorrect. WBC does not predict contrast nephrotoxicity."}
+    ],
+    "rationale": "Renal function (creatinine) must be assessed before contrast in metformin users to reduce nephropathy and lactic acidosis risk."
+  },
+  {
+    "item_id": "NCLEX_MCQ_340004", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Moderate sedation", "subtopic": "Monitoring", "bloom": "Analyze",
+    "stem": "During a colonoscopy under moderate (procedural) sedation, the nurse notes the client's SpO2 has fallen from 98% to 88% and respirations are shallow at 8/min. Which action should the nurse take first?",
+    "options": [
+      {"text": "Stimulate the client and encourage deep breaths", "correct": true, "feedback": "Correct. Verbal/tactile stimulation and prompting breathing is the first, least invasive airway intervention for oversedation."},
+      {"text": "Administer the full reversal dose of naloxone", "correct": false, "feedback": "Incorrect. Reversal is escalated only after basic airway measures fail."},
+      {"text": "Document the finding and continue the procedure", "correct": false, "feedback": "Incorrect. Falling SpO2 with hypoventilation requires intervention."},
+      {"text": "Prepare for immediate endotracheal intubation", "correct": false, "feedback": "Incorrect. Intubation is premature before simpler measures are tried."}
+    ],
+    "rationale": "Oversedation with hypoventilation is first managed by stimulation and prompting breathing before escalation to reversal or airway devices."
+  },
+  {
+    "item_id": "NCLEX_MCQ_340005", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Lab-value interpretation", "subtopic": "Anticoagulation", "bloom": "Analyze",
+    "stem": "A client receiving a continuous IV heparin infusion has an aPTT result of 110 seconds (control 30 seconds). Based on this trend, which action should the nurse anticipate?",
+    "options": [
+      {"text": "Increase the heparin infusion rate", "correct": false, "feedback": "Incorrect. The aPTT is supratherapeutic; increasing the dose raises bleeding risk."},
+      {"text": "Hold or decrease the infusion and notify the provider", "correct": true, "feedback": "Correct. An aPTT >2.5 times control is supratherapeutic and increases bleeding risk, so the infusion is reduced or held."},
+      {"text": "Administer vitamin K", "correct": false, "feedback": "Incorrect. Vitamin K reverses warfarin, not heparin; protamine is the heparin antidote."},
+      {"text": "Continue the current rate and recheck in 24 hours", "correct": false, "feedback": "Incorrect. A supratherapeutic value requires prompt adjustment."}
+    ],
+    "rationale": "An aPTT more than 2.5 times control is supratherapeutic for heparin, so the nurse holds/decreases the infusion and notifies the provider."
+  },
+  {
+    "item_id": "NCLEX_MCQ_340006", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Fetal monitoring", "subtopic": "Deceleration patterns", "bloom": "Analyze",
+    "stem": "A laboring client's fetal monitor shows recurrent late decelerations with minimal variability. Which action should the nurse take first?",
+    "options": [
+      {"text": "Reposition the client to a lateral position", "correct": true, "feedback": "Correct. Late decelerations reflect uteroplacental insufficiency; repositioning improves placental perfusion as the first intrauterine resuscitation measure."},
+      {"text": "Increase the oxytocin infusion", "correct": false, "feedback": "Incorrect. Oxytocin should be reduced or stopped, not increased, with late decelerations."},
+      {"text": "Document and continue routine monitoring", "correct": false, "feedback": "Incorrect. Late decelerations are non-reassuring and require intervention."},
+      {"text": "Prepare for immediate forceps delivery", "correct": false, "feedback": "Incorrect. Intrauterine resuscitation is attempted before operative delivery."}
+    ],
+    "rationale": "Late decelerations indicate uteroplacental insufficiency; repositioning to improve perfusion is the first intrauterine resuscitation step."
+  },
+  {
+    "item_id": "NCLEX_MCQ_340007", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Venous-return devices", "subtopic": "Antiembolism prevention", "bloom": "Apply",
+    "stem": "A nurse is caring for a client on bed rest 2 days after a total hip arthroplasty. Which assessment finding related to venous thromboembolism prevention requires immediate follow-up?",
+    "options": [
+      {"text": "Sequential compression devices inflating on both legs", "correct": false, "feedback": "Incorrect. Functioning SCDs are the expected preventive measure."},
+      {"text": "Unilateral calf swelling with warmth and tenderness", "correct": true, "feedback": "Correct. These are classic signs of deep vein thrombosis and require immediate follow-up."},
+      {"text": "Antiembolism stockings applied smoothly without wrinkles", "correct": false, "feedback": "Incorrect. Properly applied stockings are a normal preventive finding."},
+      {"text": "Client performing ankle pumps every hour", "correct": false, "feedback": "Incorrect. Ankle pumps are an encouraged preventive exercise."}
+    ],
+    "rationale": "Unilateral calf swelling, warmth, and tenderness suggest DVT, a complication requiring immediate assessment and reporting."
+  },
+  {
+    "item_id": "NCLEX_MCQ_340008", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Urinary catheter", "subtopic": "CAUTI prevention", "bloom": "Apply",
+    "stem": "A nurse observes that an indwelling urinary catheter drainage bag is resting on the floor next to the client's bed. Which action should the nurse take?",
+    "options": [
+      {"text": "Secure the bag below bladder level on the bed frame", "correct": true, "feedback": "Correct. Keeping the bag below the bladder but off the floor maintains gravity drainage and reduces infection risk."},
+      {"text": "Hang the bag on the IV pole above the bladder", "correct": false, "feedback": "Incorrect. A bag above bladder level causes reflux and infection risk."},
+      {"text": "Clamp the tubing until the next assessment", "correct": false, "feedback": "Incorrect. Clamping causes urinary stasis and is not indicated routinely."},
+      {"text": "Leave the bag as is if it is draining well", "correct": false, "feedback": "Incorrect. A bag on the floor is a contamination hazard."}
+    ],
+    "rationale": "The drainage bag must stay below bladder level and off the floor to preserve gravity drainage and reduce CAUTI risk."
+  },
+  {
+    "item_id": "NCLEX_MCQ_340009", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Point-of-care testing", "subtopic": "Glucose monitoring", "bloom": "Apply",
+    "stem": "A nurse obtains a point-of-care blood glucose of 48 mg/dL on a client who is alert and able to swallow. Which action should the nurse take first?",
+    "options": [
+      {"text": "Give 15 g of a fast-acting oral carbohydrate", "correct": true, "feedback": "Correct. For a conscious client with hypoglycemia, 15 g of oral fast-acting carbohydrate is the first-line treatment."},
+      {"text": "Administer IV 50% dextrose", "correct": false, "feedback": "Incorrect. IV dextrose is reserved for clients who cannot safely swallow."},
+      {"text": "Give the scheduled dose of insulin", "correct": false, "feedback": "Incorrect. Insulin would worsen the hypoglycemia."},
+      {"text": "Recheck the glucose in one hour", "correct": false, "feedback": "Incorrect. Hypoglycemia must be treated immediately, not deferred."}
+    ],
+    "rationale": "A conscious hypoglycemic client who can swallow receives 15 g of oral fast-acting carbohydrate first, following the rule of 15."
+  },
+  {
+    "item_id": "NCLEX_MCQ_340010", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Response to procedures", "subtopic": "Post-bronchoscopy care", "bloom": "Apply",
+    "stem": "A client returns to the unit after a bronchoscopy in which a topical anesthetic was used on the throat. Which nursing action is the priority before offering fluids?",
+    "options": [
+      {"text": "Assess the return of the gag reflex", "correct": true, "feedback": "Correct. The gag reflex must return before oral intake to prevent aspiration after throat anesthesia."},
+      {"text": "Measure the client's oral temperature", "correct": false, "feedback": "Incorrect. Temperature is not the priority for aspiration prevention."},
+      {"text": "Encourage the client to cough forcefully", "correct": false, "feedback": "Incorrect. Forceful coughing is not required and may irritate the airway."},
+      {"text": "Offer a large glass of cold water immediately", "correct": false, "feedback": "Incorrect. Fluids are withheld until the gag reflex returns."}
+    ],
+    "rationale": "After throat anesthesia for bronchoscopy, oral intake is withheld until the gag reflex returns to prevent aspiration."
+  },
+  {
+    "item_id": "NCLEX_MCQ_340011", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "Percutaneous feeding tube", "subtopic": "Aspiration prevention", "bloom": "Apply",
+    "stem": "A client receiving continuous enteral feeding through a PEG tube must be repositioned for a bed bath. To reduce the risk of aspiration during and after feeding, the nurse should maintain the head of the bed at which minimum elevation?",
+    "options": [
+      {"text": "Flat (0 degrees)", "correct": false, "feedback": "Incorrect. A flat position increases reflux and aspiration risk."},
+      {"text": "15 degrees", "correct": false, "feedback": "Incorrect. This is below the recommended minimum for enteral feeding."},
+      {"text": "30 degrees", "correct": true, "feedback": "Correct. Keeping the head of bed at 30–45 degrees reduces reflux and aspiration during enteral feeding."},
+      {"text": "Prone position", "correct": false, "feedback": "Incorrect. Prone positioning is inappropriate during enteral feeding."}
+    ],
+    "rationale": "During enteral feeding the head of bed is kept at least 30 degrees to reduce reflux and aspiration risk."
+  },
+  {
+    "item_id": "NCLEX_SATA_340012", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Pre-operative education", "subtopic": "Post-op complication prevention", "bloom": "Apply",
+    "stem": "A nurse provides pre-operative teaching to a client scheduled for abdominal surgery. Which instructions help reduce the risk of postoperative complications? Select all that apply.",
+    "options": [
+      {"text": "Use the incentive spirometer 10 times each hour while awake", "correct": true},
+      {"text": "Splint the incision with a pillow when coughing", "correct": true},
+      {"text": "Perform leg exercises and ankle pumps while in bed", "correct": true},
+      {"text": "Remain on strict bed rest for the first five days", "correct": false},
+      {"text": "Report to staff before getting out of bed the first time", "correct": true},
+      {"text": "Avoid all pain medication to stay alert", "correct": false}
+    ],
+    "rationale": "Incentive spirometry, splinting, leg exercises, and assisted early ambulation prevent atelectasis, VTE, and falls; prolonged bed rest and refusing analgesia increase complications."
+  },
+  {
+    "item_id": "NCLEX_SATA_340013", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Lab-value interpretation", "subtopic": "Hyperkalemia", "bloom": "Analyze",
+    "stem": "A nurse reviews the labs of a client with acute kidney injury and notes a potassium of 6.8 mEq/L. Which findings would the nurse expect to correlate with this value? Select all that apply.",
+    "options": [
+      {"text": "Peaked T waves on the ECG", "correct": true},
+      {"text": "Muscle weakness", "correct": true},
+      {"text": "Cardiac dysrhythmias", "correct": true},
+      {"text": "Constipation and abdominal distention", "correct": false},
+      {"text": "Increased deep tendon reflexes without change", "correct": false},
+      {"text": "Diarrhea or hyperactive bowel sounds", "correct": true}
+    ],
+    "rationale": "Hyperkalemia produces peaked T waves, dysrhythmias, muscle weakness, and increased GI motility (diarrhea); constipation reflects hypokalemia."
+  },
+  {
+    "item_id": "NCLEX_SATA_340014", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Blood/specimen collection", "subtopic": "Blood transfusion safety", "bloom": "Apply",
+    "stem": "A nurse is preparing to administer a unit of packed red blood cells. Which actions reduce the risk of a transfusion reaction? Select all that apply.",
+    "options": [
+      {"text": "Verify the blood product with a second nurse at the bedside", "correct": true},
+      {"text": "Confirm the client's identity using two identifiers", "correct": true},
+      {"text": "Prime the tubing with 0.9% normal saline", "correct": true},
+      {"text": "Prime the tubing with dextrose 5% in water", "correct": false},
+      {"text": "Stay with the client during the first 15 minutes", "correct": true},
+      {"text": "Infuse the entire unit over 6 hours to be safe", "correct": false}
+    ],
+    "rationale": "Two-nurse verification, two identifiers, normal saline priming, and early bedside monitoring prevent/detect reactions; dextrose lyses cells and units must infuse within 4 hours."
+  },
+  {
+    "item_id": "NCLEX_SATA_340015", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Peripheral IV", "subtopic": "Complication recognition", "bloom": "Analyze",
+    "stem": "A nurse assesses a peripheral IV site and suspects infiltration. Which findings support this concern? Select all that apply.",
+    "options": [
+      {"text": "Cool, swollen skin around the insertion site", "correct": true},
+      {"text": "Sluggish or absent flow of the infusion", "correct": true},
+      {"text": "Blanching and taut skin at the site", "correct": true},
+      {"text": "A red streak tracking up the vein with warmth", "correct": false},
+      {"text": "Purulent drainage from the insertion site", "correct": false},
+      {"text": "Client reports tightness at the site", "correct": true}
+    ],
+    "rationale": "Infiltration presents with coolness, edema, blanching, tautness, and slowed flow; redness, warmth, streaking, and purulence indicate phlebitis or infection."
+  },
+  {
+    "item_id": "NCLEX_SATA_340016", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Vital-sign trends", "subtopic": "Early sepsis recognition", "bloom": "Analyze",
+    "stem": "A nurse reviews serial vital signs on a postoperative client. Which trends should prompt the nurse to suspect early sepsis and escalate care? Select all that apply.",
+    "options": [
+      {"text": "Temperature rising from 37.0°C to 38.6°C", "correct": true},
+      {"text": "Heart rate climbing from 82 to 116 bpm", "correct": true},
+      {"text": "Respiratory rate increasing from 16 to 24/min", "correct": true},
+      {"text": "Blood pressure trending from 122/78 to 96/54 mmHg", "correct": true},
+      {"text": "Urine output steady at 60 mL/hr", "correct": false},
+      {"text": "Oxygen saturation stable at 98% on room air", "correct": false}
+    ],
+    "rationale": "Rising temperature, tachycardia, tachypnea, and falling blood pressure are early sepsis trends; stable urine output and SpO2 are reassuring."
+  },
+  {
+    "item_id": "NCLEX_SELN_340017", "type": "SELECT_N", "difficulty": "Medium", "select_count": 3,
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Diagnostic-test monitoring", "subtopic": "Pre-procedure preparation", "bloom": "Apply",
+    "stem": "A nurse prepares a client for an oral glucose tolerance test. Which 3 instructions are appropriate to ensure valid results and client safety?",
+    "options": [
+      {"text": "Fast for 8 hours before the test", "correct": true},
+      {"text": "Report symptoms of hypoglycemia during the test", "correct": true},
+      {"text": "Remain in the testing area between blood draws", "correct": true},
+      {"text": "Drink the glucose solution over 2 hours slowly", "correct": false},
+      {"text": "Perform vigorous exercise during the test", "correct": false},
+      {"text": "Eat a high-carbohydrate breakfast the morning of the test", "correct": false}
+    ],
+    "rationale": "An OGTT requires fasting, staying available for timed draws, and monitoring for hypoglycemia; eating, exercising, or sipping the solution slowly invalidates results."
+  },
+  {
+    "item_id": "NCLEX_TF_340018", "type": "TF", "difficulty": "Medium", "answer": "False",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Diagnostic-test monitoring", "subtopic": "Post-cardiac catheterization", "bloom": "Understand",
+    "stem": "After a cardiac catheterization performed through the right femoral artery, it is appropriate for the nurse to keep the client's head of bed elevated at 60 degrees with the affected leg flexed for the first several hours.",
+    "rationale": "The affected extremity must be kept straight and the head of bed low (usually ≤30 degrees) to prevent bleeding from the femoral access site."
+  },
+  {
+    "item_id": "NCLEX_MAT_340019", "type": "MATRIX", "difficulty": "Medium", "row_label": "Finding",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Response to treatments", "subtopic": "Expected vs adverse", "bloom": "Analyze",
+    "stem": "For each assessment finding after starting therapy, click to indicate whether it is an expected response or an adverse effect requiring follow-up.",
+    "columns": ["Expected response", "Adverse effect"],
+    "rows": [
+      {"text": "Urine output increases after IV furosemide", "answer": 0},
+      {"text": "Serum potassium falls to 2.8 mEq/L on a loop diuretic", "answer": 1},
+      {"text": "INR reaches 2.5 on warfarin therapy", "answer": 0},
+      {"text": "Ringing in the ears after high-dose aspirin", "answer": 1},
+      {"text": "Blood pressure decreases to 128/80 mmHg on an antihypertensive", "answer": 0}
+    ],
+    "rationale": "Diuresis, a therapeutic INR, and controlled BP are expected; hypokalemia and tinnitus (salicylate toxicity) are adverse effects requiring follow-up."
+  },
+  {
+    "item_id": "NCLEX_CLZ_340020", "type": "CLOZE", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Response to procedures", "subtopic": "Post-thoracentesis assessment", "bloom": "Analyze",
+    "stem": "One hour after a thoracentesis, a client develops sudden dyspnea and diminished breath sounds on the procedure side. The nurse recognizes these findings most likely indicate {1} and should first {2}.",
+    "blanks": [
+      {"choices": [{"text": "a pneumothorax", "correct": true}, {"text": "an allergic reaction"}, {"text": "hypoglycemia"}]},
+      {"choices": [{"text": "assess vital signs and oxygen saturation and notify the provider", "correct": true}, {"text": "reposition the client for the next procedure"}, {"text": "offer oral fluids and reassess in the morning"}]}
+    ],
+    "rationale": "Pneumothorax is a known complication of thoracentesis; the nurse assesses respiratory status/oxygenation and notifies the provider promptly."
+  },
+  {
+    "item_id": "NCLEX_HL_340021", "type": "HIGHLIGHT", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Focused assessment", "subtopic": "Post-operative trend recognition", "bloom": "Analyze",
+    "stem": "The nurse reviews a client 6 hours after abdominal surgery. Highlight the findings that require immediate follow-up. Vital signs: BP [[92/56]], HR [[122]]. Temperature [[37.1°C]]. Surgical dressing shows [[an expanding area of bright red drainage]]. Pain rated 4/10, relieved by medication. Urine output [[20 mL over the last 2 hours]]. Lung sounds clear bilaterally.",
+    "chunks": [
+      {"text": "92/56", "correct": true, "feedback": "Hypotension may indicate hypovolemia or hemorrhage."},
+      {"text": "122", "correct": true, "feedback": "Tachycardia is an early compensatory sign of blood loss."},
+      {"text": "an expanding area of bright red drainage", "correct": true, "feedback": "Active fresh bleeding at the incision requires immediate follow-up."},
+      {"text": "20 mL over the last 2 hours", "correct": true, "feedback": "Oliguria (<30 mL/hr) suggests poor perfusion."},
+      {"text": "37.1°C", "correct": false, "feedback": "This temperature is within normal range."}
+    ],
+    "rationale": "Hypotension, tachycardia, expanding bright-red drainage, and oliguria together suggest postoperative hemorrhage and need urgent action."
+  },
+  {
+    "item_id": "NCLEX_BT_340022", "type": "BOWTIE", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Complication recognition", "subtopic": "Post-op DVT/PE risk", "bloom": "Evaluate",
+    "stem": "A client 3 days after knee replacement suddenly reports pleuritic chest pain and dyspnea with SpO2 of 88%. Complete the diagram by selecting the condition, actions to take, and parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Apply supplemental oxygen", "correct": true},
+      {"text": "Notify the provider immediately", "correct": true},
+      {"text": "Encourage vigorous ambulation", "correct": false},
+      {"text": "Massage the affected calf", "correct": false}
+    ]},
+    "centre": {"label": "Condition", "tokens": [
+      {"text": "Pulmonary embolism", "correct": true},
+      {"text": "Wound infection", "correct": false},
+      {"text": "Hypoglycemia", "correct": false}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Oxygen saturation", "correct": true},
+      {"text": "Respiratory rate and effort", "correct": true},
+      {"text": "Bowel sounds", "correct": false},
+      {"text": "Deep tendon reflexes", "correct": false}
+    ]},
+    "rationale": "Sudden dyspnea, pleuritic pain, and hypoxemia after joint surgery suggest PE; treatment includes oxygen and provider notification while monitoring oxygenation and respiratory status."
+  },
+  {
+    "item_id": "NCLEX_DCZ_340023", "type": "DRAG_CLOZE", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Lab-value interpretation", "subtopic": "Renal function trend", "bloom": "Analyze",
+    "stem": "A client's serum creatinine has risen from 1.0 to 2.4 mg/dL over 48 hours. The nurse interprets this trend as [1] and, before the next dose of a nephrotoxic antibiotic, should [2].",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["worsening renal function", "notify the provider and review the medication", "improving renal function", "administer the dose as scheduled without concern"],
+    "rationale": "A rising creatinine indicates declining renal function; the nurse withholds/questions nephrotoxic drugs and notifies the provider."
+  },
+  {
+    "item_id": "NCLEX_DO_340024", "type": "DRAG_ORDER", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Response to treatments", "subtopic": "Transfusion reaction response", "bloom": "Apply",
+    "stem": "A client receiving packed red blood cells suddenly develops fever, chills, and back pain. Place the nurse's actions in the correct priority order.",
+    "tokens": ["Stop the transfusion immediately", "Keep the IV line open with normal saline", "Assess the client's vital signs", "Notify the provider and blood bank", "Document the reaction and interventions", "Restart the same unit slowly"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

@@ -1,0 +1,324 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_359001", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Hematologic", "topic": "Anticoagulants", "subtopic": "Heparin monitoring", "bloom": "Analyze",
+    "stem": "A client on a continuous heparin infusion for a pulmonary embolism has an aPTT result of 120 seconds (control 30 seconds; therapeutic goal 1.5-2.5 times control). The client's gums are oozing. Which action should the nurse take FIRST?",
+    "options": [
+      {"text": "Stop the heparin infusion and notify the provider", "correct": true, "feedback": "Correct. An aPTT of 120 s is far above the 45-75 s therapeutic range with active bleeding; the infusion must be stopped."},
+      {"text": "Decrease the infusion rate per protocol and recheck in 6 hours", "correct": false, "feedback": "Incorrect. Active bleeding with a critically high aPTT requires stopping, not merely titrating down."},
+      {"text": "Administer vitamin K intramuscularly", "correct": false, "feedback": "Incorrect. Vitamin K reverses warfarin, not heparin; the antidote for heparin is protamine sulfate."},
+      {"text": "Apply pressure to the gums and continue the infusion", "correct": false, "feedback": "Incorrect. Local measures do not address the systemic over-anticoagulation."}
+    ],
+    "rationale": "An aPTT well above therapeutic with bleeding indicates heparin excess; stopping the infusion is the priority before protamine is considered."
+  },
+  {
+    "item_id": "NCLEX_MCQ_359002", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Renal/Genitourinary", "topic": "Aminoglycosides", "subtopic": "Vancomycin trough", "bloom": "Analyze",
+    "stem": "A client receiving IV vancomycin every 12 hours has a trough level drawn before the fourth dose that is 24 mcg/mL (target trough 10-20 mcg/mL). The serum creatinine has risen from 0.9 to 1.6 mg/dL. Which is the most appropriate nursing action?",
+    "options": [
+      {"text": "Hold the next dose and notify the provider of the elevated trough and rising creatinine", "correct": true, "feedback": "Correct. A supratherapeutic trough with rising creatinine signals nephrotoxic accumulation; the dose is held pending provider adjustment."},
+      {"text": "Administer the next dose over a longer infusion time to prevent red man syndrome", "correct": false, "feedback": "Incorrect. Slowing the infusion addresses histamine release, not the toxic accumulation and renal decline."},
+      {"text": "Give the dose as scheduled since the trough is only slightly elevated", "correct": false, "feedback": "Incorrect. The trough is above target and creatinine is rising — continuing risks worsening nephrotoxicity."},
+      {"text": "Increase the client's IV fluids and redraw the trough after the next dose", "correct": false, "feedback": "Incorrect. Hydration alone does not justify giving a dose when accumulation is already evident."}
+    ],
+    "rationale": "A high vancomycin trough with rising creatinine indicates nephrotoxic accumulation; the dose is held and the provider notified for adjustment."
+  },
+  {
+    "item_id": "NCLEX_MCQ_359003", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Endocrine", "topic": "Insulin", "subtopic": "Peak action", "bloom": "Analyze",
+    "stem": "At 0730 a client receives 10 units of regular insulin and 20 units of NPH insulin subcutaneously before breakfast. The nurse should be most alert for hypoglycemia related to the NPH insulin at which time?",
+    "options": [
+      {"text": "1500-1730", "correct": true, "feedback": "Correct. NPH peaks roughly 6-10 hours after administration, placing the highest hypoglycemia risk in the mid-to-late afternoon."},
+      {"text": "0800-0830", "correct": false, "feedback": "Incorrect. This reflects the very early onset window, not the NPH peak."},
+      {"text": "0930-1130", "correct": false, "feedback": "Incorrect. This 2-4 hour window is the peak of regular insulin, not NPH."},
+      {"text": "2200-2400", "correct": false, "feedback": "Incorrect. This is beyond the expected NPH peak from a 0730 dose."}
+    ],
+    "rationale": "NPH is intermediate-acting with a peak of about 6-10 hours; a 0730 dose peaks in the mid-to-late afternoon."
+  },
+  {
+    "item_id": "NCLEX_MCQ_359004", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Psychiatric/Mental Health", "topic": "Psychotropics", "subtopic": "Lithium toxicity", "bloom": "Analyze",
+    "stem": "A client maintained on lithium reports having had gastroenteritis with vomiting and diarrhea for two days. The client now has coarse hand tremors, slurred speech, and unsteady gait. The lithium level is 1.9 mEq/L. Which factor most likely precipitated these findings?",
+    "options": [
+      {"text": "Sodium and fluid depletion from the illness increased lithium reabsorption", "correct": true, "feedback": "Correct. Sodium loss and dehydration cause the kidneys to retain lithium, raising the level into the toxic range."},
+      {"text": "The client's dietary sodium intake was excessive", "correct": false, "feedback": "Incorrect. High sodium would lower, not raise, the lithium level."},
+      {"text": "Lithium has a wide therapeutic index that tolerates fluid shifts", "correct": false, "feedback": "Incorrect. Lithium has a narrow therapeutic index and is highly sensitive to fluid and sodium changes."},
+      {"text": "The findings are expected side effects unrelated to the level", "correct": false, "feedback": "Incorrect. Coarse tremor, slurred speech, and ataxia with a level of 1.9 mEq/L are signs of toxicity."}
+    ],
+    "rationale": "Volume and sodium depletion increase renal lithium reabsorption, driving levels into the toxic range; lithium's narrow index makes this dangerous."
+  },
+  {
+    "item_id": "NCLEX_MCQ_359005", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Respiratory", "topic": "Opioids", "subtopic": "Naloxone", "bloom": "Apply",
+    "stem": "A postoperative client receiving morphine via patient-controlled analgesia is difficult to arouse with a respiratory rate of 7 breaths/min and SpO2 of 86%. Naloxone is prescribed. Which statement best guides the nurse's administration?",
+    "options": [
+      {"text": "Titrate small IV doses every 2-3 minutes to restore adequate respirations, anticipating that repeat dosing may be needed", "correct": true, "feedback": "Correct. Naloxone is titrated to effect, and because its half-life is shorter than morphine's, resedation and repeat dosing are anticipated."},
+      {"text": "Administer the full vial rapidly to fully reverse all opioid effects at once", "correct": false, "feedback": "Incorrect. A large rapid dose can precipitate severe pain, agitation, and cardiovascular instability."},
+      {"text": "Give one dose and discontinue monitoring once the client responds", "correct": false, "feedback": "Incorrect. Naloxone's short duration means the client can re-sedate as it wears off."},
+      {"text": "Withhold naloxone and simply stop the PCA pump until the client awakens", "correct": false, "feedback": "Incorrect. With a respiratory rate of 7 and SpO2 of 86%, reversal is required now, not observation alone."}
+    ],
+    "rationale": "Naloxone is titrated to restore ventilation; its short half-life relative to morphine means the nurse must anticipate resedation and repeat dosing."
+  },
+  {
+    "item_id": "NCLEX_MCQ_359006", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Cardiovascular", "topic": "Electrolytes", "subtopic": "IV potassium", "bloom": "Apply",
+    "stem": "A prescription reads: 'Potassium chloride 40 mEq IV push now' for a client with a serum potassium of 2.8 mEq/L. What is the nurse's most appropriate action?",
+    "options": [
+      {"text": "Clarify the order because IV potassium is never given by push and must be diluted and infused", "correct": true, "feedback": "Correct. IV push potassium is fatal; it must always be diluted and given as a controlled infusion, so the order requires clarification."},
+      {"text": "Administer the dose slowly over 2 minutes using a filter needle", "correct": false, "feedback": "Incorrect. No push rate is safe for IV potassium — it must be infused diluted."},
+      {"text": "Give the potassium intramuscularly instead to avoid the IV push", "correct": false, "feedback": "Incorrect. Potassium chloride is not given IM; it is highly irritating and can cause tissue necrosis."},
+      {"text": "Hold the dose and recheck the potassium in the morning", "correct": false, "feedback": "Incorrect. A level of 2.8 mEq/L requires replacement, but the route in the order is unsafe and must be clarified."}
+    ],
+    "rationale": "IV push potassium chloride causes fatal arrhythmias; it must always be diluted and infused, so an order to push it is clarified."
+  },
+  {
+    "item_id": "NCLEX_MCQ_359007", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Hematologic", "topic": "Blood-product administration", "subtopic": "Transfusion reaction", "bloom": "Analyze",
+    "stem": "Fifteen minutes into a packed red blood cell transfusion, a client develops flank pain, chills, and a temperature rise from 37.0°C to 38.6°C, with pink-tinged urine. After stopping the transfusion, which action should the nurse take NEXT?",
+    "options": [
+      {"text": "Keep the IV line open with 0.9% normal saline using new tubing", "correct": true, "feedback": "Correct. Maintaining IV access with saline through new tubing preserves renal perfusion and avoids infusing more incompatible blood."},
+      {"text": "Slow the transfusion and continue observing the client", "correct": false, "feedback": "Incorrect. A hemolytic reaction requires stopping the blood entirely, not slowing it."},
+      {"text": "Administer the next unit of blood to complete the order", "correct": false, "feedback": "Incorrect. Further transfusion is contraindicated during an acute reaction."},
+      {"text": "Flush the existing blood tubing with dextrose 5% in water", "correct": false, "feedback": "Incorrect. Dextrose causes RBC hemolysis and the contaminated tubing must be replaced, not flushed into the client."}
+    ],
+    "rationale": "After stopping a suspected hemolytic reaction, the nurse maintains IV access with normal saline via fresh tubing to protect the kidneys."
+  },
+  {
+    "item_id": "NCLEX_MCQ_359008", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "GI", "topic": "Parenteral nutrition", "subtopic": "TPN safety", "bloom": "Apply",
+    "stem": "A nurse discovers that the next bag of total parenteral nutrition has not arrived from the pharmacy and the current bag will empty in 20 minutes. Which action is most appropriate?",
+    "options": [
+      {"text": "Hang 10% dextrose in water at the same rate until the new TPN bag is available", "correct": true, "feedback": "Correct. Infusing dextrose prevents the rebound hypoglycemia that can occur when high-concentration TPN is abruptly stopped."},
+      {"text": "Stop the infusion and flush the central line until the new bag arrives", "correct": false, "feedback": "Incorrect. Abruptly stopping TPN risks rebound hypoglycemia."},
+      {"text": "Slow the current bag to a keep-vein-open rate to make it last longer", "correct": false, "feedback": "Incorrect. Deliberately underdosing does not deliver adequate glucose and alters the prescribed rate."},
+      {"text": "Substitute a bag of lactated Ringer's solution at the TPN rate", "correct": false, "feedback": "Incorrect. Lactated Ringer's contains no dextrose and will not prevent hypoglycemia."}
+    ],
+    "rationale": "When TPN is interrupted, 10% dextrose at the same rate maintains the glucose load and prevents rebound hypoglycemia."
+  },
+  {
+    "item_id": "NCLEX_MCQ_359009", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Cardiovascular", "topic": "Antihypertensives", "subtopic": "ACE inhibitors", "bloom": "Analyze",
+    "stem": "A client started on lisinopril 3 days ago now has a serum potassium of 5.8 mEq/L and a creatinine that has risen from 1.0 to 1.9 mg/dL. Which additional home medication is the most important for the nurse to report to the provider?",
+    "options": [
+      {"text": "Spironolactone taken for heart failure", "correct": true, "feedback": "Correct. Combining a potassium-sparing diuretic with an ACE inhibitor compounds hyperkalemia and renal risk, so it must be reported."},
+      {"text": "Acetaminophen taken for occasional headache", "correct": false, "feedback": "Incorrect. Acetaminophen does not raise potassium or worsen ACE-related renal effects."},
+      {"text": "A daily multivitamin without minerals", "correct": false, "feedback": "Incorrect. A mineral-free multivitamin does not contribute to hyperkalemia."},
+      {"text": "Loratadine taken for seasonal allergies", "correct": false, "feedback": "Incorrect. Loratadine has no clinically significant effect on potassium or renal function here."}
+    ],
+    "rationale": "Potassium-sparing diuretics like spironolactone combined with ACE inhibitors sharply increase hyperkalemia and renal risk."
+  },
+  {
+    "item_id": "NCLEX_MCQ_359010", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "Dosage calculation", "subtopic": "Weight-based infusion", "bloom": "Apply",
+    "stem": "A heparin drip is prescribed at 18 units/kg/hour for a client who weighs 80 kg. The bag contains 25,000 units of heparin in 500 mL of 0.9% normal saline. At what rate in mL/hour should the nurse set the infusion pump? (Round to the nearest whole number.)",
+    "options": [
+      {"text": "29 mL/hour", "correct": true, "feedback": "Correct. 18 units × 80 kg = 1,440 units/hr; the bag is 50 units/mL, so 1,440 ÷ 50 = 28.8, rounded to 29 mL/hr."},
+      {"text": "14 mL/hour", "correct": false, "feedback": "Incorrect. This roughly halves the required dose, likely from a concentration error."},
+      {"text": "58 mL/hour", "correct": false, "feedback": "Incorrect. This doubles the correct rate, delivering an unsafe amount of heparin."},
+      {"text": "36 mL/hour", "correct": false, "feedback": "Incorrect. This does not correspond to the 1,440 units/hr dose at 50 units/mL."}
+    ],
+    "rationale": "18 units/kg × 80 kg = 1,440 units/hr; at a concentration of 50 units/mL, the rate is 28.8 mL/hr, rounded to 29 mL/hr."
+  },
+  {
+    "item_id": "NCLEX_SATA_359011", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Immune", "topic": "Chemotherapy", "subtopic": "Neutropenia teaching", "bloom": "Analyze",
+    "stem": "A client receiving myelosuppressive chemotherapy has an absolute neutrophil count of 480/mm3. Which findings or actions require the nurse's immediate attention or intervention? Select all that apply.",
+    "options": [
+      {"text": "Temperature of 38.3°C", "correct": true, "feedback": "Correct. In neutropenia, a low-grade fever may be the only sign of life-threatening infection and requires urgent action."},
+      {"text": "A visitor with an active upper respiratory infection at the bedside", "correct": true, "feedback": "Correct. Exposure to infection is dangerous for a neutropenic client and must be stopped."},
+      {"text": "Fresh raw salad and unpeeled fruit on the meal tray", "correct": true, "feedback": "Correct. A neutropenic diet avoids raw produce that can carry organisms."},
+      {"text": "Rectal temperature being taken by unlicensed personnel", "correct": true, "feedback": "Correct. Rectal manipulation risks mucosal injury and bacterial translocation and must be avoided."},
+      {"text": "Client performing frequent hand hygiene", "correct": false, "feedback": "Incorrect. Hand hygiene is protective and should be encouraged."},
+      {"text": "Client wearing a mask when leaving the room", "correct": false, "feedback": "Incorrect. Masking during transport is an appropriate protective measure."}
+    ],
+    "rationale": "Neutropenic precautions require urgent attention to fever, infectious exposure, raw foods, and rectal procedures, while hand hygiene and masking are protective."
+  },
+  {
+    "item_id": "NCLEX_SATA_359012", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Endocrine", "topic": "High-risk medications", "subtopic": "Insulin safety", "bloom": "Apply",
+    "stem": "A nurse is preparing to administer insulin to several clients. Which actions reflect safe practice for this high-alert medication? Select all that apply.",
+    "options": [
+      {"text": "Have a second nurse independently verify the insulin type and dose", "correct": true, "feedback": "Correct. Independent double-checks are standard for high-alert medications like insulin."},
+      {"text": "Draw up regular insulin before NPH when mixing in one syringe", "correct": true, "feedback": "Correct. Clear is drawn before cloudy to avoid contaminating the regular insulin vial."},
+      {"text": "Use a syringe calibrated in units, never a tuberculin syringe", "correct": true, "feedback": "Correct. Insulin must be measured in an insulin syringe to prevent dosing errors."},
+      {"text": "Confirm the client's most recent blood glucose before administration", "correct": true, "feedback": "Correct. The current glucose guides whether the dose is appropriate."},
+      {"text": "Administer sliding-scale coverage without checking the glucose if it was normal earlier", "correct": false, "feedback": "Incorrect. Sliding-scale doses require a current glucose value each time."},
+      {"text": "Store the mixed insulin syringe for use later in the shift", "correct": false, "feedback": "Incorrect. Mixed insulin should be given promptly, as delay alters the action profile."}
+    ],
+    "rationale": "Independent double-checks, clear-before-cloudy mixing, unit-calibrated syringes, and a current glucose are core insulin safety practices."
+  },
+  {
+    "item_id": "NCLEX_SATA_359013", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Cardiovascular", "topic": "Central venous access devices", "subtopic": "Complication recognition", "bloom": "Analyze",
+    "stem": "A client with a newly inserted central venous catheter suddenly develops dyspnea, chest pain, and a drop in blood pressure. Which nursing actions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Clamp the catheter and place the client in a left lateral Trendelenburg position", "correct": true, "feedback": "Correct. This positioning traps a suspected air embolism in the right atrium away from the pulmonary outflow."},
+      {"text": "Administer oxygen and monitor oxygen saturation", "correct": true, "feedback": "Correct. Supplemental oxygen supports the client during a suspected air embolism or pneumothorax."},
+      {"text": "Notify the provider and prepare for a stat chest x-ray", "correct": true, "feedback": "Correct. Imaging confirms complications such as pneumothorax and guides treatment."},
+      {"text": "Stay with the client and continuously assess vital signs", "correct": true, "feedback": "Correct. Continuous monitoring is essential during an acute deterioration."},
+      {"text": "Flush the catheter briskly to confirm patency", "correct": false, "feedback": "Incorrect. Flushing could push an air embolus further and worsen the event."},
+      {"text": "Sit the client fully upright and encourage deep breathing exercises", "correct": false, "feedback": "Incorrect. Upright positioning is not the priority for a suspected air embolism, which requires left lateral Trendelenburg."}
+    ],
+    "rationale": "Sudden dyspnea and hypotension after CVAD insertion suggest air embolism or pneumothorax; clamp, position, oxygenate, image, and monitor closely."
+  },
+  {
+    "item_id": "NCLEX_SATA_359014", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Psychiatric/Mental Health", "topic": "Psychotropics", "subtopic": "MAOI teaching", "bloom": "Apply",
+    "stem": "A client is prescribed phenelzine, a monoamine oxidase inhibitor. Which foods and instructions should the nurse include to prevent hypertensive crisis? Select all that apply.",
+    "options": [
+      {"text": "Avoid aged cheeses and cured or smoked meats", "correct": true, "feedback": "Correct. These tyramine-rich foods can trigger a hypertensive crisis with MAOIs."},
+      {"text": "Avoid draft beer and red wine", "correct": true, "feedback": "Correct. These beverages contain tyramine and are contraindicated."},
+      {"text": "Report a severe throbbing headache or stiff neck immediately", "correct": true, "feedback": "Correct. These can signal a hypertensive crisis and warrant urgent attention."},
+      {"text": "Avoid soy sauce and other fermented soy products", "correct": true, "feedback": "Correct. Fermented soy products are high in tyramine."},
+      {"text": "Fresh cottage cheese and fresh chicken are acceptable", "correct": false, "feedback": "This statement is accurate teaching, so it should not be flagged as something to avoid."},
+      {"text": "Over-the-counter cold remedies with pseudoephedrine are safe to use", "correct": false, "feedback": "Incorrect. Sympathomimetics like pseudoephedrine are dangerous with MAOIs and must be avoided."}
+    ],
+    "rationale": "MAOIs require strict avoidance of tyramine-rich foods and sympathomimetics; sudden severe headache signals hypertensive crisis."
+  },
+  {
+    "item_id": "NCLEX_SATA_359015", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Cardiovascular", "topic": "Digoxin", "subtopic": "Toxicity risk factors", "bloom": "Analyze",
+    "stem": "A client on digoxin and furosemide is being evaluated. Which findings increase the risk of digoxin toxicity and warrant follow-up? Select all that apply.",
+    "options": [
+      {"text": "Serum potassium of 2.9 mEq/L", "correct": true, "feedback": "Correct. Hypokalemia potentiates digoxin binding and increases toxicity risk."},
+      {"text": "Serum creatinine of 2.4 mg/dL", "correct": true, "feedback": "Correct. Impaired renal function reduces digoxin excretion, causing accumulation."},
+      {"text": "Apical heart rate of 52 beats/min", "correct": true, "feedback": "Correct. Bradycardia can be an early manifestation of toxicity."},
+      {"text": "Report of seeing yellow-green halos around lights", "correct": true, "feedback": "Correct. Visual disturbances are a classic sign of digoxin toxicity."},
+      {"text": "Serum potassium of 4.4 mEq/L", "correct": false, "feedback": "Incorrect. A normal potassium does not increase toxicity risk."},
+      {"text": "Apical heart rate of 78 beats/min", "correct": false, "feedback": "Incorrect. A normal rate is not a concerning finding."}
+    ],
+    "rationale": "Hypokalemia, renal impairment, bradycardia, and visual halos all raise or signal digoxin toxicity."
+  },
+  {
+    "item_id": "NCLEX_SELN_359016", "type": "SELECT_N", "difficulty": "Hard", "select_count": 3,
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Renal/Genitourinary", "topic": "Diuretics", "subtopic": "Loop diuretic monitoring", "bloom": "Analyze",
+    "stem": "A client on high-dose IV furosemide for pulmonary edema is being monitored. Which 3 findings most require the nurse to intervene?",
+    "options": [
+      {"text": "Serum potassium of 2.7 mEq/L", "correct": true, "feedback": "Correct. Severe hypokalemia predisposes to dangerous arrhythmias."},
+      {"text": "New-onset ringing in the ears after rapid IV administration", "correct": true, "feedback": "Correct. Ototoxicity is associated with rapid loop diuretic infusion and requires slowing the rate."},
+      {"text": "Orthostatic drop in blood pressure with dizziness on standing", "correct": true, "feedback": "Correct. Volume depletion causing orthostatic hypotension increases fall risk and needs intervention."},
+      {"text": "Urine output of 80 mL/hour", "correct": false, "feedback": "Incorrect. This is an expected therapeutic response to the diuretic."},
+      {"text": "Serum sodium of 139 mEq/L", "correct": false, "feedback": "Incorrect. This sodium value is within normal limits."},
+      {"text": "Client reports decreased ankle swelling", "correct": false, "feedback": "Incorrect. Reduced edema is a desired outcome."}
+    ],
+    "rationale": "Severe hypokalemia, ototoxicity from rapid infusion, and orthostatic hypotension are the concerning effects of high-dose loop diuretics."
+  },
+  {
+    "item_id": "NCLEX_MAT_359017", "type": "MATRIX", "difficulty": "Hard", "row_label": "Antidote pairing",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "High-risk medications", "subtopic": "Reversal agents", "bloom": "Analyze",
+    "stem": "For each medication, select whether the listed agent is the correct reversal/antidote or an incorrect pairing.",
+    "columns": ["Correct antidote", "Incorrect pairing"],
+    "rows": [
+      {"text": "Warfarin — vitamin K (phytonadione)", "answer": 0},
+      {"text": "Heparin — protamine sulfate", "answer": 0},
+      {"text": "Opioid overdose — flumazenil", "answer": 1},
+      {"text": "Magnesium sulfate toxicity — calcium gluconate", "answer": 0},
+      {"text": "Acetaminophen overdose — naloxone", "answer": 1}
+    ],
+    "rationale": "Vitamin K reverses warfarin, protamine reverses heparin, and calcium gluconate reverses magnesium toxicity; flumazenil reverses benzodiazepines and acetylcysteine treats acetaminophen overdose."
+  },
+  {
+    "item_id": "NCLEX_MMR_359018", "type": "MATRIX_MR", "difficulty": "Hard", "row_label": "Medication",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "Pre-administration data review", "subtopic": "Lab monitoring", "bloom": "Analyze",
+    "stem": "For each medication, select all laboratory values the nurse should review before and during therapy (more than one may apply).",
+    "columns": ["Potassium", "INR/PT", "Serum drug level"],
+    "rows": [
+      {"text": "Warfarin", "answers": [1]},
+      {"text": "Digoxin", "answers": [0, 2]},
+      {"text": "Spironolactone", "answers": [0]},
+      {"text": "Vancomycin", "answers": [2]}
+    ],
+    "rationale": "Warfarin is monitored by INR/PT; digoxin therapy requires potassium and drug levels; spironolactone requires potassium; vancomycin requires serum trough levels."
+  },
+  {
+    "item_id": "NCLEX_CLZ_359019", "type": "CLOZE", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Reproductive", "topic": "Titration to parameters", "subtopic": "Magnesium sulfate", "bloom": "Analyze",
+    "stem": "A client with preeclampsia is receiving an IV magnesium sulfate infusion. The nurse must hold the infusion and notify the provider if the {1} are absent, because this is an early sign of {2}.",
+    "blanks": [
+      {"choices": [{"text": "deep tendon reflexes", "correct": true}, {"text": "bowel sounds"}, {"text": "pedal pulses"}]},
+      {"choices": [{"text": "magnesium toxicity", "correct": true}, {"text": "hypomagnesemia"}, {"text": "eclamptic seizure"}]}
+    ],
+    "rationale": "Loss of deep tendon reflexes is an early sign of magnesium toxicity and precedes respiratory depression, prompting the nurse to hold the infusion."
+  },
+  {
+    "item_id": "NCLEX_HL_359020", "type": "HIGHLIGHT", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Respiratory", "topic": "Response evaluation", "subtopic": "Opioid safety", "bloom": "Analyze",
+    "stem": "A client 2 hours after receiving IV hydromorphone is assessed. Highlight the findings that require immediate follow-up. The client [[respiratory rate of 8 breaths/min]], [[oxygen saturation of 88% on room air]], is [[difficult to arouse]], has a pain rating of 3/10, [[pinpoint pupils]], and a [[heart rate of 74 beats/min]].",
+    "chunks": [
+      {"text": "respiratory rate of 8 breaths/min", "correct": true, "feedback": "Correct. Respiratory depression is the hallmark danger of opioids."},
+      {"text": "oxygen saturation of 88% on room air", "correct": true, "feedback": "Correct. Hypoxemia requires immediate intervention."},
+      {"text": "difficult to arouse", "correct": true, "feedback": "Correct. Decreased level of consciousness signals over-sedation."},
+      {"text": "pinpoint pupils", "correct": true, "feedback": "Correct. Miosis with sedation and low respirations points to opioid toxicity."},
+      {"text": "heart rate of 74 beats/min", "correct": false, "feedback": "A normal heart rate does not require follow-up."}
+    ],
+    "rationale": "Respiratory rate of 8, SpO2 of 88%, difficulty arousing, and pinpoint pupils together indicate opioid-induced respiratory depression needing follow-up."
+  },
+  {
+    "item_id": "NCLEX_BT_359021", "type": "BOWTIE", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Immune", "topic": "Blood-product administration", "subtopic": "Anaphylactic reaction", "bloom": "Evaluate",
+    "stem": "During a transfusion a client develops wheezing, hives, and hypotension. Complete the diagram by selecting the condition, the actions to take, and the parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Stop the transfusion immediately", "correct": true},
+      {"text": "Prepare to administer epinephrine and antihistamine", "correct": true},
+      {"text": "Slow the transfusion and continue", "correct": false},
+      {"text": "Apply warming blankets", "correct": false}
+    ]},
+    "centre": {"label": "Condition", "tokens": [
+      {"text": "Anaphylactic transfusion reaction", "correct": true},
+      {"text": "Febrile nonhemolytic reaction", "correct": false},
+      {"text": "Circulatory overload", "correct": false}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Airway patency and breath sounds", "correct": true},
+      {"text": "Blood pressure", "correct": true},
+      {"text": "Deep tendon reflexes", "correct": false},
+      {"text": "Bowel sounds", "correct": false}
+    ]},
+    "rationale": "Wheezing, hives, and hypotension indicate an anaphylactic reaction; stop the blood, give epinephrine and antihistamine, and monitor airway and blood pressure."
+  },
+  {
+    "item_id": "NCLEX_DCZ_359022", "type": "DRAG_CLOZE", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Hematologic", "topic": "Anticoagulants", "subtopic": "Warfarin monitoring", "bloom": "Apply",
+    "stem": "A client on warfarin for atrial fibrillation has an INR of 5.6 with no active bleeding. The nurse anticipates that the provider will [1] the next warfarin dose and may prescribe [2] as the reversal agent.",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["hold", "vitamin K", "increase", "protamine sulfate"],
+    "rationale": "An INR of 5.6 is supratherapeutic, so warfarin is held and vitamin K is the reversal agent."
+  },
+  {
+    "item_id": "NCLEX_DO_359023", "type": "DRAG_ORDER", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Immune", "topic": "IV infusion monitoring", "subtopic": "Anaphylaxis to IV antibiotic", "bloom": "Apply",
+    "stem": "Moments after an IV antibiotic is started, a client develops stridor, facial swelling, and hypotension. Place the nurse's actions in priority order.",
+    "tokens": ["Stop the antibiotic infusion", "Maintain a patent airway and apply oxygen", "Administer prescribed epinephrine", "Notify the rapid response team", "Document the reaction and update the allergy record"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  },
+  {
+    "item_id": "NCLEX_TF_359024", "type": "TF", "difficulty": "Hard", "answer": "False",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Musculoskeletal", "topic": "IV site care", "subtopic": "Extravasation of a vesicant", "bloom": "Analyze",
+    "stem": "When a vesicant chemotherapy agent extravasates into the tissue, the nurse's correct first action is to immediately remove the peripheral IV catheter and apply firm pressure to the site.",
+    "rationale": "The infusion is stopped but the catheter is left in place to aspirate residual drug and instill an antidote; removing it and applying pressure would spread the vesicant and worsen tissue injury."
+  }
+]

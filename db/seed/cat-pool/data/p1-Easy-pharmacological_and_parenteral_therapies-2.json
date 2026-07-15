@@ -1,0 +1,326 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_314001", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Hematologic", "topic": "Anticoagulants", "subtopic": "Warfarin", "bloom": "Understand",
+    "stem": "A nurse is teaching a client who takes warfarin. Which routine laboratory test is used to monitor the therapeutic effect of this medication?",
+    "options": [
+      {"text": "INR (international normalized ratio)", "correct": true, "feedback": "Correct. INR monitors warfarin's anticoagulant effect."},
+      {"text": "Serum potassium", "correct": false, "feedback": "Incorrect. Potassium is not used to monitor warfarin."},
+      {"text": "Fasting blood glucose", "correct": false, "feedback": "Incorrect. Glucose is unrelated to warfarin monitoring."},
+      {"text": "Serum creatinine", "correct": false, "feedback": "Incorrect. Creatinine monitors renal function, not warfarin."}
+    ],
+    "rationale": "Warfarin therapy is monitored using the INR to keep clotting within a therapeutic range."
+  },
+  {
+    "item_id": "NCLEX_MCQ_314002", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Endocrine", "topic": "Insulin", "subtopic": "Rapid-acting insulin", "bloom": "Apply",
+    "stem": "A nurse prepares to administer lispro (rapid-acting) insulin to a client before breakfast. When should the nurse administer this insulin?",
+    "options": [
+      {"text": "Within 15 minutes before the meal", "correct": true, "feedback": "Correct. Rapid-acting insulin is given right before eating."},
+      {"text": "One hour after the meal", "correct": false, "feedback": "Incorrect. Giving it after the meal risks hyperglycemia then hypoglycemia."},
+      {"text": "At bedtime only", "correct": false, "feedback": "Incorrect. Bedtime dosing is for long-acting insulin."},
+      {"text": "Two hours before the meal", "correct": false, "feedback": "Incorrect. This risks hypoglycemia before food is eaten."}
+    ],
+    "rationale": "Rapid-acting insulins such as lispro have a quick onset and are given within 15 minutes of the meal."
+  },
+  {
+    "item_id": "NCLEX_MCQ_314003", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "Rights of medication administration", "bloom": "Remember",
+    "stem": "A nurse is reviewing the rights of medication administration. Which of the following is one of the recognized rights?",
+    "options": [
+      {"text": "Right dose", "correct": true, "feedback": "Correct. Right dose is a core right of medication administration."},
+      {"text": "Right pharmacy", "correct": false, "feedback": "Incorrect. This is not one of the rights."},
+      {"text": "Right insurance", "correct": false, "feedback": "Incorrect. This is not a right of administration."},
+      {"text": "Right manufacturer", "correct": false, "feedback": "Incorrect. This is not a right of administration."}
+    ],
+    "rationale": "The rights include right client, drug, dose, route, time, and documentation."
+  },
+  {
+    "item_id": "NCLEX_MCQ_314004", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Neurological", "topic": "Opioids", "subtopic": "Naloxone", "bloom": "Understand",
+    "stem": "A client who received morphine has a respiratory rate of 6 breaths/min and is difficult to arouse. Which medication should the nurse anticipate administering?",
+    "options": [
+      {"text": "Naloxone", "correct": true, "feedback": "Correct. Naloxone reverses opioid-induced respiratory depression."},
+      {"text": "Flumazenil", "correct": false, "feedback": "Incorrect. Flumazenil reverses benzodiazepines, not opioids."},
+      {"text": "Protamine sulfate", "correct": false, "feedback": "Incorrect. Protamine reverses heparin."},
+      {"text": "Vitamin K", "correct": false, "feedback": "Incorrect. Vitamin K reverses warfarin."}
+    ],
+    "rationale": "Naloxone is the opioid antagonist used to reverse respiratory depression from opioids."
+  },
+  {
+    "item_id": "NCLEX_MCQ_314005", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Renal/Genitourinary", "topic": "Diuretics", "subtopic": "Furosemide", "bloom": "Apply",
+    "stem": "A nurse is administering furosemide to a client. Which electrolyte should the nurse monitor most closely because of this drug?",
+    "options": [
+      {"text": "Potassium", "correct": true, "feedback": "Correct. Furosemide causes potassium loss (hypokalemia)."},
+      {"text": "Calcium only", "correct": false, "feedback": "Incorrect. Potassium is the primary concern."},
+      {"text": "Phosphate", "correct": false, "feedback": "Incorrect. Phosphate is not the main concern with furosemide."},
+      {"text": "Chloride only", "correct": false, "feedback": "Incorrect. Potassium loss is the priority monitoring focus."}
+    ],
+    "rationale": "Loop diuretics such as furosemide promote potassium excretion, risking hypokalemia."
+  },
+  {
+    "item_id": "NCLEX_MCQ_314006", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "IV site care", "subtopic": "Infiltration", "bloom": "Apply",
+    "stem": "A nurse notes swelling, coolness, and pallor at a peripheral IV site with a sluggish flow. Which action should the nurse take FIRST?",
+    "options": [
+      {"text": "Stop the infusion and remove the catheter", "correct": true, "feedback": "Correct. These are signs of infiltration; the IV should be stopped and discontinued."},
+      {"text": "Increase the infusion rate", "correct": false, "feedback": "Incorrect. Increasing the rate worsens tissue infiltration."},
+      {"text": "Apply a warm compress and continue", "correct": false, "feedback": "Incorrect. Continuing the infusion into tissue causes harm."},
+      {"text": "Flush the line with saline under pressure", "correct": false, "feedback": "Incorrect. Flushing pushes more fluid into the tissue."}
+    ],
+    "rationale": "Swelling, coolness, and pallor indicate infiltration; the infusion is stopped and the catheter removed."
+  },
+  {
+    "item_id": "NCLEX_MCQ_314007", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "Controlled substances", "bloom": "Understand",
+    "stem": "A nurse wastes a partial dose of a controlled opioid. Which action is required?",
+    "options": [
+      {"text": "Have a second nurse witness and co-sign the waste", "correct": true, "feedback": "Correct. Controlled-substance waste requires a witness and co-signature."},
+      {"text": "Discard it privately and document later", "correct": false, "feedback": "Incorrect. Waste must be witnessed."},
+      {"text": "Return the remainder to the client's drawer", "correct": false, "feedback": "Incorrect. Leftover controlled drugs are never returned to stock."},
+      {"text": "Give the remaining amount to another client", "correct": false, "feedback": "Incorrect. Medications are never shared between clients."}
+    ],
+    "rationale": "Wasting a controlled substance must be witnessed and co-signed by a second nurse."
+  },
+  {
+    "item_id": "NCLEX_MCQ_314008", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Immune", "topic": "Antibiotics", "subtopic": "Allergy screening", "bloom": "Apply",
+    "stem": "Before administering a first dose of penicillin, which pre-administration action is most important for the nurse to perform?",
+    "options": [
+      {"text": "Ask the client about drug allergies", "correct": true, "feedback": "Correct. Screening for allergies prevents an anaphylactic reaction."},
+      {"text": "Check the client's blood glucose", "correct": false, "feedback": "Incorrect. Glucose is unrelated to penicillin safety."},
+      {"text": "Weigh the client's daily intake", "correct": false, "feedback": "Incorrect. This is not the priority before penicillin."},
+      {"text": "Obtain a 12-lead ECG", "correct": false, "feedback": "Incorrect. An ECG is not required before penicillin."}
+    ],
+    "rationale": "Assessing for allergies before a first antibiotic dose prevents a serious hypersensitivity reaction."
+  },
+  {
+    "item_id": "NCLEX_MCQ_314009", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Hematologic", "topic": "Blood product administration", "bloom": "Apply",
+    "stem": "A nurse is preparing to hang a unit of packed red blood cells. Which IV solution should be used to prime the line?",
+    "options": [
+      {"text": "0.9% sodium chloride (normal saline)", "correct": true, "feedback": "Correct. Normal saline is the only compatible solution for blood."},
+      {"text": "5% dextrose in water", "correct": false, "feedback": "Incorrect. Dextrose causes red cell hemolysis."},
+      {"text": "Lactated Ringer's solution", "correct": false, "feedback": "Incorrect. The calcium in LR can cause clotting."},
+      {"text": "0.45% sodium chloride", "correct": false, "feedback": "Incorrect. Only 0.9% normal saline is compatible."}
+    ],
+    "rationale": "Only 0.9% normal saline is compatible with blood products; other fluids cause hemolysis or clotting."
+  },
+  {
+    "item_id": "NCLEX_MCQ_314010", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Cardiovascular", "topic": "Antihypertensives", "subtopic": "Orthostatic hypotension", "bloom": "Understand",
+    "stem": "A nurse teaches a client starting an antihypertensive medication. Which instruction helps prevent orthostatic hypotension?",
+    "options": [
+      {"text": "Rise slowly from a sitting or lying position", "correct": true, "feedback": "Correct. Changing position slowly prevents dizziness and falls."},
+      {"text": "Stand up quickly to keep blood flowing", "correct": false, "feedback": "Incorrect. Rising quickly worsens orthostatic drops."},
+      {"text": "Skip the dose if you feel fine", "correct": false, "feedback": "Incorrect. Doses should not be skipped."},
+      {"text": "Double the dose if a reading is high", "correct": false, "feedback": "Incorrect. Clients should never self-adjust doses."}
+    ],
+    "rationale": "Rising slowly gives the cardiovascular system time to adjust, preventing orthostatic hypotension."
+  },
+  {
+    "item_id": "NCLEX_MCQ_314011", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "GI", "topic": "Parenteral nutrition", "subtopic": "TPN", "bloom": "Understand",
+    "stem": "A client is receiving total parenteral nutrition (TPN). Which laboratory value should the nurse monitor most frequently?",
+    "options": [
+      {"text": "Blood glucose", "correct": true, "feedback": "Correct. TPN's high dextrose content requires frequent glucose monitoring."},
+      {"text": "Serum amylase", "correct": false, "feedback": "Incorrect. Amylase is not the priority TPN value."},
+      {"text": "Urine specific gravity", "correct": false, "feedback": "Incorrect. This is not the primary TPN concern."},
+      {"text": "Serum bilirubin", "correct": false, "feedback": "Incorrect. Bilirubin is not routinely monitored with TPN."}
+    ],
+    "rationale": "TPN contains concentrated dextrose, so blood glucose is monitored closely for hyperglycemia."
+  },
+  {
+    "item_id": "NCLEX_SATA_314012", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "High-risk medications", "subtopic": "Safe handling", "bloom": "Understand",
+    "stem": "A nurse reviews safe practices for high-alert medications. Which actions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Use an independent double-check for IV heparin", "correct": true},
+      {"text": "Store concentrated electrolytes in patient care units without restriction", "correct": false},
+      {"text": "Verify insulin doses with a second nurse", "correct": true},
+      {"text": "Use a smart infusion pump with dose limits for high-risk drips", "correct": true},
+      {"text": "Label all high-alert medications clearly", "correct": true},
+      {"text": "Round all dosage calculations up to the nearest whole number", "correct": false}
+    ],
+    "rationale": "Independent double-checks, second-nurse verification, smart pumps, and clear labeling reduce errors with high-alert drugs."
+  },
+  {
+    "item_id": "NCLEX_SATA_314013", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Endocrine", "topic": "Insulin", "subtopic": "Hypoglycemia", "bloom": "Understand",
+    "stem": "A nurse teaches a client about signs of hypoglycemia from insulin. Which signs should the client watch for? Select all that apply.",
+    "options": [
+      {"text": "Shakiness", "correct": true},
+      {"text": "Sweating", "correct": true},
+      {"text": "Confusion", "correct": true},
+      {"text": "Increased thirst", "correct": false},
+      {"text": "Fruity breath odor", "correct": false},
+      {"text": "Palpitations", "correct": true}
+    ],
+    "rationale": "Shakiness, sweating, confusion, and palpitations are classic signs of hypoglycemia; thirst and fruity breath suggest hyperglycemia."
+  },
+  {
+    "item_id": "NCLEX_SATA_314014", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Hematologic", "topic": "Blood transfusion reaction", "bloom": "Apply",
+    "stem": "A nurse suspects a transfusion reaction during a blood transfusion. Which immediate actions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Stop the transfusion", "correct": true},
+      {"text": "Keep the IV line open with normal saline", "correct": true},
+      {"text": "Notify the provider", "correct": true},
+      {"text": "Continue the transfusion at a slower rate", "correct": false},
+      {"text": "Discard the blood bag immediately", "correct": false},
+      {"text": "Monitor the client's vital signs", "correct": true}
+    ],
+    "rationale": "Stopping the transfusion, maintaining saline access, notifying the provider, and monitoring vitals are priority actions; the bag is kept for testing."
+  },
+  {
+    "item_id": "NCLEX_SATA_314015", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "Medication reconciliation", "bloom": "Understand",
+    "stem": "A nurse performs medication reconciliation on admission. Which information should the nurse collect? Select all that apply.",
+    "options": [
+      {"text": "Prescription medication names and doses", "correct": true},
+      {"text": "Over-the-counter medications", "correct": true},
+      {"text": "Herbal and dietary supplements", "correct": true},
+      {"text": "The client's favorite foods", "correct": false},
+      {"text": "Known medication allergies", "correct": true},
+      {"text": "The client's employer name", "correct": false}
+    ],
+    "rationale": "Reconciliation captures all prescription, OTC, and herbal products plus allergies to prevent errors and interactions."
+  },
+  {
+    "item_id": "NCLEX_SATA_314016", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "Safe storage and disposal", "bloom": "Understand",
+    "stem": "A nurse teaches a client about safe medication storage and disposal at home. Which instructions are correct? Select all that apply.",
+    "options": [
+      {"text": "Keep medications in their original labeled containers", "correct": true},
+      {"text": "Store medications out of the reach of children", "correct": true},
+      {"text": "Use a drug take-back program for unused opioids", "correct": true},
+      {"text": "Share leftover antibiotics with family members who feel ill", "correct": false},
+      {"text": "Keep medications in a cool, dry place away from heat", "correct": true},
+      {"text": "Store all medications in a bathroom cabinet for humidity", "correct": false}
+    ],
+    "rationale": "Original containers, child safety, take-back programs, and cool dry storage promote safety; sharing drugs and humid storage are unsafe."
+  },
+  {
+    "item_id": "NCLEX_SELN_314017", "type": "SELECT_N", "difficulty": "Easy", "select_count": 2,
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Cardiovascular", "topic": "Digoxin", "subtopic": "Pre-administration check", "bloom": "Apply",
+    "stem": "Before administering digoxin, which 2 assessments should the nurse complete?",
+    "options": [
+      {"text": "Count the apical heart rate for one full minute", "correct": true},
+      {"text": "Review the most recent serum potassium level", "correct": true},
+      {"text": "Measure the client's height", "correct": false},
+      {"text": "Check the client's visual acuity chart", "correct": false},
+      {"text": "Obtain a urine culture", "correct": false}
+    ],
+    "rationale": "Digoxin requires an apical pulse check (hold if below 60) and potassium review, since hypokalemia increases toxicity risk."
+  },
+  {
+    "item_id": "NCLEX_TF_314018", "type": "TF", "difficulty": "Easy", "answer": "True",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Hematologic", "topic": "Anticoagulants", "subtopic": "Heparin antidote", "bloom": "Remember",
+    "stem": "Protamine sulfate is the antidote used to reverse the effects of heparin.",
+    "rationale": "Protamine sulfate neutralizes heparin and is used to reverse excessive anticoagulation."
+  },
+  {
+    "item_id": "NCLEX_MAT_314019", "type": "MATRIX", "difficulty": "Easy", "row_label": "Medication",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "Medication-antidote pairing", "bloom": "Understand",
+    "stem": "For each medication, click to indicate its correct reversal agent.",
+    "columns": ["Naloxone", "Vitamin K"],
+    "rows": [
+      {"text": "Morphine", "answer": 0},
+      {"text": "Warfarin", "answer": 1},
+      {"text": "Hydromorphone", "answer": 0},
+      {"text": "Fentanyl", "answer": 0}
+    ],
+    "rationale": "Naloxone reverses opioids (morphine, hydromorphone, fentanyl); vitamin K reverses warfarin."
+  },
+  {
+    "item_id": "NCLEX_MMR_314020", "type": "MATRIX_MR", "difficulty": "Easy", "row_label": "Route",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "Injection routes", "bloom": "Understand",
+    "stem": "For each site, select all injection routes that are appropriate (may support more than one).",
+    "columns": ["Subcutaneous", "Intramuscular"],
+    "rows": [
+      {"text": "Deltoid", "answers": [1]},
+      {"text": "Abdomen", "answers": [0]},
+      {"text": "Vastus lateralis", "answers": [1]},
+      {"text": "Upper outer arm (fatty tissue)", "answers": [0]}
+    ],
+    "rationale": "The deltoid and vastus lateralis are IM sites; the abdomen and fatty upper arm are subcutaneous sites."
+  },
+  {
+    "item_id": "NCLEX_CLZ_314021", "type": "CLOZE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Endocrine", "topic": "Insulin", "subtopic": "Mixing insulins", "bloom": "Apply",
+    "stem": "When mixing two insulins in one syringe, the nurse draws up the {1} insulin first, then the {2} insulin, to avoid contaminating the vial.",
+    "blanks": [
+      {"choices": [{"text": "clear (regular)", "correct": true}, {"text": "cloudy (NPH)"}]},
+      {"choices": [{"text": "cloudy (NPH)", "correct": true}, {"text": "clear (regular)"}]}
+    ],
+    "rationale": "The clear (regular) insulin is drawn first, then the cloudy (NPH), to prevent contaminating the clear vial."
+  },
+  {
+    "item_id": "NCLEX_HL_314022", "type": "HIGHLIGHT", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "IV complications", "subtopic": "Phlebitis", "bloom": "Apply",
+    "stem": "The nurse assesses a peripheral IV site. Highlight the findings that indicate phlebitis and require intervention. The site shows [[redness along the vein]], the dressing is [[clean and dry]], there is [[warmth to the touch]], the client reports [[tenderness]], and the flush was [[without resistance]].",
+    "chunks": [
+      {"text": "redness along the vein", "correct": true, "feedback": "Redness along the vein is a sign of phlebitis."},
+      {"text": "clean and dry", "correct": false, "feedback": "A clean dry dressing is a normal finding."},
+      {"text": "warmth to the touch", "correct": true, "feedback": "Warmth indicates inflammation of the vein."},
+      {"text": "tenderness", "correct": true, "feedback": "Tenderness along the vein suggests phlebitis."},
+      {"text": "without resistance", "correct": false, "feedback": "A flush without resistance is a normal finding."}
+    ],
+    "rationale": "Redness, warmth, and tenderness along the vein are classic signs of phlebitis requiring catheter removal."
+  },
+  {
+    "item_id": "NCLEX_BT_314023", "type": "BOWTIE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Neurological", "topic": "Opioid overdose", "bloom": "Apply",
+    "stem": "A client has opioid-induced respiratory depression. Complete the diagram by selecting the actions to take, the condition, and the parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Administer naloxone as prescribed", "correct": true},
+      {"text": "Stimulate and support the airway", "correct": true},
+      {"text": "Administer an additional opioid dose"},
+      {"text": "Encourage the client to walk"}
+    ]},
+    "centre": {"label": "Condition", "tokens": [
+      {"text": "Opioid-induced respiratory depression", "correct": true},
+      {"text": "Anaphylaxis"},
+      {"text": "Hypoglycemia"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Respiratory rate", "correct": true},
+      {"text": "Oxygen saturation", "correct": true},
+      {"text": "Blood glucose"},
+      {"text": "Bowel sounds"}
+    ]},
+    "rationale": "Opioid respiratory depression is treated with naloxone and airway support, monitoring respiratory rate and oxygen saturation."
+  },
+  {
+    "item_id": "NCLEX_DO_314024", "type": "DRAG_ORDER", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "IM injection procedure", "bloom": "Apply",
+    "stem": "Place the steps for administering an intramuscular injection in the correct order.",
+    "tokens": ["Perform hand hygiene and don gloves", "Cleanse the injection site with an antiseptic swab", "Insert the needle at a 90-degree angle", "Inject the medication steadily", "Withdraw the needle and dispose of it in a sharps container"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

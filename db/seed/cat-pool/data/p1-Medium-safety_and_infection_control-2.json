@@ -1,0 +1,349 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_328001", "type": "MCQ", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Transmission-based precautions", "subtopic": "Airborne", "bloom": "Apply",
+    "stem": "A client is admitted with a productive cough, night sweats, and a positive acid-fast bacilli sputum smear. Which action should the nurse take to protect other clients and staff?",
+    "options": [
+      {"text": "Place the client in a negative-pressure room and wear an N95 respirator", "correct": true, "feedback": "Correct. Suspected tuberculosis requires airborne precautions with an airborne infection isolation room and a fit-tested N95."},
+      {"text": "Place the client in a private room and wear a surgical mask within 3 feet", "correct": false, "feedback": "Incorrect. A surgical mask and droplet precautions are insufficient for airborne organisms."},
+      {"text": "Cohort the client with another pneumonia client", "correct": false, "feedback": "Incorrect. Suspected TB cannot be cohorted with non-TB clients."},
+      {"text": "Apply contact precautions with gown and gloves only", "correct": false, "feedback": "Incorrect. Contact precautions do not address airborne transmission."}
+    ],
+    "rationale": "Suspected pulmonary tuberculosis requires airborne precautions: a negative-pressure room and a fit-tested N95 respirator."
+  },
+  {
+    "item_id": "NCLEX_MCQ_328002", "type": "MCQ", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Hand hygiene", "bloom": "Apply",
+    "stem": "A nurse is caring for a client with Clostridioides difficile infection. After removing gloves and gown, which hand-hygiene method is MOST appropriate before leaving the room?",
+    "options": [
+      {"text": "Wash hands with soap and water", "correct": true, "feedback": "Correct. C. difficile spores are not killed by alcohol; mechanical removal with soap and water is required."},
+      {"text": "Use an alcohol-based hand rub", "correct": false, "feedback": "Incorrect. Alcohol does not eliminate C. difficile spores."},
+      {"text": "Apply a foaming antiseptic gel", "correct": false, "feedback": "Incorrect. Antiseptic gels are alcohol-based and ineffective against spores."},
+      {"text": "Rinse hands with water only", "correct": false, "feedback": "Incorrect. Water alone does not remove pathogens effectively."}
+    ],
+    "rationale": "C. difficile forms alcohol-resistant spores; only soap-and-water washing mechanically removes them."
+  },
+  {
+    "item_id": "NCLEX_MCQ_328003", "type": "MCQ", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "PPE", "subtopic": "Doffing sequence", "bloom": "Apply",
+    "stem": "A nurse is removing personal protective equipment after caring for a client on contact and droplet precautions. Which item should the nurse remove LAST?",
+    "options": [
+      {"text": "Mask or respirator", "correct": true, "feedback": "Correct. The mask is removed last, after leaving the room, because it protects against inhaled pathogens until the end."},
+      {"text": "Gloves", "correct": false, "feedback": "Incorrect. Gloves are the most contaminated item and are removed first."},
+      {"text": "Gown", "correct": false, "feedback": "Incorrect. The gown is removed after gloves but before the mask."},
+      {"text": "Goggles", "correct": false, "feedback": "Incorrect. Eye protection is removed before the mask."}
+    ],
+    "rationale": "Doffing sequence removes gloves, goggles, gown, then mask/respirator last after exiting the room."
+  },
+  {
+    "item_id": "NCLEX_MCQ_328004", "type": "MCQ", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Musculoskeletal", "topic": "Ergonomics and safe handling", "bloom": "Apply",
+    "stem": "A nurse must reposition a heavy, immobile client higher in bed. Which action best protects both the nurse and the client from injury?",
+    "options": [
+      {"text": "Use a friction-reducing slide sheet with a second staff member", "correct": true, "feedback": "Correct. Mechanical aids and team lifting reduce musculoskeletal injury risk."},
+      {"text": "Lift the client alone by pulling under the arms", "correct": false, "feedback": "Incorrect. Pulling under the arms risks shoulder injury and back strain."},
+      {"text": "Raise the bed to its lowest position and pull the client up", "correct": false, "feedback": "Incorrect. Working at waist height, not the lowest setting, protects the nurse's back."},
+      {"text": "Ask the client to grab the side rail and pull independently", "correct": false, "feedback": "Incorrect. An immobile client cannot safely reposition independently."}
+    ],
+    "rationale": "Friction-reducing devices plus adequate staff prevent back injury to the nurse and shearing to the client."
+  },
+  {
+    "item_id": "NCLEX_MCQ_328005", "type": "MCQ", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Error and near-miss reporting", "bloom": "Apply",
+    "stem": "A nurse discovers that a colleague nearly administered a medication to the wrong client but caught the error before giving it. What is the nurse's most appropriate action?",
+    "options": [
+      {"text": "Encourage completion of a near-miss (incident) report", "correct": true, "feedback": "Correct. Near-miss reporting drives system improvement and is non-punitive."},
+      {"text": "Do nothing because no harm reached the client", "correct": false, "feedback": "Incorrect. Near misses must be reported to prevent future errors."},
+      {"text": "Document the event in the client's medical record", "correct": false, "feedback": "Incorrect. Incident reports are not filed in the medical record."},
+      {"text": "Report the colleague to the state board of nursing", "correct": false, "feedback": "Incorrect. A caught near miss is a quality-improvement matter, not board reportable."}
+    ],
+    "rationale": "Near-miss reporting is a non-punitive quality-improvement tool that captures latent system errors before harm occurs."
+  },
+  {
+    "item_id": "NCLEX_MCQ_328006", "type": "MCQ", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Newborn security", "bloom": "Apply",
+    "stem": "A person in scrubs the nurse does not recognize, wearing no facility identification badge, asks to take a newborn to the nursery for tests. What should the nurse do FIRST?",
+    "options": [
+      {"text": "Do not release the infant and verify the person's identity", "correct": true, "feedback": "Correct. Infant abduction prevention requires confirming identity before any transfer."},
+      {"text": "Release the infant so testing is not delayed", "correct": false, "feedback": "Incorrect. Releasing an unverified person risks abduction."},
+      {"text": "Ask the parents whether they recognize the person", "correct": false, "feedback": "Incorrect. Parents may not know staff; identity verification is the nurse's responsibility."},
+      {"text": "Escort the person and infant to the nursery together", "correct": false, "feedback": "Incorrect. The infant should not leave until identity is confirmed."}
+    ],
+    "rationale": "Newborn security protocols require staff-identity verification before any infant is transferred."
+  },
+  {
+    "item_id": "NCLEX_MCQ_328007", "type": "MCQ", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Client identification", "bloom": "Apply",
+    "stem": "Before administering a blood transfusion, which method meets the standard for correctly identifying the client?",
+    "options": [
+      {"text": "Check two identifiers such as name and date of birth against the wristband", "correct": true, "feedback": "Correct. Two client-specific identifiers must be verified against the record."},
+      {"text": "Call the client by name and proceed when they answer", "correct": false, "feedback": "Incorrect. A confused or medicated client may answer to any name."},
+      {"text": "Verify the room and bed number", "correct": false, "feedback": "Incorrect. Room/bed number is not a client-specific identifier."},
+      {"text": "Confirm the client's diagnosis with the chart", "correct": false, "feedback": "Incorrect. Diagnosis is not an approved identifier."}
+    ],
+    "rationale": "Safe identification requires two client-specific identifiers (e.g., name and DOB) verified against the wristband, never the room number."
+  },
+  {
+    "item_id": "NCLEX_MCQ_328008", "type": "MCQ", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Integumentary", "topic": "Sterile technique", "bloom": "Apply",
+    "stem": "During a sterile dressing change, the nurse notices the edge of the sterile field has become wet from saline. What should the nurse do?",
+    "options": [
+      {"text": "Consider the field contaminated and set up a new sterile field", "correct": true, "feedback": "Correct. A wet field wicks microorganisms and is considered contaminated by strike-through."},
+      {"text": "Dry the area with a sterile gauze and continue", "correct": false, "feedback": "Incorrect. Moisture has already compromised sterility."},
+      {"text": "Use only the dry portion of the field", "correct": false, "feedback": "Incorrect. Once contaminated, the field cannot be partially salvaged safely."},
+      {"text": "Cover the wet area with a second sterile drape", "correct": false, "feedback": "Incorrect. Layering does not restore the compromised field."}
+    ],
+    "rationale": "Moisture causes strike-through contamination; a wet sterile field is considered contaminated and must be replaced."
+  },
+  {
+    "item_id": "NCLEX_MCQ_328009", "type": "MCQ", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Treatment-order verification", "bloom": "Apply",
+    "stem": "A nurse receives a written order that reads 'digoxin 0.25 mg IV daily.' The client's most recent potassium is 2.9 mEq/L. What should the nurse do?",
+    "options": [
+      {"text": "Hold the dose and contact the prescriber about the low potassium", "correct": true, "feedback": "Correct. Hypokalemia increases digoxin toxicity risk; the order should be verified before administration."},
+      {"text": "Administer the dose as ordered", "correct": false, "feedback": "Incorrect. Giving digoxin with hypokalemia risks toxicity."},
+      {"text": "Give half the dose to be safe", "correct": false, "feedback": "Incorrect. A nurse cannot independently alter a prescribed dose."},
+      {"text": "Administer oral potassium first, then the digoxin", "correct": false, "feedback": "Incorrect. This requires a prescriber order and does not immediately correct the level."}
+    ],
+    "rationale": "Verifying an order against relevant labs is a safety duty; hypokalemia potentiates digoxin toxicity, so the dose is held and clarified."
+  },
+  {
+    "item_id": "NCLEX_MCQ_328010", "type": "MCQ", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Biohazard handling", "bloom": "Apply",
+    "stem": "A nurse accidentally breaks a mercury thermometer, spilling mercury on the floor. Which action is most appropriate?",
+    "options": [
+      {"text": "Ventilate the area, avoid touching it, and follow the facility hazardous-spill protocol", "correct": true, "feedback": "Correct. Mercury is a hazardous material requiring containment per protocol, not routine cleanup."},
+      {"text": "Wipe it up with paper towels and discard in the regular trash", "correct": false, "feedback": "Incorrect. Mercury cannot go in regular trash and vaporizes when disturbed."},
+      {"text": "Vacuum the mercury beads immediately", "correct": false, "feedback": "Incorrect. Vacuuming aerosolizes mercury and increases exposure."},
+      {"text": "Rinse the mercury down the sink drain", "correct": false, "feedback": "Incorrect. Mercury must never enter the drain; it is an environmental hazard."}
+    ],
+    "rationale": "Mercury is a hazardous material; the area is ventilated and the hazardous-materials spill protocol is followed rather than routine cleanup."
+  },
+  {
+    "item_id": "NCLEX_MCQ_328011", "type": "MCQ", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Injury prevention", "subtopic": "Home safety", "bloom": "Apply",
+    "stem": "A nurse is teaching a parent of an 8-month-old about home safety. Which statement by the parent indicates a need for further teaching?",
+    "options": [
+      {"text": "\"I keep the cleaning products in the cabinet under the sink.\"", "correct": true, "feedback": "Correct. Under-sink storage is within reach of a mobile infant and needs correction."},
+      {"text": "\"I installed gates at the top and bottom of the stairs.\"", "correct": false, "feedback": "Incorrect. Stair gates are appropriate for this age."},
+      {"text": "\"I set the water heater to 120°F (49°C).\"", "correct": false, "feedback": "Incorrect. This setting reduces scald risk and is correct."},
+      {"text": "\"I put covers on all the electrical outlets.\"", "correct": false, "feedback": "Incorrect. Outlet covers are appropriate safety measures."}
+    ],
+    "rationale": "A crawling infant can reach under-sink cabinets; toxic products must be stored in locked, high locations."
+  },
+  {
+    "item_id": "NCLEX_MCQ_328012", "type": "MCQ", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Emergency preparedness", "subtopic": "Triage", "bloom": "Analyze",
+    "stem": "During a mass-casualty event using disaster triage, which client should the nurse tag as the HIGHEST priority for immediate treatment?",
+    "options": [
+      {"text": "An adult with a tension pneumothorax and severe respiratory distress", "correct": true, "feedback": "Correct. A survivable but immediately life-threatening injury is tagged immediate (red)."},
+      {"text": "A client with a massive head injury who is not breathing after airway repositioning", "correct": false, "feedback": "Incorrect. In disaster triage this client is expectant, not immediate."},
+      {"text": "An adult with a closed femur fracture who is alert", "correct": false, "feedback": "Incorrect. Stable fractures are delayed (yellow)."},
+      {"text": "A client with minor abrasions who is walking", "correct": false, "feedback": "Incorrect. Ambulatory minor injuries are minimal (green)."}
+    ],
+    "rationale": "Disaster triage prioritizes salvageable, immediately life-threatening injuries; a tension pneumothorax is treatable and tagged immediate."
+  },
+  {
+    "item_id": "NCLEX_SATA_328013", "type": "SATA", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Standard precautions", "bloom": "Apply",
+    "stem": "A nurse is reviewing standard precautions with a new graduate. Which actions are consistent with standard precautions? Select all that apply.",
+    "options": [
+      {"text": "Perform hand hygiene before and after client contact", "correct": true},
+      {"text": "Wear gloves when contact with body fluids is anticipated", "correct": true},
+      {"text": "Dispose of used needles in a puncture-resistant container without recapping", "correct": true},
+      {"text": "Wear a gown when splashing of body fluids is likely", "correct": true},
+      {"text": "Recap needles using both hands before disposal", "correct": false},
+      {"text": "Apply an N95 respirator for all client contact", "correct": false}
+    ],
+    "rationale": "Standard precautions apply to all clients: hand hygiene, PPE based on anticipated exposure, and safe sharps disposal without recapping."
+  },
+  {
+    "item_id": "NCLEX_SATA_328014", "type": "SATA", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Musculoskeletal", "topic": "Fall prevention", "bloom": "Apply",
+    "stem": "A nurse is implementing fall-prevention measures for a hospitalized older adult identified as high risk. Which interventions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Keep the bed in the lowest position with wheels locked", "correct": true},
+      {"text": "Ensure the call light is within reach", "correct": true},
+      {"text": "Provide nonskid footwear", "correct": true},
+      {"text": "Place a bed-exit alarm on the high-risk client", "correct": true},
+      {"text": "Raise all four side rails to keep the client in bed", "correct": false},
+      {"text": "Keep the room dimly lit at all times", "correct": false}
+    ],
+    "rationale": "Evidence-based fall prevention lowers the bed, secures the call light, provides nonskid footwear, and uses exit alarms; four raised rails are a restraint and dim lighting increases risk."
+  },
+  {
+    "item_id": "NCLEX_SATA_328015", "type": "SATA", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Neurological", "topic": "Restraints", "bloom": "Analyze",
+    "stem": "A client has a provider order for bilateral soft wrist restraints for safety. Which nursing responsibilities apply while restraints are in use? Select all that apply.",
+    "options": [
+      {"text": "Assess circulation, skin, and range of motion at regular intervals", "correct": true},
+      {"text": "Secure the restraint ties to the movable part of the bed frame", "correct": true},
+      {"text": "Release the restraints periodically to reposition and check the skin", "correct": true},
+      {"text": "Ensure a time-limited order is renewed per policy", "correct": true},
+      {"text": "Tie the restraints with a knot that requires scissors to remove", "correct": false},
+      {"text": "Keep the client restrained continuously without reassessment", "correct": false}
+    ],
+    "rationale": "Restraint safety requires frequent circulatory/skin assessment, quick-release ties to the movable bed frame, periodic release, and time-limited renewable orders."
+  },
+  {
+    "item_id": "NCLEX_SATA_328016", "type": "SATA", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Pharmacology", "body_system": "Immune", "topic": "Allergy assessment", "bloom": "Analyze",
+    "stem": "A nurse is about to administer an antibiotic when the client reports a previous reaction. Which reported reactions require the nurse to withhold the drug and notify the prescriber? Select all that apply.",
+    "options": [
+      {"text": "Hives and generalized itching after a prior dose", "correct": true},
+      {"text": "Swelling of the lips and tongue with the same drug class", "correct": true},
+      {"text": "Wheezing and shortness of breath after a similar antibiotic", "correct": true},
+      {"text": "Mild nausea that resolved with food", "correct": false},
+      {"text": "A metallic taste in the mouth", "correct": false}
+    ],
+    "rationale": "Hives, angioedema, and bronchospasm are hypersensitivity reactions requiring the drug to be withheld; nausea and taste changes are non-allergic side effects."
+  },
+  {
+    "item_id": "NCLEX_SATA_328017", "type": "SATA", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Integumentary", "topic": "Safe equipment use", "subtopic": "Oxygen safety", "bloom": "Apply",
+    "stem": "A nurse is caring for a client using home oxygen therapy. Which safety measures should the nurse teach? Select all that apply.",
+    "options": [
+      {"text": "Keep the oxygen at least 6 feet from open flames", "correct": true},
+      {"text": "Post 'No Smoking' signs in the home", "correct": true},
+      {"text": "Avoid using petroleum-based lip products", "correct": true},
+      {"text": "Store oxygen tanks upright and secured", "correct": true},
+      {"text": "Use wool blankets to reduce static buildup", "correct": false},
+      {"text": "Apply electric heating pads near the tubing", "correct": false}
+    ],
+    "rationale": "Oxygen supports combustion, so it must be kept from flames, static-generating fabrics, and petroleum products, and tanks stored securely upright."
+  },
+  {
+    "item_id": "NCLEX_SELN_328018", "type": "SELECT_N", "difficulty": "Medium", "select_count": 3,
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Transmission-based precautions", "subtopic": "Contact", "bloom": "Apply",
+    "stem": "A client is placed on contact precautions for a multidrug-resistant organism. Which 3 actions are required?",
+    "options": [
+      {"text": "Don a gown and gloves before entering the room", "correct": true},
+      {"text": "Use dedicated equipment such as a stethoscope for this client", "correct": true},
+      {"text": "Perform hand hygiene after removing PPE", "correct": true},
+      {"text": "Wear an N95 respirator upon entering", "correct": false},
+      {"text": "Keep the door closed with negative-pressure airflow", "correct": false},
+      {"text": "Transport the client without any barrier precautions", "correct": false}
+    ],
+    "rationale": "Contact precautions require gown and gloves on entry, dedicated equipment, and hand hygiene after PPE removal; respirators and negative pressure are for airborne organisms."
+  },
+  {
+    "item_id": "NCLEX_TF_328019", "type": "TF", "difficulty": "Medium", "answer": "False",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Sterile technique", "bloom": "Understand",
+    "stem": "When wearing sterile gloves, the nurse may safely handle sterile items positioned below the waist as long as the gloves have not touched a non-sterile surface.",
+    "rationale": "Anything below waist level or out of the line of vision is considered non-sterile, regardless of glove contact."
+  },
+  {
+    "item_id": "NCLEX_MAT_328020", "type": "MATRIX", "difficulty": "Medium", "row_label": "Client scenario",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Medical-Surgical", "body_system": "Immune", "topic": "Transmission-based precautions", "bloom": "Analyze",
+    "stem": "For each client, click to indicate which type of transmission-based precaution is required.",
+    "columns": ["Airborne", "Droplet", "Contact"],
+    "rows": [
+      {"text": "Client with pertussis (whooping cough)", "answer": 1},
+      {"text": "Client with active measles (rubeola)", "answer": 0},
+      {"text": "Client with scabies infestation", "answer": 2},
+      {"text": "Client with meningococcal meningitis", "answer": 1},
+      {"text": "Client with disseminated herpes zoster", "answer": 0}
+    ],
+    "rationale": "Measles and disseminated zoster are airborne; pertussis and meningococcus are droplet; scabies is contact."
+  },
+  {
+    "item_id": "NCLEX_MMR_328021", "type": "MATRIX_MR", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "PPE selection", "bloom": "Analyze",
+    "stem": "For each task, select all personal protective equipment the nurse should wear (more than one may apply).",
+    "columns": ["Gloves", "Gown", "N95 respirator"],
+    "rows": [
+      {"text": "Suctioning a client with suspected tuberculosis", "answers": [0, 1, 2]},
+      {"text": "Bathing a client with a C. difficile infection", "answers": [0, 1]},
+      {"text": "Starting a peripheral IV on a client with no known infection", "answers": [0]},
+      {"text": "Performing oral care on a client with MRSA in sputum", "answers": [0, 1]}
+    ],
+    "rationale": "PPE is matched to the anticipated exposure and route: airborne TB adds an N95, contact organisms require gloves and gown, and routine venipuncture needs gloves."
+  },
+  {
+    "item_id": "NCLEX_CLZ_328022", "type": "CLOZE", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Fire safety", "bloom": "Apply",
+    "stem": "During a small fire in a client's room, the nurse should first {1}, and when using the fire extinguisher should aim the nozzle at the {2}.",
+    "blanks": [
+      {"choices": [{"text": "rescue clients from immediate danger", "correct": true}, {"text": "activate the sprinkler system"}, {"text": "document the event"}]},
+      {"choices": [{"text": "base of the fire", "correct": true}, {"text": "top of the flames"}, {"text": "smoke above the fire"}]}
+    ],
+    "rationale": "The RACE mnemonic begins with Rescue; the PASS technique aims the extinguisher at the base of the fire."
+  },
+  {
+    "item_id": "NCLEX_HL_328023", "type": "HIGHLIGHT", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Musculoskeletal", "topic": "Home environmental safety", "bloom": "Analyze",
+    "stem": "A home-health nurse assesses an older adult's living space. Highlight the findings that increase the client's risk for falls. The client has [[loose throw rugs in the hallway]], [[grab bars installed in the bathroom]], [[dim lighting on the staircase]], a [[nightlight in the bedroom]], and [[electrical cords running across the walkway]].",
+    "chunks": [
+      {"text": "loose throw rugs in the hallway", "correct": true, "feedback": "Loose rugs are a common trip hazard."},
+      {"text": "grab bars installed in the bathroom", "correct": false, "feedback": "Grab bars reduce fall risk."},
+      {"text": "dim lighting on the staircase", "correct": true, "feedback": "Poor lighting increases fall risk on stairs."},
+      {"text": "nightlight in the bedroom", "correct": false, "feedback": "A nightlight improves safety."},
+      {"text": "electrical cords running across the walkway", "correct": true, "feedback": "Cords across walkways are a trip hazard."}
+    ],
+    "rationale": "Loose rugs, poor stair lighting, and cords across walkways are modifiable fall hazards; grab bars and nightlights are protective."
+  },
+  {
+    "item_id": "NCLEX_BT_328024", "type": "BOWTIE", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Needlestick exposure", "bloom": "Analyze",
+    "stem": "A nurse sustains a needlestick from a used hollow-bore needle. Complete the diagram by selecting the immediate actions, the concern, and the follow-up steps.",
+    "left": {"label": "Immediate actions", "tokens": [
+      {"text": "Wash the site with soap and water", "correct": true},
+      {"text": "Allow the wound to bleed freely", "correct": true},
+      {"text": "Apply a tourniquet above the site"},
+      {"text": "Scrub the site with bleach"}
+    ]},
+    "centre": {"label": "Primary concern", "tokens": [
+      {"text": "Bloodborne pathogen exposure", "correct": true},
+      {"text": "Local wound infection only"},
+      {"text": "Allergic reaction"}
+    ]},
+    "right": {"label": "Follow-up steps", "tokens": [
+      {"text": "Report the exposure per facility protocol", "correct": true},
+      {"text": "Obtain baseline post-exposure testing", "correct": true},
+      {"text": "Resume duties without documentation"},
+      {"text": "Wait one week before reporting"}
+    ]},
+    "rationale": "A needlestick is a bloodborne pathogen exposure; the site is washed and allowed to bleed, then reported immediately for baseline testing and prophylaxis."
+  },
+  {
+    "item_id": "NCLEX_DCZ_328025", "type": "DRAG_CLOZE", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Reporting unsafe practice", "bloom": "Apply",
+    "stem": "A nurse observes a coworker repeatedly failing to perform hand hygiene between clients. The nurse should first [1] and, if the behavior continues, [2].",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["speak to the coworker directly about the observation", "report the concern to the nurse manager", "ignore it as none of the nurse's concern"],
+    "rationale": "Unsafe practice is first addressed directly with the peer; unresolved concerns are escalated up the chain of command to the manager."
+  },
+  {
+    "item_id": "NCLEX_DO_328026", "type": "DRAG_ORDER", "difficulty": "Medium",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "PPE donning sequence", "bloom": "Apply",
+    "stem": "A nurse is preparing to enter the room of a client on airborne and contact precautions. Place the steps for donning PPE in the correct order.",
+    "tokens": ["Perform hand hygiene", "Put on the gown", "Apply the N95 respirator", "Put on goggles", "Put on gloves"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

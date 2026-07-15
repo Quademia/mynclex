@@ -1,0 +1,322 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_318001", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Vital-sign trends", "subtopic": "Orthostatic hypotension", "bloom": "Apply",
+    "stem": "A nurse is monitoring a client for orthostatic hypotension. Which instruction should the nurse give the client before standing?",
+    "options": [
+      {"text": "Rise slowly and sit at the edge of the bed first", "correct": true, "feedback": "Correct. Gradual position change reduces the risk of a sudden blood-pressure drop."},
+      {"text": "Hold your breath while standing up", "correct": false, "feedback": "Incorrect. Breath-holding can worsen dizziness."},
+      {"text": "Stand up quickly to get it over with", "correct": false, "feedback": "Incorrect. Rapid change triggers the pressure drop."},
+      {"text": "Cross your legs before standing", "correct": false, "feedback": "Incorrect. This does not prevent orthostatic changes."}
+    ],
+    "rationale": "Changing position slowly allows the cardiovascular system to compensate and prevents falls."
+  },
+  {
+    "item_id": "NCLEX_MCQ_318002", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Venous-return devices", "subtopic": "Sequential compression devices", "bloom": "Understand",
+    "stem": "A nurse applies sequential compression devices (SCDs) to a postoperative client. What is the primary purpose of these devices?",
+    "options": [
+      {"text": "Prevent deep vein thrombosis", "correct": true, "feedback": "Correct. SCDs promote venous return and reduce clot risk."},
+      {"text": "Reduce surgical wound pain", "correct": false, "feedback": "Incorrect. SCDs do not manage pain."},
+      {"text": "Lower blood pressure", "correct": false, "feedback": "Incorrect. That is not their purpose."},
+      {"text": "Prevent pressure injuries on the heels", "correct": false, "feedback": "Incorrect. SCDs target venous stasis, not skin."}
+    ],
+    "rationale": "SCDs enhance venous return in the legs to prevent venous thromboembolism after surgery."
+  },
+  {
+    "item_id": "NCLEX_MCQ_318003", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "Renal/Genitourinary", "topic": "Urinary catheter", "subtopic": "Infection prevention", "bloom": "Apply",
+    "stem": "To reduce the risk of a catheter-associated urinary tract infection, where should the nurse keep the drainage bag?",
+    "options": [
+      {"text": "Below the level of the bladder", "correct": true, "feedback": "Correct. This promotes drainage and prevents backflow."},
+      {"text": "At the same level as the bladder", "correct": false, "feedback": "Incorrect. This can impede drainage."},
+      {"text": "Hooked to the upper side rail", "correct": false, "feedback": "Incorrect. This allows urine to flow back toward the bladder."},
+      {"text": "Resting on the floor", "correct": false, "feedback": "Incorrect. Contact with the floor is a contamination risk."}
+    ],
+    "rationale": "Keeping the bag below the bladder prevents reflux of urine and reduces infection risk."
+  },
+  {
+    "item_id": "NCLEX_MCQ_318004", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Lab-value interpretation", "subtopic": "INR", "bloom": "Analyze",
+    "stem": "A client on warfarin has an INR of 5.8. How should the nurse interpret this value?",
+    "options": [
+      {"text": "The client is at increased risk for bleeding", "correct": true, "feedback": "Correct. An INR this high indicates excessive anticoagulation."},
+      {"text": "The client needs a higher warfarin dose", "correct": false, "feedback": "Incorrect. The dose is already too high."},
+      {"text": "The value is within the normal therapeutic range", "correct": false, "feedback": "Incorrect. Therapeutic range is usually 2–3."},
+      {"text": "The client is at risk for clotting", "correct": false, "feedback": "Incorrect. High INR means thin blood, not clotting."}
+    ],
+    "rationale": "A therapeutic INR is typically 2–3; 5.8 reflects over-anticoagulation and bleeding risk."
+  },
+  {
+    "item_id": "NCLEX_MCQ_318005", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "NG/GI tube", "subtopic": "Placement verification", "bloom": "Apply",
+    "stem": "Before administering a feeding through a nasogastric tube, which is the most reliable bedside method to verify tube placement?",
+    "options": [
+      {"text": "Check the pH of aspirated gastric contents", "correct": true, "feedback": "Correct. A low (acidic) pH supports gastric placement."},
+      {"text": "Auscultate air injected into the tube", "correct": false, "feedback": "Incorrect. The air-bolus method is unreliable."},
+      {"text": "Ask the client if they feel the tube", "correct": false, "feedback": "Incorrect. Sensation does not confirm placement."},
+      {"text": "Place the tube tip in water and watch for bubbles", "correct": false, "feedback": "Incorrect. This is unsafe and inaccurate."}
+    ],
+    "rationale": "Aspirate pH testing (and X-ray) are reliable; the auscultation method is no longer recommended."
+  },
+  {
+    "item_id": "NCLEX_MCQ_318006", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Peripheral IV", "subtopic": "Infiltration", "bloom": "Analyze",
+    "stem": "A nurse notes cool, pale, swollen tissue around a peripheral IV site with a sluggish infusion. Which complication is most likely?",
+    "options": [
+      {"text": "Infiltration", "correct": true, "feedback": "Correct. Cool, swollen, pale tissue indicates fluid leaking into tissue."},
+      {"text": "Phlebitis", "correct": false, "feedback": "Incorrect. Phlebitis presents with warmth, redness, and a palpable cord."},
+      {"text": "Air embolism", "correct": false, "feedback": "Incorrect. That causes respiratory distress, not local swelling."},
+      {"text": "Speed shock", "correct": false, "feedback": "Incorrect. That is a systemic reaction to rapid infusion."}
+    ],
+    "rationale": "Coolness, pallor, and edema at the site are classic signs of IV infiltration."
+  },
+  {
+    "item_id": "NCLEX_MCQ_318007", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pre/post-operative care", "subtopic": "Atelectasis prevention", "bloom": "Apply",
+    "stem": "Which device should the nurse teach a postoperative client to use to prevent atelectasis?",
+    "options": [
+      {"text": "Incentive spirometer", "correct": true, "feedback": "Correct. It encourages deep breathing and lung expansion."},
+      {"text": "Peak flow meter", "correct": false, "feedback": "Incorrect. That measures asthma airflow, not prevents atelectasis."},
+      {"text": "Pulse oximeter", "correct": false, "feedback": "Incorrect. It monitors saturation but does not expand lungs."},
+      {"text": "Nebulizer", "correct": false, "feedback": "Incorrect. It delivers medication, not lung expansion exercises."}
+    ],
+    "rationale": "Incentive spirometry promotes deep inhalation and alveolar expansion, preventing atelectasis."
+  },
+  {
+    "item_id": "NCLEX_MCQ_318008", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Point-of-care testing", "subtopic": "Blood glucose", "bloom": "Apply",
+    "stem": "A client's point-of-care blood glucose reads 54 mg/dL and the client is alert. What should the nurse do first?",
+    "options": [
+      {"text": "Give 15 g of a fast-acting carbohydrate", "correct": true, "feedback": "Correct. The rule of 15 treats mild hypoglycemia in an alert client."},
+      {"text": "Administer IV dextrose 50%", "correct": false, "feedback": "Incorrect. IV dextrose is for clients who cannot swallow."},
+      {"text": "Hold all further monitoring", "correct": false, "feedback": "Incorrect. Recheck is required."},
+      {"text": "Give the client a high-protein snack", "correct": false, "feedback": "Incorrect. Protein does not raise glucose quickly."}
+    ],
+    "rationale": "An alert hypoglycemic client is treated with 15 g of fast-acting carbohydrate, then rechecked."
+  },
+  {
+    "item_id": "NCLEX_MCQ_318009", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "ECG monitoring", "subtopic": "Electrode placement", "bloom": "Understand",
+    "stem": "Before applying ECG electrodes, what should the nurse do to obtain the clearest tracing?",
+    "options": [
+      {"text": "Clean and dry the skin at the electrode sites", "correct": true, "feedback": "Correct. Clean, dry skin improves electrode contact and signal quality."},
+      {"text": "Apply lotion to the electrode sites", "correct": false, "feedback": "Incorrect. Lotion interferes with adhesion and conduction."},
+      {"text": "Place electrodes directly over bony prominences", "correct": false, "feedback": "Incorrect. Bone causes artifact; use flat, fleshy areas."},
+      {"text": "Have the client hold their breath during the tracing", "correct": false, "feedback": "Incorrect. This is unnecessary for a routine ECG."}
+    ],
+    "rationale": "Clean, dry skin ensures good electrode contact and reduces artifact on the ECG tracing."
+  },
+  {
+    "item_id": "NCLEX_MCQ_318010", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Moderate sedation", "subtopic": "Monitoring", "bloom": "Apply",
+    "stem": "During moderate (conscious) sedation for a procedure, which parameter is most important for the nurse to monitor continuously?",
+    "options": [
+      {"text": "Oxygen saturation and respiratory status", "correct": true, "feedback": "Correct. Respiratory depression is the primary risk of sedation."},
+      {"text": "Bowel sounds", "correct": false, "feedback": "Incorrect. Not a sedation priority."},
+      {"text": "Deep tendon reflexes", "correct": false, "feedback": "Incorrect. Not a sedation monitoring priority."},
+      {"text": "Skin turgor", "correct": false, "feedback": "Incorrect. Not relevant to sedation safety."}
+    ],
+    "rationale": "Respiratory depression is the chief hazard of moderate sedation, so oxygenation is monitored continuously."
+  },
+  {
+    "item_id": "NCLEX_MCQ_318011", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "Percutaneous feeding tube", "subtopic": "Aspiration prevention", "bloom": "Apply",
+    "stem": "To reduce the risk of aspiration during a PEG tube feeding, how should the nurse position the client?",
+    "options": [
+      {"text": "Head of bed elevated at least 30 degrees", "correct": true, "feedback": "Correct. Elevation reduces reflux and aspiration risk."},
+      {"text": "Flat and supine", "correct": false, "feedback": "Incorrect. Lying flat increases aspiration risk."},
+      {"text": "In the left lateral position", "correct": false, "feedback": "Incorrect. Semi-Fowler's is preferred for feeding."},
+      {"text": "In the Trendelenburg position", "correct": false, "feedback": "Incorrect. This increases reflux."}
+    ],
+    "rationale": "Keeping the head of bed elevated during and after feeding reduces reflux and aspiration."
+  },
+  {
+    "item_id": "NCLEX_SATA_318012", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Focused assessment", "subtopic": "Post-op complications", "bloom": "Analyze",
+    "stem": "Which findings in a postoperative client should the nurse recognize as warning signs that require follow-up? Select all that apply.",
+    "options": [
+      {"text": "Temperature of 38.9°C", "correct": true},
+      {"text": "Urine output of 10 mL/hr", "correct": true},
+      {"text": "Increasing abdominal distension", "correct": true},
+      {"text": "Blood pressure of 118/74 mmHg", "correct": false},
+      {"text": "Pain rated 2 out of 10", "correct": false},
+      {"text": "Warm, dry skin with capillary refill under 2 seconds", "correct": false}
+    ],
+    "rationale": "Fever, oliguria, and distension signal possible complications; normal BP, mild pain, and good perfusion do not."
+  },
+  {
+    "item_id": "NCLEX_SATA_318013", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Peripheral IV", "subtopic": "Phlebitis", "bloom": "Understand",
+    "stem": "Which signs at a peripheral IV site indicate phlebitis? Select all that apply.",
+    "options": [
+      {"text": "Redness along the vein", "correct": true},
+      {"text": "Warmth at the site", "correct": true},
+      {"text": "A palpable cord along the vein", "correct": true},
+      {"text": "Cool, pale skin at the site", "correct": false},
+      {"text": "Absence of any tenderness", "correct": false}
+    ],
+    "rationale": "Phlebitis produces redness, warmth, tenderness, and a palpable venous cord; coolness suggests infiltration instead."
+  },
+  {
+    "item_id": "NCLEX_SATA_318014", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Blood/specimen collection", "subtopic": "Venipuncture safety", "bloom": "Apply",
+    "stem": "Which actions reduce the risk of error when collecting a blood specimen? Select all that apply.",
+    "options": [
+      {"text": "Verify the client's identity using two identifiers", "correct": true},
+      {"text": "Label the tubes at the bedside", "correct": true},
+      {"text": "Use the correct tubes for the ordered tests", "correct": true},
+      {"text": "Label the tubes later at the nurses' station", "correct": false},
+      {"text": "Use one identifier to save time", "correct": false}
+    ],
+    "rationale": "Two-identifier verification, bedside labeling, and correct tube selection prevent specimen and patient errors."
+  },
+  {
+    "item_id": "NCLEX_SATA_318015", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pre-operative care", "subtopic": "Client teaching", "bloom": "Apply",
+    "stem": "Which topics should the nurse include in preoperative teaching to reduce postoperative complications? Select all that apply.",
+    "options": [
+      {"text": "How to use the incentive spirometer", "correct": true},
+      {"text": "How to splint the incision when coughing", "correct": true},
+      {"text": "The importance of early ambulation", "correct": true},
+      {"text": "How to perform leg exercises in bed", "correct": true},
+      {"text": "To remain flat and immobile for 48 hours", "correct": false}
+    ],
+    "rationale": "Spirometry, splinted coughing, early ambulation, and leg exercises prevent respiratory and thromboembolic complications."
+  },
+  {
+    "item_id": "NCLEX_SATA_318016", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Lab-value interpretation", "subtopic": "Bleeding risk", "bloom": "Analyze",
+    "stem": "Which laboratory results should the nurse recognize as increasing a client's risk for bleeding? Select all that apply.",
+    "options": [
+      {"text": "Platelet count of 40,000/mm3", "correct": true},
+      {"text": "INR of 6.0", "correct": true},
+      {"text": "Hemoglobin of 14 g/dL", "correct": false},
+      {"text": "Platelet count of 250,000/mm3", "correct": false},
+      {"text": "INR of 1.0", "correct": false}
+    ],
+    "rationale": "Low platelets and a high INR both increase bleeding risk; the normal values do not."
+  },
+  {
+    "item_id": "NCLEX_SELN_318017", "type": "SELECT_N", "difficulty": "Easy", "select_count": 2,
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Lab-value interpretation", "subtopic": "Potassium", "bloom": "Analyze",
+    "stem": "A client's serum potassium is 6.5 mEq/L. Which 2 findings should the nurse most closely monitor for?",
+    "options": [
+      {"text": "Cardiac dysrhythmias", "correct": true},
+      {"text": "Muscle weakness", "correct": true},
+      {"text": "Constipation", "correct": false},
+      {"text": "Increased urine output", "correct": false},
+      {"text": "Hypertension", "correct": false}
+    ],
+    "rationale": "Hyperkalemia causes cardiac dysrhythmias and muscle weakness, which require close monitoring."
+  },
+  {
+    "item_id": "NCLEX_TF_318018", "type": "TF", "difficulty": "Easy", "answer": "True",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Diagnostic-test monitoring", "subtopic": "Post-cardiac catheterization", "bloom": "Understand",
+    "stem": "After a femoral cardiac catheterization, the nurse should assess the pulses distal to the insertion site to detect impaired circulation.",
+    "rationale": "Checking distal pulses monitors for arterial occlusion or bleeding at the catheter site."
+  },
+  {
+    "item_id": "NCLEX_MAT_318019", "type": "MATRIX", "difficulty": "Easy", "row_label": "Value",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Lab-value interpretation", "subtopic": "Normal vs abnormal", "bloom": "Analyze",
+    "stem": "For each laboratory value, click to specify whether it is within the normal range or abnormal.",
+    "columns": ["Normal", "Abnormal"],
+    "rows": [
+      {"text": "Sodium 140 mEq/L", "answer": 0},
+      {"text": "Potassium 6.8 mEq/L", "answer": 1},
+      {"text": "Hemoglobin 6.5 g/dL", "answer": 1},
+      {"text": "White blood cells 8,000/mm3", "answer": 0}
+    ],
+    "rationale": "Normal sodium and WBC contrast with dangerously high potassium and low hemoglobin."
+  },
+  {
+    "item_id": "NCLEX_MMR_318020", "type": "MATRIX_MR", "difficulty": "Easy", "row_label": "Device",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Complication prevention", "subtopic": "Device purpose", "bloom": "Understand",
+    "stem": "For each device, select all complications it helps prevent (may apply to more than one).",
+    "columns": ["Deep vein thrombosis", "Aspiration", "Pressure injury"],
+    "rows": [
+      {"text": "Sequential compression devices", "answers": [0]},
+      {"text": "Head-of-bed elevation during feeding", "answers": [1]},
+      {"text": "Repositioning every 2 hours", "answers": [2]},
+      {"text": "Antiembolism stockings", "answers": [0]}
+    ],
+    "rationale": "Each preventive measure targets a specific complication of immobility or feeding."
+  },
+  {
+    "item_id": "NCLEX_CLZ_318021", "type": "CLOZE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Vital-sign trends", "subtopic": "Oxygenation", "bloom": "Apply",
+    "stem": "A client's oxygen saturation drops to 88 percent. The nurse recognizes this as {1} and should first {2}.",
+    "blanks": [
+      {"choices": [{"text": "hypoxemia", "correct": true}, {"text": "a normal value"}, {"text": "hypercapnia"}]},
+      {"choices": [{"text": "reposition and apply oxygen", "correct": true}, {"text": "document and continue"}, {"text": "lower the head of the bed"}]}
+    ],
+    "rationale": "An SpO2 of 88 percent indicates hypoxemia, requiring repositioning and supplemental oxygen."
+  },
+  {
+    "item_id": "NCLEX_HL_318022", "type": "HIGHLIGHT", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Trend recognition", "subtopic": "Abnormal vital signs", "bloom": "Analyze",
+    "stem": "Highlight the vital signs that require follow-up. Temperature [[37.0°C]]. Heart rate [[126 bpm]]. Blood pressure [[118/76]]. Respiratory rate [[8 breaths/min]]. SpO2 [[89% on room air]].",
+    "chunks": [
+      {"text": "37.0°C", "correct": false, "feedback": "Normal temperature — no follow-up needed."},
+      {"text": "126 bpm", "correct": true, "feedback": "Tachycardia — needs follow-up."},
+      {"text": "118/76", "correct": false, "feedback": "Normal blood pressure — no follow-up needed."},
+      {"text": "8 breaths/min", "correct": true, "feedback": "Bradypnea — needs follow-up."},
+      {"text": "89% on room air", "correct": true, "feedback": "Hypoxemia — needs follow-up."}
+    ],
+    "rationale": "Tachycardia, bradypnea, and low oxygen saturation are abnormal; temperature and BP are normal."
+  },
+  {
+    "item_id": "NCLEX_BT_318023", "type": "BOWTIE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Complication prevention", "subtopic": "IV infiltration", "bloom": "Apply",
+    "stem": "Complete the diagram by selecting the complication, actions to take, and parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Stop the infusion", "correct": true},
+      {"text": "Remove the IV catheter", "correct": true},
+      {"text": "Increase the infusion rate"},
+      {"text": "Apply heat and continue infusing"}
+    ]},
+    "centre": {"label": "Complication", "tokens": [
+      {"text": "IV infiltration", "correct": true},
+      {"text": "Air embolism"},
+      {"text": "Systemic infection"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Site swelling", "correct": true},
+      {"text": "Skin temperature at the site", "correct": true},
+      {"text": "Deep tendon reflexes"},
+      {"text": "Pupil size"}
+    ]},
+    "rationale": "Infiltration is managed by stopping the infusion and removing the catheter while monitoring the site."
+  },
+  {
+    "item_id": "NCLEX_DO_318024", "type": "DRAG_ORDER", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "Renal/Genitourinary", "topic": "Blood/specimen collection", "subtopic": "Midstream urine", "bloom": "Apply",
+    "stem": "Place the steps for obtaining a clean-catch midstream urine specimen in the correct order.",
+    "tokens": ["Perform hand hygiene", "Cleanse the perineal area", "Begin voiding into the toilet", "Collect the midstream urine in the sterile container", "Label and send the specimen to the lab"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]
