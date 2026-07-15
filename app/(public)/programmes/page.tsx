@@ -33,9 +33,9 @@ export const metadata = {
 
 // Marketing photos (Cloudinary). Empty string → gradient fallback.
 const HERO_PHOTO = 'https://res.cloudinary.com/dbyufeays/image/upload/v1784117174/tutor_having_online_lessons_gnrfbc.jpg';
-const HOW_PHOTO = '';  // portrait — tutor with a student
-const BAND_PHOTO = ''; // wide — tutor teaching a live class
-const CTA_PHOTO = '';  // tutor / nurse — bleeds into the CTA background
+const HOW_PHOTO = 'https://res.cloudinary.com/dbyufeays/image/upload/v1784121789/Gemini_Generated_Image_r86sgor86sgor86s_wcwxyt.png'; // portrait — tutor with a student
+const BAND_PHOTO = 'https://res.cloudinary.com/dbyufeays/image/upload/v1784117175/nclex_journey_multi_scene_jcrngt.jpg';             // wide — tutor teaching a live class
+const CTA_PHOTO = 'https://res.cloudinary.com/dbyufeays/image/upload/v1784121581/Gemini_Generated_Image_ybwvz8ybwvz8ybwv_zliiyh.png'; // aspirational — bleeds into the CTA background
 
 const STEPS = [
   { n: '1', title: 'Browse open programmes', body: 'Every published programme from every vetted tutor — filter by format, compare prices and cohort dates.' },
