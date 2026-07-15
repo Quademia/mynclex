@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Newsreader } from "next/font/google";
+import { Inter, Newsreader, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -18,6 +18,16 @@ const newsreader = Newsreader({
   variable: "--font-serif",
 });
 
+// Technical mono accent. Self-hosted by next/font (no external request —
+// safe under the Worker CSP). Exposed as --font-mono and used ONLY on the
+// public /bank-access page's eyebrows, stat figures and code-like labels;
+// every other surface is untouched (it just makes the variable available).
+const ibmPlexMono = IBM_Plex_Mono({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-mono",
+});
+
 export const metadata: Metadata = {
   title: "MyNclex-RN — Launching 2026 | QAcademy",
   description:
@@ -31,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className={`${inter.className} ${newsreader.variable} min-h-full flex flex-col`}>{children}</body>
+      <body className={`${inter.className} ${newsreader.variable} ${ibmPlexMono.variable} min-h-full flex flex-col`}>{children}</body>
     </html>
   );
 }
