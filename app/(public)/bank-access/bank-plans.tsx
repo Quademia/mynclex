@@ -25,8 +25,16 @@ function money(minor: number, currency: Currency): string {
   return currency === 'GHS' ? `GHS ${amount}` : `$${amount}`;
 }
 
-export function BankPlans({ plans }: { plans: BankPlan[] }) {
-  const [currency, setCurrency] = useState<Currency>('GHS');
+export function BankPlans({
+  plans,
+  initialCurrency = 'GHS',
+}: {
+  plans: BankPlan[];
+  /** Server-chosen starting currency (from the visitor's country). The
+   *  toggle still overrides it; defaults to GHS if a caller omits it. */
+  initialCurrency?: Currency;
+}) {
+  const [currency, setCurrency] = useState<Currency>(initialCurrency);
 
   return (
     <section className="bank-plans">

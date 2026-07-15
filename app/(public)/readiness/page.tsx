@@ -14,7 +14,9 @@
 // demos, and the in-exam runner demo — are SAMPLE illustrations with no
 // data and no effect on checkout (report-showcase.tsx / runner-demo.tsx).
 
+import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { defaultCurrencyForCountry } from '@/lib/products/money';
 import { ReadinessPlans, type ReadinessSku } from './readiness-plans';
 import { HeroCollage } from './hero-collage';
 import { ReportShowcase } from './report-showcase';
@@ -55,6 +57,10 @@ const STEPS = [
 
 export default async function ReadinessLandingPage() {
   const supabase = await createClient();
+
+  // Pre-select the currency from the visitor's country (Cloudflare's
+  // CF-IPCountry). Absent off-edge (localhost) → GHS fallback. Toggle wins.
+  const initialCurrency = defaultCurrencyForCountry((await headers()).get('cf-ipcountry'));
 
   const [{ data: products }, { data: packRows }] = await Promise.all([
     supabase
@@ -190,7 +196,7 @@ export default async function ReadinessLandingPage() {
       <section id="plans" className="rpc-pricing-sec">
         <div className="rpc-inner">
           {skus.length > 0 ? (
-            <ReadinessPlans skus={skus} packCount={packCount} uniformLine={uniformLine} />
+            <ReadinessPlans skus={skus} packCount={packCount} uniformLine={uniformLine} initialCurrency={initialCurrency} />
           ) : (
             <div className="rpc-pricing-head rpc-reveal">
               <div>

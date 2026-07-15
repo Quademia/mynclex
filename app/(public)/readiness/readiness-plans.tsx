@@ -34,6 +34,9 @@ interface Props {
   packCount:   number;
   /** Non-null only when every published pack agrees on n AND time. */
   uniformLine: string | null;
+  /** Server-chosen starting currency (from the visitor's country). The
+   *  toggle still overrides it; defaults to GHS if a caller omits it. */
+  initialCurrency?: Currency;
 }
 
 /**
@@ -48,8 +51,8 @@ function unlockLine(credits: number, packCount: number): { text: string; muted: 
   return { text: `Pick any ${credits} of ${packCount} packs`, muted: false };
 }
 
-export function ReadinessPlans({ skus, packCount, uniformLine }: Props) {
-  const [currency, setCurrency] = useState<Currency>('GHS');
+export function ReadinessPlans({ skus, packCount, uniformLine, initialCurrency = 'GHS' }: Props) {
+  const [currency, setCurrency] = useState<Currency>(initialCurrency);
 
   return (
     <>

@@ -5,13 +5,19 @@
 // flowing into /checkout/bank. Tier prices/credits come from the real
 // nclex_products catalogue (single source).
 
+import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { defaultCurrencyForCountry } from '@/lib/products/money';
 import { BankPlans, type BankPlan } from './bank-plans';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BankLandingPage() {
   const supabase = await createClient();
+
+  // Pre-select the currency from the visitor's country (Cloudflare's
+  // CF-IPCountry). Absent off-edge (localhost) → GHS fallback. Toggle wins.
+  const initialCurrency = defaultCurrencyForCountry((await headers()).get('cf-ipcountry'));
   const { data: products } = await supabase
     .from('nclex_products')
     .select('product_id, name, duration_days, readiness_credits, price_minor_ghs, price_minor_usd')
@@ -46,7 +52,7 @@ export default async function BankLandingPage() {
         </div>
       </section>
 
-      <BankPlans plans={plans} />
+      <BankPlans plans={plans} initialCurrency={initialCurrency} />
 
       <section className="bank-includes">
         <h2>What you get</h2>
