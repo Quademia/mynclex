@@ -156,7 +156,13 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-14 (three changes captured from a pre-build session with Sam.
+  Living planning document. Last updated: 2026-07-15 (verdict model revised — INCONCLUSIVE retired: every
+  completed CAT now resolves to Above/Below standard, and at max length/time-out the side is decided by the final
+  ability estimate exactly as the real NCLEX does. Every verdict carries a readiness probability — "confidence
+  you're above OUR standard," computed natively from the Rasch estimate + uncertainty — available from launch day;
+  a real-NCLEX pass-probability stays deferred until we have outcome data (same maths, upgraded label). Touched
+  §3.3–3.5, §9.4–9.5, §12.2/§12.7.3 schema, §13.1/§13.3/§13.4/§13.5, §19.)
+  Previous update: 2026-07-14 (three changes captured from a pre-build session with Sam.
   <strong>§9.2 corrected</strong> — min/max question counts were the pre-NGN 75/145; the NGN NCLEX-RN
   (April 2023) uses 85/150, corrected throughout the doc. Plus two decisions:
   <strong>§7.4 reversed</strong> — case studies and trend-linked questions are IN scope for v1 CAT (real NCLEX
@@ -358,7 +364,7 @@
 <ol>
   <li><strong>What CAT does.</strong> Short paragraph: the test adapts to the student's ability, asks 85–150 questions, terminates when confident. Frames CAT as an exam-style measure, not a study tool.</li>
   <li><strong>Why questions feel hard.</strong> The engine deliberately serves questions at the student's level; getting roughly half wrong is normal and expected, not a sign of weakness.</li>
-  <li><strong>What the verdict means.</strong> Above standard / Below standard / Inconclusive, with the honest framing. We don't predict real-NCLEX outcomes.</li>
+  <li><strong>What the verdict means.</strong> Above standard / Below standard, each with a readiness probability (confidence you're above our standard). Honest framing: we measure against our own bar, we don't predict real-NCLEX outcomes.</li>
   <li><strong>How calibration works.</strong> Early items use curator-assigned difficulty; over time, real student responses recalibrate. Acknowledges the system improves with use.</li>
   <li><strong>How to use CAT well.</strong> Single sitting, no pause, no back navigation; review the rationales afterwards; use the category breakdown to direct further practice.</li>
 </ol>
@@ -371,26 +377,42 @@
 
 <h3>3.3 Honest verdict — see §13</h3>
 <p>
-  "Above standard / Below standard / Inconclusive" — never pass probability. Verdict copy fully specified in
-  §13.1; no separate decision needed here.
+  "Above standard / Below standard" (INCONCLUSIVE retired 2026-07-15, §9.5), each with a readiness probability
+  against our own standard — never a real-NCLEX pass probability (§3.5). Verdict copy fully specified in §13.1.
 </p>
 
 <h3>3.4 Feeds Readiness Signal but doesn't replace it — see §13.4</h3>
 <p>
-  Two separate dashboard cards (CAT card + Readiness Signal card). No blended single number. INCONCLUSIVE
-  weights as zero in any future blended analytics. Fully specified in §13.4; no separate decision needed here.
+  Two separate dashboard cards (CAT card + Readiness Signal card). No blended single number. (With INCONCLUSIVE
+  retired 2026-07-15, every CAT now contributes an above/below signal; the old "weight as zero" rule is moot.)
+  Fully specified in §13.4.
 </p>
 
-<h3>3.5 When (if ever) we promote to a probability statement — v3+ at earliest</h3>
+<h3>3.5 Two different "probabilities" — one we give now, one we defer <span class="status settled">revised 2026-07-15</span></h3>
 <p>
-  Moving from "above/below standard" to a real-NCLEX pass-probability statement requires <strong>real outcome
-  data</strong> we don't have: students who took our CAT and then took the real NCLEX, with their pass/fail
-  outcomes, in volume large enough to fit a predictive model.
+  <strong>Revised 2026-07-15 (Sam).</strong> The earlier stance ("no probability talk of any kind until v3+")
+  conflated two different quantities. We now separate them:
 </p>
+<ul>
+  <li><strong>Probability of being above OUR standard — GIVEN from day one.</strong> The Rasch model produces
+    this natively: from the final ability estimate and its uncertainty (SE), we compute the probability that the
+    student's true ability is above the 0.0 line (the normal-curve area above 0). It is a real, honest statistic,
+    computable on launch day. Example: estimate 0.5, SE 0.40 → <strong>~89% likely above standard</strong>;
+    estimate 0.1, SE 0.40 → ~60%; estimate −0.3, SE 0.40 → ~23%. This is <em>readiness confidence against our
+    own bar</em> — see §9.5 / §13.1. Setting 0.0 as our standard is our prerogative; measuring against it and
+    stating the confidence is not dishonest.</li>
+  <li><strong>Probability of passing the REAL NCLEX — still deferred (v3+).</strong> A number like "78% chance of
+    passing the actual NCLEX-RN" requires <strong>real outcome data we don't have</strong>: students who took our
+    CAT and then the real NCLEX, with pass/fail outcomes, in volume. Without that link we literally cannot compute
+    it, and printing an invented one risks the product's credibility (Archer can claim "99% pass" only because they
+    validated it against thousands of real outcomes). So we hold the phrase "chance of passing the NCLEX" until we
+    have outcome data — at which point the <em>same</em> machinery gets re-labelled, no rebuild.</li>
+</ul>
 <p>
-  <strong>v3+ at earliest.</strong> Listed in §18 (out of scope for v1) so the constraint is explicit. Until we
-  have outcome data, no probability talk in any surface — verdict copy, dashboard cards, Readiness Signal,
-  marketing.
+  <strong>The guardrail, restated:</strong> we show a confident readiness probability, always framed as
+  "confidence you're above <em>our</em> standard," never as a real-NCLEX pass prediction. Vetting our content
+  raises its <em>quality</em> (and trust) but is a separate thing from difficulty calibration (§5) and outcome
+  validation — it does not by itself license a real-NCLEX probability.
 </p>
 
 
@@ -830,40 +852,48 @@
 <ul>
   <li><code>CONFIDENCE_PASS</code> — SE ≤ 0.40 with theta clearly above 0.0. Verdict = ABOVE_STANDARD.</li>
   <li><code>CONFIDENCE_FAIL</code> — SE ≤ 0.40 with theta clearly below 0.0. Verdict = BELOW_STANDARD.</li>
-  <li><code>MAX_ITEMS_INCONCLUSIVE</code> — 150 questions reached, SE still too wide for a confident verdict. Verdict = INCONCLUSIVE.</li>
-  <li><code>TIME</code> — 4-hour time limit reached. Scored against current theta. Verdict follows the same rule as CONFIDENCE_* (above/below 0.0) if SE is acceptable, otherwise INCONCLUSIVE.</li>
+  <li><code>MAX_ITEMS</code> — 150 questions reached. <strong>Revised 2026-07-15:</strong> the confidence requirement is dropped and the verdict is resolved by which side of 0.0 the final estimate sits — final theta ≥ 0 → ABOVE_STANDARD, &lt; 0 → BELOW_STANDARD (mirrors the real NCLEX Maximum-Length rule). No longer INCONCLUSIVE. (Canonical reason code in the schema is <code>MAX_ITEMS_HIT</code>, §12.7.3.)</li>
+  <li><code>TIME</code> — 4-hour time limit reached. If ≥ 85 items answered → verdict by final-estimate side (as MAX_ITEMS). If fewer than 85 answered → BELOW_STANDARD (mirrors the real NCLEX Run-Out-Of-Time rule). Never INCONCLUSIVE.</li>
   <li><code>ABANDONED</code> — student manually discarded mid-CAT, or browser-close. No verdict produced.</li>
 </ul>
 
-<h3>9.5 Inconclusive verdict — framing</h3>
+<h3>9.5 Verdict resolution — always a side, plus a readiness probability <span class="status settled">revised 2026-07-15</span></h3>
 <p>
-  When the verdict is INCONCLUSIVE, the engine asked 150 questions and still couldn't confidently call it. This
-  isn't a fail and isn't a pass — it's "the data we got doesn't give a clear picture." Three honest causes:
+  <strong>Decision (2026-07-15, Sam): every completed CAT resolves to ABOVE_STANDARD or BELOW_STANDARD. The
+  INCONCLUSIVE verdict is retired.</strong> Two reasons: (1) the real NCLEX never returns "inconclusive" — at
+  maximum length it drops the confidence rule and calls the exam by the final estimate, and our north star is to
+  match the real exam; (2) a student who fought through 150 questions deserves a real read, and the readiness
+  probability below lets us stay honest about boundary cases without a non-answer.
 </p>
-<ol>
-  <li><strong>The student's ability is near the boundary.</strong> Sitting right around theta = 0.0. Most common cause.</li>
-  <li><strong>Inconsistent answering.</strong> Right on hard ones, wrong on easy ones — answers don't track ability, engine can't form a coherent estimate.</li>
-  <li><strong>Test-taking factors:</strong> rushing, fatigue, second-guessing, distracted environment.</li>
-</ol>
+<p><strong>How the side is decided:</strong></p>
+<ul>
+  <li><strong>Confidence reached</strong> (SE ≤ 0.40, the estimate's band clears 0, ≥ 85 items) → that side. (§9.1)</li>
+  <li><strong>Maximum length (150)</strong> → confidence requirement dropped; decided by which side of 0.0 the final estimate sits (≥ 0 → above, &lt; 0 → below). Mirrors the NCLEX Maximum-Length rule.</li>
+  <li><strong>Time-out (4 h)</strong> → same as max length if ≥ 85 answered; BELOW_STANDARD if fewer than 85 answered. Mirrors the NCLEX Run-Out-Of-Time rule.</li>
+</ul>
 <p>
-  <strong>Result-screen copy (provisional, finalised in §13):</strong>
-  Headline "Inconclusive." Body: <em>"After 150 questions, your performance didn't give us a clear above-or-below
-  standard read. This usually means your ability is sitting right around the boundary, or your answers were
-  inconsistent (mixing strong and weak performance). More practice will help — focus on the categories where
-  you scored lowest, then try another CAT in a few days."</em>
-</p>
-<p>
-  <strong>What we deliberately do NOT say:</strong> not "you failed" (no grounds), not "you might pass" (no
-  grounds), not "the engine couldn't decide" framed as the engine's failure (sounds like a product bug — the
-  honest framing is the student's performance was on the boundary).
-</p>
-<p>
-  <strong>For Inconclusive verdicts, the per-Client-Needs-Category breakdown does most of the work</strong> —
-  when the verdict itself is unclear, the breakdown is what gives the student something actionable.
+  <strong>Every verdict carries a readiness probability.</strong> From the final estimate + its uncertainty we
+  compute <em>P(true ability &gt; 0)</em> — the normal-curve area above the 0.0 line. This is the honest, native
+  Rasch output, available from launch day. Examples: estimate 0.5 / SE 0.40 → <strong>~89%</strong>; 0.1 / 0.40 →
+  <strong>~60%</strong>; −0.3 / 0.40 → <strong>~23%</strong>. It is derivable from <code>cat_final_theta</code> +
+  <code>cat_final_se</code>, so no new stored column is strictly required (an optional
+  <code>cat_readiness_probability</code> may be stored for display/analytics convenience).
 </p>
 <p>
-  <strong>Readiness Signal weighting:</strong> INCONCLUSIVE verdicts weight as zero (no evidence either way), not
-  as a fail. Captured here for §13.3 when we get there.
+  <strong>Honesty guardrail (see §3.5):</strong> this probability is framed as <em>"how confident we are you're
+  above our standard,"</em> NOT as a probability of passing the real NCLEX. Same number, honest label; the
+  real-NCLEX label waits for outcome data.
+</p>
+<p>
+  <strong>Boundary students</strong> (the old "inconclusive" case) now get a near-50% probability plus the
+  per-Client-Needs-Category breakdown, which does the actionable work. We never say "you failed" or "you'll pass
+  the NCLEX"; the honest framing is e.g. <em>"Below standard — ~40% likely above our bar; this was close, here's
+  where to push."</em>
+</p>
+<p>
+  <strong>Readiness Signal weighting:</strong> with INCONCLUSIVE gone, every CAT contributes an above/below
+  signal. A near-boundary verdict simply carries a mid-range probability; the old "weight as zero" rule is no
+  longer needed (§13.4).
 </p>
 
 <h2 id="s10">10. Architecture — the two-RPC flow <span class="status settled">settled</span></h2>
@@ -1016,10 +1046,10 @@
 <h3>12.2 New columns on <code>nclex_attempts</code> (Result group)</h3>
 <p>Per attempt-creation §6.1, deferred to here:</p>
 <ul>
-  <li><code>cat_verdict</code> — TEXT. <code>ABOVE_STANDARD</code> / <code>BELOW_STANDARD</code> / <code>INCONCLUSIVE</code> / NULL.</li>
+  <li><code>cat_verdict</code> — TEXT. <code>ABOVE_STANDARD</code> / <code>BELOW_STANDARD</code> / NULL. (INCONCLUSIVE retired 2026-07-15, §9.5.)</li>
   <li><code>cat_final_theta</code> — NUMERIC. Final ability estimate. NULL for non-CAT.</li>
   <li><code>cat_final_se</code> — NUMERIC. Final standard error. NULL for non-CAT.</li>
-  <li><code>cat_termination_reason</code> — TEXT. <code>CONFIDENCE_PASS</code> / <code>CONFIDENCE_FAIL</code> / <code>MAX_ITEMS_INCONCLUSIVE</code> / <code>TIME</code> / <code>ABANDONED</code>. NULL for non-CAT.</li>
+  <li><code>cat_termination_reason</code> — TEXT. <code>CONFIDENCE_PASS</code> / <code>CONFIDENCE_FAIL</code> / <code>MAX_ITEMS_HIT</code> / <code>TIME</code> / <code>ABANDONED</code> (records why it stopped, not the outcome; canonical enum in §12.7.3). NULL for non-CAT.</li>
   <li><code>cat_items_administered</code> — INTEGER. Count of items the engine actually delivered. NULL for non-CAT.</li>
 </ul>
 <p>
@@ -1102,7 +1132,7 @@
   are still IN_PROGRESS or got ABANDONED before completion.
 </p>
 <ul>
-  <li><code>cat_verdict</code> — TEXT, nullable, CHECK constraint allowing only <code>'ABOVE_STANDARD'</code>, <code>'BELOW_STANDARD'</code>, <code>'INCONCLUSIVE'</code>, or NULL.</li>
+  <li><code>cat_verdict</code> — TEXT, nullable, CHECK constraint allowing only <code>'ABOVE_STANDARD'</code>, <code>'BELOW_STANDARD'</code>, or NULL. (INCONCLUSIVE retired 2026-07-15, §9.5.) Optional companion column <code>cat_readiness_probability</code> NUMERIC (0..1) may be added for display/analytics — derivable from <code>cat_final_theta</code> + <code>cat_final_se</code>.</li>
   <li><code>cat_final_theta</code> — NUMERIC, nullable.</li>
   <li><code>cat_final_se</code> — NUMERIC, nullable.</li>
   <li><code>cat_termination_reason</code> — TEXT, nullable, CHECK constraint allowing only <code>'CONFIDENCE_REACHED'</code>, <code>'MAX_ITEMS_HIT'</code>, <code>'TIME_LIMIT_HIT'</code>, <code>'ABANDONED'</code>, or NULL.</li>
@@ -1260,22 +1290,28 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   shared runner Review surface used by every other quiz type.
 </p>
 
-<h3>13.1 Verdict copy</h3>
+<h3>13.1 Verdict copy <span class="status settled">revised 2026-07-15</span></h3>
+<p>
+  <strong>Two verdicts only</strong> (INCONCLUSIVE retired, §9.5). Each headline is paired with a
+  <strong>readiness probability</strong> — "how confident we are you're above our standard" — from §9.5.
+  A boundary student lands here too, just with a mid-range percentage.
+</p>
 <p><strong>ABOVE_STANDARD</strong></p>
 <ul>
-  <li>Headline: <em>"Above standard"</em></li>
+  <li>Headline: <em>"Above standard"</em> · sub-line: <em>"We're ~<strong>[NN]%</strong> confident you're performing at a passing level on our exam."</em></li>
   <li>Body: <em>"Your performance suggests you're tracking ready. Keep practising to maintain it — consistent CAT performance is what matters most."</em></li>
 </ul>
 <p><strong>BELOW_STANDARD</strong></p>
 <ul>
-  <li>Headline: <em>"Below standard"</em></li>
-  <li>Body: <em>"More practice recommended. Use the category breakdown below to see where to focus, then come back for another CAT in a few days."</em></li>
+  <li>Headline: <em>"Below standard"</em> · sub-line: <em>"We're ~<strong>[NN]%</strong> confident you're above our standard — more practice recommended."</em></li>
+  <li>Body: <em>"Use the category breakdown below to see where to focus, then come back for another CAT in a few days."</em></li>
 </ul>
-<p><strong>INCONCLUSIVE</strong> (also drafted in §9.5)</p>
-<ul>
-  <li>Headline: <em>"Inconclusive"</em></li>
-  <li>Body: <em>"After 150 questions, your performance didn't give us a clear above-or-below standard read. This usually means your ability is sitting right around the boundary, or your answers were inconsistent. More practice will help — focus on the categories where you scored lowest, then try another CAT in a few days."</em></li>
-</ul>
+<p>
+  <strong>Near-boundary framing.</strong> When the probability sits close to 50% (typically a max-length or
+  time-out finish), the sub-line acknowledges it: <em>"This was close — your ability sat right around our
+  standard. The category breakdown below is where to focus."</em> Honest and actionable, never a non-answer, and
+  never "chance of passing the NCLEX."
+</p>
 <p><strong>ABANDONED</strong> (no verdict)</p>
 <ul>
   <li>Per §16.5 — abandoned CATs never reach a result state. The History page shows them as <em>"CAT — Abandoned"</em>; opening the row goes to a minimal summary that explains the attempt was ended early and offers <em>"Start a new CAT"</em>.</li>
@@ -1301,7 +1337,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 <ul>
   <li><strong>Steady upward trace settling above 0.0</strong> — consistent strong performance, ability climbed and stabilised above the passing standard.</li>
   <li><strong>Steady downward trace settling below 0.0</strong> — consistent weak performance, ability climbed down and stabilised below the passing standard.</li>
-  <li><strong>Up-and-down trace not settling</strong> — inconsistent answering, the engine couldn't pin down their ability cleanly. Often what produces an INCONCLUSIVE verdict.</li>
+  <li><strong>Up-and-down trace not settling</strong> — inconsistent answering, the engine couldn't pin down their ability cleanly. Typically produces a <strong>near-boundary verdict</strong> (a readiness probability close to 50%), the case that used to be labelled INCONCLUSIVE (§9.5).</li>
 </ul>
 <p>
   <strong>Per-item marker.</strong> If the summary page renders a per-question breakdown alongside the graph
@@ -1333,14 +1369,15 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li>If a student takes one CAT, gets ABOVE_STANDARD, and the Readiness Signal still says "Approaching," the honest framing is "one CAT is one data point; cross-history sees more." Two cards make this conversation possible.</li>
 </ul>
 <p>
-  <strong>INCONCLUSIVE verdicts weight as zero in any future blended analytics</strong> — they're "no signal,"
-  not "negative signal." If a future v2 decision blends signals, INCONCLUSIVE never pushes the Readiness Signal
-  down.
+  <strong>Superseded 2026-07-15:</strong> INCONCLUSIVE is retired (§9.5), so the old "weight as zero" rule no
+  longer applies — every CAT now contributes an above/below verdict with a readiness probability. A near-boundary
+  result simply carries a mid-range probability rather than a special zero-weight status. If a future v2 decision
+  blends signals, it can weight each CAT by its readiness probability (confidence), not by a discarded verdict class.
 </p>
 
 <h3>13.5 What we deliberately do NOT show</h3>
 <ul>
-  <li><strong>No "pass probability" number.</strong> No "70% chance of passing the NCLEX." We don't have outcome data to back that.</li>
+  <li><strong>No real-NCLEX pass-probability.</strong> No "70% chance of passing the NCLEX." We don't have outcome data to back that (§3.5). NOTE (2026-07-15): we DO show a readiness probability, but it is framed strictly as "confidence you're above <em>our</em> standard," never as a real-NCLEX prediction.</li>
   <li><strong>No "you would have passed the real NCLEX" framing.</strong> Same reason.</li>
   <li><strong>No comparison to other students' verdicts.</strong> Different students see different questions; comparison is meaningless.</li>
   <li><strong>No raw score.</strong> CAT has no raw score by design — it has a verdict + theta + SE.</li>
@@ -1666,7 +1703,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li>§10 — Architecture: two-RPC flow (<code>create_cat_attempt</code> + <code>cat_next_item</code>), both atomic transactions; pessimistic UI with graceful degradation (current Q stays visible dimmed; spinner at 300ms; "still loading" at 3s; error+retry at 10s); 2-retry silent backoff on network failure, immediate error on server-side throw; engine runtime location (Supabase RPC vs Edge Function vs Worker) deferred to build time with PL/pgSQL recommendation (settled 2026-05-05).</li>
   <li>§11 — Snapshot strategy: per-question at administration time (settled at file creation).</li>
   <li>§12 — Schema additions: build-handoff package locked. Two new columns on <code>nclex_bank_items</code> (<code>difficulty_irt</code> NUMERIC, <code>difficulty_source</code> TEXT with CHECK), mirrored on <code>nclex_tutor_questions</code> for v2 parity. Five new columns on <code>nclex_attempts</code> (<code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>); four new columns on <code>nclex_attempt_items</code> (<code>cat_theta_before</code>, <code>cat_se_before</code>, <code>cat_item_difficulty</code>, <code>cat_item_difficulty_source</code>). One new audit table <code>nclex_bank_item_calibration_history</code> with FK + ON DELETE CASCADE. Two RPC stubs (<code>create_cat_attempt</code>, <code>cat_next_item</code>) raising "not yet implemented." Verification queries + rollback SQL alongside. Termination reasons collapsed from 5 to 4; audit-table column names rationalised — see §12.7.11 (settled 2026-05-05).</li>
-  <li>§13 — CAT summary page: verdict copy, layout, trajectory graph + per-item marker, separate Readiness card, INCONCLUSIVE = zero weight (settled 2026-05-04).</li>
+  <li>§13 — CAT summary page: verdict copy, layout, trajectory graph + per-item marker, separate Readiness card (settled 2026-05-04). <strong>Revised 2026-07-15:</strong> INCONCLUSIVE retired — every CAT resolves to Above/Below standard plus a readiness probability (confidence you're above <em>our</em> standard); at max length/time-out the side is decided by the final estimate, mirroring real NCLEX; real-NCLEX pass-probability still deferred (§3.5, §9.5).</li>
   <li>§14 — Review state: uses shared runner Review surface, minimal CAT-specific shape, all CAT-specific content lives on the summary page (§13) (settled 2026-05-04).</li>
   <li>§15 — Re-take rules: unlimited frequency with soft 1-hr warning, last-3-CATs exposure window (CAT-only), fallback relaxes exposure before difficulty (settled 2026-05-04).</li>
   <li>§16 — Runner UX: current-question-only progress indicator, timer warnings deferred to runner-level, no back navigation, no live-run mark-for-review, browser-close = ABANDONED with confirmation, no pause (settled 2026-05-04).</li>
