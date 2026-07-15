@@ -25,6 +25,10 @@ import { ScrollReveal } from './scroll-reveal';
 
 export const dynamic = 'force-dynamic';
 
+// Hero backdrop photo (Cloudinary). Sits muted behind the floating
+// question-card collage — warmth without displacing the product cards.
+const HERO_PHOTO = 'https://res.cloudinary.com/dbyufeays/image/upload/v1784117174/nurse_holding_books_myegne.jpg';
+
 const HERO_META = ['All NGN item types', 'Rationale on every question', 'Practice & exam modes', '7-day free trial'];
 
 const FEATURES = [
@@ -73,6 +77,10 @@ export default async function BankLandingPage() {
 
       {/* ═══ HERO ═══ */}
       <section className="bkc-hero">
+        <div className="bkc-hero-photo" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={HERO_PHOTO} alt="" />
+        </div>
         <div className="bkc-hero-grid" />
         <span className="bkc-hero-glow" />
         <div className="bkc-hero-inner">
