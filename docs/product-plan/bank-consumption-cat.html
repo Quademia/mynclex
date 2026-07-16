@@ -156,7 +156,14 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-16 (§4.5 added — settled how partial-credit item types
+  Living planning document. Last updated: 2026-07-16 (§7.4 wrapper mechanics SETTLED — the last open design
+  piece. Case studies use a "testlet" model: 3 cases per CAT, spread within the first 85 questions and never at
+  position 1, on a fixed schedule (not difficulty-matched). Each case runs its own internal Rasch estimate
+  (starting fresh at 0.0, each child scored at its own difficulty), then merges into the main exam level as a
+  single confidence-weighted measurement whose uncertainty is inflated so the 6 correlated questions count as
+  ~one measurement, not six (local independence). Wrapper-level exposure; unlocks a distinct "clinical judgment"
+  read on the results page. Trends inherit the pattern at smaller scale. §19 carried-forward list cleared —
+  no open planning decisions remain. Earlier same day: §4.5 added — settled how partial-credit item types
   (SATA, MATRIX, etc.) feed the adaptive ability estimate: use the fraction correct (<code>score_awarded/marks</code>,
   "Option 2") for v1, not all-or-nothing, growing into the full partial-credit model the real NCLEX uses
   ("Option 3") as recalibration data accumulates. Cross-refs added to §10.2 and §13.2; previously undocumented.)
@@ -709,7 +716,7 @@
   <li>Standalone questions AND wrappers (case studies, trend-linked) are both eligible — direction reversed 2026-07-14; wrapper administration mechanics are open build decisions (see §7.4).</li>
 </ul>
 
-<h3>7.4 Cases and trends in CAT — INCLUDED in v1 <span class="status open">mechanics open</span></h3>
+<h3>7.4 Cases and trends in CAT — INCLUDED in v1 <span class="status settled">mechanics settled 2026-07-16</span></h3>
 <p>
   <strong>Direction reversed 2026-07-14 (Sam).</strong> Wrappers — case studies and trend-linked
   questions — are IN scope for v1 CAT. Real NCLEX includes case studies in its adaptive exam, and
@@ -726,17 +733,74 @@
   <li>Trend-linked questions carry shared dataset context that has to travel with them into the adaptive sequence.</li>
 </ul>
 <p>
-  <strong>Open build mechanics — settle when the CAT slice is built, not before:</strong>
+  <strong>The mechanism — settled 2026-07-16 (Sam), the "testlet" model.</strong> A case is treated as its own
+  self-contained mini-estimate that runs alongside the main exam and hands back a single combined result. This
+  is the recognised way to handle a bundle of items sharing one stimulus (a "testlet"), and it honours the
+  local-independence problem instead of ignoring it. Five parts:
 </p>
-<ul>
-  <li><strong>Block administration rule</strong> — when the engine picks a case, it commits to the whole wrapper as an atomic block, then resumes item-level adaptive selection after the block. Exact rule for <em>when</em> a case is pickable (theta band? cadence? max cases per attempt?) is undecided.</li>
-  <li><strong>Theta updates inside a block</strong> — update per child answer, or once at end-of-block (dampened for the correlation)? Undecided.</li>
-  <li><strong>Wrapper difficulty</strong> — a case needs an effective difficulty for selection (children's mean? curator label on the wrapper?). Undecided.</li>
-  <li><strong>Exposure rules for wrappers</strong> — the last-3-CATs window (§15.2) should apply at wrapper level (seeing the same scenario again is the leak, not the individual child). To confirm.</li>
-</ul>
+<ol>
+  <li>
+    <strong>Administration — fixed count, fixed-ish positions, never first.</strong> Exactly <strong>3 case
+    studies per CAT</strong>, mirroring the real NCLEX (18 case items = 3 sets, delivered to every candidate
+    regardless of exam length). They are served on a schedule, <em>not</em> difficulty-matched for selection.
+    All three fall <strong>within the first 85 questions</strong> (the minimum length) so every student receives
+    all three before the earliest possible finish, and they are <strong>spread out</strong>. <strong>Never at
+    position 1</strong> (settled 2026-07-16): a case is a single correlated block, so leading with one gives the
+    engine a weak first fix and a slow start — the exam takes several standalone questions first (start no earlier
+    than ~Q8) to get a rough footing, then drops in the first case. Real NCLEX likewise does not open with a case.
+  </li>
+  <li>
+    <strong>The case runs its own internal estimate.</strong> The 6 children are fixed and in fixed
+    clinical-judgment order (we cannot choose them adaptively), but the engine still runs the normal Rasch
+    level-update maths <em>across</em> them — i.e. adaptive <em>estimation</em> over a fixed sequence, not
+    adaptive <em>selection</em>. The case estimate <strong>starts fresh at theta = 0.0</strong> (high
+    uncertainty) and each child, scored at its own <code>difficulty_irt</code>, nudges the case level up/down.
+    Getting the <em>hard</em> children right moves the case level more than the easy ones — so it uses more
+    information than a bare "X of 6 correct" would.
+  </li>
+  <li>
+    <strong>Case difficulty is not a new field.</strong> Because cases are not difficulty-matched for
+    <em>selection</em> (part 1) and the internal estimate uses each child's own <code>difficulty_irt</code>,
+    there is no need for a separate "wrapper difficulty" value. The earlier open question dissolves.
+  </li>
+  <li>
+    <strong>The merge — one combined measurement, not six.</strong> When the block finishes, the case's final
+    level merges into the main exam level as a <strong>confidence-weighted average</strong> (the more confident
+    of the two estimates gets more say). Crucially, the case's uncertainty is deliberately <strong>inflated</strong>
+    before merging so the whole 6-question block counts as roughly <em>one</em> independent measurement, not six —
+    this is the knob that enforces local independence and stops the engine becoming falsely over-confident. Effect:
+    a case moves the main level meaningfully but only tightens certainty a little. A case landing <em>early</em>
+    (when the main estimate is still unsure) has large influence; one landing <em>late</em> (main estimate
+    well-established) only nudges it. The exact inflation factor is a build-time dial, seeded with a sensible
+    default and refined from data later (how much a case's children actually move together).
+  </li>
+  <li>
+    <strong>Exposure is wrapper-level.</strong> The last-3-CATs window (§15.2) applies to the whole case — if the
+    student saw this <em>scenario</em> in their last 3 CATs, the entire case (all children) is skipped. The
+    scenario is the memorable leak, not the individual child. Same for trends (the shared dataset is the leak).
+  </li>
+</ol>
 <p>
-  §11's snapshot design already anticipated this: case/trend snapshot behaviour for CAT is specified
-  there and needs no rework — only activation.
+  <strong>Trends</strong> follow the same testlet principle at smaller scale (a shared dataset + ~2–3 linked
+  questions): own internal estimate, merged as one measurement, wrapper-level exposure. Their exact count and
+  placement per exam is a lighter build-time detail (cases are the load-bearing case; trends inherit the pattern).
+</p>
+<p>
+  <strong>Bonus the testlet model unlocks:</strong> because each case produces a standalone case level, the
+  results page can surface a distinct <strong>"clinical judgment" read</strong> (case performance as its own
+  skill signal) on top of the overall verdict — matching how the real NCLEX treats clinical judgment as a
+  separately-measured competency. See §13 for where this lands on the summary page.
+</p>
+<p>
+  <strong>Schema implication (for §12 build handoff):</strong> the within-case level path can live on the child
+  <code>nclex_attempt_items</code> rows (each child's <code>cat_theta_before</code> = the within-case level at
+  that step). A small addition may be wanted to record each case's <em>final</em> case level + its merge, to
+  power the clinical-judgment read and replay — to be specified in the build slice.
+</p>
+<p>
+  §11's snapshot design already anticipated wrappers: case/trend snapshot behaviour for CAT is specified there and
+  needs no rework — only activation. Worked examples of the whole flow (a case mid-exam, and three cases across a
+  full exam) are in the 2026-07-16 planning session notes.
 </p>
 
 <h3>7.5 Bank-exhaustion fallback</h3>
@@ -1739,7 +1803,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li>§4 — IRT model: Rasch (1PL), TypeScript live engine in existing stack, recalibration uses heavier offline tooling separately (settled 2026-05-04). <strong>§4.5 added 2026-07-16:</strong> partial-credit items (SATA/MATRIX/etc.) feed the ability estimate as a fraction (<code>score_awarded / marks</code>, "Option 2") for v1 — not all-or-nothing — growing into the full partial-credit model the real NCLEX uses ("Option 3") once recalibration data accumulates.</li>
   <li>§5 — Calibration plan: Easy/Medium/Hard → −1.0/0.0/+1.0, separate <code>difficulty_irt</code> NUMERIC column on <code>nclex_bank_items</code>, weekly batch recalibration (Sundays 02:00 UTC) with 30-response threshold and 70/30 dampened blend, plus manual trigger (settled 2026-05-04).</li>
   <li>§6 — Starting difficulty: always theta = 0.0, no carry-over (settled 2026-05-04).</li>
-  <li>§7 — Selection rule: closest difficulty + category as tiebreaker; bank-exhaustion fallback locked (settled 2026-05-04). §7.4 reversed 2026-07-14: cases/trends are now IN for v1; wrapper administration mechanics remain open (see carried-forward list below).</li>
+  <li>§7 — Selection rule: closest difficulty + category as tiebreaker; bank-exhaustion fallback locked (settled 2026-05-04). §7.4 reversed 2026-07-14: cases/trends IN for v1. <strong>§7.4 wrapper mechanics settled 2026-07-16 (testlet model):</strong> 3 cases/CAT, spread within the first 85, never at position 1, fixed-schedule (not difficulty-matched); each case runs its own internal Rasch estimate (fresh from 0.0, per-child difficulty) and merges back as ONE confidence-weighted, uncertainty-inflated measurement (counts as ~one, not six — local independence); wrapper-level exposure; unlocks a distinct "clinical judgment" read on the results page.</li>
   <li>§8 — Content blueprint: tiebreaker only, never overrides difficulty; monitoring logged for curator dashboard (settled 2026-05-04).</li>
   <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 85/150 (corrected 2026-07-14 from the pre-NGN 75/145), time limit 4 hours, inconclusive framing (settled 2026-05-04).</li>
   <li>§10 — Architecture: two-RPC flow (<code>create_cat_attempt</code> + <code>cat_next_item</code>), both atomic transactions; pessimistic UI with graceful degradation (current Q stays visible dimmed; spinner at 300ms; "still loading" at 3s; error+retry at 10s); 2-retry silent backoff on network failure, immediate error on server-side throw; engine runtime location (Supabase RPC vs Edge Function vs Worker) deferred to build time with PL/pgSQL recommendation (settled 2026-05-05).</li>
@@ -1754,7 +1818,6 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Carried forward — settle in subsequent planning sessions:</strong></p>
 <ul>
-  <li><strong>Wrapper administration mechanics (§7.4, reopened by the 2026-07-14 reversal)</strong> — block administration rule, theta-update policy inside a case block, effective wrapper difficulty for selection, wrapper-level exposure window. Settle when the CAT build slice starts.</li>
   <li><strong>Classification vocabulary drift vs the 2026 test plan (flagged 2026-07-14).</strong> The 2026 NCLEX-RN Test Plan (effective April 2026, reviewed against the doc this session) renamed one subcategory: <em>"Safety and Infection Control" → "Safety and Infection Prevention and Control."</em> <code>lib/bank/classifications.ts</code> still uses the old name, and all existing bank rows are classified with it. Blueprint <em>percentages</em> are unchanged, so the meter/tiebreaker logic is unaffected. The seed pool deliberately uses the OLD codebase string for consistency. Renaming the enum + migrating existing rows is a small, separate codebase-accuracy fix — not done here.</li>
 </ul>
 <p>Everything else structural is locked. The remaining work is execution:</p>
