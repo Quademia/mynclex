@@ -162,8 +162,10 @@
   (starting fresh at 0.0, each child scored at its own difficulty), then merges into the main exam level as a
   single confidence-weighted measurement whose uncertainty is inflated so the 6 correlated questions count as
   ~one measurement, not six (local independence). Wrapper-level exposure; unlocks a distinct "clinical judgment"
-  read on the results page. Trends: single-question trends (the majority) behave as normal adaptive questions;
-  only multi-question trends (2–3 sharing a dataset) are mini-testlets. §19 carried-forward list cleared —
+  read on the results page. Trends are ALWAYS single questions in CAT — never testlets: the engine serves one of
+  a trend's linked questions as an ordinary adaptive item (extra questions on a trend are just an interchangeable
+  pool). Engine world collapses to two shapes: items (incl. all trends) vs testlets (cases only). §19
+  carried-forward list cleared —
   no open planning decisions remain. Earlier same day: §4.5 added — settled how partial-credit item types
   (SATA, MATRIX, etc.) feed the adaptive ability estimate: use the fraction correct (<code>score_awarded/marks</code>,
   "Option 2") for v1, not all-or-nothing, growing into the full partial-credit model the real NCLEX uses
@@ -782,12 +784,29 @@
   </li>
 </ol>
 <p>
-  <strong>Trends split by how many questions share the dataset:</strong>
+  <strong>Trends are ALWAYS single questions in CAT — never testlets (settled 2026-07-16, Sam).</strong> A real
+  NGN trend is a <em>single-question</em> item type (one question over a data-table / flowsheet); the Maryland
+  specimens confirm it. The ability to attach multiple questions to one trend wrapper is a
+  <strong>MyNclex authoring convenience</strong> (mint more bank questions from one dataset), not a real-exam
+  construct. So in CAT:
 </p>
 <ul>
-  <li><strong>Single-question trend (the common case) — behaves as a normal adaptive standalone item.</strong> Most trends in the bank are one question that happens to carry a data table (a flowsheet), e.g. ~50 trend datasets / ~62 linked questions at audit — the large majority single. The dataset is presentation only; there is one answer, one normal level update, and normal item-level exposure already covers "don't repeat it" (one question = one item). No testlet handling, no fixed schedule — it just sits in the adaptive standalone pool like any other question.</li>
-  <li><strong>Multi-question trend (2–3 questions on one shared dataset) — a mini-testlet.</strong> Here the questions <em>are</em> correlated (shared context), so treat the group like a small case: run one internal estimate, merge as a single measurement, and apply exposure at the dataset (wrapper) level. Delivered as a block. Rare relative to single-question trends; count/placement per exam is a lighter build-time detail.</li>
+  <li><strong>The engine serves exactly ONE of a trend's linked questions</strong>, treated as an ordinary
+    adaptive standalone item — normal difficulty-match, normal single level update. No internal estimate, no
+    merge, no block delivery. A trend is an <em>item</em>, full stop.</li>
+  <li><strong>The extra questions on a trend are an interchangeable pool on the same dataset.</strong> This is a
+    quiet <em>benefit</em>: because the pool can span difficulties, the engine gets a small selection choice — it
+    picks the one whose difficulty best fits the student. The others are simply not served in that attempt.</li>
+  <li><strong>Exposure:</strong> serve at most one question from a given trend <em>within</em> an exam (so the
+    same flowsheet is never shown twice in one CAT). Cross-CAT, normal item-level exposure applies.</li>
 </ul>
+<p>
+  This collapses the engine's world to exactly two shapes: <strong>items</strong> (every MCQ/SATA/bow-tie… and
+  every trend) and <strong>testlets</strong> (case studies only — the 3-per-exam blocks above). The engine never
+  has to ask "how many questions does this trend have?" — it always serves one. If a bank trend was ever authored
+  as a genuinely sequential multi-question set, that is structurally a case, not a trend, and should be authored
+  as a case; CAT does not treat any trend as a block.
+</p>
 <p>
   <strong>Bonus the testlet model unlocks:</strong> because each case produces a standalone case level, the
   results page can surface a distinct <strong>"clinical judgment" read</strong> (case performance as its own
@@ -1806,7 +1825,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li>§4 — IRT model: Rasch (1PL), TypeScript live engine in existing stack, recalibration uses heavier offline tooling separately (settled 2026-05-04). <strong>§4.5 added 2026-07-16:</strong> partial-credit items (SATA/MATRIX/etc.) feed the ability estimate as a fraction (<code>score_awarded / marks</code>, "Option 2") for v1 — not all-or-nothing — growing into the full partial-credit model the real NCLEX uses ("Option 3") once recalibration data accumulates.</li>
   <li>§5 — Calibration plan: Easy/Medium/Hard → −1.0/0.0/+1.0, separate <code>difficulty_irt</code> NUMERIC column on <code>nclex_bank_items</code>, weekly batch recalibration (Sundays 02:00 UTC) with 30-response threshold and 70/30 dampened blend, plus manual trigger (settled 2026-05-04).</li>
   <li>§6 — Starting difficulty: always theta = 0.0, no carry-over (settled 2026-05-04).</li>
-  <li>§7 — Selection rule: closest difficulty + category as tiebreaker; bank-exhaustion fallback locked (settled 2026-05-04). §7.4 reversed 2026-07-14: cases/trends IN for v1. <strong>§7.4 wrapper mechanics settled 2026-07-16 (testlet model):</strong> 3 cases/CAT, spread within the first 85, never at position 1, fixed-schedule (not difficulty-matched); each case runs its own internal Rasch estimate (fresh from 0.0, per-child difficulty) and merges back as ONE confidence-weighted, uncertainty-inflated measurement (counts as ~one, not six — local independence); wrapper-level exposure; unlocks a distinct "clinical judgment" read on the results page.</li>
+  <li>§7 — Selection rule: closest difficulty + category as tiebreaker; bank-exhaustion fallback locked (settled 2026-05-04). §7.4 reversed 2026-07-14: cases/trends IN for v1. <strong>§7.4 wrapper mechanics settled 2026-07-16 (testlet model):</strong> 3 cases/CAT, spread within the first 85, never at position 1, fixed-schedule (not difficulty-matched); each case runs its own internal Rasch estimate (fresh from 0.0, per-child difficulty) and merges back as ONE confidence-weighted, uncertainty-inflated measurement (counts as ~one, not six — local independence); wrapper-level exposure; unlocks a distinct "clinical judgment" read on the results page. Trends are ALWAYS single questions in CAT (never testlets) — the engine serves one of a trend's linked items as an ordinary adaptive question; testlets = cases only. Engine taxonomy: items vs cases, full stop.</li>
   <li>§8 — Content blueprint: tiebreaker only, never overrides difficulty; monitoring logged for curator dashboard (settled 2026-05-04).</li>
   <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 85/150 (corrected 2026-07-14 from the pre-NGN 75/145), time limit 4 hours, inconclusive framing (settled 2026-05-04).</li>
   <li>§10 — Architecture: two-RPC flow (<code>create_cat_attempt</code> + <code>cat_next_item</code>), both atomic transactions; pessimistic UI with graceful degradation (current Q stays visible dimmed; spinner at 300ms; "still loading" at 3s; error+retry at 10s); 2-retry silent backoff on network failure, immediate error on server-side throw; engine runtime location (Supabase RPC vs Edge Function vs Worker) deferred to build time with PL/pgSQL recommendation (settled 2026-05-05).</li>
