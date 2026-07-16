@@ -162,7 +162,8 @@
   (starting fresh at 0.0, each child scored at its own difficulty), then merges into the main exam level as a
   single confidence-weighted measurement whose uncertainty is inflated so the 6 correlated questions count as
   ~one measurement, not six (local independence). Wrapper-level exposure; unlocks a distinct "clinical judgment"
-  read on the results page. Trends inherit the pattern at smaller scale. §19 carried-forward list cleared —
+  read on the results page. Trends: single-question trends (the majority) behave as normal adaptive questions;
+  only multi-question trends (2–3 sharing a dataset) are mini-testlets. §19 carried-forward list cleared —
   no open planning decisions remain. Earlier same day: §4.5 added — settled how partial-credit item types
   (SATA, MATRIX, etc.) feed the adaptive ability estimate: use the fraction correct (<code>score_awarded/marks</code>,
   "Option 2") for v1, not all-or-nothing, growing into the full partial-credit model the real NCLEX uses
@@ -781,10 +782,12 @@
   </li>
 </ol>
 <p>
-  <strong>Trends</strong> follow the same testlet principle at smaller scale (a shared dataset + ~2–3 linked
-  questions): own internal estimate, merged as one measurement, wrapper-level exposure. Their exact count and
-  placement per exam is a lighter build-time detail (cases are the load-bearing case; trends inherit the pattern).
+  <strong>Trends split by how many questions share the dataset:</strong>
 </p>
+<ul>
+  <li><strong>Single-question trend (the common case) — behaves as a normal adaptive standalone item.</strong> Most trends in the bank are one question that happens to carry a data table (a flowsheet), e.g. ~50 trend datasets / ~62 linked questions at audit — the large majority single. The dataset is presentation only; there is one answer, one normal level update, and normal item-level exposure already covers "don't repeat it" (one question = one item). No testlet handling, no fixed schedule — it just sits in the adaptive standalone pool like any other question.</li>
+  <li><strong>Multi-question trend (2–3 questions on one shared dataset) — a mini-testlet.</strong> Here the questions <em>are</em> correlated (shared context), so treat the group like a small case: run one internal estimate, merge as a single measurement, and apply exposure at the dataset (wrapper) level. Delivered as a block. Rare relative to single-question trends; count/placement per exam is a lighter build-time detail.</li>
+</ul>
 <p>
   <strong>Bonus the testlet model unlocks:</strong> because each case produces a standalone case level, the
   results page can surface a distinct <strong>"clinical judgment" read</strong> (case performance as its own
