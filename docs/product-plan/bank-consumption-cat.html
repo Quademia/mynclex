@@ -156,7 +156,12 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-16 (§7.4 wrapper mechanics SETTLED — the last open design
+  Living planning document. Last updated: 2026-07-16 (results-report scope expanded — §13.2 gains the
+  clinical-judgment read (from the §7.4 testlet model); new §13.6 captures five WANTED v2 report additions
+  (average difficulty faced, performance by question type, finer topic drill-down, clinical-judgment step detail,
+  pacing — data already captured); §13.5 reframed from "deliberately excluded" to "flagged for REVISIT," notably
+  a theta-percentile vs other CAT-takers (valid — the old "meaningless" reasoning only held for raw scores). §19
+  carried-forward updated. Earlier same day: §7.4 wrapper mechanics SETTLED — the last open design
   piece. Case studies use a "testlet" model: 3 cases per CAT, spread within the first 85 questions and never at
   position 1, on a fixed schedule (not difficulty-matched). Each case runs its own internal Rasch estimate
   (starting fresh at 0.0, each child scored at its own difficulty), then merges into the main exam level as a
@@ -1452,6 +1457,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li><strong>Items administered</strong> — small fact line under the verdict. Example: <em>"You answered 92 questions. The engine reached confidence at question 92."</em> Honest, factual.</li>
   <li><strong>Trajectory graph</strong> (see §13.3 below) — the most important visual on the page. Shows how the student's ability estimate moved across the test, plotted against a 0.0 reference line.</li>
   <li><strong>Per-Client-Needs-Category breakdown</strong> — for each of the four categories: questions seen, questions correct (full credit only — see <code>bank-marks-and-scoring.html</code> §6 for the <code>is_correct</code> definition), per-category percentage. The most actionable text content on the page. <strong>Footnote required (§4.5):</strong> this "correct" count is full-credit-only, which differs from how the engine credited partial answers (fractionally); a one-line note should say so, so a student doesn't think their partials were ignored.</li>
+  <li><strong>Clinical judgment read</strong> (added 2026-07-16, from the §7.4 testlet model) — a distinct skill signal derived from the student's case performance (each case produces its own standalone level). Shown as its own line/badge separate from the overall verdict — e.g. <em>"Clinical judgment: strong (you handled the case scenarios well)."</em> Matches how the real NCLEX treats clinical judgment as a separately-measured competency. The finer per-reasoning-step detail (Recognise cues → … → Evaluate) is a v2 enhancement (§13.6).</li>
   <li><strong>Compared to your previous CATs</strong> — only shown if the student has prior CATs. Plots theta + verdict per CAT across attempt history.</li>
   <li><strong>Primary CTA: "Review answers"</strong> — opens the shared runner Review surface (per §14) for the per-question walk-through.</li>
 </ol>
@@ -1503,14 +1509,31 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   blends signals, it can weight each CAT by its readiness probability (confidence), not by a discarded verdict class.
 </p>
 
-<h3>13.5 What we deliberately do NOT show</h3>
+<h3>13.5 Not shown in v1 — but flagged for revisit <span class="status open">revisit — Sam 2026-07-16</span></h3>
+<p>
+  These were the original "deliberately excluded" items. <strong>Sam flagged them 2026-07-16 as things to
+  revisit</strong> rather than treat as permanently closed. The reasoning that motivated each is kept, with an
+  honest note on how strong that reasoning actually is:
+</p>
 <ul>
-  <li><strong>No real-NCLEX pass-probability.</strong> No "70% chance of passing the NCLEX." We don't have outcome data to back that (§3.5). NOTE (2026-07-15): we DO show a readiness probability, but it is framed strictly as "confidence you're above <em>our</em> standard," never as a real-NCLEX prediction.</li>
-  <li><strong>No "you would have passed the real NCLEX" framing.</strong> Same reason.</li>
-  <li><strong>No comparison to other students' verdicts.</strong> Different students see different questions; comparison is meaningless.</li>
-  <li><strong>No raw score.</strong> CAT has no raw score by design — it has a verdict + theta + SE.</li>
-  <li><strong>No "you got X out of N right."</strong> Same reason.</li>
-  <li><strong>No verdict restatement on the per-question Review.</strong> Verdict lives on the summary page only — Review is about the questions, not the outcome.</li>
+  <li><strong>Real-NCLEX pass-probability</strong> ("70% chance of passing the NCLEX"). <em>Reason to hold:</em> needs real outcome data we don't have (§3.5) — this one is a genuine data constraint, not just a preference. <em>Revisit:</em> the timeline/threshold for when we've collected enough outcome data to promote to a real prediction (the machinery is already the same; only the label changes). Note we DO already show a readiness probability against <em>our</em> standard.</li>
+  <li><strong>Comparison to other students (percentile).</strong> <em>Original reason:</em> "different students see different questions, so comparison is meaningless." <em>Honest correction (2026-07-16):</em> this reason is <strong>only true for raw scores</strong> — the ability level (theta) IS directly comparable across students precisely because IRT puts everyone on one scale. So a <strong>percentile of theta</strong> ("you scored higher than 78% of MyNclex CAT-takers") is statistically valid and is exactly what UWorld shows. Strong revisit candidate once we have enough CAT-takers to form a stable distribution.</li>
+  <li><strong>Raw score / "you got X out of N right."</strong> <em>Reason to hold:</em> CAT has no raw score by design (a verdict + level + confidence is the measure, and a raw count invites "everyone sees different questions" confusion). <em>Revisit:</em> whether a supplementary "X of N correct" stat adds comfort without undermining the verdict.</li>
+  <li><strong>Verdict restatement on the per-question Review.</strong> Kept out so Review stays about the questions, not the outcome. Low-priority revisit.</li>
+</ul>
+
+<h3>13.6 Additional reports — wanted (v2 build candidates) <span class="status open">wanted — Sam 2026-07-16</span></h3>
+<p>
+  <strong>Sam wants these built (2026-07-16)</strong> — captured as planned enhancements beyond the v1 summary
+  page. We already capture the data for all of them per §12 / §17; they are additive report surfaces, not new
+  engine work. Sequence after the v1 summary page ships.
+</p>
+<ul>
+  <li><strong>Average difficulty faced</strong> — "the questions you saw averaged Hard." From the per-item <code>cat_item_difficulty</code> snapshots (§12.3). Mirrors a UWorld CAT-report line.</li>
+  <li><strong>Performance by question type</strong> — how the student did on MCQ vs SATA vs matrix vs bow-tie, etc. From <code>question_type</code> + per-item score.</li>
+  <li><strong>Finer topic drill-down</strong> — beyond the 4 top Client Needs categories, down to subcategory / nursing subject / body system. From the classification columns already on each snapshotted item.</li>
+  <li><strong>Clinical-judgment step detail</strong> — which NCJMM reasoning steps (Recognise cues → Analyse → Prioritise → Generate solutions → Take action → Evaluate) the student was strong/weak on across their cases. From the case children's <code>cjmm_step</code>. Deepens the §13.2 clinical-judgment read.</li>
+  <li><strong>Pacing</strong> — time spent overall and per question. Overall duration is already captured; per-question timing needs a small capture addition at build time.</li>
 </ul>
 
 
@@ -1840,6 +1863,8 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Carried forward — settle in subsequent planning sessions:</strong></p>
 <ul>
+  <li><strong>Results-report enhancements — WANTED (Sam 2026-07-16, §13.6).</strong> Build after the v1 summary page: average difficulty faced, performance by question type, finer topic drill-down (subcategory/subject/body system), clinical-judgment step detail, and pacing. All are additive report surfaces — the data is already captured; no engine work.</li>
+  <li><strong>Results-report exclusions — REVISIT (Sam 2026-07-16, §13.5).</strong> Reconsider (not permanently closed): a theta <strong>percentile</strong> vs other CAT-takers (statistically valid — the old "meaningless" reasoning only applied to raw scores); a supplementary "X of N correct" stat; and the timeline for promoting the readiness probability to a real-NCLEX pass-probability once outcome data exists.</li>
   <li><strong>Classification vocabulary drift vs the 2026 test plan (flagged 2026-07-14).</strong> The 2026 NCLEX-RN Test Plan (effective April 2026, reviewed against the doc this session) renamed one subcategory: <em>"Safety and Infection Control" → "Safety and Infection Prevention and Control."</em> <code>lib/bank/classifications.ts</code> still uses the old name, and all existing bank rows are classified with it. Blueprint <em>percentages</em> are unchanged, so the meter/tiebreaker logic is unaffected. The seed pool deliberately uses the OLD codebase string for consistency. Renaming the enum + migrating existing rows is a small, separate codebase-accuracy fix — not done here.</li>
 </ul>
 <p>Everything else structural is locked. The remaining work is execution:</p>
