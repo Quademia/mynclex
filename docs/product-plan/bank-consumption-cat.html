@@ -156,7 +156,11 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-15 (verdict model revised — INCONCLUSIVE retired: every
+  Living planning document. Last updated: 2026-07-16 (§4.5 added — settled how partial-credit item types
+  (SATA, MATRIX, etc.) feed the adaptive ability estimate: use the fraction correct (<code>score_awarded/marks</code>,
+  "Option 2") for v1, not all-or-nothing, growing into the full partial-credit model the real NCLEX uses
+  ("Option 3") as recalibration data accumulates. Cross-refs added to §10.2 and §13.2; previously undocumented.)
+  Previous update: 2026-07-15 (verdict model revised — INCONCLUSIVE retired: every
   completed CAT now resolves to Above/Below standard, and at max length/time-out the side is decided by the final
   ability estimate exactly as the real NCLEX does. Every verdict carries a readiness probability — "confidence
   you're above OUR standard," computed natively from the Rasch estimate + uncertainty — available from launch day;
@@ -463,6 +467,44 @@
 <p>
   Once empirical recalibration has been running for some time and we have substantial response data per item,
   we can revisit fitting 2PL parameters. v2 decision, driven by data — not a v1 commitment.
+</p>
+
+<h3>4.5 Partial-credit items — how they feed the ability estimate <span class="status settled">settled 2026-07-16</span></h3>
+<p>
+  <strong>The gap this closes.</strong> Rasch (1PL) is a right/wrong model — it expects each administered item to
+  come back as a clean <strong>1 (right)</strong> or <strong>0 (wrong)</strong> to update the ability estimate.
+  But most NGN types (SATA, SELECT_N, MATRIX, MATRIX_MR, CLOZE, HIGHLIGHT, BOWTIE, DRAG_*) produce a
+  <strong>partial</strong> result — e.g. a SATA scored 3 out of 5. Until now the plan said "update theta with
+  Rasch" (§10.2) without specifying what a partial answer feeds in. This section settles that.
+</p>
+<p><strong>Three approaches (the staircase framing):</strong> picture a partial-credit item as a staircase from
+  0 correct (bottom) to all-correct (top).</p>
+<ul>
+  <li><strong>Option 1 — all-or-nothing.</strong> Only a 100%-correct answer counts as "right"; 4-of-5 is treated identically to 0-of-5. Simplest and keeps pure 1PL, but <strong>rejected</strong>: NGN items are hard to ace, so most partial answers would score 0, systematically biasing every student's estimate <em>downward</em> and making the exam feel brutally unfair. It is also <em>not</em> what the real NCLEX does.</li>
+  <li><strong>Option 2 — partial credit as a fraction (CHOSEN for v1).</strong> Feed the proportion correct into the update instead of a hard 0/1: 4-of-5 → <strong>0.8</strong>. Every step of the staircase is treated as equal height. Uses all the information, avoids the downward bias, needs <em>no</em> extra per-item data (works from launch day), and is a modest extension of the 1PL update rather than a new model. The proportion is already computed by the scoring engine (<code>score_awarded / marks</code>).</li>
+  <li><strong>Option 3 — full partial-credit model (deferred to v2).</strong> Measures the <em>real</em> height of each staircase step from response data — i.e. it learns which parts of a question actually separate strong students from weak ones (the "tricky" checkbox vs the "obvious" one) and weights them accordingly. This is what the <strong>real NCLEX uses</strong>. Deferred because it needs substantial per-item response data we don't have on day one — the same data-dependency reason 2PL is deferred (§4.4).</li>
+</ul>
+<p>
+  <strong>What the real NCLEX does:</strong> it gives partial credit (its test plan names three methods —
+  plus/minus, zero/one, and rationale scoring) and feeds those partial scores into a polytomous (partial-credit)
+  IRT model — i.e. Option 3. It does <em>not</em> use all-or-nothing. Our own scoring engine already computes SATA
+  partial credit the NCLEX "plus/minus" way (+1 per correct pick, −1 per wrong pick, floored at 0).
+</p>
+<p>
+  <strong>Decision (2026-07-16, Sam): Option 2 for v1, growing into Option 3 as data accumulates.</strong>
+  Option 2 and Option 3 are the same idea (partial credit counts) at two levels of sophistication; Option 2 is the
+  launch-day version and upgrades into Option 3 through the same recalibration pipeline (§5) — nothing is thrown
+  away. Only Option 1 is a different philosophy, and we reject it.
+</p>
+<p><strong>Two consistency requirements this creates:</strong></p>
+<ul>
+  <li><strong>Recalibration (§5) must define a "response" the same way.</strong> If the live estimate consumes a fraction (0.8), the weekly empirical recalibration must use the same fractional response, not a dichotomised one — otherwise the difficulty values drift against a different definition than the engine scores against.</li>
+  <li><strong>Display vs. estimate mismatch (§13.2).</strong> The summary page reports per-category "correct" as <em>full-credit-only</em> (the <code>is_correct</code> flag). That is a legitimate study stat, but it differs from how the engine <em>credited</em> the student (fractional). A one-line footnote on the summary page should acknowledge this so a student who sees "3/5 SATAs fully correct" doesn't think the engine ignored their partials.</li>
+</ul>
+<p>
+  <strong>Build note:</strong> the <code>cat_next_item</code> RPC (§10.2) uses <code>score_awarded / marks</code>
+  as the item outcome in the Rasch update (MCQ/TF are simply 1 or 0, the degenerate case). For a fully-correct
+  answer this is 1.0 and for a fully-wrong answer 0.0, so dichotomous items are unaffected.
 </p>
 
 
@@ -934,7 +976,7 @@
 <ul>
   <li>Scores the last answer using the existing per-question scoring functions (reused unchanged from <code>bank-marks-and-scoring.html</code>).</li>
   <li>Writes the answer into <code>nclex_attempt_answers</code>.</li>
-  <li>Updates theta and SE using Rasch (1PL) update math per §4.</li>
+  <li>Updates theta and SE using Rasch (1PL) update math per §4. The item outcome fed to the update is <code>score_awarded / marks</code> — a fraction for partial-credit types (Option 2, §4.5), which is 1.0 / 0.0 for fully-correct / fully-wrong and for dichotomous MCQ/TF.</li>
   <li>Checks termination conditions per §9: if SE ≤ 0.40 and items ≥ 85, OR items = 150, OR time ≥ 4 hours → terminate, write <code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>, return <code>{ status: 'COMPLETE', verdict_payload }</code>.</li>
   <li>Otherwise: pick next item per §7, snapshot into <code>nclex_attempt_items</code> with the pre-update theta/SE captured in <code>cat_theta_before</code>/<code>cat_se_before</code>, return <code>{ status: 'CONTINUE', next_item_payload }</code>.</li>
 </ul>
@@ -1323,7 +1365,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li><strong>The verdict itself</strong> — top of page, large headline + body copy from §13.1.</li>
   <li><strong>Items administered</strong> — small fact line under the verdict. Example: <em>"You answered 92 questions. The engine reached confidence at question 92."</em> Honest, factual.</li>
   <li><strong>Trajectory graph</strong> (see §13.3 below) — the most important visual on the page. Shows how the student's ability estimate moved across the test, plotted against a 0.0 reference line.</li>
-  <li><strong>Per-Client-Needs-Category breakdown</strong> — for each of the four categories: questions seen, questions correct (full credit only — see <code>bank-marks-and-scoring.html</code> §6 for the <code>is_correct</code> definition), per-category percentage. The most actionable text content on the page.</li>
+  <li><strong>Per-Client-Needs-Category breakdown</strong> — for each of the four categories: questions seen, questions correct (full credit only — see <code>bank-marks-and-scoring.html</code> §6 for the <code>is_correct</code> definition), per-category percentage. The most actionable text content on the page. <strong>Footnote required (§4.5):</strong> this "correct" count is full-credit-only, which differs from how the engine credited partial answers (fractionally); a one-line note should say so, so a student doesn't think their partials were ignored.</li>
   <li><strong>Compared to your previous CATs</strong> — only shown if the student has prior CATs. Plots theta + verdict per CAT across attempt history.</li>
   <li><strong>Primary CTA: "Review answers"</strong> — opens the shared runner Review surface (per §14) for the per-question walk-through.</li>
 </ol>
@@ -1694,7 +1736,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li>§1 — Scope (settled at file creation).</li>
   <li>§2 — Inheritance roundup (settled at file creation).</li>
   <li>§3 — Honesty constraints: calibration approximation disclosed via "How CAT works" help page (one-time, not per-attempt); five-section help page contents specified; pass-probability statement deferred to v3+ (settled 2026-05-04).</li>
-  <li>§4 — IRT model: Rasch (1PL), TypeScript live engine in existing stack, recalibration uses heavier offline tooling separately (settled 2026-05-04).</li>
+  <li>§4 — IRT model: Rasch (1PL), TypeScript live engine in existing stack, recalibration uses heavier offline tooling separately (settled 2026-05-04). <strong>§4.5 added 2026-07-16:</strong> partial-credit items (SATA/MATRIX/etc.) feed the ability estimate as a fraction (<code>score_awarded / marks</code>, "Option 2") for v1 — not all-or-nothing — growing into the full partial-credit model the real NCLEX uses ("Option 3") once recalibration data accumulates.</li>
   <li>§5 — Calibration plan: Easy/Medium/Hard → −1.0/0.0/+1.0, separate <code>difficulty_irt</code> NUMERIC column on <code>nclex_bank_items</code>, weekly batch recalibration (Sundays 02:00 UTC) with 30-response threshold and 70/30 dampened blend, plus manual trigger (settled 2026-05-04).</li>
   <li>§6 — Starting difficulty: always theta = 0.0, no carry-over (settled 2026-05-04).</li>
   <li>§7 — Selection rule: closest difficulty + category as tiebreaker; bank-exhaustion fallback locked (settled 2026-05-04). §7.4 reversed 2026-07-14: cases/trends are now IN for v1; wrapper administration mechanics remain open (see carried-forward list below).</li>
