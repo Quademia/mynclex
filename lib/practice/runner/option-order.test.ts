@@ -55,4 +55,17 @@ describe('orderedOptions', () => {
     orderedOptions(input, ['C', 'A', 'D', 'B']);
     expect(input.map((o) => o.id)).toEqual(['A', 'B', 'C', 'D']);
   });
+
+  // Slice 3a — the same helper reorders a drag token pool (incl. distractors).
+  it('reorders a drag token pool by the stored permutation', () => {
+    const tokens = [
+      { id: 't1', text: 'first' },
+      { id: 't2', text: 'second' },
+      { id: 't3', text: 'third' },
+      { id: 't4', text: 'distractor' },
+    ];
+    const out = orderedOptions(tokens, ['t3', 't1', 't4', 't2']);
+    expect(out.map((t) => t.id)).toEqual(['t3', 't1', 't4', 't2']);
+    expect(out.find((t) => t.id === 't4')?.text).toBe('distractor');
+  });
 });

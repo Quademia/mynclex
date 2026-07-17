@@ -445,7 +445,11 @@ function PerTypeRunner(props: Props) {
     }
 
     case 'DRAG_CLOZE': {
-      const content = item.content_snapshot_json as unknown as DragClozeContent;
+      const raw = item.content_snapshot_json as unknown as DragClozeContent;
+      const content: DragClozeContent = {
+        ...raw,
+        tokens: orderedOptions(raw.tokens, item.option_order_json),
+      };
 
       if (props.itemMode === 'answering') {
         return (
@@ -473,7 +477,11 @@ function PerTypeRunner(props: Props) {
     }
 
     case 'DRAG_ORDER': {
-      const content = item.content_snapshot_json as unknown as DragOrderContent;
+      const raw = item.content_snapshot_json as unknown as DragOrderContent;
+      const content: DragOrderContent = {
+        ...raw,
+        tokens: orderedOptions(raw.tokens, item.option_order_json),
+      };
 
       if (props.itemMode === 'answering') {
         return (
