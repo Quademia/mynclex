@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09023",
+  "title": "Respiratory Rate Trend — Opioid Sedation",
+  "scenario": "A 72-year-old postoperative client is receiving IV morphine via patient-controlled analgesia after hip surgery. The nurse reviews the respiratory monitoring flowsheet over the first several hours.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Respiratory Monitoring Flowsheet",
+      "headers": ["Time", "RR", "SpO2", "Sedation (POSS)", "Pain (0-10)"],
+      "rows": [
+        ["22:00", "16", "97% on RA", "1 - Awake/alert", "7"],
+        ["23:00", "14", "96% on RA", "2 - Slightly drowsy", "4"],
+        ["00:00", "11", "93% on RA", "3 - Frequently drowsy", "3"],
+        ["01:00", "8", "88% on RA", "4 - Somnolent, minimal response", "2"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450231",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Pharmacological and Parenteral Therapies",
+      "subject": "Pharmacology",
+      "body_system": "Respiratory",
+      "topic": "Opioid respiratory depression",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "How should the nurse interpret the trend shown on the respiratory monitoring flowsheet?",
+      "options": [
+        {"text": "The client is developing opioid-induced respiratory depression and increasing sedation", "correct": true},
+        {"text": "The findings are expected and require no additional action", "correct": false},
+        {"text": "The client's pain is worsening and the opioid dose is inadequate", "correct": false},
+        {"text": "The declining respiratory rate indicates improving oxygenation", "correct": false}
+      ],
+      "rationale": "The falling respiratory rate, dropping SpO2, and rising sedation score together indicate progressive opioid-induced respiratory depression, a medical emergency requiring intervention."
+    },
+    {
+      "item_id": "NCLEX_SATA_450232",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Pharmacological and Parenteral Therapies",
+      "subject": "Pharmacology",
+      "body_system": "Respiratory",
+      "topic": "Opioid respiratory depression",
+      "difficulty": "Hard",
+      "bloom": "Apply",
+      "stem": "Given the 01:00 findings, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Stop the patient-controlled analgesia opioid infusion", "correct": true},
+        {"text": "Attempt to arouse the client and stimulate deep breathing", "correct": true},
+        {"text": "Prepare to administer naloxone per protocol", "correct": true},
+        {"text": "Apply supplemental oxygen and monitor oxygen saturation", "correct": true},
+        {"text": "Increase the opioid dose to improve pain control", "correct": false},
+        {"text": "Document the findings and reassess in four hours", "correct": false}
+      ],
+      "rationale": "A respiratory rate of 8, SpO2 of 88%, and a somnolent client signal dangerous opioid toxicity: stop the opioid, arouse and oxygenate the client, and be ready to reverse with naloxone. Increasing the dose or delaying reassessment would be harmful."
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09021",
+  "title": "Hourly urine output trend in acute kidney injury",
+  "scenario": "A 58-year-old client is being monitored after developing acute kidney injury following sepsis. The nurse tracks hourly urine output from the indwelling catheter.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Hourly Urine Output Trend",
+      "headers": ["Time", "Urine output", "MAP", "Reference"],
+      "rows": [
+        ["08:00", "42 mL/hr", "72 mmHg", "Adequate ~0.5 mL/kg/hr (>=35 mL/hr)"],
+        ["09:00", "30 mL/hr", "68 mmHg", "Adequate ~0.5 mL/kg/hr (>=35 mL/hr)"],
+        ["10:00", "18 mL/hr", "64 mmHg", "Adequate ~0.5 mL/kg/hr (>=35 mL/hr)"],
+        ["11:00", "10 mL/hr", "60 mmHg", "Adequate ~0.5 mL/kg/hr (>=35 mL/hr)"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450211",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Renal",
+      "topic": "Acute kidney injury",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "How should the nurse interpret the urine output trend over the past four hours?",
+      "options": [
+        {"text": "Urine output is progressively declining into oliguria and indicates worsening kidney injury", "correct": true},
+        {"text": "Urine output is within normal limits and requires no action", "correct": false},
+        {"text": "Urine output is improving and the catheter can be removed", "correct": false},
+        {"text": "The falling output reflects normal overnight variation", "correct": false}
+      ],
+      "rationale": "Output has fallen from 42 to 10 mL/hr, well below the 0.5 mL/kg/hr (about 35 mL/hr) threshold, meeting the definition of oliguria and signalling worsening acute kidney injury."
+    },
+    {
+      "item_id": "NCLEX_MCQ_450212",
+      "type": "MCQ",
+      "category": "Safe and Effective Care Environment",
+      "subcategory": "Management of Care",
+      "subject": "Medical-Surgical",
+      "body_system": "Renal",
+      "topic": "Acute kidney injury",
+      "difficulty": "Medium",
+      "bloom": "Apply",
+      "stem": "Based on the trend, what is the nurse's most appropriate next action?",
+      "options": [
+        {"text": "Notify the provider of the declining urine output and falling MAP", "correct": true},
+        {"text": "Document the trend and reassess at the end of the shift", "correct": false},
+        {"text": "Encourage the client to increase oral fluids independently", "correct": false},
+        {"text": "Irrigate the catheter and take no further action", "correct": false}
+      ],
+      "rationale": "Oliguria with a falling mean arterial pressure signals deterioration that exceeds independent nursing measures, so the nurse must promptly notify the provider for further orders. Delayed reassessment or routine measures would leave the deterioration untreated."
+    }
+  ]
+}

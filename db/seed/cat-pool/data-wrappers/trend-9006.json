@@ -1,0 +1,61 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09006",
+  "title": "Neuro Checks (Glasgow Coma Scale) Trend",
+  "scenario": "A 52-year-old client is admitted to the neuro unit after a fall with a head injury. The nurse performs serial neurological checks over six hours.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Neurological Assessment Trend",
+      "headers": ["Time", "Eye opening", "Verbal response", "Motor response", "Total GCS", "Pupils"],
+      "rows": [
+        ["22:00", "Spontaneous (4)", "Oriented (5)", "Obeys commands (6)", "15", "Equal, brisk"],
+        ["00:00", "To speech (3)", "Confused (4)", "Obeys commands (6)", "13", "Equal, brisk"],
+        ["02:00", "To pain (2)", "Inappropriate words (3)", "Localizes pain (5)", "10", "Right sluggish"],
+        ["04:00", "To pain (2)", "Incomprehensible (2)", "Withdraws to pain (4)", "8", "Right dilated, sluggish"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450061",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Neurological",
+      "topic": "Increased intracranial pressure",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "How should the nurse interpret the trend in the serial neurological assessments?",
+      "options": [
+        {"text": "The client's neurological status is deteriorating", "correct": true},
+        {"text": "The client's neurological status is improving", "correct": false},
+        {"text": "The findings are stable and within normal limits", "correct": false},
+        {"text": "The changes reflect normal sleep and require no action", "correct": false}
+      ],
+      "rationale": "The GCS falls from 15 to 8 with a newly dilated, sluggish right pupil, indicating a declining level of consciousness and rising intracranial pressure, not sleep or improvement."
+    },
+    {
+      "item_id": "NCLEX_MCQ_450062",
+      "type": "MCQ",
+      "category": "Safe and Effective Care Environment",
+      "subcategory": "Management of Care",
+      "subject": "Medical-Surgical",
+      "body_system": "Neurological",
+      "topic": "Increased intracranial pressure",
+      "difficulty": "Hard",
+      "bloom": "Apply",
+      "stem": "Given the trend and the 04:00 findings, what is the nurse's priority action?",
+      "options": [
+        {"text": "Notify the provider immediately of the deteriorating findings", "correct": true},
+        {"text": "Reassess the client at the next scheduled 06:00 check", "correct": false},
+        {"text": "Encourage the client to rest and dim the lights", "correct": false},
+        {"text": "Document the findings and continue routine monitoring", "correct": false}
+      ],
+      "rationale": "A falling GCS with a newly dilated pupil signals possible herniation from rising intracranial pressure and is a neurological emergency; the nurse must notify the provider immediately rather than wait for the next check."
+    }
+  ]
+}

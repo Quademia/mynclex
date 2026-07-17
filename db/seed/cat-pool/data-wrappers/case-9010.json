@@ -1,0 +1,136 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09010",
+  "title": "Acute Pancreatitis",
+  "scenario": "A 47-year-old male presents to the emergency department with severe, steady epigastric pain radiating to the back that began after a weekend of heavy alcohol use. He reports nausea, several episodes of vomiting, and that the pain worsens when lying flat.",
+  "tags": ["synthetic", "gastrointestinal"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["47-year-old male presents with severe epigastric pain radiating to the back, rated 9/10, onset this morning after weekend alcohol binge. Nauseated with three episodes of vomiting. Guarding of the abdomen with diffuse epigastric tenderness. Appears diaphoretic and restless. Alert and oriented x3."], "visibleFrom": 1},
+        {"chips": ["10:25"], "lines": ["Two large-bore IV lines established. Labs, lipase, amylase, and CBC drawn. Abdominal ultrasound and CT ordered. Client made NPO. Cardiac monitor and pulse oximetry applied."], "visibleFrom": 2},
+        {"chips": ["11:15"], "lines": ["IV lactated Ringer's bolus infusing per order. IV opioid analgesia administered for pain. Antiemetic given. Nasogastric tube considered pending provider assessment."], "visibleFrom": 5},
+        {"chips": ["14:00"], "lines": ["Reports pain now 3/10. Less restless, no further vomiting. Urine output improving. Vital signs trending toward normal. Tolerating small sips of ice chips without nausea."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "100.8 F (38.2 C)", "118", "24", "98/60", "94% on RA"],
+        ["10:25", "100.9 F (38.3 C)", "116", "24", "96/58", "95% on 2L NC"],
+        ["11:15", "100.6 F (38.1 C)", "108", "22", "104/64", "96% on 2L NC"],
+        ["14:00", "99.6 F (37.6 C)", "88", "18", "118/72", "98% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 5, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Lipase", "980", "10-140 U/L"],
+        ["Amylase", "620", "30-110 U/L"],
+        ["WBC", "16.2", "5.0-10.0 x10^9/L"],
+        ["Calcium", "7.6", "8.5-10.5 mg/dL"],
+        ["Glucose", "212", "70-110 mg/dL"],
+        ["ALT", "88", "7-56 U/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "History",
+      "entries": [
+        {"chips": [], "lines": ["Reports drinking 6-8 beers daily, more on weekends", "Two prior ED visits for abdominal pain", "No known drug allergies", "Takes no regular prescription medications"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Keep NPO", "Lactated Ringer's IV bolus, then maintenance infusion; titrate to urine output > 0.5 mL/kg/hr", "IV opioid analgesia for pain per protocol", "IV antiemetic as needed for nausea", "Monitor serum calcium and glucose", "Strict intake and output", "Notify provider for SpO2 < 92% or urine output < 30 mL/hr"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_401001", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Acute pancreatitis", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Epigastric pain radiating to the back rated 9/10", "correct": true},
+        {"text": "Blood pressure 98/60 with pulse 118", "correct": true},
+        {"text": "Lipase 980 U/L", "correct": true},
+        {"text": "Repeated vomiting", "correct": true},
+        {"text": "Alert and oriented x3", "correct": false},
+        {"text": "Reports no drug allergies", "correct": false}
+      ],
+      "rationale": "Severe pain, hypotension with tachycardia, a markedly elevated lipase, and persistent vomiting all point to acute pancreatitis with early fluid loss and require prompt intervention. Normal orientation and no allergies are reassuring, not concerning."
+    },
+    {
+      "item_id": "NCLEX_MMR_401002", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Acute pancreatitis", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it indicates the inflammatory process, developing fluid volume deficit, or both. Each finding may indicate more than one.",
+      "columns": ["Inflammatory process", "Fluid volume deficit"],
+      "rows": [
+        {"text": "Lipase 980 U/L", "answers": [0]},
+        {"text": "Blood pressure 98/60", "answers": [1]},
+        {"text": "Pulse 118", "answers": [0, 1]},
+        {"text": "WBC 16.2 x10^9/L", "answers": [0]},
+        {"text": "Vomiting with poor urine output", "answers": [1]}
+      ],
+      "rationale": "Elevated lipase and leukocytosis reflect pancreatic inflammation. Hypotension and vomiting with low output reflect third-spacing and fluid loss. Tachycardia is a compensatory response driven by both inflammation and hypovolemia."
+    },
+    {
+      "item_id": "NCLEX_CLZ_401003", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Acute pancreatitis", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the first intervention should be {2}.",
+      "blanks": [
+        {"choices": [{"text": "deficient fluid volume", "correct": true}, {"text": "acute confusion"}, {"text": "impaired skin integrity"}]},
+        {"choices": [{"text": "IV isotonic fluid resuscitation", "correct": true}, {"text": "oral rehydration with clear liquids"}, {"text": "administration of a stool softener"}]}
+      ],
+      "rationale": "The immediate threat in acute pancreatitis is deficient fluid volume from third-spacing and vomiting; aggressive IV isotonic fluid resuscitation is the priority intervention to restore perfusion. Oral fluids are contraindicated while NPO."
+    },
+    {
+      "item_id": "NCLEX_MAT_401004", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Acute pancreatitis", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Maintain NPO status", "answer": 0},
+        {"text": "Infuse IV lactated Ringer's solution", "answer": 0},
+        {"text": "Provide a high-fat meal to maintain calories", "answer": 1},
+        {"text": "Administer IV analgesia for pain control", "answer": 0},
+        {"text": "Encourage the client to lie flat and supine", "answer": 1}
+      ],
+      "rationale": "Resting the pancreas with NPO, isotonic IV fluids, and pain control are standard care. A high-fat meal stimulates pancreatic enzyme secretion and worsens inflammation, and lying flat increases pain; both are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_401005", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Acute pancreatitis", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After starting IV fluid resuscitation and analgesia, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Measure strict intake and output", "correct": true},
+        {"text": "Monitor serum calcium", "correct": true},
+        {"text": "Reassess pain after analgesia", "correct": true},
+        {"text": "Keep the client NPO", "correct": true},
+        {"text": "Encourage a full oral diet immediately", "correct": false},
+        {"text": "Discontinue cardiac monitoring", "correct": false}
+      ],
+      "rationale": "Monitoring output, calcium (which drops in pancreatitis), and pain response, while maintaining NPO, are appropriate actions. Advancing the diet prematurely and stopping monitoring would be unsafe."
+    },
+    {
+      "item_id": "NCLEX_SATA_401006", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Acute pancreatitis", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Pain decreased to 3/10", "correct": true},
+        {"text": "Blood pressure improved to 118/72", "correct": true},
+        {"text": "Pulse decreased to 88", "correct": true},
+        {"text": "Urine output improving", "correct": true},
+        {"text": "Continued vomiting", "correct": false}
+      ],
+      "rationale": "Reduced pain, a normalizing blood pressure and heart rate, and improving urine output all show that fluid resuscitation and pain management are working. Ongoing vomiting would indicate a lack of improvement."
+    }
+  ]
+}

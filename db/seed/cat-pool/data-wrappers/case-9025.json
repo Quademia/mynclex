@@ -1,0 +1,135 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09025",
+  "title": "Small Bowel Obstruction",
+  "scenario": "A 62-year-old male with a prior open appendectomy presents to the emergency department with 2 days of crampy abdominal pain, abdominal distension, and vomiting. He has not passed stool or flatus since yesterday.",
+  "tags": ["synthetic", "gastrointestinal"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["62-year-old male reports 2 days of intermittent crampy periumbilical pain, progressive abdominal distension, and multiple episodes of bilious vomiting. No stool or flatus since the previous day. History of open appendectomy 15 years ago. Abdomen distended and tympanic; high-pitched, tinkling bowel sounds early, now hypoactive. Reports nausea. Mucous membranes dry. Alert and oriented x3."], "visibleFrom": 1},
+        {"chips": ["10:20"], "lines": ["IV access obtained. Labs, upright and supine abdominal x-ray, and CT abdomen ordered. NPO status maintained. Cardiac monitor applied."], "visibleFrom": 2},
+        {"chips": ["11:15"], "lines": ["Nasogastric tube inserted to low intermittent suction per order, draining bilious fluid. IV isotonic fluids started. Foley catheter inserted to monitor output."], "visibleFrom": 5},
+        {"chips": ["15:00"], "lines": ["Reports abdominal pain and nausea decreased. Abdomen softer, less distended. NG tube draining freely. Passed a small amount of flatus. Voided 250 mL clear yellow urine since fluids started."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "99.1 F (37.3 C)", "112", "22", "104/68", "96% on RA"],
+        ["10:20", "99.1 F (37.3 C)", "108", "22", "106/70", "97% on RA"],
+        ["15:00", "98.8 F (37.1 C)", "88", "18", "122/78", "98% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Sodium", "148", "135-145 mEq/L"],
+        ["Potassium", "3.2", "3.5-5.0 mEq/L"],
+        ["Chloride", "94", "98-106 mEq/L"],
+        ["BUN", "32", "7-20 mg/dL"],
+        ["Creatinine", "1.4", "0.6-1.2 mg/dL"],
+        ["WBC", "13.5", "5.0-10.0 x10^9/L"],
+        ["Lactate", "1.8", "0.5-2.2 mmol/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Lisinopril 10 mg PO daily", "Metformin 500 mg PO twice daily", "Acetaminophen 650 mg PO PRN"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Maintain NPO", "Insert nasogastric tube to low intermittent suction", "IV 0.9% sodium chloride at 125 mL/hr", "Insert indwelling urinary catheter, strict intake and output", "IV potassium chloride 20 mEq per protocol for potassium 3.2", "IV ondansetron 4 mg for nausea", "Notify surgery for evaluation", "Notify provider for fever, worsening pain, or urine output < 30 mL/hr"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_402501", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Small bowel obstruction", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings are consistent with a small bowel obstruction and require follow-up?",
+      "options": [
+        {"text": "Bilious vomiting", "correct": true},
+        {"text": "Abdominal distension with tympany", "correct": true},
+        {"text": "No passage of stool or flatus", "correct": true},
+        {"text": "High-pitched, tinkling bowel sounds", "correct": true},
+        {"text": "Alert and oriented x3", "correct": false},
+        {"text": "SpO2 96% on room air", "correct": false}
+      ],
+      "rationale": "Bilious vomiting, distension with tympany, obstipation, and early high-pitched bowel sounds are classic cues of mechanical small bowel obstruction. Normal orientation and oxygenation are expected findings."
+    },
+    {
+      "item_id": "NCLEX_MMR_402502", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Small bowel obstruction", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it indicates fluid volume deficit, an electrolyte imbalance, or both. Each finding may support more than one.",
+      "columns": ["Fluid volume deficit", "Electrolyte imbalance"],
+      "rows": [
+        {"text": "BUN 32 mg/dL with creatinine 1.4 mg/dL", "answers": [0]},
+        {"text": "Potassium 3.2 mEq/L", "answers": [1]},
+        {"text": "Dry mucous membranes and pulse 112", "answers": [0]},
+        {"text": "Chloride 94 mEq/L from persistent vomiting", "answers": [1]}
+      ],
+      "rationale": "An elevated BUN/creatinine ratio, tachycardia, and dry membranes reflect dehydration from vomiting and third-spacing. Loss of gastric fluid depletes potassium and chloride, producing electrolyte imbalance."
+    },
+    {
+      "item_id": "NCLEX_CLZ_402503", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Small bowel obstruction", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem for this client is {1}, and the earliest sign of the feared complication would be {2}.",
+      "blanks": [
+        {"choices": [{"text": "deficient fluid volume from vomiting and bowel sequestration", "correct": true}, {"text": "acute pain from abdominal cramping"}, {"text": "risk for constipation"}]},
+        {"choices": [{"text": "worsening pain with fever and rising lactate", "correct": true}, {"text": "increased passage of soft stool"}, {"text": "decreased nasogastric output"}]}
+      ],
+      "rationale": "Fluid and electrolyte loss is the most immediate life threat and takes priority. Bowel strangulation and ischemia are the feared complication; escalating pain, fever, and a rising lactate are its earliest warning signs."
+    },
+    {
+      "item_id": "NCLEX_MAT_402504", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Small bowel obstruction", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Maintain NPO status", "answer": 0},
+        {"text": "Insert a nasogastric tube to low intermittent suction", "answer": 0},
+        {"text": "Administer IV isotonic fluids", "answer": 0},
+        {"text": "Give a stimulant laxative to promote a bowel movement", "answer": 1},
+        {"text": "Replace potassium per protocol", "answer": 0},
+        {"text": "Offer clear liquids by mouth to relieve thirst", "answer": 1}
+      ],
+      "rationale": "NPO, gastric decompression, IV fluid resuscitation, and potassium replacement manage a bowel obstruction. Laxatives and oral intake are contraindicated because they increase intraluminal contents and worsen distension or vomiting."
+    },
+    {
+      "item_id": "NCLEX_SATA_402505", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Nasogastric tube", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After inserting the nasogastric tube to suction and starting IV fluids, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Verify nasogastric tube placement and confirm suction is functioning", "correct": true},
+        {"text": "Measure and document strict intake and output", "correct": true},
+        {"text": "Monitor serum potassium and other electrolytes", "correct": true},
+        {"text": "Irrigate the nasogastric tube with tap water every hour routinely", "correct": false},
+        {"text": "Advance the client to a full diet once nausea improves", "correct": false}
+      ],
+      "rationale": "The nurse confirms tube placement and patency, tracks fluid balance, and monitors electrolytes lost through gastric drainage. Routine hourly tap-water irrigation and diet advancement are not indicated while the obstruction is unresolved."
+    },
+    {
+      "item_id": "NCLEX_SATA_402506", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Small bowel obstruction", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Passage of flatus", "correct": true},
+        {"text": "Abdomen softer and less distended", "correct": true},
+        {"text": "Pulse decreased to 88 with B/P 122/78", "correct": true},
+        {"text": "Urine output of 250 mL after fluids", "correct": true},
+        {"text": "Increasing bilious vomiting", "correct": false}
+      ],
+      "rationale": "Return of flatus, reduced distension, normalizing vital signs, and adequate urine output all show the obstruction and fluid deficit are resolving. Increasing vomiting would indicate the obstruction is worsening."
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09004",
+  "title": "DKA Lab Correction Over Time",
+  "scenario": "A 24-year-old client with type 1 diabetes is admitted for diabetic ketoacidosis and started on an IV insulin infusion with fluid and electrolyte replacement. Serial labs are drawn over the first eight hours of treatment.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Serial Laboratory Trend",
+      "headers": ["Time", "Glucose (mg/dL)", "pH", "Bicarbonate (mEq/L)", "Anion gap", "Potassium (mEq/L)"],
+      "rows": [
+        ["On admission", "612", "7.08", "6", "28", "5.6"],
+        ["2 hours", "498", "7.15", "9", "24", "4.8"],
+        ["4 hours", "372", "7.24", "13", "18", "3.9"],
+        ["6 hours", "266", "7.31", "17", "13", "3.5"],
+        ["8 hours", "198", "7.36", "21", "10", "3.4"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_SATA_450041",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Endocrine",
+      "topic": "Diabetic ketoacidosis",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Reviewing the serial laboratory trend, which findings indicate that the diabetic ketoacidosis is resolving? Select all that apply.",
+      "options": [
+        {"text": "Blood glucose is falling steadily", "correct": true},
+        {"text": "pH is rising toward normal", "correct": true},
+        {"text": "Bicarbonate is increasing", "correct": true},
+        {"text": "Anion gap is narrowing", "correct": true},
+        {"text": "Potassium is rising above the reference range", "correct": false},
+        {"text": "Glucose has returned to the normal range", "correct": false}
+      ],
+      "rationale": "Resolution of DKA is shown by falling glucose, a rising pH and bicarbonate, and a closing anion gap. Potassium is falling (not rising) as insulin drives it intracellularly, and glucose remains elevated at 8 hours."
+    },
+    {
+      "item_id": "NCLEX_MCQ_450042",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Pharmacological and Parenteral Therapies",
+      "subject": "Medical-Surgical",
+      "body_system": "Endocrine",
+      "topic": "Diabetic ketoacidosis",
+      "difficulty": "Hard",
+      "bloom": "Apply",
+      "stem": "Based on the 8-hour potassium trend, which action should the nurse anticipate?",
+      "options": [
+        {"text": "Add potassium to the IV fluids per protocol", "correct": true},
+        {"text": "Stop the insulin infusion immediately", "correct": false},
+        {"text": "Administer a rapid IV insulin bolus", "correct": false},
+        {"text": "Withhold all potassium replacement", "correct": false}
+      ],
+      "rationale": "Insulin drives potassium into cells, and the trend shows potassium falling toward the low-normal range (3.4 mEq/L); protocols call for adding potassium to IV fluids to prevent hypokalemia while the insulin infusion continues."
+    }
+  ]
+}

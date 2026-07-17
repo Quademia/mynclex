@@ -1,0 +1,135 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09028",
+  "title": "Alcohol Withdrawal",
+  "scenario": "A 52-year-old male is admitted to the medical unit after being found confused at home. His partner reports he stopped drinking abruptly two days ago after decades of heavy daily alcohol use.",
+  "tags": ["synthetic", "psychosocial"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["14:00"], "lines": ["52-year-old male admitted for altered mental status. Partner states client drinks a fifth of liquor daily and abruptly stopped 2 days ago. Client is anxious, diaphoretic, and reports feeling shaky. Bilateral hand tremors noted. Reports nausea. Alert but easily startled; oriented to person and place, not to time. Denies visual or tactile hallucinations at this time."], "visibleFrom": 1},
+        {"chips": ["14:30"], "lines": ["IV access established. CIWA-Ar protocol initiated. Labs drawn. Client resting in bed with side rails up x2, call light in reach. Fall-risk precautions in place."], "visibleFrom": 2},
+        {"chips": ["18:00"], "lines": ["Lorazepam administered per CIWA-Ar protocol for worsening tremor and anxiety. Thiamine and IV fluids infusing. Client reports seeing bugs on the bedsheet; reoriented calmly. Environment kept quiet with low lighting."], "visibleFrom": 5},
+        {"chips": ["22:00"], "lines": ["Tremors diminished. Client oriented x3. Diaphoresis resolved. Denies hallucinations. CIWA-Ar score down from 18 to 7. Resting comfortably."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["14:00", "99.6 F (37.6 C)", "116", "22", "168/98", "97% on RA"],
+        ["14:30", "99.7 F (37.6 C)", "118", "24", "172/100", "97% on RA"],
+        ["22:00", "98.8 F (37.1 C)", "88", "18", "134/82", "98% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Blood alcohol level", "0", "0 mg/dL"],
+        ["Magnesium", "1.2", "1.6-2.6 mg/dL"],
+        ["Potassium", "3.2", "3.5-5.0 mEq/L"],
+        ["Glucose", "78", "70-110 mg/dL"],
+        ["AST", "142", "10-40 units/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Lorazepam per CIWA-Ar protocol", "Thiamine 100 mg IV daily", "Folic acid 1 mg PO daily", "Multivitamin PO daily"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Initiate CIWA-Ar protocol, assess q1h", "Lorazepam per CIWA-Ar scoring", "Thiamine 100 mg IV before any dextrose-containing fluids", "IV fluids: normal saline at 100 mL/hr", "Replace magnesium and potassium per protocol", "Fall-risk and seizure precautions", "Maintain quiet, low-stimulation environment", "Continuous cardiac monitoring"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_402801", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neurological", "topic": "Alcohol withdrawal", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings are consistent with alcohol withdrawal and require follow-up?",
+      "options": [
+        {"text": "Bilateral hand tremors", "correct": true},
+        {"text": "Diaphoresis", "correct": true},
+        {"text": "Pulse 116", "correct": true},
+        {"text": "Blood pressure 168/98", "correct": true},
+        {"text": "SpO2 97% on room air", "correct": false},
+        {"text": "Glucose 78 mg/dL", "correct": false},
+        {"text": "Oriented to person and place", "correct": false}
+      ],
+      "rationale": "Tremor, diaphoresis, tachycardia, and hypertension reflect the autonomic hyperactivity of alcohol withdrawal. Normal oxygenation, glucose, and partial orientation are not withdrawal warning cues."
+    },
+    {
+      "item_id": "NCLEX_MMR_402802", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neurological", "topic": "Alcohol withdrawal", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects autonomic hyperactivity, a nutritional deficiency, or both. Each finding may reflect more than one.",
+      "columns": ["Autonomic hyperactivity", "Nutritional deficiency"],
+      "rows": [
+        {"text": "Pulse 118, BP 172/100", "answers": [0]},
+        {"text": "Magnesium 1.2 mg/dL", "answers": [1]},
+        {"text": "Diaphoresis and tremor", "answers": [0]},
+        {"text": "Confusion with elevated AST and chronic alcohol use", "answers": [0, 1]}
+      ],
+      "rationale": "Tachycardia, hypertension, sweating, and tremor are autonomic hyperactivity. Low magnesium reflects nutritional depletion. Confusion in a chronic drinker can stem from both withdrawal and thiamine/nutrient deficiency."
+    },
+    {
+      "item_id": "NCLEX_CLZ_402803", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Mental Health", "body_system": "Neurological", "topic": "Alcohol withdrawal", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority concern is {1}, and the priority nursing goal is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "risk for withdrawal seizures", "correct": true}, {"text": "risk for infection"}, {"text": "impaired skin integrity"}]},
+        {"choices": [{"text": "prevent injury and control withdrawal severity", "correct": true}, {"text": "promote uninterrupted sleep"}, {"text": "encourage oral fluid intake"}]}
+      ],
+      "rationale": "Severe alcohol withdrawal carries a high risk of seizures and delirium tremens, so preventing injury and controlling withdrawal severity take priority over lower-acuity concerns."
+    },
+    {
+      "item_id": "NCLEX_MAT_402804", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Mental Health", "body_system": "Neurological", "topic": "Alcohol withdrawal", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer lorazepam per CIWA-Ar protocol", "answer": 0},
+        {"text": "Give thiamine before dextrose-containing fluids", "answer": 0},
+        {"text": "Maintain a quiet, low-stimulation environment", "answer": 0},
+        {"text": "Apply wrist restraints as the first-line measure", "answer": 1},
+        {"text": "Withhold benzodiazepines to allow natural detox", "answer": 1}
+      ],
+      "rationale": "Benzodiazepines, thiamine before glucose, and a calm environment are standard withdrawal care. Restraints as a first measure and withholding benzodiazepines increase seizure and injury risk and are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_402805", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Mental Health", "body_system": "Neurological", "topic": "Alcohol withdrawal", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "The client's CIWA-Ar score has risen and he now reports seeing bugs on the sheet. Which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Administer lorazepam per protocol", "correct": true},
+        {"text": "Calmly reorient the client", "correct": true},
+        {"text": "Keep the room quiet with low lighting", "correct": true},
+        {"text": "Maintain seizure precautions", "correct": true},
+        {"text": "Confront the client that the bugs are not real", "correct": false},
+        {"text": "Encourage the client to ambulate independently", "correct": false}
+      ],
+      "rationale": "Escalating withdrawal is treated with protocol benzodiazepines, calm reorientation, a low-stimulation environment, and seizure precautions. Confronting hallucinations and unsupervised ambulation increase agitation and fall risk."
+    },
+    {
+      "item_id": "NCLEX_SATA_402806", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Mental Health", "body_system": "Neurological", "topic": "Alcohol withdrawal", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "CIWA-Ar score decreased from 18 to 7", "correct": true},
+        {"text": "Pulse decreased to 88", "correct": true},
+        {"text": "Client is oriented x3", "correct": true},
+        {"text": "Diaphoresis resolved", "correct": true},
+        {"text": "Client reports new tactile hallucinations", "correct": false},
+        {"text": "Blood pressure risen to 180/104", "correct": false}
+      ],
+      "rationale": "A falling CIWA-Ar score, normalizing vital signs, restored orientation, and resolved diaphoresis show withdrawal is improving. New hallucinations or rising blood pressure would indicate worsening."
+    }
+  ]
+}

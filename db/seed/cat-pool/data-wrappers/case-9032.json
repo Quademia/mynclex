@@ -1,0 +1,132 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09032",
+  "title": "Anaphylaxis in the Emergency Department",
+  "scenario": "A 24-year-old male presents to the emergency department 15 minutes after eating a peanut-containing snack, reporting sudden throat tightness, difficulty breathing, and a spreading itchy rash.",
+  "tags": ["synthetic", "immune"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["14:05"], "lines": ["24-year-old male brought to triage by a friend after eating a peanut-containing snack ~15 minutes ago. Reports throat tightness, difficulty swallowing, and shortness of breath. Diffuse urticaria over face, neck, and trunk. Lips and periorbital area swollen. Audible inspiratory stridor. Anxious and restless. Reports a known peanut allergy but no epinephrine auto-injector on hand."], "visibleFrom": 1},
+        {"chips": ["14:10"], "lines": ["Placed on cardiac monitor and continuous pulse oximetry. High-flow oxygen applied via non-rebreather mask. Two large-bore IV lines established. Provider notified and at bedside."], "visibleFrom": 2},
+        {"chips": ["14:15"], "lines": ["Epinephrine 0.3 mg (0.3 mL of 1 mg/mL) administered IM to the lateral thigh per order. Normal saline bolus infusing wide open. Client kept supine with legs elevated."], "visibleFrom": 5},
+        {"chips": ["14:35"], "lines": ["Stridor resolved and urticaria fading. Reports breathing is much easier and throat tightness improving. Remains on continuous monitoring for possible biphasic reaction."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["14:05", "98.8 F (37.1 C)", "124", "30", "84/50", "86% on RA"],
+        ["14:10", "98.8 F (37.1 C)", "120", "28", "88/54", "91% on NRB"],
+        ["14:35", "98.6 F (37.0 C)", "96", "18", "118/74", "98% on NRB"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Serum tryptase", "24", "< 11.4 ng/mL"],
+        ["Arterial pH", "7.31", "7.35-7.45"],
+        ["Lactate", "3.2", "0.5-2.2 mmol/L"],
+        ["WBC", "9.8", "4.5-11.0 x10^9/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "History & Allergies",
+      "entries": [
+        {"chips": [], "lines": ["Known allergy: peanuts (prior lip swelling and hives).", "No regular medications.", "No prior intubations. Non-smoker."], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Epinephrine 0.3 mg IM now, may repeat every 5-15 minutes as needed", "High-flow oxygen via non-rebreather mask, titrate to SpO2 >= 94%", "Normal saline 1-2 L IV bolus for hypotension", "Diphenhydramine 50 mg IV", "Famotidine 20 mg IV", "Methylprednisolone 125 mg IV", "Continuous cardiac and pulse-oximetry monitoring; observe for biphasic reaction"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_403201", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Immune", "topic": "Anaphylaxis", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Inspiratory stridor", "correct": true},
+        {"text": "SpO2 86% on room air", "correct": true},
+        {"text": "Blood pressure 84/50", "correct": true},
+        {"text": "Swollen lips and periorbital edema", "correct": true},
+        {"text": "Temperature 98.8 F", "correct": false},
+        {"text": "WBC 9.8 x10^9/L", "correct": false}
+      ],
+      "rationale": "Stridor, hypoxia, hypotension, and airway edema are hallmarks of a life-threatening anaphylactic reaction and demand immediate intervention. A normal temperature and WBC are not urgent."
+    },
+    {
+      "item_id": "NCLEX_MMR_403202", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Immune", "topic": "Anaphylaxis", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify which body system it reflects. Each finding may reflect more than one system.",
+      "columns": ["Respiratory", "Cardiovascular"],
+      "rows": [
+        {"text": "Inspiratory stridor", "answers": [0]},
+        {"text": "Blood pressure 84/50", "answers": [1]},
+        {"text": "Tachycardia (pulse 124)", "answers": [1]},
+        {"text": "SpO2 86% with elevated lactate", "answers": [0, 1]}
+      ],
+      "rationale": "Stridor is airway/respiratory; hypotension and tachycardia reflect distributive shock (cardiovascular). Hypoxia with an elevated lactate reflects both impaired oxygenation and poor tissue perfusion."
+    },
+    {
+      "item_id": "NCLEX_CLZ_403203", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Immune", "topic": "Anaphylaxis", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the most urgent action is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "airway compromise from laryngeal edema", "correct": true}, {"text": "risk for infection", "correct": false}, {"text": "acute pain", "correct": false}]},
+        {"choices": [{"text": "administer intramuscular epinephrine", "correct": true}, {"text": "administer an oral antihistamine", "correct": false}, {"text": "obtain allergy skin testing", "correct": false}]}
+      ],
+      "rationale": "The immediate threat in anaphylaxis is airway compromise from laryngeal edema, and IM epinephrine is the first-line, life-saving intervention that reverses airway swelling and hypotension."
+    },
+    {
+      "item_id": "NCLEX_MAT_403204", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Immune", "topic": "Anaphylaxis", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer IM epinephrine", "answer": 0},
+        {"text": "Apply high-flow oxygen", "answer": 0},
+        {"text": "Infuse a normal saline bolus", "answer": 0},
+        {"text": "Place the client upright in high Fowler's for hypotension", "answer": 1},
+        {"text": "Delay treatment to complete allergy testing first", "answer": 1}
+      ],
+      "rationale": "Epinephrine, oxygen, and IV fluids treat anaphylactic shock. A hypotensive client should be kept supine with legs elevated, not upright, and treatment must never be delayed for testing."
+    },
+    {
+      "item_id": "NCLEX_SATA_403205", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Immune", "topic": "Anaphylaxis", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After the first dose of IM epinephrine, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Continue continuous cardiac and pulse-oximetry monitoring", "correct": true},
+        {"text": "Prepare to repeat epinephrine in 5-15 minutes if symptoms persist", "correct": true},
+        {"text": "Administer the ordered IV antihistamine and corticosteroid as adjuncts", "correct": true},
+        {"text": "Continue the normal saline bolus for hypotension", "correct": true},
+        {"text": "Discharge the client home immediately once the rash fades", "correct": false},
+        {"text": "Withhold oxygen to avoid oxygen toxicity", "correct": false}
+      ],
+      "rationale": "After epinephrine the nurse maintains monitoring, is ready to redose, gives adjunct antihistamines and steroids, and continues fluids. Early discharge risks a biphasic reaction and oxygen should not be withheld."
+    },
+    {
+      "item_id": "NCLEX_SATA_403206", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Immune", "topic": "Anaphylaxis", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Stridor resolved", "correct": true},
+        {"text": "Blood pressure improved to 118/74", "correct": true},
+        {"text": "SpO2 improved to 98%", "correct": true},
+        {"text": "Urticaria fading", "correct": true},
+        {"text": "Respiratory rate increased to 30", "correct": false}
+      ],
+      "rationale": "Resolution of stridor, normalized blood pressure and oxygenation, and fading hives show the reaction is reversing. A rising respiratory rate would indicate worsening respiratory distress, not improvement."
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09034",
+  "title": "New-Onset Congestive Heart Failure",
+  "scenario": "A 72-year-old male with hypertension and type 2 diabetes presents to the emergency department with progressive shortness of breath, fatigue, and swelling of both ankles over the past week. He has no prior cardiac history.",
+  "tags": ["synthetic", "cardiovascular"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["07:45"], "lines": ["72-year-old male presents with 1 week of worsening exertional dyspnea, orthopnea (using 3 pillows), and bilateral ankle edema. Denies chest pain. Bibasilar crackles auscultated. Fine pitting edema to mid-shin bilaterally. Appears anxious and short of breath while speaking. Alert and oriented x3. No prior diagnosis of heart failure."], "visibleFrom": 1},
+        {"chips": ["08:05"], "lines": ["IV access established. 12-lead ECG, chest x-ray, and labs ordered. Oxygen 3L started per nasal cannula. Client placed in high Fowler's position. Cardiac monitor applied showing sinus tachycardia."], "visibleFrom": 2},
+        {"chips": ["08:50"], "lines": ["Echocardiogram results reviewed with provider: ejection fraction 35%. New diagnosis of congestive heart failure documented. IV furosemide administered per order."], "visibleFrom": 5},
+        {"chips": ["10:30"], "lines": ["Client reports breathing is much easier. Crackles diminished at the bases. Voided 850 mL clear yellow urine since diuretic. Sitting up comfortably, no longer using accessory muscles."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["07:45", "98.4 F (36.9 C)", "110", "30", "162/94", "89% on RA"],
+        ["08:05", "98.4 F (36.9 C)", "106", "27", "160/92", "94% on 3L NC"],
+        ["10:30", "98.2 F (36.8 C)", "90", "20", "140/84", "96% on 3L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["BNP", "1480", "< 100 pg/mL"],
+        ["Sodium", "131", "135-145 mEq/L"],
+        ["Potassium", "4.3", "3.5-5.0 mEq/L"],
+        ["Creatinine", "1.4", "0.6-1.2 mg/dL"],
+        ["Troponin I", "0.02", "< 0.04 ng/mL"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Home Medications",
+      "entries": [
+        {"chips": [], "lines": ["Amlodipine 10 mg PO daily", "Metformin 1000 mg PO twice daily", "Hydrochlorothiazide 25 mg PO daily"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Administer furosemide 40 mg IV now", "Insert indwelling urinary catheter, monitor strict intake and output", "Daily weights before breakfast", "2 gram sodium diet, 1.5 L fluid restriction", "Continuous cardiac monitoring and pulse oximetry", "Start lisinopril 5 mg PO daily", "Notify provider for urine output < 30 mL/hr"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_403401", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Heart failure", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings on admission require immediate follow-up?",
+      "options": [
+        {"text": "Bibasilar crackles", "correct": true},
+        {"text": "SpO2 89% on room air", "correct": true},
+        {"text": "Respiratory rate 30", "correct": true},
+        {"text": "Orthopnea requiring 3 pillows", "correct": true},
+        {"text": "Alert and oriented x3", "correct": false},
+        {"text": "Temperature 98.4 F", "correct": false},
+        {"text": "Potassium 4.3 mEq/L", "correct": false}
+      ],
+      "rationale": "Crackles, hypoxia, tachypnea, and orthopnea all reflect pulmonary congestion from new-onset heart failure and demand prompt intervention. Normal mentation, temperature, and potassium do not."
+    },
+    {
+      "item_id": "NCLEX_MMR_403402", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Heart failure", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects left-sided heart failure, right-sided heart failure, or both. Each finding may reflect more than one.",
+      "columns": ["Left-sided", "Right-sided"],
+      "rows": [
+        {"text": "Bibasilar crackles", "answers": [0]},
+        {"text": "Orthopnea", "answers": [0]},
+        {"text": "Bilateral ankle edema", "answers": [1]},
+        {"text": "Elevated BNP", "answers": [0, 1]}
+      ],
+      "rationale": "Pulmonary congestion (crackles, orthopnea) is a hallmark of left-sided failure; systemic congestion (peripheral edema) reflects right-sided failure. BNP is elevated with either type."
+    },
+    {
+      "item_id": "NCLEX_CLZ_403403", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Heart failure", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the client's priority problem is {1}, and the priority nursing goal is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "impaired gas exchange from pulmonary congestion", "correct": true}, {"text": "risk for falls", "correct": false}, {"text": "deficient knowledge of medications", "correct": false}]},
+        {"choices": [{"text": "improve oxygenation", "correct": true}, {"text": "prevent skin breakdown", "correct": false}, {"text": "promote sleep", "correct": false}]}
+      ],
+      "rationale": "Hypoxia and crackles make impaired gas exchange the most immediate life threat, so improving oxygenation is the priority goal over the other valid but less urgent problems."
+    },
+    {
+      "item_id": "NCLEX_MAT_403404", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Heart failure", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer IV furosemide", "answer": 0},
+        {"text": "Maintain high Fowler's position", "answer": 0},
+        {"text": "Restrict fluids to 1.5 L per day", "answer": 0},
+        {"text": "Administer a 500 mL normal saline bolus", "answer": 1},
+        {"text": "Encourage a high-sodium diet", "answer": 1}
+      ],
+      "rationale": "Diuresis, upright positioning, and fluid restriction relieve volume overload. A saline bolus and high sodium add fluid and worsen congestion, so both are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_403405", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Cardiovascular", "topic": "Diuretics", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After administering IV furosemide, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor serum potassium", "correct": true},
+        {"text": "Measure strict intake and output", "correct": true},
+        {"text": "Monitor blood pressure for hypotension", "correct": true},
+        {"text": "Obtain daily weights", "correct": true},
+        {"text": "Withhold all oral fluids indefinitely", "correct": false},
+        {"text": "Hold the newly ordered lisinopril", "correct": false}
+      ],
+      "rationale": "Loop diuretics cause potassium loss, diuresis, and possible hypotension, so the nurse tracks electrolytes, output, weight, and blood pressure. Total fluid withholding and holding the prescribed ACE inhibitor are not indicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_403406", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Heart failure", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Respiratory rate decreased to 20", "correct": true},
+        {"text": "SpO2 improved to 96%", "correct": true},
+        {"text": "Diminished bibasilar crackles", "correct": true},
+        {"text": "Urine output 850 mL after diuretic", "correct": true},
+        {"text": "Heart rate increased to 118", "correct": false},
+        {"text": "Blood pressure risen to 172/96", "correct": false}
+      ],
+      "rationale": "Improved respiratory rate, oxygenation, breath sounds, and brisk diuresis show the fluid overload is resolving. Rising heart rate and blood pressure would signal worsening, not improvement."
+    }
+  ]
+}

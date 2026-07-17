@@ -1,0 +1,131 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09012",
+  "title": "Postpartum Hemorrhage",
+  "scenario": "A 29-year-old client is 45 minutes post vaginal delivery of a 4.2 kg newborn after a prolonged, oxytocin-augmented labor. The nurse is called to the room because the perineal pad has become saturated and the client feels light-headed.",
+  "tags": ["synthetic", "maternity"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["14:15"], "lines": ["G3P3 client 45 minutes post spontaneous vaginal delivery. Reports feeling light-headed and 'gushing.' Perineal pad saturated with bright red blood and passing clots. Fundus palpated above the umbilicus, boggy, and deviated to the right. Skin pale and diaphoretic. Alert and oriented x3."], "visibleFrom": 1},
+        {"chips": ["14:25"], "lines": ["Fundal massage initiated; large clots expressed. Bladder distended and palpable above symphysis. Client encouraged to void; unable. Second large-bore IV started. Labs drawn. Provider notified."], "visibleFrom": 2},
+        {"chips": ["14:40"], "lines": ["Straight catheterization performed for 650 mL clear urine. IV oxytocin infusion increased per order. Estimated cumulative blood loss now 900 mL. Continuous fundal assessment ongoing."], "visibleFrom": 5},
+        {"chips": ["15:20"], "lines": ["Fundus firm at umbilicus and midline. Lochia moderate, no further clots. Skin warm and color returning. Client reports light-headedness resolved."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["14:15", "98.8 F (37.1 C)", "118", "24", "92/56", "97% on RA"],
+        ["14:25", "98.8 F (37.1 C)", "122", "26", "88/52", "96% on RA"],
+        ["15:20", "98.6 F (37.0 C)", "88", "18", "112/70", "99% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Hemoglobin", "8.9", "12-16 g/dL"],
+        ["Hematocrit", "26.4", "36-46 %"],
+        ["Platelets", "180", "150-400 x10^9/L"],
+        ["Fibrinogen", "210", "200-400 mg/dL (elevated in pregnancy)"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Oxytocin 10 units in 500 mL lactated Ringer's, infusing", "Prenatal vitamin PO daily", "No known drug allergies"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Perform fundal massage and express clots", "Increase oxytocin infusion to 40 units in 500 mL LR", "Straight catheterize if unable to void", "Type and crossmatch 2 units packed red blood cells", "Weigh perineal pads to quantify blood loss", "Notify provider for continued heavy bleeding or SBP < 90"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_401201", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance", "subject": "Maternal-Newborn", "body_system": "Reproductive", "topic": "Postpartum hemorrhage", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Boggy fundus above the umbilicus", "correct": true},
+        {"text": "Saturated perineal pad with clots", "correct": true},
+        {"text": "Pulse 118 with B/P 92/56", "correct": true},
+        {"text": "Pale, diaphoretic skin", "correct": true},
+        {"text": "Alert and oriented x3", "correct": false},
+        {"text": "Temperature 98.8 F", "correct": false}
+      ],
+      "rationale": "A boggy displaced fundus, heavy bleeding with clots, tachycardia with hypotension, and pallor with diaphoresis all point to uterine atony and hypovolemia and require immediate action."
+    },
+    {
+      "item_id": "NCLEX_MMR_401202", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Maternal-Newborn", "body_system": "Reproductive", "topic": "Postpartum hemorrhage", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it supports uterine atony, hypovolemia, or both. Each finding may support more than one.",
+      "columns": ["Uterine atony", "Hypovolemia"],
+      "rows": [
+        {"text": "Boggy fundus with expressed clots", "answers": [0]},
+        {"text": "Pulse 122, B/P 88/52", "answers": [1]},
+        {"text": "Hemoglobin 8.9 g/dL", "answers": [1]},
+        {"text": "Fundus deviated by a distended bladder", "answers": [0]}
+      ],
+      "rationale": "A boggy fundus and a bladder-displaced uterus reflect atony that prevents contraction, while tachycardia, hypotension, and a falling hemoglobin reflect volume loss."
+    },
+    {
+      "item_id": "NCLEX_CLZ_401203", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Maternal-Newborn", "body_system": "Reproductive", "topic": "Postpartum hemorrhage", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1} caused by {2}.",
+      "blanks": [
+        {"choices": [{"text": "excessive blood loss", "correct": true}, {"text": "risk for infection"}, {"text": "acute pain"}]},
+        {"choices": [{"text": "uterine atony", "correct": true}, {"text": "a vaginal laceration"}, {"text": "retained membranes"}]}
+      ],
+      "rationale": "The saturated pads, clots, and falling vitals identify excessive blood loss as the priority, and the boggy fundus identifies uterine atony as the most likely cause of early postpartum hemorrhage."
+    },
+    {
+      "item_id": "NCLEX_MAT_401204", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Maternal-Newborn", "body_system": "Reproductive", "topic": "Postpartum hemorrhage", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Perform firm fundal massage", "answer": 0},
+        {"text": "Empty the bladder by catheterization", "answer": 0},
+        {"text": "Increase the oxytocin infusion", "answer": 0},
+        {"text": "Place the client in reverse Trendelenburg", "answer": 1},
+        {"text": "Restrict IV fluids to reduce bleeding", "answer": 1}
+      ],
+      "rationale": "Fundal massage, emptying the bladder, and increasing oxytocin all promote uterine contraction. Reverse Trendelenburg and fluid restriction worsen hypovolemia and are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_401205", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Maternal-Newborn", "body_system": "Reproductive", "topic": "Postpartum hemorrhage", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "Which actions should the nurse take now? Select all that apply.",
+      "options": [
+        {"text": "Massage the fundus until firm", "correct": true},
+        {"text": "Weigh perineal pads to quantify blood loss", "correct": true},
+        {"text": "Ensure a second large-bore IV is patent", "correct": true},
+        {"text": "Vigorously massage the fundus continuously for one hour", "correct": false},
+        {"text": "Hold the oxytocin infusion", "correct": false}
+      ],
+      "rationale": "Fundal massage until firm, quantifying blood loss, and maintaining IV access are appropriate. Continuous vigorous massage causes uterine fatigue, and holding oxytocin would worsen atony."
+    },
+    {
+      "item_id": "NCLEX_SATA_401206", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Maternal-Newborn", "body_system": "Reproductive", "topic": "Postpartum hemorrhage", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the interventions have been effective? Select all that apply.",
+      "options": [
+        {"text": "Fundus firm at the umbilicus and midline", "correct": true},
+        {"text": "Lochia moderate with no further clots", "correct": true},
+        {"text": "Pulse 88 with B/P 112/70", "correct": true},
+        {"text": "Skin warm with color returning", "correct": true},
+        {"text": "Fundus remains boggy and displaced", "correct": false}
+      ],
+      "rationale": "A firm midline fundus, controlled lochia, normalized vital signs, and improved perfusion show the hemorrhage is resolving. A persistently boggy fundus would signal continued atony."
+    }
+  ]
+}

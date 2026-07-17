@@ -1,0 +1,61 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09014",
+  "title": "Telemetry Rhythm Deterioration",
+  "scenario": "A 70-year-old client admitted with chest pain is on continuous cardiac monitoring. The nurse reviews the telemetry flowsheet documenting rhythm and hemodynamic changes across the shift.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Telemetry Flowsheet",
+      "headers": ["Time", "Rhythm", "Rate", "B/P", "SpO2", "Symptoms"],
+      "rows": [
+        ["08:00", "Normal sinus rhythm", "78", "128/80", "97% on RA", "Denies symptoms"],
+        ["11:00", "Occasional PVCs", "88", "124/78", "96% on RA", "Mild palpitations"],
+        ["13:30", "Frequent multifocal PVCs, short runs of VT", "112", "104/62", "94% on RA", "Palpitations, lightheadedness"],
+        ["14:00", "Sustained ventricular tachycardia", "168", "82/48", "89% on RA", "Chest pressure, diaphoretic, near-syncope"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450141",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Cardiovascular",
+      "topic": "Dysrhythmia",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Reviewing the full telemetry trend, how should the nurse interpret the rhythm progression?",
+      "options": [
+        {"text": "The rhythm is progressing from isolated ectopy to sustained ventricular tachycardia with hemodynamic compromise", "correct": true},
+        {"text": "The changes reflect a stable sinus tachycardia from anxiety", "correct": false},
+        {"text": "The trend shows resolving atrial fibrillation with a controlled rate", "correct": false},
+        {"text": "The rhythm indicates a first-degree AV block of no clinical significance", "correct": false}
+      ],
+      "rationale": "Isolated PVCs advancing to frequent multifocal PVCs, then short VT runs, and finally sustained VT with a falling blood pressure and symptoms represents a deteriorating, hemodynamically significant ventricular dysrhythmia."
+    },
+    {
+      "item_id": "NCLEX_MCQ_450142",
+      "type": "MCQ",
+      "category": "Safe and Effective Care Environment",
+      "subcategory": "Management of Care",
+      "subject": "Medical-Surgical",
+      "body_system": "Cardiovascular",
+      "topic": "Dysrhythmia",
+      "difficulty": "Medium",
+      "bloom": "Apply",
+      "stem": "Given the rhythm at 14:00, which action should the nurse take first?",
+      "options": [
+        {"text": "Assess the client and activate the rapid response / code team", "correct": true},
+        {"text": "Continue routine monitoring and recheck in one hour", "correct": false},
+        {"text": "Encourage the client to perform a vagal maneuver", "correct": false},
+        {"text": "Document the rhythm and wait for the next scheduled rounds", "correct": false}
+      ],
+      "rationale": "Sustained ventricular tachycardia with hypotension and near-syncope is unstable and life-threatening, so the nurse immediately assesses the client and summons emergency help rather than delaying or attempting a vagal maneuver."
+    }
+  ]
+}

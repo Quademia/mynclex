@@ -1,0 +1,62 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09016",
+  "title": "Renal Function Trend After Contrast Study",
+  "scenario": "A 70-year-old male client with diabetes and hypertension received IV contrast for a CT angiogram. The nurse monitors serial renal function labs and urine output over the following three days.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Renal Function Flowsheet",
+      "headers": ["Day", "Creatinine (0.6-1.2 mg/dL)", "BUN (7-20 mg/dL)", "Urine output (mL/hr)", "Potassium (3.5-5.0 mEq/L)"],
+      "rows": [
+        ["Day 1 (baseline)", "1.1", "18", "60", "4.2"],
+        ["Day 2", "1.8", "28", "35", "4.8"],
+        ["Day 3", "2.6", "40", "22", "5.4"]
+      ],
+      "rowVisibleFrom": [1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450161",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Medical-Surgical",
+      "body_system": "Renal/Urinary",
+      "topic": "Acute kidney injury",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Reviewing the three-day trend, which interpretation is most accurate?",
+      "options": [
+        {"text": "The rising creatinine and BUN with falling urine output indicate worsening acute kidney injury", "correct": true},
+        {"text": "The renal function is stable and within expected limits", "correct": false},
+        {"text": "The findings reflect improving kidney function", "correct": false},
+        {"text": "The changes are due to dehydration and require no follow-up", "correct": false}
+      ],
+      "rationale": "Creatinine climbing from 1.1 to 2.6, BUN from 18 to 40, and urine output dropping to 22 mL/hr over three days after contrast exposure indicate contrast-induced acute kidney injury that is worsening, not resolving."
+    },
+    {
+      "item_id": "NCLEX_SATA_450162",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Renal/Urinary",
+      "topic": "Acute kidney injury",
+      "difficulty": "Medium",
+      "bloom": "Apply",
+      "stem": "Based on the Day 3 trend, which nursing actions are appropriate? Select all that apply.",
+      "options": [
+        {"text": "Notify the provider of the declining renal function", "correct": true},
+        {"text": "Monitor the client for signs of hyperkalemia", "correct": true},
+        {"text": "Review the medication list for nephrotoxic drugs", "correct": true},
+        {"text": "Continue strict intake and output monitoring", "correct": true},
+        {"text": "Encourage a high-potassium diet", "correct": false},
+        {"text": "Withhold all IV fluids", "correct": false}
+      ],
+      "rationale": "Worsening AKI with a potassium of 5.4 warrants provider notification, hyperkalemia monitoring, nephrotoxin review, and continued I&O tracking. A high-potassium diet would worsen hyperkalemia, and withholding all fluids is not indicated."
+    }
+  ]
+}

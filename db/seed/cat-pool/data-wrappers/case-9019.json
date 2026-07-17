@@ -1,0 +1,133 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09019",
+  "title": "Thyroid Storm",
+  "scenario": "A 34-year-old female with a history of Graves' disease presents to the emergency department with high fever, palpitations, agitation, and confusion two days after stopping her methimazole for a respiratory infection.",
+  "tags": ["synthetic", "endocrine"],
+  "difficulty_tier": "Hard",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["34-year-old female brought in by partner for high fever, racing heart, tremor, and confusion. History of Graves' disease; stopped methimazole 5 days ago during a chest infection. Skin hot and diaphoretic. Fine tremor of the hands. Restless and agitated, oriented to person only. Eyes prominent with lid lag."], "visibleFrom": 1},
+        {"chips": ["10:20"], "lines": ["IV access obtained. Labs and 12-lead ECG ordered. Cardiac monitor applied showing rapid irregular rhythm. Cooling measures started. 2L O2 per nasal cannula applied."], "visibleFrom": 2},
+        {"chips": ["11:00"], "lines": ["Provider notified of findings. Propranolol, propylthiouracil (PTU), and hydrocortisone administered per order. Cooling blanket applied. Acetaminophen given for fever."], "visibleFrom": 5},
+        {"chips": ["13:30"], "lines": ["Client calmer and oriented x3. Temperature down to 100.4 F. Heart rate slowed to 108 and regular. Tremor diminished. Reports feeling less anxious."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "105.6 F (40.9 C)", "156", "30", "168/64", "95% on RA"],
+        ["10:20", "105.2 F (40.7 C)", "150", "28", "162/60", "97% on 2L NC"],
+        ["11:00", "104.4 F (40.2 C)", "144", "26", "158/62", "97% on 2L NC"],
+        ["13:30", "100.4 F (38.0 C)", "108", "20", "128/72", "98% on 2L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 5, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["TSH", "< 0.01", "0.4-4.0 mIU/L"],
+        ["Free T4", "6.8", "0.8-1.8 ng/dL"],
+        ["Free T3", "18.2", "2.3-4.2 pg/mL"],
+        ["Glucose", "188", "70-110 mg/dL"],
+        ["WBC", "13.2", "4.5-11.0 x10^9/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Methimazole 10 mg PO daily (self-discontinued 5 days ago)", "No other regular medications"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Administer propranolol 1 mg IV, titrate to heart rate", "Administer propylthiouracil (PTU) 200 mg PO now", "Administer hydrocortisone 100 mg IV now", "Apply cooling blanket; acetaminophen 650 mg PO for fever", "Continuous cardiac monitoring", "Strict intake and output", "Notify provider for temperature > 104 F or worsening mental status"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_401901", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Thyroid storm", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Temperature 105.6 F", "correct": true},
+        {"text": "Heart rate 156 and irregular", "correct": true},
+        {"text": "Agitation and confusion", "correct": true},
+        {"text": "Fine hand tremor", "correct": true},
+        {"text": "Prominent eyes with lid lag", "correct": false},
+        {"text": "SpO2 95% on room air", "correct": false}
+      ],
+      "rationale": "Hyperpyrexia, marked tachyarrhythmia, altered mentation, and tremor are hallmark decompensating features of thyroid storm requiring urgent intervention. Exophthalmos and a near-normal SpO2 are less acutely dangerous."
+    },
+    {
+      "item_id": "NCLEX_MMR_401902", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Thyroid storm", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects increased metabolic activity, cardiovascular effect, or both. Each finding may reflect more than one.",
+      "columns": ["Increased metabolism", "Cardiovascular effect"],
+      "rows": [
+        {"text": "Temperature 105.6 F", "answers": [0]},
+        {"text": "Heart rate 156", "answers": [0, 1]},
+        {"text": "Widened pulse pressure 168/64", "answers": [1]},
+        {"text": "Free T4 6.8 ng/dL", "answers": [0]}
+      ],
+      "rationale": "Excess thyroid hormone raises the metabolic rate (fever, elevated T4) and stimulates the heart (tachycardia, widened pulse pressure). Tachycardia is driven by both the hypermetabolic state and direct cardiac stimulation."
+    },
+    {
+      "item_id": "NCLEX_CLZ_401903", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Thyroid storm", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the most immediate goal is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "life-threatening hyperthermia and cardiovascular instability", "correct": true}, {"text": "risk for infection"}, {"text": "impaired skin integrity"}]},
+        {"choices": [{"text": "reduce the fever and control the heart rate", "correct": true}, {"text": "promote uninterrupted sleep"}, {"text": "increase oral caloric intake"}]}
+      ],
+      "rationale": "In thyroid storm the immediate threats are hyperpyrexia and cardiovascular collapse, so the priority goal is lowering temperature and controlling the tachyarrhythmia. Nutrition and rest matter but are not the acute priority."
+    },
+    {
+      "item_id": "NCLEX_MAT_401904", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Thyroid storm", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer propranolol to control heart rate", "answer": 0},
+        {"text": "Administer propylthiouracil (PTU)", "answer": 0},
+        {"text": "Apply a cooling blanket", "answer": 0},
+        {"text": "Administer aspirin for fever", "answer": 1},
+        {"text": "Encourage the client to ambulate in the hallway", "answer": 1}
+      ],
+      "rationale": "Beta-blockade, antithyroid drugs, and active cooling are core treatments. Aspirin is contraindicated because it displaces thyroid hormone from binding proteins and raises free levels; exertion increases metabolic demand and is contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_401905", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Endocrine", "topic": "Thyroid storm", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After giving propranolol, PTU, and hydrocortisone, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Continuously monitor cardiac rhythm and heart rate", "correct": true},
+        {"text": "Monitor temperature frequently and continue cooling measures", "correct": true},
+        {"text": "Assess blood pressure for hypotension after propranolol", "correct": true},
+        {"text": "Apply external warming blankets", "correct": false},
+        {"text": "Administer amiodarone as first-line for the fever", "correct": false}
+      ],
+      "rationale": "The nurse monitors the rhythm, temperature, and blood pressure response to therapy. Warming would worsen hyperthermia, and amiodarone is not a treatment for fever."
+    },
+    {
+      "item_id": "NCLEX_SATA_401906", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Thyroid storm", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Temperature decreased to 100.4 F", "correct": true},
+        {"text": "Heart rate slowed to 108 and regular", "correct": true},
+        {"text": "Client oriented x3 and calmer", "correct": true},
+        {"text": "Tremor diminished", "correct": true},
+        {"text": "Blood pressure 168/64", "correct": false}
+      ],
+      "rationale": "Falling temperature, a slower regular heart rate, improved mentation, and reduced tremor all show the storm is resolving. A persistently widened pulse pressure would indicate ongoing instability, not improvement."
+    }
+  ]
+}

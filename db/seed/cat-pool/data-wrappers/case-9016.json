@@ -1,0 +1,133 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09016",
+  "title": "Acute Pulmonary Embolism",
+  "scenario": "A 54-year-old female presents to the emergency department with sudden onset of sharp right-sided chest pain and shortness of breath that began 2 hours ago. She returned from a 12-hour international flight yesterday and reports left calf pain and swelling for the past two days.",
+  "tags": ["synthetic", "respiratory"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["54-year-old female presents with sudden dyspnea and pleuritic right-sided chest pain for 2 hours. Reports recent 12-hour flight and 2 days of left calf pain and swelling. Anxious and restless. Skin cool and pale. Left calf warm, erythematous, and tender to palpation with unilateral edema. Alert and oriented x3."], "visibleFrom": 1},
+        {"chips": ["10:15"], "lines": ["IV access obtained. Continuous cardiac monitoring and pulse oximetry applied. Supplemental oxygen initiated. Labs, ECG, and CT pulmonary angiogram ordered. Provider notified."], "visibleFrom": 2},
+        {"chips": ["11:00"], "lines": ["CT pulmonary angiogram confirms a large embolus in the right main pulmonary artery. Anticoagulation initiated per order. Client remains anxious; reassurance provided."], "visibleFrom": 5},
+        {"chips": ["12:30"], "lines": ["Reports breathing is easier and chest pain reduced. Skin warm and pink. Denies bleeding. Resting more comfortably."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "99.1 F (37.3 C)", "118", "30", "104/64", "86% on RA"],
+        ["10:15", "99.1 F (37.3 C)", "114", "28", "108/66", "91% on 4L NC"],
+        ["12:30", "98.8 F (37.1 C)", "92", "20", "122/74", "96% on 4L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["D-dimer", "3.8", "< 0.5 mcg/mL"],
+        ["pH (ABG)", "7.48", "7.35-7.45"],
+        ["PaCO2 (ABG)", "30", "35-45 mmHg"],
+        ["PaO2 (ABG)", "62", "80-100 mmHg"],
+        ["Troponin I", "0.09", "< 0.04 ng/mL"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Combined oral contraceptive PO daily", "Acetaminophen 500 mg PO as needed for pain"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Titrate oxygen to maintain SpO2 greater than 94%", "Initiate IV heparin infusion per weight-based protocol", "Continuous cardiac and pulse oximetry monitoring", "Draw aPTT 6 hours after heparin initiation and per protocol", "Strict bleeding precautions", "Bed rest with head of bed elevated", "Notify provider for SpO2 less than 90% or systolic B/P less than 90 mmHg"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_401601", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pulmonary embolism", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "SpO2 86% on room air", "correct": true},
+        {"text": "Respiratory rate 30", "correct": true},
+        {"text": "Pulse 118", "correct": true},
+        {"text": "Pleuritic right-sided chest pain", "correct": true},
+        {"text": "Temperature 99.1 F", "correct": false},
+        {"text": "Alert and oriented x3", "correct": false}
+      ],
+      "rationale": "Hypoxia, tachypnea, tachycardia, and acute pleuritic chest pain are hallmark signs of acute pulmonary embolism and require prompt intervention. A mildly elevated temperature and normal orientation are not immediate concerns."
+    },
+    {
+      "item_id": "NCLEX_MMR_401602", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pulmonary embolism", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it supports a diagnosis of pulmonary embolism, deep vein thrombosis, or both. Each finding may support more than one condition.",
+      "columns": ["Pulmonary embolism", "Deep vein thrombosis"],
+      "rows": [
+        {"text": "Sudden pleuritic chest pain and dyspnea", "answers": [0]},
+        {"text": "Unilateral left calf swelling and tenderness", "answers": [1]},
+        {"text": "Elevated D-dimer", "answers": [0, 1]},
+        {"text": "SpO2 86% with respiratory alkalosis on ABG", "answers": [0]}
+      ],
+      "rationale": "Acute dyspnea, pleuritic pain, and hypoxia with respiratory alkalosis point to embolism in the lung; unilateral calf swelling and tenderness point to a lower-extremity clot. An elevated D-dimer is a nonspecific marker of clot breakdown and rises with either condition."
+    },
+    {
+      "item_id": "NCLEX_CLZ_401603", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pulmonary embolism", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the most immediate goal is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "impaired gas exchange", "correct": true}, {"text": "risk for infection"}, {"text": "acute pain"}]},
+        {"choices": [{"text": "improve oxygenation", "correct": true}, {"text": "promote sleep"}, {"text": "increase mobility"}]}
+      ],
+      "rationale": "The embolus obstructs pulmonary blood flow, causing impaired gas exchange evidenced by hypoxia and tachypnea. Restoring adequate oxygenation is the most immediate, life-preserving goal and takes priority over pain and other concerns."
+    },
+    {
+      "item_id": "NCLEX_MAT_401604", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pulmonary embolism", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client at this time.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer supplemental oxygen titrated to SpO2 greater than 94%", "answer": 0},
+        {"text": "Elevate the head of the bed", "answer": 0},
+        {"text": "Prepare to initiate anticoagulation therapy", "answer": 0},
+        {"text": "Vigorously massage the left calf", "answer": 1},
+        {"text": "Encourage early ambulation in the hallway", "answer": 1}
+      ],
+      "rationale": "Oxygen, upright positioning, and anticoagulation address hypoxia and the underlying clot. Massaging the calf or ambulating can dislodge additional thrombus and are contraindicated during the acute phase."
+    },
+    {
+      "item_id": "NCLEX_SATA_401605", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Respiratory", "topic": "Anticoagulants", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After initiating the IV heparin infusion, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor aPTT per protocol", "correct": true},
+        {"text": "Institute bleeding precautions", "correct": true},
+        {"text": "Assess for signs of bleeding such as bruising or hematuria", "correct": true},
+        {"text": "Ensure protamine sulfate is available as the reversal agent", "correct": true},
+        {"text": "Administer aspirin concurrently for added clot prevention", "correct": false},
+        {"text": "Encourage vigorous tooth brushing to maintain oral care", "correct": false}
+      ],
+      "rationale": "Heparin therapy requires aPTT monitoring, bleeding precautions, assessment for hemorrhage, and availability of protamine sulfate for reversal. Adding aspirin increases bleeding risk, and vigorous brushing can cause gum bleeding."
+    },
+    {
+      "item_id": "NCLEX_SATA_401606", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pulmonary embolism", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate that treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "SpO2 improved to 96%", "correct": true},
+        {"text": "Respiratory rate decreased to 20", "correct": true},
+        {"text": "Pulse decreased to 92", "correct": true},
+        {"text": "Reports reduced chest pain and easier breathing", "correct": true},
+        {"text": "Skin remains cool and pale", "correct": false}
+      ],
+      "rationale": "Improved oxygenation, a slower respiratory rate and pulse, and reduced chest pain show gas exchange and perfusion are recovering. Persistently cool, pale skin would indicate ongoing poor perfusion, not improvement."
+    }
+  ]
+}

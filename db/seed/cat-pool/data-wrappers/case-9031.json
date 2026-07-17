@@ -1,0 +1,133 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09031",
+  "title": "Bipolar Disorder, Manic Episode",
+  "scenario": "A 29-year-old male client is brought to the emergency department by his family after 5 days of not sleeping, rapid pressured speech, and reckless spending. He has a known diagnosis of bipolar I disorder and stopped taking lithium three weeks ago.",
+  "tags": ["synthetic", "psychiatric"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["14:00"], "lines": ["29-year-old male brought in by wife for escalating behavior over 5 days. Speech rapid, loud, and pressured; difficult to interrupt. Flight of ideas noted, jumping between topics. Reports sleeping about 2 hours per night and feeling 'better than ever.' Wife states he spent GHS 40000 on unneeded electronics this week. Grandiose statements about starting three businesses. Irritable when redirected. Stopped lithium 3 weeks ago because he 'felt fine.'"], "visibleFrom": 1},
+        {"chips": ["14:30"], "lines": ["Client pacing the room, unable to sit for assessment. Intrusive toward other clients in the waiting area. Denies suicidal or homicidal ideation but is easily agitated. Placed in a low-stimulation room. IV access obtained; labs drawn including lithium level."], "visibleFrom": 2},
+        {"chips": ["15:45"], "lines": ["Provider notified of subtherapeutic lithium level. Orders received. Client remains highly distractible and has not eaten since arrival. One-to-one observation initiated for safety."], "visibleFrom": 5},
+        {"chips": ["Day 4"], "lines": ["Client sleeping 6 hours overnight. Speech slower and easier to interrupt. Able to complete a full meal seated. Participated in a structured group activity without intrusiveness. Reports understanding the need to resume medication."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["14:00", "98.8 F (37.1 C)", "102", "20", "138/86", "98% on RA"],
+        ["14:30", "98.8 F (37.1 C)", "98", "18", "134/84", "99% on RA"],
+        ["Day 4", "98.4 F (36.9 C)", "76", "16", "122/78", "99% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Lithium level", "0.2", "0.6-1.2 mEq/L (therapeutic)"],
+        ["Sodium", "140", "135-145 mEq/L"],
+        ["Potassium", "4.0", "3.5-5.0 mEq/L"],
+        ["Creatinine", "0.9", "0.6-1.2 mg/dL"],
+        ["TSH", "2.1", "0.4-4.0 mIU/L"],
+        ["Urine drug screen", "Negative", "Negative"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Lithium carbonate 300 mg PO three times daily (discontinued by client 3 weeks ago)", "No other regular medications reported"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Admit to inpatient behavioral health unit, voluntary", "Resume lithium carbonate 300 mg PO three times daily", "Olanzapine 10 mg PO now for acute agitation", "One-to-one observation for safety", "Provide low-stimulation environment", "Offer high-calorie finger foods and fluids", "Monitor sleep and food/fluid intake", "Repeat lithium level in 5 days", "Basic metabolic panel and renal function before dosing"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_403101", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Psychiatric", "topic": "Bipolar disorder", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings are consistent with an acute manic episode?",
+      "options": [
+        {"text": "Sleeping about 2 hours per night", "correct": true},
+        {"text": "Rapid, pressured speech with flight of ideas", "correct": true},
+        {"text": "Excessive, reckless spending", "correct": true},
+        {"text": "Grandiose statements about starting businesses", "correct": true},
+        {"text": "Negative urine drug screen", "correct": false},
+        {"text": "Sodium of 140 mEq/L", "correct": false}
+      ],
+      "rationale": "Decreased need for sleep, pressured speech with flight of ideas, impulsive spending, and grandiosity are hallmark features of mania. A normal drug screen and sodium are not manic findings."
+    },
+    {
+      "item_id": "NCLEX_MMR_403102", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Psychiatric", "topic": "Bipolar disorder", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects a psychological or a physiological/safety concern. Each finding may reflect more than one.",
+      "columns": ["Psychological", "Physiological/Safety"],
+      "rows": [
+        {"text": "Flight of ideas and grandiosity", "answers": [0]},
+        {"text": "Sleeping only 2 hours per night", "answers": [0, 1]},
+        {"text": "Has not eaten since arrival", "answers": [1]},
+        {"text": "Subtherapeutic lithium level 0.2 mEq/L", "answers": [1]}
+      ],
+      "rationale": "Flight of ideas and grandiosity are mood/thought disturbances. Severe sleep loss affects both mental state and physical safety. Not eating and a subtherapeutic lithium level are physiological concerns explaining the relapse."
+    },
+    {
+      "item_id": "NCLEX_CLZ_403103", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Psychiatric", "topic": "Bipolar disorder", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse identifies that the priority problem is {1}, and the most likely reason for this relapse is {2}.",
+      "blanks": [
+        {"choices": [{"text": "risk for injury related to hyperactivity and poor judgment", "correct": true}, {"text": "impaired skin integrity"}, {"text": "risk for constipation"}]},
+        {"choices": [{"text": "discontinuation of lithium", "correct": true}, {"text": "an underlying thyroid disorder"}, {"text": "substance intoxication"}]}
+      ],
+      "rationale": "The client's hyperactivity, impulsivity, and impaired judgment create the greatest immediate danger, making risk for injury the priority. The subtherapeutic lithium level and reported nonadherence identify medication discontinuation as the cause; TSH and drug screen are normal."
+    },
+    {
+      "item_id": "NCLEX_MAT_403104", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Psychiatric", "topic": "Bipolar disorder", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client during acute mania.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Provide a low-stimulation environment", "answer": 0},
+        {"text": "Offer high-calorie finger foods", "answer": 0},
+        {"text": "Encourage participation in a large, competitive group game", "answer": 1},
+        {"text": "Set firm, consistent limits on intrusive behavior", "answer": 0},
+        {"text": "Confront the client's grandiose statements argumentatively", "answer": 1}
+      ],
+      "rationale": "A calm environment, portable high-calorie foods, and consistent limit-setting support a manic client. Stimulating competitive activity and arguing over grandiose beliefs escalate agitation and are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_403105", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Psychiatric", "topic": "Lithium", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "As lithium therapy is resumed, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor serum lithium levels", "correct": true},
+        {"text": "Ensure adequate sodium and fluid intake", "correct": true},
+        {"text": "Teach the client the signs of lithium toxicity", "correct": true},
+        {"text": "Restrict all dietary sodium to zero", "correct": false},
+        {"text": "Withhold all food and fluids for 24 hours", "correct": false}
+      ],
+      "rationale": "Lithium requires level monitoring and stable sodium and fluid intake, and clients must learn toxicity signs. Restricting sodium raises lithium toward toxic levels, and withholding food and fluids is unsafe."
+    },
+    {
+      "item_id": "NCLEX_SATA_403106", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Psychiatric", "topic": "Bipolar disorder", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment plan has been effective? Select all that apply.",
+      "options": [
+        {"text": "Sleeping 6 hours overnight", "correct": true},
+        {"text": "Speech slower and easier to interrupt", "correct": true},
+        {"text": "Completing a full meal while seated", "correct": true},
+        {"text": "Participating in group without intrusiveness", "correct": true},
+        {"text": "Pacing and unable to sit still", "correct": false}
+      ],
+      "rationale": "Restored sleep, organized speech, adequate intake, and appropriate social behavior show the mania is resolving. Continued pacing and restlessness would indicate ongoing mania, not improvement."
+    }
+  ]
+}

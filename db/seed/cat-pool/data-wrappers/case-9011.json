@@ -1,0 +1,134 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09011",
+  "title": "Preeclampsia with Severe Features",
+  "scenario": "A 29-year-old woman at 34 weeks gestation presents to the obstetric triage unit with a severe frontal headache, blurred vision, and swelling of the face and hands over the past two days.",
+  "tags": ["synthetic", "maternity"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["29-year-old G1P0 at 34 weeks gestation presents with a 2-day frontal headache unrelieved by acetaminophen, blurred vision with reports of spots, and new facial and hand edema. Reports right upper quadrant discomfort. Fetal movement present. Alert and oriented x3. Deep tendon reflexes 3+ with no clonus at this time."], "visibleFrom": 1},
+        {"chips": ["10:20"], "lines": ["IV access established. Labs drawn and sent. Continuous fetal monitoring and maternal blood pressure monitoring initiated. Provider notified of elevated blood pressure and symptoms."], "visibleFrom": 2},
+        {"chips": ["11:00"], "lines": ["Magnesium sulfate loading dose and maintenance infusion started per order. IV labetalol administered for severe-range blood pressure. Client placed in quiet, low-stimulation environment with side rails padded."], "visibleFrom": 5},
+        {"chips": ["12:30"], "lines": ["Reports headache improving and vision clearer. Blood pressure trending down. Deep tendon reflexes 2+, respirations adequate, urine output 60 mL over the last hour. Fetal heart rate reassuring with moderate variability."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "98.8 F (37.1 C)", "92", "18", "168/112", "98% on RA"],
+        ["10:20", "98.8 F (37.1 C)", "94", "18", "172/114", "98% on RA"],
+        ["11:00", "98.6 F (37.0 C)", "88", "18", "164/108", "98% on RA"],
+        ["12:30", "98.6 F (37.0 C)", "82", "16", "142/90", "98% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 5, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Platelets", "88", "150-400 x10^9/L"],
+        ["AST", "96", "10-40 units/L"],
+        ["ALT", "88", "7-56 units/L"],
+        ["Creatinine", "1.2", "0.5-1.0 mg/dL"],
+        ["Urine protein/creatinine ratio", "0.6", "< 0.3 mg/mg"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Prenatal History",
+      "entries": [
+        {"chips": [], "lines": ["G1P0, 34 weeks gestation by first-trimester dating", "Booking blood pressure 118/72", "No prior history of chronic hypertension or renal disease", "Prenatal vitamins with iron daily"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Magnesium sulfate 4 g IV loading dose over 20 minutes, then 2 g/hr maintenance infusion", "Labetalol 20 mg IV for systolic B/P >= 160 or diastolic >= 110, repeat per protocol", "Continuous fetal heart rate and contraction monitoring", "Insert indwelling urinary catheter, strict hourly intake and output", "Betamethasone 12 mg IM now and in 24 hours", "Notify provider for respiratory rate < 12, absent reflexes, or urine output < 30 mL/hr"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_401101", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Health Promotion and Maintenance", "subcategory": "Ante/Intra/Postpartum and Newborn Care", "subject": "Maternity", "body_system": "Reproductive", "topic": "Preeclampsia", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Blood pressure 168/112", "correct": true},
+        {"text": "Severe frontal headache unrelieved by acetaminophen", "correct": true},
+        {"text": "Blurred vision with visual spots", "correct": true},
+        {"text": "Right upper quadrant discomfort", "correct": true},
+        {"text": "Fetal movement present", "correct": false},
+        {"text": "Prenatal vitamins with iron daily", "correct": false}
+      ],
+      "rationale": "Severe-range blood pressure, a persistent headache, visual disturbances, and right upper quadrant pain are hallmark severe features of preeclampsia and signal risk of eclampsia and organ injury. Fetal movement and vitamin use are expected findings."
+    },
+    {
+      "item_id": "NCLEX_MMR_401102", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Maternity", "body_system": "Reproductive", "topic": "Preeclampsia", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each laboratory finding, click to specify whether it supports HELLP syndrome, worsening preeclampsia, or both. Each finding may support more than one.",
+      "columns": ["HELLP syndrome", "Worsening preeclampsia"],
+      "rows": [
+        {"text": "Platelets 88 x10^9/L", "answers": [0, 1]},
+        {"text": "AST 96 units/L", "answers": [0]},
+        {"text": "Creatinine 1.2 mg/dL", "answers": [1]},
+        {"text": "Urine protein/creatinine ratio 0.6", "answers": [1]}
+      ],
+      "rationale": "HELLP is defined by hemolysis, elevated liver enzymes, and low platelets, so thrombocytopenia and elevated AST support it. Rising creatinine and proteinuria reflect worsening preeclampsia; thrombocytopenia supports both processes."
+    },
+    {
+      "item_id": "NCLEX_CLZ_401103", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Maternity", "body_system": "Reproductive", "topic": "Preeclampsia", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the most immediate goal is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "risk for seizure from severe preeclampsia", "correct": true}, {"text": "risk for infection", "correct": false}, {"text": "impaired skin integrity", "correct": false}]},
+        {"choices": [{"text": "prevent eclamptic seizures and lower blood pressure", "correct": true}, {"text": "promote ambulation and activity", "correct": false}, {"text": "increase oral fluid intake", "correct": false}]}
+      ],
+      "rationale": "The severe features place the client at high risk for an eclamptic seizure, so seizure prevention with magnesium sulfate and controlling severe-range blood pressure take priority over less urgent problems."
+    },
+    {
+      "item_id": "NCLEX_MAT_401104", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Maternity", "body_system": "Reproductive", "topic": "Preeclampsia", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Initiate magnesium sulfate infusion", "answer": 0},
+        {"text": "Place the client in a quiet, low-stimulation room", "answer": 0},
+        {"text": "Administer IV labetalol for severe-range blood pressure", "answer": 0},
+        {"text": "Encourage frequent visitors and bright lighting", "answer": 1},
+        {"text": "Administer ergometrine to reduce bleeding risk", "answer": 1}
+      ],
+      "rationale": "Magnesium sulfate, a low-stimulation environment, and antihypertensives are core preeclampsia care. Stimulation can provoke seizures and ergometrine raises blood pressure, so both are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_401105", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Reproductive", "topic": "Magnesium sulfate", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "While the magnesium sulfate infusion is running, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Assess deep tendon reflexes hourly", "correct": true},
+        {"text": "Monitor respiratory rate and depth", "correct": true},
+        {"text": "Measure strict hourly urine output", "correct": true},
+        {"text": "Keep calcium gluconate available at the bedside", "correct": true},
+        {"text": "Withhold all fetal heart rate monitoring", "correct": false},
+        {"text": "Encourage the client to ambulate frequently", "correct": false}
+      ],
+      "rationale": "Magnesium toxicity is detected through loss of reflexes, respiratory depression, and falling urine output, so these are monitored and calcium gluconate is the antidote kept ready. Fetal monitoring continues and ambulation is unsafe."
+    },
+    {
+      "item_id": "NCLEX_SATA_401106", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Health Promotion and Maintenance", "subcategory": "Ante/Intra/Postpartum and Newborn Care", "subject": "Maternity", "body_system": "Reproductive", "topic": "Preeclampsia", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Blood pressure decreased to 142/90", "correct": true},
+        {"text": "Headache improving and vision clearer", "correct": true},
+        {"text": "Deep tendon reflexes 2+ with adequate respirations", "correct": true},
+        {"text": "Urine output 60 mL in the past hour", "correct": true},
+        {"text": "Reappearance of visual spots and epigastric pain", "correct": false}
+      ],
+      "rationale": "Falling blood pressure, resolving headache and vision changes, preserved reflexes with adequate respirations, and maintained urine output all show the therapy is working. Returning visual and epigastric symptoms would signal worsening disease."
+    }
+  ]
+}

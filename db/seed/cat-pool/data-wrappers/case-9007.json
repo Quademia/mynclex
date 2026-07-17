@@ -1,0 +1,132 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09007",
+  "title": "Acute Ischemic Stroke",
+  "scenario": "A 72-year-old male client is brought to the emergency department by his wife after she noticed sudden right-sided facial droop, slurred speech, and right arm weakness that began about 90 minutes ago while he was eating breakfast.",
+  "tags": ["synthetic", "neurological"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["08:15"], "lines": ["72-year-old male brought in by wife with sudden onset of right facial droop, slurred speech, and right arm weakness. Wife states symptoms began at approximately 06:45 while eating breakfast. Alert, follows commands with hesitation, right pronator drift present. Right nasolabial fold flattened. Denies headache. Last known well 06:45."], "visibleFrom": 1},
+        {"chips": ["08:25"], "lines": ["Two large-bore IVs placed. Stat non-contrast CT head, labs, and 12-lead ECG ordered. NIH Stroke Scale performed, score 8. Placed NPO pending swallow evaluation. Neuro checks every 15 minutes initiated."], "visibleFrom": 2},
+        {"chips": ["09:05"], "lines": ["CT head shows no hemorrhage. Provider notified. Client and wife updated on findings and thrombolytic therapy discussed. Consent obtained."], "visibleFrom": 5},
+        {"chips": ["10:30"], "lines": ["Reports speech is clearer. Right hand grip stronger than on admission. Repeat NIH Stroke Scale score 4. No signs of bleeding. Remains on neuro checks."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["08:15", "98.8 F (37.1 C)", "96", "18", "182/98", "95% on RA"],
+        ["08:25", "98.8 F (37.1 C)", "94", "18", "178/96", "96% on RA"],
+        ["09:05", "98.6 F (37.0 C)", "88", "16", "168/90", "97% on RA"],
+        ["10:30", "98.6 F (37.0 C)", "82", "16", "150/84", "98% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 5, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Glucose (fingerstick)", "112", "70-110 mg/dL"],
+        ["Platelets", "245", "150-400 x10^9/L"],
+        ["INR", "1.0", "0.8-1.1"],
+        ["aPTT", "30", "25-35 seconds"],
+        ["Sodium", "139", "135-145 mEq/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Amlodipine 10 mg PO daily", "Atorvastatin 40 mg PO daily", "Aspirin 81 mg PO daily"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Administer IV alteplase per weight-based protocol now", "Hold aspirin and all antiplatelet/anticoagulant agents for 24 hours", "Neurologic assessment every 15 minutes for 2 hours", "Maintain blood pressure below 185/110 prior to and during thrombolytic infusion", "Keep NPO until swallow screen passed", "Notify provider for any new headache, decreased level of consciousness, or bleeding"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_400701", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Ischemic stroke", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings are consistent with an acute stroke and require immediate follow-up?",
+      "options": [
+        {"text": "Right-sided facial droop", "correct": true},
+        {"text": "Slurred speech", "correct": true},
+        {"text": "Right arm pronator drift", "correct": true},
+        {"text": "Blood pressure 182/98", "correct": true},
+        {"text": "Temperature 98.8 F", "correct": false},
+        {"text": "SpO2 95% on room air", "correct": false}
+      ],
+      "rationale": "Facial droop, slurred speech, and unilateral arm drift are classic focal neurologic deficits of stroke, and marked hypertension is common and clinically important in acute stroke. A normal temperature and adequate oxygen saturation are not warning signs."
+    },
+    {
+      "item_id": "NCLEX_MMR_400702", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Ischemic stroke", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it supports eligibility for thrombolytic therapy, raises a contraindication concern, or both.",
+      "columns": ["Supports eligibility", "Contraindication concern"],
+      "rows": [
+        {"text": "Symptom onset 90 minutes ago", "answers": [0]},
+        {"text": "CT head shows no hemorrhage", "answers": [0]},
+        {"text": "Blood pressure 182/98", "answers": [1]},
+        {"text": "INR 1.0 with normal platelets", "answers": [0]}
+      ],
+      "rationale": "Onset within the treatment window and a CT without hemorrhage support thrombolysis, and normal coagulation values confirm eligibility. Blood pressure above 185/110 is a contraindication concern that must be controlled before alteplase."
+    },
+    {
+      "item_id": "NCLEX_CLZ_400703", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Ischemic stroke", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority action before thrombolytic therapy is to {1}.",
+      "blanks": [
+        {"choices": [{"text": "confirm the non-contrast CT rules out hemorrhage", "correct": true}, {"text": "obtain a detailed medication history", "correct": false}, {"text": "insert an indwelling urinary catheter", "correct": false}]}
+      ],
+      "rationale": "Alteplase is absolutely contraindicated in hemorrhagic stroke, so confirming a non-contrast CT free of bleeding is the essential priority before treatment. The other tasks are relevant but not the time-critical safety gate."
+    },
+    {
+      "item_id": "NCLEX_MAT_400704", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Ischemic stroke", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client during acute stroke management.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Maintain blood pressure below 185/110 before alteplase", "answer": 0},
+        {"text": "Keep the client NPO until a swallow screen is passed", "answer": 0},
+        {"text": "Administer aspirin 325 mg during the alteplase infusion", "answer": 1},
+        {"text": "Perform neurologic checks every 15 minutes", "answer": 0},
+        {"text": "Insert a nasogastric tube immediately for medications", "answer": 1}
+      ],
+      "rationale": "Blood pressure control, NPO status, and frequent neuro checks are core stroke interventions. Antiplatelet agents are withheld for 24 hours after thrombolysis, and unnecessary invasive tubes increase bleeding risk during that period."
+    },
+    {
+      "item_id": "NCLEX_SATA_400705", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Neurological", "topic": "Thrombolytics", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After starting the IV alteplase infusion, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor for signs of bleeding", "correct": true},
+        {"text": "Perform frequent neurologic assessments", "correct": true},
+        {"text": "Maintain blood pressure within ordered parameters", "correct": true},
+        {"text": "Administer the routine aspirin dose now", "correct": false},
+        {"text": "Encourage the client to ambulate to the bathroom", "correct": false}
+      ],
+      "rationale": "During and after thrombolysis the nurse watches for bleeding, monitors neurologic status, and keeps blood pressure controlled. Antiplatelet doses are held for 24 hours and the client remains on activity precautions."
+    },
+    {
+      "item_id": "NCLEX_SATA_400706", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Ischemic stroke", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Speech is clearer than on admission", "correct": true},
+        {"text": "Right hand grip is stronger", "correct": true},
+        {"text": "NIH Stroke Scale decreased from 8 to 4", "correct": true},
+        {"text": "No signs of bleeding", "correct": true},
+        {"text": "New onset of severe headache", "correct": false}
+      ],
+      "rationale": "Improved speech and motor strength, a falling stroke-scale score, and absence of bleeding show reperfusion without complication. A new severe headache would suggest hemorrhagic conversion, not improvement."
+    }
+  ]
+}

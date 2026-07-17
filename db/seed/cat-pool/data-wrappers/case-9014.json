@@ -1,0 +1,128 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09014",
+  "title": "Pediatric Gastroenteritis with Dehydration",
+  "scenario": "An 18-month-old male toddler is brought to the emergency department by his mother for 3 days of frequent watery diarrhea and vomiting. She reports he has had fewer wet diapers and has been unusually sleepy.",
+  "tags": ["synthetic", "pediatric", "gastrointestinal"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["18-month-old male brought in for 3 days of watery, non-bloody diarrhea (8-10 stools/day) and intermittent vomiting. Two other children at home have similar symptoms. Mother reports only 1 wet diaper in the last 12 hours. Child is lethargic but consolable, mucous membranes dry, anterior fontanel sunken, capillary refill 3-4 seconds, no tears when crying. Weight today 10.5 kg (well-child weight 11.5 kg two weeks ago)."], "visibleFrom": 1},
+        {"chips": ["10:20"], "lines": ["Provider notified. Peripheral IV access obtained on second attempt. Labs drawn. Oral rehydration attempted but child vomited. Strict intake and output initiated; diaper weights ordered."], "visibleFrom": 2},
+        {"chips": ["10:50"], "lines": ["IV isotonic fluid bolus started per order. Ondansetron administered. Child remains sleepy but rousable."], "visibleFrom": 5},
+        {"chips": ["12:30"], "lines": ["Child more alert and interactive, taking oral rehydration solution in small sips without vomiting. Voided moderate amount of clear urine. Mucous membranes moist, capillary refill under 2 seconds."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "100.6 F (38.1 C)", "168", "38", "86/50", "98% on RA"],
+        ["10:20", "100.4 F (38.0 C)", "162", "36", "88/52", "98% on RA"],
+        ["12:30", "99.6 F (37.6 C)", "128", "28", "96/60", "99% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Sodium", "149", "135-145 mEq/L"],
+        ["Potassium", "3.2", "3.5-5.0 mEq/L"],
+        ["Bicarbonate", "16", "22-26 mEq/L"],
+        ["BUN", "28", "5-18 mg/dL"],
+        ["Glucose", "72", "70-110 mg/dL"],
+        ["Urine specific gravity", "1.032", "1.005-1.020"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Isotonic (0.9% sodium chloride) IV bolus 20 mL/kg over 30 minutes", "Ondansetron 2 mg IV once for vomiting", "Oral rehydration solution in small frequent sips as tolerated", "Strict intake and output with diaper weights", "Continuous cardiac and pulse oximetry monitoring", "Recheck electrolytes after bolus", "Notify provider for urine output under 1 mL/kg/hr"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_401401", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance", "subject": "Pediatrics", "body_system": "Gastrointestinal", "topic": "Dehydration", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings indicate dehydration and require follow-up?",
+      "options": [
+        {"text": "Sunken anterior fontanel", "correct": true},
+        {"text": "Capillary refill 3-4 seconds", "correct": true},
+        {"text": "Absence of tears when crying", "correct": true},
+        {"text": "Only 1 wet diaper in 12 hours", "correct": true},
+        {"text": "SpO2 98% on room air", "correct": false},
+        {"text": "Consolable when held", "correct": false}
+      ],
+      "rationale": "A sunken fontanel, delayed capillary refill, absent tears, and decreased urine output are classic signs of significant fluid volume deficit in a toddler. Normal oxygenation and being consolable are reassuring."
+    },
+    {
+      "item_id": "NCLEX_MMR_401402", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Laboratory value",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Pediatrics", "body_system": "Gastrointestinal", "topic": "Fluid and electrolyte imbalance", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each laboratory value, click to specify whether it reflects dehydration, an electrolyte imbalance, or both. Each value may reflect more than one.",
+      "columns": ["Dehydration", "Electrolyte imbalance"],
+      "rows": [
+        {"text": "Sodium 149 mEq/L", "answers": [0, 1]},
+        {"text": "Potassium 3.2 mEq/L", "answers": [1]},
+        {"text": "BUN 28 mg/dL", "answers": [0]},
+        {"text": "Urine specific gravity 1.032", "answers": [0]}
+      ],
+      "rationale": "Hemoconcentration raises sodium, BUN, and urine specific gravity, reflecting dehydration; hypernatremia and the diarrhea-related hypokalemia are also electrolyte imbalances."
+    },
+    {
+      "item_id": "NCLEX_CLZ_401403", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Pediatrics", "body_system": "Gastrointestinal", "topic": "Dehydration", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the most urgent goal is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "deficient fluid volume", "correct": true}, {"text": "impaired skin integrity"}, {"text": "acute pain"}]},
+        {"choices": [{"text": "restore circulating volume", "correct": true}, {"text": "control the fever"}, {"text": "prevent constipation"}]}
+      ],
+      "rationale": "Ongoing fluid losses with tachycardia and delayed capillary refill make deficient fluid volume the priority, so restoring circulating volume takes precedence over comfort or fever measures."
+    },
+    {
+      "item_id": "NCLEX_MAT_401404", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Pediatrics", "body_system": "Gastrointestinal", "topic": "Dehydration management", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this child.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer an isotonic IV fluid bolus", "answer": 0},
+        {"text": "Offer oral rehydration solution in small sips", "answer": 0},
+        {"text": "Give an antidiarrheal (loperamide)", "answer": 1},
+        {"text": "Monitor strict intake and output with diaper weights", "answer": 0},
+        {"text": "Offer plain water and fruit juice freely", "answer": 1}
+      ],
+      "rationale": "Isotonic boluses, oral rehydration solution, and intake/output monitoring correct the deficit safely. Antimotility drugs are contraindicated in young children, and plain water or juice worsens electrolyte imbalance."
+    },
+    {
+      "item_id": "NCLEX_SATA_401405", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pediatrics", "body_system": "Gastrointestinal", "topic": "IV fluid therapy", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After starting the IV fluid bolus and giving ondansetron, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Reassess capillary refill and heart rate", "correct": true},
+        {"text": "Measure strict intake and output with diaper weights", "correct": true},
+        {"text": "Recheck serum electrolytes after the bolus", "correct": true},
+        {"text": "Resume small sips of oral rehydration solution as tolerated", "correct": true},
+        {"text": "Withhold all oral intake until diarrhea stops", "correct": false},
+        {"text": "Administer a potassium bolus by IV push", "correct": false}
+      ],
+      "rationale": "The nurse evaluates perfusion, tracks output, rechecks electrolytes, and restarts oral rehydration as tolerated. Prolonged NPO status is unnecessary, and potassium is never given by IV push."
+    },
+    {
+      "item_id": "NCLEX_SATA_401406", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance", "subject": "Pediatrics", "body_system": "Gastrointestinal", "topic": "Dehydration", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the rehydration treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Heart rate decreased to 128", "correct": true},
+        {"text": "Capillary refill under 2 seconds", "correct": true},
+        {"text": "Moist mucous membranes", "correct": true},
+        {"text": "Voided a moderate amount of clear urine", "correct": true},
+        {"text": "Continued 8-10 watery stools per day", "correct": false}
+      ],
+      "rationale": "A falling heart rate, brisk capillary refill, moist mucous membranes, and improved urine output all show the fluid deficit is resolving. Ongoing high stool output would indicate the losses are not yet controlled."
+    }
+  ]
+}

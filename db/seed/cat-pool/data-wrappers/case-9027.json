@@ -1,0 +1,136 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09027",
+  "title": "Hepatic Encephalopathy in Cirrhosis",
+  "scenario": "A 59-year-old male client with a history of alcohol-related cirrhosis is brought to the emergency department by his wife, who reports two days of increasing confusion, daytime drowsiness, and shaking of the hands.",
+  "tags": ["synthetic", "gastrointestinal"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["09:00"], "lines": ["59-year-old male with known alcohol-related cirrhosis brought in by spouse for 2 days of worsening confusion and lethargy. Wife reports he has been sleeping most of the day and was hard to wake this morning. Disoriented to time and place, drowsy but rousable. Asterixis (flapping tremor) noted on dorsiflexion of the wrists. Fetor hepaticus present on breath. Abdomen distended with a fluid wave; scleral icterus and jaundice noted. Wife states he missed his lactulose doses this week and ate a large high-protein meal yesterday."], "visibleFrom": 1},
+        {"chips": ["09:25"], "lines": ["IV access obtained. Labs, ammonia level, and stat glucose ordered. Cardiac monitor and pulse oximetry applied. Aspiration precautions initiated; head of bed elevated. Neuro checks every hour."], "visibleFrom": 2},
+        {"chips": ["10:15"], "lines": ["Lactulose 30 mL administered per NG per order. Provider notified of ammonia and potassium results. Fall precautions in place."], "visibleFrom": 5},
+        {"chips": ["16:00"], "lines": ["Client more alert, oriented to person and place, follows commands. Has had 3 loose stools since lactulose started. Asterixis diminished. Tolerating small sips without coughing."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["09:00", "99.1 F (37.3 C)", "96", "18", "104/64", "95% on RA"],
+        ["09:25", "99.1 F (37.3 C)", "94", "18", "106/66", "96% on RA"],
+        ["16:00", "98.8 F (37.1 C)", "84", "16", "112/70", "97% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Ammonia", "128", "15-45 mcg/dL"],
+        ["Total bilirubin", "4.2", "0.3-1.2 mg/dL"],
+        ["Albumin", "2.6", "3.5-5.0 g/dL"],
+        ["INR", "1.9", "0.8-1.1"],
+        ["AST", "142", "10-40 units/L"],
+        ["ALT", "98", "7-56 units/L"],
+        ["Potassium", "3.2", "3.5-5.0 mEq/L"],
+        ["Sodium", "129", "135-145 mEq/L"],
+        ["Glucose", "88", "70-110 mg/dL"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Lactulose 30 mL PO three times daily (missed several doses this week)", "Spironolactone 100 mg PO daily", "Furosemide 40 mg PO daily", "Propranolol 20 mg PO twice daily", "Multivitamin PO daily"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Lactulose 30 mL PO/NG now, then titrate to 2-3 soft stools per day", "Aspiration precautions, head of bed elevated 30 degrees", "Neuro checks every hour", "Fall precautions", "Restrict added dietary sodium; do NOT restrict protein", "Replace potassium per protocol", "Monitor serum ammonia daily", "Notify provider for further decline in level of consciousness"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_402701", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Hepatic encephalopathy", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Disorientation and drowsiness", "correct": true},
+        {"text": "Asterixis (flapping tremor)", "correct": true},
+        {"text": "Fetor hepaticus on the breath", "correct": true},
+        {"text": "Missed lactulose doses and a recent high-protein meal", "correct": true},
+        {"text": "Temperature 99.1 F", "correct": false},
+        {"text": "SpO2 95% on room air", "correct": false}
+      ],
+      "rationale": "Altered mentation, asterixis, and fetor hepaticus are hallmark signs of hepatic encephalopathy, and the missed lactulose plus a protein load are the likely precipitants. A near-normal temperature and oxygen saturation are not immediate concerns."
+    },
+    {
+      "item_id": "NCLEX_MMR_402702", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Cirrhosis", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects impaired hepatic detoxification, impaired hepatic synthetic function, or both. Each finding may reflect more than one.",
+      "columns": ["Impaired detoxification", "Impaired synthetic function"],
+      "rows": [
+        {"text": "Elevated ammonia (128 mcg/dL)", "answers": [0]},
+        {"text": "INR 1.9", "answers": [1]},
+        {"text": "Albumin 2.6 g/dL", "answers": [1]},
+        {"text": "Asterixis and confusion", "answers": [0]}
+      ],
+      "rationale": "The failing liver cannot convert ammonia to urea, so ammonia rises and produces neurologic signs (impaired detoxification). It also cannot synthesize clotting factors or albumin, raising the INR and lowering albumin (impaired synthetic function)."
+    },
+    {
+      "item_id": "NCLEX_CLZ_402703", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Safe and Effective Care Environment", "subcategory": "Management of Care", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Hepatic encephalopathy", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the immediate nursing priority is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "altered level of consciousness from elevated ammonia", "correct": true}, {"text": "risk for fluid volume deficit", "correct": false}, {"text": "activity intolerance", "correct": false}]},
+        {"choices": [{"text": "protect the airway and prevent aspiration", "correct": true}, {"text": "restrict all dietary protein permanently", "correct": false}, {"text": "encourage independent ambulation", "correct": false}]}
+      ],
+      "rationale": "The most immediate threat is the declining level of consciousness driven by hyperammonemia, which endangers the airway; protecting the airway and preventing aspiration takes precedence over the other concerns."
+    },
+    {
+      "item_id": "NCLEX_MAT_402704", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Hepatic encephalopathy", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer lactulose titrated to 2-3 soft stools daily", "answer": 0},
+        {"text": "Elevate the head of the bed and institute aspiration precautions", "answer": 0},
+        {"text": "Institute a long-term strict protein-free diet", "answer": 1},
+        {"text": "Replace potassium to correct hypokalemia", "answer": 0},
+        {"text": "Administer a sedative-hypnotic for restlessness", "answer": 1}
+      ],
+      "rationale": "Lactulose lowers ammonia, and airway protection and potassium replacement are appropriate (hypokalemia worsens encephalopathy). Prolonged protein restriction causes malnutrition and is no longer recommended, and sedatives are metabolized by the liver and can deepen the encephalopathy."
+    },
+    {
+      "item_id": "NCLEX_SATA_402705", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Gastrointestinal", "topic": "Lactulose", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After administering lactulose, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor the number and consistency of stools", "correct": true},
+        {"text": "Monitor serum ammonia and potassium levels", "correct": true},
+        {"text": "Maintain aspiration precautions and reassess level of consciousness", "correct": true},
+        {"text": "Hold the drug if a single soft stool occurs", "correct": false},
+        {"text": "Keep the client NPO and restrict all oral fluids", "correct": false}
+      ],
+      "rationale": "Lactulose works by producing 2-3 soft stools daily to eliminate ammonia, so the nurse tracks stools, ammonia, potassium, and mentation. The goal is soft stools, not none, and fluids are not fully restricted."
+    },
+    {
+      "item_id": "NCLEX_SATA_402706", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Hepatic encephalopathy", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Client is oriented to person and place and follows commands", "correct": true},
+        {"text": "Asterixis has diminished", "correct": true},
+        {"text": "Client has had 3 loose stools since lactulose was started", "correct": true},
+        {"text": "Client is tolerating sips without coughing", "correct": true},
+        {"text": "Client is increasingly difficult to arouse", "correct": false}
+      ],
+      "rationale": "Improved orientation, reduced asterixis, several soft stools from lactulose, and safe swallowing all show the encephalopathy is resolving. A declining level of arousal would indicate worsening, not improvement."
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09017",
+  "title": "Acute Hyperkalemia",
+  "scenario": "A 58-year-old male with a history of chronic kidney disease presents to the emergency department with generalized muscle weakness, fatigue, and palpitations that began this morning. He reports he missed his last two hemodialysis sessions.",
+  "tags": ["synthetic", "renal"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["07:30"], "lines": ["58-year-old male brought in by wife for progressive muscle weakness and palpitations since waking. Reports missing his last two scheduled hemodialysis sessions. Complains of tingling in the lips and fingers. Alert and oriented x3. Deep tendon reflexes diminished. Cardiac monitor applied."], "visibleFrom": 1},
+        {"chips": ["07:45"], "lines": ["IV access obtained. Stat labs and 12-lead ECG ordered. ECG shows tall, peaked T waves and a widening QRS complex. Provider notified."], "visibleFrom": 2},
+        {"chips": ["08:15"], "lines": ["Emergency orders received and initiated. IV calcium gluconate, IV regular insulin with dextrose, and nebulized albuterol administered per order. Nephrology consulted for urgent hemodialysis."], "visibleFrom": 5},
+        {"chips": ["09:30"], "lines": ["Reports weakness improving and palpitations resolved. Repeat ECG shows T waves less peaked and narrowing QRS. Transported to dialysis unit."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["07:30", "98.2 F (36.8 C)", "52", "18", "162/94", "97% on RA"],
+        ["07:45", "98.2 F (36.8 C)", "48", "18", "160/92", "97% on RA"],
+        ["09:30", "98.4 F (36.9 C)", "72", "16", "142/84", "98% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Potassium", "7.2", "3.5-5.0 mEq/L"],
+        ["Sodium", "137", "135-145 mEq/L"],
+        ["Calcium", "8.4", "8.5-10.5 mg/dL"],
+        ["BUN", "68", "7-20 mg/dL"],
+        ["Creatinine", "6.4", "0.6-1.2 mg/dL"],
+        ["Bicarbonate", "18", "22-26 mEq/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Lisinopril 20 mg PO daily", "Spironolactone 25 mg PO daily", "Sevelamer 800 mg PO three times daily with meals", "Epoetin alfa per dialysis protocol"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Continuous cardiac monitoring", "Administer calcium gluconate 1 g IV over 2-3 minutes now", "Administer regular insulin 10 units IV with 25 g dextrose 50% IV now", "Administer albuterol 10 mg via nebulizer now", "Hold lisinopril and spironolactone", "Nephrology consult for urgent hemodialysis", "Repeat potassium and ECG after treatment"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_401701", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Renal", "topic": "Hyperkalemia", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Serum potassium 7.2 mEq/L", "correct": true},
+        {"text": "Generalized muscle weakness", "correct": true},
+        {"text": "Peaked T waves with widening QRS on ECG", "correct": true},
+        {"text": "Pulse 48 with palpitations", "correct": true},
+        {"text": "Sodium 137 mEq/L", "correct": false},
+        {"text": "Alert and oriented x3", "correct": false},
+        {"text": "Temperature 98.2 F", "correct": false}
+      ],
+      "rationale": "A critically high potassium, muscle weakness, characteristic ECG changes, and bradycardia with palpitations all reflect the cardiac and neuromuscular effects of severe hyperkalemia and demand immediate attention."
+    },
+    {
+      "item_id": "NCLEX_MMR_401702", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Renal", "topic": "Hyperkalemia", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects a cardiac effect, a neuromuscular effect, or both of hyperkalemia. Each finding may support more than one.",
+      "columns": ["Cardiac effect", "Neuromuscular effect"],
+      "rows": [
+        {"text": "Peaked T waves on ECG", "answers": [0]},
+        {"text": "Muscle weakness", "answers": [1]},
+        {"text": "Diminished deep tendon reflexes", "answers": [1]},
+        {"text": "Bradycardia with palpitations", "answers": [0]}
+      ],
+      "rationale": "Elevated potassium alters cardiac conduction (peaked T waves, bradycardia, dysrhythmias) and depresses skeletal muscle and reflex activity (weakness, hyporeflexia)."
+    },
+    {
+      "item_id": "NCLEX_CLZ_401703", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Renal", "topic": "Hyperkalemia", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority concern for this client is {1}, and the first drug that should be given to address it is {2}.",
+      "blanks": [
+        {"choices": [{"text": "life-threatening cardiac dysrhythmia", "correct": true}, {"text": "fluid volume deficit"}, {"text": "risk for infection"}]},
+        {"choices": [{"text": "IV calcium gluconate", "correct": true}, {"text": "IV regular insulin"}, {"text": "oral sodium polystyrene sulfonate"}]}
+      ],
+      "rationale": "The priority threat in severe hyperkalemia is a lethal dysrhythmia; IV calcium gluconate is given first to stabilize the cardiac membrane, even though it does not lower potassium."
+    },
+    {
+      "item_id": "NCLEX_MAT_401704", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Renal", "topic": "Hyperkalemia", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer IV regular insulin with dextrose", "answer": 0},
+        {"text": "Hold the lisinopril and spironolactone", "answer": 0},
+        {"text": "Prepare the client for urgent hemodialysis", "answer": 0},
+        {"text": "Administer a potassium-containing IV fluid", "answer": 1},
+        {"text": "Encourage a diet high in bananas and oranges", "answer": 1}
+      ],
+      "rationale": "Insulin with dextrose shifts potassium into cells, stopping the potassium-raising drugs and dialysis remove the excess. Potassium-containing fluids and high-potassium foods would worsen the imbalance."
+    },
+    {
+      "item_id": "NCLEX_SATA_401705", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Renal", "topic": "Hyperkalemia", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After administering IV insulin with dextrose for hyperkalemia, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor blood glucose for hypoglycemia", "correct": true},
+        {"text": "Maintain continuous cardiac monitoring", "correct": true},
+        {"text": "Recheck the serum potassium level", "correct": true},
+        {"text": "Administer a rapid potassium chloride IV push", "correct": false},
+        {"text": "Withhold all further monitoring until dialysis", "correct": false},
+        {"text": "Restrict the client to strict bed rest indefinitely", "correct": false}
+      ],
+      "rationale": "Insulin drives glucose and potassium into cells, so the nurse watches for hypoglycemia, continues cardiac monitoring, and rechecks potassium. Giving potassium or stopping monitoring would be unsafe."
+    },
+    {
+      "item_id": "NCLEX_SATA_401706", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Renal", "topic": "Hyperkalemia", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment for hyperkalemia has been effective? Select all that apply.",
+      "options": [
+        {"text": "Muscle weakness has improved", "correct": true},
+        {"text": "T waves are less peaked and QRS is narrowing", "correct": true},
+        {"text": "Pulse increased to 72 with resolved palpitations", "correct": true},
+        {"text": "Serum potassium remains 7.2 mEq/L", "correct": false},
+        {"text": "Deep tendon reflexes remain absent", "correct": false}
+      ],
+      "rationale": "Improved strength, normalizing ECG, and a return to a normal heart rate show the potassium is falling and cardiac stability is restored. A persistently high potassium or absent reflexes would signal ongoing hyperkalemia."
+    }
+  ]
+}

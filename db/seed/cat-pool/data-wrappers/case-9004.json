@@ -1,0 +1,133 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09004",
+  "title": "COPD Exacerbation",
+  "scenario": "A 64-year-old male with a 40 pack-year smoking history and known COPD presents to the emergency department with a 4-day history of worsening shortness of breath, increased sputum production, and wheezing.",
+  "tags": ["synthetic", "respiratory"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["09:00"], "lines": ["64-year-old male brought in by wife for 4 days of worsening dyspnea, productive cough with thick yellow-green sputum, and wheezing. Reports using his albuterol inhaler every 2 hours at home with little relief. Sitting in tripod position, using accessory muscles. Diffuse expiratory wheezes and prolonged expiration on auscultation. Pursed-lip breathing noted. Alert and oriented x3."], "visibleFrom": 1},
+        {"chips": ["09:20"], "lines": ["IV access obtained. Labs, ABG, and chest x-ray ordered. Cardiac monitor and continuous pulse oximetry applied. O2 started at 2L per nasal cannula, titrate to SpO2 88-92%."], "visibleFrom": 2},
+        {"chips": ["10:00"], "lines": ["Nebulized ipratropium-albuterol and IV methylprednisolone administered per order. Client encouraged to use pursed-lip breathing."], "visibleFrom": 5},
+        {"chips": ["12:00"], "lines": ["Reports breathing is easier. Wheezing diminished, expiration less prolonged. Accessory-muscle use decreased. Speaking in full sentences."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["09:00", "100.8 F (38.2 C)", "112", "32", "148/88", "84% on RA"],
+        ["09:20", "100.8 F (38.2 C)", "108", "30", "146/86", "89% on 2L NC"],
+        ["12:00", "99.6 F (37.6 C)", "92", "22", "134/80", "91% on 2L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["pH", "7.31", "7.35-7.45"],
+        ["PaCO2", "58", "35-45 mmHg"],
+        ["PaO2", "56", "80-100 mmHg"],
+        ["HCO3", "29", "22-26 mEq/L"],
+        ["WBC", "14.2", "4.5-11.0 x10^9/L"],
+        ["Potassium", "3.6", "3.5-5.0 mEq/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Tiotropium 18 mcg inhaled daily", "Albuterol MDI 2 puffs every 4-6 hours PRN", "Fluticasone-salmeterol inhaled twice daily"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Titrate oxygen to maintain SpO2 88-92%", "Nebulized ipratropium-albuterol every 4 hours", "Methylprednisolone 125 mg IV now", "Empiric azithromycin per protocol", "Continuous pulse oximetry and cardiac monitoring", "Encourage pursed-lip breathing", "Notify provider for SpO2 < 88% or rising drowsiness"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_400401", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "COPD", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "SpO2 84% on room air", "correct": true},
+        {"text": "Respiratory rate 32 with accessory-muscle use", "correct": true},
+        {"text": "Thick yellow-green sputum", "correct": true},
+        {"text": "Diffuse expiratory wheezes", "correct": true},
+        {"text": "Pursed-lip breathing", "correct": false},
+        {"text": "Alert and oriented x3", "correct": false}
+      ],
+      "rationale": "Hypoxia, tachypnea with accessory-muscle use, purulent sputum, and wheezing all signal an acute COPD exacerbation with impaired gas exchange and require prompt intervention. Pursed-lip breathing is an appropriate compensatory technique."
+    },
+    {
+      "item_id": "NCLEX_MMR_400402", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Acid-base balance", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it is consistent with respiratory acidosis, infection, or both. Each finding may support more than one.",
+      "columns": ["Respiratory acidosis", "Infection"],
+      "rows": [
+        {"text": "pH 7.31", "answers": [0]},
+        {"text": "PaCO2 58 mmHg", "answers": [0]},
+        {"text": "WBC 14.2 x10^9/L", "answers": [1]},
+        {"text": "Temperature 100.8 F with purulent sputum", "answers": [1]}
+      ],
+      "rationale": "A low pH with an elevated PaCO2 indicates respiratory acidosis from CO2 retention. Leukocytosis, fever, and purulent sputum point to an infectious trigger of the exacerbation."
+    },
+    {
+      "item_id": "NCLEX_CLZ_400403", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "COPD", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the priority initial intervention is {2}.",
+      "blanks": [
+        {"choices": [{"text": "impaired gas exchange", "correct": true}, {"text": "activity intolerance"}, {"text": "risk for infection"}]},
+        {"choices": [{"text": "titrate oxygen to a target SpO2 of 88-92%", "correct": true}, {"text": "apply a 100% non-rebreather mask", "correct": false}, {"text": "restrict oral fluids", "correct": false}]}
+      ],
+      "rationale": "Impaired gas exchange is the most immediate threat, shown by hypoxia and hypercapnia. Controlled low-flow oxygen titrated to 88-92% corrects hypoxemia without blunting the hypoxic respiratory drive that high-flow oxygen would suppress."
+    },
+    {
+      "item_id": "NCLEX_MAT_400404", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "COPD", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer nebulized ipratropium-albuterol", "answer": 0},
+        {"text": "Administer IV corticosteroids", "answer": 0},
+        {"text": "Deliver oxygen at 6L to reach SpO2 100%", "answer": 1},
+        {"text": "Position the client upright in high Fowler's", "answer": 0},
+        {"text": "Administer a sedative for restlessness", "answer": 1}
+      ],
+      "rationale": "Bronchodilators, corticosteroids, and upright positioning treat the exacerbation. High-flow oxygen targeting 100% risks suppressing the hypoxic drive and CO2 narcosis, and sedatives depress the respiratory drive, so both are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_400405", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Respiratory", "topic": "Bronchodilators", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After starting the ordered treatments, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor heart rate for tachycardia after the bronchodilator", "correct": true},
+        {"text": "Reassess SpO2 and titrate oxygen to 88-92%", "correct": true},
+        {"text": "Monitor blood glucose after IV corticosteroids", "correct": true},
+        {"text": "Increase oxygen to keep SpO2 at 100%", "correct": false},
+        {"text": "Hold all oral fluids", "correct": false}
+      ],
+      "rationale": "Beta-agonists can cause tachycardia, oxygen must stay in the 88-92% target, and corticosteroids raise blood glucose, so all three are monitored. Targeting 100% oxygen and withholding fluids are not indicated and can be harmful."
+    },
+    {
+      "item_id": "NCLEX_SATA_400406", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "COPD", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Respiratory rate decreased to 22", "correct": true},
+        {"text": "SpO2 improved to 91% on 2L", "correct": true},
+        {"text": "Wheezing diminished", "correct": true},
+        {"text": "Speaking in full sentences", "correct": true},
+        {"text": "Increasing drowsiness", "correct": false}
+      ],
+      "rationale": "A lower respiratory rate, improved oxygenation within the target range, reduced wheezing, and the ability to speak in full sentences all show the exacerbation is resolving. Increasing drowsiness would suggest worsening CO2 retention, not improvement."
+    }
+  ]
+}

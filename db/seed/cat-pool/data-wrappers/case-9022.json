@@ -1,0 +1,133 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09022",
+  "title": "Bacterial Meningitis",
+  "scenario": "A 19-year-old male college student presents to the emergency department with a severe headache, high fever, neck stiffness, and increasing sensitivity to light that began over the past 12 hours.",
+  "tags": ["synthetic", "neurologic", "infection"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["19-year-old male brought in by roommate for severe headache, fever, and stiff neck for 12 hours. Reports nausea and photophobia; keeps room lights off. Lives in a college dormitory. Nuchal rigidity present. Positive Kernig and Brudzinski signs. Alert but irritable and drowsy, oriented x3. No rash noted at this time."], "visibleFrom": 1},
+        {"chips": ["10:20"], "lines": ["IV access obtained. Blood cultures drawn. Provider notified; droplet precautions initiated. Head CT and lumbar puncture ordered. Client placed in a quiet, dimly lit room."], "visibleFrom": 2},
+        {"chips": ["11:15"], "lines": ["Lumbar puncture performed after CT cleared. Cloudy CSF obtained and sent to lab. IV ceftriaxone and dexamethasone administered per order. Acetaminophen given for fever."], "visibleFrom": 5},
+        {"chips": ["16:00"], "lines": ["Reports headache is less intense. Temperature down to 100.2 F. Neck remains mildly stiff but photophobia improved. More alert, less irritable. Tolerating small sips of fluids."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "103.1 F (39.5 C)", "118", "24", "104/62", "96% on RA"],
+        ["10:20", "103.0 F (39.4 C)", "116", "24", "106/64", "97% on RA"],
+        ["11:15", "102.4 F (39.1 C)", "110", "22", "110/68", "98% on RA"],
+        ["16:00", "100.2 F (37.9 C)", "88", "18", "118/74", "98% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 5, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["WBC (blood)", "19.8", "5.0-10.0 x10^3/uL"],
+        ["CSF WBC", "2200", "0-5 cells/uL"],
+        ["CSF protein", "185", "15-45 mg/dL"],
+        ["CSF glucose", "28", "40-70 mg/dL"],
+        ["CSF appearance", "Cloudy", "Clear"],
+        ["Serum glucose", "96", "70-100 mg/dL"]
+      ],
+      "rowVisibleFrom": [2, 5, 5, 5, 5, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["No home medications", "No known drug allergies"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Initiate droplet precautions", "Blood cultures x2 before antibiotics", "Head CT, then lumbar puncture for CSF analysis", "Ceftriaxone 2 g IV every 12 hours", "Dexamethasone 10 mg IV every 6 hours", "Acetaminophen 650 mg PO for temperature > 101 F", "IV fluids: 0.9% normal saline at 100 mL/hr", "Neurologic checks every 2 hours", "Maintain quiet, low-stimulation environment"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_402201", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurologic", "topic": "Bacterial meningitis", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Nuchal rigidity", "correct": true},
+        {"text": "Temperature 103.1 F", "correct": true},
+        {"text": "Photophobia", "correct": true},
+        {"text": "Positive Kernig and Brudzinski signs", "correct": true},
+        {"text": "Oriented x3", "correct": false},
+        {"text": "SpO2 96% on room air", "correct": false}
+      ],
+      "rationale": "Nuchal rigidity, high fever, photophobia, and positive meningeal signs are classic indicators of meningeal irritation and require prompt intervention. Normal orientation and oxygenation are reassuring."
+    },
+    {
+      "item_id": "NCLEX_MMR_402202", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Medical-Surgical", "body_system": "Neurologic", "topic": "Bacterial meningitis", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each CSF finding, click to specify whether it is consistent with bacterial meningitis, viral meningitis, or both. Each finding may support more than one.",
+      "columns": ["Bacterial", "Viral"],
+      "rows": [
+        {"text": "Cloudy CSF appearance", "answers": [0]},
+        {"text": "Markedly elevated CSF protein (185 mg/dL)", "answers": [0]},
+        {"text": "Low CSF glucose (28 mg/dL)", "answers": [0]},
+        {"text": "Elevated CSF white blood cell count", "answers": [0, 1]}
+      ],
+      "rationale": "Bacterial meningitis produces cloudy CSF, high protein, and low glucose from bacterial consumption. Both bacterial and viral processes raise the CSF WBC count, though bacterial elevations are typically higher and neutrophil-predominant."
+    },
+    {
+      "item_id": "NCLEX_CLZ_402203", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control", "subject": "Medical-Surgical", "body_system": "Neurologic", "topic": "Bacterial meningitis", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority action for this client is to {1}.",
+      "blanks": [
+        {"choices": [{"text": "initiate droplet precautions and start prompt antibiotic therapy", "correct": true}, {"text": "encourage bright lighting for frequent neurologic checks"}, {"text": "delay antibiotics until all culture results return"}]}
+      ],
+      "rationale": "Suspected bacterial meningitis is a medical emergency: droplet precautions protect others while early antibiotics after cultures reduce mortality and complications. Bright lighting worsens photophobia, and antibiotics should not be delayed for final cultures."
+    },
+    {
+      "item_id": "NCLEX_MAT_402204", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurologic", "topic": "Bacterial meningitis", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Maintain a quiet, dimly lit environment", "answer": 0},
+        {"text": "Perform neurologic assessments every 2 hours", "answer": 0},
+        {"text": "Position the head of bed flat and encourage neck flexion exercises", "answer": 1},
+        {"text": "Administer IV antibiotics as ordered", "answer": 0},
+        {"text": "Cluster loud stimulating activities to promote alertness", "answer": 1}
+      ],
+      "rationale": "A low-stimulation environment, frequent neuro checks, and prompt antibiotics support recovery and detect deterioration. Neck flexion and clustered loud stimulation increase intracranial pressure and pain and are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_402205", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control", "subject": "Medical-Surgical", "body_system": "Neurologic", "topic": "Bacterial meningitis", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "Which actions should the nurse take when caring for this client? Select all that apply.",
+      "options": [
+        {"text": "Maintain droplet precautions", "correct": true},
+        {"text": "Administer IV antibiotics as scheduled", "correct": true},
+        {"text": "Monitor neurologic status and level of consciousness", "correct": true},
+        {"text": "Keep the room brightly lit at all times", "correct": false},
+        {"text": "Encourage vigorous ambulation in the hallway", "correct": false}
+      ],
+      "rationale": "Droplet precautions, timely antibiotics, and ongoing neurologic monitoring are essential in bacterial meningitis. Bright lighting aggravates photophobia and vigorous activity increases stimulation and intracranial pressure."
+    },
+    {
+      "item_id": "NCLEX_SATA_402206", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurologic", "topic": "Bacterial meningitis", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Temperature decreased to 100.2 F", "correct": true},
+        {"text": "Headache reported as less intense", "correct": true},
+        {"text": "Photophobia improved", "correct": true},
+        {"text": "Client is more alert and less irritable", "correct": true},
+        {"text": "Pulse increased to 118", "correct": false}
+      ],
+      "rationale": "Falling fever, decreased headache and photophobia, and improved alertness show the infection and meningeal irritation are resolving. A rising pulse would suggest worsening rather than improvement."
+    }
+  ]
+}
