@@ -25,6 +25,7 @@ import type { McqContent, McqCorrect } from '@/lib/bank/types';
 import type { McqAnswer } from '@/lib/scoring';
 import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc } from '@/lib/authoring/rich-doc';
+import { optionLetter } from '../option-order';
 
 type McqRunnerProps = {
   content: McqContent;
@@ -53,7 +54,7 @@ export function McqRunner(props: McqRunnerProps) {
 
   return (
     <div className="rn-options" role={isReview ? undefined : 'radiogroup'}>
-      {content.options.map((opt) => {
+      {content.options.map((opt, i) => {
         const isCorrectOpt = isReview && opt.id === props.correct.answer;
         const isStudentOpt = isReview && opt.id === props.studentAnswer;
         const isSelected   = !isReview && props.selected === opt.id;
@@ -84,7 +85,7 @@ export function McqRunner(props: McqRunnerProps) {
             onClick={isReview ? undefined : () => props.onChange(opt.id)}
             aria-pressed={!isReview && isSelected ? true : undefined}
           >
-            <span className="rn-opt-letter" aria-hidden="true">{opt.id}</span>
+            <span className="rn-opt-letter" aria-hidden="true">{optionLetter(i)}</span>
 
             <div className="rn-opt-body">
               <div><RichRender doc={parseRichDoc(opt.text)} inline /></div>

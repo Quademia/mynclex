@@ -23,6 +23,7 @@ import type { SataContent, SataCorrect } from '@/lib/bank/types';
 import type { SataAnswer } from '@/lib/scoring';
 import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc } from '@/lib/authoring/rich-doc';
+import { optionLetter } from '../option-order';
 
 type SataRunnerProps = {
   content: SataContent;
@@ -66,7 +67,7 @@ export function SataRunner(props: SataRunnerProps) {
 
   return (
     <div className="rn-options" role={isReview ? undefined : 'group'}>
-      {content.options.map((opt) => {
+      {content.options.map((opt, i) => {
         const isPicked  = studentSet.has(opt.id);
         const isCorrect = correctSet?.has(opt.id) ?? false;
 
@@ -93,7 +94,7 @@ export function SataRunner(props: SataRunnerProps) {
             onClick={isReview ? undefined : () => toggle(opt.id)}
             aria-pressed={!isReview ? isPicked : undefined}
           >
-            <span className="rn-opt-letter" aria-hidden="true">{opt.id}</span>
+            <span className="rn-opt-letter" aria-hidden="true">{optionLetter(i)}</span>
 
             <div className="rn-opt-body">
               <div><RichRender doc={parseRichDoc(opt.text)} inline /></div>

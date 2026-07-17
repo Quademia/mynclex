@@ -97,6 +97,7 @@ import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc } from '@/lib/authoring/rich-doc';
 import { bankImageRenderer } from '@/lib/authoring/bank-image-render';
 import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
+import { orderedOptions } from '@/lib/practice/runner/option-order';
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   MCQ:       'Multiple choice',
@@ -232,7 +233,11 @@ function PerTypeRunner(props: Props) {
 
   switch (item.question_type) {
     case 'MCQ': {
-      const content = item.content_snapshot_json as unknown as McqContent;
+      const raw = item.content_snapshot_json as unknown as McqContent;
+      const content: McqContent = {
+        ...raw,
+        options: orderedOptions(raw.options, item.option_order_json),
+      };
 
       if (props.itemMode === 'answering') {
         return (
@@ -280,7 +285,11 @@ function PerTypeRunner(props: Props) {
     }
 
     case 'SATA': {
-      const content = item.content_snapshot_json as unknown as SataContent;
+      const raw = item.content_snapshot_json as unknown as SataContent;
+      const content: SataContent = {
+        ...raw,
+        options: orderedOptions(raw.options, item.option_order_json),
+      };
 
       if (props.itemMode === 'answering') {
         return (
@@ -304,7 +313,11 @@ function PerTypeRunner(props: Props) {
     }
 
     case 'SELECT_N': {
-      const content = item.content_snapshot_json as unknown as SelectNContent;
+      const raw = item.content_snapshot_json as unknown as SelectNContent;
+      const content: SelectNContent = {
+        ...raw,
+        options: orderedOptions(raw.options, item.option_order_json),
+      };
 
       if (props.itemMode === 'answering') {
         return (
