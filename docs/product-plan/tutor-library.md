@@ -1331,6 +1331,31 @@ turned out painful) — now treated as **v1**, with the
 markdown-fallback escape hatch still available for the whole editor
 if cost runs over.
 
+### Option shuffle — the embed player runs its OWN (option B, planned)
+
+The runtime **option shuffle** shipped for the main question bank on
+2026-07-17 (see `bank-consumption-cat.html` §19) — it presents option-list
+answers in a randomised per-sitting order so authored content can't be gamed
+by "the answer is usually A". **The embed player does NOT inherit it.** Both
+halves of that fix are bolted to the *attempt* pipeline: the generate half is
+a `BEFORE INSERT` trigger on `nclex_attempt_items`, and the apply half lives
+in the attempt runner's dispatcher (`runner-question-area.tsx`). The embed
+player is a separate, lighter path — it reads bank `content` live in
+`loadEmbedBlock` and logs answers to `nclex_library_embed_answers`, never
+touching `nclex_attempt_items` — so the trigger never fires and the shared
+runner components (which don't shuffle themselves — they render whatever the
+caller hands them) receive options in authored order.
+
+**Decision (Sam, 2026-07-17): option B — keep the embed player OFF the
+attempts table** (its separation from `nclex_attempt_items` is deliberate; see
+the `nclex_library_embed_answers` append-only design) **and give it its own
+small shuffle step.** Shape: generate a per-play display order (a `play_id` is
+already minted on Start — seed the order on `play_id` + `item_id`), apply the
+same `orderedOptions()` reorder in the embed renderer for answering + review,
+and keep scoring by option id (unchanged). Covers the three shuffleable types
+the player supports today (MCQ / SATA / SELECT_N; TF excluded); extends to any
+new types the player gains later. **Status: planned, not built.**
+
 ### Mechanics
 
 A note's body can include `embedded_questions` blocks (note the
