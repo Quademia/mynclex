@@ -1331,7 +1331,7 @@ turned out painful) — now treated as **v1**, with the
 markdown-fallback escape hatch still available for the whole editor
 if cost runs over.
 
-### Option shuffle — the embed player runs its OWN (option B, planned)
+### Option shuffle — the embed player runs its OWN (option B, ✅ BUILT 2026-07-17)
 
 The runtime **option shuffle** shipped for the main question bank on
 2026-07-17 (see `bank-consumption-cat.html` §19) — it presents option-list
@@ -1349,12 +1349,18 @@ caller hands them) receive options in authored order.
 **Decision (Sam, 2026-07-17): option B — keep the embed player OFF the
 attempts table** (its separation from `nclex_attempt_items` is deliberate; see
 the `nclex_library_embed_answers` append-only design) **and give it its own
-small shuffle step.** Shape: generate a per-play display order (a `play_id` is
-already minted on Start — seed the order on `play_id` + `item_id`), apply the
-same `orderedOptions()` reorder in the embed renderer for answering + review,
-and keep scoring by option id (unchanged). Covers the three shuffleable types
-the player supports today (MCQ / SATA / SELECT_N; TF excluded); extends to any
-new types the player gains later. **Status: planned, not built.**
+small shuffle step.** **BUILT 2026-07-17** (migration `20260807120000` adds
+`option_order_json` to `nclex_library_embed_answers`): the display order is a
+deterministic permutation seeded on `play_id` + `item_id` via the shared
+`embedOptionOrder()` / `seededOptionOrder()` helpers in
+`lib/practice/runner/option-order.ts`. The client (`embed-player.tsx`) computes
+it to render (answering + inline + past-sitting review, via `withOptionOrder()`);
+`submitEmbedAnswer` re-derives the SAME order server-side and persists it, so a
+past sitting replays exactly what the student saw (independent of the algorithm)
+and it extends cleanly to future types. Honours the per-item `shuffle_options`
+flag; scoring stays by option id. Covers the three shuffleable types the player
+supports today (MCQ / SATA / SELECT_N; TF excluded); NULL order = authored order
+(pre-migration rows, TF, opt-out). Verified live end-to-end. NOT yet on prod.
 
 ### Mechanics
 

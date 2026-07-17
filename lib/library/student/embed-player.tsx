@@ -33,6 +33,7 @@ import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc } from '@/lib/authoring/rich-doc';
 import { bankImageRenderer } from '@/lib/authoring/bank-image-render';
 import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
+import { embedOptionOrder, withOptionOrder } from '@/lib/practice/runner/option-order';
 import { getEmbedStemImageUrlAction } from './embed-image-actions';
 import type { BankItemAnswer } from '@/lib/scoring';
 import type {
@@ -418,7 +419,12 @@ function EmbedPlayerRun({
 
         <PerTypeRunner
           questionType={q.questionType}
-          content={q.content}
+          content={withOptionOrder(
+            q.content,
+            playId
+              ? embedOptionOrder(q.questionType, q.content, q.shuffleOptions, playId, q.itemId)
+              : null,
+          )}
           answer={answer}
           onChange={setAnswer}
           review={review}
@@ -526,7 +532,7 @@ function ReviewPlay({
 
         <PerTypeRunner
           questionType={rq.questionType}
-          content={rq.content}
+          content={withOptionOrder(rq.content, rq.optionOrder)}
           answer={rq.studentAnswer as BankItemAnswer}
           onChange={() => {}}
           review={reviewObj}

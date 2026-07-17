@@ -27,6 +27,13 @@ import { scoreAttempt, type BankItemAnswer } from '@/lib/scoring';
 import type { QuestionType } from '@/lib/bank/classifications';
 import type { BankItemCorrect } from '@/lib/bank/types';
 import { EMBED_QUESTION_TYPES, type EmbedQuestionType } from '../types';
+// The embed player runs its OWN option shuffle (option B) — it never touches
+// nclex_attempt_items, so the attempt-side trigger can't reach it. The display
+// order is a deterministic permutation seeded on (play_id, item_id): the client
+// computes it to render, and submitEmbedAnswer re-derives the SAME order here to
+// persist (shared helper = identical result), so review replays exactly what the
+// student saw.
+import { embedOptionOrder } from '@/lib/practice/runner/option-order';
 
 const EMBED_TYPE_SET = new Set<string>(EMBED_QUESTION_TYPES);
 
@@ -39,6 +46,9 @@ export type EmbedPlayQuestion = {
   /** McqContent / SataContent / … — answerable options only, NO key. */
   content: unknown;
   marks: number;
+  /** Whether this question's options shuffle (the tutor's per-item flag). The
+   *  client seeds the display order on play_id + item_id when true. */
+  shuffleOptions: boolean;
   /** How many times this student has answered this question (any sitting). */
   priorAttempts: number;
   /** The most recent attempt's verdict, or null if never answered. */
@@ -80,6 +90,8 @@ export type EmbedReviewQuestion = {
   studentAnswer: unknown;
   isCorrect: boolean;
   scoreAwarded: number;
+  /** The display order the student saw (option shuffle). NULL = authored order. */
+  optionOrder: unknown;
 };
 
 export type EmbedSubmitResult =
@@ -144,7 +156,7 @@ export async function loadEmbedBlock(
   const admin = createServiceRoleClient();
   const { data: qRows } = await admin
     .from('nclex_tutor_questions')
-    .select('item_id, question_type, stem, instruction, content, marks')
+    .select('item_id, question_type, stem, instruction, content, marks, shuffle_options')
     .in('item_id', block.itemIds);
 
   const byId = new Map(
@@ -157,6 +169,7 @@ export async function loadEmbedBlock(
         instruction: string | null;
         content: unknown;
         marks: number;
+        shuffle_options: boolean;
       },
     ]),
   );
@@ -222,6 +235,7 @@ export async function loadEmbedBlock(
       instruction: q.instruction ?? null,
       content: q.content,
       marks: Number(q.marks),
+      shuffleOptions: q.shuffle_options !== false,
       priorAttempts: h?.count ?? 0,
       lastCorrect: h ? h.lastCorrect : null,
     });
@@ -246,7 +260,7 @@ export async function loadEmbedPlayReview(
   const { data, error } = await supabase
     .from('nclex_library_embed_answers')
     .select(
-      'item_id, question_type, stem_snapshot, instruction_snapshot, content_snapshot_json, correct_answer_snapshot_json, rationale_snapshot, rationale_img_snapshot, marks_snapshot, answer_json, is_correct, score_awarded',
+      'item_id, question_type, stem_snapshot, instruction_snapshot, content_snapshot_json, correct_answer_snapshot_json, rationale_snapshot, rationale_img_snapshot, marks_snapshot, answer_json, is_correct, score_awarded, option_order_json',
     )
     .eq('note_id', noteId)
     .eq('block_id', blockId)
@@ -269,6 +283,7 @@ export async function loadEmbedPlayReview(
       answer_json: unknown;
       is_correct: boolean;
       score_awarded: number;
+      option_order_json: unknown;
     };
     return {
       itemId: r.item_id,
@@ -283,6 +298,7 @@ export async function loadEmbedPlayReview(
       studentAnswer: r.answer_json,
       isCorrect: r.is_correct,
       scoreAwarded: r.score_awarded,
+      optionOrder: r.option_order_json ?? null,
     } satisfies EmbedReviewQuestion;
   });
 }
@@ -323,7 +339,7 @@ export async function submitEmbedAnswer(args: {
   const { data: q, error: qErr } = await admin
     .from('nclex_tutor_questions')
     .select(
-      'item_id, question_type, stem, instruction, content, correct, rationale, rationale_img, marks',
+      'item_id, question_type, stem, instruction, content, correct, rationale, rationale_img, marks, shuffle_options',
     )
     .eq('item_id', itemId)
     .maybeSingle();
@@ -338,16 +354,28 @@ export async function submitEmbedAnswer(args: {
     rationale: string | null;
     rationale_img: string | null;
     marks: number;
+    shuffle_options: boolean;
   };
   if (!EMBED_TYPE_SET.has(question.question_type)) {
     return { ok: false, error: 'Unsupported question type.' };
   }
 
-  // 3. Grade server-side (reuses the runner's scorer).
+  // 3. Grade server-side (reuses the runner's scorer). Scoring keys on option
+  //    id, so the display shuffle below never affects the grade.
   const result = scoreAttempt(
     question.question_type as QuestionType,
     question.correct as BankItemCorrect,
     args.answer,
+  );
+
+  // 3b. Re-derive the exact display order the client showed (deterministic on
+  //     play_id + item_id) and freeze it into the snapshot so review replays it.
+  const optionOrder = embedOptionOrder(
+    question.question_type,
+    question.content,
+    question.shuffle_options !== false,
+    args.playId,
+    itemId,
   );
 
   // 4. Append the snapshotted history row (student client — RLS enforces
@@ -372,6 +400,7 @@ export async function submitEmbedAnswer(args: {
       rationale_snapshot: question.rationale ?? null,
       rationale_img_snapshot: question.rationale_img ?? null,
       marks_snapshot: question.marks,
+      option_order_json: optionOrder,
     });
   if (insErr) return { ok: false, error: 'Could not save your answer.' };
 
