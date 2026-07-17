@@ -1,10 +1,11 @@
-# Phase 2 (CAT wrapper seed) — resume notes
+# Phase 2 (CAT wrapper seed) — COMPLETE ✅
 
-**State at last checkpoint (2026-07-16):** Phase 2 authoring is COMPLETE and
-committed — 36 case studies + 30 trend datasets = 276 questions in
-`data-wrappers/*.json` (validated, 0 errors). The **dev insert was in progress**
-and may have been interrupted by the session limit. At last check: 34/36 cases,
-204 case children, 7/30 trends, 14 trend questions applied to dev.
+**Finished + verified in dev 2026-07-17.** All 66 wrappers applied:
+**36 case studies (216 children) + 30 trend datasets (60 questions)** in dev,
+tagged `CATPREP`. Verified: every case has exactly 6 CJMM children, 0 bad marks.
+Total CAT test pool (Phase 1 + 2) = **2,087 items**.
+
+The rest of this file is kept as a runbook (rebuild / verify / rollback).
 
 Everything is idempotent (`ON CONFLICT DO NOTHING`), so re-running is safe.
 
