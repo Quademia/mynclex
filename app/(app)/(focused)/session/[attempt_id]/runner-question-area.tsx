@@ -417,7 +417,15 @@ function PerTypeRunner(props: Props) {
     }
 
     case 'CLOZE': {
-      const content = item.content_snapshot_json as unknown as ClozeContent;
+      const raw = item.content_snapshot_json as unknown as ClozeContent;
+      const order = (item.option_order_json ?? {}) as Record<string, unknown>;
+      const content: ClozeContent = {
+        ...raw,
+        blanks: raw.blanks.map((b) => ({
+          ...b,
+          choices: orderedOptions(b.choices, order[b.id]),
+        })),
+      };
 
       if (props.itemMode === 'answering') {
         return (
@@ -507,7 +515,14 @@ function PerTypeRunner(props: Props) {
     }
 
     case 'BOWTIE': {
-      const content = item.content_snapshot_json as unknown as BowtieContent;
+      const raw = item.content_snapshot_json as unknown as BowtieContent;
+      const order = (item.option_order_json ?? {}) as Record<string, unknown>;
+      const content: BowtieContent = {
+        ...raw,
+        left:   { ...raw.left,   tokens: orderedOptions(raw.left.tokens,   order.left) },
+        centre: { ...raw.centre, tokens: orderedOptions(raw.centre.tokens, order.centre) },
+        right:  { ...raw.right,  tokens: orderedOptions(raw.right.tokens,  order.right) },
+      };
       const emptyBowtieAnswer: BowtieAnswer = { left: [], centre: null, right: [] };
 
       if (props.itemMode === 'answering') {
