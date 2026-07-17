@@ -1,0 +1,134 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09036",
+  "title": "Increased Intracranial Pressure",
+  "scenario": "A 24-year-old male is brought to the emergency department after a motor-vehicle collision with a closed head injury. Over the next hour the nurse notes a worsening level of consciousness and a widening pulse pressure.",
+  "tags": ["synthetic", "neuro"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["14:00"], "lines": ["24-year-old male brought in by EMS after high-speed MVC with airbag deployment and reported loss of consciousness at the scene. Complains of severe headache and nausea. Opens eyes to voice, follows simple commands, oriented to person only. Pupils equal at 3 mm, briskly reactive. Moving all extremities. C-collar in place."], "visibleFrom": 1},
+        {"chips": ["14:30"], "lines": ["Increasingly drowsy, now opens eyes only to painful stimulus and localises to pain. Vomited once. Reports headache is worsening. Right pupil now 5 mm and sluggish, left pupil 3 mm reactive. HOB elevated 30 degrees, head midline."], "visibleFrom": 2},
+        {"chips": ["15:00"], "lines": ["Provider notified of neurologic decline and pupil changes. STAT head CT and neurosurgery consult ordered. Mannitol prepared. Airway management discussed."], "visibleFrom": 5},
+        {"chips": ["16:15"], "lines": ["After mannitol and controlled ventilation, right pupil now 4 mm and reactive, left 3 mm reactive. Localises more purposefully and briefly opens eyes to voice. Urine output brisk. Remains intubated pending neurosurgery."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["14:00", "98.9 F (37.2 C)", "88", "18", "132/78", "97% on RA"],
+        ["14:30", "99.1 F (37.3 C)", "58", "12", "168/74", "95% on 4L NC"],
+        ["16:15", "99.0 F (37.2 C)", "72", "14", "140/80", "99% on ventilator"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Serum sodium", "141", "135-145 mEq/L"],
+        ["Serum osmolality", "292", "285-295 mOsm/kg"],
+        ["Glucose", "138", "70-110 mg/dL"],
+        ["PaCO2 (ABG)", "44", "35-45 mmHg"],
+        ["PaO2 (ABG)", "94", "80-100 mmHg"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["No home medications", "Allergies: none known"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Administer mannitol 1 g/kg IV over 20 minutes now", "Maintain head of bed elevated 30 degrees, head midline", "STAT non-contrast head CT", "Neurosurgery consult STAT", "Continuous neuro checks and pupil assessment every 15 minutes", "Maintain PaCO2 35-40 mmHg; prepare for intubation", "Insert indwelling urinary catheter, strict intake and output", "Notify provider for further decline in level of consciousness"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_403601", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Increased intracranial pressure", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings at 14:30 require immediate follow-up?",
+      "options": [
+        {"text": "Declining level of consciousness", "correct": true},
+        {"text": "Right pupil 5 mm and sluggish", "correct": true},
+        {"text": "Blood pressure 168/74 with pulse 58", "correct": true},
+        {"text": "Respiratory rate 12", "correct": true},
+        {"text": "Temperature 99.1 F", "correct": false},
+        {"text": "SpO2 95% on 4L nasal cannula", "correct": false}
+      ],
+      "rationale": "A falling level of consciousness, a newly enlarged sluggish pupil, widening pulse pressure with bradycardia, and slowed respirations are classic signs of rising intracranial pressure. A mildly elevated temperature and adequate SpO2 are less urgent."
+    },
+    {
+      "item_id": "NCLEX_MMR_403602", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Increased intracranial pressure", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects the Cushing's triad response, brainstem/herniation compression, or both. Each finding may reflect more than one.",
+      "columns": ["Cushing's triad", "Herniation/compression"],
+      "rows": [
+        {"text": "Blood pressure 168/74 (widening pulse pressure)", "answers": [0]},
+        {"text": "Pulse 58 (bradycardia)", "answers": [0]},
+        {"text": "Respiratory rate 12 (irregular, slowing)", "answers": [0]},
+        {"text": "Unilateral dilated sluggish pupil", "answers": [1]},
+        {"text": "Declining level of consciousness", "answers": [0, 1]}
+      ],
+      "rationale": "Widening pulse pressure, bradycardia, and irregular respirations are the three components of Cushing's triad. A unilateral blown pupil signals uncal herniation compressing cranial nerve III. A falling level of consciousness accompanies both."
+    },
+    {
+      "item_id": "NCLEX_CLZ_403603", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Increased intracranial pressure", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the most immediate goal is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "increased intracranial pressure from cerebral edema", "correct": true}, {"text": "acute pain from headache"}, {"text": "risk for infection"}]},
+        {"choices": [{"text": "lower intracranial pressure and preserve cerebral perfusion", "correct": true}, {"text": "promote comfort and rest"}, {"text": "restore fluid volume"}]}
+      ],
+      "rationale": "The clustered findings point to rising intracranial pressure from cerebral edema, which threatens brain perfusion; the priority goal is to reduce the pressure and protect cerebral perfusion before the deficit becomes irreversible."
+    },
+    {
+      "item_id": "NCLEX_MAT_403604", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Increased intracranial pressure", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for a client with increasing intracranial pressure.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Elevate the head of the bed 30 degrees with the head midline", "answer": 0},
+        {"text": "Administer IV mannitol as ordered", "answer": 0},
+        {"text": "Cluster nursing care and suctioning into long continuous sessions", "answer": 1},
+        {"text": "Place the client in the Trendelenburg position", "answer": 1},
+        {"text": "Maintain a calm, low-stimulation environment", "answer": 0}
+      ],
+      "rationale": "Midline head elevation, osmotic diuresis, and a low-stimulation environment promote venous drainage and lower intracranial pressure. Prolonged clustered stimulation and head-down positioning raise it and are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_403605", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Neurological", "topic": "Osmotic diuretics", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After administering IV mannitol, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor strict intake and output", "correct": true},
+        {"text": "Assess serum osmolality and electrolytes", "correct": true},
+        {"text": "Reassess neurologic status and pupils", "correct": true},
+        {"text": "Use an in-line filter for the infusion", "correct": true},
+        {"text": "Administer a rapid isotonic fluid bolus to prevent dehydration", "correct": false},
+        {"text": "Lay the client flat to improve cerebral blood flow", "correct": false}
+      ],
+      "rationale": "Mannitol causes brisk diuresis, so the nurse tracks output, osmolality, and electrolytes, filters the infusion for crystals, and reassesses neuro status for effect. A fluid bolus and flat positioning would counteract the goal of lowering intracranial pressure."
+    },
+    {
+      "item_id": "NCLEX_SATA_403606", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Increased intracranial pressure", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings at 16:15 indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Right pupil now 4 mm and reactive", "correct": true},
+        {"text": "Localises more purposefully and opens eyes to voice", "correct": true},
+        {"text": "Blood pressure 140/80 with pulse 72", "correct": true},
+        {"text": "Brisk urine output after mannitol", "correct": true},
+        {"text": "Persistent bradycardia at 58", "correct": false}
+      ],
+      "rationale": "Improving pupil size and reactivity, a rising level of consciousness, and normalising vital signs show intracranial pressure is falling. Brisk urine output is the expected mannitol effect. Persistent bradycardia would signal ongoing pressure, not improvement."
+    }
+  ]
+}

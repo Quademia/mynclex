@@ -1,0 +1,373 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_353001", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal care", "subtopic": "First-trimester screening", "bloom": "Analyze",
+    "stem": "A woman at 11 weeks gestation asks which screening will best estimate her risk for a fetus with Down syndrome at this visit. Which combination should the nurse identify as the appropriate first-trimester option?",
+    "options": [
+      {"text": "Nuchal translucency ultrasound with maternal serum PAPP-A and beta-hCG", "correct": true, "feedback": "Correct. Combined first-trimester screening pairs nuchal translucency with PAPP-A and beta-hCG at 11-13 weeks."},
+      {"text": "Maternal serum alpha-fetoprotein alone", "correct": false, "feedback": "Incorrect. MSAFP alone is a second-trimester test and screens for neural tube defects."},
+      {"text": "Amniocentesis for fetal karyotype", "correct": false, "feedback": "Incorrect. Amniocentesis is diagnostic and typically performed after 15 weeks, not first-line screening."},
+      {"text": "Quad screen of AFP, hCG, estriol, and inhibin A", "correct": false, "feedback": "Incorrect. The quad screen is a second-trimester screen (15-20 weeks)."}
+    ],
+    "rationale": "Combined first-trimester screening uses nuchal translucency plus PAPP-A and beta-hCG at 11-13 weeks."
+  },
+  {
+    "item_id": "NCLEX_MCQ_353002", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Postpartum education", "subtopic": "Breastfeeding", "bloom": "Apply",
+    "stem": "A postpartum client who is breastfeeding reports one breast has a firm, reddened, tender wedge-shaped area, and she feels feverish and achy. Which instruction should the nurse prioritize?",
+    "options": [
+      {"text": "Continue frequent breastfeeding or pumping on the affected side and contact the provider", "correct": true, "feedback": "Correct. Continued emptying plus provider evaluation manages mastitis; abrupt weaning worsens stasis."},
+      {"text": "Stop breastfeeding on the affected side until symptoms resolve", "correct": false, "feedback": "Incorrect. Stopping promotes milk stasis and worsens mastitis."},
+      {"text": "Apply tight binding to suppress milk production", "correct": false, "feedback": "Incorrect. Binding increases stasis and the risk of abscess."},
+      {"text": "Restrict fluids to reduce milk supply until the area softens", "correct": false, "feedback": "Incorrect. Fluid restriction does not treat mastitis and risks dehydration."}
+    ],
+    "rationale": "Mastitis is managed by continued emptying of the breast and provider evaluation for antibiotics; weaning worsens stasis."
+  },
+  {
+    "item_id": "NCLEX_MCQ_353003", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Growth and development", "subtopic": "Developmental milestones", "bloom": "Analyze",
+    "stem": "During a well-child visit, which finding in a 9-month-old should the nurse flag as needing further developmental evaluation rather than reassurance?",
+    "options": [
+      {"text": "Unable to sit without support and does not transfer objects hand to hand", "correct": true, "feedback": "Correct. By 9 months sitting unsupported and hand-to-hand transfer are expected; their absence warrants evaluation."},
+      {"text": "Shows stranger anxiety toward the nurse", "correct": false, "feedback": "Incorrect. Stranger anxiety is expected at this age."},
+      {"text": "Cannot yet stand alone without holding on", "correct": false, "feedback": "Incorrect. Standing alone is not expected until around 11-12 months."},
+      {"text": "Babbles repetitive consonant sounds like 'mama' nonspecifically", "correct": false, "feedback": "Incorrect. Nonspecific babbling is normal at 9 months."}
+    ],
+    "rationale": "Sitting unsupported and hand-to-hand transfer are expected by 9 months; their absence is a red flag."
+  },
+  {
+    "item_id": "NCLEX_MCQ_353004", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Immune", "topic": "Immunizations", "subtopic": "Contraindications", "bloom": "Analyze",
+    "stem": "A nurse reviews four children due for the MMR vaccine. Which child requires the provider to be notified before administration?",
+    "options": [
+      {"text": "A child receiving high-dose corticosteroids for nephrotic syndrome", "correct": true, "feedback": "Correct. Live vaccines are contraindicated with significant immunosuppression such as high-dose steroids."},
+      {"text": "A child with a mild upper respiratory infection and low-grade fever", "correct": false, "feedback": "Incorrect. Minor illness is not a contraindication."},
+      {"text": "A child whose sibling is receiving chemotherapy", "correct": false, "feedback": "Incorrect. A household contact's immunosuppression does not contraindicate MMR for a healthy child."},
+      {"text": "A child with a history of localized egg allergy causing hives", "correct": false, "feedback": "Incorrect. MMR is not contraindicated in egg allergy."}
+    ],
+    "rationale": "MMR is a live vaccine and is contraindicated in significantly immunosuppressed children such as those on high-dose corticosteroids."
+  },
+  {
+    "item_id": "NCLEX_MCQ_353005", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Older adult screening", "subtopic": "Preventive care", "bloom": "Evaluate",
+    "stem": "A 68-year-old woman asks which routine preventive screening she still needs. She had a normal colonoscopy 3 years ago and normal Pap tests through age 64. Which recommendation is most appropriate?",
+    "options": [
+      {"text": "Bone mineral density screening for osteoporosis", "correct": true, "feedback": "Correct. DXA screening is recommended for women 65 and older; she is due."},
+      {"text": "Repeat colonoscopy now", "correct": false, "feedback": "Incorrect. After a normal colonoscopy, the usual interval is 10 years."},
+      {"text": "Resume routine Pap testing", "correct": false, "feedback": "Incorrect. Cervical cancer screening can stop after 65 with adequate prior normal results."},
+      {"text": "Annual chest radiograph for lung cancer", "correct": false, "feedback": "Incorrect. Lung cancer screening uses low-dose CT and only for eligible smokers, not routine chest x-ray."}
+    ],
+    "rationale": "Osteoporosis DXA screening is recommended beginning at age 65 for women; colonoscopy and Pap intervals here are already met."
+  },
+  {
+    "item_id": "NCLEX_MCQ_353006", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Respiratory", "topic": "High-risk behavior education", "subtopic": "Smoking cessation", "bloom": "Apply",
+    "stem": "A client says, 'I've thought about quitting smoking and I'm planning to set a quit date next month.' Using the transtheoretical model, which nursing action best matches the client's stage?",
+    "options": [
+      {"text": "Help the client identify a specific quit date and coping strategies for triggers", "correct": true, "feedback": "Correct. Planning to act within a month is the preparation stage; concrete planning fits."},
+      {"text": "Provide facts about the risks of smoking to raise awareness", "correct": false, "feedback": "Incorrect. Awareness-raising fits precontemplation, which the client has passed."},
+      {"text": "Reinforce relapse-prevention strategies for maintenance", "correct": false, "feedback": "Incorrect. Maintenance applies after 6 months of abstinence."},
+      {"text": "Congratulate the client on successfully quitting", "correct": false, "feedback": "Incorrect. The client has not yet quit."}
+    ],
+    "rationale": "Intending to act within a month is the preparation stage, where concrete planning (quit date, coping strategies) is appropriate."
+  },
+  {
+    "item_id": "NCLEX_MCQ_353007", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Readiness to learn", "subtopic": "Barriers to learning", "bloom": "Analyze",
+    "stem": "A newly diagnosed diabetic client is scheduled for insulin teaching but is tearful and says, 'I can't believe this is happening to me.' Which nursing action is most appropriate first?",
+    "options": [
+      {"text": "Acknowledge the client's feelings and defer detailed teaching until readiness improves", "correct": true, "feedback": "Correct. Emotional distress is a barrier to learning; addressing it precedes content teaching."},
+      {"text": "Proceed with the insulin demonstration to use the scheduled time", "correct": false, "feedback": "Incorrect. Distress blocks retention; teaching now will be ineffective."},
+      {"text": "Provide written pamphlets and leave the client to read", "correct": false, "feedback": "Incorrect. This ignores the emotional barrier and readiness."},
+      {"text": "Tell the client that many people manage diabetes well and begin teaching", "correct": false, "feedback": "Incorrect. This offers false reassurance and dismisses feelings."}
+    ],
+    "rationale": "Emotional distress is a barrier to learning; the nurse addresses readiness before delivering content."
+  },
+  {
+    "item_id": "NCLEX_MCQ_353008", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Antepartum care", "subtopic": "Nutrition education", "bloom": "Apply",
+    "stem": "A woman at 8 weeks gestation with a normal BMI asks about weight gain and nutrition. Which statement indicates she needs further teaching?",
+    "options": [
+      {"text": "'I should eat for two, roughly doubling my calories now.'", "correct": true, "feedback": "Correct. This is a misconception; only about 340-450 extra calories are needed and not in the first trimester."},
+      {"text": "'A total weight gain of about 25 to 35 pounds is expected for me.'", "correct": false, "feedback": "Incorrect. This is the recommended range for a normal BMI."},
+      {"text": "'I need adequate folic acid to help prevent neural tube defects.'", "correct": false, "feedback": "Incorrect. This is accurate."},
+      {"text": "'I should avoid undercooked meats and unpasteurized cheese.'", "correct": false, "feedback": "Incorrect. This correctly reduces Listeria and Toxoplasma risk."}
+    ],
+    "rationale": "'Eating for two' is a myth; pregnancy adds only about 340-450 kcal/day in later trimesters."
+  },
+  {
+    "item_id": "NCLEX_MCQ_353009", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Musculoskeletal", "topic": "Newborn assessment", "subtopic": "Hip screening", "bloom": "Analyze",
+    "stem": "During a newborn assessment the nurse notes asymmetric thigh skinfolds and a palpable clunk when the hips are abducted. Which action is most appropriate?",
+    "options": [
+      {"text": "Report the finding as a positive Ortolani sign suggesting hip dysplasia", "correct": true, "feedback": "Correct. A clunk on abduction (Ortolani) with asymmetric folds indicates developmental dysplasia of the hip and requires referral."},
+      {"text": "Document it as a normal newborn variant needing no follow-up", "correct": false, "feedback": "Incorrect. These are abnormal findings requiring evaluation."},
+      {"text": "Reassure the parents the finding resolves with tight swaddling", "correct": false, "feedback": "Incorrect. Tight swaddling with extended legs worsens hip dysplasia."},
+      {"text": "Apply gentle traction and recheck in one week", "correct": false, "feedback": "Incorrect. This delays needed orthopedic referral."}
+    ],
+    "rationale": "A positive Ortolani (clunk on abduction) with asymmetric skinfolds indicates developmental hip dysplasia and warrants referral."
+  },
+  {
+    "item_id": "NCLEX_MCQ_353010", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Adolescent health", "subtopic": "Confidentiality", "bloom": "Apply",
+    "stem": "A 16-year-old comes to the clinic and asks to be seen without a parent present to discuss contraception. Which nursing response best supports adolescent health promotion?",
+    "options": [
+      {"text": "Provide confidential counseling while explaining the limits of confidentiality", "correct": true, "feedback": "Correct. Adolescents can generally access confidential reproductive care; explaining limits builds trust."},
+      {"text": "Require a parent to be present before any discussion", "correct": false, "feedback": "Incorrect. This is a barrier to needed reproductive care for adolescents."},
+      {"text": "Refuse to discuss contraception with a minor", "correct": false, "feedback": "Incorrect. This withholds appropriate health promotion."},
+      {"text": "Call the parent to obtain consent before counseling", "correct": false, "feedback": "Incorrect. This breaches the adolescent's confidentiality."}
+    ],
+    "rationale": "Adolescents can generally receive confidential reproductive counseling; the nurse also clarifies confidentiality limits."
+  },
+  {
+    "item_id": "NCLEX_MCQ_353011", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Communication barriers", "subtopic": "Interpreter use", "bloom": "Apply",
+    "stem": "A client who speaks limited English needs discharge teaching. The client's adult son offers to interpret. Which action best supports safe, equitable education?",
+    "options": [
+      {"text": "Arrange a qualified medical interpreter for the teaching", "correct": true, "feedback": "Correct. A trained medical interpreter ensures accuracy and confidentiality; family members may filter or err."},
+      {"text": "Allow the son to interpret to save time", "correct": false, "feedback": "Incorrect. Family interpreters risk errors, bias, and confidentiality breaches."},
+      {"text": "Give the client written materials in English only", "correct": false, "feedback": "Incorrect. This does not address the language barrier."},
+      {"text": "Speak slowly and loudly in English with gestures", "correct": false, "feedback": "Incorrect. This does not ensure comprehension of critical teaching."}
+    ],
+    "rationale": "A qualified medical interpreter provides accurate, confidential communication; untrained family members risk errors."
+  },
+  {
+    "item_id": "NCLEX_MCQ_353012", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Depression screening", "subtopic": "Targeted screening", "bloom": "Analyze",
+    "stem": "A nurse conducts routine screening at a primary-care clinic. Which client should the nurse prioritize for a validated depression screening tool?",
+    "options": [
+      {"text": "A woman at her 6-week postpartum visit reporting poor sleep and loss of interest", "correct": true, "feedback": "Correct. Postpartum depression screening is recommended, and her symptoms heighten priority."},
+      {"text": "A man completing a pre-employment physical who reports feeling well", "correct": false, "feedback": "Incorrect. No symptoms or elevated risk are present."},
+      {"text": "A teenager with a sports injury who is eager to return to play", "correct": false, "feedback": "Incorrect. No depressive risk indicators are noted here."},
+      {"text": "An older adult presenting for an annual flu vaccination and feeling upbeat", "correct": false, "feedback": "Incorrect. No risk indicators are present."}
+    ],
+    "rationale": "Postpartum women are a recommended screening population, and reported anhedonia and sleep disturbance raise priority."
+  },
+  {
+    "item_id": "NCLEX_SATA_353013", "type": "SATA", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Older adult home safety", "subtopic": "Fall risk", "bloom": "Analyze",
+    "stem": "A home-health nurse assesses a 78-year-old for fall risk. Which findings should the nurse identify as modifiable environmental or health risk factors to address? Select all that apply.",
+    "options": [
+      {"text": "Loose throw rugs in the hallway", "correct": true},
+      {"text": "Taking four antihypertensives with reported dizziness on standing", "correct": true},
+      {"text": "Dim lighting on the stairway", "correct": true},
+      {"text": "Wearing loose backless slippers indoors", "correct": true},
+      {"text": "Age of 78 years", "correct": false},
+      {"text": "History of a prior stroke five years ago", "correct": false}
+    ],
+    "rationale": "Rugs, polypharmacy causing orthostasis, poor lighting, and unsafe footwear are modifiable; age and past stroke are non-modifiable."
+  },
+  {
+    "item_id": "NCLEX_SATA_353014", "type": "SATA", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Postpartum education", "subtopic": "Warning signs", "bloom": "Analyze",
+    "stem": "A nurse teaches a postpartum client about signs to report after discharge. Which findings should the client be taught to report immediately? Select all that apply.",
+    "options": [
+      {"text": "Saturating a perineal pad within one hour", "correct": true},
+      {"text": "A calf that is red, warm, and painful", "correct": true},
+      {"text": "Fever of 38.5°C with foul-smelling lochia", "correct": true},
+      {"text": "A sudden severe headache with visual changes", "correct": true},
+      {"text": "Lochia changing from red to pinkish-brown over several days", "correct": false},
+      {"text": "Afterpains during breastfeeding in the first days", "correct": false}
+    ],
+    "rationale": "Heavy bleeding, DVT signs, endometritis, and severe headache with visual changes are danger signs; lochia progression and afterpains are normal."
+  },
+  {
+    "item_id": "NCLEX_SATA_353015", "type": "SATA", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Toddler safety", "subtopic": "Anticipatory guidance", "bloom": "Apply",
+    "stem": "A nurse provides anticipatory guidance to parents of a 15-month-old. Which teaching points are appropriate for this developmental stage? Select all that apply.",
+    "options": [
+      {"text": "Keep cleaning products and medications in locked cabinets", "correct": true},
+      {"text": "Turn pot handles toward the back of the stove", "correct": true},
+      {"text": "Use a rear-facing car seat until the height or weight limit is reached", "correct": true},
+      {"text": "Set the water heater no higher than 120°F (49°C)", "correct": true},
+      {"text": "Introduce whole nuts and popcorn as finger foods", "correct": false},
+      {"text": "Place the child to sleep in the prone position", "correct": false}
+    ],
+    "rationale": "Poison, burn, and car-seat safety fit toddlers; nuts/popcorn are choking hazards and prone sleep is unsafe."
+  },
+  {
+    "item_id": "NCLEX_SATA_353016", "type": "SATA", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Endocrine", "topic": "Adult lifestyle", "subtopic": "Metabolic syndrome", "bloom": "Analyze",
+    "stem": "A nurse screens a 45-year-old adult at a community health fair. Which findings would support a diagnosis of metabolic syndrome? Select all that apply.",
+    "options": [
+      {"text": "Waist circumference of 105 cm", "correct": true},
+      {"text": "Fasting glucose of 108 mg/dL", "correct": true},
+      {"text": "Triglycerides of 180 mg/dL", "correct": true},
+      {"text": "Blood pressure of 138/88 mmHg", "correct": true},
+      {"text": "HDL cholesterol of 65 mg/dL", "correct": false},
+      {"text": "BMI of 22 kg/m2", "correct": false}
+    ],
+    "rationale": "Central obesity, elevated fasting glucose, high triglycerides, and elevated BP are metabolic-syndrome criteria; high HDL and normal BMI are not."
+  },
+  {
+    "item_id": "NCLEX_SATA_353017", "type": "SATA", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Immune", "topic": "Adult immunizations", "subtopic": "Preventive care", "bloom": "Apply",
+    "stem": "A nurse reviews immunization needs for a healthy 65-year-old with no chronic illness. Which vaccines are appropriate to recommend at this visit? Select all that apply.",
+    "options": [
+      {"text": "Recombinant zoster (shingles) vaccine", "correct": true},
+      {"text": "Pneumococcal vaccination per current adult schedule", "correct": true},
+      {"text": "Annual influenza vaccine", "correct": true},
+      {"text": "Tdap or Td booster if due", "correct": true},
+      {"text": "Routine MMR revaccination", "correct": false},
+      {"text": "Meningococcal ACWY as a routine dose", "correct": false}
+    ],
+    "rationale": "Zoster, pneumococcal, influenza, and tetanus boosters are recommended for older adults; routine MMR and meningococcal are not indicated here."
+  },
+  {
+    "item_id": "NCLEX_SELN_353018", "type": "SELECT_N", "difficulty": "Hard", "select_count": 3,
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Preschool development", "subtopic": "Milestones", "bloom": "Analyze",
+    "stem": "Which 3 findings would the nurse expect in a typically developing 4-year-old?",
+    "options": [
+      {"text": "Hops on one foot", "correct": true},
+      {"text": "Draws a person with three or more parts", "correct": true},
+      {"text": "Uses sentences of four or more words", "correct": true},
+      {"text": "Ties own shoelaces independently", "correct": false},
+      {"text": "Reads simple sentences", "correct": false},
+      {"text": "Understands conservation of mass", "correct": false}
+    ],
+    "rationale": "Hopping, drawing a multi-part person, and multi-word sentences are 4-year milestones; the others emerge later."
+  },
+  {
+    "item_id": "NCLEX_SELN_353019", "type": "SELECT_N", "difficulty": "Hard", "select_count": 4,
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Community risk assessment", "subtopic": "Vulnerable populations", "bloom": "Analyze",
+    "stem": "A community health nurse assesses population risk in a low-income urban neighborhood. Which 4 factors most directly increase the community's health risk?",
+    "options": [
+      {"text": "Limited access to fresh produce (food desert)", "correct": true},
+      {"text": "High density of housing built before 1978 (lead paint)", "correct": true},
+      {"text": "Few primary-care providers per capita", "correct": true},
+      {"text": "Unreliable public transportation to clinics", "correct": true},
+      {"text": "A newly opened recreation center with walking trails", "correct": false},
+      {"text": "A high childhood immunization completion rate", "correct": false}
+    ],
+    "rationale": "Food deserts, old housing, provider shortages, and transport barriers raise risk; recreation access and high immunization rates are protective."
+  },
+  {
+    "item_id": "NCLEX_TF_353020", "type": "TF", "difficulty": "Hard", "answer": "False",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Reproductive", "topic": "Cancer screening", "subtopic": "Cervical screening", "bloom": "Understand",
+    "stem": "A woman who has had a total hysterectomy with removal of the cervix for benign fibroids still requires routine Pap smear screening.",
+    "rationale": "After hysterectomy with cervix removal for benign disease and no history of high-grade cervical lesions, routine Pap screening is not needed."
+  },
+  {
+    "item_id": "NCLEX_MAT_353021", "type": "MATRIX", "difficulty": "Hard", "row_label": "Behavior",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Growth and development", "subtopic": "Age-appropriate behavior", "bloom": "Analyze",
+    "stem": "For each behavior, click to indicate the age at which it is first typically expected.",
+    "columns": ["2 months", "12 months", "3 years"],
+    "rows": [
+      {"text": "Social smile in response to a caregiver", "answer": 0},
+      {"text": "Walks a few steps independently", "answer": 1},
+      {"text": "Pedals a tricycle", "answer": 2},
+      {"text": "Says one or two words with meaning", "answer": 1},
+      {"text": "Speaks in three-word sentences", "answer": 2}
+    ],
+    "rationale": "Social smile appears around 2 months, first steps and first words around 12 months, and tricycle riding and three-word sentences around 3 years."
+  },
+  {
+    "item_id": "NCLEX_MMR_353022", "type": "MATRIX_MR", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Preventive screening", "subtopic": "Age-based recommendations", "bloom": "Analyze",
+    "stem": "For each screening, select all age groups for whom it is routinely recommended.",
+    "columns": ["Adolescent (13-17y)", "Adult (18-64y)", "Older adult (65y+)"],
+    "rows": [
+      {"text": "Blood pressure screening", "answers": [0, 1, 2]},
+      {"text": "Bone mineral density (DXA)", "answers": [2]},
+      {"text": "Depression screening", "answers": [0, 1, 2]},
+      {"text": "Abdominal aortic aneurysm ultrasound (men who ever smoked)", "answers": [2]}
+    ],
+    "rationale": "BP and depression screening span all ages; DXA and one-time AAA screening for at-risk men apply to older adults."
+  },
+  {
+    "item_id": "NCLEX_CLZ_353023", "type": "CLOZE", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Labor assessment", "subtopic": "Stages of labor", "bloom": "Analyze",
+    "stem": "A laboring woman is 6 cm dilated with contractions every 3 minutes lasting 60 seconds. She is in the {1} phase of the {2} stage of labor.",
+    "blanks": [
+      {"choices": [{"text": "active", "correct": true}, {"text": "latent"}, {"text": "transition"}]},
+      {"choices": [{"text": "first", "correct": true}, {"text": "second"}, {"text": "third"}]}
+    ],
+    "rationale": "6 cm dilation with regular strong contractions is the active phase of the first stage of labor."
+  },
+  {
+    "item_id": "NCLEX_HL_353024", "type": "HIGHLIGHT", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal assessment", "subtopic": "Danger signs", "bloom": "Analyze",
+    "stem": "A nurse reviews a 34-week prenatal note. Highlight the findings that require immediate follow-up. The client reports [[a severe headache unrelieved by rest]]. Blood pressure [[158/98]]. She notes [[mild ankle swelling by evening]]. She reports [[blurred vision and seeing spots]]. Fetal heart rate 140. She states she feels [[regular fetal movement]].",
+    "chunks": [
+      {"text": "a severe headache unrelieved by rest", "correct": true, "feedback": "Severe persistent headache is a preeclampsia warning sign."},
+      {"text": "158/98", "correct": true, "feedback": "Elevated BP suggests preeclampsia."},
+      {"text": "mild ankle swelling by evening", "correct": false, "feedback": "Dependent edema is a common normal finding in late pregnancy."},
+      {"text": "blurred vision and seeing spots", "correct": true, "feedback": "Visual disturbances signal severe preeclampsia."},
+      {"text": "regular fetal movement", "correct": false, "feedback": "Regular fetal movement is reassuring."}
+    ],
+    "rationale": "Severe headache, elevated BP, and visual changes indicate possible severe preeclampsia; mild dependent edema and normal fetal movement are expected."
+  },
+  {
+    "item_id": "NCLEX_BT_353025", "type": "BOWTIE", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Cardiovascular", "topic": "Adult risk reduction", "subtopic": "Hypertension prevention", "bloom": "Evaluate",
+    "stem": "A 50-year-old with a blood pressure of 134/86 mmHg, BMI 31, and a sedentary lifestyle seeks help lowering cardiovascular risk. Complete the diagram.",
+    "left": {"label": "Actions to recommend", "tokens": [
+      {"text": "Adopt a DASH-style diet lower in sodium", "correct": true},
+      {"text": "Begin regular moderate aerobic activity", "correct": true},
+      {"text": "Start a high-protein, high-sodium diet"},
+      {"text": "Increase saturated fat intake"},
+      {"text": "Remain sedentary and monitor only"}
+    ]},
+    "centre": {"label": "Client risk state", "tokens": [
+      {"text": "Elevated cardiovascular risk (stage 1 hypertension, obesity)", "correct": true},
+      {"text": "Hypotension with dehydration"},
+      {"text": "Normal risk requiring no change"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Blood pressure trend", "correct": true},
+      {"text": "Body weight and BMI", "correct": true},
+      {"text": "Serum ammonia"},
+      {"text": "Deep tendon reflexes"},
+      {"text": "Pupillary response"}
+    ]},
+    "rationale": "Stage 1 hypertension with obesity is addressed by DASH diet and exercise, monitoring BP and weight."
+  },
+  {
+    "item_id": "NCLEX_DCZ_353026", "type": "DRAG_CLOZE", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Infant nutrition", "subtopic": "Feeding milestones", "bloom": "Apply",
+    "stem": "The nurse teaches new parents that iron-fortified complementary foods should begin around [1] of age, and cow's milk as a main drink should be delayed until [2] of age.",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["6 months", "12 months", "2 months", "3 years"],
+    "rationale": "Complementary foods start around 6 months; whole cow's milk as a main drink is delayed until 12 months."
+  },
+  {
+    "item_id": "NCLEX_DO_353027", "type": "DRAG_ORDER", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Patient education", "subtopic": "Teaching process", "bloom": "Apply",
+    "stem": "A nurse plans discharge teaching for a client newly prescribed warfarin. Place the steps of the teaching process in the correct order.",
+    "tokens": [
+      "Assess the client's current knowledge and readiness to learn",
+      "Set mutual learning goals with the client",
+      "Deliver the teaching using appropriate methods",
+      "Have the client demonstrate or teach back the content",
+      "Evaluate learning and document outcomes"
+    ],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

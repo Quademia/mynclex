@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09012",
+  "title": "Pain Score Trend Post-Analgesia",
+  "scenario": "A 62-year-old male client reports severe incisional pain after abdominal surgery. The nurse administers IV opioid analgesia and reassesses pain and sedation over the next hour.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Pain and Sedation Flowsheet",
+      "headers": ["Time", "Pain score (0-10)", "Sedation (RASS)", "RR", "SpO2", "Intervention"],
+      "rows": [
+        ["09:00", "9", "0 (alert/calm)", "20", "97% RA", "IV morphine 4 mg given"],
+        ["09:15", "7", "-1 (drowsy)", "18", "96% RA", "Reassessed"],
+        ["09:30", "4", "-1 (drowsy)", "16", "96% RA", "Reassessed"],
+        ["10:00", "2", "-2 (light sedation)", "14", "94% RA", "Reassessed"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450121",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Pharmacological and Parenteral Therapies",
+      "subject": "Pharmacology",
+      "body_system": "Neurological",
+      "topic": "Opioid analgesia",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Considering the full trend, what is the nurse's priority concern at 10:00?",
+      "options": [
+        {"text": "Increasing sedation with a declining respiratory rate and SpO2", "correct": true},
+        {"text": "Inadequate pain relief from the opioid", "correct": false},
+        {"text": "The client is at risk for an allergic reaction", "correct": false},
+        {"text": "The pain score is dropping too slowly", "correct": false}
+      ],
+      "rationale": "Although pain is well controlled, the deepening sedation (RASS -2), falling respiratory rate to 14, and dropping SpO2 indicate opioid-induced respiratory depression, which is the priority concern."
+    },
+    {
+      "item_id": "NCLEX_SATA_450122",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Pharmacological and Parenteral Therapies",
+      "subject": "Pharmacology",
+      "body_system": "Neurological",
+      "topic": "Opioid analgesia",
+      "difficulty": "Medium",
+      "bloom": "Apply",
+      "stem": "Based on the trend at 10:00, which nursing actions are appropriate? Select all that apply.",
+      "options": [
+        {"text": "Stimulate the client and encourage deep breathing", "correct": true},
+        {"text": "Withhold the next opioid dose and notify the provider", "correct": true},
+        {"text": "Continue to monitor respiratory rate and SpO2 closely", "correct": true},
+        {"text": "Have naloxone available", "correct": true},
+        {"text": "Administer an additional opioid dose for comfort", "correct": false},
+        {"text": "Apply restraints to keep the client still", "correct": false}
+      ],
+      "rationale": "With rising sedation and respiratory depression, the nurse stimulates the client, holds further opioids, monitors closely, and keeps naloxone ready. Giving more opioid would worsen the depression; restraints are not indicated."
+    }
+  ]
+}

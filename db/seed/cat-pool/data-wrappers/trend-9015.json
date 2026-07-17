@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09015",
+  "title": "Oxygenation on Escalating Support",
+  "scenario": "A 64-year-old client with pneumonia is monitored over six hours. Despite increasing oxygen support, the nurse tracks the client's oxygenation and respiratory status on the flowsheet.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Respiratory Flowsheet",
+      "headers": ["Time", "O2 support", "SpO2", "RR", "Work of breathing", "Breath sounds"],
+      "rows": [
+        ["10:00", "2 L nasal cannula", "94%", "20", "Mild", "Crackles right base"],
+        ["12:00", "4 L nasal cannula", "92%", "26", "Moderate, accessory muscle use", "Crackles right base and mid"],
+        ["14:00", "6 L simple mask", "90%", "30", "Marked, nasal flaring", "Diminished right, crackles bilaterally"],
+        ["16:00", "15 L non-rebreather", "88%", "34", "Severe, tripod positioning", "Diminished bilaterally"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450151",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Respiratory",
+      "topic": "Impaired oxygenation",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Interpreting the respiratory flowsheet, which statement best describes the trend?",
+      "options": [
+        {"text": "Oxygen saturation continues to fall and work of breathing worsens despite escalating oxygen support, indicating refractory hypoxemia", "correct": true},
+        {"text": "The client is improving because oxygen support is being provided", "correct": false},
+        {"text": "The stable respiratory rate shows the client is compensating well", "correct": false},
+        {"text": "The findings reflect anxiety rather than a physiologic problem", "correct": false}
+      ],
+      "rationale": "Even as support increases from 2 L to a non-rebreather, the SpO2 keeps dropping while respiratory rate and work of breathing climb, which signals worsening, treatment-refractory hypoxemia and impending respiratory failure."
+    },
+    {
+      "item_id": "NCLEX_SATA_450152",
+      "type": "SATA",
+      "category": "Safe and Effective Care Environment",
+      "subcategory": "Management of Care",
+      "subject": "Medical-Surgical",
+      "body_system": "Respiratory",
+      "topic": "Impaired oxygenation",
+      "difficulty": "Medium",
+      "bloom": "Apply",
+      "stem": "Based on the deteriorating trend at 16:00, which nursing actions are appropriate? Select all that apply.",
+      "options": [
+        {"text": "Notify the provider and rapid response team urgently", "correct": true},
+        {"text": "Position the client upright to maximize lung expansion", "correct": true},
+        {"text": "Prepare for possible escalation to non-invasive ventilation or intubation", "correct": true},
+        {"text": "Obtain an arterial blood gas as ordered", "correct": true},
+        {"text": "Remove all supplemental oxygen to assess room-air tolerance", "correct": false},
+        {"text": "Reassure the client and recheck oxygenation in two hours", "correct": false}
+      ],
+      "rationale": "Refractory hypoxemia on maximal mask oxygen requires urgent escalation, upright positioning, preparation for advanced airway support, and an ABG. Removing oxygen or delaying reassessment would be dangerous."
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09026",
+  "title": "Hemoglobin Trend in Upper GI Bleed",
+  "scenario": "A 55-year-old client admitted with hematemesis and melena from a suspected upper gastrointestinal bleed is monitored with serial hemoglobin levels and vital signs over eight hours.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Hemoglobin and Vital-Sign Flowsheet",
+      "headers": ["Time", "Hemoglobin", "Pulse", "B/P", "Skin", "Reference range"],
+      "rows": [
+        ["06:00", "11.2 g/dL", "88", "122/74", "Warm, dry", "12-16 g/dL"],
+        ["10:00", "9.4 g/dL", "104", "108/66", "Pale", "12-16 g/dL"],
+        ["14:00", "7.6 g/dL", "122", "94/58", "Cool, clammy", "12-16 g/dL"]
+      ],
+      "rowVisibleFrom": [1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450261",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Medical-Surgical",
+      "body_system": "Hematologic",
+      "topic": "Gastrointestinal bleed",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "How should the nurse interpret the trend shown on the flowsheet?",
+      "options": [
+        {"text": "The falling hemoglobin with rising pulse and falling blood pressure indicates ongoing active bleeding", "correct": true},
+        {"text": "The hemoglobin is stable and the client is compensating well", "correct": false},
+        {"text": "The changes reflect hemodilution from intravenous fluids only", "correct": false},
+        {"text": "The trend indicates resolving hemorrhage and improving perfusion", "correct": false}
+      ],
+      "rationale": "Hemoglobin dropped from 11.2 to 7.6 g/dL while pulse rose and blood pressure fell with cool, clammy skin, a pattern of continued blood loss and early hypovolemic shock rather than stability or resolution."
+    },
+    {
+      "item_id": "NCLEX_SATA_450262",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Hematologic",
+      "topic": "Gastrointestinal bleed",
+      "difficulty": "Medium",
+      "bloom": "Apply",
+      "stem": "Given the deteriorating trend, which interventions should the nurse anticipate or implement? Select all that apply.",
+      "options": [
+        {"text": "Notify the provider of the worsening trend immediately", "correct": true},
+        {"text": "Prepare to administer a blood transfusion", "correct": true},
+        {"text": "Ensure large-bore IV access and infuse isotonic fluids as ordered", "correct": true},
+        {"text": "Type and crossmatch the client for packed red blood cells", "correct": true},
+        {"text": "Withhold IV fluids to avoid diluting the blood further", "correct": false},
+        {"text": "Reassess hemoglobin in 24 hours", "correct": false}
+      ],
+      "rationale": "Active bleeding with signs of hypovolemic shock requires prompt provider notification, volume resuscitation through large-bore access, and preparation for transfusion after type and crossmatch. Withholding fluids or delaying reassessment would worsen shock."
+    }
+  ]
+}

@@ -1,0 +1,363 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_300001", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Delegation", "subtopic": "UAP scope", "bloom": "Apply",
+    "stem": "A charge nurse is assigning tasks. Which task is MOST appropriate to delegate to unlicensed assistive personnel (UAP)?",
+    "options": [
+      {"text": "Taking routine vital signs on a stable client", "correct": true, "feedback": "Correct. Vital signs on a stable client are within UAP scope."},
+      {"text": "Teaching a client about a new medication", "correct": false, "feedback": "Incorrect. Client teaching requires a nurse."},
+      {"text": "Assessing a new admission", "correct": false, "feedback": "Incorrect. Initial assessment cannot be delegated."},
+      {"text": "Adjusting an IV infusion rate", "correct": false, "feedback": "Incorrect. IV management is a nursing task."}
+    ],
+    "rationale": "UAP may collect data such as routine vitals on stable clients; assessment, teaching, and IV care stay with the nurse."
+  },
+  {
+    "item_id": "NCLEX_MCQ_300002", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Handoff communication", "subtopic": "SBAR", "bloom": "Understand",
+    "stem": "A nurse is giving a shift report using the SBAR format. Which information belongs in the 'B' (Background) section?",
+    "options": [
+      {"text": "The client's admitting diagnosis and relevant history", "correct": true, "feedback": "Correct. Background covers the diagnosis and pertinent history."},
+      {"text": "The nurse's recommendation for follow-up", "correct": false, "feedback": "Incorrect. That is the Recommendation section."},
+      {"text": "The current vital signs and assessment", "correct": false, "feedback": "Incorrect. That is the Assessment section."},
+      {"text": "The reason the nurse is calling", "correct": false, "feedback": "Incorrect. That is the Situation section."}
+    ],
+    "rationale": "In SBAR, Background provides the diagnosis and relevant clinical history that frames the situation."
+  },
+  {
+    "item_id": "NCLEX_MCQ_300003", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Informed consent", "bloom": "Understand",
+    "stem": "A client is scheduled for surgery. What is the nurse's PRIMARY role regarding informed consent?",
+    "options": [
+      {"text": "Witness the client's signature and confirm understanding", "correct": true, "feedback": "Correct. The nurse witnesses the signature and verifies the client understands."},
+      {"text": "Explain the surgical risks and alternatives", "correct": false, "feedback": "Incorrect. The provider performing the procedure explains risks."},
+      {"text": "Decide whether the surgery should proceed", "correct": false, "feedback": "Incorrect. That is not the nurse's decision."},
+      {"text": "Sign the consent on the client's behalf", "correct": false, "feedback": "Incorrect. The nurse never signs for the client."}
+    ],
+    "rationale": "Obtaining informed consent (explaining the procedure) is the provider's duty; the nurse witnesses the signature and confirms understanding."
+  },
+  {
+    "item_id": "NCLEX_MCQ_300004", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Advance directives", "bloom": "Apply",
+    "stem": "A newly admitted client asks the nurse about creating a living will. What is the nurse's BEST response?",
+    "options": [
+      {"text": "Provide information about advance directives and offer resources", "correct": true, "feedback": "Correct. Clients have the right to be informed about advance directives."},
+      {"text": "Tell the client this is not necessary while hospitalized", "correct": false, "feedback": "Incorrect. This dismisses the client's right."},
+      {"text": "Refer the client to complete it only after discharge", "correct": false, "feedback": "Incorrect. Delaying is unnecessary."},
+      {"text": "Explain that only the provider can discuss this", "correct": false, "feedback": "Incorrect. Nurses can provide advance directive information."}
+    ],
+    "rationale": "Under the Patient Self-Determination Act, clients must be informed of their right to create advance directives; the nurse provides information and resources."
+  },
+  {
+    "item_id": "NCLEX_MCQ_300005", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Confidentiality", "subtopic": "HIPAA", "bloom": "Apply",
+    "stem": "Which action by a nurse is a violation of client confidentiality?",
+    "options": [
+      {"text": "Discussing a client's diagnosis with a friend in the cafeteria", "correct": true, "feedback": "Correct. Sharing client information with unauthorized people violates HIPAA."},
+      {"text": "Reporting assessment findings to the oncoming nurse", "correct": false, "feedback": "Incorrect. Handoff to the care team is appropriate."},
+      {"text": "Documenting care in the electronic health record", "correct": false, "feedback": "Incorrect. Documentation is required."},
+      {"text": "Calling the provider about a critical lab value", "correct": false, "feedback": "Incorrect. This is appropriate care coordination."}
+    ],
+    "rationale": "Sharing protected health information with people not involved in the client's care violates confidentiality/HIPAA."
+  },
+  {
+    "item_id": "NCLEX_MCQ_300006", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Prioritization", "subtopic": "Acuity", "bloom": "Apply",
+    "stem": "A nurse receives report on four clients. Which client should the nurse assess FIRST?",
+    "options": [
+      {"text": "A client reporting new shortness of breath", "correct": true, "feedback": "Correct. A new airway/breathing problem takes priority."},
+      {"text": "A client requesting a pain medication refill", "correct": false, "feedback": "Incorrect. This can wait."},
+      {"text": "A client due for a scheduled dressing change", "correct": false, "feedback": "Incorrect. Routine care is not urgent."},
+      {"text": "A client asking about the lunch menu", "correct": false, "feedback": "Incorrect. This is not a priority."}
+    ],
+    "rationale": "Using the ABC framework, a new breathing problem is the highest priority."
+  },
+  {
+    "item_id": "NCLEX_MCQ_300007", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Scope of practice", "subtopic": "LPN", "bloom": "Apply",
+    "stem": "Which task is appropriate for the RN to assign to a licensed practical nurse (LPN)?",
+    "options": [
+      {"text": "Administering oral medications to a stable client", "correct": true, "feedback": "Correct. LPNs may administer routine oral medications."},
+      {"text": "Developing the initial plan of care", "correct": false, "feedback": "Incorrect. Care planning is an RN responsibility."},
+      {"text": "Performing the admission assessment", "correct": false, "feedback": "Incorrect. Initial assessment is an RN task."},
+      {"text": "Providing discharge teaching to a new diabetic", "correct": false, "feedback": "Incorrect. Complex teaching is an RN task."}
+    ],
+    "rationale": "LPNs may administer routine medications to stable clients; assessment, care planning, and complex teaching remain with the RN."
+  },
+  {
+    "item_id": "NCLEX_MCQ_300008", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Client advocacy", "bloom": "Apply",
+    "stem": "A client tells the nurse he does not understand why a test was ordered and wants more information. Which action BEST demonstrates client advocacy?",
+    "options": [
+      {"text": "Contact the provider to clarify and ensure the client's questions are answered", "correct": true, "feedback": "Correct. Advocating means ensuring the client gets the information needed."},
+      {"text": "Tell the client to sign the form and ask later", "correct": false, "feedback": "Incorrect. This ignores the client's need."},
+      {"text": "Cancel the test without notifying anyone", "correct": false, "feedback": "Incorrect. This is outside the nurse's authority."},
+      {"text": "Reassure the client the provider knows best", "correct": false, "feedback": "Incorrect. This dismisses the client's right to information."}
+    ],
+    "rationale": "The nurse advocates by ensuring the client's concerns reach the provider and are addressed."
+  },
+  {
+    "item_id": "NCLEX_MCQ_300009", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Mandatory reporting", "bloom": "Understand",
+    "stem": "A nurse suspects that a child in the emergency department is a victim of abuse. What is the nurse's legal obligation?",
+    "options": [
+      {"text": "Report the suspicion to the appropriate authorities", "correct": true, "feedback": "Correct. Nurses are mandatory reporters of suspected abuse."},
+      {"text": "Wait until abuse is confirmed before acting", "correct": false, "feedback": "Incorrect. Suspicion is enough to require reporting."},
+      {"text": "Confront the parents directly", "correct": false, "feedback": "Incorrect. This is not the nurse's role and may endanger the child."},
+      {"text": "Document the finding but take no further action", "correct": false, "feedback": "Incorrect. Documentation alone does not fulfill the duty to report."}
+    ],
+    "rationale": "Nurses are mandatory reporters; suspected abuse must be reported to the proper authorities."
+  },
+  {
+    "item_id": "NCLEX_MCQ_300010", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Verifying orders", "bloom": "Apply",
+    "stem": "A nurse reads a prescription that is unclear and possibly incorrect. What should the nurse do?",
+    "options": [
+      {"text": "Contact the prescriber to clarify before administering", "correct": true, "feedback": "Correct. Unclear orders must be clarified before acting."},
+      {"text": "Administer the order as best understood", "correct": false, "feedback": "Incorrect. Guessing risks a medication error."},
+      {"text": "Ask another nurse to interpret it", "correct": false, "feedback": "Incorrect. Only the prescriber can clarify their order."},
+      {"text": "Skip the order entirely without notifying anyone", "correct": false, "feedback": "Incorrect. Omitting care without follow-up is unsafe."}
+    ],
+    "rationale": "An unclear or questionable order must always be clarified with the prescriber before implementation."
+  },
+  {
+    "item_id": "NCLEX_MCQ_300011", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Referrals", "subtopic": "Multidisciplinary collaboration", "bloom": "Apply",
+    "stem": "A client recovering from a stroke has difficulty swallowing. To which member of the healthcare team should the nurse recommend a referral?",
+    "options": [
+      {"text": "Speech-language pathologist", "correct": true, "feedback": "Correct. The SLP evaluates and manages swallowing difficulties."},
+      {"text": "Respiratory therapist", "correct": false, "feedback": "Incorrect. Respiratory therapy manages breathing, not swallowing."},
+      {"text": "Social worker", "correct": false, "feedback": "Incorrect. Social work addresses psychosocial and discharge needs."},
+      {"text": "Physical therapist", "correct": false, "feedback": "Incorrect. PT addresses mobility, not swallowing."}
+    ],
+    "rationale": "A speech-language pathologist evaluates and treats dysphagia (swallowing difficulty)."
+  },
+  {
+    "item_id": "NCLEX_MCQ_300012", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Discharge planning", "bloom": "Understand",
+    "stem": "When should discharge planning for a hospitalized client ideally begin?",
+    "options": [
+      {"text": "At the time of admission", "correct": true, "feedback": "Correct. Discharge planning begins on admission."},
+      {"text": "The day before the anticipated discharge", "correct": false, "feedback": "Incorrect. This is too late to coordinate needs."},
+      {"text": "Only after the provider writes the discharge order", "correct": false, "feedback": "Incorrect. Planning should already be underway."},
+      {"text": "When the client first requests to go home", "correct": false, "feedback": "Incorrect. Planning should not wait for the request."}
+    ],
+    "rationale": "Effective discharge planning starts at admission so needs and resources are arranged in time."
+  },
+  {
+    "item_id": "NCLEX_SATA_300013", "type": "SATA", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Delegation", "subtopic": "UAP scope", "bloom": "Apply",
+    "stem": "Which tasks can the nurse appropriately delegate to unlicensed assistive personnel (UAP)? Select all that apply.",
+    "options": [
+      {"text": "Assisting a stable client with bathing", "correct": true},
+      {"text": "Feeding a client who has no swallowing difficulty", "correct": true},
+      {"text": "Measuring and recording intake and output", "correct": true},
+      {"text": "Evaluating the effectiveness of pain medication", "correct": false},
+      {"text": "Creating the client's plan of care", "correct": false},
+      {"text": "Administering an intramuscular injection", "correct": false}
+    ],
+    "rationale": "UAP may perform stable ADLs and data collection; evaluation, care planning, and medication administration remain with the nurse."
+  },
+  {
+    "item_id": "NCLEX_SATA_300014", "type": "SATA", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Confidentiality", "subtopic": "HIPAA", "bloom": "Understand",
+    "stem": "Which actions help the nurse protect client confidentiality? Select all that apply.",
+    "options": [
+      {"text": "Logging off the computer after charting", "correct": true},
+      {"text": "Sharing information only with the care team", "correct": true},
+      {"text": "Avoiding posting client details on social media", "correct": true},
+      {"text": "Discussing clients by name in a public elevator", "correct": false},
+      {"text": "Leaving printed reports on an unattended counter", "correct": false}
+    ],
+    "rationale": "Protecting confidentiality means limiting disclosure to the care team, securing records, logging off, and avoiding social media posts."
+  },
+  {
+    "item_id": "NCLEX_SATA_300015", "type": "SATA", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Informed consent", "bloom": "Understand",
+    "stem": "Which elements must be met for consent to be considered informed? Select all that apply.",
+    "options": [
+      {"text": "The client received an explanation of the procedure", "correct": true},
+      {"text": "The risks and benefits were disclosed", "correct": true},
+      {"text": "The client gave consent voluntarily", "correct": true},
+      {"text": "The client is competent to make the decision", "correct": true},
+      {"text": "The nurse decided the procedure was necessary", "correct": false},
+      {"text": "Consent was given under time pressure from staff", "correct": false}
+    ],
+    "rationale": "Informed consent requires disclosure of the procedure and its risks/benefits, voluntary agreement, and a competent client."
+  },
+  {
+    "item_id": "NCLEX_SATA_300016", "type": "SATA", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Scope of practice", "subtopic": "LPN", "bloom": "Apply",
+    "stem": "Which tasks are within the scope of a licensed practical nurse (LPN)? Select all that apply.",
+    "options": [
+      {"text": "Reinforcing teaching the RN has already provided", "correct": true},
+      {"text": "Administering routine oral medications", "correct": true},
+      {"text": "Monitoring a stable client and reporting changes", "correct": true},
+      {"text": "Performing the initial admission assessment", "correct": false},
+      {"text": "Developing the nursing plan of care", "correct": false}
+    ],
+    "rationale": "LPNs reinforce teaching, give routine medications, and monitor stable clients; initial assessment and care planning are RN duties."
+  },
+  {
+    "item_id": "NCLEX_SATA_300017", "type": "SATA", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Client rights", "bloom": "Understand",
+    "stem": "Which are recognized rights of the hospitalized client? Select all that apply.",
+    "options": [
+      {"text": "The right to refuse treatment", "correct": true},
+      {"text": "The right to privacy and confidentiality", "correct": true},
+      {"text": "The right to be informed about the plan of care", "correct": true},
+      {"text": "The obligation to accept all recommended treatments", "correct": false},
+      {"text": "The requirement to justify a refusal to staff", "correct": false}
+    ],
+    "rationale": "Clients have the right to refuse treatment, to privacy, and to information; they are not obligated to accept care or justify refusals."
+  },
+  {
+    "item_id": "NCLEX_SELN_300018", "type": "SELECT_N", "difficulty": "Easy", "select_count": 3,
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Delegation", "subtopic": "UAP scope", "bloom": "Apply",
+    "stem": "Select the 3 tasks the nurse can appropriately delegate to unlicensed assistive personnel.",
+    "options": [
+      {"text": "Ambulating a stable client in the hallway", "correct": true},
+      {"text": "Turning and repositioning a bedbound client", "correct": true},
+      {"text": "Weighing a client and recording the result", "correct": true},
+      {"text": "Assessing a new pressure injury", "correct": false},
+      {"text": "Teaching wound-care technique to a caregiver", "correct": false}
+    ],
+    "rationale": "UAP may ambulate stable clients, reposition, and record weights; assessment and teaching remain with the nurse."
+  },
+  {
+    "item_id": "NCLEX_SELN_300019", "type": "SELECT_N", "difficulty": "Easy", "select_count": 2,
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Prioritization", "subtopic": "Acuity", "bloom": "Apply",
+    "stem": "A nurse must prioritize care. Select the 2 clients who need to be assessed FIRST.",
+    "options": [
+      {"text": "A client with an oxygen saturation of 86%", "correct": true},
+      {"text": "A client reporting sudden severe chest pain", "correct": true},
+      {"text": "A client requesting help to the bathroom", "correct": false},
+      {"text": "A client asking when breakfast will arrive", "correct": false},
+      {"text": "A client who wants an extra blanket", "correct": false}
+    ],
+    "rationale": "Low oxygen saturation and sudden chest pain are airway/circulation emergencies that take priority over comfort requests."
+  },
+  {
+    "item_id": "NCLEX_TF_300020", "type": "TF", "difficulty": "Easy", "answer": "False",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Scope of practice", "bloom": "Understand",
+    "stem": "The initial nursing assessment of a newly admitted client can be delegated to unlicensed assistive personnel.",
+    "rationale": "Initial assessment requires nursing judgment and cannot be delegated to UAP."
+  },
+  {
+    "item_id": "NCLEX_TF_300021", "type": "TF", "difficulty": "Easy", "answer": "True",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Advance directives", "bloom": "Understand",
+    "stem": "A competent client has the right to refuse a treatment even if the healthcare team disagrees with the decision.",
+    "rationale": "Autonomy gives a competent client the right to refuse treatment, regardless of the team's opinion."
+  },
+  {
+    "item_id": "NCLEX_MAT_300022", "type": "MATRIX", "difficulty": "Easy", "row_label": "Task",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Delegation", "subtopic": "Scope of practice", "bloom": "Apply",
+    "stem": "For each task, click to indicate the most appropriate team member to perform it.",
+    "columns": ["RN", "UAP"],
+    "rows": [
+      {"text": "Performing an initial admission assessment", "answer": 0},
+      {"text": "Recording a stable client's vital signs", "answer": 1},
+      {"text": "Providing discharge medication teaching", "answer": 0},
+      {"text": "Assisting a stable client with bathing", "answer": 1}
+    ],
+    "rationale": "Assessment and teaching require the RN; routine vitals and ADL assistance may be delegated to UAP."
+  },
+  {
+    "item_id": "NCLEX_MMR_300023", "type": "MATRIX_MR", "difficulty": "Easy", "row_label": "Task",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Scope of practice", "subtopic": "Delegation", "bloom": "Apply",
+    "stem": "For each task, select every team member permitted to perform it (may be more than one).",
+    "columns": ["RN", "LPN", "UAP"],
+    "rows": [
+      {"text": "Administer routine oral medication", "answers": [0, 1]},
+      {"text": "Measure and record intake and output", "answers": [0, 1, 2]},
+      {"text": "Develop the initial plan of care", "answers": [0]},
+      {"text": "Reposition a stable bedbound client", "answers": [0, 1, 2]}
+    ],
+    "rationale": "RNs and LPNs may give routine medications; care planning is RN-only; data collection and repositioning may be done by all three."
+  },
+  {
+    "item_id": "NCLEX_CLZ_300024", "type": "CLOZE", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Handoff communication", "subtopic": "SBAR", "bloom": "Apply",
+    "stem": "When calling a provider using SBAR, the nurse states the reason for the call in the {1} step and offers a suggested action in the {2} step.",
+    "blanks": [
+      {"choices": [{"text": "Situation", "correct": true}, {"text": "Assessment"}, {"text": "Background"}]},
+      {"choices": [{"text": "Recommendation", "correct": true}, {"text": "Background"}, {"text": "Situation"}]}
+    ],
+    "rationale": "In SBAR, Situation names the reason for the call and Recommendation states the nurse's suggested action."
+  },
+  {
+    "item_id": "NCLEX_HL_300025", "type": "HIGHLIGHT", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Reporting to provider", "subtopic": "Prioritization", "bloom": "Analyze",
+    "stem": "Highlight the findings the nurse should report to the provider immediately. The client is resting comfortably. Temperature [[37.0°C]]. Blood pressure [[90/50 mmHg]]. Oxygen saturation [[85% on room air]]. The client [[ate most of breakfast]]. The client reports [[new confusion]].",
+    "chunks": [
+      {"text": "37.0°C", "correct": false, "feedback": "Normal temperature — no report needed."},
+      {"text": "90/50 mmHg", "correct": true, "feedback": "Hypotension — should be reported."},
+      {"text": "85% on room air", "correct": true, "feedback": "Hypoxemia — needs immediate report."},
+      {"text": "ate most of breakfast", "correct": false, "feedback": "Normal finding — no report needed."},
+      {"text": "new confusion", "correct": true, "feedback": "New neurologic change — report immediately."}
+    ],
+    "rationale": "Hypotension, hypoxemia, and new confusion are abnormal findings that require prompt provider notification."
+  },
+  {
+    "item_id": "NCLEX_BT_300026", "type": "BOWTIE", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Delegation and prioritization", "bloom": "Apply",
+    "stem": "The charge nurse is organizing the shift. Complete the diagram by selecting the priority focus, the actions to take, and what to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Assess the unstable client first", "correct": true},
+      {"text": "Delegate routine vitals to the UAP", "correct": true},
+      {"text": "Delay all documentation until end of shift"},
+      {"text": "Assign the admission assessment to the UAP"}
+    ]},
+    "centre": {"label": "Priority focus", "tokens": [
+      {"text": "Safe assignment and prioritization", "correct": true},
+      {"text": "Reducing the client's hospital bill"},
+      {"text": "Finishing the shift early"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Changes in client acuity", "correct": true},
+      {"text": "Completion of delegated tasks", "correct": true},
+      {"text": "The cafeteria menu"},
+      {"text": "Staff parking availability"}
+    ]},
+    "rationale": "Safe management of care means prioritizing the unstable client, delegating within scope, and monitoring acuity and delegated task completion."
+  },
+  {
+    "item_id": "NCLEX_DO_300027", "type": "DRAG_ORDER", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Discharge process", "bloom": "Apply",
+    "stem": "Place the steps for discharging a client from the hospital in the correct order.",
+    "tokens": [
+      "Verify the provider's discharge order",
+      "Review discharge instructions and teaching with the client",
+      "Confirm the client has transportation and prescriptions",
+      "Escort the client out per facility policy",
+      "Document the discharge in the record"
+    ],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

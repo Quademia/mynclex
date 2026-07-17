@@ -1,0 +1,134 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09029",
+  "title": "Acute Psychosis",
+  "scenario": "A 22-year-old male university student is brought to the emergency department by his roommate, who reports that over the past two weeks the client has become withdrawn, stopped attending classes, and is now talking to people who are not there and refusing to eat because he believes his food is poisoned.",
+  "tags": ["synthetic", "psychosocial"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["22-year-old male brought in by roommate for 2 weeks of progressive withdrawal, insomnia, and disorganized behavior. Client appears disheveled and guarded. Responds to internal stimuli, glancing at corners of the room and muttering. States, 'The voices told me not to trust anyone here.' Believes his food and water are poisoned. No prior psychiatric history reported. Denies alcohol or drug use; roommate confirms none observed."], "visibleFrom": 1},
+        {"chips": ["10:20"], "lines": ["Thought process disorganized with loose associations. Poor eye contact, flat affect. Oriented to person only. Denies current thoughts of harming self or others but states, 'They might make me do something.' Placed in a quiet, low-stimulation room with a staff member in view. Belongings searched per protocol; no contraband found."], "visibleFrom": 2},
+        {"chips": ["11:15"], "lines": ["Psychiatry consulted. IV access deferred; client refuses. Client remains guarded but calmer with soft-spoken, unhurried approach. Encouraged small sips of water from a sealed bottle he opened himself, which he accepted."], "visibleFrom": 5},
+        {"chips": ["16:00"], "lines": ["After first dose of oral antipsychotic, client resting quietly. States voices are 'quieter now.' Accepted a sealed snack. Making brief eye contact. No extrapyramidal symptoms observed."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "98.4 F (36.9 C)", "98", "18", "128/78", "99% on RA"],
+        ["10:20", "98.4 F (36.9 C)", "102", "20", "132/80", "99% on RA"],
+        ["16:00", "98.2 F (36.8 C)", "84", "16", "122/74", "99% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Urine drug screen", "Negative", "Negative"],
+        ["Blood alcohol", "0", "< 10 mg/dL"],
+        ["TSH", "2.1", "0.4-4.0 mIU/L"],
+        ["Sodium", "139", "135-145 mEq/L"],
+        ["Glucose", "92", "70-110 mg/dL"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "History",
+      "entries": [
+        {"chips": [], "lines": ["No known chronic medical conditions", "No current prescription medications", "Family history: maternal uncle with schizophrenia", "No known allergies"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Place on continuous 1:1 observation", "Low-stimulation environment", "Risperidone 2 mg PO now, then per psychiatry", "Offer sealed food and beverages the client can open himself", "Suicide/violence risk assessment every shift", "Notify provider for worsening agitation or extrapyramidal symptoms"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_402901", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neuropsychiatric", "topic": "Schizophrenia", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings are consistent with acute psychosis and require follow-up?",
+      "options": [
+        {"text": "Responding to internal stimuli", "correct": true},
+        {"text": "Belief that food is poisoned", "correct": true},
+        {"text": "Disorganized thought process with loose associations", "correct": true},
+        {"text": "Flat affect", "correct": true},
+        {"text": "Oriented to person, place, and time", "correct": false},
+        {"text": "Negative urine drug screen", "correct": false}
+      ],
+      "rationale": "Auditory hallucinations, paranoid delusions, disorganized thinking, and flat affect are hallmark positive and negative symptoms of acute psychosis. Full orientation and a negative drug screen are not concerning findings."
+    },
+    {
+      "item_id": "NCLEX_MAT_402902", "type": "MATRIX", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neuropsychiatric", "topic": "Schizophrenia", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it represents a positive symptom or a negative symptom of schizophrenia.",
+      "columns": ["Positive symptom", "Negative symptom"],
+      "rows": [
+        {"text": "Auditory hallucinations", "answer": 0},
+        {"text": "Paranoid delusion about poisoned food", "answer": 0},
+        {"text": "Flat affect", "answer": 1},
+        {"text": "Social withdrawal", "answer": 1},
+        {"text": "Loose associations", "answer": 0}
+      ],
+      "rationale": "Positive symptoms are additions to normal experience (hallucinations, delusions, disorganized thought). Negative symptoms are losses of normal function (flat affect, avolition, social withdrawal)."
+    },
+    {
+      "item_id": "NCLEX_CLZ_402903", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neuropsychiatric", "topic": "Schizophrenia", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority concern for this client is {1}, and the immediate nursing goal is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "the potential for harm to self or others driven by command-type experiences", "correct": true}, {"text": "the client's poor personal hygiene", "correct": false}, {"text": "the disruption to his university studies", "correct": false}]},
+        {"choices": [{"text": "maintain client and staff safety", "correct": true}, {"text": "confront the delusion with logical facts", "correct": false}, {"text": "arrange discharge planning", "correct": false}]}
+      ],
+      "rationale": "The client reports the voices 'might make me do something,' so safety is the priority. Establishing a safe, low-stimulation environment takes precedence over hygiene, education, or discharge concerns."
+    },
+    {
+      "item_id": "NCLEX_MMR_402904", "type": "MATRIX_MR", "position": 4, "cjmm": "Generate solutions", "row_label": "Approach",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neuropsychiatric", "topic": "Therapeutic communication", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each nursing approach, click to specify whether it is therapeutic, unsafe, or both when caring for this acutely psychotic client.",
+      "columns": ["Therapeutic", "Unsafe"],
+      "rows": [
+        {"text": "Use short, clear sentences and a calm, unhurried tone", "answers": [0]},
+        {"text": "Argue with the client to prove the food is not poisoned", "answers": [1]},
+        {"text": "Offer sealed food the client can open himself", "answers": [0]},
+        {"text": "Approach the client suddenly from behind", "answers": [1]},
+        {"text": "Acknowledge the client's feelings without reinforcing the delusion", "answers": [0]}
+      ],
+      "rationale": "Calm clear communication, self-opened sealed food, and validating feelings without reinforcing delusions build trust and safety. Arguing with delusions and approaching a paranoid client suddenly increase agitation and risk."
+    },
+    {
+      "item_id": "NCLEX_SATA_402905", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neuropsychiatric", "topic": "Schizophrenia", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "Which actions should the nurse implement now? Select all that apply.",
+      "options": [
+        {"text": "Place the client in a quiet, low-stimulation room", "correct": true},
+        {"text": "Maintain continuous observation of the client", "correct": true},
+        {"text": "Administer the ordered oral antipsychotic", "correct": true},
+        {"text": "Offer sealed food and beverages", "correct": true},
+        {"text": "Place the client in a crowded, brightly lit area for monitoring", "correct": false},
+        {"text": "Insist the client eat the hospital tray immediately", "correct": false}
+      ],
+      "rationale": "A low-stimulation environment, close observation, the ordered antipsychotic, and sealed foods reduce agitation and address paranoia. Crowded stimulating settings and forcing food escalate distress and mistrust."
+    },
+    {
+      "item_id": "NCLEX_SATA_402906", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neuropsychiatric", "topic": "Schizophrenia", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the interventions have been effective? Select all that apply.",
+      "options": [
+        {"text": "Client reports the voices are quieter", "correct": true},
+        {"text": "Client accepted a sealed snack", "correct": true},
+        {"text": "Client is making brief eye contact", "correct": true},
+        {"text": "No extrapyramidal symptoms observed", "correct": true},
+        {"text": "Client states everyone is still trying to poison him", "correct": false}
+      ],
+      "rationale": "Reduced hallucinations, improved intake, better engagement, and absence of medication side effects all show improvement. Persistent paranoid delusions would indicate the treatment has not yet been effective."
+    }
+  ]
+}

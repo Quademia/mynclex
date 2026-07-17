@@ -1,0 +1,131 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09030",
+  "title": "Major Depression with Suicidal Ideation",
+  "scenario": "A 34-year-old male is brought to the emergency department by his sister after she found a note describing plans to end his life. He has a history of major depressive disorder and has been off his medication for several weeks.",
+  "tags": ["synthetic", "psychosocial"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["34-year-old male brought in by sister. Sister reports finding a written note describing a plan to overdose on stored medication. Client is tearful, avoids eye contact, and speaks in a flat, slow voice. States 'everyone would be better off without me.' Reports not sleeping or eating for the past week and stopped taking his antidepressant about three weeks ago. Alert and oriented x3."], "visibleFrom": 1},
+        {"chips": ["10:20"], "lines": ["Client admits to active suicidal thoughts with a specific plan and access to a stockpile of acetaminophen at home. Denies current intent to harm others. Personal belongings searched and secured; no sharps or medications on person. Placed on continuous 1:1 observation."], "visibleFrom": 2},
+        {"chips": ["11:15"], "lines": ["Provider notified. Behavioral health consult and safety orders received. Client remains on 1:1 with environment cleared of hazards."], "visibleFrom": 5},
+        {"chips": ["14:00"], "lines": ["Client seen by psychiatry; voluntary inpatient admission accepted. States 'I'm glad someone is finally listening.' Contracted verbally to notify staff of any urge to harm self. Ate a small meal and rested for one hour. Remains on 1:1 observation."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "98.2 F (36.8 C)", "92", "18", "128/78", "98% on RA"],
+        ["10:20", "98.2 F (36.8 C)", "88", "18", "126/76", "98% on RA"],
+        ["14:00", "98.4 F (36.9 C)", "80", "16", "122/74", "99% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Acetaminophen level", "< 10", "< 10 mcg/mL (none ingested)"],
+        ["TSH", "2.4", "0.4-4.0 mIU/L"],
+        ["Ethanol", "Negative", "Negative"],
+        ["Urine drug screen", "Negative", "Negative"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Sertraline 100 mg PO daily (self-discontinued 3 weeks ago)"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Initiate continuous 1:1 suicide-precaution observation", "Remove all potentially harmful objects from the environment", "Behavioral health / psychiatry consult", "Restart sertraline 100 mg PO daily", "Document suicide risk assessment each shift", "Do not leave client unattended, including in the bathroom"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_403001", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neurological", "topic": "Major depressive disorder", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings are cues that require immediate follow-up?",
+      "options": [
+        {"text": "Statement that 'everyone would be better off without me'", "correct": true},
+        {"text": "A written note describing a plan to overdose", "correct": true},
+        {"text": "Reports not eating or sleeping for a week", "correct": true},
+        {"text": "Self-discontinued antidepressant three weeks ago", "correct": true},
+        {"text": "Alert and oriented x3", "correct": false},
+        {"text": "SpO2 98% on room air", "correct": false}
+      ],
+      "rationale": "A verbalized wish to die, a written suicide plan, neurovegetative symptoms, and stopping antidepressants all signal acute suicide risk. Normal orientation and oxygenation are not warning cues."
+    },
+    {
+      "item_id": "NCLEX_MMR_403002", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neurological", "topic": "Suicide risk assessment", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it increases suicide risk, indicates depression severity, or both. Each finding may apply to more than one column.",
+      "columns": ["Increases suicide risk", "Indicates depression severity"],
+      "rows": [
+        {"text": "Specific plan with access to stockpiled acetaminophen", "answers": [0]},
+        {"text": "Flat affect and psychomotor slowing", "answers": [1]},
+        {"text": "Hopeless statements about being a burden", "answers": [0, 1]},
+        {"text": "One week of anorexia and insomnia", "answers": [1]}
+      ],
+      "rationale": "A specific, accessible plan is the strongest suicide-risk factor. Flat affect and neurovegetative symptoms mark depression severity, while hopelessness both deepens depression and raises suicide risk."
+    },
+    {
+      "item_id": "NCLEX_CLZ_403003", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neurological", "topic": "Suicide precautions", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, so the priority action is {2}.",
+      "blanks": [
+        {"choices": [{"text": "risk for suicide", "correct": true}, {"text": "imbalanced nutrition"}, {"text": "disturbed sleep pattern"}]},
+        {"choices": [{"text": "initiating continuous 1:1 observation", "correct": true}, {"text": "encouraging a bedtime routine"}, {"text": "offering a high-calorie snack"}]}
+      ],
+      "rationale": "With an active plan and means, physical safety is the priority; continuous 1:1 observation prevents self-harm and outranks the nutrition and sleep problems, which are real but not immediately life-threatening."
+    },
+    {
+      "item_id": "NCLEX_MAT_403004", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neurological", "topic": "Suicide precautions", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Remove sharps, cords, and belts from the room", "answer": 0},
+        {"text": "Maintain continuous 1:1 observation, including in the bathroom", "answer": 0},
+        {"text": "Ask directly about suicidal thoughts and plans", "answer": 0},
+        {"text": "Place the client in a private room at the end of the hall away from staff", "answer": 1},
+        {"text": "Assure the client his statements will be kept strictly confidential from the team", "answer": 1}
+      ],
+      "rationale": "Removing hazards, constant observation, and direct questioning are core suicide-precaution measures. Isolating the client away from staff and promising secrecy both endanger safety and are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_403005", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neurological", "topic": "Therapeutic communication", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "As the nurse implements the plan of care, which actions are appropriate? Select all that apply.",
+      "options": [
+        {"text": "Keep the client within view at all times", "correct": true},
+        {"text": "Use a calm, nonjudgmental tone and allow the client to express feelings", "correct": true},
+        {"text": "Document a suicide risk assessment and secure the environment", "correct": true},
+        {"text": "Tell the client to focus on positive thoughts and cheer up", "correct": false},
+        {"text": "Leave the client alone in his room to rest without observation", "correct": false}
+      ],
+      "rationale": "Constant observation, therapeutic communication, and documented risk assessment protect the client. Minimizing his feelings and leaving him unobserved remove the safety net and are inappropriate."
+    },
+    {
+      "item_id": "NCLEX_SATA_403006", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity", "subject": "Mental Health", "body_system": "Neurological", "topic": "Major depressive disorder", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the plan of care has been effective? Select all that apply.",
+      "options": [
+        {"text": "Client verbally contracts to notify staff of urges to harm himself", "correct": true},
+        {"text": "Client accepts voluntary inpatient admission", "correct": true},
+        {"text": "Client ate a small meal and rested", "correct": true},
+        {"text": "Client remains safely on 1:1 observation with no self-harm", "correct": true},
+        {"text": "Client continues to state he has a plan to overdose at home", "correct": false}
+      ],
+      "rationale": "Engaging with treatment, agreeing to a safety plan, resuming basic self-care, and remaining free of self-harm show progress. A persisting active suicide plan would signal continued risk, not improvement."
+    }
+  ]
+}

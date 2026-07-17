@@ -1,0 +1,365 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_354001", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal care", "subtopic": "Danger signs education", "bloom": "Analyze",
+    "stem": "A nurse is teaching a woman at 30 weeks gestation about warning signs to report. The client reports several sensations. Which statement indicates a finding that requires the client to seek care IMMEDIATELY rather than routine follow-up?",
+    "options": [
+      {"text": "\"I feel my baby move less than usual and it has been most of the day.\"", "correct": true, "feedback": "Correct. Decreased fetal movement over hours warrants immediate evaluation for fetal compromise."},
+      {"text": "\"I get short of breath when I climb the stairs quickly.\"", "correct": false, "feedback": "Incorrect. Mild exertional dyspnea from the enlarging uterus is expected in the third trimester."},
+      {"text": "\"I have occasional tightening that stops when I rest and drink water.\"", "correct": false, "feedback": "Incorrect. These are Braxton Hicks contractions that resolve with hydration and rest."},
+      {"text": "\"My ankles are a little swollen at the end of the day.\"", "correct": false, "feedback": "Incorrect. Mild dependent edema without other signs is a normal late-pregnancy change."}
+    ],
+    "rationale": "Sustained decreased fetal movement can signal fetal compromise and requires prompt evaluation, unlike the other expected third-trimester changes."
+  },
+  {
+    "item_id": "NCLEX_MCQ_354002", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Growth and development", "subtopic": "Developmental milestones", "bloom": "Analyze",
+    "stem": "A nurse assesses a 10-month-old infant at a well-child visit. Which finding should the nurse recognize as a developmental red flag requiring further evaluation?",
+    "options": [
+      {"text": "Does not sit without support and cannot bear weight on the legs", "correct": true, "feedback": "Correct. By 9-10 months an infant should sit unsupported and bear weight; absence suggests a motor delay."},
+      {"text": "Uses a raking grasp rather than a neat pincer grasp", "correct": false, "feedback": "Incorrect. A mature pincer grasp typically emerges around 10-12 months; a raking grasp is still acceptable."},
+      {"text": "Shows anxiety when approached by an unfamiliar visitor", "correct": false, "feedback": "Incorrect. Stranger anxiety is an expected finding beginning around 6-8 months."},
+      {"text": "Babbles repetitive consonant sounds but says no clear words", "correct": false, "feedback": "Incorrect. First true words usually appear around 12 months; babbling at 10 months is normal."}
+    ],
+    "rationale": "Inability to sit unsupported or bear weight by 9-10 months is a gross-motor red flag, whereas the other findings are age-appropriate."
+  },
+  {
+    "item_id": "NCLEX_MCQ_354003", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Immune", "topic": "Immunizations", "subtopic": "Contraindications", "bloom": "Apply",
+    "stem": "A nurse reviews the charts of four children due for the MMR vaccine. For which child should the nurse hold the vaccine and consult the provider?",
+    "options": [
+      {"text": "A child receiving high-dose corticosteroids for nephrotic syndrome", "correct": true, "feedback": "Correct. MMR is a live vaccine and is contraindicated in significant immunosuppression, including high-dose steroids."},
+      {"text": "A child with a mild upper respiratory infection and low-grade fever", "correct": false, "feedback": "Incorrect. Minor illness with low-grade fever is not a contraindication to vaccination."},
+      {"text": "A child whose sibling is not up to date on vaccines", "correct": false, "feedback": "Incorrect. A household contact's status does not contraindicate this child's vaccine."},
+      {"text": "A child with a documented egg allergy causing hives", "correct": false, "feedback": "Incorrect. MMR can be given to children with egg allergy; it is not egg-based."}
+    ],
+    "rationale": "Live vaccines such as MMR are contraindicated during significant immunosuppression like high-dose corticosteroid therapy."
+  },
+  {
+    "item_id": "NCLEX_MCQ_354004", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Older adult screening", "subtopic": "Preventive care", "bloom": "Analyze",
+    "stem": "A nurse in a community clinic is prioritizing preventive screening for a 68-year-old man who has smoked one pack of cigarettes daily for 40 years and quit 8 years ago. Which screening is MOST important to arrange based on his history?",
+    "options": [
+      {"text": "Low-dose CT scan of the chest for lung cancer", "correct": true, "feedback": "Correct. A 50-80 year old with a 20+ pack-year history who quit within 15 years meets criteria for annual low-dose CT lung screening."},
+      {"text": "Abdominal ultrasound only if he reports back pain", "correct": false, "feedback": "Incorrect. One-time AAA screening is recommended for men who ever smoked, but it is not driven by symptoms and lung screening is higher yield here."},
+      {"text": "Fasting lipid panel repeated every 6 months", "correct": false, "feedback": "Incorrect. Lipid screening is appropriate but not this frequent and is not the priority given his smoking history."},
+      {"text": "Prostate-specific antigen testing without discussion", "correct": false, "feedback": "Incorrect. PSA screening requires shared decision-making and is not the highest priority here."}
+    ],
+    "rationale": "His pack-year history and quit interval meet criteria for annual low-dose CT lung cancer screening, the highest-yield targeted screen."
+  },
+  {
+    "item_id": "NCLEX_MCQ_354005", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Depression screening", "subtopic": "Postpartum", "bloom": "Analyze",
+    "stem": "A nurse screens a woman at her 6-week postpartum visit using a validated depression tool. Which response should prompt the nurse to escalate care most urgently?",
+    "options": [
+      {"text": "\"I have had thoughts that the baby would be better off without me.\"", "correct": true, "feedback": "Correct. Thoughts of self-harm or that others are better off signal risk and require immediate escalation."},
+      {"text": "\"I cry more easily than I used to and feel tired.\"", "correct": false, "feedback": "Incorrect. Tearfulness and fatigue are common and warrant monitoring but not urgent escalation."},
+      {"text": "\"I worry about being a good mother sometimes.\"", "correct": false, "feedback": "Incorrect. Some worry about parenting is common; it should be explored but is not an emergency."},
+      {"text": "\"I have less interest in hobbies than before delivery.\"", "correct": false, "feedback": "Incorrect. Reduced interest is a depressive symptom to follow but does not indicate immediate danger."}
+    ],
+    "rationale": "Passive suicidal ideation on a postpartum depression screen indicates safety risk and requires the most urgent escalation."
+  },
+  {
+    "item_id": "NCLEX_MCQ_354006", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Readiness to learn", "subtopic": "Barriers to learning", "bloom": "Apply",
+    "stem": "A nurse plans discharge teaching for a newly diagnosed diabetic client. Which observation indicates the client is NOT yet ready to learn, requiring the nurse to defer detailed teaching?",
+    "options": [
+      {"text": "The client says, \"I just cannot believe any of this is happening to me right now.\"", "correct": true, "feedback": "Correct. Being in denial or emotional shock is a barrier to learning; readiness must be addressed first."},
+      {"text": "The client asks how the glucometer stores previous readings", "correct": false, "feedback": "Incorrect. Asking detailed questions shows engagement and readiness to learn."},
+      {"text": "The client requests a family member be present for teaching", "correct": false, "feedback": "Incorrect. Involving support persons facilitates, rather than blocks, learning."},
+      {"text": "The client asks for written material to review later", "correct": false, "feedback": "Incorrect. Wanting reference material reflects motivation to learn."}
+    ],
+    "rationale": "Emotional denial signals the client is not psychologically ready to learn, so the nurse should address feelings before detailed teaching."
+  },
+  {
+    "item_id": "NCLEX_MCQ_354007", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "GI", "topic": "Infant nutrition", "subtopic": "Toddler feeding", "bloom": "Apply",
+    "stem": "A parent of a healthy 14-month-old asks about feeding. Which statement by the parent indicates a need for further teaching?",
+    "options": [
+      {"text": "\"I give him about 30 ounces of whole milk each day so he grows well.\"", "correct": true, "feedback": "Correct. Excessive milk (over ~24 oz/day) displaces solids and iron-rich foods, risking iron-deficiency anemia."},
+      {"text": "\"I offer him the same foods the family eats, cut into small pieces.\"", "correct": false, "feedback": "Incorrect. Offering appropriately sized table foods is developmentally correct at this age."},
+      {"text": "\"I let him decide how much of a meal he eats.\"", "correct": false, "feedback": "Incorrect. Allowing the toddler to regulate intake respects appetite and is appropriate."},
+      {"text": "\"I avoid giving whole grapes and hot dogs unless they are cut up.\"", "correct": false, "feedback": "Incorrect. Modifying choking-hazard foods is correct safety practice."}
+    ],
+    "rationale": "More than ~24 oz of milk daily in toddlers displaces solid, iron-rich foods and predisposes to iron-deficiency anemia."
+  },
+  {
+    "item_id": "NCLEX_MCQ_354008", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Postpartum care", "subtopic": "Involution assessment", "bloom": "Analyze",
+    "stem": "A nurse assesses a woman 2 days postpartum who is breastfeeding. Which finding is expected and does NOT require intervention?",
+    "options": [
+      {"text": "Fundus firm, midline, 2 fingerbreadths below the umbilicus with moderate red lochia", "correct": true, "feedback": "Correct. A firm midline fundus descending about one fingerbreadth per day with moderate rubra lochia is normal involution."},
+      {"text": "Fundus boggy and displaced to the right with heavy lochia", "correct": false, "feedback": "Incorrect. A boggy, displaced fundus suggests a full bladder or atony and needs intervention."},
+      {"text": "Saturating one perineal pad every 30 minutes", "correct": false, "feedback": "Incorrect. Saturating a pad within an hour signals hemorrhage requiring immediate action."},
+      {"text": "Foul-smelling lochia with a temperature of 38.6 C", "correct": false, "feedback": "Incorrect. Foul lochia and fever suggest endometritis and require intervention."}
+    ],
+    "rationale": "Normal involution shows a firm midline fundus descending steadily with rubra lochia; the other findings indicate atony, hemorrhage, or infection."
+  },
+  {
+    "item_id": "NCLEX_MCQ_354009", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Adolescent health", "subtopic": "Confidentiality", "bloom": "Apply",
+    "stem": "A nurse conducts a health-maintenance visit with a 16-year-old. To best promote candid disclosure of high-risk behaviors, which approach should the nurse take?",
+    "options": [
+      {"text": "Interview the adolescent alone for part of the visit after explaining confidentiality and its limits", "correct": true, "feedback": "Correct. Time alone with clear confidentiality boundaries encourages honest disclosure of risk behaviors."},
+      {"text": "Keep the parent present throughout to ensure accurate history", "correct": false, "feedback": "Incorrect. Parental presence often inhibits disclosure of sensitive behaviors."},
+      {"text": "Ask sensitive questions only if the adolescent raises the topic first", "correct": false, "feedback": "Incorrect. Screening should be proactive; waiting misses risks the teen may not volunteer."},
+      {"text": "Provide a written questionnaire and file it without discussion", "correct": false, "feedback": "Incorrect. A form without dialogue misses the chance to counsel and clarify."}
+    ],
+    "rationale": "Confidential one-on-one interviewing, with limits explained, is the evidence-based way to elicit adolescent risk-behavior disclosure."
+  },
+  {
+    "item_id": "NCLEX_MCQ_354010", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Communication barriers", "subtopic": "Interpreter use", "bloom": "Apply",
+    "stem": "A nurse must teach a client who speaks little English about a new medication. Which action best ensures accurate, ethical communication?",
+    "options": [
+      {"text": "Arrange a trained medical interpreter and address the client directly", "correct": true, "feedback": "Correct. A qualified interpreter ensures accuracy and confidentiality; the nurse speaks to the client, not the interpreter."},
+      {"text": "Ask the client's teenage child to interpret the instructions", "correct": false, "feedback": "Incorrect. Family members, especially minors, risk errors and breach of privacy."},
+      {"text": "Speak slowly and loudly in English using gestures", "correct": false, "feedback": "Incorrect. This does not overcome the language barrier and risks misunderstanding."},
+      {"text": "Give translated printed material and skip verbal teaching", "correct": false, "feedback": "Incorrect. Written material alone assumes literacy and prevents questions."}
+    ],
+    "rationale": "A trained interpreter with the nurse addressing the client directly is the standard for accurate, confidential cross-language teaching."
+  },
+  {
+    "item_id": "NCLEX_MCQ_354011", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Musculoskeletal", "topic": "Older adult safety", "subtopic": "Home-care ability", "bloom": "Analyze",
+    "stem": "A home-health nurse evaluates a 79-year-old woman living alone after a fall. Which finding most strongly indicates she may be unsafe to continue living independently without added support?",
+    "options": [
+      {"text": "She cannot recall whether she has taken her morning medications and has duplicate open bottles", "correct": true, "feedback": "Correct. Impaired medication self-management with evidence of errors signals a safety risk to independent living."},
+      {"text": "She uses a cane and moves slowly but steadily through the home", "correct": false, "feedback": "Incorrect. Slow, steady ambulation with an assistive device is safe adaptation."},
+      {"text": "She keeps a list of emergency numbers by the telephone", "correct": false, "feedback": "Incorrect. Having emergency contacts accessible reflects preparedness."},
+      {"text": "She prefers to bathe in the evening rather than morning", "correct": false, "feedback": "Incorrect. Bathing time preference is not a safety concern."}
+    ],
+    "rationale": "Inability to reliably self-manage medications with evidence of dosing errors is a key indicator of unsafe independent living."
+  },
+  {
+    "item_id": "NCLEX_MCQ_354012", "type": "MCQ", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Cardiovascular", "topic": "Lifestyle modification", "subtopic": "Smoking cessation", "bloom": "Evaluate",
+    "stem": "A nurse counsels a client who says, \"I know I should quit smoking but I have tried before and just cannot.\" Using motivational interviewing, which response is most therapeutic?",
+    "options": [
+      {"text": "\"What has changed for you that makes quitting feel important to think about now?\"", "correct": true, "feedback": "Correct. An open, evocative question exploring the client's own motivation aligns with motivational interviewing."},
+      {"text": "\"You really need to quit before you have a heart attack.\"", "correct": false, "feedback": "Incorrect. Warning and scare tactics tend to increase resistance."},
+      {"text": "\"Most people who try as often as you eventually give up entirely.\"", "correct": false, "feedback": "Incorrect. This is discouraging and undermines self-efficacy."},
+      {"text": "\"I will schedule you for a cessation class starting tomorrow.\"", "correct": false, "feedback": "Incorrect. Directing action before assessing readiness ignores the client's ambivalence."}
+    ],
+    "rationale": "Eliciting the client's own reasons for change with open questions builds motivation and self-efficacy, central to motivational interviewing."
+  },
+  {
+    "item_id": "NCLEX_SATA_354013", "type": "SATA", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Antepartum education", "subtopic": "Nutrition", "bloom": "Analyze",
+    "stem": "A nurse teaches a woman in her first trimester about nutrition and health maintenance. Which statements by the client indicate correct understanding? Select all that apply.",
+    "options": [
+      {"text": "\"I will take a supplement with at least 400 micrograms of folic acid daily.\"", "correct": true},
+      {"text": "\"I should avoid raw fish, unpasteurized cheese, and deli meats unless heated.\"", "correct": true},
+      {"text": "\"I can keep my daily caffeine below about 200 milligrams.\"", "correct": true},
+      {"text": "\"I need to eat for two, so I will roughly double my calories now.\"", "correct": false},
+      {"text": "\"I should stop all physical activity to protect the pregnancy.\"", "correct": false},
+      {"text": "\"I will limit high-mercury fish such as swordfish and king mackerel.\"", "correct": true}
+    ],
+    "rationale": "Folic acid, food-safety precautions, caffeine limits, and avoiding high-mercury fish are correct; calorie needs rise only modestly and moderate exercise is encouraged."
+  },
+  {
+    "item_id": "NCLEX_SATA_354014", "type": "SATA", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Newborn care", "subtopic": "Discharge teaching", "bloom": "Apply",
+    "stem": "A nurse provides discharge teaching to first-time parents of a healthy newborn. Which instructions should the nurse include? Select all that apply.",
+    "options": [
+      {"text": "Place the infant on the back to sleep on a firm, flat surface", "correct": true},
+      {"text": "Keep soft bedding, pillows, and bumpers out of the crib", "correct": true},
+      {"text": "Expect several wet diapers a day once feeding is established", "correct": true},
+      {"text": "Report a rectal temperature of 38 C or higher to the provider", "correct": true},
+      {"text": "Position the infant on the stomach to reduce spit-up during sleep", "correct": false},
+      {"text": "Add rice cereal to the bottle at night to help the baby sleep", "correct": false}
+    ],
+    "rationale": "Back-to-sleep, a bare firm crib, adequate wet diapers, and reporting fever are correct; prone sleep and cereal in the bottle are unsafe."
+  },
+  {
+    "item_id": "NCLEX_SATA_354015", "type": "SATA", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Endocrine", "topic": "Adult health maintenance", "subtopic": "Metabolic risk", "bloom": "Analyze",
+    "stem": "A nurse reviews the profile of a 45-year-old adult at a wellness visit. Which findings should the nurse identify as modifiable risk factors to target in a health-promotion plan? Select all that apply.",
+    "options": [
+      {"text": "Waist circumference of 108 cm (42 in)", "correct": true},
+      {"text": "Sedentary job with no regular exercise", "correct": true},
+      {"text": "Reports 3 to 4 alcoholic drinks most evenings", "correct": true},
+      {"text": "Family history of type 2 diabetes in both parents", "correct": false},
+      {"text": "Diet high in processed foods and sugary drinks", "correct": true},
+      {"text": "Age of 45 years", "correct": false}
+    ],
+    "rationale": "Central obesity, inactivity, heavy alcohol use, and poor diet are modifiable; family history and age are non-modifiable risk factors."
+  },
+  {
+    "item_id": "NCLEX_SATA_354016", "type": "SATA", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "School-age screening", "subtopic": "Vision and hearing", "bloom": "Apply",
+    "stem": "A school nurse plans health screening for elementary students. Which observations warrant referral for further evaluation? Select all that apply.",
+    "options": [
+      {"text": "A child squints and tilts the head to see the board", "correct": true},
+      {"text": "A child frequently asks the teacher to repeat instructions", "correct": true},
+      {"text": "A child's BMI has crossed from the 60th to the 95th percentile in a year", "correct": true},
+      {"text": "A child reads quietly and prefers independent activities", "correct": false},
+      {"text": "A child sits close to the television and holds books very near the face", "correct": true},
+      {"text": "A child lost two primary teeth this school year", "correct": false}
+    ],
+    "rationale": "Squinting, needing repetition, a rapid BMI rise, and holding materials very close warrant referral; quiet reading and normal tooth loss are expected."
+  },
+  {
+    "item_id": "NCLEX_SATA_354017", "type": "SATA", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Older adult health maintenance", "subtopic": "Preventive screening", "bloom": "Analyze",
+    "stem": "A nurse plans preventive care for a healthy 66-year-old woman with no significant history. Which age-appropriate screenings or immunizations should the nurse recommend? Select all that apply.",
+    "options": [
+      {"text": "Annual influenza vaccination", "correct": true},
+      {"text": "Bone mineral density (DEXA) screening for osteoporosis", "correct": true},
+      {"text": "Colorectal cancer screening", "correct": true},
+      {"text": "Routine annual chest x-ray for all older adults", "correct": false},
+      {"text": "Recombinant zoster (shingles) vaccine", "correct": true},
+      {"text": "Discontinuation of all blood pressure monitoring", "correct": false}
+    ],
+    "rationale": "Influenza vaccine, DEXA, colorectal screening, and zoster vaccine are recommended; routine chest x-rays are not, and BP monitoring should continue."
+  },
+  {
+    "item_id": "NCLEX_SELN_354018", "type": "SELECT_N", "difficulty": "Hard", "select_count": 3,
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Toddler development", "subtopic": "Anticipatory guidance", "bloom": "Apply",
+    "stem": "A nurse provides anticipatory guidance to the parent of a 2-year-old. Which 3 pieces of guidance are appropriate for this developmental stage?",
+    "options": [
+      {"text": "Expect the child to assert independence and say \"no\" frequently", "correct": true},
+      {"text": "Begin toilet training when the child shows readiness signs", "correct": true},
+      {"text": "Provide consistent limits and use brief time-outs for discipline", "correct": true},
+      {"text": "Expect the child to share toys willingly with peers", "correct": false},
+      {"text": "Introduce a rear-facing to forward-facing car seat only after age 8", "correct": false},
+      {"text": "Anticipate fluent sentences of 8 to 10 words", "correct": false}
+    ],
+    "rationale": "Autonomy-seeking, readiness-based toilet training, and consistent limits fit the toddler; parallel (not cooperative) play and simpler speech are the norm."
+  },
+  {
+    "item_id": "NCLEX_SELN_354019", "type": "SELECT_N", "difficulty": "Hard", "select_count": 2,
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Health assessment", "subtopic": "Comprehensive assessment", "bloom": "Analyze",
+    "stem": "During a comprehensive health assessment of an adult, which 2 findings should the nurse flag for follow-up rather than documenting as normal variants?",
+    "options": [
+      {"text": "An unintentional weight loss of 6 kg over 2 months", "correct": true},
+      {"text": "A new asymmetric mole with irregular borders and color variation", "correct": true},
+      {"text": "A single palpable, soft, mobile 0.5 cm lymph node", "correct": false},
+      {"text": "Physiologic splitting of the second heart sound on inspiration", "correct": false},
+      {"text": "Symmetric 1+ pitting ankle edema after a long flight", "correct": false}
+    ],
+    "rationale": "Unexplained weight loss and an ABCDE-positive mole warrant follow-up; the others are benign or expected findings."
+  },
+  {
+    "item_id": "NCLEX_TF_354020", "type": "TF", "difficulty": "Hard", "answer": "False",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Immune", "topic": "Immunizations", "bloom": "Understand",
+    "stem": "A healthy adult who received a tetanus-diphtheria (Td) booster 3 years ago and now has a clean minor wound requires another tetanus booster before the wound can be treated.",
+    "rationale": "For clean minor wounds, a booster is needed only if it has been 10 or more years since the last dose, so a booster is not required here."
+  },
+  {
+    "item_id": "NCLEX_MAT_354021", "type": "MATRIX", "difficulty": "Hard", "row_label": "Behavior",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Health behavior change", "subtopic": "Stages of change", "bloom": "Analyze",
+    "stem": "A nurse uses the transtheoretical (stages of change) model. For each client statement, click to indicate whether it reflects the Precontemplation or the Preparation stage.",
+    "columns": ["Precontemplation", "Preparation"],
+    "rows": [
+      {"text": "\"I don't see why my drinking is a problem for anyone.\"", "answer": 0},
+      {"text": "\"I've set a quit date for next Monday and bought nicotine patches.\"", "answer": 1},
+      {"text": "\"My weight is fine; I have no plans to change my diet.\"", "answer": 0},
+      {"text": "\"I've joined a gym and scheduled my first session this week.\"", "answer": 1}
+    ],
+    "rationale": "Precontemplation involves no intent to change and often denial; preparation involves concrete plans and small steps toward action."
+  },
+  {
+    "item_id": "NCLEX_MMR_354022", "type": "MATRIX_MR", "difficulty": "Hard", "row_label": "Age group",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Lifespan screening", "subtopic": "Age-appropriate assessment", "bloom": "Analyze",
+    "stem": "For each age group, select all screening or assessment activities that are routinely appropriate (each row may have more than one).",
+    "columns": ["Developmental milestone check", "Depression screening", "Fall-risk assessment"],
+    "rows": [
+      {"text": "12-month-old infant", "answers": [0]},
+      {"text": "15-year-old adolescent", "answers": [0, 1]},
+      {"text": "40-year-old adult", "answers": [1]},
+      {"text": "80-year-old older adult", "answers": [1, 2]}
+    ],
+    "rationale": "Milestones apply to children/teens, depression screening from adolescence onward, and fall-risk assessment is prioritized in older adults."
+  },
+  {
+    "item_id": "NCLEX_CLZ_354023", "type": "CLOZE", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Labor assessment", "subtopic": "Stages of labor", "bloom": "Analyze",
+    "stem": "A woman in labor is 4 cm dilated with contractions every 4 minutes. The nurse determines she is in the {1} phase of the {2} stage of labor and plans care accordingly.",
+    "blanks": [
+      {"choices": [{"text": "active", "correct": true}, {"text": "latent"}, {"text": "transition"}]},
+      {"choices": [{"text": "first", "correct": true}, {"text": "second"}, {"text": "third"}]}
+    ],
+    "rationale": "Dilation of 4-7 cm with regular contractions marks the active phase of the first stage of labor."
+  },
+  {
+    "item_id": "NCLEX_HL_354024", "type": "HIGHLIGHT", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Well-child visit", "subtopic": "Preschool assessment", "bloom": "Analyze",
+    "stem": "A nurse reviews notes from a 4-year-old's well-child visit and highlights findings that require further evaluation. The child [[cannot hop on one foot or balance briefly]]. Speech is [[understood by strangers about half the time or less]]. He [[draws a person with three body parts]]. Parents report he [[does not play interactive games with other children]]. He [[rides a tricycle and climbs stairs with alternating feet]].",
+    "chunks": [
+      {"text": "cannot hop on one foot or balance briefly", "correct": true, "feedback": "By age 4 a child should hop on one foot; inability is a motor concern."},
+      {"text": "understood by strangers about half the time or less", "correct": true, "feedback": "By age 4 speech should be largely intelligible to strangers; poor intelligibility warrants referral."},
+      {"text": "draws a person with three body parts", "correct": false, "feedback": "Drawing a person with a few parts is expected at this age."},
+      {"text": "does not play interactive games with other children", "correct": true, "feedback": "Lack of cooperative/interactive play by 4 is a social-developmental concern."},
+      {"text": "rides a tricycle and climbs stairs with alternating feet", "correct": false, "feedback": "These are expected gross-motor skills for a 4-year-old."}
+    ],
+    "rationale": "Inability to hop, poor speech intelligibility, and absent interactive play are red flags at age 4; drawing a person and tricycle riding are normal."
+  },
+  {
+    "item_id": "NCLEX_BT_354025", "type": "BOWTIE", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Postpartum health promotion", "subtopic": "Breastfeeding support", "bloom": "Evaluate",
+    "stem": "A nurse supports a first-time mother struggling with breastfeeding on postpartum day 2. Complete the diagram by selecting the priority need, supportive actions, and outcomes to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Assess and correct the infant's latch position", "correct": true},
+      {"text": "Encourage frequent feeding every 2 to 3 hours", "correct": true},
+      {"text": "Recommend switching to formula to reduce stress"},
+      {"text": "Advise limiting feeds to 5 minutes per side"},
+      {"text": "Instruct to supplement with water between feeds"}
+    ]},
+    "centre": {"label": "Priority need", "tokens": [
+      {"text": "Establishing effective breastfeeding", "correct": true},
+      {"text": "Preventing newborn hypoglycemia crisis"},
+      {"text": "Treating suspected mastitis"}
+    ]},
+    "right": {"label": "Outcomes to monitor", "tokens": [
+      {"text": "Number of wet and soiled diapers", "correct": true},
+      {"text": "Infant weight trend", "correct": true},
+      {"text": "Maternal deep tendon reflexes"},
+      {"text": "Infant head circumference daily"},
+      {"text": "Maternal fasting glucose"}
+    ]},
+    "rationale": "Effective breastfeeding is established by correcting latch and feeding frequently, with diaper counts and weight trend as key indicators of adequate intake."
+  },
+  {
+    "item_id": "NCLEX_DCZ_354026", "type": "DRAG_CLOZE", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Growth and development", "subtopic": "Milestone timing", "bloom": "Apply",
+    "stem": "During anticipatory guidance the nurse explains that a typically developing child first walks independently around [1] and speaks in two-word phrases around [2].",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["12 months", "24 months", "6 months", "48 months"],
+    "rationale": "Independent walking emerges around 12 months and two-word phrases around 24 months in typical development."
+  },
+  {
+    "item_id": "NCLEX_DO_354027", "type": "DRAG_ORDER", "difficulty": "Hard",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Patient teaching", "subtopic": "Teaching process", "bloom": "Apply",
+    "stem": "A community-health nurse plans a health-promotion teaching session for a client with newly diagnosed hypertension. Place the steps of the teaching process in the correct order.",
+    "tokens": ["Assess the client's readiness, literacy, and learning needs", "Set mutual learning goals with the client", "Select and deliver teaching methods matched to the client", "Have the client demonstrate or teach back the content", "Evaluate outcomes and document the response to teaching"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

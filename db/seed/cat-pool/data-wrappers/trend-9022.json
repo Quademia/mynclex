@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09022",
+  "title": "Blood Pressure Trend — Hypertensive Crisis",
+  "scenario": "A 58-year-old client admitted for a severe headache is placed on a nicardipine IV infusion titrated to blood pressure. The nurse monitors the blood pressure trend over the first two hours of treatment.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Vital Signs Flowsheet",
+      "headers": ["Time", "B/P", "MAP", "Pulse", "Headache (0-10)", "Neuro"],
+      "rows": [
+        ["14:00", "212/128", "156", "98", "9", "Alert, blurred vision"],
+        ["14:30", "204/122", "149", "96", "9", "Alert, blurred vision"],
+        ["15:00", "188/112", "137", "92", "7", "Alert"],
+        ["15:30", "172/104", "127", "88", "5", "Alert"],
+        ["16:00", "162/96", "118", "84", "3", "Alert, vision clearing"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450221",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Medical-Surgical",
+      "body_system": "Cardiovascular",
+      "topic": "Hypertensive crisis",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Based on the blood pressure trend, how should the nurse interpret the client's response to the nicardipine infusion?",
+      "options": [
+        {"text": "The therapy is working; blood pressure and symptoms are trending down at a controlled, gradual rate", "correct": true},
+        {"text": "The blood pressure is dropping too fast and the infusion should be stopped immediately", "correct": false},
+        {"text": "The therapy is ineffective because the blood pressure remains elevated", "correct": false},
+        {"text": "The rising pulse indicates the client is deteriorating", "correct": false}
+      ],
+      "rationale": "The mean arterial pressure is falling gradually (about a 25% reduction over 2 hours) with improving headache and vision, which is the desired controlled response in a hypertensive emergency. An overly rapid drop risks cerebral ischemia."
+    },
+    {
+      "item_id": "NCLEX_SATA_450222",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Medical-Surgical",
+      "body_system": "Cardiovascular",
+      "topic": "Hypertensive crisis",
+      "difficulty": "Medium",
+      "bloom": "Apply",
+      "stem": "Which nursing actions are appropriate while continuing to manage this client's blood pressure trend? Select all that apply.",
+      "options": [
+        {"text": "Continue titrating the infusion to the prescribed blood pressure parameters", "correct": true},
+        {"text": "Monitor for signs of cerebral hypoperfusion such as confusion or dizziness", "correct": true},
+        {"text": "Reassess neurologic status and headache at frequent intervals", "correct": true},
+        {"text": "Administer a rapid IV fluid bolus to raise the pressure", "correct": false},
+        {"text": "Discontinue blood pressure monitoring now that it is improving", "correct": false}
+      ],
+      "rationale": "Controlled titration, frequent neuro checks, and watching for hypoperfusion are all indicated during a hypertensive emergency. Fluid boluses and stopping monitoring are inappropriate and unsafe."
+    }
+  ]
+}

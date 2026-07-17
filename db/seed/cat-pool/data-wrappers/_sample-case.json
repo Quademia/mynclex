@@ -1,0 +1,130 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09001",
+  "title": "Heart Failure Exacerbation",
+  "scenario": "A 68-year-old female client with a history of chronic heart failure presents to the emergency department with worsening shortness of breath and swelling in both legs over the past three days.",
+  "tags": ["synthetic", "cardiovascular"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["08:00"], "lines": ["68-year-old female brought in by daughter for 3 days of worsening dyspnea and bilateral lower-extremity edema. Reports sleeping in a recliner because she cannot lie flat. Bibasilar crackles on auscultation. Jugular venous distension noted. Weight up 4 kg from baseline. Alert and oriented x3."], "visibleFrom": 1},
+        {"chips": ["08:20"], "lines": ["IV access obtained. Labs and chest x-ray ordered. 2L O2 started per nasal cannula. Cardiac monitor applied."], "visibleFrom": 2},
+        {"chips": ["09:00"], "lines": ["IV furosemide administered per order. Foley catheter inserted to monitor output."], "visibleFrom": 5},
+        {"chips": ["10:30"], "lines": ["Reports breathing is easier. Crackles diminished at the bases. Voided 900 mL clear yellow urine since furosemide."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["08:00", "98.6 F (37.0 C)", "104", "28", "158/92", "88% on RA"],
+        ["08:20", "98.6 F (37.0 C)", "100", "26", "156/90", "93% on 2L NC"],
+        ["10:30", "98.4 F (36.9 C)", "88", "20", "138/82", "96% on 2L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["BNP", "1240", "< 100 pg/mL"],
+        ["Sodium", "132", "135-145 mEq/L"],
+        ["Potassium", "4.1", "3.5-5.0 mEq/L"],
+        ["Creatinine", "1.3", "0.6-1.2 mg/dL"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Lisinopril 10 mg PO daily", "Carvedilol 12.5 mg PO twice daily", "Furosemide 40 mg PO daily"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Administer furosemide 40 mg IV now", "Insert indwelling urinary catheter, monitor strict intake and output", "Daily weights", "2 gram sodium diet", "Continuous cardiac monitoring", "Notify provider for urine output < 30 mL/hr"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_400101", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Heart failure", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Bibasilar crackles", "correct": true},
+        {"text": "SpO2 88% on room air", "correct": true},
+        {"text": "Weight gain of 4 kg", "correct": true},
+        {"text": "Jugular venous distension", "correct": true},
+        {"text": "Alert and oriented x3", "correct": false},
+        {"text": "Temperature 98.6 F", "correct": false}
+      ],
+      "rationale": "Crackles, hypoxia, rapid weight gain, and JVD all indicate fluid volume overload from decompensated heart failure and require prompt intervention."
+    },
+    {
+      "item_id": "NCLEX_MMR_400102", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Heart failure", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it supports left-sided heart failure, right-sided heart failure, or both. Each finding may support more than one.",
+      "columns": ["Left-sided", "Right-sided"],
+      "rows": [
+        {"text": "Bibasilar crackles", "answers": [0]},
+        {"text": "Peripheral edema", "answers": [1]},
+        {"text": "Jugular venous distension", "answers": [1]},
+        {"text": "Elevated BNP", "answers": [0, 1]}
+      ],
+      "rationale": "Pulmonary congestion (crackles) reflects left-sided failure; systemic congestion (edema, JVD) reflects right-sided failure. BNP rises with either."
+    },
+    {
+      "item_id": "NCLEX_CLZ_400103", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Heart failure", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}.",
+      "blanks": [
+        {"choices": [{"text": "impaired gas exchange from fluid overload", "correct": true}, {"text": "risk for infection"}, {"text": "activity intolerance"}]}
+      ],
+      "rationale": "The most immediate threat is impaired gas exchange from pulmonary congestion, evidenced by hypoxia and crackles; it takes priority over the other real but less urgent problems."
+    },
+    {
+      "item_id": "NCLEX_MAT_400104", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Heart failure", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer IV furosemide", "answer": 0},
+        {"text": "Place in high Fowler's position", "answer": 0},
+        {"text": "Administer a rapid IV fluid bolus", "answer": 1},
+        {"text": "Monitor daily weights", "answer": 0},
+        {"text": "Encourage a high-sodium diet", "answer": 1}
+      ],
+      "rationale": "Diuresis, upright positioning, and daily weights manage volume overload. Fluid boluses and high sodium worsen it and are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_400105", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Cardiovascular", "topic": "Diuretics", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After administering IV furosemide, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor serum potassium", "correct": true},
+        {"text": "Measure strict intake and output", "correct": true},
+        {"text": "Monitor for hypotension", "correct": true},
+        {"text": "Restrict all oral fluids to zero", "correct": false},
+        {"text": "Hold all other cardiac medications", "correct": false}
+      ],
+      "rationale": "Loop diuretics cause potassium loss, diuresis, and possible hypotension, so the nurse monitors electrolytes, output, and blood pressure. Total fluid restriction and holding cardiac meds are not indicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_400106", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Heart failure", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Respiratory rate decreased to 20", "correct": true},
+        {"text": "SpO2 improved to 96%", "correct": true},
+        {"text": "Diminished crackles", "correct": true},
+        {"text": "Urine output 900 mL", "correct": true},
+        {"text": "Weight increased by 2 kg", "correct": false}
+      ],
+      "rationale": "Improved respiratory rate, oxygenation, breath sounds, and diuresis all show the fluid overload is resolving. Continued weight gain would signal worsening, not improvement."
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09018",
+  "title": "INR Trend on Warfarin Therapy",
+  "scenario": "A 66-year-old female client with atrial fibrillation is taking warfarin for stroke prevention. The nurse reviews serial INR results after a recent dose increase.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Anticoagulation Flowsheet",
+      "headers": ["Date", "INR (target 2.0-3.0)", "Warfarin dose", "Notable finding"],
+      "rows": [
+        ["Week 1", "1.6", "5 mg daily", "Subtherapeutic; dose increased to 7.5 mg"],
+        ["Week 2", "2.4", "7.5 mg daily", "Therapeutic"],
+        ["Week 3", "3.8", "7.5 mg daily", "Reports gum bleeding when brushing teeth"],
+        ["Week 4", "5.2", "7.5 mg daily", "Bruising on arms; blood in urine"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450181",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Pharmacological and Parenteral Therapies",
+      "subject": "Pharmacology",
+      "body_system": "Hematologic",
+      "topic": "Anticoagulants",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Reviewing the four-week INR trend, what is the nurse's priority concern at Week 4?",
+      "options": [
+        {"text": "The INR has risen well above the therapeutic range and the client shows signs of bleeding", "correct": true},
+        {"text": "The warfarin dose is subtherapeutic and needs to be increased", "correct": false},
+        {"text": "The INR is within the target range and no action is needed", "correct": false},
+        {"text": "The client is at risk for clot formation from under-anticoagulation", "correct": false}
+      ],
+      "rationale": "The INR climbing from 2.4 to 3.8 to 5.2 with gum bleeding, bruising, and hematuria indicates over-anticoagulation and active bleeding risk, which is the priority concern requiring intervention."
+    },
+    {
+      "item_id": "NCLEX_SATA_450182",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Pharmacological and Parenteral Therapies",
+      "subject": "Pharmacology",
+      "body_system": "Hematologic",
+      "topic": "Anticoagulants",
+      "difficulty": "Medium",
+      "bloom": "Apply",
+      "stem": "Based on the Week 4 trend, which nursing actions are appropriate? Select all that apply.",
+      "options": [
+        {"text": "Hold the warfarin dose and notify the provider", "correct": true},
+        {"text": "Assess for further signs of bleeding", "correct": true},
+        {"text": "Anticipate an order for vitamin K", "correct": true},
+        {"text": "Institute bleeding precautions", "correct": true},
+        {"text": "Administer an additional dose of warfarin", "correct": false},
+        {"text": "Give protamine sulfate to reverse the warfarin", "correct": false}
+      ],
+      "rationale": "A supratherapeutic INR with active bleeding calls for holding warfarin, provider notification, anticipating vitamin K (the warfarin antidote), and bleeding precautions. Giving more warfarin worsens the risk, and protamine reverses heparin, not warfarin."
+    }
+  ]
+}

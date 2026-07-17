@@ -1,0 +1,136 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09033",
+  "title": "Urosepsis in an Older Adult",
+  "scenario": "An 82-year-old female nursing-home resident is brought to the emergency department with new-onset confusion, decreased oral intake, and foul-smelling cloudy urine over the past two days.",
+  "tags": ["synthetic", "genitourinary", "sepsis"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["82-year-old female brought from nursing home for 2 days of new confusion and lethargy. Staff report reduced oral intake and cloudy, foul-smelling urine. Baseline is alert and oriented x3 per family; currently oriented to self only. Skin warm and flushed. Indwelling urinary catheter in place for 3 weeks. Mucous membranes dry."], "visibleFrom": 1},
+        {"chips": ["10:20"], "lines": ["Two large-bore IV lines placed. Blood cultures x2 drawn, urinalysis and urine culture obtained from catheter port. Lactate and CBC sent. Cardiac monitor and continuous pulse oximetry applied."], "visibleFrom": 2},
+        {"chips": ["11:00"], "lines": ["30 mL/kg isotonic crystalloid bolus initiated. Broad-spectrum IV antibiotic administered after cultures obtained. Existing catheter removed and replaced per order."], "visibleFrom": 5},
+        {"chips": ["13:30"], "lines": ["Client more responsive, now oriented to self and place. Skin cooler, less flushed. Urine output improving via new catheter. Reports feeling less foggy."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "101.8 F (38.8 C)", "118", "26", "88/52", "92% on RA"],
+        ["10:20", "101.8 F (38.8 C)", "116", "24", "90/54", "95% on 2L NC"],
+        ["13:30", "99.6 F (37.6 C)", "94", "18", "112/70", "97% on 2L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["WBC", "18.9", "5.0-10.0 x10^9/L"],
+        ["Lactate", "3.4", "0.5-2.2 mmol/L"],
+        ["Creatinine", "1.8", "0.6-1.2 mg/dL"],
+        ["BUN", "38", "7-20 mg/dL"],
+        ["Urinalysis", "Cloudy, leukocyte esterase +, nitrites +, WBC > 100/hpf, many bacteria", "Clear, negative"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Amlodipine 5 mg PO daily", "Donepezil 10 mg PO daily", "Acetaminophen 650 mg PO every 6 hours PRN"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Isotonic crystalloid 30 mL/kg IV bolus now", "Obtain blood cultures x2 and urine culture before antibiotics", "Broad-spectrum IV antibiotic now, then per protocol", "Remove and replace indwelling urinary catheter", "Measure serum lactate now and repeat in 4 hours", "Strict intake and output; notify provider for urine output < 30 mL/hr", "Continuous cardiac and SpO2 monitoring"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_403301", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Genitourinary", "topic": "Urosepsis", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "New-onset confusion", "correct": true},
+        {"text": "Temperature 101.8 F (38.8 C)", "correct": true},
+        {"text": "Blood pressure 88/52", "correct": true},
+        {"text": "Heart rate 118", "correct": true},
+        {"text": "Takes donepezil daily", "correct": false},
+        {"text": "History of hypertension", "correct": false}
+      ],
+      "rationale": "Acute confusion, fever, hypotension, and tachycardia together signal a systemic infectious response and possible sepsis, requiring prompt intervention. The home medication and chronic history are background, not urgent cues."
+    },
+    {
+      "item_id": "NCLEX_MMR_403302", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Genitourinary", "topic": "Urosepsis", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it supports a urinary source of infection, a systemic septic response, or both. Each finding may support more than one.",
+      "columns": ["Urinary source", "Systemic septic response"],
+      "rows": [
+        {"text": "Nitrites and leukocyte esterase positive on urinalysis", "answers": [0]},
+        {"text": "Lactate 3.4 mmol/L", "answers": [1]},
+        {"text": "Cloudy, foul-smelling urine", "answers": [0]},
+        {"text": "Hypotension with tachycardia", "answers": [1]},
+        {"text": "Indwelling catheter in place 3 weeks", "answers": [0]},
+        {"text": "WBC 18.9 x10^9/L", "answers": [0, 1]}
+      ],
+      "rationale": "Positive nitrites/esterase, cloudy urine, and a chronic catheter localize infection to the urinary tract, while elevated lactate and hypotension reflect the systemic septic response. Leukocytosis supports both the infection and the systemic reaction to it."
+    },
+    {
+      "item_id": "NCLEX_CLZ_403303", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Genitourinary", "topic": "Urosepsis", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the most immediate goal is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "inadequate tissue perfusion from sepsis", "correct": true}, {"text": "acute pain", "correct": false}, {"text": "impaired skin integrity", "correct": false}]},
+        {"choices": [{"text": "restore circulating volume and blood pressure", "correct": true}, {"text": "promote uninterrupted sleep", "correct": false}, {"text": "correct the confusion with reorientation", "correct": false}]}
+      ],
+      "rationale": "The hypotension and elevated lactate show inadequate tissue perfusion from sepsis, the greatest immediate threat. Rapid fluid resuscitation to restore volume and blood pressure takes priority over comfort or reorientation measures."
+    },
+    {
+      "item_id": "NCLEX_MAT_403304", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Genitourinary", "topic": "Urosepsis", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client at this time.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Obtain blood and urine cultures before starting antibiotics", "answer": 0},
+        {"text": "Administer a 30 mL/kg isotonic crystalloid bolus", "answer": 0},
+        {"text": "Delay antibiotics until final culture results return", "answer": 1},
+        {"text": "Remove and replace the chronic indwelling catheter", "answer": 0},
+        {"text": "Withhold IV fluids to prevent overload", "answer": 1}
+      ],
+      "rationale": "Early cultures, prompt fluid resuscitation, and source control by replacing the infected catheter are core sepsis interventions. Delaying antibiotics for final cultures or withholding fluids would worsen perfusion and outcomes."
+    },
+    {
+      "item_id": "NCLEX_SATA_403305", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Genitourinary", "topic": "Sepsis management", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "Which actions should the nurse take to implement the sepsis orders? Select all that apply.",
+      "options": [
+        {"text": "Administer the broad-spectrum IV antibiotic after cultures are drawn", "correct": true},
+        {"text": "Infuse the ordered isotonic fluid bolus", "correct": true},
+        {"text": "Measure strict intake and output", "correct": true},
+        {"text": "Repeat the serum lactate as ordered", "correct": true},
+        {"text": "Hold the antibiotic until the fever resolves", "correct": false},
+        {"text": "Restrict all IV fluids to keep the client dry", "correct": false}
+      ],
+      "rationale": "Timely antibiotics after cultures, fluid resuscitation, strict output monitoring, and a repeat lactate are the actions that carry out the sepsis bundle. Holding antibiotics or restricting fluids would delay treatment and worsen perfusion."
+    },
+    {
+      "item_id": "NCLEX_SATA_403306", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Genitourinary", "topic": "Urosepsis", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Blood pressure improved to 112/70", "correct": true},
+        {"text": "Heart rate decreased to 94", "correct": true},
+        {"text": "Client now oriented to self and place", "correct": true},
+        {"text": "Temperature down to 99.6 F (37.6 C)", "correct": true},
+        {"text": "Blood pressure remains 88/52", "correct": false},
+        {"text": "Urine output falls below 30 mL/hr", "correct": false}
+      ],
+      "rationale": "Rising blood pressure, slowing heart rate, improving mentation, and a falling temperature all show the septic response is resolving. Persistent hypotension or oliguria would indicate ongoing shock, not improvement."
+    }
+  ]
+}

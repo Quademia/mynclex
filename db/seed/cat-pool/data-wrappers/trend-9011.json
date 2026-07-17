@@ -1,0 +1,64 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09011",
+  "title": "Chest Tube Output Trend",
+  "scenario": "A 40-year-old female client has a chest tube placed after a thoracotomy. The nurse records chest tube drainage hourly to monitor for hemorrhage.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Chest Tube Drainage Flowsheet",
+      "headers": ["Time", "Drainage this hour (mL)", "Drainage character", "Heart rate", "B/P", "Tidaling/bubbling"],
+      "rows": [
+        ["12:00", "60", "Serosanguineous", "88", "118/74", "Tidaling present, no air leak"],
+        ["13:00", "70", "Serosanguineous", "92", "114/72", "Tidaling present, no air leak"],
+        ["14:00", "180", "Bright red", "108", "104/64", "Tidaling present, no air leak"],
+        ["15:00", "220", "Bright red", "120", "92/58", "Tidaling present, no air leak"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450111",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Respiratory",
+      "topic": "Chest tube drainage",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Reviewing the chest tube flowsheet, which action should the nurse take first?",
+      "options": [
+        {"text": "Notify the surgeon immediately of the increasing bloody output", "correct": true},
+        {"text": "Continue routine monitoring and reassess in one hour", "correct": false},
+        {"text": "Clamp the chest tube to slow the drainage", "correct": false},
+        {"text": "Strip the chest tube vigorously to clear clots", "correct": false}
+      ],
+      "rationale": "Drainage exceeding 100 mL/hr that is increasing and turning bright red, with rising heart rate and falling blood pressure, signals active hemorrhage and requires immediate provider notification. Clamping or vigorous stripping is unsafe."
+    },
+    {
+      "item_id": "NCLEX_MATRIX_450112",
+      "type": "MATRIX",
+      "row_label": "Finding",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Medical-Surgical",
+      "body_system": "Respiratory",
+      "topic": "Trend recognition",
+      "difficulty": "Hard",
+      "bloom": "Analyze",
+      "stem": "For each finding in the trend, click to specify whether it is expected or a cause for concern.",
+      "columns": ["Expected", "Concern"],
+      "rows": [
+        {"text": "Serosanguineous drainage of 60 mL in the first hour", "answer": 0},
+        {"text": "Drainage rising to 220 mL in one hour", "answer": 1},
+        {"text": "Drainage changing to bright red", "answer": 1},
+        {"text": "Blood pressure falling from 118/74 to 92/58", "answer": 1},
+        {"text": "Tidaling present with no air leak", "answer": 0}
+      ],
+      "rationale": "Modest serosanguineous output and tidaling without an air leak are expected early after thoracotomy. Rapidly rising, bright-red drainage with a falling blood pressure indicates hemorrhage and is a concern."
+    }
+  ]
+}

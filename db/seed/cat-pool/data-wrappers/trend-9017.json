@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09017",
+  "title": "Lactate Clearance Trend in Sepsis",
+  "scenario": "A 55-year-old female client with suspected septic shock is started on IV fluid resuscitation and antibiotics. The nurse monitors serial lactate levels and hemodynamics over six hours.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Sepsis Resuscitation Flowsheet",
+      "headers": ["Time", "Lactate (0.5-2.0 mmol/L)", "MAP (mmHg)", "HR", "Urine output (mL/hr)"],
+      "rows": [
+        ["00:00", "5.8", "58", "122", "18"],
+        ["02:00", "4.6", "64", "116", "24"],
+        ["04:00", "3.2", "70", "104", "35"],
+        ["06:00", "2.1", "74", "92", "45"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450171",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Multisystem",
+      "topic": "Sepsis",
+      "difficulty": "Medium",
+      "bloom": "Evaluate",
+      "stem": "Considering the six-hour trend, how should the nurse interpret the client's response to treatment?",
+      "options": [
+        {"text": "The falling lactate with rising MAP and urine output indicates the resuscitation is effective", "correct": true},
+        {"text": "The client is deteriorating and needs escalation of care", "correct": false},
+        {"text": "The lactate trend is unrelated to perfusion status", "correct": false},
+        {"text": "The findings indicate the client is fluid overloaded", "correct": false}
+      ],
+      "rationale": "Lactate clearing from 5.8 to 2.1 mmol/L alongside an improving MAP (58 to 74), slowing heart rate, and rising urine output shows restored tissue perfusion and an effective response to sepsis resuscitation."
+    },
+    {
+      "item_id": "NCLEX_SATA_450172",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Multisystem",
+      "topic": "Sepsis",
+      "difficulty": "Medium",
+      "bloom": "Understand",
+      "stem": "Which findings in the trend support that tissue perfusion is improving? Select all that apply.",
+      "options": [
+        {"text": "Lactate decreasing toward the normal range", "correct": true},
+        {"text": "MAP rising above 65 mmHg", "correct": true},
+        {"text": "Urine output increasing to 45 mL/hr", "correct": true},
+        {"text": "Heart rate trending down toward normal", "correct": true},
+        {"text": "Lactate remaining above 5 mmol/L", "correct": false},
+        {"text": "Urine output falling below 20 mL/hr", "correct": false}
+      ],
+      "rationale": "A declining lactate, MAP above 65, increasing urine output, and a normalizing heart rate are all markers of restored perfusion. A persistently high lactate or falling urine output would indicate ongoing hypoperfusion."
+    }
+  ]
+}

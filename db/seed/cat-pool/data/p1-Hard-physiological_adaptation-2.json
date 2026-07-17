@@ -1,0 +1,382 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_367001", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Chest tube management", "subtopic": "Complication recognition", "bloom": "Analyze",
+    "stem": "A nurse is caring for a client with a chest tube for a pneumothorax. The nurse notes that the water-seal chamber previously had tidaling with respiration, but tidaling has now suddenly stopped and the client reports increasing dyspnea and chest tightness. Which action should the nurse take FIRST?",
+    "options": [
+      {"text": "Assess the tubing for kinks or obstruction and the client's breath sounds", "correct": true, "feedback": "Correct. Sudden loss of tidaling with worsening dyspnea suggests obstruction or re-accumulating pneumothorax — assess the system and client before other action."},
+      {"text": "Document that the lung has fully re-expanded", "correct": false, "feedback": "Incorrect. Cessation of tidaling with new dyspnea signals obstruction, not resolution."},
+      {"text": "Increase the wall suction to restore tidaling", "correct": false, "feedback": "Incorrect. Increasing suction does not address an obstruction and is not first."},
+      {"text": "Clamp the chest tube and notify the provider", "correct": false, "feedback": "Incorrect. Clamping a chest tube with a possible pneumothorax risks tension pneumothorax."}
+    ],
+    "rationale": "Abrupt loss of tidaling with new respiratory distress suggests a kinked/obstructed tube or re-accumulating air; the nurse first assesses the system and client."
+  },
+  {
+    "item_id": "NCLEX_MCQ_367002", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Septic shock", "subtopic": "Hemodynamics", "bloom": "Analyze",
+    "stem": "A client with suspected septic shock has received 30 mL/kg of isotonic crystalloid. Vital signs are now BP 82/44 mmHg, HR 122 bpm, MAP 56 mmHg, and lactate 4.6 mmol/L. Which prescription should the nurse anticipate implementing next?",
+    "options": [
+      {"text": "Start a norepinephrine infusion titrated to a MAP of at least 65 mmHg", "correct": true, "feedback": "Correct. After adequate fluid resuscitation with persistent hypotension, a vasopressor (norepinephrine first-line) is indicated to restore perfusion pressure."},
+      {"text": "Administer a 1 L bolus of 0.45% sodium chloride", "correct": false, "feedback": "Incorrect. Hypotonic fluid is inappropriate and additional fluid alone is not first after adequate resuscitation."},
+      {"text": "Give furosemide to improve urine output", "correct": false, "feedback": "Incorrect. A diuretic in a hypotensive, hypoperfused client would worsen shock."},
+      {"text": "Transfuse one unit of packed red blood cells", "correct": false, "feedback": "Incorrect. There is no indication of anemia or hemorrhage in this scenario."}
+    ],
+    "rationale": "Persistent hypotension and elevated lactate after adequate fluids in septic shock warrant a vasopressor; norepinephrine is first-line to achieve MAP >= 65 mmHg."
+  },
+  {
+    "item_id": "NCLEX_MCQ_367003", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Mechanical ventilation", "subtopic": "Ventilator alarms", "bloom": "Analyze",
+    "stem": "A client is intubated and receiving volume-controlled mechanical ventilation. The high-pressure alarm sounds repeatedly. The nurse notes the client is biting the tube and coughing, with rhonchi on auscultation and increased secretions. Which intervention is the priority?",
+    "options": [
+      {"text": "Suction the airway to clear secretions", "correct": true, "feedback": "Correct. A high-pressure alarm from secretions and coughing indicates increased airway resistance; suctioning addresses the reversible cause."},
+      {"text": "Add positive end-expiratory pressure (PEEP)", "correct": false, "feedback": "Incorrect. Adding PEEP does not relieve resistance from secretions and could worsen pressures."},
+      {"text": "Silence the alarm and continue to monitor", "correct": false, "feedback": "Incorrect. Silencing without addressing the cause risks hypoxia."},
+      {"text": "Increase the set tidal volume", "correct": false, "feedback": "Incorrect. Increasing tidal volume raises peak pressures further."}
+    ],
+    "rationale": "A high-pressure ventilator alarm reflects increased airway resistance (secretions, biting, coughing); clearing secretions with suction addresses the cause."
+  },
+  {
+    "item_id": "NCLEX_MCQ_367004", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Hemodialysis", "subtopic": "Disequilibrium syndrome", "bloom": "Analyze",
+    "stem": "During the first hemodialysis treatment for a client with newly diagnosed end-stage renal disease, the client develops a headache, nausea, restlessness, and confusion near the end of the session. Which complication should the nurse suspect?",
+    "options": [
+      {"text": "Dialysis disequilibrium syndrome", "correct": true, "feedback": "Correct. Rapid solute removal during initial dialysis creates an osmotic gradient causing cerebral edema — headache, nausea, restlessness, and confusion are classic."},
+      {"text": "Air embolism", "correct": false, "feedback": "Incorrect. Air embolism presents with sudden dyspnea, chest pain, and cyanosis, not this gradual neuro picture."},
+      {"text": "Hemolysis", "correct": false, "feedback": "Incorrect. Hemolysis causes back/chest pain and cherry-red blood, not primarily neurologic change."},
+      {"text": "Hyperkalemia", "correct": false, "feedback": "Incorrect. Dialysis lowers potassium; the findings are not consistent with hyperkalemia."}
+    ],
+    "rationale": "Disequilibrium syndrome results from rapid decrease in BUN/solutes during early dialysis, causing an osmotic shift and cerebral edema with neurologic symptoms."
+  },
+  {
+    "item_id": "NCLEX_MCQ_367005", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Increased intracranial pressure", "subtopic": "ICP monitoring", "bloom": "Analyze",
+    "stem": "A client with a traumatic brain injury and an intraventricular ICP monitor has an ICP of 24 mmHg and a MAP of 78 mmHg. Which value best reflects the adequacy of cerebral perfusion, and how should the nurse interpret it?",
+    "options": [
+      {"text": "Cerebral perfusion pressure is 54 mmHg — below the target range and concerning", "correct": true, "feedback": "Correct. CPP = MAP - ICP = 78 - 24 = 54 mmHg, below the 60-70 mmHg target, indicating inadequate cerebral perfusion."},
+      {"text": "Cerebral perfusion pressure is 102 mmHg — adequate", "correct": false, "feedback": "Incorrect. CPP is MAP minus ICP, not the sum."},
+      {"text": "Cerebral perfusion pressure is 24 mmHg — normal", "correct": false, "feedback": "Incorrect. 24 mmHg is the ICP, not the CPP."},
+      {"text": "Cerebral perfusion pressure is 78 mmHg — adequate", "correct": false, "feedback": "Incorrect. 78 mmHg is the MAP; CPP must subtract the ICP."}
+    ],
+    "rationale": "CPP = MAP - ICP = 54 mmHg, which is below the recommended 60-70 mmHg and signals inadequate cerebral perfusion requiring intervention."
+  },
+  {
+    "item_id": "NCLEX_MCQ_367006", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Diabetic ketoacidosis", "subtopic": "Fluid and electrolyte", "bloom": "Analyze",
+    "stem": "A client with diabetic ketoacidosis has been receiving an insulin infusion and IV fluids. Current labs: glucose 245 mg/dL, potassium 3.3 mEq/L, pH 7.28. The nurse is about to titrate care. Which action is the priority?",
+    "options": [
+      {"text": "Hold or delay further insulin and administer potassium replacement per protocol", "correct": true, "feedback": "Correct. Potassium of 3.3 mEq/L is low; insulin drives potassium intracellularly and can cause life-threatening hypokalemia, so replace potassium and address it before continuing insulin."},
+      {"text": "Increase the insulin infusion rate to normalize glucose faster", "correct": false, "feedback": "Incorrect. Increasing insulin would worsen the hypokalemia."},
+      {"text": "Add dextrose and continue insulin unchanged", "correct": false, "feedback": "Incorrect. Dextrose is added around glucose 200 mg/dL, but the urgent issue is the low potassium."},
+      {"text": "Administer sodium bicarbonate for the acidosis", "correct": false, "feedback": "Incorrect. Bicarbonate is reserved for severe acidosis (pH < 6.9) and could worsen hypokalemia."}
+    ],
+    "rationale": "In DKA, insulin shifts potassium into cells; with K+ of 3.3 mEq/L, potassium must be replaced and insulin held/adjusted to prevent fatal hypokalemia."
+  },
+  {
+    "item_id": "NCLEX_MCQ_367007", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "Ostomy care", "subtopic": "Stoma complication", "bloom": "Analyze",
+    "stem": "On the second postoperative day after colostomy creation, the nurse assesses the stoma and finds it dusky bluish-purple and dry. Which action should the nurse take FIRST?",
+    "options": [
+      {"text": "Notify the surgeon immediately", "correct": true, "feedback": "Correct. A dusky/bluish, dry stoma indicates ischemia or necrosis — a surgical emergency requiring immediate provider notification."},
+      {"text": "Apply a warm compress to improve circulation", "correct": false, "feedback": "Incorrect. Warm compresses will not reverse ischemia and delay definitive care."},
+      {"text": "Document the expected postoperative appearance", "correct": false, "feedback": "Incorrect. A healthy stoma is pink/red and moist; this appearance is abnormal."},
+      {"text": "Increase oral fluid intake to perfuse the stoma", "correct": false, "feedback": "Incorrect. Oral fluids will not restore stoma perfusion; this needs urgent evaluation."}
+    ],
+    "rationale": "A healthy stoma is pink-red and moist; a dusky, dry, purple stoma indicates compromised blood supply and must be reported immediately."
+  },
+  {
+    "item_id": "NCLEX_MCQ_367008", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Pacing devices", "subtopic": "Pacemaker malfunction", "bloom": "Analyze",
+    "stem": "A client with a temporary transvenous pacemaker set at a rate of 70 bpm has a monitor showing pacing spikes that are NOT followed by QRS complexes, and the client's palpable pulse is 46 bpm. Which pacemaker malfunction is occurring?",
+    "options": [
+      {"text": "Failure to capture", "correct": true, "feedback": "Correct. Pacing spikes not followed by depolarization (QRS) indicate failure to capture — the stimulus fails to produce myocardial contraction."},
+      {"text": "Failure to sense", "correct": false, "feedback": "Incorrect. Failure to sense produces spikes inappropriately placed on intrinsic beats, not spikes without capture."},
+      {"text": "Failure to pace (output failure)", "correct": false, "feedback": "Incorrect. Failure to pace shows absent spikes; here spikes are present."},
+      {"text": "Oversensing", "correct": false, "feedback": "Incorrect. Oversensing inhibits pacing output, producing pauses without spikes."}
+    ],
+    "rationale": "Pacing spikes without a following QRS indicate failure to capture — the electrical stimulus does not depolarize the myocardium, so the effective rate is low."
+  },
+  {
+    "item_id": "NCLEX_MCQ_367009", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Integumentary", "topic": "Negative pressure wound therapy", "subtopic": "NPWT troubleshooting", "bloom": "Analyze",
+    "stem": "A client has negative pressure wound therapy (NPWT) on an abdominal wound. The nurse finds the foam dressing expanded and no longer collapsed, the device alarming, and an audible hissing at the dressing edge. Which is the nurse's best initial action?",
+    "options": [
+      {"text": "Inspect the transparent drape for a leak and reseal it to restore the seal", "correct": true, "feedback": "Correct. Loss of collapse, alarming, and hissing indicate an air leak; resealing the drape restores negative pressure and therapy effectiveness."},
+      {"text": "Turn off the device and leave the wound open to air", "correct": false, "feedback": "Incorrect. Discontinuing therapy without correcting the leak interrupts wound healing."},
+      {"text": "Increase the negative pressure setting to overcome the leak", "correct": false, "feedback": "Incorrect. Raising pressure does not fix a broken seal and may harm tissue."},
+      {"text": "Irrigate the wound with sterile saline and repack it", "correct": false, "feedback": "Incorrect. The immediate problem is the air leak, not the packing itself."}
+    ],
+    "rationale": "An expanded (non-collapsed) foam with hissing and alarms signals a broken seal/air leak; resealing the occlusive drape restores negative pressure."
+  },
+  {
+    "item_id": "NCLEX_MCQ_367010", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Arterial line", "subtopic": "Hemodynamic monitoring", "bloom": "Analyze",
+    "stem": "A nurse notes that a client's arterial line waveform is dampened and the displayed pressure is lower than a cuff reading taken simultaneously. The line flushes sluggishly. Which action should the nurse perform FIRST?",
+    "options": [
+      {"text": "Check for kinks and assess the catheter/tubing for clot or air, then perform a square-wave test", "correct": true, "feedback": "Correct. A dampened waveform with sluggish flush suggests a kink, clot, or air; assessing the system and performing a square-wave (dynamic response) test identifies the cause before treating readings."},
+      {"text": "Document the arterial pressure and treat the hypotension with fluids", "correct": false, "feedback": "Incorrect. A dampened waveform gives inaccurate low readings; treating them risks harm."},
+      {"text": "Zero and re-level the transducer to the phlebostatic axis only", "correct": false, "feedback": "Incorrect. Re-leveling is reasonable but does not address a kink/clot causing damping and is not the priority action."},
+      {"text": "Remove the arterial catheter immediately", "correct": false, "feedback": "Incorrect. Removal is premature before troubleshooting the reversible causes."}
+    ],
+    "rationale": "A dampened arterial waveform underestimates pressure; the nurse first troubleshoots kinks, clot, air, and transducer setup before trusting or acting on the value."
+  },
+  {
+    "item_id": "NCLEX_MCQ_367011", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Pediatrics", "body_system": "Hematologic", "topic": "Phototherapy", "subtopic": "Neonatal hyperbilirubinemia", "bloom": "Apply",
+    "stem": "A newborn is receiving phototherapy for hyperbilirubinemia. Which finding requires the nurse to intervene?",
+    "options": [
+      {"text": "Temperature of 38.6°C (101.5°F) with decreased urine output", "correct": true, "feedback": "Correct. Hyperthermia and signs of dehydration are complications of phototherapy requiring intervention to prevent fluid loss and overheating."},
+      {"text": "Loose green stools", "correct": false, "feedback": "Incorrect. Loose green stools are an expected effect of increased bilirubin excretion."},
+      {"text": "A fine maculopapular rash", "correct": false, "feedback": "Incorrect. A transient rash is a common, benign effect of phototherapy."},
+      {"text": "The newborn wearing only a diaper with eye shields in place", "correct": false, "feedback": "Incorrect. This is the correct positioning to maximize skin exposure while protecting the eyes."}
+    ],
+    "rationale": "Phototherapy increases insensible water loss and can cause hyperthermia and dehydration; fever with reduced output requires intervention, whereas loose stools and rash are expected."
+  },
+  {
+    "item_id": "NCLEX_MCQ_367012", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Temperature regulation", "subtopic": "Heat stroke", "bloom": "Analyze",
+    "stem": "A client is brought to the emergency department after collapsing during outdoor labor in hot weather. Temperature is 41.2°C (106.2°F), skin is hot and dry, and the client is confused. Which intervention is the priority?",
+    "options": [
+      {"text": "Begin rapid active cooling with cool water/ice packs to the groin, axillae, and neck", "correct": true, "feedback": "Correct. Heat stroke with CNS dysfunction is a medical emergency; rapid cooling to lower core temperature is the priority to prevent organ damage."},
+      {"text": "Administer acetaminophen to reduce the temperature", "correct": false, "feedback": "Incorrect. Antipyretics are ineffective in heat stroke because the hyperthermia is not hypothalamically mediated."},
+      {"text": "Encourage the client to drink cold oral fluids", "correct": false, "feedback": "Incorrect. A confused client is at risk for aspiration and this does not rapidly cool the core."},
+      {"text": "Cover the client with a warming blanket to prevent shivering", "correct": false, "feedback": "Incorrect. Warming would worsen the life-threatening hyperthermia."}
+    ],
+    "rationale": "Heat stroke (hot/dry skin, altered mentation, core temp > 40°C) requires immediate active cooling; antipyretics are ineffective."
+  },
+  {
+    "item_id": "NCLEX_MCQ_367013", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Internal fetal monitoring", "subtopic": "Fetal heart rate patterns", "bloom": "Analyze",
+    "stem": "A laboring client with an internal fetal scalp electrode and intrauterine pressure catheter shows recurrent late decelerations with minimal variability. Which action should the nurse take FIRST?",
+    "options": [
+      {"text": "Reposition the client to a lateral position", "correct": true, "feedback": "Correct. Recurrent late decelerations indicate uteroplacental insufficiency; lateral positioning improves placental perfusion and is the first intrauterine resuscitation step."},
+      {"text": "Prepare for immediate cesarean delivery", "correct": false, "feedback": "Incorrect. Intrauterine resuscitation measures are attempted first before surgical delivery."},
+      {"text": "Increase the oxytocin infusion to speed delivery", "correct": false, "feedback": "Incorrect. Oxytocin would worsen uteroplacental insufficiency and should be stopped."},
+      {"text": "Document the pattern as reassuring and continue monitoring", "correct": false, "feedback": "Incorrect. Recurrent late decelerations with minimal variability are non-reassuring."}
+    ],
+    "rationale": "Late decelerations reflect uteroplacental insufficiency; intrauterine resuscitation begins with repositioning to improve perfusion (along with stopping oxytocin, O2, and fluids)."
+  },
+  {
+    "item_id": "NCLEX_SATA_367014", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Fluid and electrolyte imbalance", "subtopic": "Hyperkalemia", "bloom": "Analyze",
+    "stem": "A client with acute kidney injury has a serum potassium of 6.8 mEq/L. Which findings and interventions are appropriate for the nurse to anticipate? Select all that apply.",
+    "options": [
+      {"text": "Peaked T waves on the ECG", "correct": true, "feedback": "Correct. Peaked T waves are an early ECG change of hyperkalemia."},
+      {"text": "Administering IV calcium gluconate to stabilize the myocardium", "correct": true, "feedback": "Correct. Calcium gluconate stabilizes the cardiac membrane against dysrhythmia."},
+      {"text": "Giving IV regular insulin with dextrose to shift potassium intracellularly", "correct": true, "feedback": "Correct. Insulin (with dextrose) temporarily drives potassium into cells."},
+      {"text": "Administering sodium polystyrene sulfonate or preparing for dialysis", "correct": true, "feedback": "Correct. These remove potassium from the body."},
+      {"text": "Encouraging a diet high in bananas and oranges", "correct": false, "feedback": "Incorrect. These are high-potassium foods and would worsen hyperkalemia."},
+      {"text": "Administering a potassium-sparing diuretic", "correct": false, "feedback": "Incorrect. Potassium-sparing diuretics raise potassium further."}
+    ],
+    "rationale": "Hyperkalemia causes peaked T waves; management stabilizes the myocardium (calcium), shifts K+ intracellularly (insulin/dextrose), and removes it (kayexalate/dialysis) while avoiding K+ intake."
+  },
+  {
+    "item_id": "NCLEX_SATA_367015", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Acute respiratory distress syndrome", "subtopic": "Impaired oxygenation", "bloom": "Analyze",
+    "stem": "A nurse is monitoring a mechanically ventilated client with acute respiratory distress syndrome (ARDS). Which findings are consistent with worsening ARDS? Select all that apply.",
+    "options": [
+      {"text": "Refractory hypoxemia not improving with increased FiO2", "correct": true, "feedback": "Correct. Refractory hypoxemia is a hallmark of ARDS."},
+      {"text": "Decreasing lung compliance requiring higher ventilator pressures", "correct": true, "feedback": "Correct. Stiff, non-compliant lungs are characteristic of ARDS."},
+      {"text": "Bilateral diffuse infiltrates on chest x-ray", "correct": true, "feedback": "Correct. Bilateral 'white-out' infiltrates are a diagnostic feature."},
+      {"text": "A decreasing PaO2/FiO2 ratio", "correct": true, "feedback": "Correct. A falling P/F ratio reflects worsening oxygenation impairment."},
+      {"text": "Elevated pulmonary capillary wedge pressure above 18 mmHg", "correct": false, "feedback": "Incorrect. ARDS is non-cardiogenic; wedge pressure is normal or low (< 18 mmHg)."},
+      {"text": "Improved oxygen saturation with each increase in FiO2", "correct": false, "feedback": "Incorrect. Responsiveness to oxygen argues against ARDS."}
+    ],
+    "rationale": "ARDS features refractory hypoxemia, low compliance, bilateral infiltrates, and a falling P/F ratio with normal wedge pressure (non-cardiogenic edema)."
+  },
+  {
+    "item_id": "NCLEX_SATA_367016", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "Postoperative care", "subtopic": "Complication recognition", "bloom": "Analyze",
+    "stem": "A nurse assesses a client on the third day after abdominal surgery. Which findings should prompt the nurse to suspect wound dehiscence or evisceration and act? Select all that apply.",
+    "options": [
+      {"text": "The client reports a sudden 'popping' or 'giving way' sensation at the incision", "correct": true, "feedback": "Correct. A sudden popping sensation is a classic warning of dehiscence."},
+      {"text": "A sudden increase in serosanguineous drainage from the incision", "correct": true, "feedback": "Correct. A gush of serosanguineous fluid often precedes dehiscence."},
+      {"text": "Visible loops of bowel protruding through the incision", "correct": true, "feedback": "Correct. Protruding viscera indicate evisceration, a surgical emergency."},
+      {"text": "Well-approximated wound edges with a healing ridge", "correct": false, "feedback": "Incorrect. This indicates normal healing."},
+      {"text": "Mild incisional discomfort relieved by prescribed analgesia", "correct": false, "feedback": "Incorrect. Expected postoperative discomfort is not a red flag."},
+      {"text": "Increasing abdominal distention with new tachycardia", "correct": true, "feedback": "Correct. Distention and tachycardia can accompany dehiscence/impending evisceration and warrant assessment."}
+    ],
+    "rationale": "Dehiscence/evisceration is heralded by a popping sensation, a gush of serosanguineous drainage, protruding viscera, and signs of deterioration; normal healing and expected pain are not red flags."
+  },
+  {
+    "item_id": "NCLEX_SATA_367017", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Cardiogenic shock", "subtopic": "Hemodynamics", "bloom": "Analyze",
+    "stem": "A client with an acute anterior myocardial infarction is developing cardiogenic shock. Which assessment findings does the nurse expect? Select all that apply.",
+    "options": [
+      {"text": "Cool, clammy, mottled skin", "correct": true, "feedback": "Correct. Poor forward output produces peripheral vasoconstriction and cool, mottled skin."},
+      {"text": "Crackles and frothy pink sputum", "correct": true, "feedback": "Correct. Pump failure causes pulmonary congestion and edema."},
+      {"text": "Decreased urine output (< 30 mL/hr)", "correct": true, "feedback": "Correct. Reduced renal perfusion lowers urine output."},
+      {"text": "Elevated pulmonary capillary wedge pressure", "correct": true, "feedback": "Correct. Left ventricular failure raises left-sided filling pressures."},
+      {"text": "Bounding peripheral pulses with warm skin", "correct": false, "feedback": "Incorrect. This describes a distributive/hyperdynamic state, not cardiogenic shock."},
+      {"text": "Widened pulse pressure", "correct": false, "feedback": "Incorrect. Cardiogenic shock produces a narrowed pulse pressure."}
+    ],
+    "rationale": "Cardiogenic shock reflects pump failure: low output (cool skin, oliguria, narrow pulse pressure) with backward congestion (crackles, high wedge pressure)."
+  },
+  {
+    "item_id": "NCLEX_SATA_367018", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Addisonian crisis", "subtopic": "Adrenal insufficiency", "bloom": "Analyze",
+    "stem": "A client with known adrenal insufficiency presents with an acute Addisonian crisis. Which interventions and findings should the nurse anticipate? Select all that apply.",
+    "options": [
+      {"text": "Administering IV hydrocortisone", "correct": true, "feedback": "Correct. IV glucocorticoids are the cornerstone of treating adrenal crisis."},
+      {"text": "Rapid IV infusion of 0.9% sodium chloride", "correct": true, "feedback": "Correct. Volume resuscitation with isotonic saline corrects hypovolemia and hyponatremia."},
+      {"text": "Monitoring for hyperkalemia", "correct": true, "feedback": "Correct. Aldosterone deficiency causes potassium retention."},
+      {"text": "Monitoring for hypoglycemia", "correct": true, "feedback": "Correct. Cortisol deficiency predisposes to hypoglycemia."},
+      {"text": "Restricting fluids and administering a diuretic", "correct": false, "feedback": "Incorrect. The client is hypovolemic; fluid restriction and diuresis are harmful."},
+      {"text": "Anticipating hypernatremia and hypokalemia", "correct": false, "feedback": "Incorrect. Addisonian crisis causes hyponatremia and hyperkalemia."}
+    ],
+    "rationale": "Addisonian crisis is treated with IV hydrocortisone and isotonic fluids; expect hyponatremia, hyperkalemia, and hypoglycemia from cortisol/aldosterone deficiency."
+  },
+  {
+    "item_id": "NCLEX_SATA_367019", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Tracheostomy suctioning", "subtopic": "Pulmonary hygiene", "bloom": "Apply",
+    "stem": "A nurse is performing suctioning through a client's tracheostomy. Which actions demonstrate safe technique? Select all that apply.",
+    "options": [
+      {"text": "Hyperoxygenate the client before and after suctioning", "correct": true, "feedback": "Correct. Pre/post oxygenation prevents suction-induced hypoxemia."},
+      {"text": "Apply suction only while withdrawing the catheter", "correct": true, "feedback": "Correct. Suction is applied intermittently on withdrawal to limit mucosal trauma."},
+      {"text": "Limit each suction pass to 10-15 seconds", "correct": true, "feedback": "Correct. Brief passes minimize hypoxia."},
+      {"text": "Use sterile technique for the suction catheter", "correct": true, "feedback": "Correct. Tracheal suctioning is a sterile procedure."},
+      {"text": "Apply continuous suction while inserting the catheter", "correct": false, "feedback": "Incorrect. Applying suction on insertion causes hypoxia and mucosal trauma."},
+      {"text": "Instill 5-10 mL of normal saline routinely before each pass", "correct": false, "feedback": "Incorrect. Routine saline instillation is not recommended and can worsen oxygenation."}
+    ],
+    "rationale": "Safe tracheal suctioning: hyperoxygenate, sterile technique, suction only on withdrawal for 10-15 seconds; avoid suction on insertion and routine saline lavage."
+  },
+  {
+    "item_id": "NCLEX_SELN_367020", "type": "SELECT_N", "difficulty": "Hard", "select_count": 3,
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Disseminated intravascular coagulation", "subtopic": "Hemostasis", "bloom": "Analyze",
+    "stem": "A client with sepsis is developing disseminated intravascular coagulation (DIC). Which 3 laboratory findings support this diagnosis?",
+    "options": [
+      {"text": "Elevated D-dimer", "correct": true, "feedback": "Correct. D-dimer rises with the widespread fibrinolysis of DIC."},
+      {"text": "Decreased platelet count", "correct": true, "feedback": "Correct. Platelets are consumed in microthrombi, causing thrombocytopenia."},
+      {"text": "Decreased fibrinogen level", "correct": true, "feedback": "Correct. Fibrinogen is consumed during widespread clotting."},
+      {"text": "Shortened prothrombin time (PT)", "correct": false, "feedback": "Incorrect. PT is prolonged in DIC, not shortened."},
+      {"text": "Elevated platelet count", "correct": false, "feedback": "Incorrect. Platelets are decreased in DIC."},
+      {"text": "Decreased D-dimer", "correct": false, "feedback": "Incorrect. D-dimer is elevated in DIC."}
+    ],
+    "rationale": "DIC consumes clotting factors and platelets while activating fibrinolysis: elevated D-dimer, low platelets, low fibrinogen, and prolonged PT/aPTT."
+  },
+  {
+    "item_id": "NCLEX_TF_367021", "type": "TF", "difficulty": "Hard", "answer": "False",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Chest tube management", "subtopic": "Air leak assessment", "bloom": "Analyze",
+    "stem": "Continuous bubbling in the water-seal chamber of a chest drainage system on the fourth postoperative day is an expected finding that requires no further assessment.",
+    "rationale": "Continuous bubbling in the water-seal chamber indicates an air leak in the system or the client and requires investigation, not reassurance."
+  },
+  {
+    "item_id": "NCLEX_MAT_367022", "type": "MATRIX", "difficulty": "Hard", "row_label": "Arterial blood gas",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Acid-base imbalance", "subtopic": "ABG interpretation", "bloom": "Analyze",
+    "stem": "For each arterial blood gas result, click to classify the primary acid-base disturbance.",
+    "columns": ["Respiratory acidosis", "Metabolic acidosis", "Respiratory alkalosis"],
+    "rows": [
+      {"text": "pH 7.28, PaCO2 58 mmHg, HCO3 24 mEq/L", "answer": 0},
+      {"text": "pH 7.30, PaCO2 34 mmHg, HCO3 16 mEq/L", "answer": 1},
+      {"text": "pH 7.50, PaCO2 28 mmHg, HCO3 23 mEq/L", "answer": 2},
+      {"text": "pH 7.22, PaCO2 38 mmHg, HCO3 15 mEq/L", "answer": 1}
+    ],
+    "rationale": "Low pH with high PaCO2 is respiratory acidosis; low pH with low HCO3 is metabolic acidosis; high pH with low PaCO2 is respiratory alkalosis."
+  },
+  {
+    "item_id": "NCLEX_MMR_367023", "type": "MATRIX_MR", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Shock stages", "subtopic": "Complication recognition", "bloom": "Analyze",
+    "stem": "For each assessment finding, select every type of shock in which it is a characteristic feature (a finding may apply to more than one).",
+    "columns": ["Hypovolemic", "Cardiogenic", "Distributive (septic)"],
+    "rows": [
+      {"text": "Tachycardia with hypotension", "answers": [0, 1, 2]},
+      {"text": "Warm, flushed skin in the early phase", "answers": [2]},
+      {"text": "Jugular venous distention and pulmonary congestion", "answers": [1]},
+      {"text": "Low central venous pressure from volume loss", "answers": [0]},
+      {"text": "Elevated serum lactate from hypoperfusion", "answers": [0, 1, 2]}
+    ],
+    "rationale": "All shock states share tachycardia/hypotension and rising lactate; early warm skin is distributive, JVD/congestion is cardiogenic, and low CVP is hypovolemic."
+  },
+  {
+    "item_id": "NCLEX_CLZ_367024", "type": "CLOZE", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "SIADH", "subtopic": "Fluid and electrolyte imbalance", "bloom": "Analyze",
+    "stem": "A client with a small-cell lung cancer has a serum sodium of 118 mEq/L, low serum osmolality, and concentrated urine. The nurse recognizes this as {1}, and the priority intervention is {2}.",
+    "blanks": [
+      {"choices": [{"text": "syndrome of inappropriate antidiuretic hormone (SIADH)", "correct": true}, {"text": "diabetes insipidus"}, {"text": "hyperosmolar hyperglycemic state"}]},
+      {"choices": [{"text": "fluid restriction", "correct": true}, {"text": "administering IV hypotonic fluids"}, {"text": "encouraging free water intake"}]}
+    ],
+    "rationale": "SIADH causes dilutional hyponatremia with low serum and high urine osmolality; the primary treatment is fluid restriction."
+  },
+  {
+    "item_id": "NCLEX_HL_367025", "type": "HIGHLIGHT", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Tension pneumothorax", "subtopic": "Emergency recognition", "bloom": "Analyze",
+    "stem": "A nurse assesses a client after central line placement. Highlight the findings that indicate a developing tension pneumothorax. The client is [[increasingly short of breath]]. Trachea is [[deviated to the left]]. Breath sounds are [[absent on the right]]. Skin is [[warm and dry]]. There is [[jugular venous distention]]. Capillary refill is [[less than 2 seconds]]. Blood pressure is [[falling to 84/50]].",
+    "chunks": [
+      {"text": "increasingly short of breath", "correct": true, "feedback": "Worsening dyspnea is an early sign of tension pneumothorax."},
+      {"text": "deviated to the left", "correct": true, "feedback": "Tracheal deviation away from the affected side is a hallmark."},
+      {"text": "absent on the right", "correct": true, "feedback": "Absent breath sounds on the affected side indicate collapse."},
+      {"text": "warm and dry", "correct": false, "feedback": "Warm, dry skin is a normal finding, not a sign of tension pneumothorax."},
+      {"text": "jugular venous distention", "correct": true, "feedback": "Rising intrathoracic pressure impedes venous return, causing JVD."},
+      {"text": "less than 2 seconds", "correct": false, "feedback": "Normal capillary refill is not a sign of decompensation."},
+      {"text": "falling to 84/50", "correct": true, "feedback": "Obstructive shock from reduced venous return causes hypotension."}
+    ],
+    "rationale": "Tension pneumothorax produces dyspnea, tracheal deviation away from the affected side, absent breath sounds, JVD, and hypotension; normal skin and refill are not red flags."
+  },
+  {
+    "item_id": "NCLEX_BT_367026", "type": "BOWTIE", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Anaphylactic shock", "subtopic": "Emergency care", "bloom": "Evaluate",
+    "stem": "A client develops stridor, hypotension, and diffuse urticaria minutes after an IV antibiotic. Complete the diagram by selecting the condition, the priority actions, and the parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Administer IM epinephrine", "correct": true},
+      {"text": "Stop the antibiotic infusion", "correct": true},
+      {"text": "Administer a beta-blocker"},
+      {"text": "Place the client in Trendelenburg only and observe"},
+      {"text": "Restrict IV fluids"}
+    ]},
+    "centre": {"label": "Condition", "tokens": [
+      {"text": "Anaphylactic (distributive) shock", "correct": true},
+      {"text": "Cardiogenic shock"},
+      {"text": "Hypovolemic shock"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Airway patency and oxygen saturation", "correct": true},
+      {"text": "Blood pressure", "correct": true},
+      {"text": "Deep tendon reflexes"},
+      {"text": "Serum amylase"},
+      {"text": "Bladder pressure"}
+    ]},
+    "rationale": "Anaphylaxis is treated by stopping the trigger and giving IM epinephrine, while monitoring airway/oxygenation and blood pressure for the distributive shock and airway compromise."
+  },
+  {
+    "item_id": "NCLEX_DCZ_367027", "type": "DRAG_CLOZE", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Peritoneal dialysis", "subtopic": "Complication recognition", "bloom": "Analyze",
+    "stem": "A nurse caring for a client on peritoneal dialysis notes cloudy effluent, abdominal pain, and fever. The nurse recognizes this as [1] and anticipates obtaining [2] of the effluent.",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["peritonitis", "a culture", "hypoglycemia", "a chest x-ray"],
+    "rationale": "Cloudy effluent with abdominal pain and fever indicates peritonitis; effluent is sent for cell count, Gram stain, and culture to guide antibiotics."
+  },
+  {
+    "item_id": "NCLEX_DO_367028", "type": "DRAG_ORDER", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Physiological Adaptation",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Emergency care procedures", "subtopic": "Air embolism response", "bloom": "Apply",
+    "stem": "A client with a central venous catheter suddenly develops dyspnea, hypotension, and a churning heart murmur, and the nurse suspects an air embolism. Place the nurse's actions in the correct priority order.",
+    "tokens": ["Clamp the central catheter", "Position the client on the left side in Trendelenburg", "Administer high-flow oxygen", "Notify the provider and rapid response", "Document the event", "Offer the client oral fluids"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

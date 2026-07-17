@@ -1,0 +1,368 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_333001", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Depression", "subtopic": "Suicide risk", "bloom": "Analyze",
+    "stem": "A client hospitalized for major depression suddenly appears calm and cheerful after two weeks of withdrawn, tearful behavior and begins giving away personal belongings. Which interpretation should most concern the nurse?",
+    "options": [
+      {"text": "The antidepressant is finally taking full effect", "correct": false, "feedback": "Incorrect. A sudden mood lift with giving away possessions is an ominous sign, not simple recovery."},
+      {"text": "The client may have decided on and planned suicide", "correct": true, "feedback": "Correct. Sudden calm plus giving away belongings can signal a formed suicide plan and increased energy to act."},
+      {"text": "The client is ready for discharge planning", "correct": false, "feedback": "Incorrect. This presentation warrants closer observation, not discharge."},
+      {"text": "The client is masking anger toward staff", "correct": false, "feedback": "Incorrect. The pattern points to suicide risk rather than displaced anger."}
+    ],
+    "rationale": "An abrupt lift in mood with giving away possessions may indicate the client has resolved to die and now has the energy to act, raising acute suicide risk."
+  },
+  {
+    "item_id": "NCLEX_MCQ_333002", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Therapeutic communication", "bloom": "Apply",
+    "stem": "A client newly diagnosed with breast cancer says, \"There's no point in treatment; I'm going to die anyway.\" Which nurse response is most therapeutic?",
+    "options": [
+      {"text": "\"You shouldn't talk like that; the treatments today are very effective.\"", "correct": false, "feedback": "Incorrect. This dismisses feelings and offers false reassurance."},
+      {"text": "\"It sounds like you're feeling hopeless right now. Can you tell me more?\"", "correct": true, "feedback": "Correct. Reflecting the feeling and inviting elaboration keeps communication open."},
+      {"text": "\"Why do you feel that way when the doctor is optimistic?\"", "correct": false, "feedback": "Incorrect. 'Why' questions can feel confrontational and put the client on the defensive."},
+      {"text": "\"Let's focus on something positive instead.\"", "correct": false, "feedback": "Incorrect. Changing the subject blocks communication."}
+    ],
+    "rationale": "Reflecting the underlying feeling and using an open-ended invitation validates the client and encourages further expression."
+  },
+  {
+    "item_id": "NCLEX_MCQ_333003", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Schizophrenia", "subtopic": "Hallucinations", "bloom": "Apply",
+    "stem": "A client with schizophrenia tells the nurse that voices are telling him he is worthless. Which response best addresses the client's safety and reality?",
+    "options": [
+      {"text": "\"The voices are not real; try to ignore them.\"", "correct": false, "feedback": "Incorrect. Arguing about the reality of the voices is nontherapeutic."},
+      {"text": "\"I don't hear any voices, but I understand they feel real to you. Are the voices telling you to harm yourself?\"", "correct": true, "feedback": "Correct. This presents reality without arguing and assesses for command hallucinations."},
+      {"text": "\"What exactly are the voices saying about other people?\"", "correct": false, "feedback": "Incorrect. This can reinforce the hallucination without assessing safety."},
+      {"text": "\"You are not worthless; you are a valuable person.\"", "correct": false, "feedback": "Incorrect. This does not assess for command hallucinations or safety."}
+    ],
+    "rationale": "The nurse presents reality gently while assessing for command hallucinations that direct self-harm, which is a priority safety concern."
+  },
+  {
+    "item_id": "NCLEX_MCQ_333004", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Bipolar disorder", "subtopic": "Mania", "bloom": "Apply",
+    "stem": "A client in an acute manic episode is loud, intrusive, and unable to sit through a meal. Which nursing intervention best supports the client's nutrition?",
+    "options": [
+      {"text": "Serve meals in the busy dining room to encourage socialization", "correct": false, "feedback": "Incorrect. A stimulating environment worsens distractibility during mania."},
+      {"text": "Provide high-calorie finger foods and fluids the client can eat while moving", "correct": true, "feedback": "Correct. Portable, high-calorie foods meet nutritional needs when the client cannot sit still."},
+      {"text": "Restrict the client to bed until the client agrees to eat a full meal", "correct": false, "feedback": "Incorrect. This is restrictive and unlikely to succeed during mania."},
+      {"text": "Withhold food until the client's behavior calms", "correct": false, "feedback": "Incorrect. Withholding food risks nutritional deficit."}
+    ],
+    "rationale": "During mania hyperactivity increases caloric need while distractibility prevents sitting; portable high-calorie foods let the client eat on the move."
+  },
+  {
+    "item_id": "NCLEX_MCQ_333005", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Anxiety disorders", "subtopic": "Panic", "bloom": "Apply",
+    "stem": "A client experiencing a panic attack in the hallway is hyperventilating and states, \"I feel like I'm dying.\" Which action should the nurse take first?",
+    "options": [
+      {"text": "Explain the physiology of panic attacks in detail", "correct": false, "feedback": "Incorrect. During peak anxiety the client cannot process detailed teaching."},
+      {"text": "Stay with the client and speak calmly using short, simple sentences", "correct": true, "feedback": "Correct. A calm presence and simple direction reduce anxiety and provide safety."},
+      {"text": "Leave to obtain an anti-anxiety medication order", "correct": false, "feedback": "Incorrect. Leaving a panicking client alone increases fear."},
+      {"text": "Encourage the client to describe the childhood origin of the anxiety", "correct": false, "feedback": "Incorrect. Insight work is inappropriate during acute panic."}
+    ],
+    "rationale": "During panic-level anxiety the priority is to remain present, ensure safety, and use short simple directions because the client's ability to process information is severely narrowed."
+  },
+  {
+    "item_id": "NCLEX_MCQ_333006", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Substance withdrawal", "subtopic": "Alcohol", "bloom": "Analyze",
+    "stem": "A client admitted 48 hours ago after stopping heavy daily alcohol use becomes tremulous, diaphoretic, and reports seeing insects on the wall. Which assessment finding most indicates the client is progressing toward a life-threatening complication?",
+    "options": [
+      {"text": "Requesting to call a family member", "correct": false, "feedback": "Incorrect. This is not a sign of physiological deterioration."},
+      {"text": "Blood pressure 172/104 mmHg and heart rate 122 bpm", "correct": true, "feedback": "Correct. Rising autonomic instability signals progression toward delirium tremens."},
+      {"text": "Complaints of a mild headache", "correct": false, "feedback": "Incorrect. A mild headache is common and not immediately dangerous."},
+      {"text": "Desire to sleep during the afternoon", "correct": false, "feedback": "Incorrect. This does not indicate autonomic crisis."}
+    ],
+    "rationale": "Escalating autonomic hyperactivity (hypertension, tachycardia) with hallucinations signals progression toward delirium tremens, a medical emergency."
+  },
+  {
+    "item_id": "NCLEX_MCQ_333007", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Grief and loss", "bloom": "Understand",
+    "stem": "A widow states four months after her husband's death, \"I still set two plates at dinner sometimes, then I remember.\" Which response reflects the nurse's understanding of normal grief?",
+    "options": [
+      {"text": "\"That suggests you may be developing complicated grief and need therapy.\"", "correct": false, "feedback": "Incorrect. This is a normal grief experience, not necessarily pathological."},
+      {"text": "\"Adjusting to the loss takes time, and moments like that are a normal part of grieving.\"", "correct": true, "feedback": "Correct. This normalizes the experience while remaining supportive."},
+      {"text": "\"You should put away his belongings so you can move on faster.\"", "correct": false, "feedback": "Incorrect. Rushing the process is not therapeutic."},
+      {"text": "\"Try not to think about him so you don't feel sad.\"", "correct": false, "feedback": "Incorrect. Avoidance blocks healthy grieving."}
+    ],
+    "rationale": "Transient reminders and habits months into bereavement reflect normal grief; the nurse validates and normalizes the experience."
+  },
+  {
+    "item_id": "NCLEX_MCQ_333008", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Eating disorders", "subtopic": "Anorexia nervosa", "bloom": "Apply",
+    "stem": "A nurse is caring for a client with anorexia nervosa on a behavioral treatment protocol. Which nursing approach best supports the plan of care during meals?",
+    "options": [
+      {"text": "Allow the client to eat alone to reduce mealtime anxiety", "correct": false, "feedback": "Incorrect. Unsupervised meals allow purging or hiding food."},
+      {"text": "Remain with the client during and for a set period after meals", "correct": true, "feedback": "Correct. Supervision during and after meals prevents purging and supports intake goals."},
+      {"text": "Negotiate portion sizes with the client at each meal", "correct": false, "feedback": "Incorrect. Bargaining over food undermines the structured protocol."},
+      {"text": "Praise the client primarily for weight gained", "correct": false, "feedback": "Incorrect. Focusing on weight reinforces the disorder's preoccupation."}
+    ],
+    "rationale": "Staying with the client during and after meals prevents purging behaviors and enforces the behavioral protocol, while praise should focus on healthy behaviors rather than weight."
+  },
+  {
+    "item_id": "NCLEX_MCQ_333009", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "De-escalation", "subtopic": "Aggression", "bloom": "Apply",
+    "stem": "A client on the unit is pacing, clenching his fists, and speaking in a loud voice about being treated unfairly. Which is the nurse's most appropriate initial action?",
+    "options": [
+      {"text": "Approach closely and place a hand on the client's shoulder to reassure him", "correct": false, "feedback": "Incorrect. Physical contact and close proximity can escalate aggression."},
+      {"text": "Maintain a calm voice, keep a safe distance, and acknowledge the client's feelings", "correct": true, "feedback": "Correct. A calm tone, personal space, and validation begin de-escalation."},
+      {"text": "Tell the client he will be placed in seclusion if he does not calm down", "correct": false, "feedback": "Incorrect. Threatening escalates rather than de-escalates."},
+      {"text": "Ignore the behavior so as not to reinforce it", "correct": false, "feedback": "Incorrect. Ignoring rising agitation risks it escalating to violence."}
+    ],
+    "rationale": "De-escalation begins with a calm nonthreatening demeanor, respecting personal space, and acknowledging feelings before setting limits."
+  },
+  {
+    "item_id": "NCLEX_MCQ_333010", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Community Health", "body_system": "Psychiatric/Mental Health", "topic": "Abuse and neglect", "subtopic": "Intimate partner violence", "bloom": "Apply",
+    "stem": "During triage a woman with a fractured wrist gives an explanation inconsistent with her injury, and her partner answers all questions for her. Which nursing action is most appropriate?",
+    "options": [
+      {"text": "Confront the partner about the suspected abuse in the room", "correct": false, "feedback": "Incorrect. Confronting the partner can endanger the client."},
+      {"text": "Interview the client privately, away from the partner", "correct": true, "feedback": "Correct. A private interview allows the client to speak safely."},
+      {"text": "Document that abuse has occurred and notify police", "correct": false, "feedback": "Incorrect. Abuse is suspected, not confirmed, and adult reporting rules vary."},
+      {"text": "Ask the partner to describe how the injury happened", "correct": false, "feedback": "Incorrect. The partner may control or coerce the account."}
+    ],
+    "rationale": "Separating the client from the partner to interview her privately provides a safe opportunity to assess for intimate partner violence."
+  },
+  {
+    "item_id": "NCLEX_MCQ_333011", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Medical-Surgical", "body_system": "Psychiatric/Mental Health", "topic": "Cultural care", "bloom": "Apply",
+    "stem": "A client from a culture that values family decision-making asks that the nurse discuss test results with his adult son rather than himself. Which response best demonstrates culturally competent care?",
+    "options": [
+      {"text": "\"By law I can only share results directly with you.\"", "correct": false, "feedback": "Incorrect. Clients may designate others to receive information."},
+      {"text": "\"I want to respect how you make decisions. Would you like to sign a consent so I can share results with your son?\"", "correct": true, "feedback": "Correct. This honors the cultural preference while meeting privacy requirements."},
+      {"text": "\"It is healthier for you to hear the results yourself.\"", "correct": false, "feedback": "Incorrect. This imposes the nurse's values."},
+      {"text": "\"Your son can read the results in the chart later.\"", "correct": false, "feedback": "Incorrect. This bypasses proper consent and the client's wishes."}
+    ],
+    "rationale": "Culturally competent care respects the client's family-centered decision-making while using proper consent to share protected information."
+  },
+  {
+    "item_id": "NCLEX_MCQ_333012", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Dementia", "subtopic": "Sundowning", "bloom": "Apply",
+    "stem": "A client with moderate dementia becomes increasingly agitated and disoriented each evening. Which environmental intervention should the nurse implement to reduce this behavior?",
+    "options": [
+      {"text": "Turn off all lights early to promote sleep", "correct": false, "feedback": "Incorrect. Darkness and shadows increase confusion during sundowning."},
+      {"text": "Increase evening lighting and reduce noise and clutter", "correct": true, "feedback": "Correct. Adequate lighting with a calm environment reduces sundowning agitation."},
+      {"text": "Schedule stimulating group activities in the evening", "correct": false, "feedback": "Incorrect. Evening stimulation worsens agitation."},
+      {"text": "Provide caffeinated tea to keep the client alert", "correct": false, "feedback": "Incorrect. Caffeine increases agitation and disrupts sleep."}
+    ],
+    "rationale": "Sundowning agitation is reduced by well-lit, calm, low-stimulation evening environments that limit shadows and confusing cues."
+  },
+  {
+    "item_id": "NCLEX_MCQ_333013", "type": "MCQ", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Coping", "subtopic": "Defense mechanisms", "bloom": "Understand",
+    "stem": "A client recently diagnosed with type 1 diabetes states, \"The lab must have mixed up my results; I feel perfectly fine.\" Which defense mechanism is the client using?",
+    "options": [
+      {"text": "Projection", "correct": false, "feedback": "Incorrect. Projection attributes one's own feelings to others."},
+      {"text": "Denial", "correct": true, "feedback": "Correct. Refusing to accept the diagnosis is denial."},
+      {"text": "Displacement", "correct": false, "feedback": "Incorrect. Displacement redirects feelings to a safer target."},
+      {"text": "Rationalization", "correct": false, "feedback": "Incorrect. Rationalization offers logical-sounding excuses for behavior."}
+    ],
+    "rationale": "Refusing to acknowledge a threatening diagnosis by disputing its reality is denial, an early coping response to loss or illness."
+  },
+  {
+    "item_id": "NCLEX_SATA_333014", "type": "SATA", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Depression", "subtopic": "Assessment", "bloom": "Analyze",
+    "stem": "A nurse assesses a client for major depressive disorder. Which findings support this diagnosis? Select all that apply.",
+    "options": [
+      {"text": "Loss of interest in previously enjoyed activities", "correct": true},
+      {"text": "Early morning awakening with inability to return to sleep", "correct": true},
+      {"text": "Feelings of worthlessness and excessive guilt", "correct": true},
+      {"text": "Psychomotor retardation", "correct": true},
+      {"text": "Flight of ideas and pressured speech", "correct": false},
+      {"text": "Grandiose delusions", "correct": false}
+    ],
+    "rationale": "Anhedonia, sleep disturbance, worthlessness/guilt, and psychomotor retardation are core depressive features; flight of ideas and grandiosity indicate mania."
+  },
+  {
+    "item_id": "NCLEX_SATA_333015", "type": "SATA", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Therapeutic milieu", "bloom": "Apply",
+    "stem": "A nurse manages a therapeutic milieu on an inpatient psychiatric unit. Which nursing actions support a therapeutic environment? Select all that apply.",
+    "options": [
+      {"text": "Maintain consistent unit rules and daily structure", "correct": true},
+      {"text": "Encourage clients to participate in unit governance and decisions", "correct": true},
+      {"text": "Provide activities matched to clients' abilities", "correct": true},
+      {"text": "Keep client interactions strictly formal and minimal", "correct": false},
+      {"text": "Ensure physical and emotional safety on the unit", "correct": true},
+      {"text": "Allow rules to change based on each staff member's preference", "correct": false}
+    ],
+    "rationale": "A therapeutic milieu relies on consistency, structure, client involvement, appropriate activities, and safety; inconsistency and rigid distance undermine it."
+  },
+  {
+    "item_id": "NCLEX_SATA_333016", "type": "SATA", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Therapeutic communication", "bloom": "Apply",
+    "stem": "A nurse is talking with a client experiencing situational stress. Which nurse statements are therapeutic communication techniques? Select all that apply.",
+    "options": [
+      {"text": "\"Tell me more about what happened.\" (exploring)", "correct": true},
+      {"text": "\"You seem worried. Is that right?\" (validating)", "correct": true},
+      {"text": "\"Everything will work out fine, don't worry.\" (false reassurance)", "correct": false},
+      {"text": "Sitting quietly and allowing silence", "correct": true},
+      {"text": "\"Why did you make that choice?\" (demanding explanation)", "correct": false},
+      {"text": "\"So what I hear you saying is that you feel overwhelmed.\" (restating)", "correct": true}
+    ],
+    "rationale": "Exploring, validating, using silence, and restating are therapeutic; false reassurance and 'why' questions are communication blocks."
+  },
+  {
+    "item_id": "NCLEX_SATA_333017", "type": "SATA", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Violence potential", "subtopic": "Risk assessment", "bloom": "Analyze",
+    "stem": "A nurse assesses a newly admitted client for risk of violence toward others. Which findings increase this risk? Select all that apply.",
+    "options": [
+      {"text": "History of previous violent behavior", "correct": true},
+      {"text": "Command hallucinations to harm others", "correct": true},
+      {"text": "Escalating motor agitation and pacing", "correct": true},
+      {"text": "Cooperative participation in the admission interview", "correct": false},
+      {"text": "Active intoxication with a stimulant", "correct": true},
+      {"text": "Requesting information about visiting hours", "correct": false}
+    ],
+    "rationale": "Past violence, command hallucinations, motor agitation, and stimulant intoxication all raise the risk of violence; cooperation and ordinary questions do not."
+  },
+  {
+    "item_id": "NCLEX_SATA_333018", "type": "SATA", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "End-of-life care", "subtopic": "Psychosocial support", "bloom": "Apply",
+    "stem": "A nurse cares for a client and family during the client's final days of a terminal illness. Which nursing actions provide appropriate psychosocial support? Select all that apply.",
+    "options": [
+      {"text": "Encourage the family to share memories and say what they need to say", "correct": true},
+      {"text": "Respect the client's cultural and spiritual practices", "correct": true},
+      {"text": "Tell the family exactly when death will occur to help them prepare", "correct": false},
+      {"text": "Allow the client to direct decisions about their care as able", "correct": true},
+      {"text": "Provide presence and permit silence when words are not needed", "correct": true},
+      {"text": "Discourage crying to keep the client calm", "correct": false}
+    ],
+    "rationale": "End-of-life psychosocial care includes facilitating expression, honoring cultural/spiritual needs, supporting client autonomy, and offering presence; predicting the exact time of death and suppressing emotion are not therapeutic."
+  },
+  {
+    "item_id": "NCLEX_SELN_333019", "type": "SELECT_N", "difficulty": "Medium", "select_count": 3,
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Substance misuse", "subtopic": "Opioid withdrawal", "bloom": "Analyze",
+    "stem": "A client is undergoing opioid withdrawal. Which 3 findings are consistent with this condition?",
+    "options": [
+      {"text": "Rhinorrhea and lacrimation", "correct": true},
+      {"text": "Muscle aches and abdominal cramping", "correct": true},
+      {"text": "Piloerection and yawning", "correct": true},
+      {"text": "Respiratory depression", "correct": false},
+      {"text": "Pinpoint pupils", "correct": false},
+      {"text": "Euphoria and sedation", "correct": false}
+    ],
+    "rationale": "Opioid withdrawal produces autonomic and flu-like signs (rhinorrhea, lacrimation, myalgia, cramping, piloerection); respiratory depression, miosis, and euphoria reflect intoxication instead."
+  },
+  {
+    "item_id": "NCLEX_SELN_333020", "type": "SELECT_N", "difficulty": "Medium", "select_count": 2,
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Support systems", "subtopic": "Coping resources", "bloom": "Apply",
+    "stem": "A client is coping with the recent loss of employment and reports feeling overwhelmed. Which 2 nursing actions best strengthen the client's support systems?",
+    "options": [
+      {"text": "Help the client identify family and friends who can offer support", "correct": true},
+      {"text": "Refer the client to a community support or job-transition group", "correct": true},
+      {"text": "Advise the client to avoid discussing the situation with others", "correct": false},
+      {"text": "Encourage the client to handle the situation independently", "correct": false},
+      {"text": "Tell the client that others have coped with worse", "correct": false}
+    ],
+    "rationale": "Mobilizing existing relationships and connecting the client with community resources builds support; isolation and minimizing feelings weaken coping."
+  },
+  {
+    "item_id": "NCLEX_TF_333021", "type": "TF", "difficulty": "Medium", "answer": "False",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Suicide assessment", "bloom": "Understand",
+    "stem": "Directly asking a client whether they have thoughts of suicide increases the likelihood that the client will attempt suicide.",
+    "rationale": "Asking directly about suicidal ideation does not plant the idea; it opens communication and allows accurate risk assessment and intervention."
+  },
+  {
+    "item_id": "NCLEX_TF_333022", "type": "TF", "difficulty": "Medium", "answer": "True",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Nonverbal cues", "bloom": "Understand",
+    "stem": "When a client's spoken words conflict with the client's body language and tone, the nurse should recognize that the nonverbal cues often more accurately reflect the client's true feelings.",
+    "rationale": "Nonverbal communication frequently conveys underlying emotion more accurately than words, especially when the two are incongruent; the nurse explores the discrepancy."
+  },
+  {
+    "item_id": "NCLEX_MAT_333023", "type": "MATRIX", "difficulty": "Medium", "row_label": "Statement",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Therapeutic communication", "bloom": "Analyze",
+    "stem": "For each nurse statement, click to specify whether it is a therapeutic or a nontherapeutic communication technique.",
+    "columns": ["Therapeutic", "Nontherapeutic"],
+    "rows": [
+      {"text": "\"Go on, I'm listening.\"", "answer": 0},
+      {"text": "\"Don't worry, everything will be fine.\"", "answer": 1},
+      {"text": "\"You mentioned feeling alone. Tell me more.\"", "answer": 0},
+      {"text": "\"If I were you, I would take the medication.\"", "answer": 1},
+      {"text": "\"It sounds like this has been frightening for you.\"", "answer": 0}
+    ],
+    "rationale": "General leads, exploring, and reflecting feelings are therapeutic; false reassurance and giving advice are communication blocks."
+  },
+  {
+    "item_id": "NCLEX_MMR_333024", "type": "MATRIX_MR", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Mental illness recognition", "bloom": "Analyze",
+    "stem": "For each clinical finding, select all disorders in which the finding is commonly seen (a finding may apply to more than one).",
+    "columns": ["Major depression", "Bipolar mania", "Schizophrenia"],
+    "rows": [
+      {"text": "Anhedonia", "answers": [0]},
+      {"text": "Auditory hallucinations", "answers": [2]},
+      {"text": "Flight of ideas", "answers": [1]},
+      {"text": "Impaired concentration", "answers": [0, 1, 2]},
+      {"text": "Grandiosity", "answers": [1]}
+    ],
+    "rationale": "Anhedonia is depressive, flight of ideas and grandiosity are manic, hallucinations are psychotic, and impaired concentration crosses all three."
+  },
+  {
+    "item_id": "NCLEX_CLZ_333025", "type": "CLOZE", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Anxiety", "subtopic": "Levels of anxiety", "bloom": "Analyze",
+    "stem": "A client paces, has a narrowed perceptual field, and can focus only when redirected. The nurse determines the client is experiencing {1} anxiety and the priority intervention is to {2}.",
+    "blanks": [
+      {"choices": [{"text": "severe", "correct": true}, {"text": "mild"}, {"text": "panic"}]},
+      {"choices": [{"text": "remain calm and use short, simple directions", "correct": true}, {"text": "provide detailed health teaching"}, {"text": "leave the client alone to rest"}]}
+    ],
+    "rationale": "A markedly narrowed perceptual field with need for redirection reflects severe anxiety; a calm presence with simple directions is the priority."
+  },
+  {
+    "item_id": "NCLEX_HL_333026", "type": "HIGHLIGHT", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Suicide risk", "subtopic": "Warning signs", "bloom": "Analyze",
+    "stem": "Highlight the findings in the nurse's note that indicate increased suicide risk. Client states [[he has a plan and access to a firearm]]. Reports [[feeling like a burden to everyone]]. Sleeping and eating [[within normal limits]]. Has [[given away a treasured guitar]]. States he [[looks forward to a family reunion next month]].",
+    "chunks": [
+      {"text": "he has a plan and access to a firearm", "correct": true, "feedback": "A specific plan with lethal means is a major risk factor."},
+      {"text": "feeling like a burden to everyone", "correct": true, "feedback": "Perceived burdensomeness raises suicide risk."},
+      {"text": "within normal limits", "correct": false, "feedback": "Normal sleep and appetite are not a warning sign."},
+      {"text": "given away a treasured guitar", "correct": true, "feedback": "Giving away prized possessions can signal a suicide plan."},
+      {"text": "looks forward to a family reunion next month", "correct": false, "feedback": "Future orientation is a protective factor, not a risk."}
+    ],
+    "rationale": "A specific plan with lethal means, perceived burdensomeness, and giving away possessions increase risk; normal vegetative signs and future orientation are protective or neutral."
+  },
+  {
+    "item_id": "NCLEX_BT_333027", "type": "BOWTIE", "difficulty": "Medium",
+    "category": "Psychosocial Integrity", "subcategory": "Psychosocial Integrity",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Alcohol withdrawal", "subtopic": "Delirium tremens", "bloom": "Evaluate",
+    "stem": "A client 3 days after abrupt cessation of heavy alcohol use is confused, tremulous, and hallucinating with vital sign instability. Complete the diagram by selecting the condition, actions to take, and parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Administer prescribed benzodiazepine", "correct": true},
+      {"text": "Provide a calm, low-stimulation environment", "correct": true},
+      {"text": "Encourage caffeine to increase alertness"},
+      {"text": "Place the client in a bright, busy dayroom"}
+    ]},
+    "centre": {"label": "Condition", "tokens": [
+      {"text": "Delirium tremens", "correct": true},
+      {"text": "Opioid withdrawal"},
+      {"text": "Panic disorder"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Vital signs and orientation", "correct": true},
+      {"text": "Seizure activity", "correct": true},
+      {"text": "Deep tendon reflexes for hyperthyroidism"},
+      {"text": "24-hour urine catecholamines"}
+    ]},
+    "rationale": "Delirium tremens is treated with benzodiazepines and a calm environment while monitoring vital signs, orientation, and seizure activity."
+  }
+]

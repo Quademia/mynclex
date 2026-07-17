@@ -1,0 +1,135 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09003",
+  "title": "Diabetic Ketoacidosis",
+  "scenario": "A 24-year-old male with type 1 diabetes is brought to the emergency department by a friend after two days of vomiting, increasing thirst, and confusion. His friend reports the client ran out of insulin last week.",
+  "tags": ["synthetic", "endocrine"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["24-year-old male with type 1 diabetes brought in for 2 days of nausea, vomiting, and increasing thirst. Friend reports client stopped taking insulin last week when supply ran out. Client is drowsy but arousable, oriented to person only. Breathing is deep and rapid with a fruity odor. Mucous membranes dry, skin poor turgor."], "visibleFrom": 1},
+        {"chips": ["10:15"], "lines": ["Two large-bore IV lines established. Point-of-care glucose reads HIGH. Labs, ABG, and cardiac monitor ordered. Foley catheter placed for strict output monitoring."], "visibleFrom": 2},
+        {"chips": ["10:45"], "lines": ["0.9% normal saline bolus infusing per order. Regular insulin IV infusion started per protocol after initial potassium result reviewed."], "visibleFrom": 5},
+        {"chips": ["14:00"], "lines": ["Client more alert, now oriented to person, place, and time. Respirations less labored, fruity odor resolving. Voided 700 mL clear urine. Repeat glucose 248 mg/dL."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "99.1 F (37.3 C)", "122", "32", "94/58", "97% on RA"],
+        ["10:15", "99.1 F (37.3 C)", "118", "30", "96/60", "98% on RA"],
+        ["14:00", "98.8 F (37.1 C)", "92", "20", "116/72", "98% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Glucose", "612", "70-110 mg/dL"],
+        ["Arterial pH", "7.18", "7.35-7.45"],
+        ["Serum bicarbonate", "12", "22-26 mEq/L"],
+        ["Serum ketones", "Large", "Negative"],
+        ["Potassium", "5.6", "3.5-5.0 mEq/L"],
+        ["Sodium", "131", "135-145 mEq/L"],
+        ["Anion gap", "24", "8-12 mEq/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Insulin glargine 20 units subcutaneous at bedtime (home)", "Insulin lispro sliding scale with meals (home)"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Infuse 0.9% normal saline 1 L bolus, then 250 mL/hr", "Start regular insulin IV infusion at 0.1 unit/kg/hr per protocol", "Check potassium before starting insulin; replace if below 3.3 mEq/L and hold insulin", "Hourly point-of-care glucose", "Add dextrose to IV fluids when glucose reaches 200 mg/dL", "Continuous cardiac monitoring", "Strict intake and output"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_400301", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Diabetic ketoacidosis", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Deep, rapid respirations with a fruity odor", "correct": true},
+        {"text": "Blood glucose 612 mg/dL", "correct": true},
+        {"text": "Oriented to person only", "correct": true},
+        {"text": "Arterial pH 7.18", "correct": true},
+        {"text": "Temperature 99.1 F", "correct": false},
+        {"text": "SpO2 97% on room air", "correct": false}
+      ],
+      "rationale": "Kussmaul respirations with a fruity odor, severe hyperglycemia, altered mental status, and acidosis are hallmark signs of diabetic ketoacidosis and require prompt intervention. A mildly elevated temperature and normal oxygen saturation are not the priority concerns."
+    },
+    {
+      "item_id": "NCLEX_MMR_400302", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Diabetic ketoacidosis", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it supports metabolic acidosis, fluid volume deficit, or both. Each finding may support more than one.",
+      "columns": ["Metabolic acidosis", "Fluid volume deficit"],
+      "rows": [
+        {"text": "Arterial pH 7.18 with bicarbonate 12", "answers": [0]},
+        {"text": "Poor skin turgor and dry mucous membranes", "answers": [1]},
+        {"text": "Blood pressure 94/58 with pulse 122", "answers": [1]},
+        {"text": "Kussmaul respirations", "answers": [0]},
+        {"text": "Large serum ketones with elevated anion gap", "answers": [0]}
+      ],
+      "rationale": "Low pH, low bicarbonate, elevated anion gap, ketones, and Kussmaul breathing reflect the metabolic acidosis of DKA. Poor turgor, dry membranes, hypotension, and tachycardia reflect the osmotic-diuresis fluid volume deficit."
+    },
+    {
+      "item_id": "NCLEX_CLZ_400303", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Diabetic ketoacidosis", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority intervention is {1}, and the electrolyte that must be monitored most closely during insulin therapy is {2}.",
+      "blanks": [
+        {"choices": [{"text": "isotonic IV fluid replacement", "correct": true}, {"text": "administering a bicarbonate infusion"}, {"text": "giving oral hypoglycemic agents"}]},
+        {"choices": [{"text": "potassium", "correct": true}, {"text": "calcium"}, {"text": "magnesium"}]}
+      ],
+      "rationale": "Fluid resuscitation is the first priority in DKA to restore perfusion and begin correcting hyperglycemia. Insulin drives potassium into cells, so serum potassium can fall rapidly and must be monitored closely to prevent life-threatening hypokalemia."
+    },
+    {
+      "item_id": "NCLEX_MAT_400304", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Diabetic ketoacidosis", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client at this time.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Begin 0.9% normal saline infusion", "answer": 0},
+        {"text": "Start a continuous regular insulin IV infusion", "answer": 0},
+        {"text": "Give subcutaneous insulin glargine as the sole insulin", "answer": 1},
+        {"text": "Verify serum potassium before starting insulin", "answer": 0},
+        {"text": "Administer a rapid IV dextrose bolus now", "answer": 1}
+      ],
+      "rationale": "Isotonic fluids, a continuous IV insulin infusion, and checking potassium before insulin are core DKA management. Long-acting subcutaneous insulin alone will not resolve the acidosis, and dextrose is only added once glucose falls toward 200 mg/dL, so a bolus now is contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_400305", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Endocrine", "topic": "Insulin therapy", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After starting the insulin infusion, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Check point-of-care glucose hourly", "correct": true},
+        {"text": "Monitor serum potassium and cardiac rhythm", "correct": true},
+        {"text": "Add dextrose to IV fluids when glucose reaches 200 mg/dL", "correct": true},
+        {"text": "Stop the insulin infusion as soon as glucose is normal", "correct": false},
+        {"text": "Withhold all IV fluids while insulin is running", "correct": false}
+      ],
+      "rationale": "Hourly glucose checks, potassium and rhythm monitoring, and adding dextrose at 200 mg/dL are standard during an insulin infusion. Insulin must continue until the acidosis clears, and fluids run concurrently, so those two actions are incorrect."
+    },
+    {
+      "item_id": "NCLEX_SATA_400306", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Diabetic ketoacidosis", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Blood glucose decreased to 248 mg/dL", "correct": true},
+        {"text": "Respirations decreased to 20 and unlabored", "correct": true},
+        {"text": "Client now oriented to person, place, and time", "correct": true},
+        {"text": "Blood pressure improved to 116/72", "correct": true},
+        {"text": "Serum ketones remain large", "correct": false}
+      ],
+      "rationale": "Falling glucose, resolving Kussmaul respirations, improved mental status, and restored blood pressure all show DKA is resolving. Persistently large ketones would indicate ongoing acidosis, not improvement."
+    }
+  ]
+}

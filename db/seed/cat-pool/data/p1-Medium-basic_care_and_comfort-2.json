@@ -1,0 +1,363 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_335001", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "GI", "topic": "Enteral feedings", "subtopic": "Tube placement", "bloom": "Apply",
+    "stem": "A nurse is preparing to administer a bolus feeding through a client's nasogastric tube. After confirming placement, the nurse aspirates 320 mL of gastric residual. The last feeding was 240 mL given 4 hours ago. Which action should the nurse take?",
+    "options": [
+      {"text": "Hold the feeding and notify the provider", "correct": true, "feedback": "Correct. A residual greater than the prior feeding volume suggests delayed emptying and intolerance; hold and report."},
+      {"text": "Discard the aspirate and give the scheduled feeding", "correct": false, "feedback": "Incorrect. Discarding removes electrolytes and fluid, and proceeding ignores the high residual."},
+      {"text": "Flush the tube with 60 mL of water and continue", "correct": false, "feedback": "Incorrect. Flushing does not address the high residual indicating intolerance."},
+      {"text": "Reposition the client and re-aspirate immediately", "correct": false, "feedback": "Incorrect. Immediate re-aspiration does not resolve documented delayed emptying."}
+    ],
+    "rationale": "A gastric residual exceeding the prior feeding volume signals intolerance; the feeding is held and the provider notified."
+  },
+  {
+    "item_id": "NCLEX_MCQ_335002", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Medical-Surgical", "body_system": "Integumentary", "topic": "Pressure injury prevention", "subtopic": "Repositioning", "bloom": "Apply",
+    "stem": "A nurse is caring for a bedbound client with limited mobility. Which repositioning approach best reduces the risk of pressure injury over the sacrum?",
+    "options": [
+      {"text": "Reposition at least every 2 hours using a 30-degree lateral tilt", "correct": true, "feedback": "Correct. Frequent turning with a 30-degree tilt offloads the sacrum and trochanter."},
+      {"text": "Elevate the head of the bed to 90 degrees continuously", "correct": false, "feedback": "Incorrect. High elevation increases shear and sacral pressure."},
+      {"text": "Massage reddened bony prominences vigorously", "correct": false, "feedback": "Incorrect. Massaging reddened areas can worsen tissue damage."},
+      {"text": "Place the client directly on the trochanter when side-lying", "correct": false, "feedback": "Incorrect. Direct trochanter pressure creates a new injury risk."}
+    ],
+    "rationale": "Repositioning every 2 hours with a 30-degree lateral tilt offloads bony prominences without creating new pressure points."
+  },
+  {
+    "item_id": "NCLEX_MCQ_335003", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Musculoskeletal", "topic": "Assistive devices", "subtopic": "Cane use", "bloom": "Apply",
+    "stem": "A nurse teaches a client with left-knee osteoarthritis to use a cane. Which instruction is correct?",
+    "options": [
+      {"text": "Hold the cane in the right hand and advance it with the left leg", "correct": true, "feedback": "Correct. The cane is held on the strong side and moves with the affected leg to share weight."},
+      {"text": "Hold the cane in the left hand and advance it with the left leg", "correct": false, "feedback": "Incorrect. The cane goes on the unaffected side."},
+      {"text": "Advance the strong leg first, then the cane", "correct": false, "feedback": "Incorrect. The cane and weak leg move together."},
+      {"text": "Keep the cane tip 30 cm to the side of the foot", "correct": false, "feedback": "Incorrect. The tip should be about 15 cm to the side for stability."}
+    ],
+    "rationale": "A cane is held on the stronger side and advanced with the affected leg so the two share the load."
+  },
+  {
+    "item_id": "NCLEX_MCQ_335004", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Bladder irrigation", "subtopic": "CBI", "bloom": "Analyze",
+    "stem": "A client has continuous bladder irrigation after a transurethral prostate resection. The nurse notes the outflow has become bright red with clots and the client reports bladder spasms and fullness. Which action should the nurse take first?",
+    "options": [
+      {"text": "Increase the irrigation flow rate and assess catheter patency", "correct": true, "feedback": "Correct. Increasing flow clears clots and checking patency addresses possible obstruction causing the spasm and fullness."},
+      {"text": "Stop the irrigation and clamp the catheter", "correct": false, "feedback": "Incorrect. Clamping worsens distention and clot retention."},
+      {"text": "Administer a PRN analgesic and continue monitoring", "correct": false, "feedback": "Incorrect. This ignores the likely obstruction causing the spasm."},
+      {"text": "Deflate the catheter balloon to relieve pressure", "correct": false, "feedback": "Incorrect. Deflating the balloon risks catheter displacement and hemorrhage."}
+    ],
+    "rationale": "Bright bleeding with clots and fullness suggest obstruction; increasing irrigation flow and confirming patency clear the clot and relieve the spasm."
+  },
+  {
+    "item_id": "NCLEX_MCQ_335005", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Neurological", "topic": "Pain assessment", "subtopic": "Nonverbal client", "bloom": "Apply",
+    "stem": "A nurse must assess pain in an older adult client with advanced dementia who cannot self-report. Which assessment method is most appropriate?",
+    "options": [
+      {"text": "Use a behavioral observation tool such as PAINAD", "correct": true, "feedback": "Correct. A validated behavioral scale is the standard for nonverbal clients."},
+      {"text": "Ask a family member to rate the pain on a 0-10 scale", "correct": false, "feedback": "Incorrect. Proxy numeric ratings are less reliable than direct behavioral observation."},
+      {"text": "Assume the client is pain-free if lying quietly", "correct": false, "feedback": "Incorrect. Quietness does not rule out pain in dementia."},
+      {"text": "Use the numeric rating scale with picture prompts", "correct": false, "feedback": "Incorrect. Advanced dementia limits reliable use of self-report scales."}
+    ],
+    "rationale": "For nonverbal clients with dementia, a validated behavioral pain tool such as PAINAD is the recommended assessment."
+  },
+  {
+    "item_id": "NCLEX_MCQ_335006", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Sleep and rest", "subtopic": "Sleep hygiene", "bloom": "Apply",
+    "stem": "A hospitalized client reports difficulty sleeping. Which nursing intervention best promotes sleep using a nonpharmacologic approach?",
+    "options": [
+      {"text": "Cluster nighttime care to allow uninterrupted rest periods", "correct": true, "feedback": "Correct. Clustering care reduces awakenings and supports sleep cycles."},
+      {"text": "Offer a caffeinated beverage in the evening for comfort", "correct": false, "feedback": "Incorrect. Caffeine impairs sleep onset."},
+      {"text": "Keep overhead lighting on for nighttime safety checks", "correct": false, "feedback": "Incorrect. Bright light suppresses melatonin and disrupts sleep."},
+      {"text": "Encourage a 2-hour nap in the late afternoon", "correct": false, "feedback": "Incorrect. Long late naps reduce nighttime sleep drive."}
+    ],
+    "rationale": "Clustering care to minimize interruptions preserves sleep cycles and is a first-line nonpharmacologic strategy."
+  },
+  {
+    "item_id": "NCLEX_MCQ_335007", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Orthopedic devices", "subtopic": "Cast care", "bloom": "Analyze",
+    "stem": "A client returns from casting of a fractured tibia. Six hours later the client reports increasing pain unrelieved by analgesics and numbness of the toes. Which finding most requires immediate action?",
+    "options": [
+      {"text": "Pain out of proportion with paresthesia of the toes", "correct": true, "feedback": "Correct. Escalating unrelieved pain with paresthesia signals compartment syndrome, a limb-threatening emergency."},
+      {"text": "Mild itching under the cast", "correct": false, "feedback": "Incorrect. Itching is common and not urgent."},
+      {"text": "A dependent area of dried blood on the cast", "correct": false, "feedback": "Incorrect. A stable, marked drainage area is monitored, not emergent."},
+      {"text": "Warmth of the cast during the drying period", "correct": false, "feedback": "Incorrect. Warmth from an exothermic setting reaction is expected."}
+    ],
+    "rationale": "Unrelieved escalating pain with paresthesia is a hallmark of acute compartment syndrome and requires immediate intervention."
+  },
+  {
+    "item_id": "NCLEX_MCQ_335008", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "GI", "topic": "Bowel elimination", "subtopic": "Constipation", "bloom": "Apply",
+    "stem": "A client on prolonged bed rest and opioid therapy has not had a bowel movement in 3 days and reports abdominal fullness. Which intervention should the nurse implement first?",
+    "options": [
+      {"text": "Increase fluid and dietary fiber intake and encourage activity as tolerated", "correct": true, "feedback": "Correct. Nonpharmacologic measures addressing the cause are first-line for opioid- and immobility-related constipation."},
+      {"text": "Administer a soap-suds enema immediately", "correct": false, "feedback": "Incorrect. An enema is not the first step before conservative measures and orders."},
+      {"text": "Perform digital disimpaction", "correct": false, "feedback": "Incorrect. Disimpaction is reserved for confirmed impaction and requires assessment."},
+      {"text": "Withhold all fluids until the client passes stool", "correct": false, "feedback": "Incorrect. Restricting fluids worsens constipation."}
+    ],
+    "rationale": "Increasing fluids, fiber, and mobility addresses the underlying causes of constipation before escalating to enemas or disimpaction."
+  },
+  {
+    "item_id": "NCLEX_MCQ_335009", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Postmortem care", "subtopic": "Procedure", "bloom": "Apply",
+    "stem": "A nurse is providing postmortem care shortly after a client's death, and the family will view the body. Which action is appropriate?",
+    "options": [
+      {"text": "Position the body supine with the head slightly elevated and close the eyes", "correct": true, "feedback": "Correct. Supine positioning with slight head elevation and closed eyes preserves a natural appearance and limits discoloration."},
+      {"text": "Remove all dentures before the family arrives", "correct": false, "feedback": "Incorrect. Dentures are reinserted to maintain facial contour before viewing."},
+      {"text": "Delay removing tubes and lines until after the family views the body", "correct": false, "feedback": "Incorrect. When permitted, lines are removed to improve appearance before viewing."},
+      {"text": "Lower the head flat and tightly restrain the arms at the sides", "correct": false, "feedback": "Incorrect. Flat positioning promotes facial discoloration and restraints are inappropriate."}
+    ],
+    "rationale": "Supine positioning with slight head elevation, closed eyes, and reinserted dentures preserves a natural, dignified appearance for viewing."
+  },
+  {
+    "item_id": "NCLEX_MCQ_335010", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "Nutrition status", "subtopic": "Dysphagia", "bloom": "Apply",
+    "stem": "A client recovering from a stroke has dysphagia. Which nursing action best reduces the risk of aspiration during meals?",
+    "options": [
+      {"text": "Position the client upright and have them tuck the chin while swallowing", "correct": true, "feedback": "Correct. Upright positioning with a chin tuck protects the airway during swallowing."},
+      {"text": "Offer thin liquids to make swallowing easier", "correct": false, "feedback": "Incorrect. Thin liquids increase aspiration risk in dysphagia."},
+      {"text": "Encourage rapid eating to limit fatigue", "correct": false, "feedback": "Incorrect. Rapid eating increases aspiration risk."},
+      {"text": "Have the client lie back at 30 degrees during meals", "correct": false, "feedback": "Incorrect. Reclined positioning promotes aspiration."}
+    ],
+    "rationale": "Upright positioning with a chin-tuck maneuver protects the airway and reduces aspiration during swallowing."
+  },
+  {
+    "item_id": "NCLEX_MCQ_335011", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Musculoskeletal", "topic": "Mobility and ROM", "subtopic": "Passive ROM", "bloom": "Apply",
+    "stem": "A nurse performs passive range-of-motion exercises for an unconscious client. Which technique is correct?",
+    "options": [
+      {"text": "Move each joint slowly to the point of resistance, not beyond", "correct": true, "feedback": "Correct. Moving to resistance without forcing prevents injury while maintaining joint mobility."},
+      {"text": "Move joints quickly through their full range to save time", "correct": false, "feedback": "Incorrect. Rapid movement risks injury."},
+      {"text": "Continue past resistance until the joint fully extends", "correct": false, "feedback": "Incorrect. Forcing past resistance can cause injury."},
+      {"text": "Exercise only the lower extremities to prevent fatigue", "correct": false, "feedback": "Incorrect. All accessible joints should be exercised to prevent contractures."}
+    ],
+    "rationale": "Passive ROM is performed slowly to the point of resistance without forcing, preserving mobility and preventing injury."
+  },
+  {
+    "item_id": "NCLEX_MCQ_335012", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Renal/Genitourinary", "topic": "Intake and output", "subtopic": "I&O measurement", "bloom": "Apply",
+    "stem": "A nurse is calculating a client's 8-hour intake, which included 240 mL of ice chips, 120 mL of gelatin, 200 mL of IV fluid, and 180 mL of water. Which total should the nurse document for oral and IV intake combined?",
+    "options": [
+      {"text": "620 mL", "correct": true, "feedback": "Correct. Ice chips count as half their volume (120 mL) plus 120 + 200 + 180 = 620 mL."},
+      {"text": "740 mL", "correct": false, "feedback": "Incorrect. This counts ice chips at full volume."},
+      {"text": "500 mL", "correct": false, "feedback": "Incorrect. This omits the ice chip contribution."},
+      {"text": "420 mL", "correct": false, "feedback": "Incorrect. This omits both the IV fluid and ice chips."}
+    ],
+    "rationale": "Ice chips are recorded as half their measured volume, so 120 + 120 + 200 + 180 = 620 mL."
+  },
+  {
+    "item_id": "NCLEX_MCQ_335013", "type": "MCQ", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Integumentary", "topic": "Dignity and privacy", "subtopic": "Personal hygiene", "bloom": "Apply",
+    "stem": "A nurse assists a client of a conservative cultural background with a bed bath. Which action best preserves dignity and privacy?",
+    "options": [
+      {"text": "Expose only the body part being washed and keep the rest draped", "correct": true, "feedback": "Correct. Draping and exposing only the area being cleaned protects dignity and privacy."},
+      {"text": "Leave the door open so help is nearby", "correct": false, "feedback": "Incorrect. An open door compromises privacy."},
+      {"text": "Complete the bath quickly with full exposure to save time", "correct": false, "feedback": "Incorrect. Full exposure violates dignity."},
+      {"text": "Assign the task to any available staff member regardless of client preference", "correct": false, "feedback": "Incorrect. Cultural preferences about caregiver gender should be respected when possible."}
+    ],
+    "rationale": "Draping the client and exposing only the area being washed maintains dignity and privacy during hygiene care."
+  },
+  {
+    "item_id": "NCLEX_SATA_335014", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Medical-Surgical", "body_system": "Integumentary", "topic": "Pressure injury prevention", "subtopic": "Risk reduction", "bloom": "Analyze",
+    "stem": "A nurse develops a plan to prevent pressure injuries in an immobile, incontinent client. Which interventions should the nurse include? Select all that apply.",
+    "options": [
+      {"text": "Reposition the client at least every 2 hours", "correct": true},
+      {"text": "Keep the skin clean and dry after episodes of incontinence", "correct": true},
+      {"text": "Use a pressure-redistributing support surface", "correct": true},
+      {"text": "Ensure adequate protein and fluid intake", "correct": true},
+      {"text": "Massage bony prominences that appear reddened", "correct": false},
+      {"text": "Elevate the head of the bed to 90 degrees for long periods", "correct": false}
+    ],
+    "rationale": "Turning, moisture control, support surfaces, and nutrition prevent pressure injury; massaging reddened areas and high HOB elevation are harmful."
+  },
+  {
+    "item_id": "NCLEX_SATA_335015", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "GI", "topic": "Enteral feedings", "subtopic": "Aspiration prevention", "bloom": "Apply",
+    "stem": "A nurse is caring for a client receiving continuous tube feeding. Which actions reduce the risk of aspiration? Select all that apply.",
+    "options": [
+      {"text": "Keep the head of the bed elevated at least 30 degrees", "correct": true},
+      {"text": "Verify tube placement per facility protocol", "correct": true},
+      {"text": "Monitor for gastric residual volume as ordered", "correct": true},
+      {"text": "Lay the client flat during feeding to improve comfort", "correct": false},
+      {"text": "Flush the tube with the ordered water volume", "correct": true},
+      {"text": "Increase the feeding rate to finish faster when behind schedule", "correct": false}
+    ],
+    "rationale": "Elevated HOB, placement verification, residual monitoring, and flushing reduce aspiration; lying flat and rate boluses increase risk."
+  },
+  {
+    "item_id": "NCLEX_SATA_335016", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Neurological", "topic": "Nonpharmacologic comfort", "subtopic": "Pain management", "bloom": "Apply",
+    "stem": "A nurse plans nonpharmacologic comfort measures for a client with chronic low-back pain. Which interventions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Apply heat or cold therapy as tolerated", "correct": true},
+      {"text": "Teach guided imagery and relaxation breathing", "correct": true},
+      {"text": "Encourage frequent position changes and gentle stretching", "correct": true},
+      {"text": "Recommend strict bed rest until pain fully resolves", "correct": false},
+      {"text": "Offer distraction through music or activities", "correct": true},
+      {"text": "Discontinue all activity to avoid triggering pain", "correct": false}
+    ],
+    "rationale": "Heat/cold, relaxation, movement, and distraction ease chronic pain; prolonged bed rest and inactivity worsen it."
+  },
+  {
+    "item_id": "NCLEX_SATA_335017", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Orthopedic devices", "subtopic": "Skeletal traction", "bloom": "Analyze",
+    "stem": "A client is in skeletal traction for a femur fracture. Which nursing actions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Keep the weights hanging freely and off the floor", "correct": true},
+      {"text": "Perform pin-site care per protocol", "correct": true},
+      {"text": "Assess neurovascular status of the affected limb", "correct": true},
+      {"text": "Remove the weights when repositioning the client", "correct": false},
+      {"text": "Maintain proper body alignment", "correct": true},
+      {"text": "Loosen the traction if the client reports discomfort", "correct": false}
+    ],
+    "rationale": "Traction requires free-hanging weights, pin care, neurovascular checks, and alignment; weights must not be removed or loosened by the nurse."
+  },
+  {
+    "item_id": "NCLEX_SATA_335018", "type": "SATA", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "Nutrition status", "subtopic": "Malnutrition", "bloom": "Analyze",
+    "stem": "A nurse assesses an older adult client for signs of malnutrition. Which findings support this concern? Select all that apply.",
+    "options": [
+      {"text": "Unintentional weight loss over the past month", "correct": true},
+      {"text": "Poor wound healing", "correct": true},
+      {"text": "Low serum albumin", "correct": true},
+      {"text": "Brittle hair and dry, flaky skin", "correct": true},
+      {"text": "Elevated blood pressure", "correct": false},
+      {"text": "Increased muscle mass", "correct": false}
+    ],
+    "rationale": "Weight loss, poor healing, low albumin, and skin/hair changes indicate malnutrition; hypertension and muscle gain do not."
+  },
+  {
+    "item_id": "NCLEX_SELN_335019", "type": "SELECT_N", "difficulty": "Medium", "select_count": 3,
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "ADLs and assistance", "subtopic": "Safe transfer", "bloom": "Apply",
+    "stem": "A nurse prepares to transfer a partially dependent client from bed to a chair. Which 3 actions promote a safe transfer?",
+    "options": [
+      {"text": "Lock the wheels of the bed and the chair", "correct": true},
+      {"text": "Position the chair on the client's stronger side", "correct": true},
+      {"text": "Use a gait belt and the client's remaining strength", "correct": true},
+      {"text": "Lift the client under the arms to standing", "correct": false},
+      {"text": "Transfer without footwear to increase floor grip", "correct": false},
+      {"text": "Bend at the waist to raise the client", "correct": false}
+    ],
+    "rationale": "Locking wheels, chair placement on the strong side, and a gait belt make the transfer safe; underarm lifting, bare feet, and waist bending risk injury."
+  },
+  {
+    "item_id": "NCLEX_TF_335020", "type": "TF", "difficulty": "Medium", "answer": "False",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Integumentary", "topic": "Pressure injury prevention", "subtopic": "Skin assessment", "bloom": "Understand",
+    "stem": "A stage 1 pressure injury is characterized by a partial-thickness loss of the dermis presenting as a shallow open ulcer.",
+    "rationale": "A stage 1 injury is intact skin with nonblanchable erythema; the partial-thickness open ulcer describes a stage 2 injury."
+  },
+  {
+    "item_id": "NCLEX_MAT_335021", "type": "MATRIX", "difficulty": "Medium", "row_label": "Position",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Positioning", "subtopic": "Therapeutic positions", "bloom": "Apply",
+    "stem": "For each clinical goal, click to indicate which client position best supports it.",
+    "columns": ["Semi-Fowler", "Left lateral (Sims)"],
+    "rows": [
+      {"text": "Easing dyspnea in a client with heart failure", "answer": 0},
+      {"text": "Administering an enema", "answer": 1},
+      {"text": "Reducing aspiration risk during tube feeding", "answer": 0},
+      {"text": "Positioning an unconscious client to promote drainage of secretions", "answer": 1}
+    ],
+    "rationale": "Semi-Fowler eases breathing and reduces aspiration; left lateral/Sims aids enema administration and secretion drainage."
+  },
+  {
+    "item_id": "NCLEX_MMR_335022", "type": "MATRIX_MR", "difficulty": "Medium", "row_label": "Comfort measure",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Nonpharmacologic comfort", "subtopic": "Complementary therapies", "bloom": "Understand",
+    "stem": "For each nonpharmacologic comfort measure, select all benefits it may provide (more than one may apply).",
+    "columns": ["Reduces pain perception", "Promotes relaxation", "Improves sleep"],
+    "rows": [
+      {"text": "Guided imagery", "answers": [0, 1, 2]},
+      {"text": "Cold application to an acute injury", "answers": [0]},
+      {"text": "Back massage at bedtime", "answers": [1, 2]},
+      {"text": "Quiet, dimmed environment", "answers": [1, 2]}
+    ],
+    "rationale": "Imagery addresses pain, relaxation, and sleep; cold mainly reduces pain; massage and a calm environment promote relaxation and sleep."
+  },
+  {
+    "item_id": "NCLEX_CLZ_335023", "type": "CLOZE", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Bladder elimination", "subtopic": "Urinary retention", "bloom": "Analyze",
+    "stem": "A postoperative client has not voided in 8 hours and reports lower abdominal fullness. The nurse recognizes the client is most likely experiencing {1}, and the priority noninvasive nursing action is to {2}.",
+    "blanks": [
+      {"choices": [{"text": "urinary retention", "correct": true}, {"text": "a urinary tract infection"}, {"text": "dehydration"}]},
+      {"choices": [{"text": "assist the client to a normal voiding position and run warm water", "correct": true}, {"text": "restrict oral fluids"}, {"text": "insert an indwelling catheter immediately"}]}
+    ],
+    "rationale": "Bladder fullness with no voiding indicates retention; noninvasive measures such as normal positioning and warm water are tried before catheterization."
+  },
+  {
+    "item_id": "NCLEX_HL_335024", "type": "HIGHLIGHT", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Medical-Surgical", "body_system": "Integumentary", "topic": "Skin and tissue integrity", "subtopic": "Wound assessment", "bloom": "Analyze",
+    "stem": "Highlight the findings at a sacral wound that indicate impaired healing or infection. The nurse inspects the wound: [[edges approximated]], surrounding skin [[warm and erythematous]], [[purulent green drainage]], [[foul odor]], granulation tissue [[pink and moist]], and the client reports [[increasing pain]].",
+    "chunks": [
+      {"text": "edges approximated", "correct": false, "feedback": "Approximated edges indicate normal healing."},
+      {"text": "warm and erythematous", "correct": true, "feedback": "Warmth and redness suggest infection."},
+      {"text": "purulent green drainage", "correct": true, "feedback": "Purulent drainage indicates infection."},
+      {"text": "foul odor", "correct": true, "feedback": "Foul odor suggests infection."},
+      {"text": "pink and moist", "correct": false, "feedback": "Pink, moist granulation is a sign of healthy healing."},
+      {"text": "increasing pain", "correct": true, "feedback": "Increasing pain can signal infection or deterioration."}
+    ],
+    "rationale": "Warmth, erythema, purulent drainage, foul odor, and increasing pain indicate infection; approximated edges and pink moist granulation are normal."
+  },
+  {
+    "item_id": "NCLEX_BT_335025", "type": "BOWTIE", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "Nutrition status", "subtopic": "Refeeding risk", "bloom": "Evaluate",
+    "stem": "A severely malnourished client is starting enteral nutrition. Complete the diagram by selecting the condition to monitor for, the actions to take, and parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Start feeding at a low rate and advance slowly", "correct": true},
+      {"text": "Monitor electrolytes closely", "correct": true},
+      {"text": "Begin feeding at full goal rate immediately"},
+      {"text": "Withhold all electrolyte replacement"}
+    ]},
+    "centre": {"label": "Condition", "tokens": [
+      {"text": "Refeeding syndrome", "correct": true},
+      {"text": "Dumping syndrome"},
+      {"text": "Aspiration pneumonia"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Serum phosphate", "correct": true},
+      {"text": "Serum potassium and magnesium", "correct": true},
+      {"text": "Deep tendon reflexes only"},
+      {"text": "Pupil response"}
+    ]},
+    "rationale": "Rapid refeeding of a malnourished client risks refeeding syndrome; feeding is advanced slowly with close monitoring of phosphate, potassium, and magnesium."
+  },
+  {
+    "item_id": "NCLEX_DCZ_335026", "type": "DRAG_CLOZE", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "Musculoskeletal", "topic": "Assistive devices", "subtopic": "Crutch walking", "bloom": "Apply",
+    "stem": "When teaching a client to climb stairs with crutches, the nurse instructs the client to lead with the [1] leg going up and with the [2] going down.",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["stronger", "crutches and weaker leg", "weaker"],
+    "rationale": "Going up stairs the stronger leg leads; going down the crutches and weaker leg lead, following the phrase 'up with the good, down with the bad.'"
+  },
+  {
+    "item_id": "NCLEX_DO_335027", "type": "DRAG_ORDER", "difficulty": "Medium",
+    "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort",
+    "subject": "Fundamentals of Nursing", "body_system": "GI", "topic": "Enteral feedings", "subtopic": "Bolus feeding procedure", "bloom": "Apply",
+    "stem": "A nurse is administering a bolus feeding through a gastrostomy tube. Place the steps in the correct order.",
+    "tokens": ["Perform hand hygiene and verify tube placement", "Elevate the head of the bed to at least 30 degrees", "Check gastric residual volume", "Administer the feeding by gravity", "Flush the tube with water", "Keep the client upright after the feeding"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}, {"token": 5}]
+  }
+]

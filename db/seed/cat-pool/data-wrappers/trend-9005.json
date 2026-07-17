@@ -1,0 +1,64 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09005",
+  "title": "Fetal Heart Rate Monitoring Trend",
+  "scenario": "A 29-year-old client at 39 weeks gestation is in active labor with continuous external fetal monitoring. The nurse reviews the fetal heart rate pattern recorded over the last hour.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Fetal Heart Rate Trend",
+      "headers": ["Time", "Baseline FHR (bpm)", "Variability", "Decelerations", "Uterine activity"],
+      "rows": [
+        ["14:00", "140", "Moderate", "None", "Contractions q4min"],
+        ["14:20", "142", "Moderate", "Early decelerations", "Contractions q3min"],
+        ["14:40", "138", "Minimal", "Late decelerations", "Contractions q2-3min"],
+        ["15:00", "144", "Minimal", "Recurrent late decelerations", "Contractions q2min"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450051",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Maternity",
+      "body_system": "Reproductive",
+      "topic": "Fetal heart rate monitoring",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "How should the nurse interpret the change in the fetal heart rate pattern over the last hour?",
+      "options": [
+        {"text": "A reassuring pattern that has become non-reassuring", "correct": true},
+        {"text": "A consistently reassuring pattern requiring no change", "correct": false},
+        {"text": "An expected pattern of fetal head compression only", "correct": false},
+        {"text": "A pattern indicating imminent normal delivery", "correct": false}
+      ],
+      "rationale": "The tracing moved from moderate variability with no decelerations to minimal variability with recurrent late decelerations, indicating uteroplacental insufficiency and a non-reassuring (Category II/III) pattern."
+    },
+    {
+      "item_id": "NCLEX_SELN_450052",
+      "type": "SELECT_N",
+      "select_count": 3,
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Maternity",
+      "body_system": "Reproductive",
+      "topic": "Fetal heart rate monitoring",
+      "difficulty": "Hard",
+      "bloom": "Apply",
+      "stem": "Recognizing the recurrent late decelerations, select the 3 priority nursing interventions.",
+      "options": [
+        {"text": "Reposition the client to a lateral position", "correct": true},
+        {"text": "Administer oxygen by nonrebreather mask", "correct": true},
+        {"text": "Increase the rate of the IV fluid infusion", "correct": true},
+        {"text": "Increase the oxytocin infusion rate", "correct": false},
+        {"text": "Encourage vigorous maternal pushing", "correct": false},
+        {"text": "Document the finding and continue routine monitoring", "correct": false}
+      ],
+      "rationale": "Intrauterine resuscitation for recurrent late decelerations includes lateral repositioning, oxygen administration, and an IV fluid bolus to improve placental perfusion. Oxytocin should be stopped, not increased."
+    }
+  ]
+}

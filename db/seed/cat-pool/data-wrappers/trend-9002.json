@@ -1,0 +1,64 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09002",
+  "title": "Post-op Hemorrhage Vitals",
+  "scenario": "A 45-year-old client is monitored in the post-anesthesia care unit following an abdominal hysterectomy. The nurse reviews serial vital signs and drain output over the first two hours.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Post-op Monitoring Flowsheet",
+      "headers": ["Time", "Pulse", "B/P", "RR", "SpO2", "Drain output", "Skin"],
+      "rows": [
+        ["14:00", "82", "122/78", "16", "98% on 2L NC", "20 mL serous", "Warm, dry, pink"],
+        ["14:30", "96", "114/70", "18", "97% on 2L NC", "60 mL sanguineous", "Warm, pale"],
+        ["15:00", "112", "102/60", "22", "95% on 2L NC", "120 mL sanguineous", "Cool, pale, clammy"],
+        ["15:30", "128", "88/52", "26", "93% on 2L NC", "180 mL bright red", "Cool, diaphoretic"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450021",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Medical-Surgical",
+      "body_system": "Cardiovascular",
+      "topic": "Postoperative hemorrhage",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Which pattern in the flowsheet best indicates the client is developing hypovolemic shock from hemorrhage?",
+      "options": [
+        {"text": "Rising pulse with falling blood pressure and increasing sanguineous drain output", "correct": true},
+        {"text": "Stable pulse with rising blood pressure and clear drainage", "correct": false},
+        {"text": "Falling pulse with rising blood pressure and warm, dry skin", "correct": false},
+        {"text": "Stable vital signs with decreasing drain output", "correct": false}
+      ],
+      "rationale": "Progressive tachycardia, hypotension, and increasing bright-red drain output are the classic compensatory-to-decompensated picture of hemorrhagic hypovolemic shock."
+    },
+    {
+      "item_id": "NCLEX_SELN_450022",
+      "type": "SELECT_N",
+      "select_count": 3,
+      "category": "Safe and Effective Care Environment",
+      "subcategory": "Management of Care",
+      "subject": "Medical-Surgical",
+      "body_system": "Cardiovascular",
+      "topic": "Postoperative hemorrhage",
+      "difficulty": "Hard",
+      "bloom": "Apply",
+      "stem": "Based on the trend, select the 3 priority actions the nurse should take now.",
+      "options": [
+        {"text": "Notify the surgeon immediately", "correct": true},
+        {"text": "Increase the IV fluid rate as ordered and prepare for volume resuscitation", "correct": true},
+        {"text": "Apply firm pressure and assess the surgical dressing and drain", "correct": true},
+        {"text": "Place the client in reverse Trendelenburg to lower blood pressure", "correct": false},
+        {"text": "Delay reassessment until the next scheduled check", "correct": false},
+        {"text": "Administer an as-needed antihypertensive", "correct": false}
+      ],
+      "rationale": "Active hemorrhage requires surgeon notification, aggressive fluid resuscitation, and direct assessment of the bleeding source. Lowering blood pressure or delaying care would worsen the shock state."
+    }
+  ]
+}

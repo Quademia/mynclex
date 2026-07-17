@@ -1,0 +1,133 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09005",
+  "title": "Community-Acquired Pneumonia",
+  "scenario": "A 72-year-old male presents to the emergency department with a 4-day history of productive cough, fever, and increasing shortness of breath. He reports rust-colored sputum and pain in the right side of his chest that worsens with deep breathing.",
+  "tags": ["synthetic", "respiratory"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["09:00"], "lines": ["72-year-old male brought in by wife for 4 days of productive cough with rust-colored sputum, fever, chills, and worsening dyspnea. Reports pleuritic right-sided chest pain. Coarse crackles and diminished breath sounds auscultated over the right lower lobe. Skin warm and flushed. Alert but appears fatigued and mildly confused per wife, who states this is new."], "visibleFrom": 1},
+        {"chips": ["09:20"], "lines": ["IV access obtained. Blood cultures x2, sputum culture, CBC, and chest x-ray ordered. O2 started at 3L per nasal cannula. Cardiac monitor and continuous pulse oximetry applied."], "visibleFrom": 2},
+        {"chips": ["10:15"], "lines": ["IV ceftriaxone and oral azithromycin administered per order after cultures drawn. Acetaminophen given for fever. 500 mL normal saline bolus infusing."], "visibleFrom": 5},
+        {"chips": ["14:00"], "lines": ["Client reports breathing is easier and chest pain reduced. Coughing up moderate sputum effectively. Oriented to person, place, and time. Breath sounds improving over right base."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["09:00", "102.7 F (39.3 C)", "112", "30", "104/62", "86% on RA"],
+        ["09:20", "102.7 F (39.3 C)", "108", "28", "106/64", "91% on 3L NC"],
+        ["14:00", "99.8 F (37.7 C)", "88", "20", "122/74", "96% on 3L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["WBC", "18.4", "4.5-11.0 x10^9/L"],
+        ["Neutrophils", "84", "40-70 %"],
+        ["Lactate", "2.6", "0.5-2.2 mmol/L"],
+        ["BUN", "28", "7-20 mg/dL"],
+        ["Procalcitonin", "3.8", "< 0.25 ng/mL"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Home Medications",
+      "entries": [
+        {"chips": [], "lines": ["Amlodipine 5 mg PO daily", "Metformin 500 mg PO twice daily", "Aspirin 81 mg PO daily"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Ceftriaxone 1 g IV every 24 hours", "Azithromycin 500 mg PO daily", "Normal saline 500 mL IV bolus, then 100 mL/hr", "Acetaminophen 650 mg PO every 6 hours PRN fever", "Titrate oxygen to keep SpO2 at or above 92%", "Blood cultures x2 before first antibiotic dose", "Incentive spirometry every 1 hour while awake"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_400501", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pneumonia", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "SpO2 86% on room air", "correct": true},
+        {"text": "Respiratory rate of 30", "correct": true},
+        {"text": "Temperature 102.7 F (39.3 C)", "correct": true},
+        {"text": "New-onset confusion", "correct": true},
+        {"text": "Rust-colored sputum", "correct": false},
+        {"text": "Blood pressure 104/62", "correct": false}
+      ],
+      "rationale": "Hypoxia, tachypnea, high fever, and new confusion signal severe pneumonia and possible sepsis requiring immediate intervention. Rust-colored sputum and a mildly low blood pressure are expected findings that warrant monitoring but are less urgent."
+    },
+    {
+      "item_id": "NCLEX_MMR_400502", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pneumonia", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it supports a diagnosis of pneumonia, systemic infection/sepsis, or both. Each finding may support more than one.",
+      "columns": ["Pneumonia", "Sepsis"],
+      "rows": [
+        {"text": "Diminished breath sounds over the right lower lobe", "answers": [0]},
+        {"text": "Elevated lactate of 2.6 mmol/L", "answers": [1]},
+        {"text": "WBC 18.4 with 84% neutrophils", "answers": [0, 1]},
+        {"text": "New-onset confusion", "answers": [1]}
+      ],
+      "rationale": "Focal diminished breath sounds are a localized lung finding of pneumonia; elevated lactate and new confusion reflect systemic hypoperfusion and organ dysfunction of sepsis. Leukocytosis with neutrophilia supports both the pulmonary infection and the systemic inflammatory response."
+    },
+    {
+      "item_id": "NCLEX_CLZ_400503", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pneumonia", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the first action is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "impaired gas exchange", "correct": true}, {"text": "acute pain", "correct": false}, {"text": "activity intolerance", "correct": false}]},
+        {"choices": [{"text": "apply supplemental oxygen", "correct": true}, {"text": "administer an antipyretic", "correct": false}, {"text": "obtain a sputum culture", "correct": false}]}
+      ],
+      "rationale": "The most immediate threat is impaired gas exchange, shown by an SpO2 of 86% and a respiratory rate of 30, so applying oxygen takes priority over pain relief, fever control, or diagnostics."
+    },
+    {
+      "item_id": "NCLEX_MAT_400504", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pneumonia", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Draw blood cultures before starting antibiotics", "answer": 0},
+        {"text": "Position the client in high Fowler's", "answer": 0},
+        {"text": "Encourage incentive spirometry hourly", "answer": 0},
+        {"text": "Withhold antibiotics until sputum culture results return", "answer": 1},
+        {"text": "Restrict oral fluids to reduce secretions", "answer": 1}
+      ],
+      "rationale": "Cultures before antibiotics, upright positioning, and incentive spirometry all support oxygenation and targeted treatment. Delaying antibiotics in suspected sepsis and restricting fluids that help mobilize secretions are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_400505", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Respiratory", "topic": "Antibiotics", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After initiating the ordered treatment, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Ensure blood cultures were obtained before the first antibiotic dose", "correct": true},
+        {"text": "Titrate oxygen to maintain SpO2 at or above 92%", "correct": true},
+        {"text": "Monitor for signs of an allergic reaction to the antibiotic", "correct": true},
+        {"text": "Reassess vital signs and lactate for response to the fluid bolus", "correct": true},
+        {"text": "Hold the fluid bolus until the fever resolves", "correct": false},
+        {"text": "Place the client on strict bed rest with no repositioning", "correct": false}
+      ],
+      "rationale": "The nurse confirms cultures preceded antibiotics, titrates oxygen, watches for drug reactions, and evaluates the response to fluid resuscitation. Holding fluids in a hypotensive, high-lactate client and forbidding repositioning would worsen perfusion and oxygenation."
+    },
+    {
+      "item_id": "NCLEX_SATA_400506", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pneumonia", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "SpO2 improved to 96%", "correct": true},
+        {"text": "Respiratory rate decreased to 20", "correct": true},
+        {"text": "Temperature decreased to 99.8 F (37.7 C)", "correct": true},
+        {"text": "Client is oriented to person, place, and time", "correct": true},
+        {"text": "Pulse increased to 120", "correct": false}
+      ],
+      "rationale": "Improved oxygenation, respiratory rate, fever, and resolution of confusion all show the infection and hypoxia are responding to treatment. A rising heart rate would suggest worsening sepsis, not improvement."
+    }
+  ]
+}

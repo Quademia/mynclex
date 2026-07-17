@@ -156,7 +156,45 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-05-05 (§3.2 — "How CAT works" help page path changed from
+  Living planning document. Last updated: 2026-07-16 (results-report scope expanded — §13.2 gains the
+  clinical-judgment read (from the §7.4 testlet model); new §13.6 captures five WANTED v2 report additions
+  (average difficulty faced, performance by question type, finer topic drill-down, clinical-judgment step detail,
+  pacing — data already captured); §13.5 reframed from "deliberately excluded" to "flagged for REVISIT," notably
+  a theta-percentile vs other CAT-takers (valid — the old "meaningless" reasoning only held for raw scores). §19
+  carried-forward updated. Earlier same day: §7.4 wrapper mechanics SETTLED — the last open design
+  piece. Case studies use a "testlet" model: 3 cases per CAT, spread within the first 85 questions and never at
+  position 1, on a fixed schedule (not difficulty-matched). Each case runs its own internal Rasch estimate
+  (starting fresh at 0.0, each child scored at its own difficulty), then merges into the main exam level as a
+  single confidence-weighted measurement whose uncertainty is inflated so the 6 correlated questions count as
+  ~one measurement, not six (local independence). Wrapper-level exposure; unlocks a distinct "clinical judgment"
+  read on the results page. Trends are ALWAYS single questions in CAT — never testlets: the engine serves one of
+  a trend's linked questions as an ordinary adaptive item (extra questions on a trend are just an interchangeable
+  pool). Engine world collapses to two shapes: items (incl. all trends) vs testlets (cases only). §19
+  carried-forward list cleared —
+  no open planning decisions remain. Earlier same day: §4.5 added — settled how partial-credit item types
+  (SATA, MATRIX, etc.) feed the adaptive ability estimate: use the fraction correct (<code>score_awarded/marks</code>,
+  "Option 2") for v1, not all-or-nothing, growing into the full partial-credit model the real NCLEX uses
+  ("Option 3") as recalibration data accumulates. Cross-refs added to §10.2 and §13.2; previously undocumented.)
+  Previous update: 2026-07-15 (verdict model revised — INCONCLUSIVE retired: every
+  completed CAT now resolves to Above/Below standard, and at max length/time-out the side is decided by the final
+  ability estimate exactly as the real NCLEX does. Every verdict carries a readiness probability — "confidence
+  you're above OUR standard," computed natively from the Rasch estimate + uncertainty — available from launch day;
+  a real-NCLEX pass-probability stays deferred until we have outcome data (same maths, upgraded label). Touched
+  §3.3–3.5, §9.4–9.5, §12.2/§12.7.3 schema, §13.1/§13.3/§13.4/§13.5, §19.)
+  Previous update: 2026-07-14 (three changes captured from a pre-build session with Sam.
+  <strong>§9.2 corrected</strong> — min/max question counts were the pre-NGN 75/145; the NGN NCLEX-RN
+  (April 2023) uses 85/150, corrected throughout the doc. Plus two decisions:
+  <strong>§7.4 reversed</strong> — case studies and trend-linked questions are IN scope for v1 CAT (real NCLEX
+  serves case studies; "practise on the real thing"), with the administration mechanics — block rule,
+  in-block theta updates, wrapper difficulty, wrapper-level exposure — left open for the build slice;
+  §7.3 / §11 / §12.5 / §18 / §19 updated to match. <strong>§19 — dev-bank CAT test pool</strong>, sized by the
+  rotation maths (last-3-CATs window ⇒ 4 exams' worth per difficulty band; worst case 4 × 150 = 600/band):
+  seed <strong>1,800 standalone items (600/band) + 36 case studies (12/band, 216 children) + 30 trend
+  datasets (10/band, ~75 linked questions) ≈ 2,090 questions</strong> — synthetic, dev-only, realistic
+  NCLEX-style type mix, batch-tagged and one-line deletable, delivered as committed <code>db/seed-*-dev.sql</code>
+  files then applied to dev; because the CAT-eligible dev pool at audit (~105 items) can't sustain a full
+  85–150-question CAT at the ability tails.)
+  Previous update: 2026-05-05 (§3.2 — "How CAT works" help page path changed from
   <code>/student/bank/help/cat</code> to <code>/help/cat</code>: top-level, audience-neutral, public. Help is
   content not workflow; same logic as the runner at <code>/session/[attempt_id]</code>. Earlier same day:
   18 of 20 sections settled across two seed
@@ -248,7 +286,7 @@
 <h3>2.1 From parent <code>bank-consumption.html</code> §16</h3>
 <ul>
   <li><strong>CAT ships in v1.</strong> Not deferred. Justified as the single most important mode for NCLEX fidelity — every prep platform that claims realism has to grapple with it.</li>
-  <li><strong>Concept summary.</strong> Difficulty per question, ability estimate updates after each answer, next item picked by ability match, terminates on confidence (NCLEX terminates at 75–145 questions), pass/fail outcome, no raw score.</li>
+  <li><strong>Concept summary.</strong> Difficulty per question, ability estimate updates after each answer, next item picked by ability match, terminates on confidence (NCLEX terminates at 85–150 questions), pass/fail outcome, no raw score.</li>
   <li><strong>v1 build components named</strong> (specifics unsettled): IRT-based ability estimator (Rasch or 2PL), question-selection strategy, termination logic, result-presentation language.</li>
 </ul>
 
@@ -263,7 +301,7 @@
   <li>CAT only appears under EXAM intent.</li>
   <li>When CAT is selected: content filters collapse with the message <em>"CAT pulls from the full bank to simulate the real exam. Filters don't apply."</em></li>
   <li>Pool filters also collapse with the same reasoning.</li>
-  <li>Question count UI hides, replaced with the static label <em>"75–145 questions, terminates when confidence is reached."</em></li>
+  <li>Question count UI hides, replaced with the static label <em>"85–150 questions, terminates when confidence is reached."</em></li>
   <li>Recent Quizzes CAT chip shows "Exam · CAT" with no filters — tapping restores Exam intent + CAT mode.</li>
 </ul>
 
@@ -343,9 +381,9 @@
 </p>
 <p>Five sections:</p>
 <ol>
-  <li><strong>What CAT does.</strong> Short paragraph: the test adapts to the student's ability, asks 75–145 questions, terminates when confident. Frames CAT as an exam-style measure, not a study tool.</li>
+  <li><strong>What CAT does.</strong> Short paragraph: the test adapts to the student's ability, asks 85–150 questions, terminates when confident. Frames CAT as an exam-style measure, not a study tool.</li>
   <li><strong>Why questions feel hard.</strong> The engine deliberately serves questions at the student's level; getting roughly half wrong is normal and expected, not a sign of weakness.</li>
-  <li><strong>What the verdict means.</strong> Above standard / Below standard / Inconclusive, with the honest framing. We don't predict real-NCLEX outcomes.</li>
+  <li><strong>What the verdict means.</strong> Above standard / Below standard, each with a readiness probability (confidence you're above our standard). Honest framing: we measure against our own bar, we don't predict real-NCLEX outcomes.</li>
   <li><strong>How calibration works.</strong> Early items use curator-assigned difficulty; over time, real student responses recalibrate. Acknowledges the system improves with use.</li>
   <li><strong>How to use CAT well.</strong> Single sitting, no pause, no back navigation; review the rationales afterwards; use the category breakdown to direct further practice.</li>
 </ol>
@@ -358,26 +396,42 @@
 
 <h3>3.3 Honest verdict — see §13</h3>
 <p>
-  "Above standard / Below standard / Inconclusive" — never pass probability. Verdict copy fully specified in
-  §13.1; no separate decision needed here.
+  "Above standard / Below standard" (INCONCLUSIVE retired 2026-07-15, §9.5), each with a readiness probability
+  against our own standard — never a real-NCLEX pass probability (§3.5). Verdict copy fully specified in §13.1.
 </p>
 
 <h3>3.4 Feeds Readiness Signal but doesn't replace it — see §13.4</h3>
 <p>
-  Two separate dashboard cards (CAT card + Readiness Signal card). No blended single number. INCONCLUSIVE
-  weights as zero in any future blended analytics. Fully specified in §13.4; no separate decision needed here.
+  Two separate dashboard cards (CAT card + Readiness Signal card). No blended single number. (With INCONCLUSIVE
+  retired 2026-07-15, every CAT now contributes an above/below signal; the old "weight as zero" rule is moot.)
+  Fully specified in §13.4.
 </p>
 
-<h3>3.5 When (if ever) we promote to a probability statement — v3+ at earliest</h3>
+<h3>3.5 Two different "probabilities" — one we give now, one we defer <span class="status settled">revised 2026-07-15</span></h3>
 <p>
-  Moving from "above/below standard" to a real-NCLEX pass-probability statement requires <strong>real outcome
-  data</strong> we don't have: students who took our CAT and then took the real NCLEX, with their pass/fail
-  outcomes, in volume large enough to fit a predictive model.
+  <strong>Revised 2026-07-15 (Sam).</strong> The earlier stance ("no probability talk of any kind until v3+")
+  conflated two different quantities. We now separate them:
 </p>
+<ul>
+  <li><strong>Probability of being above OUR standard — GIVEN from day one.</strong> The Rasch model produces
+    this natively: from the final ability estimate and its uncertainty (SE), we compute the probability that the
+    student's true ability is above the 0.0 line (the normal-curve area above 0). It is a real, honest statistic,
+    computable on launch day. Example: estimate 0.5, SE 0.40 → <strong>~89% likely above standard</strong>;
+    estimate 0.1, SE 0.40 → ~60%; estimate −0.3, SE 0.40 → ~23%. This is <em>readiness confidence against our
+    own bar</em> — see §9.5 / §13.1. Setting 0.0 as our standard is our prerogative; measuring against it and
+    stating the confidence is not dishonest.</li>
+  <li><strong>Probability of passing the REAL NCLEX — still deferred (v3+).</strong> A number like "78% chance of
+    passing the actual NCLEX-RN" requires <strong>real outcome data we don't have</strong>: students who took our
+    CAT and then the real NCLEX, with pass/fail outcomes, in volume. Without that link we literally cannot compute
+    it, and printing an invented one risks the product's credibility (Archer can claim "99% pass" only because they
+    validated it against thousands of real outcomes). So we hold the phrase "chance of passing the NCLEX" until we
+    have outcome data — at which point the <em>same</em> machinery gets re-labelled, no rebuild.</li>
+</ul>
 <p>
-  <strong>v3+ at earliest.</strong> Listed in §18 (out of scope for v1) so the constraint is explicit. Until we
-  have outcome data, no probability talk in any surface — verdict copy, dashboard cards, Readiness Signal,
-  marketing.
+  <strong>The guardrail, restated:</strong> we show a confident readiness probability, always framed as
+  "confidence you're above <em>our</em> standard," never as a real-NCLEX pass prediction. Vetting our content
+  raises its <em>quality</em> (and trust) but is a separate thing from difficulty calibration (§5) and outcome
+  validation — it does not by itself license a real-NCLEX probability.
 </p>
 
 
@@ -428,6 +482,44 @@
 <p>
   Once empirical recalibration has been running for some time and we have substantial response data per item,
   we can revisit fitting 2PL parameters. v2 decision, driven by data — not a v1 commitment.
+</p>
+
+<h3>4.5 Partial-credit items — how they feed the ability estimate <span class="status settled">settled 2026-07-16</span></h3>
+<p>
+  <strong>The gap this closes.</strong> Rasch (1PL) is a right/wrong model — it expects each administered item to
+  come back as a clean <strong>1 (right)</strong> or <strong>0 (wrong)</strong> to update the ability estimate.
+  But most NGN types (SATA, SELECT_N, MATRIX, MATRIX_MR, CLOZE, HIGHLIGHT, BOWTIE, DRAG_*) produce a
+  <strong>partial</strong> result — e.g. a SATA scored 3 out of 5. Until now the plan said "update theta with
+  Rasch" (§10.2) without specifying what a partial answer feeds in. This section settles that.
+</p>
+<p><strong>Three approaches (the staircase framing):</strong> picture a partial-credit item as a staircase from
+  0 correct (bottom) to all-correct (top).</p>
+<ul>
+  <li><strong>Option 1 — all-or-nothing.</strong> Only a 100%-correct answer counts as "right"; 4-of-5 is treated identically to 0-of-5. Simplest and keeps pure 1PL, but <strong>rejected</strong>: NGN items are hard to ace, so most partial answers would score 0, systematically biasing every student's estimate <em>downward</em> and making the exam feel brutally unfair. It is also <em>not</em> what the real NCLEX does.</li>
+  <li><strong>Option 2 — partial credit as a fraction (CHOSEN for v1).</strong> Feed the proportion correct into the update instead of a hard 0/1: 4-of-5 → <strong>0.8</strong>. Every step of the staircase is treated as equal height. Uses all the information, avoids the downward bias, needs <em>no</em> extra per-item data (works from launch day), and is a modest extension of the 1PL update rather than a new model. The proportion is already computed by the scoring engine (<code>score_awarded / marks</code>).</li>
+  <li><strong>Option 3 — full partial-credit model (deferred to v2).</strong> Measures the <em>real</em> height of each staircase step from response data — i.e. it learns which parts of a question actually separate strong students from weak ones (the "tricky" checkbox vs the "obvious" one) and weights them accordingly. This is what the <strong>real NCLEX uses</strong>. Deferred because it needs substantial per-item response data we don't have on day one — the same data-dependency reason 2PL is deferred (§4.4).</li>
+</ul>
+<p>
+  <strong>What the real NCLEX does:</strong> it gives partial credit (its test plan names three methods —
+  plus/minus, zero/one, and rationale scoring) and feeds those partial scores into a polytomous (partial-credit)
+  IRT model — i.e. Option 3. It does <em>not</em> use all-or-nothing. Our own scoring engine already computes SATA
+  partial credit the NCLEX "plus/minus" way (+1 per correct pick, −1 per wrong pick, floored at 0).
+</p>
+<p>
+  <strong>Decision (2026-07-16, Sam): Option 2 for v1, growing into Option 3 as data accumulates.</strong>
+  Option 2 and Option 3 are the same idea (partial credit counts) at two levels of sophistication; Option 2 is the
+  launch-day version and upgrades into Option 3 through the same recalibration pipeline (§5) — nothing is thrown
+  away. Only Option 1 is a different philosophy, and we reject it.
+</p>
+<p><strong>Two consistency requirements this creates:</strong></p>
+<ul>
+  <li><strong>Recalibration (§5) must define a "response" the same way.</strong> If the live estimate consumes a fraction (0.8), the weekly empirical recalibration must use the same fractional response, not a dichotomised one — otherwise the difficulty values drift against a different definition than the engine scores against.</li>
+  <li><strong>Display vs. estimate mismatch (§13.2).</strong> The summary page reports per-category "correct" as <em>full-credit-only</em> (the <code>is_correct</code> flag). That is a legitimate study stat, but it differs from how the engine <em>credited</em> the student (fractional). A one-line footnote on the summary page should acknowledge this so a student who sees "3/5 SATAs fully correct" doesn't think the engine ignored their partials.</li>
+</ul>
+<p>
+  <strong>Build note:</strong> the <code>cat_next_item</code> RPC (§10.2) uses <code>score_awarded / marks</code>
+  as the item outcome in the Rasch update (MCQ/TF are simply 1 or 0, the degenerate case). For a fully-correct
+  answer this is 1.0 and for a fully-wrong answer 0.0, so dichotomous items are unaffected.
 </p>
 
 
@@ -629,24 +721,113 @@
   <li>Not seen in the student's last 3 CAT attempts (cross-CAT exposure window — settled in §15.2).</li>
   <li><code>is_published = TRUE</code>.</li>
   <li><code>is_builder_visible = TRUE</code> (keeps readiness-pack reserved questions out of CAT, same rule as everywhere else).</li>
-  <li>Standalone question only — no case-study children, no trend-linked questions in v1 (see §7.4).</li>
+  <li>Standalone questions AND wrappers (case studies, trend-linked) are both eligible — direction reversed 2026-07-14; wrapper administration mechanics are open build decisions (see §7.4).</li>
 </ul>
 
-<h3>7.4 Cases and trends in CAT — standalone-only for v1</h3>
+<h3>7.4 Cases and trends in CAT — INCLUDED in v1 <span class="status settled">mechanics settled 2026-07-16</span></h3>
 <p>
-  Real NCLEX includes case studies in CAT. We don't, in v1. Three reasons:
+  <strong>Direction reversed 2026-07-14 (Sam).</strong> Wrappers — case studies and trend-linked
+  questions — are IN scope for v1 CAT. Real NCLEX includes case studies in its adaptive exam, and
+  MyNclex's promise is "practise on the real thing"; a CAT that never serves a wrapper is not the
+  real thing. The original standalone-only default (settled 2026-05-04) is superseded.
+</p>
+<p>
+  The original deferral reasons stand as <em>costs we're accepting</em>, not as reasons to wait —
+  recorded here so the build slice designs around them deliberately:
 </p>
 <ul>
-  <li>Case-study children aren't psychometrically independent — the 6 questions correlate heavily because they're built on the same scenario, which violates IRT's local-independence assumption.</li>
-  <li>A case study takes ~6 questions to deliver as an atomic block, which locks the engine out of difficulty-tracking for that whole block.</li>
-  <li>Simpler selection logic in v1.</li>
+  <li>Case-study children aren't psychometrically independent — the 6 questions correlate heavily because they're built on the same scenario, which strains IRT's local-independence assumption. (UWorld/Archer-class products accept the same compromise.)</li>
+  <li>A case study delivers as an atomic ~6-question block, which locks the engine out of item-by-item difficulty adaptation for the duration of the block.</li>
+  <li>Trend-linked questions carry shared dataset context that has to travel with them into the adaptive sequence.</li>
 </ul>
 <p>
-  Trend-linked questions are also excluded from v1 CAT — they're not atomic the way cases are, but trends carry
-  shared dataset context that's awkward to drop into an adaptive sequence cleanly.
+  <strong>The mechanism — settled 2026-07-16 (Sam), the "testlet" model.</strong> A case is treated as its own
+  self-contained mini-estimate that runs alongside the main exam and hands back a single combined result. This
+  is the recognised way to handle a bundle of items sharing one stimulus (a "testlet"), and it honours the
+  local-independence problem instead of ignoring it. Five parts:
+</p>
+<ol>
+  <li>
+    <strong>Administration — fixed count, fixed-ish positions, never first.</strong> Exactly <strong>3 case
+    studies per CAT</strong>, mirroring the real NCLEX (18 case items = 3 sets, delivered to every candidate
+    regardless of exam length). They are served on a schedule, <em>not</em> difficulty-matched for selection.
+    All three fall <strong>within the first 85 questions</strong> (the minimum length) so every student receives
+    all three before the earliest possible finish, and they are <strong>spread out</strong>. <strong>Never at
+    position 1</strong> (settled 2026-07-16): a case is a single correlated block, so leading with one gives the
+    engine a weak first fix and a slow start — the exam takes several standalone questions first (start no earlier
+    than ~Q8) to get a rough footing, then drops in the first case. Real NCLEX likewise does not open with a case.
+  </li>
+  <li>
+    <strong>The case runs its own internal estimate.</strong> The 6 children are fixed and in fixed
+    clinical-judgment order (we cannot choose them adaptively), but the engine still runs the normal Rasch
+    level-update maths <em>across</em> them — i.e. adaptive <em>estimation</em> over a fixed sequence, not
+    adaptive <em>selection</em>. The case estimate <strong>starts fresh at theta = 0.0</strong> (high
+    uncertainty) and each child, scored at its own <code>difficulty_irt</code>, nudges the case level up/down.
+    Getting the <em>hard</em> children right moves the case level more than the easy ones — so it uses more
+    information than a bare "X of 6 correct" would.
+  </li>
+  <li>
+    <strong>Case difficulty is not a new field.</strong> Because cases are not difficulty-matched for
+    <em>selection</em> (part 1) and the internal estimate uses each child's own <code>difficulty_irt</code>,
+    there is no need for a separate "wrapper difficulty" value. The earlier open question dissolves.
+  </li>
+  <li>
+    <strong>The merge — one combined measurement, not six.</strong> When the block finishes, the case's final
+    level merges into the main exam level as a <strong>confidence-weighted average</strong> (the more confident
+    of the two estimates gets more say). Crucially, the case's uncertainty is deliberately <strong>inflated</strong>
+    before merging so the whole 6-question block counts as roughly <em>one</em> independent measurement, not six —
+    this is the knob that enforces local independence and stops the engine becoming falsely over-confident. Effect:
+    a case moves the main level meaningfully but only tightens certainty a little. A case landing <em>early</em>
+    (when the main estimate is still unsure) has large influence; one landing <em>late</em> (main estimate
+    well-established) only nudges it. The exact inflation factor is a build-time dial, seeded with a sensible
+    default and refined from data later (how much a case's children actually move together).
+  </li>
+  <li>
+    <strong>Exposure is wrapper-level.</strong> The last-3-CATs window (§15.2) applies to the whole case — if the
+    student saw this <em>scenario</em> in their last 3 CATs, the entire case (all children) is skipped. The
+    scenario is the memorable leak, not the individual child. Same for trends (the shared dataset is the leak).
+  </li>
+</ol>
+<p>
+  <strong>Trends are ALWAYS single questions in CAT — never testlets (settled 2026-07-16, Sam).</strong> A real
+  NGN trend is a <em>single-question</em> item type (one question over a data-table / flowsheet); the Maryland
+  specimens confirm it. The ability to attach multiple questions to one trend wrapper is a
+  <strong>MyNclex authoring convenience</strong> (mint more bank questions from one dataset), not a real-exam
+  construct. So in CAT:
+</p>
+<ul>
+  <li><strong>The engine serves exactly ONE of a trend's linked questions</strong>, treated as an ordinary
+    adaptive standalone item — normal difficulty-match, normal single level update. No internal estimate, no
+    merge, no block delivery. A trend is an <em>item</em>, full stop.</li>
+  <li><strong>The extra questions on a trend are an interchangeable pool on the same dataset.</strong> This is a
+    quiet <em>benefit</em>: because the pool can span difficulties, the engine gets a small selection choice — it
+    picks the one whose difficulty best fits the student. The others are simply not served in that attempt.</li>
+  <li><strong>Exposure:</strong> serve at most one question from a given trend <em>within</em> an exam (so the
+    same flowsheet is never shown twice in one CAT). Cross-CAT, normal item-level exposure applies.</li>
+</ul>
+<p>
+  This collapses the engine's world to exactly two shapes: <strong>items</strong> (every MCQ/SATA/bow-tie… and
+  every trend) and <strong>testlets</strong> (case studies only — the 3-per-exam blocks above). The engine never
+  has to ask "how many questions does this trend have?" — it always serves one. If a bank trend was ever authored
+  as a genuinely sequential multi-question set, that is structurally a case, not a trend, and should be authored
+  as a case; CAT does not treat any trend as a block.
 </p>
 <p>
-  Adding cases and/or trends is a v2 enhancement once the standalone CAT engine is calibrated and trusted.
+  <strong>Bonus the testlet model unlocks:</strong> because each case produces a standalone case level, the
+  results page can surface a distinct <strong>"clinical judgment" read</strong> (case performance as its own
+  skill signal) on top of the overall verdict — matching how the real NCLEX treats clinical judgment as a
+  separately-measured competency. See §13 for where this lands on the summary page.
+</p>
+<p>
+  <strong>Schema implication (for §12 build handoff):</strong> the within-case level path can live on the child
+  <code>nclex_attempt_items</code> rows (each child's <code>cat_theta_before</code> = the within-case level at
+  that step). A small addition may be wanted to record each case's <em>final</em> case level + its merge, to
+  power the clinical-judgment read and replay — to be specified in the build slice.
+</p>
+<p>
+  §11's snapshot design already anticipated wrappers: case/trend snapshot behaviour for CAT is specified there and
+  needs no rework — only activation. Worked examples of the whole flow (a case mid-exam, and three cases across a
+  full exam) are in the 2026-07-16 planning session notes.
 </p>
 
 <h3>7.5 Bank-exhaustion fallback</h3>
@@ -759,8 +940,8 @@
 <h2 id="s9">9. Termination logic <span class="status settled">settled</span></h2>
 <p>
   Real NCLEX terminates a CAT under one of three conditions: (1) confidence reached, (2) max questions reached
-  (145), (3) time limit reached. We mirror the same shape with our own thresholds. All four sub-decisions locked
-  2026-05-04.
+  (150), (3) time limit reached. We mirror the same shape with our own thresholds. All four sub-decisions locked
+  2026-05-04; min/max counts corrected 2026-07-14 (see §9.2).
 </p>
 
 <h3>9.1 Confidence threshold</h3>
@@ -777,15 +958,20 @@
 </p>
 <p>
   <strong>Why SE ≤ 0.40:</strong> standard CAT systems use 0.30–0.50. 0.40 sits in the middle — confident enough
-  to give a meaningful verdict, loose enough that we don't push too many students to the 145 ceiling.
+  to give a meaningful verdict, loose enough that we don't push too many students to the 150 ceiling.
 </p>
 
 <h3>9.2 Min and max question counts</h3>
 <ul>
-  <li><strong>Min: 75.</strong> The engine cannot terminate before this even if SE converges fast.</li>
-  <li><strong>Max: 145.</strong> The engine forces termination at this count regardless of SE.</li>
+  <li><strong>Min: 85.</strong> The engine cannot terminate before this even if SE converges fast.</li>
+  <li><strong>Max: 150.</strong> The engine forces termination at this count regardless of SE.</li>
 </ul>
 <p>Both match real NCLEX exactly. No reason to deviate — students practising for NCLEX should experience NCLEX's range.</p>
+<p>
+  <strong>Corrected 2026-07-14 (Sam):</strong> earlier drafts of this doc used 75/145 — the pre-NGN
+  NCLEX-RN range. The NGN test plan (live since April 2023) uses <strong>85 minimum / 150 maximum</strong>,
+  and since our rationale is "match real NCLEX exactly," the numbers are corrected throughout this doc.
+</p>
 
 <h3>9.3 Time limit</h3>
 <p>
@@ -799,40 +985,48 @@
 <ul>
   <li><code>CONFIDENCE_PASS</code> — SE ≤ 0.40 with theta clearly above 0.0. Verdict = ABOVE_STANDARD.</li>
   <li><code>CONFIDENCE_FAIL</code> — SE ≤ 0.40 with theta clearly below 0.0. Verdict = BELOW_STANDARD.</li>
-  <li><code>MAX_ITEMS_INCONCLUSIVE</code> — 145 questions reached, SE still too wide for a confident verdict. Verdict = INCONCLUSIVE.</li>
-  <li><code>TIME</code> — 4-hour time limit reached. Scored against current theta. Verdict follows the same rule as CONFIDENCE_* (above/below 0.0) if SE is acceptable, otherwise INCONCLUSIVE.</li>
+  <li><code>MAX_ITEMS</code> — 150 questions reached. <strong>Revised 2026-07-15:</strong> the confidence requirement is dropped and the verdict is resolved by which side of 0.0 the final estimate sits — final theta ≥ 0 → ABOVE_STANDARD, &lt; 0 → BELOW_STANDARD (mirrors the real NCLEX Maximum-Length rule). No longer INCONCLUSIVE. (Canonical reason code in the schema is <code>MAX_ITEMS_HIT</code>, §12.7.3.)</li>
+  <li><code>TIME</code> — 4-hour time limit reached. If ≥ 85 items answered → verdict by final-estimate side (as MAX_ITEMS). If fewer than 85 answered → BELOW_STANDARD (mirrors the real NCLEX Run-Out-Of-Time rule). Never INCONCLUSIVE.</li>
   <li><code>ABANDONED</code> — student manually discarded mid-CAT, or browser-close. No verdict produced.</li>
 </ul>
 
-<h3>9.5 Inconclusive verdict — framing</h3>
+<h3>9.5 Verdict resolution — always a side, plus a readiness probability <span class="status settled">revised 2026-07-15</span></h3>
 <p>
-  When the verdict is INCONCLUSIVE, the engine asked 145 questions and still couldn't confidently call it. This
-  isn't a fail and isn't a pass — it's "the data we got doesn't give a clear picture." Three honest causes:
+  <strong>Decision (2026-07-15, Sam): every completed CAT resolves to ABOVE_STANDARD or BELOW_STANDARD. The
+  INCONCLUSIVE verdict is retired.</strong> Two reasons: (1) the real NCLEX never returns "inconclusive" — at
+  maximum length it drops the confidence rule and calls the exam by the final estimate, and our north star is to
+  match the real exam; (2) a student who fought through 150 questions deserves a real read, and the readiness
+  probability below lets us stay honest about boundary cases without a non-answer.
 </p>
-<ol>
-  <li><strong>The student's ability is near the boundary.</strong> Sitting right around theta = 0.0. Most common cause.</li>
-  <li><strong>Inconsistent answering.</strong> Right on hard ones, wrong on easy ones — answers don't track ability, engine can't form a coherent estimate.</li>
-  <li><strong>Test-taking factors:</strong> rushing, fatigue, second-guessing, distracted environment.</li>
-</ol>
+<p><strong>How the side is decided:</strong></p>
+<ul>
+  <li><strong>Confidence reached</strong> (SE ≤ 0.40, the estimate's band clears 0, ≥ 85 items) → that side. (§9.1)</li>
+  <li><strong>Maximum length (150)</strong> → confidence requirement dropped; decided by which side of 0.0 the final estimate sits (≥ 0 → above, &lt; 0 → below). Mirrors the NCLEX Maximum-Length rule.</li>
+  <li><strong>Time-out (4 h)</strong> → same as max length if ≥ 85 answered; BELOW_STANDARD if fewer than 85 answered. Mirrors the NCLEX Run-Out-Of-Time rule.</li>
+</ul>
 <p>
-  <strong>Result-screen copy (provisional, finalised in §13):</strong>
-  Headline "Inconclusive." Body: <em>"After 145 questions, your performance didn't give us a clear above-or-below
-  standard read. This usually means your ability is sitting right around the boundary, or your answers were
-  inconsistent (mixing strong and weak performance). More practice will help — focus on the categories where
-  you scored lowest, then try another CAT in a few days."</em>
-</p>
-<p>
-  <strong>What we deliberately do NOT say:</strong> not "you failed" (no grounds), not "you might pass" (no
-  grounds), not "the engine couldn't decide" framed as the engine's failure (sounds like a product bug — the
-  honest framing is the student's performance was on the boundary).
-</p>
-<p>
-  <strong>For Inconclusive verdicts, the per-Client-Needs-Category breakdown does most of the work</strong> —
-  when the verdict itself is unclear, the breakdown is what gives the student something actionable.
+  <strong>Every verdict carries a readiness probability.</strong> From the final estimate + its uncertainty we
+  compute <em>P(true ability &gt; 0)</em> — the normal-curve area above the 0.0 line. This is the honest, native
+  Rasch output, available from launch day. Examples: estimate 0.5 / SE 0.40 → <strong>~89%</strong>; 0.1 / 0.40 →
+  <strong>~60%</strong>; −0.3 / 0.40 → <strong>~23%</strong>. It is derivable from <code>cat_final_theta</code> +
+  <code>cat_final_se</code>, so no new stored column is strictly required (an optional
+  <code>cat_readiness_probability</code> may be stored for display/analytics convenience).
 </p>
 <p>
-  <strong>Readiness Signal weighting:</strong> INCONCLUSIVE verdicts weight as zero (no evidence either way), not
-  as a fail. Captured here for §13.3 when we get there.
+  <strong>Honesty guardrail (see §3.5):</strong> this probability is framed as <em>"how confident we are you're
+  above our standard,"</em> NOT as a probability of passing the real NCLEX. Same number, honest label; the
+  real-NCLEX label waits for outcome data.
+</p>
+<p>
+  <strong>Boundary students</strong> (the old "inconclusive" case) now get a near-50% probability plus the
+  per-Client-Needs-Category breakdown, which does the actionable work. We never say "you failed" or "you'll pass
+  the NCLEX"; the honest framing is e.g. <em>"Below standard — ~40% likely above our bar; this was close, here's
+  where to push."</em>
+</p>
+<p>
+  <strong>Readiness Signal weighting:</strong> with INCONCLUSIVE gone, every CAT contributes an above/below
+  signal. A near-boundary verdict simply carries a mid-range probability; the old "weight as zero" rule is no
+  longer needed (§13.4).
 </p>
 
 <h2 id="s10">10. Architecture — the two-RPC flow <span class="status settled">settled</span></h2>
@@ -873,8 +1067,8 @@
 <ul>
   <li>Scores the last answer using the existing per-question scoring functions (reused unchanged from <code>bank-marks-and-scoring.html</code>).</li>
   <li>Writes the answer into <code>nclex_attempt_answers</code>.</li>
-  <li>Updates theta and SE using Rasch (1PL) update math per §4.</li>
-  <li>Checks termination conditions per §9: if SE ≤ 0.40 and items ≥ 75, OR items = 145, OR time ≥ 4 hours → terminate, write <code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>, return <code>{ status: 'COMPLETE', verdict_payload }</code>.</li>
+  <li>Updates theta and SE using Rasch (1PL) update math per §4. The item outcome fed to the update is <code>score_awarded / marks</code> — a fraction for partial-credit types (Option 2, §4.5), which is 1.0 / 0.0 for fully-correct / fully-wrong and for dichotomous MCQ/TF.</li>
+  <li>Checks termination conditions per §9: if SE ≤ 0.40 and items ≥ 85, OR items = 150, OR time ≥ 4 hours → terminate, write <code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>, return <code>{ status: 'COMPLETE', verdict_payload }</code>.</li>
   <li>Otherwise: pick next item per §7, snapshot into <code>nclex_attempt_items</code> with the pre-update theta/SE captured in <code>cat_theta_before</code>/<code>cat_se_before</code>, return <code>{ status: 'CONTINUE', next_item_payload }</code>.</li>
 </ul>
 
@@ -914,7 +1108,7 @@
 <ul>
   <li>Each time <code>create_cat_attempt</code> or <code>cat_next_item</code> picks an item, it inserts a row into <code>nclex_attempt_items</code> with the full snapshot — stem, instruction, content JSONB, correct JSONB, rationale, classification, marks. Same column shape as fixed-length attempts.</li>
   <li>If the item is trend-linked, the linked dataset is snapshotted into <code>nclex_attempt_trend_snapshots</code> (if not already there for this attempt) at the moment the trend item is picked.</li>
-  <li>If the item is a case-study child (only relevant if §7.4 settles "include cases"), the case is snapshotted into <code>nclex_attempt_case_snapshots</code> at the moment the first child is picked, and all 6 children get queued.</li>
+  <li>If the item is a case-study child (active — §7.4 settled "include cases" on 2026-07-14), the case is snapshotted into <code>nclex_attempt_case_snapshots</code> at the moment the first child is picked, and all 6 children get queued.</li>
 </ul>
 
 <h3>11.1 Why snapshot, restated for CAT context</h3>
@@ -923,7 +1117,7 @@
 </p>
 <ol>
   <li>
-    <strong>Integrity.</strong> CAT exams take 75–145 questions. The window during which a curator might edit a
+    <strong>Integrity.</strong> CAT exams take 85–150 questions. The window during which a curator might edit a
     question while the student is mid-exam is bigger than for any other mode. CAT's whole legitimacy depends on
     the ability estimate being a coherent measurement against a fixed answer key — if question 47's <code>correct</code>
     JSONB changes between when the student answered it and when the engine reads it, the entire ability
@@ -985,10 +1179,10 @@
 <h3>12.2 New columns on <code>nclex_attempts</code> (Result group)</h3>
 <p>Per attempt-creation §6.1, deferred to here:</p>
 <ul>
-  <li><code>cat_verdict</code> — TEXT. <code>ABOVE_STANDARD</code> / <code>BELOW_STANDARD</code> / <code>INCONCLUSIVE</code> / NULL.</li>
+  <li><code>cat_verdict</code> — TEXT. <code>ABOVE_STANDARD</code> / <code>BELOW_STANDARD</code> / NULL. (INCONCLUSIVE retired 2026-07-15, §9.5.)</li>
   <li><code>cat_final_theta</code> — NUMERIC. Final ability estimate. NULL for non-CAT.</li>
   <li><code>cat_final_se</code> — NUMERIC. Final standard error. NULL for non-CAT.</li>
-  <li><code>cat_termination_reason</code> — TEXT. <code>CONFIDENCE_PASS</code> / <code>CONFIDENCE_FAIL</code> / <code>MAX_ITEMS_INCONCLUSIVE</code> / <code>TIME</code> / <code>ABANDONED</code>. NULL for non-CAT.</li>
+  <li><code>cat_termination_reason</code> — TEXT. <code>CONFIDENCE_PASS</code> / <code>CONFIDENCE_FAIL</code> / <code>MAX_ITEMS_HIT</code> / <code>TIME</code> / <code>ABANDONED</code> (records why it stopped, not the outcome; canonical enum in §12.7.3). NULL for non-CAT.</li>
   <li><code>cat_items_administered</code> — INTEGER. Count of items the engine actually delivered. NULL for non-CAT.</li>
 </ul>
 <p>
@@ -1016,7 +1210,7 @@
 <ul>
   <li><code>nclex_bank_items.difficulty</code> (existing TEXT column) — unchanged. Curator UI unchanged.</li>
   <li><code>nclex_attempt_answers</code> shape — unchanged. CAT answers look identical to fixed-length answers.</li>
-  <li><code>nclex_attempt_case_snapshots</code> + <code>nclex_attempt_trend_snapshots</code> — unchanged. (CAT pulls standalone-only in v1 per §7.4, so case/trend snapshots aren't generated for CAT attempts; the tables themselves stay as-is.)</li>
+  <li><code>nclex_attempt_case_snapshots</code> + <code>nclex_attempt_trend_snapshots</code> — unchanged in shape. (Since the 2026-07-14 reversal of §7.4, CAT attempts DO generate case/trend snapshot rows when a wrapper is administered — same mechanism as fixed-length modes, no schema change needed.)</li>
   <li>RLS policies — same shape, just need to be re-checked when the new columns land (build-time concern).</li>
 </ul>
 
@@ -1071,7 +1265,7 @@
   are still IN_PROGRESS or got ABANDONED before completion.
 </p>
 <ul>
-  <li><code>cat_verdict</code> — TEXT, nullable, CHECK constraint allowing only <code>'ABOVE_STANDARD'</code>, <code>'BELOW_STANDARD'</code>, <code>'INCONCLUSIVE'</code>, or NULL.</li>
+  <li><code>cat_verdict</code> — TEXT, nullable, CHECK constraint allowing only <code>'ABOVE_STANDARD'</code>, <code>'BELOW_STANDARD'</code>, or NULL. (INCONCLUSIVE retired 2026-07-15, §9.5.) Optional companion column <code>cat_readiness_probability</code> NUMERIC (0..1) may be added for display/analytics — derivable from <code>cat_final_theta</code> + <code>cat_final_se</code>.</li>
   <li><code>cat_final_theta</code> — NUMERIC, nullable.</li>
   <li><code>cat_final_se</code> — NUMERIC, nullable.</li>
   <li><code>cat_termination_reason</code> — TEXT, nullable, CHECK constraint allowing only <code>'CONFIDENCE_REACHED'</code>, <code>'MAX_ITEMS_HIT'</code>, <code>'TIME_LIMIT_HIT'</code>, <code>'ABANDONED'</code>, or NULL.</li>
@@ -1229,22 +1423,28 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   shared runner Review surface used by every other quiz type.
 </p>
 
-<h3>13.1 Verdict copy</h3>
+<h3>13.1 Verdict copy <span class="status settled">revised 2026-07-15</span></h3>
+<p>
+  <strong>Two verdicts only</strong> (INCONCLUSIVE retired, §9.5). Each headline is paired with a
+  <strong>readiness probability</strong> — "how confident we are you're above our standard" — from §9.5.
+  A boundary student lands here too, just with a mid-range percentage.
+</p>
 <p><strong>ABOVE_STANDARD</strong></p>
 <ul>
-  <li>Headline: <em>"Above standard"</em></li>
+  <li>Headline: <em>"Above standard"</em> · sub-line: <em>"We're ~<strong>[NN]%</strong> confident you're performing at a passing level on our exam."</em></li>
   <li>Body: <em>"Your performance suggests you're tracking ready. Keep practising to maintain it — consistent CAT performance is what matters most."</em></li>
 </ul>
 <p><strong>BELOW_STANDARD</strong></p>
 <ul>
-  <li>Headline: <em>"Below standard"</em></li>
-  <li>Body: <em>"More practice recommended. Use the category breakdown below to see where to focus, then come back for another CAT in a few days."</em></li>
+  <li>Headline: <em>"Below standard"</em> · sub-line: <em>"We're ~<strong>[NN]%</strong> confident you're above our standard — more practice recommended."</em></li>
+  <li>Body: <em>"Use the category breakdown below to see where to focus, then come back for another CAT in a few days."</em></li>
 </ul>
-<p><strong>INCONCLUSIVE</strong> (also drafted in §9.5)</p>
-<ul>
-  <li>Headline: <em>"Inconclusive"</em></li>
-  <li>Body: <em>"After 145 questions, your performance didn't give us a clear above-or-below standard read. This usually means your ability is sitting right around the boundary, or your answers were inconsistent. More practice will help — focus on the categories where you scored lowest, then try another CAT in a few days."</em></li>
-</ul>
+<p>
+  <strong>Near-boundary framing.</strong> When the probability sits close to 50% (typically a max-length or
+  time-out finish), the sub-line acknowledges it: <em>"This was close — your ability sat right around our
+  standard. The category breakdown below is where to focus."</em> Honest and actionable, never a non-answer, and
+  never "chance of passing the NCLEX."
+</p>
 <p><strong>ABANDONED</strong> (no verdict)</p>
 <ul>
   <li>Per §16.5 — abandoned CATs never reach a result state. The History page shows them as <em>"CAT — Abandoned"</em>; opening the row goes to a minimal summary that explains the attempt was ended early and offers <em>"Start a new CAT"</em>.</li>
@@ -1256,7 +1456,8 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li><strong>The verdict itself</strong> — top of page, large headline + body copy from §13.1.</li>
   <li><strong>Items administered</strong> — small fact line under the verdict. Example: <em>"You answered 92 questions. The engine reached confidence at question 92."</em> Honest, factual.</li>
   <li><strong>Trajectory graph</strong> (see §13.3 below) — the most important visual on the page. Shows how the student's ability estimate moved across the test, plotted against a 0.0 reference line.</li>
-  <li><strong>Per-Client-Needs-Category breakdown</strong> — for each of the four categories: questions seen, questions correct (full credit only — see <code>bank-marks-and-scoring.html</code> §6 for the <code>is_correct</code> definition), per-category percentage. The most actionable text content on the page.</li>
+  <li><strong>Per-Client-Needs-Category breakdown</strong> — for each of the four categories: questions seen, questions correct (full credit only — see <code>bank-marks-and-scoring.html</code> §6 for the <code>is_correct</code> definition), per-category percentage. The most actionable text content on the page. <strong>Footnote required (§4.5):</strong> this "correct" count is full-credit-only, which differs from how the engine credited partial answers (fractionally); a one-line note should say so, so a student doesn't think their partials were ignored.</li>
+  <li><strong>Clinical judgment read</strong> (added 2026-07-16, from the §7.4 testlet model) — a distinct skill signal derived from the student's case performance (each case produces its own standalone level). Shown as its own line/badge separate from the overall verdict — e.g. <em>"Clinical judgment: strong (you handled the case scenarios well)."</em> Matches how the real NCLEX treats clinical judgment as a separately-measured competency. The finer per-reasoning-step detail (Recognise cues → … → Evaluate) is a v2 enhancement (§13.6).</li>
   <li><strong>Compared to your previous CATs</strong> — only shown if the student has prior CATs. Plots theta + verdict per CAT across attempt history.</li>
   <li><strong>Primary CTA: "Review answers"</strong> — opens the shared runner Review surface (per §14) for the per-question walk-through.</li>
 </ol>
@@ -1270,7 +1471,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 <ul>
   <li><strong>Steady upward trace settling above 0.0</strong> — consistent strong performance, ability climbed and stabilised above the passing standard.</li>
   <li><strong>Steady downward trace settling below 0.0</strong> — consistent weak performance, ability climbed down and stabilised below the passing standard.</li>
-  <li><strong>Up-and-down trace not settling</strong> — inconsistent answering, the engine couldn't pin down their ability cleanly. Often what produces an INCONCLUSIVE verdict.</li>
+  <li><strong>Up-and-down trace not settling</strong> — inconsistent answering, the engine couldn't pin down their ability cleanly. Typically produces a <strong>near-boundary verdict</strong> (a readiness probability close to 50%), the case that used to be labelled INCONCLUSIVE (§9.5).</li>
 </ul>
 <p>
   <strong>Per-item marker.</strong> If the summary page renders a per-question breakdown alongside the graph
@@ -1302,19 +1503,37 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li>If a student takes one CAT, gets ABOVE_STANDARD, and the Readiness Signal still says "Approaching," the honest framing is "one CAT is one data point; cross-history sees more." Two cards make this conversation possible.</li>
 </ul>
 <p>
-  <strong>INCONCLUSIVE verdicts weight as zero in any future blended analytics</strong> — they're "no signal,"
-  not "negative signal." If a future v2 decision blends signals, INCONCLUSIVE never pushes the Readiness Signal
-  down.
+  <strong>Superseded 2026-07-15:</strong> INCONCLUSIVE is retired (§9.5), so the old "weight as zero" rule no
+  longer applies — every CAT now contributes an above/below verdict with a readiness probability. A near-boundary
+  result simply carries a mid-range probability rather than a special zero-weight status. If a future v2 decision
+  blends signals, it can weight each CAT by its readiness probability (confidence), not by a discarded verdict class.
 </p>
 
-<h3>13.5 What we deliberately do NOT show</h3>
+<h3>13.5 Not shown in v1 — but flagged for revisit <span class="status open">revisit — Sam 2026-07-16</span></h3>
+<p>
+  These were the original "deliberately excluded" items. <strong>Sam flagged them 2026-07-16 as things to
+  revisit</strong> rather than treat as permanently closed. The reasoning that motivated each is kept, with an
+  honest note on how strong that reasoning actually is:
+</p>
 <ul>
-  <li><strong>No "pass probability" number.</strong> No "70% chance of passing the NCLEX." We don't have outcome data to back that.</li>
-  <li><strong>No "you would have passed the real NCLEX" framing.</strong> Same reason.</li>
-  <li><strong>No comparison to other students' verdicts.</strong> Different students see different questions; comparison is meaningless.</li>
-  <li><strong>No raw score.</strong> CAT has no raw score by design — it has a verdict + theta + SE.</li>
-  <li><strong>No "you got X out of N right."</strong> Same reason.</li>
-  <li><strong>No verdict restatement on the per-question Review.</strong> Verdict lives on the summary page only — Review is about the questions, not the outcome.</li>
+  <li><strong>Real-NCLEX pass-probability</strong> ("70% chance of passing the NCLEX"). <em>Reason to hold:</em> needs real outcome data we don't have (§3.5) — this one is a genuine data constraint, not just a preference. <em>Revisit:</em> the timeline/threshold for when we've collected enough outcome data to promote to a real prediction (the machinery is already the same; only the label changes). Note we DO already show a readiness probability against <em>our</em> standard.</li>
+  <li><strong>Comparison to other students (percentile).</strong> <em>Original reason:</em> "different students see different questions, so comparison is meaningless." <em>Honest correction (2026-07-16):</em> this reason is <strong>only true for raw scores</strong> — the ability level (theta) IS directly comparable across students precisely because IRT puts everyone on one scale. So a <strong>percentile of theta</strong> ("you scored higher than 78% of MyNclex CAT-takers") is statistically valid and is exactly what UWorld shows. Strong revisit candidate once we have enough CAT-takers to form a stable distribution.</li>
+  <li><strong>Raw score / "you got X out of N right."</strong> <em>Reason to hold:</em> CAT has no raw score by design (a verdict + level + confidence is the measure, and a raw count invites "everyone sees different questions" confusion). <em>Revisit:</em> whether a supplementary "X of N correct" stat adds comfort without undermining the verdict.</li>
+  <li><strong>Verdict restatement on the per-question Review.</strong> Kept out so Review stays about the questions, not the outcome. Low-priority revisit.</li>
+</ul>
+
+<h3>13.6 Additional reports — wanted (v2 build candidates) <span class="status open">wanted — Sam 2026-07-16</span></h3>
+<p>
+  <strong>Sam wants these built (2026-07-16)</strong> — captured as planned enhancements beyond the v1 summary
+  page. We already capture the data for all of them per §12 / §17; they are additive report surfaces, not new
+  engine work. Sequence after the v1 summary page ships.
+</p>
+<ul>
+  <li><strong>Average difficulty faced</strong> — "the questions you saw averaged Hard." From the per-item <code>cat_item_difficulty</code> snapshots (§12.3). Mirrors a UWorld CAT-report line.</li>
+  <li><strong>Performance by question type</strong> — how the student did on MCQ vs SATA vs matrix vs bow-tie, etc. From <code>question_type</code> + per-item score.</li>
+  <li><strong>Finer topic drill-down</strong> — beyond the 4 top Client Needs categories, down to subcategory / nursing subject / body system. From the classification columns already on each snapshotted item.</li>
+  <li><strong>Clinical-judgment step detail</strong> — which NCJMM reasoning steps (Recognise cues → Analyse → Prioritise → Generate solutions → Take action → Evaluate) the student was strong/weak on across their cases. From the case children's <code>cjmm_step</code>. Deepens the §13.2 clinical-judgment read.</li>
+  <li><strong>Pacing</strong> — time spent overall and per question. Overall duration is already captured; per-question timing needs a small capture addition at build time.</li>
 </ul>
 
 
@@ -1443,7 +1662,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 <p>
   <strong>Show only the current question number (e.g. "Question 27"), no "of N" cap.</strong> CAT can't show a
   count target because the terminating question count is unknown. Students familiar with CAT know the test
-  terminates at 75–145; we don't need to engineer a "Q5 of 75 minimum" display to communicate that.
+  terminates at 85–150; we don't need to engineer a "Q5 of 85 minimum" display to communicate that.
 </p>
 <p>
   The runner's existing progress bar (used for fixed-length modes) renders differently in CAT mode: it shows
@@ -1614,7 +1833,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li><strong>Pearson VUE-grade exposure control</strong> — we use a recency-window exposure filter (§15.2), not the multi-factor exposure-control schemes used in production high-stakes testing.</li>
   <li><strong>Hard content-blueprint enforcement</strong> — soft constraint only for v1 (§8 default).</li>
   <li><strong>Multi-stage testing (MST)</strong> — adaptive at the section level, not the item level. Not on the v1 roadmap.</li>
-  <li><strong>Cases / trends in CAT</strong> — standalone-only for v1 (§7.4 default).</li>
+  <li><strong>Cases / trends in CAT</strong> — <em>no longer out of scope.</em> Reversed 2026-07-14: wrappers are IN for v1 (§7.4); administration mechanics settle at build time.</li>
   <li><strong>CAT in tutored programmes or readiness packs</strong> — CAT is custom-built only in v1. Programme activities and readiness packs use fixed-length modes only.</li>
   <li><strong>Cross-CAT theta carry-over</strong> — every CAT starts at medium; prior CATs don't influence the next CAT's starting point (§15.3 default).</li>
   <li><strong>Tutor-facing CAT analytics</strong> — tutors don't get to see student CAT results in v1 (CAT is a personal assessment tool). Could surface in v2.</li>
@@ -1626,16 +1845,16 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li>§1 — Scope (settled at file creation).</li>
   <li>§2 — Inheritance roundup (settled at file creation).</li>
   <li>§3 — Honesty constraints: calibration approximation disclosed via "How CAT works" help page (one-time, not per-attempt); five-section help page contents specified; pass-probability statement deferred to v3+ (settled 2026-05-04).</li>
-  <li>§4 — IRT model: Rasch (1PL), TypeScript live engine in existing stack, recalibration uses heavier offline tooling separately (settled 2026-05-04).</li>
+  <li>§4 — IRT model: Rasch (1PL), TypeScript live engine in existing stack, recalibration uses heavier offline tooling separately (settled 2026-05-04). <strong>§4.5 added 2026-07-16:</strong> partial-credit items (SATA/MATRIX/etc.) feed the ability estimate as a fraction (<code>score_awarded / marks</code>, "Option 2") for v1 — not all-or-nothing — growing into the full partial-credit model the real NCLEX uses ("Option 3") once recalibration data accumulates.</li>
   <li>§5 — Calibration plan: Easy/Medium/Hard → −1.0/0.0/+1.0, separate <code>difficulty_irt</code> NUMERIC column on <code>nclex_bank_items</code>, weekly batch recalibration (Sundays 02:00 UTC) with 30-response threshold and 70/30 dampened blend, plus manual trigger (settled 2026-05-04).</li>
   <li>§6 — Starting difficulty: always theta = 0.0, no carry-over (settled 2026-05-04).</li>
-  <li>§7 — Selection rule: closest difficulty + category as tiebreaker; cases/trends excluded for v1; bank-exhaustion fallback locked (settled 2026-05-04).</li>
+  <li>§7 — Selection rule: closest difficulty + category as tiebreaker; bank-exhaustion fallback locked (settled 2026-05-04). §7.4 reversed 2026-07-14: cases/trends IN for v1. <strong>§7.4 wrapper mechanics settled 2026-07-16 (testlet model):</strong> 3 cases/CAT, spread within the first 85, never at position 1, fixed-schedule (not difficulty-matched); each case runs its own internal Rasch estimate (fresh from 0.0, per-child difficulty) and merges back as ONE confidence-weighted, uncertainty-inflated measurement (counts as ~one, not six — local independence); wrapper-level exposure; unlocks a distinct "clinical judgment" read on the results page. Trends are ALWAYS single questions in CAT (never testlets) — the engine serves one of a trend's linked items as an ordinary adaptive question; testlets = cases only. Engine taxonomy: items vs cases, full stop.</li>
   <li>§8 — Content blueprint: tiebreaker only, never overrides difficulty; monitoring logged for curator dashboard (settled 2026-05-04).</li>
-  <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 75/145, time limit 4 hours, inconclusive framing (settled 2026-05-04).</li>
+  <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 85/150 (corrected 2026-07-14 from the pre-NGN 75/145), time limit 4 hours, inconclusive framing (settled 2026-05-04).</li>
   <li>§10 — Architecture: two-RPC flow (<code>create_cat_attempt</code> + <code>cat_next_item</code>), both atomic transactions; pessimistic UI with graceful degradation (current Q stays visible dimmed; spinner at 300ms; "still loading" at 3s; error+retry at 10s); 2-retry silent backoff on network failure, immediate error on server-side throw; engine runtime location (Supabase RPC vs Edge Function vs Worker) deferred to build time with PL/pgSQL recommendation (settled 2026-05-05).</li>
   <li>§11 — Snapshot strategy: per-question at administration time (settled at file creation).</li>
   <li>§12 — Schema additions: build-handoff package locked. Two new columns on <code>nclex_bank_items</code> (<code>difficulty_irt</code> NUMERIC, <code>difficulty_source</code> TEXT with CHECK), mirrored on <code>nclex_tutor_questions</code> for v2 parity. Five new columns on <code>nclex_attempts</code> (<code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>); four new columns on <code>nclex_attempt_items</code> (<code>cat_theta_before</code>, <code>cat_se_before</code>, <code>cat_item_difficulty</code>, <code>cat_item_difficulty_source</code>). One new audit table <code>nclex_bank_item_calibration_history</code> with FK + ON DELETE CASCADE. Two RPC stubs (<code>create_cat_attempt</code>, <code>cat_next_item</code>) raising "not yet implemented." Verification queries + rollback SQL alongside. Termination reasons collapsed from 5 to 4; audit-table column names rationalised — see §12.7.11 (settled 2026-05-05).</li>
-  <li>§13 — CAT summary page: verdict copy, layout, trajectory graph + per-item marker, separate Readiness card, INCONCLUSIVE = zero weight (settled 2026-05-04).</li>
+  <li>§13 — CAT summary page: verdict copy, layout, trajectory graph + per-item marker, separate Readiness card (settled 2026-05-04). <strong>Revised 2026-07-15:</strong> INCONCLUSIVE retired — every CAT resolves to Above/Below standard plus a readiness probability (confidence you're above <em>our</em> standard); at max length/time-out the side is decided by the final estimate, mirroring real NCLEX; real-NCLEX pass-probability still deferred (§3.5, §9.5).</li>
   <li>§14 — Review state: uses shared runner Review surface, minimal CAT-specific shape, all CAT-specific content lives on the summary page (§13) (settled 2026-05-04).</li>
   <li>§15 — Re-take rules: unlimited frequency with soft 1-hr warning, last-3-CATs exposure window (CAT-only), fallback relaxes exposure before difficulty (settled 2026-05-04).</li>
   <li>§16 — Runner UX: current-question-only progress indicator, timer warnings deferred to runner-level, no back navigation, no live-run mark-for-review, browser-close = ABANDONED with confirmation, no pause (settled 2026-05-04).</li>
@@ -1643,11 +1862,29 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 </ul>
 
 <p><strong>Carried forward — settle in subsequent planning sessions:</strong></p>
-<p>None at planning level. All structural and build-handoff decisions are locked. The remaining work is execution:</p>
 <ul>
+  <li><strong>Results-report enhancements — WANTED (Sam 2026-07-16, §13.6).</strong> Build after the v1 summary page: average difficulty faced, performance by question type, finer topic drill-down (subcategory/subject/body system), clinical-judgment step detail, and pacing. All are additive report surfaces — the data is already captured; no engine work.</li>
+  <li><strong>Results-report exclusions — REVISIT (Sam 2026-07-16, §13.5).</strong> Reconsider (not permanently closed): a theta <strong>percentile</strong> vs other CAT-takers (statistically valid — the old "meaningless" reasoning only applied to raw scores); a supplementary "X of N correct" stat; and the timeline for promoting the readiness probability to a real-NCLEX pass-probability once outcome data exists.</li>
+  <li><strong>Classification vocabulary drift vs the 2026 test plan (flagged 2026-07-14).</strong> The 2026 NCLEX-RN Test Plan (effective April 2026, reviewed against the doc this session) renamed one subcategory: <em>"Safety and Infection Control" → "Safety and Infection Prevention and Control."</em> <code>lib/bank/classifications.ts</code> still uses the old name, and all existing bank rows are classified with it. Blueprint <em>percentages</em> are unchanged, so the meter/tiebreaker logic is unaffected. The seed pool deliberately uses the OLD codebase string for consistency. Renaming the enum + migrating existing rows is a small, separate codebase-accuracy fix — not done here.</li>
+</ul>
+<p>Everything else structural is locked. The remaining work is execution:</p>
+<ul>
+  <li><strong>✅ BUILT — the runtime option shuffle (2026-07-17, on <code>main</code>, not yet prod).</strong> <em>Was the ASAP gap flagged 2026-07-17; shipped the same day in four slices.</em> A <strong>BEFORE INSERT trigger on <code>nclex_attempt_items</code></strong> (<code>_nclex_attempt_item_shuffle</code> + the pure <code>nclex_build_option_order</code>) stamps a per-attempt display permutation into <code>option_order_json</code> + a <code>shuffle_seed</code> at attempt creation — one trigger covers <em>all</em> create paths (bank / readiness / tutor-quiz / note-embed), no edits to the create RPCs. The runner reorders the display and shows a <strong>positional</strong> letter, while the option/choice/token <strong>id</strong> stays the value for picks, feedback, and scoring — so <strong>scoring is untouched</strong>. Covers every shuffleable type: flat lists (MCQ/SATA/SELECT_N), the drag pools (DRAG_CLOZE/DRAG_ORDER, with an anti-giveaway guard so DRAG_ORDER never opens on the answer sequence), and the multi-pool types (CLOZE per blank, BOWTIE per wing — <code>option_order_json</code> becomes an object keyed by pool). Excluded by design: TF (2 fixed options), MATRIX/MATRIX_MR (shared-header grid), HIGHLIGHT (inline prose). Honours the per-item <code>shuffle_options</code> flag (default TRUE). Migrations <code>20260804120000</code> / <code>20260805120000</code> / <code>20260806120000</code>. <strong>Remaining follow-up:</strong> the in-note embed player renders questions off a non-attempt path (no <code>option_order_json</code>) and does not shuffle yet. (Cross-cutting bank/runner concern, not CAT-specific — see <code>bank-consumption-runner.html</code>.)</li>
   <li><strong>Apply the §12.7 migration to dev.</strong> Sam's sign-off after dev verification gates the prod run.</li>
   <li><strong>Fill in <code>create_cat_attempt</code> and <code>cat_next_item</code> bodies</strong> with real Rasch math — separate build slice after the schema lands.</li>
   <li><strong>Empirical recalibration job</strong> — schedule, runtime location (Supabase pg_cron vs Cloudflare Worker), and the actual calibration code. Specced at planning level in §5 / §17 / §10.5; build slice still TBD.</li>
+  <li><strong>Dev-bank CAT test pool (settled 2026-07-14, Sam).</strong> The dev bank's CAT-eligible pool (~105 standalone items at audit time — most of the 999 rows are case children, unpublished, builder-hidden, or unlabelled) cannot sustain a 85–150-question CAT at the ability tails (only ~23 Easy / ~27 Hard eligible). Decision (size finalised 2026-07-14 after the rotation maths): seed <strong>1,800 synthetic, dev-only</strong> items — <strong>600 per difficulty band</strong>. The sizing rule: the last-3-CATs exposure window (§15.2) means zero-repeat rotation needs 4 exams' worth of questions in a student's difficulty band; worst case is a max-length exam (150), so 4 × 150 = 600 per band. At 600/band, any single student can retake max-length CATs at any ability level indefinitely without repeats; the §7.5 fallback path gets tested deliberately (thinned band) rather than tripped over. Realistic NCLEX-style mix (mostly MCQ/SATA with a spread of the other standalone types), blueprint-shaped Client Needs categories, all <code>is_published = TRUE</code> + <code>is_builder_visible = TRUE</code>. Delivered as committed seed files in <code>db/</code> (house convention — <code>seed-*-dev.sql</code>; the durable, re-runnable artifact) and then applied to dev. Batch-tagged (<code>batch_id</code>) for one-line deletion; never ships to prod; readiness-pack-reserved items (<code>is_builder_visible = FALSE</code>) are untouched. Difficulty labels matter most — day-one <code>difficulty_irt</code> derives from them (§5.1).</li>
+  <li><strong>Dev-bank CAT wrapper pool (settled 2026-07-14, Sam).</strong> Follows from the §7.4 reversal — wrappers need test stock too. Sizing mirrors real NGN NCLEX and reuses the rotation rule:
+    <ul>
+      <li><strong>Cases: 36 (12 per difficulty band) = 216 child questions.</strong> Real NGN serves every candidate exactly <strong>3 case studies (18 questions) regardless of exam length</strong>; assume our engine mirrors that (it's an open §7.4 mechanic, but sizing must assume it). Zero-repeat rotation with wrapper-level exposure = 4 × 3 = 12 cases; per-band because wrapper difficulty-matching is also open — sizing for the difficulty-matched worst case covers either outcome.</li>
+      <li><strong>Trends: 30 datasets (10 per band), 2–3 linked questions each ≈ 75 questions.</strong> Target ~4–6 trend-linked questions per max-length exam (matches real NGN's modest trend presence); 4 × 6 = 24 per band.</li>
+      <li><strong>Composition check:</strong> a max-length exam = 18 case + ~6 trend + ~126 standalone; at min length, 18/85 ≈ 21% case questions — close to real NGN proportions. Wrappers displace ~24 standalone picks per exam, so the 1,800 standalone pool gains margin rather than losing it.</li>
+      <li><strong>Grand total to generate: ~2,090 questions</strong> (1,800 standalone + 216 case children + ~75 trend-linked). Existing dev wrappers (23 cases with published children, 23 published trend questions at audit) are treated as bonus stock, not counted — most lack difficulty labels and band coverage.</li>
+      <li><strong>✅ DONE + verified in dev 2026-07-16/17.</strong> Both phases built and applied. Phase 1: <strong>1,811 standalone</strong> items (Easy 602 / Medium 605 / Hard 604, all CAT-eligible, 0 bad marks). Phase 2: <strong>36 case studies (216 children) + 30 trend datasets (60 questions)</strong> — every case has exactly 6 CJMM children, 0 bad marks. <strong>Total CAT test pool = 2,087 items</strong>, all tagged <code>question_ref='CATPREP'</code> + <code>batch_id='DEV_CAT_POOL'</code>. Builders + all source committed under <code>db/seed/cat-pool/</code>; cleanup/rollback + resume runbook in <code>PHASE2-RESUME.md</code>.</li>
+    </ul>
+  </li>
+  <li><strong>Seed pipeline — built + proven end-to-end 2026-07-14.</strong> The generator lives at <code>db/seed/cat-pool/build.mjs</code>: it consumes plain-text item definitions from <code>data/*.json</code> (authored by the generation workflow), deterministically assembles the exact <code>nclex_bank_items</code> content/correct JSONB, computes <code>marks</code> (ported verbatim from <code>lib/scoring/dispatch.ts</code> → <code>computeMarksFromKey</code>), hard-validates every row, and emits SQL split by band. Storage is <strong>plain text</strong> (not Tiptap) — the runner's <code>parseRichDoc()</code> wraps any non-Tiptap string as paragraphs, so plain strings render correctly; confirmed against the render path. All 11 standalone question types round-trip through the real scoring engine (<code>db/seed/cat-pool/scoring-roundtrip.test.ts</code>): builder marks == runner marks, and a fully-correct answer earns full credit and reads as correct via <code>scoreAttempt</code>. IDs use a clean <code>300000+</code> band (disjoint sub-range per workflow agent, no collision with the ~99961 existing max).</li>
+  <li><strong>Phase 1 (standalone) — COMPLETE + applied to dev 2026-07-15.</strong> A 69-agent authoring workflow produced <strong>1,800 items</strong>; the aggregate build validated 1,811 (incl. 11 fixtures), 0 errors. Applied to dev via chunked applier subagents (the SQL is ~1.9 MB, so applied by subagents rather than from the main context). Verified in dev: <strong>1,811 <code>CATPREP</code> rows, all CAT-eligible</strong> — Easy 602 / Medium 605 / Hard 604 (all ≥600), 11 question types, 0 bad marks. Coverage blueprint-weighted across the 8 subcategories per the 2026 test plan; realistic NGN type mix (MCQ ~45%, SATA ~20%, rest spread). Everything committed to <code>claude/remote-session-zo5yrp</code>. <strong>Remaining: Phase 2 — 36 case studies + 30 trend datasets (NOT started; paused 2026-07-15 at Sam's request).</strong></li>
 </ul>
 
 <p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>

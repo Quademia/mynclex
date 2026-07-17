@@ -1,0 +1,131 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09024",
+  "title": "Acute Compartment Syndrome",
+  "scenario": "A 24-year-old male presents to the emergency department after a motorcycle crash with a closed midshaft tibia-fibula fracture of the right leg. A long-leg posterior splint was applied, and he is admitted for observation and pain control.",
+  "tags": ["synthetic", "musculoskeletal"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["14:00"], "lines": ["24-year-old male admitted after motorcycle crash with closed right tibia-fibula fracture. Long-leg posterior splint in place. Right foot warm, pink, with palpable dorsalis pedis pulse. Capillary refill < 3 seconds. Reports pain 6/10, relieved with elevation and ice. Wiggles toes on command. Alert and oriented x3."], "visibleFrom": 1},
+        {"chips": ["17:30"], "lines": ["Reports right leg pain now 9/10, described as deep, constant, and worsening despite two doses of oral oxycodone. Pain markedly increases with passive stretch of the toes. Right calf firm and tense to palpation. Numbness reported between first and second toes."], "visibleFrom": 2},
+        {"chips": ["18:15"], "lines": ["Provider notified of increasing pain, firmness, and paresthesia. Splint bivalved and elevation lowered to heart level per order. Compartment pressure measurement ordered."], "visibleFrom": 5},
+        {"chips": ["20:00"], "lines": ["Return from OR after emergent fasciotomy of the right leg. Wounds left open with sterile dressing. Right foot pink and warm, dorsalis pedis pulse palpable, capillary refill < 3 seconds. Reports pain 3/10. Sensation intact to light touch, moves toes freely."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["14:00", "98.8 F (37.1 C)", "84", "16", "126/74", "98% on RA"],
+        ["17:30", "99.0 F (37.2 C)", "112", "22", "148/88", "97% on RA"],
+        ["20:00", "98.6 F (37.0 C)", "90", "16", "124/76", "98% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Creatine kinase (CK)", "3820", "30-200 units/L"],
+        ["Potassium", "5.4", "3.5-5.0 mEq/L"],
+        ["Creatinine", "1.6", "0.6-1.2 mg/dL"],
+        ["Myoglobin (urine)", "Positive", "Negative"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Oxycodone 10 mg PO every 4 hours PRN pain", "Cefazolin 2 g IV every 8 hours", "Enoxaparin 40 mg subcutaneous daily", "Ondansetron 4 mg IV every 6 hours PRN nausea"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Bivalve and loosen splint immediately", "Position limb at heart level, do not elevate above the heart", "Measure intracompartmental pressure and notify surgeon of results", "Neurovascular checks every 30 minutes", "Keep NPO and prepare for possible emergent fasciotomy", "Administer supplemental oxygen; notify provider for urine output < 30 mL/hr"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_402401", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Compartment syndrome", "difficulty": "Medium", "bloom": "Understand",
+      "stem": "At 17:30 the nurse reassesses the client. Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Pain 9/10 unrelieved by opioids", "correct": true},
+        {"text": "Pain on passive stretch of the toes", "correct": true},
+        {"text": "Firm, tense right calf", "correct": true},
+        {"text": "Numbness between the first and second toes", "correct": true},
+        {"text": "Capillary refill under 3 seconds", "correct": false},
+        {"text": "Temperature 99.0 F", "correct": false}
+      ],
+      "rationale": "Escalating pain out of proportion, pain on passive stretch, a tense compartment, and paresthesia are the early hallmarks of acute compartment syndrome and demand urgent action. Brisk capillary refill and a low-grade temperature are not concerning."
+    },
+    {
+      "item_id": "NCLEX_MMR_402402", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Compartment syndrome", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it supports rising compartment pressure, muscle breakdown (rhabdomyolysis), or both. Each finding may support more than one.",
+      "columns": ["Compartment pressure", "Muscle breakdown"],
+      "rows": [
+        {"text": "Pain with passive stretch", "answers": [0]},
+        {"text": "Creatine kinase 3820 units/L", "answers": [1]},
+        {"text": "Positive urine myoglobin", "answers": [1]},
+        {"text": "Tense, swollen compartment", "answers": [0, 1]}
+      ],
+      "rationale": "Pain on passive stretch reflects ischemia from rising compartment pressure, while elevated CK and myoglobinuria reflect muscle necrosis. A tense, swollen compartment both raises pressure and reflects the injured, breaking-down muscle."
+    },
+    {
+      "item_id": "NCLEX_CLZ_402403", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Compartment syndrome", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the priority immediate concern beyond the limb is {2}.",
+      "blanks": [
+        {"choices": [{"text": "impaired tissue perfusion of the right leg", "correct": true}, {"text": "acute pain related to the fracture"}, {"text": "risk for infection at the fracture site"}]},
+        {"choices": [{"text": "hyperkalemia from muscle breakdown", "correct": true}, {"text": "fluid volume overload"}, {"text": "hypoglycemia"}]}
+      ],
+      "rationale": "The limb is threatened by impaired perfusion from compartment syndrome, which must be relieved to prevent permanent damage. Muscle necrosis releases potassium, so hyperkalemia is the priority systemic threat."
+    },
+    {
+      "item_id": "NCLEX_MAT_402404", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Compartment syndrome", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Bivalve and loosen the splint", "answer": 0},
+        {"text": "Position the limb at heart level", "answer": 0},
+        {"text": "Elevate the limb above the level of the heart", "answer": 1},
+        {"text": "Apply ice packs to the compartment", "answer": 1},
+        {"text": "Prepare the client for emergent fasciotomy", "answer": 0}
+      ],
+      "rationale": "Loosening constricting dressings and keeping the limb at heart level preserve arterial inflow while relieving pressure; fasciotomy is the definitive treatment. Elevation above the heart and ice reduce arterial perfusion and worsen ischemia, so they are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_402405", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Compartment syndrome", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After the splint is bivalved and pressures are ordered, which actions should the nurse take now? Select all that apply.",
+      "options": [
+        {"text": "Perform neurovascular checks every 30 minutes", "correct": true},
+        {"text": "Keep the client NPO for possible surgery", "correct": true},
+        {"text": "Monitor serum potassium and urine output", "correct": true},
+        {"text": "Reapply and tighten the splint for stability", "correct": false},
+        {"text": "Massage the calf to improve circulation", "correct": false}
+      ],
+      "rationale": "Frequent neurovascular checks track the evolving ischemia, NPO status readies the client for emergent fasciotomy, and monitoring potassium and output detects rhabdomyolysis complications. Retightening the splint or massaging the limb would worsen compartment pressure and are unsafe."
+    },
+    {
+      "item_id": "NCLEX_SATA_402406", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Musculoskeletal", "topic": "Compartment syndrome", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Following the fasciotomy, which findings indicate that perfusion to the limb has been restored? Select all that apply.",
+      "options": [
+        {"text": "Pain decreased to 3/10", "correct": true},
+        {"text": "Palpable dorsalis pedis pulse", "correct": true},
+        {"text": "Sensation intact to light touch", "correct": true},
+        {"text": "Capillary refill under 3 seconds", "correct": true},
+        {"text": "Continued numbness of the toes", "correct": false}
+      ],
+      "rationale": "Reduced pain, a palpable pulse, intact sensation, and brisk capillary refill all show restored perfusion after fasciotomy. Persistent numbness would signal ongoing nerve ischemia rather than improvement."
+    }
+  ]
+}

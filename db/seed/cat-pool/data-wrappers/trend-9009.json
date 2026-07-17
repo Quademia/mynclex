@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09009",
+  "title": "Post-op Blood Pressure Trend",
+  "scenario": "A 40-year-old client is recovering on the surgical unit four hours after an exploratory laparotomy. Vital signs are recorded every 30 minutes.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Post-op Vital Signs",
+      "headers": ["Time", "B/P", "Pulse", "RR", "Notes"],
+      "rows": [
+        ["12:00", "122/78", "82", "16", "Awake, dressing dry and intact."],
+        ["12:30", "114/72", "94", "18", "Reports mild incisional pain."],
+        ["13:00", "104/66", "108", "20", "Restless. Dressing with small serosanguineous spot."],
+        ["13:30", "92/58", "122", "24", "Pale, cool skin. Dressing saturated with bright red blood."]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450091",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Cardiovascular",
+      "topic": "Postoperative care",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Which interpretation of the vital sign trend is correct?",
+      "options": [
+        {"text": "Falling blood pressure with rising pulse suggests hypovolemic shock from hemorrhage", "correct": true},
+        {"text": "The trend reflects an expected, stable post-operative recovery", "correct": false},
+        {"text": "The findings indicate a vasovagal response that will self-resolve", "correct": false},
+        {"text": "Rising blood pressure indicates pain-related hypertension", "correct": false}
+      ],
+      "rationale": "The progressive fall in blood pressure with a compensatory rising heart rate, plus pallor and a saturated dressing, are classic signs of hypovolemic shock from postoperative hemorrhage."
+    },
+    {
+      "item_id": "NCLEX_SATA_450092",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Cardiovascular",
+      "topic": "Postoperative care",
+      "difficulty": "Hard",
+      "bloom": "Apply",
+      "stem": "Which actions should the nurse take now? Select all that apply.",
+      "options": [
+        {"text": "Notify the surgeon immediately", "correct": true},
+        {"text": "Apply direct pressure to the bleeding site and reinforce the dressing", "correct": true},
+        {"text": "Increase the IV fluid rate as ordered", "correct": true},
+        {"text": "Place the client flat and elevate the legs", "correct": true},
+        {"text": "Document the finding and reassess in one hour", "correct": false},
+        {"text": "Encourage the client to ambulate to improve circulation", "correct": false}
+      ],
+      "rationale": "Suspected hemorrhage requires urgent surgeon notification, direct pressure and dressing reinforcement, increased fluids, and positioning to support perfusion. Delaying reassessment or ambulating the client would be unsafe."
+    }
+  ]
+}

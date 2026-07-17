@@ -1,0 +1,319 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_316001", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Hematologic", "topic": "Anticoagulants", "subtopic": "Warfarin", "bloom": "Remember",
+    "stem": "A client is prescribed warfarin. Which laboratory test does the nurse use to monitor its therapeutic effect?",
+    "options": [
+      {"text": "INR", "correct": true, "feedback": "Correct. Warfarin is monitored with the INR/PT."},
+      {"text": "aPTT", "correct": false, "feedback": "Incorrect. aPTT monitors heparin."},
+      {"text": "Platelet count", "correct": false, "feedback": "Incorrect. Not the primary monitoring test for warfarin."},
+      {"text": "Fibrinogen", "correct": false, "feedback": "Incorrect. Not used to titrate warfarin."}
+    ],
+    "rationale": "Warfarin therapy is guided by the INR, derived from the prothrombin time."
+  },
+  {
+    "item_id": "NCLEX_MCQ_316002", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Hematologic", "topic": "Anticoagulants", "subtopic": "Heparin antidote", "bloom": "Remember",
+    "stem": "A client receiving a heparin infusion develops bleeding. Which medication does the nurse anticipate as the antidote?",
+    "options": [
+      {"text": "Protamine sulfate", "correct": true, "feedback": "Correct. Protamine sulfate reverses heparin."},
+      {"text": "Vitamin K", "correct": false, "feedback": "Incorrect. Vitamin K reverses warfarin."},
+      {"text": "Naloxone", "correct": false, "feedback": "Incorrect. Naloxone reverses opioids."},
+      {"text": "Flumazenil", "correct": false, "feedback": "Incorrect. Flumazenil reverses benzodiazepines."}
+    ],
+    "rationale": "Protamine sulfate is the specific antidote for heparin."
+  },
+  {
+    "item_id": "NCLEX_MCQ_316003", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Endocrine", "topic": "Insulin", "subtopic": "Onset", "bloom": "Understand",
+    "stem": "A nurse administers regular insulin subcutaneously at 0800. When should the nurse be most alert for hypoglycemia given its peak action of 2 to 4 hours?",
+    "options": [
+      {"text": "Between 1000 and 1200", "correct": true, "feedback": "Correct. Regular insulin peaks 2-4 hours after administration."},
+      {"text": "At 0815", "correct": false, "feedback": "Incorrect. This is before the onset."},
+      {"text": "At 1800", "correct": false, "feedback": "Incorrect. This is past the peak window."},
+      {"text": "At 2200", "correct": false, "feedback": "Incorrect. This is well beyond the peak."}
+    ],
+    "rationale": "Regular insulin peaks in 2-4 hours, so hypoglycemia is most likely 1000-1200 after an 0800 dose."
+  },
+  {
+    "item_id": "NCLEX_MCQ_316004", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Musculoskeletal", "topic": "Injection technique", "subtopic": "IM sites", "bloom": "Apply",
+    "stem": "The nurse prepares to give an intramuscular injection to an adult. Which site is preferred for its distance from major nerves and blood vessels?",
+    "options": [
+      {"text": "Ventrogluteal", "correct": true, "feedback": "Correct. The ventrogluteal site is safest for IM injections."},
+      {"text": "Dorsogluteal", "correct": false, "feedback": "Incorrect. It is near the sciatic nerve and no longer recommended."},
+      {"text": "Abdomen", "correct": false, "feedback": "Incorrect. The abdomen is a subcutaneous site."},
+      {"text": "Antecubital", "correct": false, "feedback": "Incorrect. This is used for venipuncture."}
+    ],
+    "rationale": "The ventrogluteal site is free of major nerves and vessels, making it the preferred IM site."
+  },
+  {
+    "item_id": "NCLEX_MCQ_316005", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Renal/Genitourinary", "topic": "Diuretics", "subtopic": "Loop diuretic teaching", "bloom": "Apply",
+    "stem": "A client is starting furosemide. Which food should the nurse encourage to help prevent an electrolyte imbalance?",
+    "options": [
+      {"text": "Bananas", "correct": true, "feedback": "Correct. Furosemide wastes potassium; bananas replace it."},
+      {"text": "White rice", "correct": false, "feedback": "Incorrect. Low in potassium."},
+      {"text": "Egg whites", "correct": false, "feedback": "Incorrect. Not a notable potassium source."},
+      {"text": "Butter", "correct": false, "feedback": "Incorrect. Not a potassium source."}
+    ],
+    "rationale": "Loop diuretics cause potassium loss; potassium-rich foods such as bananas help offset hypokalemia."
+  },
+  {
+    "item_id": "NCLEX_MCQ_316006", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Neurological", "topic": "Opioids", "subtopic": "Overdose reversal", "bloom": "Remember",
+    "stem": "A client has a respiratory rate of 6 breaths per minute after receiving morphine. Which medication does the nurse prepare to administer?",
+    "options": [
+      {"text": "Naloxone", "correct": true, "feedback": "Correct. Naloxone reverses opioid-induced respiratory depression."},
+      {"text": "Acetylcysteine", "correct": false, "feedback": "Incorrect. That is for acetaminophen overdose."},
+      {"text": "Atropine", "correct": false, "feedback": "Incorrect. Atropine is for bradycardia."},
+      {"text": "Digoxin immune Fab", "correct": false, "feedback": "Incorrect. That reverses digoxin."}
+    ],
+    "rationale": "Naloxone is the opioid antagonist used for morphine-induced respiratory depression."
+  },
+  {
+    "item_id": "NCLEX_MCQ_316007", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Rights of administration", "subtopic": "Verification", "bloom": "Apply",
+    "stem": "Before administering a medication, the nurse checks the client's name and date of birth on the wristband against the record. Which right of medication administration is being verified?",
+    "options": [
+      {"text": "Right client", "correct": true, "feedback": "Correct. Two identifiers verify the right client."},
+      {"text": "Right dose", "correct": false, "feedback": "Incorrect. That involves the amount."},
+      {"text": "Right route", "correct": false, "feedback": "Incorrect. That involves how it is given."},
+      {"text": "Right time", "correct": false, "feedback": "Incorrect. That involves scheduling."}
+    ],
+    "rationale": "Using two identifiers confirms the right client before administration."
+  },
+  {
+    "item_id": "NCLEX_MCQ_316008", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "IV therapy", "subtopic": "Infiltration", "bloom": "Apply",
+    "stem": "A nurse notes cool, pale, swollen tissue around a peripheral IV site with a slowed infusion. Which action should the nurse take first?",
+    "options": [
+      {"text": "Stop the infusion and remove the catheter", "correct": true, "feedback": "Correct. Infiltration requires stopping and discontinuing the line."},
+      {"text": "Increase the infusion rate", "correct": false, "feedback": "Incorrect. This worsens tissue damage."},
+      {"text": "Apply heat and continue", "correct": false, "feedback": "Incorrect. The line must be discontinued first."},
+      {"text": "Flush the catheter with saline", "correct": false, "feedback": "Incorrect. Flushing pushes more fluid into tissue."}
+    ],
+    "rationale": "Signs of infiltration require stopping the infusion and removing the IV catheter."
+  },
+  {
+    "item_id": "NCLEX_MCQ_316009", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Immune", "topic": "Antibiotics", "subtopic": "Anaphylaxis", "bloom": "Apply",
+    "stem": "Minutes after starting an IV antibiotic, a client reports throat tightness and difficulty breathing. Which action should the nurse take first?",
+    "options": [
+      {"text": "Stop the antibiotic infusion", "correct": true, "feedback": "Correct. Stopping the drug halts further exposure in a suspected anaphylactic reaction."},
+      {"text": "Document the finding", "correct": false, "feedback": "Incorrect. Documentation is not the priority."},
+      {"text": "Slow the infusion rate", "correct": false, "feedback": "Incorrect. The drug must be stopped, not slowed."},
+      {"text": "Offer the client water", "correct": false, "feedback": "Incorrect. This risks aspiration during airway compromise."}
+    ],
+    "rationale": "In a suspected allergic reaction, stopping the offending medication is the first priority."
+  },
+  {
+    "item_id": "NCLEX_MCQ_316010", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "GI", "topic": "TPN", "subtopic": "Monitoring", "bloom": "Understand",
+    "stem": "A client is receiving total parenteral nutrition (TPN). Which laboratory value should the nurse monitor most closely?",
+    "options": [
+      {"text": "Blood glucose", "correct": true, "feedback": "Correct. TPN's high dextrose content requires close glucose monitoring."},
+      {"text": "Serum amylase", "correct": false, "feedback": "Incorrect. Not the priority for TPN."},
+      {"text": "Bilirubin", "correct": false, "feedback": "Incorrect. Not the primary TPN concern."},
+      {"text": "Uric acid", "correct": false, "feedback": "Incorrect. Not routinely monitored for TPN."}
+    ],
+    "rationale": "TPN contains concentrated dextrose, so blood glucose must be monitored closely."
+  },
+  {
+    "item_id": "NCLEX_SATA_316011", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Rights of administration", "bloom": "Understand",
+    "stem": "The nurse reviews the rights of safe medication administration. Which are included among the classic rights? Select all that apply.",
+    "options": [
+      {"text": "Right client", "correct": true},
+      {"text": "Right dose", "correct": true},
+      {"text": "Right route", "correct": true},
+      {"text": "Right time", "correct": true},
+      {"text": "Right insurance", "correct": false},
+      {"text": "Right pharmacy", "correct": false}
+    ],
+    "rationale": "The classic rights include client, drug, dose, route, and time; insurance and pharmacy are not among them."
+  },
+  {
+    "item_id": "NCLEX_SATA_316012", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Endocrine", "topic": "Insulin", "bloom": "Understand",
+    "stem": "A nurse teaches a client about self-administration of subcutaneous insulin. Which instructions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Rotate injection sites", "correct": true},
+      {"text": "Store the vial in use safely and follow the label's storage guidance", "correct": true},
+      {"text": "Roll cloudy NPH insulin gently between the palms before drawing up", "correct": true},
+      {"text": "Inject at a 90-degree angle in most adults", "correct": true},
+      {"text": "Massage the site vigorously after injection", "correct": false},
+      {"text": "Reuse the same needle for a week to save supplies", "correct": false}
+    ],
+    "rationale": "Site rotation, correct storage, gentle mixing of NPH, and a 90-degree angle are correct; massaging and needle reuse are unsafe."
+  },
+  {
+    "item_id": "NCLEX_SATA_316013", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Neurological", "topic": "Opioids", "subtopic": "Side effects", "bloom": "Understand",
+    "stem": "A client is receiving an opioid for pain. Which are expected side effects the nurse should monitor for? Select all that apply.",
+    "options": [
+      {"text": "Constipation", "correct": true},
+      {"text": "Sedation", "correct": true},
+      {"text": "Respiratory depression", "correct": true},
+      {"text": "Diarrhea", "correct": false},
+      {"text": "Hypertension", "correct": false},
+      {"text": "Tachypnea", "correct": false}
+    ],
+    "rationale": "Opioids commonly cause constipation, sedation, and respiratory depression."
+  },
+  {
+    "item_id": "NCLEX_SATA_316014", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "Controlled substances", "bloom": "Apply",
+    "stem": "Which nursing actions are appropriate when handling controlled substances? Select all that apply.",
+    "options": [
+      {"text": "Count the controlled substances at each shift change with another nurse", "correct": true},
+      {"text": "Have a second nurse witness and document any wasted portion", "correct": true},
+      {"text": "Store the medications in a locked cabinet", "correct": true},
+      {"text": "Leave the narcotic drawer unlocked for quick access during a busy shift", "correct": false},
+      {"text": "Discard unused portions in the regular trash", "correct": false}
+    ],
+    "rationale": "Controlled substances require shift counts, witnessed waste, and secure locked storage."
+  },
+  {
+    "item_id": "NCLEX_SATA_316015", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Cardiovascular", "topic": "Blood transfusion", "subtopic": "Reaction", "bloom": "Apply",
+    "stem": "A client receiving a blood transfusion develops fever, chills, and low back pain. Which actions should the nurse take? Select all that apply.",
+    "options": [
+      {"text": "Stop the transfusion", "correct": true},
+      {"text": "Keep the IV line open with normal saline", "correct": true},
+      {"text": "Notify the provider", "correct": true},
+      {"text": "Continue the transfusion at a slower rate", "correct": false},
+      {"text": "Discard the blood bag immediately without saving it", "correct": false}
+    ],
+    "rationale": "A suspected transfusion reaction requires stopping the blood, maintaining IV access with saline, and notifying the provider; the bag is retained for evaluation."
+  },
+  {
+    "item_id": "NCLEX_SELN_316016", "type": "SELECT_N", "difficulty": "Easy", "select_count": 2,
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "High-alert medications", "bloom": "Understand",
+    "stem": "Which 2 medications are considered high-alert medications requiring an independent double-check?",
+    "options": [
+      {"text": "Insulin", "correct": true},
+      {"text": "IV heparin", "correct": true},
+      {"text": "Acetaminophen", "correct": false},
+      {"text": "Docusate sodium", "correct": false},
+      {"text": "Bisacodyl", "correct": false}
+    ],
+    "rationale": "Insulin and IV heparin are classic high-alert medications carrying heightened risk of harm."
+  },
+  {
+    "item_id": "NCLEX_TF_316017", "type": "TF", "difficulty": "Easy", "answer": "True",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Hematologic", "topic": "Anticoagulants", "subtopic": "Warfarin antidote", "bloom": "Remember",
+    "stem": "Vitamin K is the antidote used to reverse the effects of warfarin.",
+    "rationale": "Vitamin K reverses warfarin by restoring clotting factor synthesis."
+  },
+  {
+    "item_id": "NCLEX_MAT_316018", "type": "MATRIX", "difficulty": "Easy", "row_label": "Medication",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Multisystem", "topic": "Antidotes", "bloom": "Understand",
+    "stem": "For each medication, click to indicate its correct antidote or reversal agent.",
+    "columns": ["Naloxone", "Vitamin K", "Protamine sulfate"],
+    "rows": [
+      {"text": "Morphine", "answer": 0},
+      {"text": "Warfarin", "answer": 1},
+      {"text": "Heparin", "answer": 2},
+      {"text": "Hydromorphone", "answer": 0}
+    ],
+    "rationale": "Naloxone reverses opioids, vitamin K reverses warfarin, and protamine reverses heparin."
+  },
+  {
+    "item_id": "NCLEX_MMR_316019", "type": "MATRIX_MR", "difficulty": "Easy", "row_label": "Insulin",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Endocrine", "topic": "Insulin", "subtopic": "Classification", "bloom": "Understand",
+    "stem": "For each insulin, select all descriptions that apply.",
+    "columns": ["Rapid-acting", "Long-acting", "Can be given IV"],
+    "rows": [
+      {"text": "Lispro", "answers": [0]},
+      {"text": "Glargine", "answers": [1]},
+      {"text": "Regular insulin", "answers": [2]}
+    ],
+    "rationale": "Lispro is rapid-acting, glargine is long-acting, and regular insulin is the only one given IV."
+  },
+  {
+    "item_id": "NCLEX_CLZ_316020", "type": "CLOZE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Hematologic", "topic": "Anticoagulants", "subtopic": "Monitoring", "bloom": "Understand",
+    "stem": "A client is receiving an IV heparin infusion. The nurse monitors the {1} to evaluate its therapeutic effect and keeps {2} available in case of bleeding.",
+    "blanks": [
+      {"choices": [{"text": "aPTT", "correct": true}, {"text": "INR"}, {"text": "blood glucose"}]},
+      {"choices": [{"text": "protamine sulfate", "correct": true}, {"text": "vitamin K"}, {"text": "naloxone"}]}
+    ],
+    "rationale": "Heparin is monitored with the aPTT and reversed with protamine sulfate."
+  },
+  {
+    "item_id": "NCLEX_HL_316021", "type": "HIGHLIGHT", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Cardiovascular", "topic": "Digoxin", "subtopic": "Toxicity cues", "bloom": "Apply",
+    "stem": "A nurse reviews a client taking digoxin. Highlight the findings that suggest possible digoxin toxicity. The client reports [[nausea]] and states [[I see yellow-green halos around lights]]. Heart rate is [[48 bpm]]. Blood pressure is [[122/78]]. Temperature is [[37.0°C]].",
+    "chunks": [
+      {"text": "nausea", "correct": true, "feedback": "Nausea is an early sign of digoxin toxicity."},
+      {"text": "I see yellow-green halos around lights", "correct": true, "feedback": "Visual halos are a classic toxicity cue."},
+      {"text": "48 bpm", "correct": true, "feedback": "Bradycardia is a sign of digoxin toxicity."},
+      {"text": "122/78", "correct": false, "feedback": "This blood pressure is normal."},
+      {"text": "37.0°C", "correct": false, "feedback": "This temperature is normal."}
+    ],
+    "rationale": "Nausea, yellow-green visual halos, and bradycardia are classic signs of digoxin toxicity."
+  },
+  {
+    "item_id": "NCLEX_BT_316022", "type": "BOWTIE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Endocrine", "topic": "Insulin", "subtopic": "Hypoglycemia", "bloom": "Apply",
+    "stem": "A client who received insulin becomes diaphoretic, shaky, and reports a blood glucose of 55 mg/dL. Complete the diagram by selecting the condition, actions to take, and parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Give 15 g of fast-acting carbohydrate", "correct": true},
+      {"text": "Recheck blood glucose in 15 minutes", "correct": true},
+      {"text": "Administer additional insulin"},
+      {"text": "Withhold all oral intake"}
+    ]},
+    "centre": {"label": "Condition", "tokens": [
+      {"text": "Hypoglycemia", "correct": true},
+      {"text": "Diabetic ketoacidosis"},
+      {"text": "Hyperosmolar state"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Blood glucose", "correct": true},
+      {"text": "Level of consciousness", "correct": true},
+      {"text": "Urine ketones"},
+      {"text": "Deep tendon reflexes"}
+    ]},
+    "rationale": "Insulin-induced hypoglycemia is treated with fast-acting carbohydrate and a recheck, monitoring glucose and mental status."
+  },
+  {
+    "item_id": "NCLEX_DCZ_316023", "type": "DRAG_CLOZE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Pharmacology", "body_system": "Neurological", "topic": "Opioids", "subtopic": "Reversal", "bloom": "Apply",
+    "stem": "A client's respiratory rate falls to 6 after morphine. The nurse recognizes [1] as the priority concern and prepares to administer [2].",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["respiratory depression", "naloxone", "constipation"],
+    "rationale": "Opioid-induced respiratory depression is reversed with naloxone."
+  },
+  {
+    "item_id": "NCLEX_DO_316024", "type": "DRAG_ORDER", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Medication administration", "subtopic": "Oral med steps", "bloom": "Apply",
+    "stem": "Place the steps for safe oral medication administration in the correct order.",
+    "tokens": ["Perform hand hygiene", "Verify the medication against the order", "Identify the client using two identifiers", "Administer the medication", "Document the administration"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

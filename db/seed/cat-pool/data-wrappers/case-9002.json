@@ -1,0 +1,131 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09002",
+  "title": "Sepsis and Septic Shock",
+  "scenario": "A 72-year-old male client is brought to the emergency department from home with a two-day history of fever, confusion, and decreased urination following a recent urinary tract infection. He appears flushed, lethargic, and is breathing rapidly.",
+  "tags": ["synthetic", "multisystem"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["72-year-old male brought in by son for 2 days of fever, worsening confusion, and reduced urine output. History of an indwelling urinary catheter and a UTI treated last week. Skin warm and flushed, mucous membranes dry. Lethargic but arousable, oriented to person only. Reports feeling weak and dizzy. Capillary refill 4 seconds."], "visibleFrom": 1},
+        {"chips": ["10:20"], "lines": ["Two large-bore IV lines placed. Blood cultures x2, lactate, CBC, and comprehensive metabolic panel drawn before antibiotics. Cardiac monitor and continuous pulse oximetry applied. Provider notified of hypotension and altered mental status."], "visibleFrom": 2},
+        {"chips": ["11:00"], "lines": ["30 mL/kg isotonic crystalloid bolus infusing. Broad-spectrum IV antibiotics started after cultures obtained. Indwelling urinary catheter replaced and connected to hourly urometer. Repeat lactate ordered."], "visibleFrom": 5},
+        {"chips": ["13:00"], "lines": ["Client more alert and oriented to person and place. Skin warmer with brisk capillary refill. Urine output improving. Reports feeling less dizzy. Repeat lactate trending down."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "102.6 F (39.2 C)", "122", "28", "84/48", "91% on RA"],
+        ["10:20", "102.4 F (39.1 C)", "120", "30", "82/46", "94% on 4L NC"],
+        ["13:00", "100.2 F (37.9 C)", "96", "20", "112/70", "97% on 4L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Lactate", "4.6", "0.5-2.2 mmol/L"],
+        ["WBC", "19.8", "5.0-10.0 x10^9/L"],
+        ["Creatinine", "2.1", "0.6-1.2 mg/dL"],
+        ["Platelets", "108", "150-400 x10^9/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Amlodipine 5 mg PO daily", "Metformin 500 mg PO twice daily", "Acetaminophen 650 mg PO every 6 hours PRN fever"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Obtain blood cultures x2 before antibiotics", "Administer broad-spectrum IV antibiotics within 1 hour", "Infuse 30 mL/kg isotonic crystalloid bolus", "Measure serum lactate now and repeat in 2 hours", "Insert indwelling urinary catheter, monitor hourly output", "Notify provider for urine output < 30 mL/hr or MAP < 65 mmHg"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_400201", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Sepsis", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Blood pressure 84/48 mmHg", "correct": true},
+        {"text": "Temperature 102.6 F", "correct": true},
+        {"text": "New confusion, oriented to person only", "correct": true},
+        {"text": "Capillary refill 4 seconds", "correct": true},
+        {"text": "Reports weakness", "correct": false},
+        {"text": "Warm, flushed skin", "correct": false}
+      ],
+      "rationale": "Hypotension, high fever, acute altered mental status, and delayed capillary refill are hallmark cues of sepsis with hypoperfusion and require immediate intervention."
+    },
+    {
+      "item_id": "NCLEX_MMR_400202", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Sepsis", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects systemic infection or inadequate tissue perfusion. Each finding may reflect more than one.",
+      "columns": ["Systemic infection", "Inadequate perfusion"],
+      "rows": [
+        {"text": "WBC 19.8 x10^9/L", "answers": [0]},
+        {"text": "Lactate 4.6 mmol/L", "answers": [1]},
+        {"text": "Creatinine 2.1 mg/dL", "answers": [1]},
+        {"text": "Temperature 102.6 F with tachycardia", "answers": [0, 1]}
+      ],
+      "rationale": "Leukocytosis and fever signal systemic infection, while elevated lactate and rising creatinine reflect anaerobic metabolism and organ hypoperfusion. Fever with tachycardia reflects both the infection and the resulting compensatory circulatory strain."
+    },
+    {
+      "item_id": "NCLEX_CLZ_400203", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Septic shock", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the most time-sensitive first action is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "inadequate tissue perfusion from septic shock", "correct": true}, {"text": "risk for falls from weakness"}, {"text": "acute pain from infection"}]},
+        {"choices": [{"text": "establish IV access and begin fluid resuscitation", "correct": true}, {"text": "obtain a detailed medication history"}, {"text": "arrange transfer to a medical unit"}]}
+      ],
+      "rationale": "Septic shock produces life-threatening hypoperfusion, making restoration of circulating volume through IV fluids the priority; history and transfer are lower urgency."
+    },
+    {
+      "item_id": "NCLEX_MAT_400204", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Sepsis management", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client at this time.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Obtain blood cultures before antibiotics", "answer": 0},
+        {"text": "Administer isotonic crystalloid bolus", "answer": 0},
+        {"text": "Delay antibiotics until culture results return", "answer": 1},
+        {"text": "Measure serum lactate", "answer": 0},
+        {"text": "Restrict IV fluids to prevent overload", "answer": 1}
+      ],
+      "rationale": "Sepsis bundle care means cultures before antibiotics, early broad-spectrum antibiotics, aggressive fluid resuscitation, and lactate measurement. Delaying antibiotics or withholding fluids worsens outcomes."
+    },
+    {
+      "item_id": "NCLEX_SATA_400205", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Sepsis bundle", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After the fluid bolus and first antibiotic dose, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Repeat the serum lactate", "correct": true},
+        {"text": "Monitor hourly urine output", "correct": true},
+        {"text": "Reassess blood pressure and mean arterial pressure", "correct": true},
+        {"text": "Hold all antibiotics pending culture results", "correct": false},
+        {"text": "Restrict oral intake to zero for 24 hours", "correct": false}
+      ],
+      "rationale": "Reassessing lactate, urine output, and MAP evaluates the response to resuscitation. Antibiotics must continue, and total intake restriction is not indicated in sepsis."
+    },
+    {
+      "item_id": "NCLEX_SATA_400206", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Sepsis", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate that treatment for septic shock has been effective? Select all that apply.",
+      "options": [
+        {"text": "Blood pressure improved to 112/70 mmHg", "correct": true},
+        {"text": "Client oriented to person and place", "correct": true},
+        {"text": "Capillary refill now brisk", "correct": true},
+        {"text": "Serum lactate trending down", "correct": true},
+        {"text": "Heart rate increased to 130", "correct": false}
+      ],
+      "rationale": "Rising blood pressure, improved mental status, brisk capillary refill, and a falling lactate all show perfusion is being restored. A rising heart rate would suggest worsening shock."
+    }
+  ]
+}

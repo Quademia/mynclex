@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09001",
+  "title": "Sepsis Vital-Sign Deterioration",
+  "scenario": "A 72-year-old client admitted with a urinary tract infection is monitored over eight hours on a medical unit. The nurse reviews the flowsheet of serial vital signs.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Vital Signs Flowsheet",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2", "Mental status"],
+      "rows": [
+        ["08:00", "37.8 C (100.0 F)", "92", "18", "124/76", "97% on RA", "Alert, oriented x3"],
+        ["10:00", "38.6 C (101.5 F)", "104", "22", "112/68", "95% on RA", "Alert, oriented x3"],
+        ["12:00", "39.1 C (102.4 F)", "118", "26", "98/56", "92% on RA", "Drowsy, oriented x2"],
+        ["14:00", "38.9 C (102.0 F)", "126", "30", "86/48", "89% on RA", "Confused, restless"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_SATA_450011",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Medical-Surgical",
+      "body_system": "Multisystem",
+      "topic": "Sepsis",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Based on the trend in the flowsheet, which changes indicate the client is deteriorating and require immediate follow-up? Select all that apply.",
+      "options": [
+        {"text": "Rising heart rate from 92 to 126", "correct": true},
+        {"text": "Falling blood pressure from 124/76 to 86/48", "correct": true},
+        {"text": "Increasing respiratory rate from 18 to 30", "correct": true},
+        {"text": "Declining mental status from alert to confused", "correct": true},
+        {"text": "SpO2 remaining above 96% throughout", "correct": false},
+        {"text": "Temperature staying below 37 C", "correct": false}
+      ],
+      "rationale": "Rising pulse and respiratory rate, falling blood pressure, and declining mental status together signal progression toward septic shock and demand rapid intervention. The SpO2 and temperature distractors do not match the actual trend."
+    },
+    {
+      "item_id": "NCLEX_MCQ_450012",
+      "type": "MCQ",
+      "category": "Safe and Effective Care Environment",
+      "subcategory": "Management of Care",
+      "subject": "Medical-Surgical",
+      "body_system": "Multisystem",
+      "topic": "Sepsis",
+      "difficulty": "Medium",
+      "bloom": "Apply",
+      "stem": "Given the trend, which action should the nurse take first?",
+      "options": [
+        {"text": "Notify the provider and initiate the sepsis protocol", "correct": true},
+        {"text": "Reassess vital signs in two hours", "correct": false},
+        {"text": "Document the findings and continue monitoring", "correct": false},
+        {"text": "Encourage the client to increase oral fluids", "correct": false}
+      ],
+      "rationale": "The worsening trend of tachycardia, hypotension, tachypnea, and altered mentation reflects evolving septic shock; the priority is to escalate to the provider and start the sepsis protocol without delay."
+    }
+  ]
+}

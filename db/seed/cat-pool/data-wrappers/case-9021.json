@@ -1,0 +1,136 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09021",
+  "title": "Status Epilepticus",
+  "scenario": "A 24-year-old male with a known seizure disorder is brought to the emergency department by paramedics after a witnessed generalized tonic-clonic seizure that has continued for over 10 minutes without regaining consciousness.",
+  "tags": ["synthetic", "neurological"],
+  "difficulty_tier": "Hard",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["14:05"], "lines": ["24-year-old male brought in by EMS with ongoing generalized tonic-clonic seizure activity for >10 minutes per witness. Girlfriend reports he ran out of his levetiracetam 3 days ago. Continuous jerking of all four extremities, eyes deviated, frothing at the mouth. Unresponsive to voice. No IV access yet. Airway with copious oral secretions."], "visibleFrom": 1},
+        {"chips": ["14:08"], "lines": ["Side-lying position maintained, oral suction applied to clear secretions. High-flow O2 via non-rebreather placed. Bedrails padded and up. IV access being attempted. Fingerstick glucose obtained. Cardiac monitor and pulse oximetry applied."], "visibleFrom": 2},
+        {"chips": ["14:15"], "lines": ["IV lorazepam administered per order. Seizure activity slowed then stopped approximately 2 minutes after dose. Remains postictal and unresponsive to voice. IV levetiracetam loading dose infusing."], "visibleFrom": 5},
+        {"chips": ["15:00"], "lines": ["No further seizure activity for 45 minutes. Opens eyes to name, follows simple commands, oriented to person only. Breathing unlabored, secretions cleared. Moving all extremities."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["14:05", "100.9 F (38.3 C)", "132", "8 (irregular)", "168/98", "84% on RA"],
+        ["14:08", "100.9 F (38.3 C)", "128", "10 (assisted)", "162/94", "91% on NRB"],
+        ["14:15", "100.6 F (38.1 C)", "118", "16", "150/88", "95% on NRB"],
+        ["15:00", "99.8 F (37.7 C)", "92", "18", "128/78", "98% on 2L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 5, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Glucose (fingerstick)", "78", "70-110 mg/dL"],
+        ["Levetiracetam level", "Undetectable", "12-46 mcg/mL"],
+        ["Sodium", "128", "135-145 mEq/L"],
+        ["Lactate", "4.8", "0.5-2.2 mmol/L"],
+        ["Creatine kinase", "620", "30-200 U/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Levetiracetam 1000 mg PO twice daily (home med, ran out 3 days ago)"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Lorazepam 4 mg IV push now, may repeat once in 5 minutes if seizure continues", "Levetiracetam 60 mg/kg IV loading dose after benzodiazepine", "Maintain airway, high-flow oxygen, suction as needed", "Continuous cardiac and SpO2 monitoring", "Seizure precautions", "Stat CBC, CMP, lactate, CK, antiepileptic drug levels", "Notify provider for recurrent seizure activity"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_402101", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Status epilepticus", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings on arrival require immediate follow-up?",
+      "options": [
+        {"text": "Continuous seizure activity for more than 10 minutes", "correct": true},
+        {"text": "SpO2 84% on room air", "correct": true},
+        {"text": "Respiratory rate 8 and irregular", "correct": true},
+        {"text": "Copious oral secretions with no airway protection", "correct": true},
+        {"text": "Temperature 100.9 F", "correct": false},
+        {"text": "History of a seizure disorder", "correct": false}
+      ],
+      "rationale": "Prolonged unremitting seizure activity, hypoxia, hypoventilation, and unprotected airway with secretions are life-threatening and demand immediate action. Low-grade fever and the diagnosis history are relevant but not the immediate threats."
+    },
+    {
+      "item_id": "NCLEX_MMR_402102", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Status epilepticus", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects a likely precipitant of the seizure, a physiologic consequence of prolonged seizing, or both.",
+      "columns": ["Precipitant", "Consequence"],
+      "rows": [
+        {"text": "Undetectable levetiracetam level", "answers": [0]},
+        {"text": "Sodium 128 mEq/L", "answers": [0]},
+        {"text": "Lactate 4.8 mmol/L", "answers": [1]},
+        {"text": "Creatine kinase 620 U/L", "answers": [1]},
+        {"text": "Temperature 100.9 F", "answers": [1]}
+      ],
+      "rationale": "Subtherapeutic drug levels and hyponatremia lower the seizure threshold and precipitate seizures. Elevated lactate, CK, and temperature result from sustained muscle activity during prolonged seizing."
+    },
+    {
+      "item_id": "NCLEX_CLZ_402103", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Status epilepticus", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse identifies that the priority need is {1}, and the first medication the nurse anticipates administering is {2}.",
+      "blanks": [
+        {"choices": [{"text": "maintaining a patent airway and oxygenation", "correct": true}, {"text": "obtaining a detailed seizure history"}, {"text": "starting maintenance antiepileptic therapy"}]},
+        {"choices": [{"text": "IV lorazepam", "correct": true}, {"text": "IV levetiracetam"}, {"text": "IV phenytoin"}]}
+      ],
+      "rationale": "Airway and oxygenation are the immediate priority in status epilepticus. A benzodiazepine such as lorazepam is the first-line agent to stop ongoing seizure activity before a longer-acting antiepileptic is loaded."
+    },
+    {
+      "item_id": "NCLEX_MAT_402104", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Status epilepticus", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client during active seizure.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Position the client on their side", "answer": 0},
+        {"text": "Apply suction to clear oral secretions", "answer": 0},
+        {"text": "Insert a padded oral airway by forcing the jaw open", "answer": 1},
+        {"text": "Prepare IV lorazepam for administration", "answer": 0},
+        {"text": "Restrain the extremities to stop the movements", "answer": 1},
+        {"text": "Provide high-flow oxygen", "answer": 0}
+      ],
+      "rationale": "Side-lying positioning, suctioning, benzodiazepines, and oxygen protect the airway and stop seizures. Forcing objects into the mouth and restraining limbs cause injury and are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_402105", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Neurological", "topic": "Antiepileptics", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After administering IV lorazepam, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor respiratory rate and depth for depression", "correct": true},
+        {"text": "Continue to monitor SpO2 and blood pressure", "correct": true},
+        {"text": "Administer the ordered levetiracetam loading dose", "correct": true},
+        {"text": "Keep suction and airway equipment at the bedside", "correct": true},
+        {"text": "Ambulate the client to assess neurologic status", "correct": false},
+        {"text": "Withhold all further seizure medications", "correct": false}
+      ],
+      "rationale": "Lorazepam causes respiratory and CNS depression, so the nurse monitors ventilation, oxygenation, and blood pressure, keeps airway equipment ready, and gives the longer-acting antiepileptic. Ambulating a postictal client is unsafe and withholding therapy risks recurrence."
+    },
+    {
+      "item_id": "NCLEX_SATA_402106", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Status epilepticus", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "No seizure activity for 45 minutes", "correct": true},
+        {"text": "SpO2 improved to 98%", "correct": true},
+        {"text": "Follows simple commands and opens eyes to name", "correct": true},
+        {"text": "Respiratory rate 18 and unlabored", "correct": true},
+        {"text": "Persistent jerking of the extremities", "correct": false}
+      ],
+      "rationale": "Cessation of seizures, improved oxygenation, recovering level of consciousness, and stable unlabored breathing show effective treatment. Continued jerking would indicate ongoing status epilepticus."
+    }
+  ]
+}

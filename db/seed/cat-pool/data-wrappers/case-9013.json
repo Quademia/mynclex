@@ -1,0 +1,130 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09013",
+  "title": "Pediatric Asthma Exacerbation",
+  "scenario": "A 7-year-old boy with a history of asthma is brought to the emergency department by his mother for two days of worsening cough and audible wheezing that has not responded to his home rescue inhaler.",
+  "tags": ["synthetic", "respiratory", "pediatric"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["14:00"], "lines": ["7-year-old male brought in by mother for 2 days of worsening cough and wheeze. Mother reports the boy has used his albuterol inhaler every 2 hours today without relief. Audible expiratory wheeze, prolonged expiration, and suprasternal and intercostal retractions noted. Speaks in short 3-4 word phrases. Sitting upright in tripod position. Anxious but oriented. Known trigger is a recent upper respiratory infection."], "visibleFrom": 1},
+        {"chips": ["14:15"], "lines": ["Cardiorespiratory monitor and continuous pulse oximetry applied. IV access obtained. Chest x-ray and labs ordered. O2 started at 2 L per nasal cannula."], "visibleFrom": 2},
+        {"chips": ["14:40"], "lines": ["Continuous nebulized albuterol with ipratropium started per order. IV methylprednisolone administered. Child positioned high Fowler's."], "visibleFrom": 5},
+        {"chips": ["16:30"], "lines": ["Wheezing diminished with improved air movement in all lobes. Retractions resolved. Speaking in full sentences and playing on mother's phone. Nebulizer spaced to every 4 hours."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["14:00", "99.1 F (37.3 C)", "138", "40", "108/68", "89% on RA"],
+        ["14:15", "99.1 F (37.3 C)", "134", "38", "106/66", "92% on 2L NC"],
+        ["16:30", "98.8 F (37.1 C)", "104", "24", "100/62", "97% on 2L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["pH (venous)", "7.31", "7.32-7.43"],
+        ["PaCO2", "48", "35-45 mmHg"],
+        ["Peak expiratory flow", "45% personal best", "> 80% personal best"],
+        ["WBC", "9.8", "5.0-14.5 x10^9/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Home Medications",
+      "entries": [
+        {"chips": [], "lines": ["Albuterol HFA inhaler 2 puffs PRN wheeze", "Fluticasone inhaler 2 puffs twice daily", "Montelukast 5 mg PO daily at bedtime"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Continuous nebulized albuterol with ipratropium bromide", "Methylprednisolone 1 mg/kg IV now", "Oxygen to keep SpO2 greater than 94%", "Continuous pulse oximetry and cardiorespiratory monitoring", "Chest x-ray", "Notify provider for SpO2 less than 90% or rising PaCO2"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_401301", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Pediatrics", "body_system": "Respiratory", "topic": "Asthma", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "SpO2 89% on room air", "correct": true},
+        {"text": "Suprasternal and intercostal retractions", "correct": true},
+        {"text": "Speaking in only 3-4 word phrases", "correct": true},
+        {"text": "Respiratory rate of 40", "correct": true},
+        {"text": "Temperature 99.1 F", "correct": false},
+        {"text": "WBC 9.8", "correct": false}
+      ],
+      "rationale": "Hypoxia, accessory-muscle retractions, difficulty speaking in full sentences, and marked tachypnea all signal severe airway obstruction and respiratory distress requiring prompt intervention."
+    },
+    {
+      "item_id": "NCLEX_MMR_401302", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Pediatrics", "body_system": "Respiratory", "topic": "Asthma", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it indicates worsening airway obstruction, impending respiratory failure, or both. Each finding may support more than one.",
+      "columns": ["Worsening obstruction", "Impending respiratory failure"],
+      "rows": [
+        {"text": "Prolonged expiratory wheeze", "answers": [0]},
+        {"text": "Peak expiratory flow 45% of personal best", "answers": [0]},
+        {"text": "Rising PaCO2 of 48 with pH 7.31", "answers": [0, 1]},
+        {"text": "Speaking in only short phrases", "answers": [0, 1]}
+      ],
+      "rationale": "Wheeze and a reduced peak flow reflect airflow obstruction. A rising PaCO2 with acidosis and inability to speak in sentences reflect fatigue and CO2 retention, signaling impending respiratory failure as well."
+    },
+    {
+      "item_id": "NCLEX_CLZ_401303", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Pediatrics", "body_system": "Respiratory", "topic": "Asthma", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}.",
+      "blanks": [
+        {"choices": [{"text": "impaired gas exchange from airway obstruction", "correct": true}, {"text": "anxiety related to hospitalization"}, {"text": "risk for infection"}]}
+      ],
+      "rationale": "The most immediate threat is impaired gas exchange from bronchospasm and obstruction, evidenced by hypoxia and a rising PaCO2; it takes priority over the real but less urgent problems of anxiety and infection risk."
+    },
+    {
+      "item_id": "NCLEX_MAT_401304", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pediatrics", "body_system": "Respiratory", "topic": "Asthma", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this child.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer nebulized albuterol", "answer": 0},
+        {"text": "Administer IV corticosteroids", "answer": 0},
+        {"text": "Position the child high Fowler's", "answer": 0},
+        {"text": "Administer a nonselective beta-blocker", "answer": 1},
+        {"text": "Withhold supplemental oxygen", "answer": 1}
+      ],
+      "rationale": "Beta-agonists, systemic steroids, and upright positioning open the airway and improve oxygenation. Beta-blockers cause bronchoconstriction and withholding oxygen worsens hypoxia, so both are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_401305", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Respiratory", "topic": "Bronchodilators", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "While the child receives continuous nebulized albuterol, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor heart rate for tachycardia", "correct": true},
+        {"text": "Assess air movement and breath sounds frequently", "correct": true},
+        {"text": "Monitor serum potassium", "correct": true},
+        {"text": "Keep the child NPO and restrict all fluids", "correct": false},
+        {"text": "Discontinue supplemental oxygen once started", "correct": false}
+      ],
+      "rationale": "Albuterol causes tachycardia and can lower potassium, so the nurse monitors heart rate, potassium, and airway response. Fluid restriction and stopping oxygen are not indicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_401306", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Pediatrics", "body_system": "Respiratory", "topic": "Asthma", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "SpO2 improved to 97%", "correct": true},
+        {"text": "Respiratory rate decreased to 24", "correct": true},
+        {"text": "Retractions resolved", "correct": true},
+        {"text": "Child speaking in full sentences", "correct": true},
+        {"text": "Peak expiratory flow remains 45% of personal best", "correct": false}
+      ],
+      "rationale": "Improved oxygenation, slower respiratory rate, absence of retractions, and return of normal speech all show the obstruction is resolving. A persistently low peak flow would indicate ongoing obstruction, not improvement."
+    }
+  ]
+}

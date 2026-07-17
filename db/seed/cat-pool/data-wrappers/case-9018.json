@@ -1,0 +1,133 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09018",
+  "title": "Hyponatremia (SIADH)",
+  "scenario": "A 72-year-old male with small-cell lung cancer presents to the emergency department with a 2-day history of headache, nausea, and increasing confusion. His daughter reports he has been drinking normally but seems more sluggish and forgetful.",
+  "tags": ["synthetic", "endocrine"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["09:00"], "lines": ["72-year-old male brought in by daughter for 2 days of headache, nausea, and worsening confusion. History of small-cell lung cancer. Denies vomiting or diarrhea. No recent diuretic use. Skin turgor normal, mucous membranes moist, no peripheral edema. Alert but disoriented to time and place, follows simple commands slowly."], "visibleFrom": 1},
+        {"chips": ["09:25"], "lines": ["IV access obtained. Labs and non-contrast head CT ordered. Cardiac monitor applied. Neuro checks initiated every hour. Reports one episode of nausea, no emesis."], "visibleFrom": 2},
+        {"chips": ["11:00"], "lines": ["Fluid restriction 800 mL/24 hr initiated per order. Strict intake and output started. Client reoriented to surroundings by staff."], "visibleFrom": 5},
+        {"chips": ["18:00"], "lines": ["Client more alert, now oriented to person and place. Headache reduced. No nausea. Tolerating fluid restriction without complaint. Repeat sodium pending."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["09:00", "98.2 F (36.8 C)", "82", "16", "128/78", "96% on RA"],
+        ["09:25", "98.2 F (36.8 C)", "80", "16", "126/76", "97% on RA"],
+        ["18:00", "98.4 F (36.9 C)", "78", "16", "124/74", "97% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Serum sodium", "118", "135-145 mEq/L"],
+        ["Serum osmolality", "255", "275-295 mOsm/kg"],
+        ["Urine osmolality", "620", "50-1200 mOsm/kg"],
+        ["Urine sodium", "48", "> 40 mEq/L (in SIADH)"],
+        ["Potassium", "4.0", "3.5-5.0 mEq/L"],
+        ["BUN", "8", "7-20 mg/dL"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Ondansetron 4 mg IV PRN nausea", "Acetaminophen 650 mg PO PRN headache"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Fluid restriction 800 mL per 24 hours", "Strict intake and output", "Seizure precautions", "Neuro checks every hour", "Repeat serum sodium in 6 hours", "Notify provider for sodium correction greater than 8 mEq/L in 24 hours", "Notify provider for new seizure activity or decreasing level of consciousness"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_401801", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "SIADH", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Serum sodium 118 mEq/L", "correct": true},
+        {"text": "Disorientation to time and place", "correct": true},
+        {"text": "Headache", "correct": true},
+        {"text": "Serum osmolality 255 mOsm/kg", "correct": true},
+        {"text": "Moist mucous membranes", "correct": false},
+        {"text": "Potassium 4.0 mEq/L", "correct": false}
+      ],
+      "rationale": "Severe hyponatremia, low serum osmolality, neurologic change, and headache reflect cerebral edema from water retention and require prompt action. Moist membranes and a normal potassium are expected findings."
+    },
+    {
+      "item_id": "NCLEX_MMR_401802", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "SIADH", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it is consistent with SIADH, consistent with hypovolemic hyponatremia, or both. Each finding may support more than one.",
+      "columns": ["SIADH", "Hypovolemic hyponatremia"],
+      "rows": [
+        {"text": "Concentrated urine (osmolality 620 mOsm/kg)", "answers": [0]},
+        {"text": "Low serum osmolality", "answers": [0, 1]},
+        {"text": "Normal skin turgor and moist mucous membranes", "answers": [0]},
+        {"text": "Urine sodium greater than 40 mEq/L", "answers": [0]}
+      ],
+      "rationale": "SIADH produces euvolemic hyponatremia with inappropriately concentrated urine and high urine sodium despite low serum osmolality. Hypovolemic hyponatremia shares the low serum osmolality but presents with signs of volume depletion and low urine sodium."
+    },
+    {
+      "item_id": "NCLEX_CLZ_401803", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "SIADH", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1} related to {2}.",
+      "blanks": [
+        {"choices": [{"text": "risk for seizures", "correct": true}, {"text": "fluid volume deficit"}, {"text": "impaired skin integrity"}]},
+        {"choices": [{"text": "cerebral edema from severe hyponatremia", "correct": true}, {"text": "dehydration"}, {"text": "hyperglycemia"}]}
+      ],
+      "rationale": "A serum sodium of 118 mEq/L with neurologic changes places the client at high risk for seizures from cerebral edema, making neurologic safety the priority over the other problems."
+    },
+    {
+      "item_id": "NCLEX_MAT_401804", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "SIADH", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Restrict fluids to 800 mL per 24 hours", "answer": 0},
+        {"text": "Institute seizure precautions", "answer": 0},
+        {"text": "Encourage oral free water intake", "answer": 1},
+        {"text": "Monitor strict intake and output", "answer": 0},
+        {"text": "Administer a rapid hypotonic fluid bolus", "answer": 1}
+      ],
+      "rationale": "Fluid restriction, seizure precautions, and I&O monitoring correct water retention and protect the client. Free water and hypotonic fluids dilute sodium further and are contraindicated in SIADH."
+    },
+    {
+      "item_id": "NCLEX_SATA_401805", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "SIADH", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After fluid restriction is ordered, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor serum sodium for overly rapid correction", "correct": true},
+        {"text": "Maintain seizure precautions at the bedside", "correct": true},
+        {"text": "Perform hourly neurologic checks", "correct": true},
+        {"text": "Offer ice water freely at the bedside", "correct": false},
+        {"text": "Administer a 1 liter normal saline bolus over 1 hour", "correct": false}
+      ],
+      "rationale": "Correcting sodium too fast risks osmotic demyelination, so the nurse monitors sodium trends, keeps seizure precautions, and tracks neuro status. Free water and a large saline bolus are not appropriate for euvolemic SIADH."
+    },
+    {
+      "item_id": "NCLEX_SATA_401806", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "SIADH", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Client now oriented to person and place", "correct": true},
+        {"text": "Headache reduced", "correct": true},
+        {"text": "No nausea reported", "correct": true},
+        {"text": "Tolerating the fluid restriction", "correct": true},
+        {"text": "Serum sodium decreased further to 114 mEq/L", "correct": false}
+      ],
+      "rationale": "Improved orientation, reduced headache, and resolving nausea show the hyponatremia is correcting. A further drop in sodium would indicate worsening, not improvement."
+    }
+  ]
+}

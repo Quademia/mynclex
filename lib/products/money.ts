@@ -12,6 +12,35 @@
 export type Currency = 'GHS' | 'USD';
 
 /**
+ * Countries that DEFAULT to GHS on the public pricing pages. Deliberately a
+ * small, explicit allowlist (Ghana only for v1) — extend it here if we later
+ * want the wider region to land on cedis. Everyone else defaults to USD.
+ */
+export const GHS_DEFAULT_COUNTRIES: ReadonlySet<string> = new Set(['GH']);
+
+/**
+ * The currency a public pricing surface starts on, chosen from the visitor's
+ * country. This ONLY picks the pre-selected toggle — GHS and USD are both
+ * always one click away; nothing about the prices or checkout changes.
+ *
+ * Why geo-default at all: the dual pricing is regionally (PPP) priced, not an
+ * FX conversion — the GHS column is set low for the local audience — so the
+ * right default is "the price meant for your region," not always-GHS.
+ *
+ * `country` is an ISO-3166-1 alpha-2 code from Cloudflare's `CF-IPCountry`
+ * header, or null/unknown when there's no edge in front (localhost / dev
+ * without a proxy). Unknown → GHS: never strand a local visitor on a dollar
+ * price. Cloudflare's non-country sentinels `XX` (unknown) and `T1` (Tor) are
+ * treated as unknown for the same reason.
+ */
+export function defaultCurrencyForCountry(country: string | null | undefined): Currency {
+  if (!country) return 'GHS';
+  const code = country.trim().toUpperCase();
+  if (code === '' || code === 'XX' || code === 'T1') return 'GHS';
+  return GHS_DEFAULT_COUNTRIES.has(code) ? 'GHS' : 'USD';
+}
+
+/**
  * ONE money voice across the whole product (Sam, 2026-07-08): cedis print
  * as the ISO code, never the ₵ glyph. The public pages already did this;
  * the admin and tutor surfaces used ₵, and a split voice is just two

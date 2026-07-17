@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09027",
+  "title": "Intracranial Pressure Monitoring Trend",
+  "scenario": "A 42-year-old client with a traumatic brain injury has an intraventricular catheter for continuous intracranial pressure (ICP) monitoring. The nurse reviews the flowsheet of ICP, cerebral perfusion pressure, and neuro findings over six hours.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "ICP Monitoring Flowsheet",
+      "headers": ["Time", "ICP", "MAP", "CPP", "Pupils", "GCS"],
+      "rows": [
+        ["12:00", "12 mmHg", "88 mmHg", "76 mmHg", "PERRL 3 mm", "14"],
+        ["14:00", "18 mmHg", "86 mmHg", "68 mmHg", "PERRL 3 mm", "12"],
+        ["16:00", "24 mmHg", "84 mmHg", "60 mmHg", "Left sluggish 4 mm", "10"],
+        ["18:00", "30 mmHg", "82 mmHg", "52 mmHg", "Left fixed 5 mm", "8"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450271",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Neuro",
+      "topic": "Increased intracranial pressure",
+      "difficulty": "Hard",
+      "bloom": "Analyze",
+      "stem": "Reviewing the flowsheet, how should the nurse interpret the trend?",
+      "options": [
+        {"text": "Rising ICP with falling cerebral perfusion pressure and declining GCS indicates worsening increased intracranial pressure", "correct": true},
+        {"text": "The trend is within normal limits and requires only routine monitoring", "correct": false},
+        {"text": "The falling cerebral perfusion pressure reflects improving cerebral blood flow", "correct": false},
+        {"text": "The changes indicate resolving cerebral edema", "correct": false}
+      ],
+      "rationale": "ICP climbed from 12 to 30 mmHg (normal 5-15) while CPP fell to 52 mmHg (target above 60) and GCS dropped from 14 to 8 with a new fixed pupil, a clear pattern of worsening intracranial hypertension and impending herniation."
+    },
+    {
+      "item_id": "NCLEX_SATA_450272",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Neuro",
+      "topic": "Increased intracranial pressure",
+      "difficulty": "Hard",
+      "bloom": "Apply",
+      "stem": "Based on the deteriorating trend, which nursing actions are appropriate? Select all that apply.",
+      "options": [
+        {"text": "Notify the provider immediately of the rising ICP and declining GCS", "correct": true},
+        {"text": "Elevate the head of the bed to 30 degrees with the head midline", "correct": true},
+        {"text": "Ensure the airway is patent and prepare to support oxygenation", "correct": true},
+        {"text": "Anticipate an order for osmotic diuretic such as mannitol", "correct": true},
+        {"text": "Cluster nursing care and suction frequently to keep the client stimulated", "correct": false},
+        {"text": "Place the client flat with the neck flexed toward the chest", "correct": false}
+      ],
+      "rationale": "Worsening intracranial hypertension requires urgent provider notification, head-of-bed elevation with neutral neck alignment to promote venous drainage, airway and oxygenation support, and osmotic diuretics. Clustering stimulating care and flat positioning with neck flexion raise ICP further."
+    }
+  ]
+}

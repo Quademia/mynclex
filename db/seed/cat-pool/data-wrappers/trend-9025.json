@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09025",
+  "title": "Serum Sodium Correction Trend",
+  "scenario": "A 60-year-old client admitted with symptomatic hyponatremia is started on a hypertonic saline infusion. The nurse reviews serial serum sodium values drawn every four hours.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Serum Sodium Flowsheet",
+      "headers": ["Time", "Serum sodium", "Neuro status", "Reference range"],
+      "rows": [
+        ["00:00", "116 mEq/L", "Lethargic, one witnessed seizure", "135-145 mEq/L"],
+        ["04:00", "120 mEq/L", "Drowsy, arousable to voice", "135-145 mEq/L"],
+        ["08:00", "124 mEq/L", "Alert, oriented x2", "135-145 mEq/L"],
+        ["12:00", "127 mEq/L", "Alert, oriented x3", "135-145 mEq/L"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450251",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Multisystem",
+      "topic": "Fluid and electrolyte imbalance",
+      "difficulty": "Hard",
+      "bloom": "Analyze",
+      "stem": "Reviewing the flowsheet, how does the nurse best interpret the rate of sodium correction over the first 12 hours?",
+      "options": [
+        {"text": "The correction is appropriately gradual at about 11 mEq/L over 12 hours", "correct": true},
+        {"text": "The correction is dangerously slow and the infusion should be doubled", "correct": false},
+        {"text": "The correction is complete because sodium is now within normal range", "correct": false},
+        {"text": "The correction is too rapid and risks fluid volume overload", "correct": false}
+      ],
+      "rationale": "Sodium rose from 116 to 127 mEq/L over 12 hours, roughly 11 mEq/L, which stays within the safe limit of about 8-10 mEq/L per 24 hours and avoids osmotic demyelination. The value is still below normal, so correction is not complete."
+    },
+    {
+      "item_id": "NCLEX_SATA_450252",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Medical-Surgical",
+      "body_system": "Neuro",
+      "topic": "Fluid and electrolyte imbalance",
+      "difficulty": "Medium",
+      "bloom": "Apply",
+      "stem": "Based on the trend, which nursing actions are appropriate at this time? Select all that apply.",
+      "options": [
+        {"text": "Continue to monitor serum sodium every 4 hours", "correct": true},
+        {"text": "Perform frequent neurologic assessments", "correct": true},
+        {"text": "Watch for new dysarthria, dysphagia, or altered consciousness", "correct": true},
+        {"text": "Notify the provider if sodium rises more than 10-12 mEq/L in 24 hours", "correct": true},
+        {"text": "Administer a rapid bolus of hypertonic saline to speed correction", "correct": false},
+        {"text": "Stop all sodium monitoring now that the client is oriented", "correct": false}
+      ],
+      "rationale": "Safe management of hyponatremia correction requires ongoing sodium monitoring, serial neuro checks for signs of osmotic demyelination, and provider notification if correction exceeds safe limits. Rapidly bolusing hypertonic saline or stopping monitoring would endanger the client."
+    }
+  ]
+}

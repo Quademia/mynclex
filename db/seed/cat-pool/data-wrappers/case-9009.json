@@ -1,0 +1,132 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09009",
+  "title": "Acute Kidney Injury",
+  "scenario": "A 72-year-old male client is admitted to the medical unit with confusion and decreased urine output over the past two days following several days of vomiting and diarrhea from a gastrointestinal illness.",
+  "tags": ["synthetic", "renal"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["72-year-old male admitted for 2 days of decreasing urine output and new-onset confusion. Reports 4 days of vomiting and diarrhea with poor oral intake. Skin turgor poor, mucous membranes dry. Wife states he takes ibuprofen daily for arthritis. Foley placed on admission drained only 60 mL of dark, concentrated urine."], "visibleFrom": 1},
+        {"chips": ["10:30"], "lines": ["IV access obtained. Labs, urinalysis, and renal ultrasound ordered. Cardiac monitor applied. Strict intake and output initiated."], "visibleFrom": 2},
+        {"chips": ["12:00"], "lines": ["IV isotonic fluid bolus of 0.9% sodium chloride administered per order. Nephrotoxic medications held. Foley draining slowly, 35 mL over past 2 hours."], "visibleFrom": 5},
+        {"chips": ["18:00"], "lines": ["Client more alert and oriented to person and place. Urine output increased to 55 mL/hr over the last 4 hours. Mucous membranes moist. Reports feeling less thirsty."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "99.1 F (37.3 C)", "112", "22", "96/58", "95% on RA"],
+        ["10:30", "99.0 F (37.2 C)", "110", "20", "98/60", "96% on RA"],
+        ["18:00", "98.6 F (37.0 C)", "84", "18", "122/74", "97% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["BUN", "48", "10-20 mg/dL"],
+        ["Creatinine", "3.2", "0.6-1.2 mg/dL"],
+        ["Potassium", "5.9", "3.5-5.0 mEq/L"],
+        ["Sodium", "148", "135-145 mEq/L"],
+        ["Urine specific gravity", "1.032", "1.005-1.030"],
+        ["Urine sodium", "12", "> 40 mEq/L (intrinsic)"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Ibuprofen 400 mg PO three times daily (home medication)", "Lisinopril 20 mg PO daily (home medication)", "Metformin 1000 mg PO twice daily (home medication)"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Administer 0.9% sodium chloride 500 mL IV bolus now, then reassess", "Hold ibuprofen, lisinopril, and metformin", "Strict intake and output, notify provider for urine output < 30 mL/hr", "Daily weights", "Continuous cardiac monitoring", "Recheck basic metabolic panel in 6 hours", "Cardiology consult for hyperkalemia"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_400901", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Renal", "topic": "Acute kidney injury", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Urine output of 60 mL in the past several hours", "correct": true},
+        {"text": "New-onset confusion", "correct": true},
+        {"text": "Serum creatinine 3.2 mg/dL", "correct": true},
+        {"text": "Serum potassium 5.9 mEq/L", "correct": true},
+        {"text": "SpO2 95% on room air", "correct": false},
+        {"text": "Temperature 99.1 F", "correct": false}
+      ],
+      "rationale": "Oliguria, altered mental status, a markedly elevated creatinine, and hyperkalemia all reflect acute kidney injury and its complications, requiring prompt intervention. Near-normal oxygenation and a low-grade temperature are not urgent."
+    },
+    {
+      "item_id": "NCLEX_MMR_400902", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Renal", "topic": "Acute kidney injury", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it supports a prerenal cause, an intrinsic (intrarenal) cause, or both. Each finding may support more than one.",
+      "columns": ["Prerenal", "Intrinsic"],
+      "rows": [
+        {"text": "Days of vomiting and diarrhea with poor intake", "answers": [0]},
+        {"text": "Poor skin turgor and dry mucous membranes", "answers": [0]},
+        {"text": "Daily ibuprofen use", "answers": [0, 1]},
+        {"text": "Elevated BUN and creatinine", "answers": [0, 1]}
+      ],
+      "rationale": "Volume depletion from GI losses and dehydration reduces renal perfusion, a prerenal cause. NSAIDs can cause prerenal injury by reducing renal blood flow and intrinsic injury through nephrotoxicity. Elevated BUN and creatinine occur in both categories."
+    },
+    {
+      "item_id": "NCLEX_CLZ_400903", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Renal", "topic": "Acute kidney injury", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem requiring the most immediate intervention is {1}.",
+      "blanks": [
+        {"choices": [{"text": "hyperkalemia placing the client at risk for a lethal dysrhythmia", "correct": true}, {"text": "impaired skin integrity", "correct": false}, {"text": "risk for constipation", "correct": false}]}
+      ],
+      "rationale": "A potassium of 5.9 mEq/L can precipitate life-threatening cardiac dysrhythmias, so it takes priority over the client's other real but less urgent problems."
+    },
+    {
+      "item_id": "NCLEX_MAT_400904", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Renal", "topic": "Acute kidney injury", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer an isotonic IV fluid bolus", "answer": 0},
+        {"text": "Hold ibuprofen and lisinopril", "answer": 0},
+        {"text": "Administer a potassium-containing IV solution", "answer": 1},
+        {"text": "Monitor strict intake and output", "answer": 0},
+        {"text": "Encourage a diet high in potassium-rich foods", "answer": 1}
+      ],
+      "rationale": "Isotonic fluids restore renal perfusion, and withholding nephrotoxic and potassium-sparing agents protects the kidneys. Adding potassium by IV or diet is dangerous given the existing hyperkalemia and is contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_400905", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Medical-Surgical", "body_system": "Renal", "topic": "Acute kidney injury", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After starting IV fluids and holding the home medications, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Obtain a 12-lead ECG and monitor for peaked T waves", "correct": true},
+        {"text": "Measure hourly urine output", "correct": true},
+        {"text": "Monitor serum potassium and creatinine trends", "correct": true},
+        {"text": "Administer the scheduled ibuprofen dose", "correct": false},
+        {"text": "Restrict all IV and oral fluids", "correct": false}
+      ],
+      "rationale": "Hyperkalemia and AKI require ECG monitoring, close output measurement, and follow-up of electrolytes and renal function. Giving a nephrotoxic NSAID or withholding all fluids from a volume-depleted client would worsen the injury."
+    },
+    {
+      "item_id": "NCLEX_SATA_400906", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Renal", "topic": "Acute kidney injury", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Urine output increased to 55 mL/hr", "correct": true},
+        {"text": "Client is more alert and oriented", "correct": true},
+        {"text": "Blood pressure improved to 122/74", "correct": true},
+        {"text": "Mucous membranes are moist", "correct": true},
+        {"text": "Serum potassium increased to 6.4 mEq/L", "correct": false}
+      ],
+      "rationale": "Rising urine output, improved mentation, a restored blood pressure, and moist mucous membranes all show renal perfusion and volume status are recovering. A further rise in potassium would signal worsening, not improvement."
+    }
+  ]
+}

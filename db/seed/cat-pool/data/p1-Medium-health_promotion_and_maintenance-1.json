@@ -1,0 +1,354 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_330001", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal care", "subtopic": "Nutrition education", "bloom": "Apply",
+    "stem": "A nurse is counseling a woman at her first prenatal visit at 8 weeks gestation. Which statement by the nurse best supports neural tube defect prevention?",
+    "options": [
+      {"text": "Take 400 to 800 mcg of folic acid daily throughout early pregnancy", "correct": true, "feedback": "Correct. Adequate folic acid before and during early pregnancy reduces neural tube defect risk."},
+      {"text": "Increase your daily vitamin A intake with liver several times a week", "correct": false, "feedback": "Incorrect. Excess preformed vitamin A is teratogenic."},
+      {"text": "Begin iron supplementation only if you become anemic in the third trimester", "correct": false, "feedback": "Incorrect. This does not address neural tube defects."},
+      {"text": "Limit all leafy green vegetables to reduce nausea", "correct": false, "feedback": "Incorrect. Leafy greens are a folate source and should be encouraged."}
+    ],
+    "rationale": "Folic acid supplementation in early pregnancy is the key preventive measure against neural tube defects."
+  },
+  {
+    "item_id": "NCLEX_MCQ_330002", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Growth and development", "subtopic": "Toddler milestones", "bloom": "Analyze",
+    "stem": "A parent brings an 18-month-old for a well-child visit. Which finding should the nurse recognize as expected for this age?",
+    "options": [
+      {"text": "Walks up stairs with one hand held and says several single words", "correct": true, "feedback": "Correct. These are typical 18-month gross-motor and language milestones."},
+      {"text": "Speaks in three-word sentences and rides a tricycle", "correct": false, "feedback": "Incorrect. These are closer to 3-year milestones."},
+      {"text": "Sits without support but does not yet crawl", "correct": false, "feedback": "Incorrect. This suggests around 6 months and would be delayed."},
+      {"text": "Builds a tower of eight cubes and copies a circle", "correct": false, "feedback": "Incorrect. These are preschool-age skills."}
+    ],
+    "rationale": "At 18 months a toddler walks up stairs with a hand held and uses single words, consistent with normal development."
+  },
+  {
+    "item_id": "NCLEX_MCQ_330003", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Immune", "topic": "Immunizations", "subtopic": "Adult schedule", "bloom": "Apply",
+    "stem": "A 66-year-old client with no chronic illness asks which vaccines are recommended at this age. Which response by the nurse is most accurate?",
+    "options": [
+      {"text": "You should receive the pneumococcal vaccine and an annual influenza vaccine", "correct": true, "feedback": "Correct. Pneumococcal vaccination and annual influenza are recommended for adults 65 and older."},
+      {"text": "No further vaccines are needed once you are over 65", "correct": false, "feedback": "Incorrect. Older adults have specific recommended vaccines."},
+      {"text": "You only need a tetanus booster every 20 years", "correct": false, "feedback": "Incorrect. Td boosters are every 10 years and this ignores other vaccines."},
+      {"text": "Live vaccines such as MMR should be repeated yearly", "correct": false, "feedback": "Incorrect. MMR is not an annual vaccine for adults."}
+    ],
+    "rationale": "Adults 65 and older are advised to receive pneumococcal and annual influenza vaccination."
+  },
+  {
+    "item_id": "NCLEX_MCQ_330004", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Postpartum care", "subtopic": "Breastfeeding education", "bloom": "Apply",
+    "stem": "A postpartum client who is breastfeeding reports sore, cracked nipples on day 3. Which teaching point should the nurse emphasize first?",
+    "options": [
+      {"text": "Ensure the infant latches with the areola, not just the nipple, in the mouth", "correct": true, "feedback": "Correct. Poor latch is the most common cause of nipple trauma."},
+      {"text": "Limit each feeding to five minutes per breast", "correct": false, "feedback": "Incorrect. Time limits do not fix the underlying latch problem."},
+      {"text": "Switch to formula until the nipples heal completely", "correct": false, "feedback": "Incorrect. Stopping breastfeeding is unnecessary and not first-line."},
+      {"text": "Wash the nipples with soap before each feeding", "correct": false, "feedback": "Incorrect. Soap dries and worsens cracking."}
+    ],
+    "rationale": "Correcting the latch so the areola is in the infant's mouth resolves most nipple soreness."
+  },
+  {
+    "item_id": "NCLEX_MCQ_330005", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Health screening", "subtopic": "Colorectal screening", "bloom": "Apply",
+    "stem": "A 52-year-old client with no family history of cancer asks about recommended screenings. Which screening should the nurse discuss as newly due at this age?",
+    "options": [
+      {"text": "Colorectal cancer screening", "correct": true, "feedback": "Correct. Average-risk colorectal screening is recommended beginning at age 45 to 50."},
+      {"text": "Annual bone density scanning", "correct": false, "feedback": "Incorrect. Routine DEXA screening typically begins later, at 65 for women."},
+      {"text": "Yearly abdominal aortic aneurysm ultrasound for all adults", "correct": false, "feedback": "Incorrect. AAA screening is a one-time test for certain men who smoked."},
+      {"text": "Prostate biopsy for every man over 50", "correct": false, "feedback": "Incorrect. Biopsy is not a screening test."}
+    ],
+    "rationale": "Colorectal cancer screening is recommended for average-risk adults starting at 45 to 50 years."
+  },
+  {
+    "item_id": "NCLEX_MCQ_330006", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Growth and development", "subtopic": "Infant safety", "bloom": "Apply",
+    "stem": "A nurse teaches parents of a 4-month-old about injury prevention. Which instruction is most appropriate for this developmental stage?",
+    "options": [
+      {"text": "Never leave the infant unattended on a changing table or bed", "correct": true, "feedback": "Correct. At 4 months infants begin rolling, creating a fall risk."},
+      {"text": "Place soft pillows around the infant in the crib for comfort", "correct": false, "feedback": "Incorrect. Soft bedding increases suffocation and SIDS risk."},
+      {"text": "Begin using a forward-facing car seat", "correct": false, "feedback": "Incorrect. Infants remain rear-facing well beyond this age."},
+      {"text": "Allow the infant to hold small solid finger foods", "correct": false, "feedback": "Incorrect. This is a choking hazard and premature."}
+    ],
+    "rationale": "Because 4-month-olds start to roll, never leaving them unattended on elevated surfaces prevents falls."
+  },
+  {
+    "item_id": "NCLEX_MCQ_330007", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Mental Health", "body_system": "Psychiatric/Mental Health", "topic": "Screening", "subtopic": "Depression screening", "bloom": "Apply",
+    "stem": "During a routine visit, a nurse administers a depression screening tool to an adult client. Which client response most warrants immediate further assessment?",
+    "options": [
+      {"text": "Reports recent thoughts that life is not worth living", "correct": true, "feedback": "Correct. Any indication of suicidal ideation requires immediate follow-up."},
+      {"text": "States feeling tired more often since starting a new job", "correct": false, "feedback": "Incorrect. Fatigue alone is nonspecific and not urgent."},
+      {"text": "Describes occasional worry about finances", "correct": false, "feedback": "Incorrect. Situational worry is common and not an emergency."},
+      {"text": "Mentions eating slightly less on busy days", "correct": false, "feedback": "Incorrect. Minor appetite variation is not urgent."}
+    ],
+    "rationale": "A positive screen for suicidal ideation requires immediate, focused safety assessment."
+  },
+  {
+    "item_id": "NCLEX_MCQ_330008", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Patient education", "subtopic": "Readiness to learn", "bloom": "Analyze",
+    "stem": "A nurse plans discharge teaching for a newly diagnosed diabetic client. Which client cue best indicates readiness to learn?",
+    "options": [
+      {"text": "The client asks how to prepare the insulin syringe correctly", "correct": true, "feedback": "Correct. Asking task-specific questions signals engagement and readiness."},
+      {"text": "The client is in severe pain and requesting medication", "correct": false, "feedback": "Incorrect. Unmet physical needs impair learning readiness."},
+      {"text": "The client states there is no need to learn any of this", "correct": false, "feedback": "Incorrect. This reflects a barrier, not readiness."},
+      {"text": "The client is drowsy from recent sedation", "correct": false, "feedback": "Incorrect. Reduced alertness impairs learning."}
+    ],
+    "rationale": "A client who initiates relevant questions demonstrates motivation and readiness to learn."
+  },
+  {
+    "item_id": "NCLEX_MCQ_330009", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Respiratory", "topic": "High-risk behavior", "subtopic": "Smoking cessation", "bloom": "Apply",
+    "stem": "A client who smokes a pack of cigarettes daily tells the nurse, 'I have been thinking maybe I should quit one of these days.' Which response best supports this client's stage of change?",
+    "options": [
+      {"text": "What benefits do you think quitting could bring you?", "correct": true, "feedback": "Correct. Exploring perceived benefits fits a contemplative client and strengthens motivation."},
+      {"text": "Here is a schedule to taper your cigarettes starting today", "correct": false, "feedback": "Incorrect. An action plan is premature before commitment."},
+      {"text": "You must stop smoking immediately to avoid lung cancer", "correct": false, "feedback": "Incorrect. Confrontation can raise resistance at this stage."},
+      {"text": "Since you are not ready, we will revisit this in a year", "correct": false, "feedback": "Incorrect. Dismissing the opening misses a motivational opportunity."}
+    ],
+    "rationale": "A client contemplating change benefits from exploring personal benefits, which builds intrinsic motivation."
+  },
+  {
+    "item_id": "NCLEX_MCQ_330010", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Antepartum care", "subtopic": "Danger signs", "bloom": "Analyze",
+    "stem": "A nurse provides education to a client at 28 weeks gestation about warning signs to report. Which symptom, if reported, requires the most urgent evaluation?",
+    "options": [
+      {"text": "Severe headache with visual changes and swelling of the face", "correct": true, "feedback": "Correct. These suggest preeclampsia and require urgent evaluation."},
+      {"text": "Occasional mild lower back ache after standing", "correct": false, "feedback": "Incorrect. Mild back ache is common in pregnancy."},
+      {"text": "Increased clear vaginal discharge without odor", "correct": false, "feedback": "Incorrect. Increased leukorrhea is normal."},
+      {"text": "Feeling fetal movements several times a day", "correct": false, "feedback": "Incorrect. Regular fetal movement is reassuring."}
+    ],
+    "rationale": "Severe headache, visual disturbances, and facial edema are classic warning signs of preeclampsia."
+  },
+  {
+    "item_id": "NCLEX_MCQ_330011", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Musculoskeletal", "topic": "Older adult health", "subtopic": "Fall prevention at home", "bloom": "Apply",
+    "stem": "A home-health nurse assesses a 78-year-old client living alone. Which finding is the priority to address for fall prevention?",
+    "options": [
+      {"text": "Loose throw rugs on the walkway between rooms", "correct": true, "feedback": "Correct. Loose rugs are a leading modifiable home fall hazard."},
+      {"text": "A calendar of upcoming medical appointments on the wall", "correct": false, "feedback": "Incorrect. This is unrelated to fall risk."},
+      {"text": "A landline telephone in the kitchen", "correct": false, "feedback": "Incorrect. A phone is a communication resource, not a hazard."},
+      {"text": "Family photographs displayed on a bookshelf", "correct": false, "feedback": "Incorrect. This poses no fall risk."}
+    ],
+    "rationale": "Removing loose throw rugs eliminates a common and easily corrected home fall hazard."
+  },
+  {
+    "item_id": "NCLEX_MCQ_330012", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "GI", "topic": "Growth and development", "subtopic": "Nutrition introduction", "bloom": "Apply",
+    "stem": "A parent asks when to begin introducing solid foods to their healthy infant. Which response by the nurse is most appropriate?",
+    "options": [
+      {"text": "Around 6 months, when the infant can sit with support and shows interest in food", "correct": true, "feedback": "Correct. Developmental readiness around 6 months guides solid introduction."},
+      {"text": "At 2 months, adding cereal to the bottle to help sleep", "correct": false, "feedback": "Incorrect. Early solids and cereal in bottles are not recommended."},
+      {"text": "Only after the first birthday to avoid all allergies", "correct": false, "feedback": "Incorrect. Delaying to 12 months is not recommended."},
+      {"text": "Whenever the infant doubles the birth weight, regardless of age", "correct": false, "feedback": "Incorrect. Weight alone does not determine readiness."}
+    ],
+    "rationale": "Solid foods are introduced around 6 months when developmental readiness signs appear."
+  },
+  {
+    "item_id": "NCLEX_SATA_330013", "type": "SATA", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal education", "subtopic": "Self-care", "bloom": "Apply",
+    "stem": "A nurse teaches a pregnant client about common discomforts and self-care. Which self-care measures are appropriate to include? Select all that apply.",
+    "options": [
+      {"text": "Rise slowly from lying to standing to reduce dizziness", "correct": true},
+      {"text": "Eat small frequent meals to ease nausea", "correct": true},
+      {"text": "Elevate the legs periodically to relieve dependent edema", "correct": true},
+      {"text": "Perform pelvic tilt exercises for low back discomfort", "correct": true},
+      {"text": "Restrict all fluids to prevent frequent urination", "correct": false},
+      {"text": "Take over-the-counter medications freely for any symptom", "correct": false}
+    ],
+    "rationale": "Positional changes, small meals, leg elevation, and pelvic tilts are safe measures; fluid restriction and unsupervised medication use are not."
+  },
+  {
+    "item_id": "NCLEX_SATA_330014", "type": "SATA", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Cardiovascular", "topic": "Lifestyle modification", "subtopic": "Hypertension prevention", "bloom": "Apply",
+    "stem": "A nurse counsels an adult with prehypertension on lifestyle changes. Which recommendations are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Reduce dietary sodium intake", "correct": true},
+      {"text": "Engage in regular aerobic physical activity", "correct": true},
+      {"text": "Limit alcohol consumption", "correct": true},
+      {"text": "Maintain a healthy body weight", "correct": true},
+      {"text": "Increase intake of processed and canned foods", "correct": false},
+      {"text": "Adopt a sedentary routine to conserve energy", "correct": false}
+    ],
+    "rationale": "Sodium reduction, exercise, alcohol limitation, and weight management lower blood pressure; processed foods and inactivity worsen it."
+  },
+  {
+    "item_id": "NCLEX_SATA_330015", "type": "SATA", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Immune", "topic": "Immunizations", "subtopic": "Contraindications", "bloom": "Analyze",
+    "stem": "A nurse reviews an immunization schedule for a child. Which situations warrant delaying or withholding a scheduled vaccine? Select all that apply.",
+    "options": [
+      {"text": "A severe anaphylactic reaction to a previous dose of the same vaccine", "correct": true},
+      {"text": "Current moderate to severe acute illness with fever", "correct": true},
+      {"text": "Known immunocompromise before a live vaccine", "correct": true},
+      {"text": "A mild upper respiratory infection without fever", "correct": false},
+      {"text": "Mild soreness at a prior injection site", "correct": false},
+      {"text": "Current breastfeeding by the mother", "correct": false}
+    ],
+    "rationale": "Anaphylaxis to a prior dose, moderate-severe febrile illness, and immunocompromise for live vaccines are true precautions; minor illness and local soreness are not."
+  },
+  {
+    "item_id": "NCLEX_SATA_330016", "type": "SATA", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Endocrine", "topic": "Health screening", "subtopic": "Diabetes risk", "bloom": "Analyze",
+    "stem": "A nurse conducts a community screening for type 2 diabetes risk. Which client factors increase risk and support screening? Select all that apply.",
+    "options": [
+      {"text": "Body mass index in the obese range", "correct": true},
+      {"text": "A first-degree relative with type 2 diabetes", "correct": true},
+      {"text": "History of gestational diabetes", "correct": true},
+      {"text": "Physically active with normal weight and no family history", "correct": false},
+      {"text": "Age under 20 with no other risk factors", "correct": false}
+    ],
+    "rationale": "Obesity, family history, and prior gestational diabetes raise type 2 diabetes risk; an active, normal-weight young adult without risk factors is lower risk."
+  },
+  {
+    "item_id": "NCLEX_SATA_330017", "type": "SATA", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Patient education", "subtopic": "Barriers to learning", "bloom": "Analyze",
+    "stem": "A nurse assesses factors that may act as barriers to a client's learning during discharge teaching. Which findings represent barriers to learning? Select all that apply.",
+    "options": [
+      {"text": "Client speaks a language different from the nurse and no interpreter is present", "correct": true},
+      {"text": "Client reports significant anxiety about going home", "correct": true},
+      {"text": "Client has uncorrected hearing impairment", "correct": true},
+      {"text": "Client has a low literacy level with written materials only", "correct": true},
+      {"text": "Client asks clarifying questions and takes notes", "correct": false},
+      {"text": "Client has a supportive family member present", "correct": false}
+    ],
+    "rationale": "Language mismatch, high anxiety, sensory impairment, and literacy limits impede learning; engagement and support facilitate it."
+  },
+  {
+    "item_id": "NCLEX_SELN_330018", "type": "SELECT_N", "difficulty": "Medium", "select_count": 3,
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Growth and development", "subtopic": "Preschool milestones", "bloom": "Analyze",
+    "stem": "Which 3 findings are expected developmental milestones for a healthy 4-year-old child?",
+    "options": [
+      {"text": "Hops on one foot", "correct": true},
+      {"text": "Draws a person with several body parts", "correct": true},
+      {"text": "Uses sentences of four or more words", "correct": true},
+      {"text": "Ties shoelaces independently", "correct": false},
+      {"text": "Speaks only single words", "correct": false},
+      {"text": "Walks unsteadily with a wide-based gait", "correct": false}
+    ],
+    "rationale": "Hopping, drawing a multi-part person, and multi-word sentences are typical at 4 years; shoe-tying is later and single words or unsteady gait are earlier or abnormal."
+  },
+  {
+    "item_id": "NCLEX_TF_330019", "type": "TF", "difficulty": "Medium", "answer": "True",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Reproductive", "topic": "Health screening", "subtopic": "Cervical screening", "bloom": "Understand",
+    "stem": "Routine cervical cancer screening with a Papanicolaou (Pap) test is generally recommended to begin at age 21 for individuals with a cervix, regardless of sexual history.",
+    "rationale": "Cervical cancer screening is recommended to start at age 21 irrespective of sexual activity onset."
+  },
+  {
+    "item_id": "NCLEX_TF_330020", "type": "TF", "difficulty": "Medium", "answer": "False",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Infant care", "subtopic": "Safe sleep", "bloom": "Understand",
+    "stem": "Placing a healthy infant to sleep in the prone (on the stomach) position is the recommended way to reduce the risk of sudden infant death syndrome.",
+    "rationale": "Infants should be placed supine (on the back) to sleep; the prone position increases SIDS risk."
+  },
+  {
+    "item_id": "NCLEX_MAT_330021", "type": "MATRIX", "difficulty": "Medium", "row_label": "Client",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Preventive screening", "subtopic": "Age-based screening", "bloom": "Analyze",
+    "stem": "For each preventive screening, click to indicate whether it is typically recommended for a healthy adult woman or a healthy older adult of either sex.",
+    "columns": ["Adult woman (average risk)", "Older adult 65+"],
+    "rows": [
+      {"text": "Mammography every 1 to 2 years", "answer": 0},
+      {"text": "Bone mineral density (DEXA) screening", "answer": 1},
+      {"text": "Cervical cytology (Pap) screening", "answer": 0},
+      {"text": "One-time abdominal aortic aneurysm screening (in men who smoked)", "answer": 1}
+    ],
+    "rationale": "Mammography and Pap screening target adult women, while DEXA and AAA screening are aimed at older adults."
+  },
+  {
+    "item_id": "NCLEX_MMR_330022", "type": "MATRIX_MR", "difficulty": "Medium", "row_label": "Life stage",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Health maintenance", "subtopic": "Anticipatory guidance", "bloom": "Analyze",
+    "stem": "For each life stage, select all anticipatory-guidance topics that a nurse should prioritize (more than one may apply).",
+    "columns": ["Car/booster seat safety", "Fall prevention", "Substance use screening"],
+    "rows": [
+      {"text": "Toddler", "answers": [0, 1]},
+      {"text": "Adolescent", "answers": [2]},
+      {"text": "Older adult", "answers": [1]}
+    ],
+    "rationale": "Toddlers need car-seat and fall guidance, adolescents need substance-use screening, and older adults need fall prevention."
+  },
+  {
+    "item_id": "NCLEX_CLZ_330023", "type": "CLOZE", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal assessment", "subtopic": "Fundal height", "bloom": "Apply",
+    "stem": "At a routine visit, the nurse measures the fundal height. By approximately {1} weeks gestation, the fundus is normally expected to reach the level of the {2}.",
+    "blanks": [
+      {"choices": [{"text": "20", "correct": true}, {"text": "12"}, {"text": "36"}]},
+      {"choices": [{"text": "umbilicus", "correct": true}, {"text": "symphysis pubis"}, {"text": "xiphoid process"}]}
+    ],
+    "rationale": "The fundus reaches the umbilicus around 20 weeks gestation, a useful marker of expected growth."
+  },
+  {
+    "item_id": "NCLEX_HL_330024", "type": "HIGHLIGHT", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Older adult assessment", "subtopic": "Home safety cues", "bloom": "Analyze",
+    "stem": "A home-health nurse visits an older adult. Highlight the findings that indicate a need for further intervention. The client [[walks with a steady gait using a cane]]. There are [[loose electrical cords across the hallway]]. The [[bathroom has grab bars installed]]. Medications are [[stored in unlabeled containers]]. The stairwell is [[poorly lit with no handrail]].",
+    "chunks": [
+      {"text": "walks with a steady gait using a cane", "correct": false, "feedback": "A steady assisted gait is reassuring."},
+      {"text": "loose electrical cords across the hallway", "correct": true, "feedback": "A tripping hazard requiring intervention."},
+      {"text": "bathroom has grab bars installed", "correct": false, "feedback": "Grab bars are a positive safety feature."},
+      {"text": "stored in unlabeled containers", "correct": true, "feedback": "Unlabeled medications risk errors and need intervention."},
+      {"text": "poorly lit with no handrail", "correct": true, "feedback": "A poorly lit railless stairwell is a major fall hazard."}
+    ],
+    "rationale": "Loose cords, unlabeled medications, and an unsafe stairwell require intervention; assisted steady gait and grab bars are protective."
+  },
+  {
+    "item_id": "NCLEX_BT_330025", "type": "BOWTIE", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Postpartum education", "subtopic": "Newborn care", "bloom": "Evaluate",
+    "stem": "A nurse prepares discharge teaching for a first-time mother and her healthy newborn. Complete the diagram by selecting the teaching priority, actions to teach, and outcomes to monitor.",
+    "left": {"label": "Actions to teach", "tokens": [
+      {"text": "Place the newborn supine for every sleep", "correct": true},
+      {"text": "Support the newborn's head when holding", "correct": true},
+      {"text": "Add rice cereal to bottles at night", "correct": false},
+      {"text": "Position the newborn prone to prevent choking", "correct": false}
+    ]},
+    "centre": {"label": "Teaching priority", "tokens": [
+      {"text": "Safe newborn care and feeding", "correct": true},
+      {"text": "Toddler discipline strategies", "correct": false},
+      {"text": "Adolescent risk counseling", "correct": false}
+    ]},
+    "right": {"label": "Outcomes to monitor", "tokens": [
+      {"text": "Adequate number of wet diapers per day", "correct": true},
+      {"text": "Steady weight gain after initial loss", "correct": true},
+      {"text": "Ability to walk independently", "correct": false},
+      {"text": "First words spoken", "correct": false}
+    ]},
+    "rationale": "Safe newborn care centers on supine sleep and head support, with hydration and weight gain as key monitored outcomes."
+  },
+  {
+    "item_id": "NCLEX_DCZ_330026", "type": "DRAG_CLOZE", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Growth and development", "subtopic": "Milestone timing", "bloom": "Apply",
+    "stem": "The nurse reviews milestones with parents. A healthy infant typically sits without support at about [1] and begins to walk independently at about [2].",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["6 months", "12 months", "3 months", "24 months"],
+    "rationale": "Independent sitting emerges around 6 months and independent walking around 12 months."
+  },
+  {
+    "item_id": "NCLEX_DO_330027", "type": "DRAG_ORDER", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Patient education", "subtopic": "Teaching process", "bloom": "Apply",
+    "stem": "A nurse plans structured health-promotion teaching for a client. Place the steps of the teaching process in the correct order.",
+    "tokens": ["Assess the client's learning needs and readiness", "Set mutual learning goals with the client", "Select and deliver appropriate teaching methods", "Evaluate the client's understanding with teach-back", "Document the teaching and the client's response"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

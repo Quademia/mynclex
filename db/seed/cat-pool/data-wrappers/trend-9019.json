@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09019",
+  "title": "Bilirubin trend under phototherapy",
+  "scenario": "A 3-day-old term newborn is receiving intensive phototherapy for hyperbilirubinemia. Total serum bilirubin is measured every 6 hours to monitor the response.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Total Serum Bilirubin Trend",
+      "headers": ["Time", "Age", "Total bilirubin", "Reference"],
+      "rows": [
+        ["Day 3 06:00", "60 hr", "18.4 mg/dL", "Phototherapy threshold ~15 mg/dL"],
+        ["Day 3 12:00", "66 hr", "17.1 mg/dL", "Phototherapy threshold ~15 mg/dL"],
+        ["Day 3 18:00", "72 hr", "15.0 mg/dL", "Phototherapy threshold ~15 mg/dL"],
+        ["Day 4 00:00", "78 hr", "13.2 mg/dL", "Phototherapy threshold ~15 mg/dL"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450191",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Maternal-Newborn",
+      "body_system": "Hematologic",
+      "topic": "Phototherapy",
+      "difficulty": "Easy",
+      "bloom": "Understand",
+      "stem": "How should the nurse interpret the bilirubin trend since phototherapy began?",
+      "options": [
+        {"text": "The bilirubin is steadily declining, indicating the phototherapy is effective", "correct": true},
+        {"text": "The bilirubin is rising and phototherapy should be stopped", "correct": false},
+        {"text": "The bilirubin is unchanged, indicating no response to treatment", "correct": false},
+        {"text": "The bilirubin is fluctuating unpredictably and requires exchange transfusion", "correct": false}
+      ],
+      "rationale": "The total serum bilirubin has fallen from 18.4 to 13.2 mg/dL over 18 hours, a steady decline that shows the newborn is responding appropriately to phototherapy."
+    },
+    {
+      "item_id": "NCLEX_SATA_450192",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Maternal-Newborn",
+      "body_system": "Hematologic",
+      "topic": "Phototherapy",
+      "difficulty": "Medium",
+      "bloom": "Apply",
+      "stem": "While the newborn remains under phototherapy, which nursing actions are appropriate? Select all that apply.",
+      "options": [
+        {"text": "Cover the newborn's eyes with opaque shields", "correct": true},
+        {"text": "Monitor temperature for hyperthermia or cold stress", "correct": true},
+        {"text": "Encourage frequent breastfeeding to promote bilirubin excretion", "correct": true},
+        {"text": "Assess skin turgor and intake and output for dehydration", "correct": true},
+        {"text": "Apply lotion to the skin to prevent drying under the lights", "correct": false},
+        {"text": "Dress the newborn fully to maximize warmth", "correct": false}
+      ],
+      "rationale": "Eye protection, thermoregulation, frequent feeding, and hydration monitoring are core phototherapy interventions. Lotions can cause burns under the lights, and clothing the newborn reduces skin exposure needed for treatment."
+    }
+  ]
+}

@@ -24,6 +24,7 @@ import type { SelectNContent, SelectNCorrect } from '@/lib/bank/types';
 import type { SelectNAnswer } from '@/lib/scoring';
 import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc } from '@/lib/authoring/rich-doc';
+import { optionLetter } from '../option-order';
 
 type SelectNRunnerProps = {
   content: SelectNContent;
@@ -97,7 +98,7 @@ export function SelectNRunner(props: SelectNRunnerProps) {
       )}
 
       <div className="rn-options" role={isReview ? undefined : 'group'}>
-        {content.options.map((opt) => {
+        {content.options.map((opt, i) => {
           const isPicked  = studentSet.has(opt.id);
           const isCorrect = correctSet?.has(opt.id) ?? false;
 
@@ -131,7 +132,7 @@ export function SelectNRunner(props: SelectNRunnerProps) {
                   : undefined
               }
             >
-              <span className="rn-opt-letter" aria-hidden="true">{opt.id}</span>
+              <span className="rn-opt-letter" aria-hidden="true">{optionLetter(i)}</span>
 
               <div className="rn-opt-body">
                 <div><RichRender doc={parseRichDoc(opt.text)} inline /></div>

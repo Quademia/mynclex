@@ -1,0 +1,357 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_331001", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal care", "subtopic": "Nutrition education", "bloom": "Apply",
+    "stem": "A nurse is counseling a woman at her first prenatal visit at 8 weeks gestation. The client reports she does not take any supplements. Which teaching point is the highest priority to prevent a birth defect?",
+    "options": [
+      {"text": "Take 400 mcg of folic acid daily to reduce neural tube defects", "correct": true, "feedback": "Correct. Folic acid in early pregnancy reduces neural tube defect risk."},
+      {"text": "Increase calcium intake to prevent maternal osteoporosis", "correct": false, "feedback": "Incorrect. Calcium is important but not the priority for defect prevention."},
+      {"text": "Begin iron supplementation to prevent anemia", "correct": false, "feedback": "Incorrect. Iron addresses anemia, not neural tube defects."},
+      {"text": "Limit vitamin A to avoid excessive weight gain", "correct": false, "feedback": "Incorrect. This does not prevent a birth defect at this stage."}
+    ],
+    "rationale": "Folic acid taken in the first trimester prevents neural tube defects such as spina bifida."
+  },
+  {
+    "item_id": "NCLEX_MCQ_331002", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Postpartum care", "subtopic": "Discharge teaching", "bloom": "Analyze",
+    "stem": "A nurse is providing discharge teaching to a client who is 2 days postpartum. Which statement by the client indicates a need for further teaching?",
+    "options": [
+      {"text": "I should call my provider if I soak a pad in less than an hour", "correct": false, "feedback": "Incorrect. This is correct teaching about hemorrhage warning signs."},
+      {"text": "A small amount of pink-tinged discharge is expected next week", "correct": false, "feedback": "Incorrect. Serosanguineous lochia is normal."},
+      {"text": "I can resume my normal exercise routine as soon as I feel able", "correct": false, "feedback": "Incorrect but not the most concerning statement."},
+      {"text": "Redness and warmth in my calf are normal after delivery", "correct": true, "feedback": "Correct. Calf redness and warmth suggest DVT and require follow-up, not reassurance."}
+    ],
+    "rationale": "Unilateral calf redness, warmth, and pain suggest deep vein thrombosis, a postpartum emergency, not a normal finding."
+  },
+  {
+    "item_id": "NCLEX_MCQ_331003", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Growth and development", "subtopic": "Infant milestones", "bloom": "Apply",
+    "stem": "A nurse assesses a healthy 9-month-old at a well-child visit. Which finding would the nurse expect for this age?",
+    "options": [
+      {"text": "Sits without support and pulls to a stand", "correct": true, "feedback": "Correct. A 9-month-old typically sits unsupported and pulls to stand."},
+      {"text": "Walks independently across the room", "correct": false, "feedback": "Incorrect. Independent walking usually occurs around 12–15 months."},
+      {"text": "Speaks two-word phrases", "correct": false, "feedback": "Incorrect. Two-word phrases appear around 24 months."},
+      {"text": "Has no head lag when pulled to sit", "correct": false, "feedback": "Incorrect. This is expected by about 4 months, not a marker of 9 months."}
+    ],
+    "rationale": "By 9 months an infant sits without support and pulls to stand; walking and phrases come later."
+  },
+  {
+    "item_id": "NCLEX_MCQ_331004", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Immune", "topic": "Immunizations", "subtopic": "Contraindications", "bloom": "Analyze",
+    "stem": "A nurse is preparing to administer routine vaccines at a well-child clinic. Which situation is a true contraindication to giving the MMR vaccine today?",
+    "options": [
+      {"text": "The child has a mild runny nose and no fever", "correct": false, "feedback": "Incorrect. Mild illness is not a contraindication."},
+      {"text": "The child is receiving high-dose immunosuppressive therapy", "correct": true, "feedback": "Correct. Live vaccines like MMR are contraindicated with significant immunosuppression."},
+      {"text": "The child had mild soreness after a prior vaccine", "correct": false, "feedback": "Incorrect. Local soreness is not a contraindication."},
+      {"text": "The child is currently teething", "correct": false, "feedback": "Incorrect. Teething is unrelated to vaccination safety."}
+    ],
+    "rationale": "MMR is a live-attenuated vaccine and is contraindicated in significantly immunocompromised children."
+  },
+  {
+    "item_id": "NCLEX_MCQ_331005", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Older adult health", "subtopic": "Screening", "bloom": "Apply",
+    "stem": "A community health nurse is planning preventive screening for a group of independent adults aged 65 and older. Which screening is most appropriate to recommend annually for this population?",
+    "options": [
+      {"text": "Fall-risk assessment", "correct": true, "feedback": "Correct. Annual fall-risk screening is a priority for older adults."},
+      {"text": "Routine chest x-ray for lung cancer", "correct": false, "feedback": "Incorrect. Chest x-ray is not recommended for routine lung cancer screening."},
+      {"text": "Annual whole-body CT scan", "correct": false, "feedback": "Incorrect. This is not an evidence-based preventive screen."},
+      {"text": "Yearly tonsillectomy evaluation", "correct": false, "feedback": "Incorrect. This is not a preventive measure."}
+    ],
+    "rationale": "Falls are a leading cause of injury in older adults; annual fall-risk screening enables early intervention."
+  },
+  {
+    "item_id": "NCLEX_MCQ_331006", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Respiratory", "topic": "High-risk behavior education", "subtopic": "Smoking cessation", "bloom": "Apply",
+    "stem": "A nurse is counseling an adult client who states, \"I know I should quit smoking, but I have tried before and failed.\" Using the stages of change, which response best matches the client's readiness?",
+    "options": [
+      {"text": "Let's set your quit date for this week and choose a nicotine patch", "correct": false, "feedback": "Incorrect. This assumes the client is ready to act now."},
+      {"text": "Let's talk about what worked and what got in the way last time", "correct": true, "feedback": "Correct. Exploring past attempts fits a client contemplating change."},
+      {"text": "Since you failed before, quitting may not be realistic for you", "correct": false, "feedback": "Incorrect. This is discouraging and non-therapeutic."},
+      {"text": "You do not seem interested, so we can revisit this in a year", "correct": false, "feedback": "Incorrect. The client is expressing ambivalence, not disinterest."}
+    ],
+    "rationale": "A client weighing pros and cons is in contemplation; exploring prior attempts supports movement toward action."
+  },
+  {
+    "item_id": "NCLEX_MCQ_331007", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Adolescent health", "subtopic": "Anticipatory guidance", "bloom": "Apply",
+    "stem": "A nurse provides anticipatory guidance to the parent of a 14-year-old. Which statement reflects appropriate developmental expectations for this adolescent?",
+    "options": [
+      {"text": "Peer relationships become increasingly important to identity", "correct": true, "feedback": "Correct. Peer influence and identity formation are central in adolescence."},
+      {"text": "Parallel play is the expected form of social interaction", "correct": false, "feedback": "Incorrect. Parallel play is characteristic of toddlers."},
+      {"text": "Separation anxiety is the primary emotional concern", "correct": false, "feedback": "Incorrect. This is typical of infancy."},
+      {"text": "Magical thinking dominates the child's reasoning", "correct": false, "feedback": "Incorrect. Magical thinking is a preschool trait."}
+    ],
+    "rationale": "Adolescents form identity strongly influenced by peers, per Erikson's identity vs. role confusion stage."
+  },
+  {
+    "item_id": "NCLEX_MCQ_331008", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Readiness to learn", "subtopic": "Teaching principles", "bloom": "Analyze",
+    "stem": "A nurse plans discharge education for a newly diagnosed diabetic client who was admitted in ketoacidosis this morning and is still nauseated and drowsy. Which action is most appropriate?",
+    "options": [
+      {"text": "Delay detailed teaching until the client is physiologically stable and alert", "correct": true, "feedback": "Correct. Physiologic distress impairs readiness to learn."},
+      {"text": "Provide the full insulin self-injection demonstration now", "correct": false, "feedback": "Incorrect. The client cannot absorb complex teaching while ill."},
+      {"text": "Give the client written materials to read independently now", "correct": false, "feedback": "Incorrect. Drowsiness and nausea reduce comprehension."},
+      {"text": "Ask a family member to complete all diabetes care permanently", "correct": false, "feedback": "Incorrect. This removes the client from self-management."}
+    ],
+    "rationale": "Readiness to learn requires the client be free of acute physiologic distress before meaningful teaching."
+  },
+  {
+    "item_id": "NCLEX_MCQ_331009", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Antepartum care", "subtopic": "Danger signs", "bloom": "Analyze",
+    "stem": "A nurse teaches a client at 28 weeks gestation about warning signs to report. Which symptom should the client be taught to report immediately?",
+    "options": [
+      {"text": "A persistent, severe headache with blurred vision", "correct": true, "feedback": "Correct. These may indicate preeclampsia and require immediate evaluation."},
+      {"text": "Mild ankle swelling at the end of the day", "correct": false, "feedback": "Incorrect. Dependent edema is common in pregnancy."},
+      {"text": "Occasional Braxton Hicks contractions", "correct": false, "feedback": "Incorrect. Irregular painless contractions are normal."},
+      {"text": "Increased frequency of urination", "correct": false, "feedback": "Incorrect. This is an expected finding."}
+    ],
+    "rationale": "Severe headache with visual changes suggests preeclampsia, an obstetric emergency."
+  },
+  {
+    "item_id": "NCLEX_MCQ_331010", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "GI", "topic": "Newborn care", "subtopic": "Feeding education", "bloom": "Apply",
+    "stem": "A nurse teaches a first-time mother about infant feeding. Which statement indicates the teaching was effective?",
+    "options": [
+      {"text": "I will feed my newborn on demand, about every 2 to 3 hours", "correct": true, "feedback": "Correct. On-demand feeding every 2–3 hours is appropriate for newborns."},
+      {"text": "I can add cereal to the bottle so my baby sleeps longer", "correct": false, "feedback": "Incorrect. Solids are not recommended before 6 months."},
+      {"text": "I should give water between feedings to prevent dehydration", "correct": false, "feedback": "Incorrect. Water can cause hyponatremia in newborns."},
+      {"text": "I will prop the bottle so my baby can feed alone", "correct": false, "feedback": "Incorrect. Bottle propping risks aspiration and ear infection."}
+    ],
+    "rationale": "Newborns are fed on demand every 2–3 hours; solids and water are inappropriate this young."
+  },
+  {
+    "item_id": "NCLEX_MCQ_331011", "type": "MCQ", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Endocrine", "topic": "Adult health maintenance", "subtopic": "Screening", "bloom": "Apply",
+    "stem": "A nurse at a workplace wellness clinic reviews health maintenance for a 45-year-old man with a family history of colon cancer. Which recommendation is most appropriate?",
+    "options": [
+      {"text": "Begin colorectal cancer screening earlier than the general population", "correct": true, "feedback": "Correct. A first-degree family history warrants earlier screening."},
+      {"text": "Screening is unnecessary until age 75", "correct": false, "feedback": "Incorrect. Family history increases risk and moves screening earlier."},
+      {"text": "Colonoscopy is only needed if he develops symptoms", "correct": false, "feedback": "Incorrect. Screening is preventive, not symptom-driven."},
+      {"text": "Diet alone eliminates the need for screening", "correct": false, "feedback": "Incorrect. Diet does not replace screening in high-risk clients."}
+    ],
+    "rationale": "A first-degree relative with colon cancer indicates earlier and more frequent colorectal screening."
+  },
+  {
+    "item_id": "NCLEX_SATA_331012", "type": "SATA", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal education", "bloom": "Analyze",
+    "stem": "A nurse teaches a pregnant client about healthy lifestyle during pregnancy. Which client statements indicate correct understanding? Select all that apply.",
+    "options": [
+      {"text": "I will avoid alcohol completely during my pregnancy", "correct": true},
+      {"text": "I should limit high-mercury fish like swordfish", "correct": true},
+      {"text": "Moderate walking most days of the week is beneficial", "correct": true},
+      {"text": "I can continue to soak in a hot tub daily", "correct": false},
+      {"text": "I should eat undercooked deli meats for extra protein", "correct": false},
+      {"text": "Handwashing before eating helps prevent infection", "correct": true}
+    ],
+    "rationale": "Avoiding alcohol, high-mercury fish, and undercooked meats plus regular activity and hygiene supports a healthy pregnancy; hot tubs are discouraged."
+  },
+  {
+    "item_id": "NCLEX_SATA_331013", "type": "SATA", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Toddler safety", "bloom": "Apply",
+    "stem": "A nurse provides anticipatory guidance to the parents of a 2-year-old. Which safety measures should the nurse include? Select all that apply.",
+    "options": [
+      {"text": "Keep cleaning products in locked cabinets", "correct": true},
+      {"text": "Use a rear-facing or forward-facing car seat per weight and height", "correct": true},
+      {"text": "Supervise the child closely near water at all times", "correct": true},
+      {"text": "Allow the toddler to play with small coins to build fine motor skills", "correct": false},
+      {"text": "Place the toddler to sleep in a safe crib without loose bedding", "correct": true},
+      {"text": "Leave medications on the counter for easy access", "correct": false}
+    ],
+    "rationale": "Toddlers are at high risk for poisoning, aspiration, and drowning; safe storage, supervision, and car seats are essential."
+  },
+  {
+    "item_id": "NCLEX_SATA_331014", "type": "SATA", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Older adult health maintenance", "bloom": "Analyze",
+    "stem": "A home-care nurse assesses an older adult client's ability to live independently. Which findings indicate a need for additional home support? Select all that apply.",
+    "options": [
+      {"text": "Expired medications mixed with current prescriptions", "correct": true},
+      {"text": "Several throw rugs on slippery floors", "correct": true},
+      {"text": "A working smoke detector in the hallway", "correct": false},
+      {"text": "Little food in the home and reported weight loss", "correct": true},
+      {"text": "Grab bars installed in the bathroom", "correct": false},
+      {"text": "Unopened mail and unpaid utility bills piling up", "correct": true}
+    ],
+    "rationale": "Medication disorganization, fall hazards, poor nutrition, and neglected affairs signal declining self-care and need for support."
+  },
+  {
+    "item_id": "NCLEX_SATA_331015", "type": "SATA", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Health assessment", "bloom": "Apply",
+    "stem": "A nurse conducts a comprehensive health assessment during a routine adult visit. Which components are part of a health promotion assessment? Select all that apply.",
+    "options": [
+      {"text": "Immunization history", "correct": true},
+      {"text": "Nutrition and dietary patterns", "correct": true},
+      {"text": "Tobacco, alcohol, and substance use", "correct": true},
+      {"text": "The client's credit card number", "correct": false},
+      {"text": "Exercise and physical activity level", "correct": true},
+      {"text": "Names of the client's coworkers", "correct": false}
+    ],
+    "rationale": "A health promotion assessment includes lifestyle, immunizations, nutrition, activity, and substance use, not irrelevant personal data."
+  },
+  {
+    "item_id": "NCLEX_SATA_331016", "type": "SATA", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Postpartum education", "bloom": "Analyze",
+    "stem": "A nurse teaches a breastfeeding mother before discharge. Which statements indicate the mother understands effective breastfeeding? Select all that apply.",
+    "options": [
+      {"text": "My baby should latch with a wide-open mouth covering the areola", "correct": true},
+      {"text": "Six or more wet diapers a day means my baby is getting enough milk", "correct": true},
+      {"text": "I should hear or see my baby swallowing during feeds", "correct": true},
+      {"text": "I should only breastfeed on a strict 4-hour schedule", "correct": false},
+      {"text": "Some breast fullness that softens after feeding is expected", "correct": true},
+      {"text": "Cracked, bleeding nipples are a normal part of nursing", "correct": false}
+    ],
+    "rationale": "A deep latch, adequate wet diapers, audible swallowing, and softening after feeds indicate effective breastfeeding; rigid scheduling and painful cracked nipples are not normal."
+  },
+  {
+    "item_id": "NCLEX_SELN_331017", "type": "SELECT_N", "difficulty": "Medium", "select_count": 3,
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Preventive care", "bloom": "Apply",
+    "stem": "A nurse plans primary prevention activities for a community. Which 3 activities are examples of PRIMARY prevention?",
+    "options": [
+      {"text": "Providing immunizations at a school clinic", "correct": true},
+      {"text": "Teaching a smoking-cessation class to well adults", "correct": true},
+      {"text": "Conducting a car-seat installation education program", "correct": true},
+      {"text": "Screening adults for high blood pressure", "correct": false},
+      {"text": "Rehabilitating a client after a stroke", "correct": false},
+      {"text": "Performing mammograms for early cancer detection", "correct": false}
+    ],
+    "rationale": "Primary prevention stops disease before it occurs (immunization, education); screening is secondary and rehabilitation is tertiary."
+  },
+  {
+    "item_id": "NCLEX_SELN_331018", "type": "SELECT_N", "difficulty": "Medium", "select_count": 2,
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Developmental screening", "bloom": "Analyze",
+    "stem": "A nurse screens a 4-year-old at a well-child visit. Which 2 findings would prompt referral for further developmental evaluation?",
+    "options": [
+      {"text": "Cannot speak in short sentences understandable to strangers", "correct": true},
+      {"text": "Does not hop on one foot or draw a simple person", "correct": true},
+      {"text": "Enjoys imaginative play with peers", "correct": false},
+      {"text": "Can state first and last name", "correct": false},
+      {"text": "Follows a three-step command", "correct": false}
+    ],
+    "rationale": "By age 4, a child should speak understandably, hop, and draw a person; absence of these warrants referral."
+  },
+  {
+    "item_id": "NCLEX_TF_331019", "type": "TF", "difficulty": "Medium", "answer": "False",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Immune", "topic": "Immunizations", "bloom": "Understand",
+    "stem": "A mild upper respiratory infection with a low-grade fever is a contraindication to administering routine childhood vaccines.",
+    "rationale": "Mild illness with or without low-grade fever is not a contraindication; vaccines may still be given."
+  },
+  {
+    "item_id": "NCLEX_TF_331020", "type": "TF", "difficulty": "Medium", "answer": "True",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Patient teaching", "bloom": "Understand",
+    "stem": "When a client faces a language barrier, using a trained medical interpreter rather than a family member improves the accuracy of health teaching.",
+    "rationale": "Trained interpreters provide accurate, unbiased communication and protect confidentiality better than family members."
+  },
+  {
+    "item_id": "NCLEX_MAT_331021", "type": "MATRIX", "difficulty": "Medium", "row_label": "Activity",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Levels of prevention", "bloom": "Analyze",
+    "stem": "For each nursing activity, click to classify it as primary or secondary prevention.",
+    "columns": ["Primary prevention", "Secondary prevention"],
+    "rows": [
+      {"text": "Administering influenza vaccine to healthy adults", "answer": 0},
+      {"text": "Screening blood glucose at a health fair", "answer": 1},
+      {"text": "Teaching helmet use to prevent head injury", "answer": 0},
+      {"text": "Performing a Papanicolaou (Pap) test", "answer": 1}
+    ],
+    "rationale": "Primary prevention avoids disease onset; secondary prevention detects disease early through screening."
+  },
+  {
+    "item_id": "NCLEX_MMR_331022", "type": "MATRIX_MR", "difficulty": "Medium", "row_label": "Age group",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Developmental milestones", "bloom": "Analyze",
+    "stem": "For each age group, select all milestones typically expected at that age (a milestone may apply to more than one group).",
+    "columns": ["6 months", "12 months", "24 months"],
+    "rows": [
+      {"text": "Sits with support / rolls over", "answers": [0]},
+      {"text": "Says a few single words", "answers": [1]},
+      {"text": "Walks well and climbs stairs with help", "answers": [2]},
+      {"text": "Runs and uses two-word phrases", "answers": [2]}
+    ],
+    "rationale": "Sitting emerges near 6 months, first words near 12 months, and walking with phrases by 24 months."
+  },
+  {
+    "item_id": "NCLEX_CLZ_331023", "type": "CLOZE", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Fundal assessment", "bloom": "Apply",
+    "stem": "During a routine postpartum check on day 1, the nurse expects the fundus to be firm and located at {1}. If the fundus is boggy, the nurse should first {2}.",
+    "blanks": [
+      {"choices": [{"text": "the level of the umbilicus", "correct": true}, {"text": "the xiphoid process"}, {"text": "the symphysis pubis"}]},
+      {"choices": [{"text": "massage the fundus", "correct": true}, {"text": "administer an analgesic"}, {"text": "increase IV fluids to 200 mL/hr"}]}
+    ],
+    "rationale": "On day 1 the fundus is at the umbilicus; a boggy fundus is first managed with fundal massage to promote contraction."
+  },
+  {
+    "item_id": "NCLEX_HL_331024", "type": "HIGHLIGHT", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Home safety assessment", "bloom": "Analyze",
+    "stem": "A home-care nurse assesses the home of an older adult at risk for falls. Highlight the findings that require intervention. The home has [[loose electrical cords across the walkway]], [[grab bars in the shower]], [[poor lighting on the staircase]], a [[nightlight in the hallway]], and [[a cluttered floor with stacked boxes]].",
+    "chunks": [
+      {"text": "loose electrical cords across the walkway", "correct": true, "feedback": "A tripping hazard requiring intervention."},
+      {"text": "grab bars in the shower", "correct": false, "feedback": "A safety feature, not a hazard."},
+      {"text": "poor lighting on the staircase", "correct": true, "feedback": "Poor lighting increases fall risk."},
+      {"text": "nightlight in the hallway", "correct": false, "feedback": "A protective measure."},
+      {"text": "a cluttered floor with stacked boxes", "correct": true, "feedback": "Clutter obstructs safe walking."}
+    ],
+    "rationale": "Loose cords, poor stair lighting, and floor clutter are fall hazards; grab bars and nightlights are protective."
+  },
+  {
+    "item_id": "NCLEX_BT_331025", "type": "BOWTIE", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Gestational diabetes education", "bloom": "Evaluate",
+    "stem": "A pregnant client is newly diagnosed with gestational diabetes. Complete the diagram by selecting the priority education topics, the condition, and the outcomes to monitor.",
+    "left": {"label": "Education to provide", "tokens": [
+      {"text": "Monitor and record blood glucose as directed", "correct": true},
+      {"text": "Follow the prescribed carbohydrate-controlled diet", "correct": true},
+      {"text": "Stop all physical activity for the pregnancy"},
+      {"text": "Skip meals to keep glucose low"}
+    ]},
+    "centre": {"label": "Condition", "tokens": [
+      {"text": "Gestational diabetes", "correct": true},
+      {"text": "Preeclampsia"},
+      {"text": "Placenta previa"}
+    ]},
+    "right": {"label": "Outcomes to monitor", "tokens": [
+      {"text": "Maternal blood glucose levels", "correct": true},
+      {"text": "Fetal growth and size", "correct": true},
+      {"text": "Maternal hearing acuity"},
+      {"text": "Client's dental alignment"}
+    ]},
+    "rationale": "Gestational diabetes management centers on glucose monitoring and diet, with follow-up of maternal glucose and fetal growth."
+  },
+  {
+    "item_id": "NCLEX_DCZ_331026", "type": "DRAG_CLOZE", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Immune", "topic": "Immunization schedule", "bloom": "Apply",
+    "stem": "A nurse reviews the childhood immunization schedule. The first dose of the hepatitis B vaccine is given at [1], and the MMR vaccine is first given at [2].",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["birth", "12 months", "6 years"],
+    "rationale": "Hepatitis B is given at birth; the first MMR dose is given at 12–15 months."
+  },
+  {
+    "item_id": "NCLEX_DO_331027", "type": "DRAG_ORDER", "difficulty": "Medium",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Patient teaching process", "bloom": "Apply",
+    "stem": "A nurse plans a health education session for a client learning to manage a new diagnosis. Place the steps of the teaching process in the correct order.",
+    "tokens": ["Assess the client's learning needs and readiness", "Set mutual learning goals with the client", "Implement the teaching plan", "Evaluate the client's understanding", "Document the teaching and response"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

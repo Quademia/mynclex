@@ -1,0 +1,348 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_307001", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Immunizations", "subtopic": "Adult schedule", "bloom": "Understand",
+    "stem": "A nurse is teaching a healthy 65-year-old client about recommended vaccines. Which vaccine should the nurse recommend annually?",
+    "options": [
+      {"text": "Influenza vaccine", "correct": true, "feedback": "Correct. Influenza vaccine is recommended every year."},
+      {"text": "Tetanus (Td) booster", "correct": false, "feedback": "Incorrect. Td is given every 10 years."},
+      {"text": "MMR vaccine", "correct": false, "feedback": "Incorrect. MMR is not given annually to adults."},
+      {"text": "Hepatitis B vaccine", "correct": false, "feedback": "Incorrect. Hepatitis B is a series, not annual."}
+    ],
+    "rationale": "The influenza vaccine is recommended annually for all adults, especially older adults."
+  },
+  {
+    "item_id": "NCLEX_MCQ_307002", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Growth and development", "subtopic": "Infant milestones", "bloom": "Remember",
+    "stem": "At which age does a nurse expect a healthy infant to sit without support?",
+    "options": [
+      {"text": "2 months", "correct": false, "feedback": "Incorrect. Too early for unsupported sitting."},
+      {"text": "6 months", "correct": true, "feedback": "Correct. Infants typically sit unsupported around 6 months."},
+      {"text": "12 months", "correct": false, "feedback": "Incorrect. Children usually walk around this age."},
+      {"text": "18 months", "correct": false, "feedback": "Incorrect. This is well past the expected milestone."}
+    ],
+    "rationale": "Sitting without support is an expected milestone around 6 months of age."
+  },
+  {
+    "item_id": "NCLEX_MCQ_307003", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal care", "subtopic": "Nutrition education", "bloom": "Apply",
+    "stem": "A nurse teaches a client planning pregnancy about preventing neural tube defects. Which supplement should the nurse emphasize?",
+    "options": [
+      {"text": "Folic acid", "correct": true, "feedback": "Correct. Folic acid reduces the risk of neural tube defects."},
+      {"text": "Vitamin C", "correct": false, "feedback": "Incorrect. Vitamin C does not prevent neural tube defects."},
+      {"text": "Vitamin D", "correct": false, "feedback": "Incorrect. Vitamin D supports bone health, not neural tube closure."},
+      {"text": "Calcium", "correct": false, "feedback": "Incorrect. Calcium supports bone development, not neural tube closure."}
+    ],
+    "rationale": "Folic acid taken before and during early pregnancy reduces neural tube defect risk."
+  },
+  {
+    "item_id": "NCLEX_MCQ_307004", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Reproductive", "topic": "Targeted screening", "subtopic": "Cancer screening", "bloom": "Understand",
+    "stem": "A nurse counsels a 55-year-old woman about routine screening. Which screening test is recommended for breast cancer detection?",
+    "options": [
+      {"text": "Mammography", "correct": true, "feedback": "Correct. Mammography screens for breast cancer."},
+      {"text": "Colonoscopy", "correct": false, "feedback": "Incorrect. Colonoscopy screens for colorectal cancer."},
+      {"text": "Pap smear", "correct": false, "feedback": "Incorrect. A Pap smear screens for cervical cancer."},
+      {"text": "Bone density scan", "correct": false, "feedback": "Incorrect. This screens for osteoporosis."}
+    ],
+    "rationale": "Mammography is the standard screening test for early breast cancer detection."
+  },
+  {
+    "item_id": "NCLEX_MCQ_307005", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "GI", "topic": "Newborn care", "subtopic": "Infant nutrition", "bloom": "Understand",
+    "stem": "A nurse teaches new parents about infant nutrition. Until what age is exclusive breastfeeding generally recommended?",
+    "options": [
+      {"text": "About 6 months", "correct": true, "feedback": "Correct. Exclusive breastfeeding is recommended for about the first 6 months."},
+      {"text": "2 weeks", "correct": false, "feedback": "Incorrect. Far too early to add other foods."},
+      {"text": "12 months", "correct": false, "feedback": "Incorrect. Solids are usually introduced around 6 months."},
+      {"text": "2 years", "correct": false, "feedback": "Incorrect. This exceeds the exclusive breastfeeding period."}
+    ],
+    "rationale": "Exclusive breastfeeding for about the first 6 months is recommended before introducing solids."
+  },
+  {
+    "item_id": "NCLEX_MCQ_307006", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Respiratory", "topic": "High-risk behavior education", "subtopic": "Smoking cessation", "bloom": "Apply",
+    "stem": "A client who smokes asks about the benefit of quitting. Which is an accurate statement the nurse can share?",
+    "options": [
+      {"text": "Quitting lowers the risk of lung cancer and heart disease", "correct": true, "feedback": "Correct. Cessation reduces multiple health risks."},
+      {"text": "Quitting has no benefit after age 50", "correct": false, "feedback": "Incorrect. Benefits occur at any age."},
+      {"text": "Switching to light cigarettes eliminates risk", "correct": false, "feedback": "Incorrect. Light cigarettes still carry risk."},
+      {"text": "Damage from smoking cannot be reduced by quitting", "correct": false, "feedback": "Incorrect. Quitting improves health outcomes."}
+    ],
+    "rationale": "Smoking cessation reduces the risk of lung cancer, heart disease, and other conditions at any age."
+  },
+  {
+    "item_id": "NCLEX_MCQ_307007", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Cardiovascular", "topic": "Lifestyle and health maintenance", "subtopic": "Exercise", "bloom": "Understand",
+    "stem": "A nurse teaches an adult client about physical activity. Which weekly amount of moderate aerobic activity is generally recommended?",
+    "options": [
+      {"text": "At least 150 minutes", "correct": true, "feedback": "Correct. About 150 minutes per week is recommended."},
+      {"text": "About 20 minutes", "correct": false, "feedback": "Incorrect. This is well below the recommendation."},
+      {"text": "About 500 minutes", "correct": false, "feedback": "Incorrect. This exceeds the standard recommendation."},
+      {"text": "No regular activity is needed", "correct": false, "feedback": "Incorrect. Regular activity is important."}
+    ],
+    "rationale": "At least 150 minutes of moderate aerobic activity per week is recommended for adults."
+  },
+  {
+    "item_id": "NCLEX_MCQ_307008", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Growth and development", "subtopic": "Toddler safety", "bloom": "Apply",
+    "stem": "A nurse teaches parents of a toddler about injury prevention. Which action best reduces the risk of accidental poisoning?",
+    "options": [
+      {"text": "Store cleaning products in a locked cabinet", "correct": true, "feedback": "Correct. Locking away toxic substances prevents poisoning."},
+      {"text": "Keep medications on the kitchen counter", "correct": false, "feedback": "Incorrect. This increases access risk."},
+      {"text": "Allow the toddler to explore under the sink", "correct": false, "feedback": "Incorrect. This exposes the child to hazards."},
+      {"text": "Store chemicals in unlabeled drink bottles", "correct": false, "feedback": "Incorrect. This causes accidental ingestion."}
+    ],
+    "rationale": "Storing toxic substances in locked cabinets prevents accidental poisoning in toddlers."
+  },
+  {
+    "item_id": "NCLEX_MCQ_307009", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Postpartum education", "subtopic": "Danger signs", "bloom": "Apply",
+    "stem": "A nurse teaches a postpartum client warning signs to report. Which finding should the client report to the provider?",
+    "options": [
+      {"text": "Foul-smelling lochia with fever", "correct": true, "feedback": "Correct. This suggests infection and must be reported."},
+      {"text": "Gradual decrease in lochia over days", "correct": false, "feedback": "Incorrect. This is expected."},
+      {"text": "Mild afterpains during breastfeeding", "correct": false, "feedback": "Incorrect. These are normal."},
+      {"text": "Breast fullness before feeding", "correct": false, "feedback": "Incorrect. This is expected."}
+    ],
+    "rationale": "Foul-smelling lochia with fever indicates possible postpartum infection and must be reported."
+  },
+  {
+    "item_id": "NCLEX_MCQ_307010", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Endocrine", "topic": "Comprehensive health assessment", "subtopic": "BMI", "bloom": "Understand",
+    "stem": "A nurse reviews a client's body mass index (BMI) of 27. How should the nurse classify this result?",
+    "options": [
+      {"text": "Overweight", "correct": true, "feedback": "Correct. A BMI of 25 to 29.9 is classified as overweight."},
+      {"text": "Underweight", "correct": false, "feedback": "Incorrect. Underweight is below 18.5."},
+      {"text": "Normal weight", "correct": false, "feedback": "Incorrect. Normal is 18.5 to 24.9."},
+      {"text": "Obese", "correct": false, "feedback": "Incorrect. Obesity begins at 30."}
+    ],
+    "rationale": "A BMI of 25 to 29.9 falls in the overweight category."
+  },
+  {
+    "item_id": "NCLEX_MCQ_307011", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Readiness and barriers to learning", "subtopic": "Teaching", "bloom": "Apply",
+    "stem": "A nurse plans client teaching. Which factor indicates the client is ready to learn?",
+    "options": [
+      {"text": "The client asks questions about self-care", "correct": true, "feedback": "Correct. Curiosity signals readiness to learn."},
+      {"text": "The client is in severe acute pain", "correct": false, "feedback": "Incorrect. Pain interferes with learning."},
+      {"text": "The client is heavily sedated", "correct": false, "feedback": "Incorrect. Sedation impairs learning."},
+      {"text": "The client refuses to discuss the diagnosis", "correct": false, "feedback": "Incorrect. This suggests a barrier."}
+    ],
+    "rationale": "A client who asks questions about self-care demonstrates readiness to learn."
+  },
+  {
+    "item_id": "NCLEX_MCQ_307012", "type": "MCQ", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Integumentary", "topic": "Lifestyle and health maintenance", "subtopic": "Skin cancer prevention", "bloom": "Apply",
+    "stem": "A nurse teaches a client about skin cancer prevention. Which recommendation is appropriate?",
+    "options": [
+      {"text": "Apply broad-spectrum sunscreen before sun exposure", "correct": true, "feedback": "Correct. Sunscreen reduces UV-related skin damage."},
+      {"text": "Use tanning beds instead of natural sunlight", "correct": false, "feedback": "Incorrect. Tanning beds increase skin cancer risk."},
+      {"text": "Avoid sunscreen to allow vitamin D formation", "correct": false, "feedback": "Incorrect. Sun protection is still recommended."},
+      {"text": "Sunburn is harmless if it fades", "correct": false, "feedback": "Incorrect. Sunburns increase cancer risk."}
+    ],
+    "rationale": "Broad-spectrum sunscreen and sun protection reduce the risk of skin cancer."
+  },
+  {
+    "item_id": "NCLEX_SATA_307013", "type": "SATA", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Cardiovascular", "topic": "Lifestyle and health maintenance", "subtopic": "Heart health", "bloom": "Apply",
+    "stem": "A nurse teaches an adult client about reducing cardiovascular risk. Which lifestyle recommendations should the nurse include? Select all that apply.",
+    "options": [
+      {"text": "Engage in regular physical activity", "correct": true},
+      {"text": "Eat a diet low in saturated fat and sodium", "correct": true},
+      {"text": "Avoid tobacco use", "correct": true},
+      {"text": "Increase intake of processed foods", "correct": false},
+      {"text": "Maintain a sedentary lifestyle", "correct": false}
+    ],
+    "rationale": "Physical activity, a heart-healthy diet, and tobacco avoidance reduce cardiovascular risk."
+  },
+  {
+    "item_id": "NCLEX_SATA_307014", "type": "SATA", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Preventive care and immunizations", "subtopic": "Well-child visits", "bloom": "Understand",
+    "stem": "A nurse educates parents about well-child care. Which are components of a routine well-child visit? Select all that apply.",
+    "options": [
+      {"text": "Growth and development assessment", "correct": true},
+      {"text": "Routine immunizations", "correct": true},
+      {"text": "Age-appropriate anticipatory guidance", "correct": true},
+      {"text": "Emergency surgical intervention", "correct": false},
+      {"text": "Only visits when the child is ill", "correct": false}
+    ],
+    "rationale": "Well-child visits include growth assessment, immunizations, and anticipatory guidance."
+  },
+  {
+    "item_id": "NCLEX_SATA_307015", "type": "SATA", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal care", "subtopic": "Health teaching", "bloom": "Apply",
+    "stem": "A nurse teaches a pregnant client about healthy behaviors during pregnancy. Which instructions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Take a prenatal vitamin with folic acid daily", "correct": true},
+      {"text": "Avoid alcohol during pregnancy", "correct": true},
+      {"text": "Attend regularly scheduled prenatal visits", "correct": true},
+      {"text": "Smoke to relieve stress", "correct": false},
+      {"text": "Take medications without checking with the provider", "correct": false}
+    ],
+    "rationale": "Prenatal vitamins, alcohol avoidance, and regular prenatal visits promote a healthy pregnancy."
+  },
+  {
+    "item_id": "NCLEX_SATA_307016", "type": "SATA", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Older adult health", "subtopic": "Fall prevention", "bloom": "Apply",
+    "stem": "A nurse teaches an older adult about preventing falls at home. Which recommendations should the nurse include? Select all that apply.",
+    "options": [
+      {"text": "Remove loose rugs and clutter", "correct": true},
+      {"text": "Install grab bars in the bathroom", "correct": true},
+      {"text": "Ensure adequate lighting in hallways", "correct": true},
+      {"text": "Wear loose, floor-length clothing", "correct": false},
+      {"text": "Keep walkways dark to save energy", "correct": false}
+    ],
+    "rationale": "Removing hazards, installing grab bars, and improving lighting reduce fall risk in older adults."
+  },
+  {
+    "item_id": "NCLEX_SATA_307017", "type": "SATA", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Targeted screening", "subtopic": "Adult screening", "bloom": "Understand",
+    "stem": "A nurse reviews recommended screenings for an adult client. Which are routine preventive screenings? Select all that apply.",
+    "options": [
+      {"text": "Blood pressure measurement", "correct": true},
+      {"text": "Cholesterol screening", "correct": true},
+      {"text": "Depression screening", "correct": true},
+      {"text": "Daily chest x-ray", "correct": false},
+      {"text": "Routine brain MRI for all adults", "correct": false}
+    ],
+    "rationale": "Blood pressure, cholesterol, and depression screenings are routine adult preventive measures."
+  },
+  {
+    "item_id": "NCLEX_SELN_307018", "type": "SELECT_N", "difficulty": "Easy", "select_count": 2,
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Growth and development", "subtopic": "Preschool milestones", "bloom": "Understand",
+    "stem": "Which 2 behaviors are expected developmental milestones for a healthy 3-year-old child?",
+    "options": [
+      {"text": "Speaks in short sentences", "correct": true},
+      {"text": "Rides a tricycle", "correct": true},
+      {"text": "Reads simple paragraphs", "correct": false},
+      {"text": "Ties shoelaces independently", "correct": false},
+      {"text": "Writes in cursive", "correct": false}
+    ],
+    "rationale": "A 3-year-old typically speaks in short sentences and can ride a tricycle."
+  },
+  {
+    "item_id": "NCLEX_TF_307019", "type": "TF", "difficulty": "Easy", "answer": "True",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "GI", "topic": "Targeted screening", "bloom": "Remember",
+    "stem": "Colorectal cancer screening is generally recommended to begin at age 45 for average-risk adults.",
+    "rationale": "Average-risk colorectal cancer screening is recommended starting at age 45."
+  },
+  {
+    "item_id": "NCLEX_TF_307020", "type": "TF", "difficulty": "Easy", "answer": "False",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Multisystem", "topic": "Preventive care and immunizations", "bloom": "Understand",
+    "stem": "A mild low-grade fever after a routine childhood vaccine is an absolute contraindication to future immunizations.",
+    "rationale": "A mild fever after vaccination is a common, expected response and is not a contraindication."
+  },
+  {
+    "item_id": "NCLEX_MAT_307021", "type": "MATRIX", "difficulty": "Easy", "row_label": "Milestone",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Pediatrics", "body_system": "Neurological", "topic": "Growth and development", "subtopic": "Age milestones", "bloom": "Understand",
+    "stem": "For each developmental milestone, click to indicate the age group in which it is typically first achieved.",
+    "columns": ["Infant (0-12 months)", "Toddler (1-3 years)"],
+    "rows": [
+      {"text": "Rolls from back to front", "answer": 0},
+      {"text": "Walks up stairs with help", "answer": 1},
+      {"text": "Says first words", "answer": 0},
+      {"text": "Uses a spoon to self-feed", "answer": 1}
+    ],
+    "rationale": "Rolling and first words emerge in infancy; stair-climbing and spoon-feeding emerge in toddlerhood."
+  },
+  {
+    "item_id": "NCLEX_MMR_307022", "type": "MATRIX_MR", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Preventive care and immunizations", "subtopic": "Screening by age", "bloom": "Understand",
+    "stem": "For each health maintenance activity, select all age groups for which it is routinely recommended.",
+    "columns": ["Older adult (65+)", "Adult (18-64)"],
+    "rows": [
+      {"text": "Annual influenza vaccine", "answers": [0, 1]},
+      {"text": "Pneumococcal vaccine", "answers": [0]},
+      {"text": "Blood pressure screening", "answers": [0, 1]}
+    ],
+    "rationale": "Influenza vaccine and blood pressure screening apply broadly, while routine pneumococcal vaccination targets older adults."
+  },
+  {
+    "item_id": "NCLEX_CLZ_307023", "type": "CLOZE", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Prenatal care", "subtopic": "Nutrition", "bloom": "Apply",
+    "stem": "The nurse teaches that a pregnant client should take {1} daily to help prevent neural tube defects and should avoid {2} entirely during pregnancy.",
+    "blanks": [
+      {"choices": [{"text": "folic acid", "correct": true}, {"text": "vitamin K"}, {"text": "iron only"}]},
+      {"choices": [{"text": "alcohol", "correct": true}, {"text": "water"}, {"text": "fruit"}]}
+    ],
+    "rationale": "Folic acid prevents neural tube defects; alcohol should be avoided completely during pregnancy."
+  },
+  {
+    "item_id": "NCLEX_HL_307024", "type": "HIGHLIGHT", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "High-risk behavior education", "subtopic": "Healthy behaviors", "bloom": "Understand",
+    "stem": "Highlight the behaviors that promote health during a routine wellness visit. The client reports [[exercising 30 minutes most days]], [[smoking one pack of cigarettes daily]], [[eating vegetables with most meals]], and [[skipping all preventive checkups]].",
+    "chunks": [
+      {"text": "exercising 30 minutes most days", "correct": true, "feedback": "Regular exercise promotes health."},
+      {"text": "smoking one pack of cigarettes daily", "correct": false, "feedback": "Smoking is a high-risk behavior."},
+      {"text": "eating vegetables with most meals", "correct": true, "feedback": "A vegetable-rich diet promotes health."},
+      {"text": "skipping all preventive checkups", "correct": false, "feedback": "Avoiding checkups is not health-promoting."}
+    ],
+    "rationale": "Exercise and a vegetable-rich diet promote health, while smoking and skipping checkups do not."
+  },
+  {
+    "item_id": "NCLEX_BT_307025", "type": "BOWTIE", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Cardiovascular", "topic": "Lifestyle and health maintenance", "subtopic": "Risk reduction", "bloom": "Apply",
+    "stem": "Complete the diagram for a client at risk for cardiovascular disease by selecting health-promoting actions, the goal, and outcomes to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Encourage regular aerobic exercise", "correct": true},
+      {"text": "Teach a low-sodium diet", "correct": true},
+      {"text": "Recommend daily smoking", "correct": false},
+      {"text": "Advise a sedentary routine", "correct": false}
+    ]},
+    "centre": {"label": "Goal", "tokens": [
+      {"text": "Reduce cardiovascular risk", "correct": true},
+      {"text": "Increase blood pressure", "correct": false},
+      {"text": "Promote weight gain", "correct": false}
+    ]},
+    "right": {"label": "Outcomes to monitor", "tokens": [
+      {"text": "Blood pressure", "correct": true},
+      {"text": "Body weight", "correct": true},
+      {"text": "Hair color", "correct": false},
+      {"text": "Shoe size", "correct": false}
+    ]},
+    "rationale": "Exercise and a low-sodium diet reduce cardiovascular risk, monitored by blood pressure and weight."
+  },
+  {
+    "item_id": "NCLEX_DCZ_307026", "type": "DRAG_CLOZE", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Lifestyle and health maintenance", "subtopic": "Activity guidelines", "bloom": "Apply",
+    "stem": "The nurse teaches that adults should aim for at least [1] of moderate aerobic activity per week and should include [2] on two or more days weekly.",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["150 minutes", "muscle-strengthening exercise", "10 minutes", "complete bed rest"],
+    "rationale": "Adults should get at least 150 minutes of moderate aerobic activity plus muscle-strengthening exercise weekly."
+  },
+  {
+    "item_id": "NCLEX_DO_307027", "type": "DRAG_ORDER", "difficulty": "Easy",
+    "category": "Health Promotion and Maintenance", "subcategory": "Health Promotion and Maintenance",
+    "subject": "Community Health", "body_system": "Multisystem", "topic": "Comprehensive health assessment", "subtopic": "Teaching process", "bloom": "Apply",
+    "stem": "A nurse plans a health-promotion teaching session for a client. Place the steps of the teaching process in the correct order.",
+    "tokens": ["Assess the client's learning needs", "Set mutual learning goals", "Provide the health education", "Evaluate the client's understanding"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}]
+  }
+]

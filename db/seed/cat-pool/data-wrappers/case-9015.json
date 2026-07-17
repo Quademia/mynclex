@@ -1,0 +1,134 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09015",
+  "title": "Sickle Cell Vaso-Occlusive Crisis",
+  "scenario": "A 19-year-old male with sickle cell disease (HbSS) presents to the emergency department with severe diffuse bone pain in his back, arms, and legs that began yesterday after a soccer match in hot weather. He rates the pain 9 out of 10.",
+  "tags": ["synthetic", "hematologic"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["14:00"], "lines": ["19-year-old male with known sickle cell disease (HbSS) presents with severe generalized bone and joint pain rated 9/10, worst in the lumbar spine and long bones. Reports last crisis 4 months ago. States he ran out of hydroxyurea 2 weeks ago and had limited fluids during a soccer tournament in the heat. Mucous membranes dry. Alert and oriented x3. Guarding and grimacing with movement."], "visibleFrom": 1},
+        {"chips": ["14:20"], "lines": ["IV access obtained in the right forearm. Labs drawn and sent. Oxygen applied at 2L per nasal cannula. Cardiac and pulse-oximetry monitoring initiated. Provider at bedside."], "visibleFrom": 2},
+        {"chips": ["15:00"], "lines": ["IV morphine administered per order. Isotonic IV fluids infusing. Warm compresses applied to affected limbs. Repositioned for comfort."], "visibleFrom": 5},
+        {"chips": ["17:30"], "lines": ["Reports pain now 3/10 and is resting more comfortably. Voiding clear yellow urine. Mucous membranes moist. Ambulated to bathroom with steady gait."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["14:00", "99.1 F (37.3 C)", "118", "24", "138/84", "91% on RA"],
+        ["14:20", "99.1 F (37.3 C)", "112", "22", "136/82", "96% on 2L NC"],
+        ["17:30", "98.8 F (37.1 C)", "84", "16", "122/76", "98% on 2L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Hemoglobin", "7.2", "13.5-17.5 g/dL"],
+        ["Hematocrit", "21", "41-53 %"],
+        ["Reticulocyte count", "9.8", "0.5-2.5 %"],
+        ["WBC", "14.5", "4.5-11.0 x10^9/L"],
+        ["Total bilirubin", "3.4", "0.3-1.0 mg/dL"],
+        ["LDH", "620", "140-280 U/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Hydroxyurea 1000 mg PO daily (reports not taken for 2 weeks)", "Folic acid 1 mg PO daily", "Penicillin V prophylaxis (childhood, discontinued)"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Morphine 4 mg IV every 2 hours PRN severe pain", "0.9% sodium chloride IV at 125 mL/hr", "Oxygen to maintain SpO2 greater than 94%", "Warm compresses to affected extremities", "Incentive spirometer every hour while awake", "Strict intake and output", "Resume hydroxyurea and folic acid", "Notify provider for temperature above 101 F or worsening hypoxia"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_401501", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Sickle cell disease", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Severe diffuse bone pain rated 9/10", "correct": true},
+        {"text": "SpO2 91% on room air", "correct": true},
+        {"text": "Heart rate 118", "correct": true},
+        {"text": "Dry mucous membranes", "correct": true},
+        {"text": "Alert and oriented x3", "correct": false},
+        {"text": "Temperature 99.1 F", "correct": false}
+      ],
+      "rationale": "Uncontrolled severe pain, hypoxia, tachycardia, and dehydration all drive and reflect sickling and require prompt intervention. Normal orientation and a mildly elevated temperature are not immediate priorities."
+    },
+    {
+      "item_id": "NCLEX_MMR_401502", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Sickle cell disease", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects hemolysis, vaso-occlusion, or both. Each finding may reflect more than one.",
+      "columns": ["Hemolysis", "Vaso-occlusion"],
+      "rows": [
+        {"text": "Total bilirubin 3.4 mg/dL", "answers": [0]},
+        {"text": "Severe bone pain", "answers": [1]},
+        {"text": "Reticulocyte count 9.8%", "answers": [0]},
+        {"text": "Hemoglobin 7.2 g/dL with elevated LDH", "answers": [0, 1]}
+      ],
+      "rationale": "Elevated bilirubin and reticulocytosis reflect red cell breakdown (hemolysis). Bone pain reflects tissue ischemia from vaso-occlusion. Low hemoglobin with high LDH results from both chronic hemolysis and ongoing sickling."
+    },
+    {
+      "item_id": "NCLEX_CLZ_401503", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort", "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Sickle cell disease", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the priority initial intervention is {2}.",
+      "blanks": [
+        {"choices": [{"text": "acute pain with impaired tissue perfusion", "correct": true}, {"text": "risk for infection", "correct": false}, {"text": "activity intolerance", "correct": false}]},
+        {"choices": [{"text": "administer IV analgesia and fluids", "correct": true}, {"text": "obtain a type and crossmatch", "correct": false}, {"text": "encourage ambulation", "correct": false}]}
+      ],
+      "rationale": "The immediate threat in vaso-occlusive crisis is severe pain from tissue ischemia; aggressive analgesia and hydration to reduce sickling take priority over other real but less urgent concerns."
+    },
+    {
+      "item_id": "NCLEX_MAT_401504", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Sickle cell disease", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer IV isotonic fluids", "answer": 0},
+        {"text": "Apply warm compresses to painful areas", "answer": 0},
+        {"text": "Apply cold packs to painful joints", "answer": 1},
+        {"text": "Provide supplemental oxygen for hypoxia", "answer": 0},
+        {"text": "Restrict fluids to prevent overload", "answer": 1}
+      ],
+      "rationale": "Hydration, warmth, and oxygen reduce sickling and relieve ischemic pain. Cold causes vasoconstriction that worsens sickling, and fluid restriction promotes dehydration and further sickling."
+    },
+    {
+      "item_id": "NCLEX_SATA_401505", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Sickle cell crisis management", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "Which actions should the nurse take to manage this client's crisis? Select all that apply.",
+      "options": [
+        {"text": "Administer IV morphine on a scheduled/PRN basis", "correct": true},
+        {"text": "Maintain IV isotonic fluid infusion", "correct": true},
+        {"text": "Encourage use of the incentive spirometer", "correct": true},
+        {"text": "Titrate oxygen to keep SpO2 above 94%", "correct": true},
+        {"text": "Withhold opioids to avoid dependence", "correct": false},
+        {"text": "Apply ice packs to the painful limbs", "correct": false}
+      ],
+      "rationale": "Opioid analgesia, hydration, oxygenation, and incentive spirometry (to prevent acute chest syndrome) are standard crisis care. Withholding opioids and applying cold are inappropriate and worsen outcomes."
+    },
+    {
+      "item_id": "NCLEX_SATA_401506", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Sickle cell disease", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Pain decreased to 3/10", "correct": true},
+        {"text": "SpO2 improved to 98%", "correct": true},
+        {"text": "Heart rate decreased to 84", "correct": true},
+        {"text": "Mucous membranes now moist with clear urine output", "correct": true},
+        {"text": "Respiratory rate increased to 24", "correct": false}
+      ],
+      "rationale": "Reduced pain, improved oxygenation, a normalizing heart rate, and restored hydration all show the crisis is resolving. A rising respiratory rate would suggest a worsening respiratory complication, not improvement."
+    }
+  ]
+}

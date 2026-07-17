@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09028",
+  "title": "Magnesium Sulfate Infusion in Preeclampsia",
+  "scenario": "A 29-year-old client at 37 weeks gestation with severe preeclampsia is receiving a continuous IV magnesium sulfate infusion for seizure prophylaxis. The nurse monitors the client hourly.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Magnesium Monitoring Flowsheet",
+      "headers": ["Time", "B/P", "RR", "Deep tendon reflexes", "Urine output (last hr)", "Serum magnesium", "Level of consciousness"],
+      "rows": [
+        ["10:00", "150/98", "18", "2+ (normal)", "45 mL", "5.2 mg/dL", "Alert"],
+        ["11:00", "148/96", "16", "2+ (normal)", "40 mL", "6.8 mg/dL", "Alert"],
+        ["12:00", "146/94", "14", "1+ (diminished)", "28 mL", "8.1 mg/dL", "Drowsy"],
+        ["13:00", "144/92", "10", "Absent", "18 mL", "9.6 mg/dL", "Lethargic, slurred speech"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_SATA_450281",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Pharmacological and Parenteral Therapies",
+      "subject": "Maternal-Newborn",
+      "body_system": "Reproductive",
+      "topic": "Magnesium sulfate toxicity",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Based on the flowsheet trend, which findings indicate the client is developing magnesium sulfate toxicity? Select all that apply.",
+      "options": [
+        {"text": "Respiratory rate falling to 10 breaths/min", "correct": true},
+        {"text": "Deep tendon reflexes now absent", "correct": true},
+        {"text": "Serum magnesium rising to 9.6 mg/dL", "correct": true},
+        {"text": "Urine output decreasing to 18 mL/hr", "correct": true},
+        {"text": "Blood pressure trending down to 144/92", "correct": false},
+        {"text": "Client remaining afebrile", "correct": false}
+      ],
+      "rationale": "Loss of deep tendon reflexes, respiratory depression, a rising serum level above the 4-7 mg/dL therapeutic range, and declining urine output (which reduces magnesium excretion) are the hallmark signs of magnesium toxicity. A gradual fall in blood pressure is the intended therapeutic effect, not toxicity."
+    },
+    {
+      "item_id": "NCLEX_MCQ_450282",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Pharmacological and Parenteral Therapies",
+      "subject": "Maternal-Newborn",
+      "body_system": "Reproductive",
+      "topic": "Magnesium sulfate toxicity",
+      "difficulty": "Hard",
+      "bloom": "Apply",
+      "stem": "Given the 13:00 findings, what is the nurse's priority action?",
+      "options": [
+        {"text": "Stop the magnesium sulfate infusion and notify the provider", "correct": true},
+        {"text": "Increase the magnesium sulfate infusion rate", "correct": false},
+        {"text": "Administer an additional antihypertensive", "correct": false},
+        {"text": "Continue the infusion and recheck reflexes in one hour", "correct": false}
+      ],
+      "rationale": "Respiratory depression, absent reflexes, and a serum level of 9.6 mg/dL signal dangerous toxicity, so the infusion must be stopped immediately and the provider notified; calcium gluconate is the antidote. Continuing or increasing the infusion would worsen the toxicity."
+    }
+  ]
+}

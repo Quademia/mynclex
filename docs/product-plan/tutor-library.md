@@ -1331,6 +1331,37 @@ turned out painful) — now treated as **v1**, with the
 markdown-fallback escape hatch still available for the whole editor
 if cost runs over.
 
+### Option shuffle — the embed player runs its OWN (option B, ✅ BUILT 2026-07-17)
+
+The runtime **option shuffle** shipped for the main question bank on
+2026-07-17 (see `bank-consumption-cat.html` §19) — it presents option-list
+answers in a randomised per-sitting order so authored content can't be gamed
+by "the answer is usually A". **The embed player does NOT inherit it.** Both
+halves of that fix are bolted to the *attempt* pipeline: the generate half is
+a `BEFORE INSERT` trigger on `nclex_attempt_items`, and the apply half lives
+in the attempt runner's dispatcher (`runner-question-area.tsx`). The embed
+player is a separate, lighter path — it reads bank `content` live in
+`loadEmbedBlock` and logs answers to `nclex_library_embed_answers`, never
+touching `nclex_attempt_items` — so the trigger never fires and the shared
+runner components (which don't shuffle themselves — they render whatever the
+caller hands them) receive options in authored order.
+
+**Decision (Sam, 2026-07-17): option B — keep the embed player OFF the
+attempts table** (its separation from `nclex_attempt_items` is deliberate; see
+the `nclex_library_embed_answers` append-only design) **and give it its own
+small shuffle step.** **BUILT 2026-07-17** (migration `20260807120000` adds
+`option_order_json` to `nclex_library_embed_answers`): the display order is a
+deterministic permutation seeded on `play_id` + `item_id` via the shared
+`embedOptionOrder()` / `seededOptionOrder()` helpers in
+`lib/practice/runner/option-order.ts`. The client (`embed-player.tsx`) computes
+it to render (answering + inline + past-sitting review, via `withOptionOrder()`);
+`submitEmbedAnswer` re-derives the SAME order server-side and persists it, so a
+past sitting replays exactly what the student saw (independent of the algorithm)
+and it extends cleanly to future types. Honours the per-item `shuffle_options`
+flag; scoring stays by option id. Covers the three shuffleable types the player
+supports today (MCQ / SATA / SELECT_N; TF excluded); NULL order = authored order
+(pre-migration rows, TF, opt-out). Verified live end-to-end. NOT yet on prod.
+
 ### Mechanics
 
 A note's body can include `embedded_questions` blocks (note the

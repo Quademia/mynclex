@@ -1,0 +1,131 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09006",
+  "title": "Acute Myocardial Infarction",
+  "scenario": "A 58-year-old male presents to the emergency department with crushing substernal chest pain that began 45 minutes ago while mowing the lawn. He is diaphoretic and reports the pain radiates to his left arm and jaw.",
+  "tags": ["synthetic", "cardiovascular"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["14:15"], "lines": ["58-year-old male ambulates into triage clutching chest. Reports crushing substernal chest pain 8/10 radiating to left arm and jaw, onset 45 minutes ago during exertion. Diaphoretic, pale, and nauseated. Denies relief with rest. History of hypertension and hyperlipidemia. Alert and oriented x3."], "visibleFrom": 1},
+        {"chips": ["14:22"], "lines": ["Placed on continuous cardiac monitor. IV access obtained x2. 12-lead ECG obtained and shown to provider. Labs drawn. 2L O2 started per nasal cannula for SpO2 90%."], "visibleFrom": 2},
+        {"chips": ["14:40"], "lines": ["Aspirin 324 mg chewed. Sublingual nitroglycerin given per order with pain now 4/10. Provider at bedside. Cardiac catheterization lab activated for STEMI."], "visibleFrom": 5},
+        {"chips": ["16:30"], "lines": ["Return from cath lab post-PCI with drug-eluting stent to LAD. Chest pain now 0/10. Radial access site dry and intact. Reports feeling much better."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["14:15", "98.8 F (37.1 C)", "112", "24", "168/94", "90% on RA"],
+        ["14:22", "98.8 F (37.1 C)", "108", "22", "162/90", "95% on 2L NC"],
+        ["16:30", "98.6 F (37.0 C)", "82", "18", "128/76", "97% on 2L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Troponin I", "6.8", "< 0.04 ng/mL"],
+        ["CK-MB", "24", "0-3 ng/mL"],
+        ["Potassium", "4.2", "3.5-5.0 mEq/L"],
+        ["Total cholesterol", "268", "< 200 mg/dL"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Amlodipine 5 mg PO daily", "Atorvastatin 40 mg PO daily", "Hydrochlorothiazide 25 mg PO daily"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Aspirin 324 mg PO chewed now", "Nitroglycerin 0.4 mg sublingual q5min x3 for chest pain, hold if SBP < 90", "Morphine 2 mg IV for pain unrelieved by nitroglycerin", "Oxygen to maintain SpO2 > 94%", "Continuous cardiac monitoring", "Activate cardiac catheterization lab", "Serial troponins and 12-lead ECG"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_400601", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Acute myocardial infarction", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Crushing substernal chest pain radiating to the left arm and jaw", "correct": true},
+        {"text": "Diaphoresis and pallor", "correct": true},
+        {"text": "SpO2 90% on room air", "correct": true},
+        {"text": "Pulse 112 with blood pressure 168/94", "correct": true},
+        {"text": "Alert and oriented x3", "correct": false},
+        {"text": "Temperature 98.8 F", "correct": false}
+      ],
+      "rationale": "Ischemic-type chest pain, diaphoresis, hypoxia, and tachycardia with hypertension are hallmark signs of acute coronary syndrome that demand urgent evaluation. A normal mental status and temperature are expected findings."
+    },
+    {
+      "item_id": "NCLEX_MMR_400602", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Acute myocardial infarction", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it supports myocardial ischemia, a modifiable cardiac risk factor, or both. Each finding may support more than one.",
+      "columns": ["Myocardial ischemia", "Modifiable risk factor"],
+      "rows": [
+        {"text": "Troponin I 6.8 ng/mL", "answers": [0]},
+        {"text": "Total cholesterol 268 mg/dL", "answers": [1]},
+        {"text": "History of hypertension", "answers": [1]},
+        {"text": "Chest pain during exertion with elevated CK-MB", "answers": [0]}
+      ],
+      "rationale": "Elevated troponin and CK-MB with exertional chest pain indicate myocardial cell injury from ischemia. Hyperlipidemia and hypertension are modifiable risk factors that raise coronary artery disease risk but are not themselves markers of acute injury."
+    },
+    {
+      "item_id": "NCLEX_CLZ_400603", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Acute myocardial infarction", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the most time-sensitive goal is {2}.",
+      "blanks": [
+        {"choices": [{"text": "impaired myocardial tissue perfusion", "correct": true}, {"text": "risk for infection"}, {"text": "activity intolerance"}]},
+        {"choices": [{"text": "restoring coronary blood flow", "correct": true}, {"text": "promoting adequate sleep"}, {"text": "improving nutritional intake"}]}
+      ],
+      "rationale": "The immediate threat is impaired myocardial perfusion from a blocked coronary artery. Because 'time is muscle,' rapidly restoring coronary blood flow through reperfusion takes priority over other real but less urgent concerns."
+    },
+    {
+      "item_id": "NCLEX_MAT_400604", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Acute myocardial infarction", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer chewable aspirin", "answer": 0},
+        {"text": "Give sublingual nitroglycerin", "answer": 0},
+        {"text": "Prepare for cardiac catheterization", "answer": 0},
+        {"text": "Encourage vigorous ambulation in the hallway", "answer": 1},
+        {"text": "Withhold oxygen despite SpO2 90%", "answer": 1}
+      ],
+      "rationale": "Aspirin, nitroglycerin, and reperfusion via catheterization are core STEMI interventions. Exertion increases myocardial oxygen demand and withholding oxygen worsens ischemia, so both are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_400605", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Pharmacology", "body_system": "Cardiovascular", "topic": "Nitroglycerin", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "Before and after giving sublingual nitroglycerin, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Check the blood pressure before each dose", "correct": true},
+        {"text": "Reassess the chest pain level after administration", "correct": true},
+        {"text": "Hold the dose if systolic blood pressure is below 90 mmHg", "correct": true},
+        {"text": "Administer all three doses at once to relieve pain faster", "correct": false},
+        {"text": "Give the tablet with a full glass of water to swallow", "correct": false}
+      ],
+      "rationale": "Nitroglycerin is a vasodilator that can cause hypotension, so the nurse checks blood pressure before each dose, holds for SBP below 90, and reassesses pain. Doses are spaced every 5 minutes and the tablet dissolves sublingually, not swallowed."
+    },
+    {
+      "item_id": "NCLEX_SATA_400606", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Acute myocardial infarction", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Following percutaneous coronary intervention, which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Chest pain now rated 0/10", "correct": true},
+        {"text": "Heart rate decreased to 82", "correct": true},
+        {"text": "Blood pressure improved to 128/76", "correct": true},
+        {"text": "Radial access site dry and intact", "correct": true},
+        {"text": "SpO2 decreased to 88% on oxygen", "correct": false}
+      ],
+      "rationale": "Resolution of chest pain, normalizing heart rate and blood pressure, and a dry access site show reperfusion was successful and the client is stable. A falling oxygen saturation would signal a new complication, not improvement."
+    }
+  ]
+}

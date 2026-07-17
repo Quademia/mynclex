@@ -1,0 +1,133 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09035",
+  "title": "Traumatic Pneumothorax",
+  "scenario": "A 24-year-old male is brought to the emergency department after a motor-vehicle collision in which the steering wheel struck his left chest. He reports sharp left-sided chest pain and increasing shortness of breath.",
+  "tags": ["synthetic", "respiratory"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["14:10"], "lines": ["24-year-old male arrives by EMS after MVC with steering-wheel impact to the left chest. Reports sharp left-sided pleuritic chest pain, rated 8/10, and progressive dyspnea. Diminished breath sounds over the left lung fields. Bruising noted across the left anterior chest wall. Alert and oriented x3, anxious and restless."], "visibleFrom": 1},
+        {"chips": ["14:25"], "lines": ["Two large-bore IVs established. High-flow oxygen applied. Trachea midline. Chest x-ray and labs ordered. Client increasingly short of breath and splinting the left side on inspiration."], "visibleFrom": 2},
+        {"chips": ["15:00"], "lines": ["Provider inserted a left-sided chest tube to a water-seal drainage system per order. Immediate rush of air noted; tidaling present in the water-seal chamber. Occlusive dressing secured at insertion site."], "visibleFrom": 5},
+        {"chips": ["16:15"], "lines": ["Client reports breathing is much easier, pain now 3/10. Breath sounds improving over the left base. Gentle bubbling in the suction-control chamber; tidaling continues with respiration."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["14:10", "98.8 F (37.1 C)", "118", "32", "128/78", "89% on RA"],
+        ["14:25", "98.8 F (37.1 C)", "112", "30", "124/76", "92% on 15L NRB"],
+        ["16:15", "98.6 F (37.0 C)", "88", "20", "122/74", "97% on 4L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["pH", "7.31", "7.35-7.45"],
+        ["PaCO2", "48", "35-45 mmHg"],
+        ["PaO2", "62", "80-100 mmHg"],
+        ["HCO3", "24", "22-26 mEq/L"],
+        ["Hemoglobin", "13.8", "13.5-17.5 g/dL"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Morphine 2 mg IV every 2 hours PRN for pain", "Tetanus-diphtheria (Td) booster IM x1", "0.9% sodium chloride IV at 100 mL/hr"], "visibleFrom": 2}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Insert left-sided chest tube, connect to water-seal drainage with suction", "Maintain occlusive dressing at insertion site", "Keep drainage system below chest level", "Continuous pulse oximetry and cardiac monitoring", "Obtain post-insertion chest x-ray", "Notify provider for sudden absence of tidaling or new subcutaneous emphysema"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_403501", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pneumothorax", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Diminished breath sounds over the left lung", "correct": true},
+        {"text": "SpO2 89% on room air", "correct": true},
+        {"text": "Respiratory rate of 32", "correct": true},
+        {"text": "Sharp left-sided pleuritic chest pain", "correct": true},
+        {"text": "Alert and oriented x3", "correct": false},
+        {"text": "Temperature 98.8 F", "correct": false}
+      ],
+      "rationale": "Diminished breath sounds, hypoxia, tachypnea, and pleuritic pain all point to a collapsing lung from pneumothorax and require prompt intervention. Normal orientation and temperature do not."
+    },
+    {
+      "item_id": "NCLEX_MMR_403502", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pneumothorax", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects impaired oxygenation, impaired ventilation, or both. Each finding may support more than one.",
+      "columns": ["Impaired oxygenation", "Impaired ventilation"],
+      "rows": [
+        {"text": "PaO2 62 mmHg", "answers": [0]},
+        {"text": "PaCO2 48 mmHg", "answers": [1]},
+        {"text": "pH 7.31", "answers": [1]},
+        {"text": "SpO2 89% with respiratory rate 32", "answers": [0, 1]}
+      ],
+      "rationale": "A low PaO2 and SpO2 indicate impaired oxygenation, while a rising PaCO2 and the resulting respiratory acidosis (low pH) indicate impaired ventilation. Marked hypoxia with tachypnea reflects both."
+    },
+    {
+      "item_id": "NCLEX_CLZ_403503", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pneumothorax", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the most urgent risk to monitor for is {2}.",
+      "blanks": [
+        {"choices": [{"text": "impaired gas exchange from lung collapse", "correct": true}, {"text": "acute pain from chest wall bruising"}, {"text": "anxiety related to hospitalization"}]},
+        {"choices": [{"text": "progression to a tension pneumothorax", "correct": true}, {"text": "wound infection"}, {"text": "deep vein thrombosis"}]}
+      ],
+      "rationale": "Lung collapse impairs gas exchange, the immediate physiologic threat, and it can progress to a life-threatening tension pneumothorax if air continues to accumulate. Pain, anxiety, and later complications are lower priority."
+    },
+    {
+      "item_id": "NCLEX_MAT_403504", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Chest tube management", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer high-flow supplemental oxygen", "answer": 0},
+        {"text": "Place the client in semi-Fowler's position", "answer": 0},
+        {"text": "Prepare for chest tube insertion", "answer": 0},
+        {"text": "Clamp the chest tube during transport for a bubbling air leak", "answer": 1},
+        {"text": "Encourage deep breathing and incentive spirometry", "answer": 0}
+      ],
+      "rationale": "Oxygen, upright positioning, chest-tube insertion, and lung expansion exercises all treat a pneumothorax. Clamping a tube with an active air leak can trap air and cause a tension pneumothorax, so it is contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_403505", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Chest tube management", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After the chest tube is connected to the water-seal drainage system, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Keep the drainage system below the level of the chest", "correct": true},
+        {"text": "Monitor the water-seal chamber for tidaling", "correct": true},
+        {"text": "Ensure the occlusive dressing at the insertion site is intact", "correct": true},
+        {"text": "Assess bilateral breath sounds and oxygen saturation", "correct": true},
+        {"text": "Strip and milk the tubing routinely every hour", "correct": false},
+        {"text": "Clamp the tube whenever the client ambulates", "correct": false}
+      ],
+      "rationale": "Keeping the system dependent, watching for tidaling, protecting the insertion site, and reassessing breath sounds and oxygenation are core chest-tube care. Routine stripping and clamping during ambulation are unsafe and not indicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_403506", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Pneumothorax", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate that treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "SpO2 improved to 97%", "correct": true},
+        {"text": "Respiratory rate decreased to 20", "correct": true},
+        {"text": "Breath sounds improving over the left base", "correct": true},
+        {"text": "Pain decreased to 3/10", "correct": true},
+        {"text": "New subcutaneous emphysema at the neck", "correct": false}
+      ],
+      "rationale": "Improved oxygenation, respiratory rate, breath sounds, and pain show the lung is re-expanding and the pneumothorax is resolving. New subcutaneous emphysema would signal a worsening air leak, not improvement."
+    }
+  ]
+}

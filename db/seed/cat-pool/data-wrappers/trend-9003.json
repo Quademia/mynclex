@@ -1,0 +1,67 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09003",
+  "title": "Respiratory Deterioration (SpO2/RR)",
+  "scenario": "A 60-year-old client admitted with community-acquired pneumonia is monitored over six hours on a medical unit. The nurse reviews the respiratory flowsheet.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Respiratory Flowsheet",
+      "headers": ["Time", "RR", "SpO2", "O2 delivery", "Breath sounds", "Work of breathing"],
+      "rows": [
+        ["06:00", "20", "94%", "Room air", "Crackles right base", "Unlabored"],
+        ["08:00", "24", "91%", "2L nasal cannula", "Crackles right base", "Mild accessory use"],
+        ["10:00", "28", "89%", "4L nasal cannula", "Crackles bilateral", "Nasal flaring"],
+        ["12:00", "34", "86%", "6L nasal cannula", "Diminished bilateral", "Accessory muscles, tripod"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450031",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Respiratory",
+      "topic": "Impaired gas exchange",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "How should the nurse interpret the trend shown in the flowsheet?",
+      "options": [
+        {"text": "The client is deteriorating with worsening hypoxemia despite escalating oxygen", "correct": true},
+        {"text": "The client is improving as oxygen therapy is increased", "correct": false},
+        {"text": "The client is stable and respiratory support can be weaned", "correct": false},
+        {"text": "The changes are within normal limits and need no action", "correct": false}
+      ],
+      "rationale": "SpO2 continues to fall and respiratory rate and work of breathing continue to rise even as supplemental oxygen is increased, indicating progressive respiratory failure rather than improvement."
+    },
+    {
+      "item_id": "NCLEX_CLZ_450032",
+      "type": "CLOZE",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Respiratory",
+      "topic": "Impaired gas exchange",
+      "difficulty": "Hard",
+      "bloom": "Apply",
+      "stem": "Complete the sentence. The trend indicates the client is experiencing {1}, and the nurse should first {2}.",
+      "blanks": [
+        {"choices": [
+          {"text": "worsening respiratory failure", "correct": true},
+          {"text": "resolving pneumonia"},
+          {"text": "a stable oxygen requirement"}
+        ]},
+        {"choices": [
+          {"text": "notify the provider and prepare for escalated respiratory support", "correct": true},
+          {"text": "reassess in four hours"},
+          {"text": "discontinue supplemental oxygen"}
+        ]}
+      ],
+      "rationale": "The falling SpO2 with rising respiratory rate and effort despite increasing oxygen reflects worsening respiratory failure; the priority is to escalate to the provider for higher-level respiratory support."
+    }
+  ]
+}

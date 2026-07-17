@@ -1,0 +1,330 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_364001", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Lab-value interpretation", "subtopic": "Digoxin and potassium", "bloom": "Analyze",
+    "stem": "A client on digoxin and furosemide has a serum potassium of 3.1 mEq/L and a digoxin level of 1.4 ng/mL. Which action should the nurse take FIRST?",
+    "options": [
+      {"text": "Hold the next digoxin dose and notify the provider about the potassium", "correct": true, "feedback": "Correct. Hypokalemia potentiates digoxin toxicity even when the level is therapeutic; correcting potassium is the priority safety action."},
+      {"text": "Document the digoxin level as therapeutic and continue as ordered", "correct": false, "feedback": "Incorrect. The level is 'therapeutic' but hypokalemia makes toxicity likely."},
+      {"text": "Administer the scheduled digoxin dose then recheck potassium", "correct": false, "feedback": "Incorrect. Giving digoxin in hypokalemia risks precipitating toxicity."},
+      {"text": "Restrict dietary potassium to prevent hyperkalemia", "correct": false, "feedback": "Incorrect. The client is hypokalemic; restriction worsens the risk."}
+    ],
+    "rationale": "Hypokalemia sensitizes the myocardium to digoxin, so toxicity can occur at therapeutic levels; potassium must be corrected before further dosing."
+  },
+  {
+    "item_id": "NCLEX_MCQ_364002", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "ECG monitoring", "subtopic": "Prolonged QT", "bloom": "Analyze",
+    "stem": "A client on telemetry receiving IV ondansetron and haloperidol has a corrected QT interval that has lengthened from 440 ms to 510 ms. Which action is the priority?",
+    "options": [
+      {"text": "Hold the QT-prolonging medications and notify the provider", "correct": true, "feedback": "Correct. A QTc above 500 ms markedly raises the risk of torsades de pointes; the offending drugs must be stopped."},
+      {"text": "Continue the medications and repeat the ECG in 24 hours", "correct": false, "feedback": "Incorrect. Waiting a day risks a lethal arrhythmia."},
+      {"text": "Administer a beta-blocker to slow the heart rate", "correct": false, "feedback": "Incorrect. This does not address the drug-induced QT prolongation and is not ordered."},
+      {"text": "Place the client in high-Fowler position", "correct": false, "feedback": "Incorrect. Positioning does not reduce arrhythmia risk here."}
+    ],
+    "rationale": "A QTc over 500 ms, especially rising on QT-prolonging drugs, predisposes to torsades de pointes; the drugs should be held and the provider notified."
+  },
+  {
+    "item_id": "NCLEX_MCQ_364003", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Moderate sedation", "subtopic": "Respiratory monitoring", "bloom": "Analyze",
+    "stem": "During a colonoscopy under moderate sedation with midazolam and fentanyl, the client's SpO2 falls to 88%, respiratory rate is 8/min, and the client is difficult to arouse. After stopping sedation and supporting the airway, which medication should the nurse anticipate administering FIRST?",
+    "options": [
+      {"text": "Flumazenil", "correct": false, "feedback": "Incorrect. Flumazenil reverses benzodiazepines but carries seizure risk and is not the first reversal given the opioid-dominant hypoventilation pattern."},
+      {"text": "Naloxone", "correct": true, "feedback": "Correct. Opioid-induced respiratory depression (slow rate, hypoxia, hard to arouse) is reversed with naloxone as the priority."},
+      {"text": "Atropine", "correct": false, "feedback": "Incorrect. Atropine treats bradycardia, not respiratory depression."},
+      {"text": "Epinephrine", "correct": false, "feedback": "Incorrect. There is no anaphylaxis or arrest indication."}
+    ],
+    "rationale": "The bradypnea and depressed arousal reflect opioid effect; naloxone reverses fentanyl-induced respiratory depression."
+  },
+  {
+    "item_id": "NCLEX_MCQ_364004", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Postoperative complications", "subtopic": "Fat embolism", "bloom": "Analyze",
+    "stem": "Thirty-six hours after open reduction of a femur fracture, a client becomes confused and dyspneic with SpO2 89% and a petechial rash over the chest. Which complication should the nurse suspect?",
+    "options": [
+      {"text": "Fat embolism syndrome", "correct": true, "feedback": "Correct. The triad of hypoxia, neurologic change, and petechiae 24-72 hours after a long-bone fracture is classic for fat embolism."},
+      {"text": "Wound dehiscence", "correct": false, "feedback": "Incorrect. Dehiscence presents as wound separation, not respiratory-neurologic findings."},
+      {"text": "Hypovolemic shock", "correct": false, "feedback": "Incorrect. Shock would not cause petechiae over the chest."},
+      {"text": "Atelectasis", "correct": false, "feedback": "Incorrect. Atelectasis causes hypoxia but not petechiae or acute confusion."}
+    ],
+    "rationale": "Fat embolism after long-bone fracture presents with the classic triad of hypoxemia, mental status change, and petechiae within 72 hours."
+  },
+  {
+    "item_id": "NCLEX_MCQ_364005", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "GI", "topic": "NG tube", "subtopic": "Placement verification", "bloom": "Apply",
+    "stem": "Before administering medication through a newly inserted nasogastric tube, which method most reliably confirms correct placement?",
+    "options": [
+      {"text": "Review of the post-insertion chest/abdominal X-ray", "correct": true, "feedback": "Correct. Radiographic confirmation is the gold standard for verifying initial NG tube placement before use."},
+      {"text": "Auscultation of air insufflated into the tube", "correct": false, "feedback": "Incorrect. The air-bolus/auscultation method is unreliable and no longer recommended."},
+      {"text": "Absence of coughing during insertion", "correct": false, "feedback": "Incorrect. A tube can enter the airway without coughing, especially in sedated clients."},
+      {"text": "Ability to instill 30 mL of water without resistance", "correct": false, "feedback": "Incorrect. Absence of resistance does not confirm gastric placement."}
+    ],
+    "rationale": "X-ray is the gold standard to confirm initial NG tube placement; auscultation and other bedside checks are unreliable."
+  },
+  {
+    "item_id": "NCLEX_MCQ_364006", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Peripheral IV", "subtopic": "Infiltration vs phlebitis", "bloom": "Analyze",
+    "stem": "A client receiving IV vancomycin reports burning at the IV site. The nurse finds the site cool, pale, and swollen with a sluggish infusion and no blood return. Which is the priority action?",
+    "options": [
+      {"text": "Stop the infusion and remove the catheter", "correct": true, "feedback": "Correct. Cool, pale, swollen tissue with no blood return indicates infiltration; the infusion must be stopped and the catheter removed to prevent tissue damage."},
+      {"text": "Apply warm compresses and continue the infusion", "correct": false, "feedback": "Incorrect. Continuing infusion into infiltrated tissue worsens injury."},
+      {"text": "Slow the infusion rate and reassess in one hour", "correct": false, "feedback": "Incorrect. The catheter is no longer in the vein; slowing does not fix infiltration."},
+      {"text": "Flush the catheter briskly with 10 mL of saline", "correct": false, "feedback": "Incorrect. Flushing pushes more fluid into the tissue."}
+    ],
+    "rationale": "Coolness, pallor, edema, and absent blood return indicate infiltration; stopping the infusion and removing the catheter prevents further tissue injury."
+  },
+  {
+    "item_id": "NCLEX_MCQ_364007", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Fetal monitoring", "subtopic": "Late decelerations", "bloom": "Analyze",
+    "stem": "A laboring client's fetal monitor shows repetitive decelerations that begin after the peak of each contraction and return to baseline after the contraction ends. After repositioning, which action should the nurse take FIRST?",
+    "options": [
+      {"text": "Discontinue the oxytocin infusion", "correct": true, "feedback": "Correct. The pattern is late decelerations indicating uteroplacental insufficiency; stopping oxytocin reduces contraction stress and improves perfusion."},
+      {"text": "Increase the oxytocin to speed delivery", "correct": false, "feedback": "Incorrect. More contractions worsen uteroplacental insufficiency."},
+      {"text": "Document the reassuring pattern and continue monitoring", "correct": false, "feedback": "Incorrect. Late decelerations are nonreassuring, not reassuring."},
+      {"text": "Prepare for immediate amnioinfusion", "correct": false, "feedback": "Incorrect. Amnioinfusion treats variable, not late, decelerations."}
+    ],
+    "rationale": "Late decelerations reflect uteroplacental insufficiency; discontinuing oxytocin plus intrauterine resuscitation measures improves fetal oxygenation."
+  },
+  {
+    "item_id": "NCLEX_MCQ_364008", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Diagnostic-test monitoring", "subtopic": "Contrast-induced nephropathy", "bloom": "Apply",
+    "stem": "A client is scheduled for a contrast-enhanced CT. Which pre-procedure finding most requires the nurse to notify the provider before the study?",
+    "options": [
+      {"text": "Serum creatinine 2.4 mg/dL", "correct": true, "feedback": "Correct. Elevated creatinine signals impaired renal function and high risk for contrast-induced nephropathy; the provider must be notified."},
+      {"text": "Blood pressure 138/84 mmHg", "correct": false, "feedback": "Incorrect. This is mildly elevated and not a contraindication."},
+      {"text": "Reported allergy to latex", "correct": false, "feedback": "Incorrect. Latex allergy is managed but is not related to contrast risk."},
+      {"text": "Fasting for 6 hours before the study", "correct": false, "feedback": "Incorrect. Fasting is appropriate preparation."}
+    ],
+    "rationale": "A creatinine of 2.4 mg/dL indicates renal impairment and heightened risk of contrast-induced nephropathy, warranting provider notification and possible mitigation."
+  },
+  {
+    "item_id": "NCLEX_MCQ_364009", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Pharmacology", "body_system": "Hematologic", "topic": "Lab-value interpretation", "subtopic": "INR and warfarin", "bloom": "Analyze",
+    "stem": "A client on warfarin for atrial fibrillation reports dark stools and gum bleeding. The INR is 6.8. Which intervention should the nurse anticipate FIRST?",
+    "options": [
+      {"text": "Hold warfarin and administer prescribed vitamin K", "correct": true, "feedback": "Correct. A markedly elevated INR with active bleeding requires holding warfarin and reversing with vitamin K."},
+      {"text": "Administer the next scheduled warfarin dose", "correct": false, "feedback": "Incorrect. Continuing warfarin worsens the over-anticoagulation."},
+      {"text": "Administer protamine sulfate", "correct": false, "feedback": "Incorrect. Protamine reverses heparin, not warfarin."},
+      {"text": "Encourage foods high in vitamin K to correct the INR gradually", "correct": false, "feedback": "Incorrect. Dietary change is far too slow for active bleeding."}
+    ],
+    "rationale": "An INR of 6.8 with bleeding is a warfarin emergency; warfarin is held and vitamin K (with possible PCC) is given to reverse anticoagulation."
+  },
+  {
+    "item_id": "NCLEX_MCQ_364010", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Urinary catheter", "subtopic": "CAUTI prevention", "bloom": "Apply",
+    "stem": "A client has had an indwelling urinary catheter for 5 days. Which nursing action best reduces the client's risk of a catheter-associated urinary tract infection?",
+    "options": [
+      {"text": "Assess daily whether the catheter can be removed", "correct": true, "feedback": "Correct. Prompt removal when no longer indicated is the single most effective measure to prevent CAUTI."},
+      {"text": "Irrigate the catheter with saline every shift", "correct": false, "feedback": "Incorrect. Routine irrigation increases infection risk by breaking the closed system."},
+      {"text": "Change the catheter routinely every 48 hours", "correct": false, "feedback": "Incorrect. Routine scheduled changes are not recommended and add risk."},
+      {"text": "Elevate the drainage bag to the level of the bladder", "correct": false, "feedback": "Incorrect. The bag must stay below the bladder to prevent backflow."}
+    ],
+    "rationale": "Daily review for catheter necessity and early removal is the most effective CAUTI-prevention strategy."
+  },
+  {
+    "item_id": "NCLEX_MCQ_364011", "type": "MCQ", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Preoperative education", "subtopic": "Anticoagulant management", "bloom": "Apply",
+    "stem": "During preoperative teaching for elective surgery, a client lists current medications. Which statement requires the nurse to notify the surgical team before the procedure?",
+    "options": [
+      {"text": "\"I took my usual clopidogrel this morning.\"", "correct": true, "feedback": "Correct. Antiplatelet therapy taken the day of surgery raises bleeding risk and must be reported so the team can decide on timing."},
+      {"text": "\"I stopped my multivitamin two days ago.\"", "correct": false, "feedback": "Incorrect. A multivitamin is not a bleeding concern."},
+      {"text": "\"I took my morning levothyroxine with a sip of water.\"", "correct": false, "feedback": "Incorrect. Levothyroxine is typically continued and is not a bleeding risk."},
+      {"text": "\"I used my albuterol inhaler before coming in.\"", "correct": false, "feedback": "Incorrect. Albuterol is appropriate and not a surgical bleeding risk."}
+    ],
+    "rationale": "Clopidogrel is an antiplatelet agent that increases perioperative bleeding; taking it the day of surgery must be reported to the surgical team."
+  },
+  {
+    "item_id": "NCLEX_SATA_364012", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Injury/complication prevention", "subtopic": "VTE prophylaxis", "bloom": "Analyze",
+    "stem": "A nurse plans venous thromboembolism prevention for a postoperative client with sequential compression devices ordered. Which actions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Ensure the compression sleeves are removed only briefly for hygiene", "correct": true},
+      {"text": "Assess the calves for warmth, redness, and unilateral swelling each shift", "correct": true},
+      {"text": "Encourage early ambulation as tolerated", "correct": true},
+      {"text": "Vigorously massage the calves to promote venous return", "correct": false, "feedback": "Incorrect. Massaging the calves can dislodge a clot."},
+      {"text": "Confirm no contraindication such as an existing DVT before applying", "correct": true},
+      {"text": "Keep the client on strict bed rest to protect the surgical site", "correct": false, "feedback": "Incorrect. Immobility increases VTE risk."}
+    ],
+    "rationale": "SCDs plus assessment, early ambulation, and screening for contraindications reduce VTE risk; massage and prolonged immobility are unsafe."
+  },
+  {
+    "item_id": "NCLEX_SATA_364013", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Blood/specimen collection", "subtopic": "Blood cultures", "bloom": "Apply",
+    "stem": "A nurse is drawing blood cultures for a client with suspected sepsis. Which actions ensure accurate, uncontaminated results? Select all that apply.",
+    "options": [
+      {"text": "Obtain the cultures before starting antibiotics when possible", "correct": true},
+      {"text": "Disinfect the venipuncture site and let it dry fully", "correct": true},
+      {"text": "Collect two sets from separate sites", "correct": true},
+      {"text": "Draw all cultures from the existing peripheral IV catheter for convenience", "correct": false, "feedback": "Incorrect. Drawing from an indwelling line increases contamination risk."},
+      {"text": "Scrub the tops of the culture bottles with antiseptic before inoculating", "correct": true},
+      {"text": "Fill the anaerobic bottle first to maximize oxygen exposure", "correct": false, "feedback": "Incorrect. Order and technique matter; deliberately exposing to oxygen is incorrect, and the aerobic bottle is typically filled first with a syringe draw."}
+    ],
+    "rationale": "Cultures drawn before antibiotics, with proper skin/bottle antisepsis and two separate sites, yield accurate results with minimal contamination."
+  },
+  {
+    "item_id": "NCLEX_SATA_364014", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Trend recognition", "subtopic": "Early sepsis", "bloom": "Analyze",
+    "stem": "A nurse reviews serial data on a postoperative client. Which trends suggest early sepsis and warrant escalation? Select all that apply.",
+    "options": [
+      {"text": "Temperature rising from 37.0°C to 38.6°C over 4 hours", "correct": true},
+      {"text": "Heart rate climbing from 82 to 112 bpm", "correct": true},
+      {"text": "Respiratory rate increasing from 16 to 24/min", "correct": true},
+      {"text": "Blood pressure falling from 122/78 to 98/56 mmHg", "correct": true},
+      {"text": "Urine output steady at 60 mL/hr", "correct": false, "feedback": "Incorrect. This is normal, reassuring output."},
+      {"text": "Oxygen saturation stable at 98% on room air", "correct": false, "feedback": "Incorrect. Stable normal saturation is not a warning trend."}
+    ],
+    "rationale": "A rising temperature, tachycardia, tachypnea, and falling blood pressure form the classic trend of early sepsis that warrants rapid escalation."
+  },
+  {
+    "item_id": "NCLEX_SATA_364015", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "GI", "topic": "Percutaneous feeding tube", "subtopic": "Aspiration prevention", "bloom": "Apply",
+    "stem": "A nurse administers a continuous feeding through a client's percutaneous endoscopic gastrostomy tube. Which actions reduce the risk of aspiration and complications? Select all that apply.",
+    "options": [
+      {"text": "Keep the head of the bed elevated at least 30 to 45 degrees", "correct": true},
+      {"text": "Check gastric residual volume per protocol", "correct": true},
+      {"text": "Flush the tube with water before and after medications", "correct": true},
+      {"text": "Lay the client flat during feeding to reduce reflux", "correct": false, "feedback": "Incorrect. Lying flat increases aspiration risk."},
+      {"text": "Verify tube patency and site integrity each shift", "correct": true},
+      {"text": "Crush enteric-coated tablets to pass through the tube", "correct": false, "feedback": "Incorrect. Crushing enteric-coated or extended-release tablets is unsafe."}
+    ],
+    "rationale": "Head-of-bed elevation, residual checks, flushing, and site assessment prevent aspiration and occlusion; lying flat and crushing enteric-coated drugs are contraindicated."
+  },
+  {
+    "item_id": "NCLEX_SATA_364016", "type": "SATA", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Neurological", "topic": "Postoperative assessment", "subtopic": "Epidural analgesia", "bloom": "Analyze",
+    "stem": "A postoperative client has a continuous epidural infusion of an opioid and local anesthetic. Which assessment findings require immediate nursing intervention? Select all that apply.",
+    "options": [
+      {"text": "Respiratory rate of 7/min", "correct": true},
+      {"text": "Inability to move the lower extremities", "correct": true},
+      {"text": "Sedation scale score indicating the client is difficult to arouse", "correct": true},
+      {"text": "Numbness limited to the surgical dermatome", "correct": false, "feedback": "Incorrect. Expected sensory block at the surgical level is anticipated."},
+      {"text": "Blood pressure dropping from 124/80 to 88/50 mmHg", "correct": true},
+      {"text": "Mild itching relieved by repositioning", "correct": false, "feedback": "Incorrect. Mild pruritus is a common, non-urgent opioid effect."}
+    ],
+    "rationale": "Respiratory depression, dense motor block, deep sedation, and hypotension are dangerous epidural complications requiring immediate action."
+  },
+  {
+    "item_id": "NCLEX_SELN_364017", "type": "SELECT_N", "difficulty": "Hard", "select_count": 3,
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Lab-value interpretation", "subtopic": "Critical values", "bloom": "Analyze",
+    "stem": "A nurse reviews morning labs for four assigned clients. Which 3 results represent critical values requiring immediate provider notification?",
+    "options": [
+      {"text": "Serum potassium 6.9 mEq/L", "correct": true},
+      {"text": "Serum sodium 118 mEq/L", "correct": true},
+      {"text": "Platelet count 18,000/mm3", "correct": true},
+      {"text": "Hemoglobin 11.2 g/dL", "correct": false},
+      {"text": "Serum glucose 130 mg/dL", "correct": false},
+      {"text": "White blood cell count 8,500/mm3", "correct": false}
+    ],
+    "rationale": "Severe hyperkalemia, profound hyponatremia, and severe thrombocytopenia are critical values demanding immediate notification; the others are mildly abnormal or normal."
+  },
+  {
+    "item_id": "NCLEX_TF_364018", "type": "TF", "difficulty": "Hard", "answer": "False",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Diagnostic-test monitoring", "subtopic": "Arterial blood gas",
+    "stem": "An arterial blood gas showing pH 7.31, PaCO2 58 mmHg, and HCO3 26 mEq/L indicates uncompensated metabolic acidosis.",
+    "rationale": "The low pH with an elevated PaCO2 and near-normal bicarbonate indicates uncompensated respiratory acidosis, not metabolic acidosis."
+  },
+  {
+    "item_id": "NCLEX_MAT_364019", "type": "MATRIX", "difficulty": "Hard", "row_label": "Lab result",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Lab-value interpretation", "subtopic": "Recognizing abnormal values", "bloom": "Analyze",
+    "stem": "For each laboratory result, click to indicate whether it is within normal limits or abnormal for an adult.",
+    "columns": ["Within normal limits", "Abnormal"],
+    "rows": [
+      {"text": "Serum creatinine 0.9 mg/dL", "answer": 0},
+      {"text": "INR 5.5 on warfarin", "answer": 1},
+      {"text": "Serum calcium 6.4 mg/dL", "answer": 1},
+      {"text": "Potassium 4.0 mEq/L", "answer": 0},
+      {"text": "Magnesium 1.1 mEq/L", "answer": 1}
+    ],
+    "rationale": "Creatinine 0.9 and potassium 4.0 are normal; an INR of 5.5, calcium of 6.4, and magnesium of 1.1 are abnormal and warrant follow-up."
+  },
+  {
+    "item_id": "NCLEX_MMR_364020", "type": "MATRIX_MR", "difficulty": "Hard", "row_label": "Procedure",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Response to procedures/treatments", "subtopic": "Pre-procedure preparation", "bloom": "Apply",
+    "stem": "For each diagnostic procedure, select all appropriate pre-procedure nursing actions.",
+    "columns": ["Verify informed consent", "Confirm NPO status", "Assess for iodine/shellfish allergy"],
+    "rows": [
+      {"text": "Cardiac catheterization with contrast", "answers": [0, 1, 2]},
+      {"text": "Colonoscopy with moderate sedation", "answers": [0, 1]},
+      {"text": "CT with IV contrast", "answers": [1, 2]},
+      {"text": "Lumbar puncture", "answers": [0]}
+    ],
+    "rationale": "Consent is required for invasive procedures, NPO applies to sedation/contrast studies, and iodine/shellfish allergy screening applies to contrast-based tests."
+  },
+  {
+    "item_id": "NCLEX_CLZ_364021", "type": "CLOZE", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "In-scope testing (ECG)", "subtopic": "Rhythm interpretation", "bloom": "Analyze",
+    "stem": "A telemetry strip shows no identifiable P waves, an irregularly irregular rhythm, and a ventricular rate of 140/min. The nurse interprets this as {1}, and the priority concern for this client is {2}.",
+    "blanks": [
+      {"choices": [{"text": "atrial fibrillation with rapid ventricular response", "correct": true}, {"text": "sinus tachycardia"}, {"text": "third-degree heart block"}]},
+      {"choices": [{"text": "thromboembolic stroke and decreased cardiac output", "correct": true}, {"text": "hyperkalemia"}, {"text": "hypoglycemia"}]}
+    ],
+    "rationale": "Absent P waves with an irregularly irregular rapid rhythm indicate atrial fibrillation with RVR, which risks clot formation, embolic stroke, and reduced cardiac output."
+  },
+  {
+    "item_id": "NCLEX_HL_364022", "type": "HIGHLIGHT", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Trend recognition", "subtopic": "Postoperative deterioration", "bloom": "Analyze",
+    "stem": "Highlight the assessment findings that require immediate follow-up in this postoperative client. The client is drowsy but rousable. Temperature [[37.1°C]]. Respiratory rate [[8/min]]. SpO2 [[86% on room air]]. Blood pressure [[104/68]]. Pain score [[3 out of 10]]. New [[decreased breath sounds at the left base]]. Capillary refill [[2 seconds]].",
+    "chunks": [
+      {"text": "37.1°C", "correct": false, "feedback": "Normal temperature."},
+      {"text": "8/min", "correct": true, "feedback": "Bradypnea suggests opioid-induced respiratory depression."},
+      {"text": "86% on room air", "correct": true, "feedback": "Significant hypoxemia requiring intervention."},
+      {"text": "104/68", "correct": false, "feedback": "Blood pressure is within acceptable limits."},
+      {"text": "3 out of 10", "correct": false, "feedback": "Mild, controlled pain."},
+      {"text": "decreased breath sounds at the left base", "correct": true, "feedback": "New finding suggesting atelectasis or effusion."},
+      {"text": "2 seconds", "correct": false, "feedback": "Normal capillary refill."}
+    ],
+    "rationale": "Bradypnea, hypoxemia, and new decreased breath sounds indicate respiratory deterioration requiring immediate follow-up; the other findings are normal."
+  },
+  {
+    "item_id": "NCLEX_BT_364023", "type": "BOWTIE", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Complication prevention", "subtopic": "Pulmonary embolism", "bloom": "Evaluate",
+    "stem": "A client 2 days after total hip replacement suddenly develops pleuritic chest pain, dyspnea, tachycardia, and SpO2 84%. Complete the diagram by selecting the actions to take, the condition, and the parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Apply supplemental oxygen", "correct": true},
+      {"text": "Notify the provider immediately", "correct": true},
+      {"text": "Encourage vigorous leg exercises", "correct": false},
+      {"text": "Have the client ambulate to relieve the pain", "correct": false}
+    ]},
+    "centre": {"label": "Condition", "tokens": [
+      {"text": "Pulmonary embolism", "correct": true},
+      {"text": "Myocardial infarction", "correct": false},
+      {"text": "Pneumothorax", "correct": false}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Oxygen saturation", "correct": true},
+      {"text": "Respiratory rate and effort", "correct": true},
+      {"text": "Bowel sounds", "correct": false},
+      {"text": "Deep tendon reflexes", "correct": false}
+    ]},
+    "rationale": "Sudden dyspnea, pleuritic pain, tachycardia, and hypoxia after orthopedic surgery indicate pulmonary embolism; oxygen and rapid notification are priorities while monitoring oxygenation and respiratory status."
+  },
+  {
+    "item_id": "NCLEX_DO_364024", "type": "DRAG_ORDER", "difficulty": "Hard",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Response to treatments", "subtopic": "Transfusion reaction", "bloom": "Apply",
+    "stem": "Fifteen minutes into a packed red blood cell transfusion, a client develops fever, chills, flank pain, and dark urine. Place the nurse's actions in the correct priority order.",
+    "tokens": ["Stop the transfusion immediately", "Keep the IV line open with normal saline using new tubing", "Assess the client and check vital signs", "Notify the provider and blood bank", "Send the blood bag and tubing to the laboratory", "Document the reaction and interventions"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}, {"token": 5}]
+  }
+]

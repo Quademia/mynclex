@@ -1,0 +1,63 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09013",
+  "title": "Postoperative Fever Curve Workup",
+  "scenario": "A 58-year-old client is on postoperative day 3 following a colon resection. The nurse reviews the temperature curve and associated findings recorded over the past 24 hours.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Temperature Curve Flowsheet",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "WBC", "Notable finding"],
+      "rows": [
+        ["Day 3 06:00", "37.2 C (99.0 F)", "84", "16", "126/78", "9.2", "Incision clean and dry"],
+        ["Day 3 12:00", "38.1 C (100.6 F)", "94", "18", "122/74", "12.4", "Incision edges pink, mild tenderness"],
+        ["Day 3 18:00", "38.9 C (102.0 F)", "108", "20", "116/70", "16.8", "Purulent drainage at incision, redness"],
+        ["Day 3 23:00", "39.4 C (103.0 F)", "116", "22", "108/66", "18.5", "Increased drainage, warm reddened wound"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450131",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Medical-Surgical",
+      "body_system": "Multisystem",
+      "topic": "Postoperative infection",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Based on the temperature curve and accompanying findings, which conclusion best fits the trend?",
+      "options": [
+        {"text": "A rising fever with escalating WBC and purulent wound drainage suggests a developing surgical site infection", "correct": true},
+        {"text": "The pattern reflects an expected inflammatory response that requires no follow-up", "correct": false},
+        {"text": "The findings are most consistent with atelectasis on postoperative day 1", "correct": false},
+        {"text": "The trend indicates a transfusion reaction from blood products", "correct": false}
+      ],
+      "rationale": "A climbing fever paired with a rising WBC and new purulent drainage from a warm, reddened incision on postoperative day 3 is the classic timeline for a surgical site infection rather than a benign inflammatory response."
+    },
+    {
+      "item_id": "NCLEX_SATA_450132",
+      "type": "SATA",
+      "category": "Safe and Effective Care Environment",
+      "subcategory": "Management of Care",
+      "subject": "Medical-Surgical",
+      "body_system": "Multisystem",
+      "topic": "Postoperative infection",
+      "difficulty": "Medium",
+      "bloom": "Apply",
+      "stem": "Given the worsening trend, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Notify the surgeon about the fever curve and wound changes", "correct": true},
+        {"text": "Obtain a wound culture as ordered before starting antibiotics", "correct": true},
+        {"text": "Assess and document the incision and drainage characteristics", "correct": true},
+        {"text": "Monitor for signs of evolving sepsis", "correct": true},
+        {"text": "Reassure the client this is a normal healing fever and take no action", "correct": false},
+        {"text": "Apply a heating pad directly over the incision", "correct": false}
+      ],
+      "rationale": "The rising fever curve with purulent drainage warrants provider notification, a culture before antibiotics, careful wound assessment, and vigilance for sepsis. Dismissing the fever or applying heat to a possibly infected wound is inappropriate."
+    }
+  ]
+}

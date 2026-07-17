@@ -1,0 +1,62 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09029",
+  "title": "Neonatal Blood Glucose Trend",
+  "scenario": "A term infant born to a mother with gestational diabetes is monitored for hypoglycemia in the newborn nursery. Heel-stick glucose is checked serially, with early breastfeeding attempted between checks.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Newborn Glucose Flowsheet",
+      "headers": ["Age", "Blood glucose", "Feeding", "Jitteriness", "Temp", "Tone"],
+      "rows": [
+        ["1 hr", "38 mg/dL", "Breastfed 10 min", "Present", "36.7 C (98.1 F)", "Slightly decreased"],
+        ["2 hr", "32 mg/dL", "Poor latch", "Present", "36.6 C (97.9 F)", "Decreased"],
+        ["3 hr", "48 mg/dL", "Breastfed well", "Resolving", "36.8 C (98.2 F)", "Improved"],
+        ["4 hr", "56 mg/dL", "Breastfed well", "Absent", "36.9 C (98.4 F)", "Normal"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450291",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Maternal-Newborn",
+      "body_system": "Endocrine",
+      "topic": "Neonatal hypoglycemia",
+      "difficulty": "Easy",
+      "bloom": "Understand",
+      "stem": "At which age does the flowsheet show the infant's lowest blood glucose, consistent with neonatal hypoglycemia?",
+      "options": [
+        {"text": "2 hours", "correct": true},
+        {"text": "1 hour", "correct": false},
+        {"text": "3 hours", "correct": false},
+        {"text": "4 hours", "correct": false}
+      ],
+      "rationale": "The 2-hour glucose of 32 mg/dL is the nadir and falls below the 40-45 mg/dL threshold for neonatal hypoglycemia, coinciding with jitteriness, decreased tone, and a poor latch."
+    },
+    {
+      "item_id": "NCLEX_SATA_450292",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Maternal-Newborn",
+      "body_system": "Endocrine",
+      "topic": "Neonatal hypoglycemia",
+      "difficulty": "Medium",
+      "bloom": "Evaluate",
+      "stem": "Comparing the later flowsheet entries to the earlier ones, which findings indicate the infant's hypoglycemia is resolving? Select all that apply.",
+      "options": [
+        {"text": "Blood glucose rising to 56 mg/dL", "correct": true},
+        {"text": "Jitteriness now absent", "correct": true},
+        {"text": "Tone returning to normal", "correct": true},
+        {"text": "Effective breastfeeding established", "correct": true},
+        {"text": "Temperature dropping below 36.5 C", "correct": false}
+      ],
+      "rationale": "A glucose climbing above 45 mg/dL, resolution of jitteriness, normalized tone, and successful feeding all show the hypoglycemia is correcting. The temperature never dropped below 36.5 C, so that option does not reflect the trend."
+    }
+  ]
+}

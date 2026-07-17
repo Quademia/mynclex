@@ -1,0 +1,132 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09020",
+  "title": "Adrenal (Addisonian) Crisis",
+  "scenario": "A 44-year-old female with a known history of Addison's disease presents to the emergency department with 2 days of severe nausea, vomiting, and progressive weakness after stopping her hydrocortisone during a flu-like illness.",
+  "tags": ["synthetic", "endocrine"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["09:00"], "lines": ["44-year-old female brought in by partner for 2 days of intractable vomiting, diffuse abdominal pain, and profound fatigue. States she ran out of her steroid pills during a viral illness last week and did not refill them. Skin appears hyperpigmented at knuckles and oral mucosa. Lethargic but arousable, oriented x3. Reports dizziness on standing."], "visibleFrom": 1},
+        {"chips": ["09:20"], "lines": ["Two large-bore IV lines established. Blood drawn for labs, cortisol, and cultures. Placed supine with legs elevated. Cardiac monitor and continuous pulse oximetry applied."], "visibleFrom": 2},
+        {"chips": ["10:00"], "lines": ["IV hydrocortisone 100 mg administered per order. Rapid infusion of 0.9% normal saline with dextrose in progress. Repeat point-of-care glucose obtained."], "visibleFrom": 5},
+        {"chips": ["12:30"], "lines": ["Client reports nausea resolving and feeling stronger. Skin warm, no longer diaphoretic. Voided 250 mL clear urine. Mentation clearer, sitting up in bed."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["09:00", "99.8 F (37.7 C)", "118", "24", "82/48", "95% on RA"],
+        ["09:20", "99.8 F (37.7 C)", "116", "24", "84/50", "96% on RA"],
+        ["12:30", "98.9 F (37.2 C)", "92", "18", "112/70", "98% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Sodium", "126", "135-145 mEq/L"],
+        ["Potassium", "5.9", "3.5-5.0 mEq/L"],
+        ["Glucose", "58", "70-110 mg/dL"],
+        ["Cortisol (random)", "2.1", "> 18 mcg/dL (stress)"],
+        ["BUN", "34", "7-20 mg/dL"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Hydrocortisone 20 mg PO every morning, 10 mg PO every afternoon (home dose, not taken x 5 days)", "Fludrocortisone 0.1 mg PO daily"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Administer hydrocortisone 100 mg IV bolus now, then 50 mg IV every 6 hours", "Infuse 0.9% normal saline with 5% dextrose, 1 L over first hour", "Recheck sodium, potassium, and glucose in 2 hours", "Continuous cardiac monitoring", "Strict intake and output", "Notify provider for SBP < 90 mmHg or potassium > 6.0 mEq/L"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_402001", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Adrenal insufficiency", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Blood pressure 82/48", "correct": true},
+        {"text": "Hyperpigmented skin at knuckles", "correct": true},
+        {"text": "Intractable vomiting with dizziness on standing", "correct": true},
+        {"text": "Lethargy that is arousable and oriented x3", "correct": true},
+        {"text": "SpO2 95% on room air", "correct": false},
+        {"text": "Temperature 99.8 F", "correct": false}
+      ],
+      "rationale": "Hypotension, volume depletion from vomiting, and altered mentation signal circulatory collapse in adrenal crisis; hyperpigmentation points to chronic Addison's disease. Near-normal oxygenation and a low-grade temp are less urgent."
+    },
+    {
+      "item_id": "NCLEX_MMR_402002", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Adrenal insufficiency", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects cortisol deficiency, aldosterone deficiency, or both. Each finding may reflect more than one.",
+      "columns": ["Cortisol deficiency", "Aldosterone deficiency"],
+      "rows": [
+        {"text": "Hypoglycemia (glucose 58)", "answers": [0]},
+        {"text": "Hyperkalemia (potassium 5.9)", "answers": [1]},
+        {"text": "Hyponatremia (sodium 126)", "answers": [0, 1]},
+        {"text": "Hypotension (B/P 82/48)", "answers": [0, 1]}
+      ],
+      "rationale": "Cortisol loss impairs gluconeogenesis and vascular tone (hypoglycemia, hypotension). Aldosterone loss causes sodium wasting and potassium retention (hyponatremia, hyperkalemia). Sodium and BP are affected by both hormones."
+    },
+    {
+      "item_id": "NCLEX_CLZ_402003", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Adrenal insufficiency", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1} and the priority collaborative intervention is {2}.",
+      "blanks": [
+        {"choices": [{"text": "hypotension and hypovolemic shock", "correct": true}, {"text": "risk for infection", "correct": false}, {"text": "impaired skin integrity", "correct": false}]},
+        {"choices": [{"text": "IV hydrocortisone and fluid resuscitation", "correct": true}, {"text": "oral rehydration and rest", "correct": false}, {"text": "potassium supplementation", "correct": false}]}
+      ],
+      "rationale": "The immediate life threat is circulatory collapse from cortisol and volume deficiency. IV glucocorticoid replacement plus saline resuscitation reverses the crisis; potassium supplementation would be dangerous given existing hyperkalemia."
+    },
+    {
+      "item_id": "NCLEX_MAT_402004", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Adrenal insufficiency", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Administer IV hydrocortisone", "answer": 0},
+        {"text": "Infuse normal saline with dextrose", "answer": 0},
+        {"text": "Administer IV potassium chloride", "answer": 1},
+        {"text": "Monitor cardiac rhythm for peaked T waves", "answer": 0},
+        {"text": "Restrict sodium intake", "answer": 1}
+      ],
+      "rationale": "Glucocorticoid replacement, saline with dextrose, and cardiac monitoring for hyperkalemia are all indicated. Giving potassium or restricting sodium would worsen the hyperkalemia and hyponatremia of adrenal crisis."
+    },
+    {
+      "item_id": "NCLEX_SATA_402005", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Adrenal insufficiency", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "After starting IV hydrocortisone and fluid resuscitation, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Recheck blood glucose and electrolytes", "correct": true},
+        {"text": "Monitor blood pressure closely for response", "correct": true},
+        {"text": "Maintain continuous cardiac monitoring", "correct": true},
+        {"text": "Withhold all further fluids until output improves", "correct": false},
+        {"text": "Encourage the client to ambulate to the bathroom", "correct": false}
+      ],
+      "rationale": "Ongoing monitoring of glucose, electrolytes, blood pressure, and cardiac rhythm tracks the response to steroids and fluids. Withholding fluids or ambulating a hypotensive client would be unsafe."
+    },
+    {
+      "item_id": "NCLEX_SATA_402006", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Adrenal insufficiency", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Blood pressure improved to 112/70", "correct": true},
+        {"text": "Heart rate decreased to 92", "correct": true},
+        {"text": "Nausea resolving and client feeling stronger", "correct": true},
+        {"text": "Mentation clearer, client sitting up", "correct": true},
+        {"text": "Persistent SBP below 90 mmHg", "correct": false}
+      ],
+      "rationale": "Rising blood pressure, slowing heart rate, resolving nausea, and improved mentation show the crisis is reversing. Continued hypotension would indicate ongoing shock, not improvement."
+    }
+  ]
+}

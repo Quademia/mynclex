@@ -1,0 +1,62 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09008",
+  "title": "Blood Glucose Trending on Insulin Drip",
+  "scenario": "A 54-year-old client in diabetic ketoacidosis is on a continuous regular insulin infusion titrated to hourly point-of-care glucose readings.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Hourly Glucose and Insulin Drip",
+      "headers": ["Time", "Glucose (mg/dL)", "Insulin drip rate", "Potassium (mEq/L)"],
+      "rows": [
+        ["14:00", "486", "6 units/hr", "4.8"],
+        ["15:00", "402", "6 units/hr", "4.5"],
+        ["16:00", "318", "6 units/hr", "4.1"],
+        ["17:00", "238", "6 units/hr", "3.7"],
+        ["18:00", "182", "6 units/hr", "3.4"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450081",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Pharmacological and Parenteral Therapies",
+      "subject": "Medical-Surgical",
+      "body_system": "Endocrine",
+      "topic": "Insulin therapy",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "The glucose has fallen to 182 mg/dL. According to standard DKA protocol, what should the nurse anticipate next?",
+      "options": [
+        {"text": "Adding dextrose to the IV fluids to prevent hypoglycemia while the insulin drip continues", "correct": true},
+        {"text": "Stopping the insulin infusion immediately", "correct": false},
+        {"text": "Doubling the insulin drip rate", "correct": false},
+        {"text": "Giving a rapid IV bolus of regular insulin", "correct": false}
+      ],
+      "rationale": "When glucose approaches roughly 200 mg/dL in DKA, dextrose is added so the insulin infusion can continue to clear ketones without causing hypoglycemia; the drip is not stopped until the anion gap closes."
+    },
+    {
+      "item_id": "NCLEX_MCQ_450082",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Medical-Surgical",
+      "body_system": "Endocrine",
+      "topic": "Fluid and electrolyte imbalance",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Which additional trend on the flowsheet most requires the nurse's attention?",
+      "options": [
+        {"text": "The steadily falling potassium, now 3.4 mEq/L", "correct": true},
+        {"text": "The stable insulin drip rate", "correct": false},
+        {"text": "The expected decline in glucose", "correct": false},
+        {"text": "The unchanged hourly documentation interval", "correct": false}
+      ],
+      "rationale": "Insulin drives potassium intracellularly, so potassium falls during DKA treatment; the downward trend to 3.4 mEq/L signals a need for replacement before dangerous hypokalemia develops."
+    }
+  ]
+}

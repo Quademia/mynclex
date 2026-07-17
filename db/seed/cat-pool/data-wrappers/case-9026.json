@@ -1,0 +1,137 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09026",
+  "title": "Acute Cholecystitis",
+  "scenario": "A 44-year-old female presents to the emergency department with severe right upper quadrant abdominal pain that began after a fatty meal and has persisted for several hours, radiating to the right shoulder.",
+  "tags": ["synthetic", "gastrointestinal"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:15"], "lines": ["44-year-old female presents with 6 hours of steady, severe right upper quadrant pain radiating to the right shoulder, worse after eating fried food. Reports nausea and two episodes of vomiting. Positive Murphy's sign on palpation. Guarding noted over the RUQ. Skin warm. Alert and oriented x3."], "visibleFrom": 1},
+        {"chips": ["10:40"], "lines": ["IV access established. Labs, abdominal ultrasound, and blood cultures ordered. Placed NPO. Antiemetic requested for nausea."], "visibleFrom": 2},
+        {"chips": ["11:30"], "lines": ["Ultrasound reports gallbladder wall thickening, pericholecystic fluid, and multiple gallstones with a positive sonographic Murphy's sign. Surgical consult notified."], "visibleFrom": 2},
+        {"chips": ["12:15"], "lines": ["IV fluids infusing, IV antibiotic and analgesia administered per order. NG tube not required at this time. Client resting, pain reduced."], "visibleFrom": 5},
+        {"chips": ["14:00"], "lines": ["Reports pain now 3/10 from 9/10. No further vomiting. Tolerating NPO status. Afebrile. Awaiting laparoscopic cholecystectomy in the morning."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:15", "101.5 F (38.6 C)", "108", "22", "142/86", "97% on RA"],
+        ["10:40", "101.3 F (38.5 C)", "104", "20", "138/84", "98% on RA"],
+        ["14:00", "99.4 F (37.4 C)", "84", "18", "126/78", "98% on RA"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["WBC", "16.8", "5.0-10.0 x10^9/L"],
+        ["Total bilirubin", "1.9", "0.3-1.2 mg/dL"],
+        ["Alkaline phosphatase", "168", "44-147 U/L"],
+        ["AST", "62", "10-40 U/L"],
+        ["ALT", "70", "7-56 U/L"],
+        ["Lipase", "48", "10-140 U/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Acetaminophen 500 mg PO as needed for pain", "Multivitamin PO daily"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Keep NPO", "Start IV isotonic fluids at 125 mL/hr", "Administer IV piperacillin-tazobactam per protocol", "Administer IV ketorolac 15 mg for pain", "Antiemetic ondansetron 4 mg IV for nausea", "Surgical consult for laparoscopic cholecystectomy", "Notify provider for temperature above 102 F or worsening pain"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_402601", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Acute cholecystitis", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings are consistent with acute cholecystitis and require follow-up?",
+      "options": [
+        {"text": "Right upper quadrant pain radiating to the right shoulder", "correct": true},
+        {"text": "Positive Murphy's sign", "correct": true},
+        {"text": "Temperature 101.5 F", "correct": true},
+        {"text": "WBC 16.8 x10^9/L", "correct": true},
+        {"text": "SpO2 97% on room air", "correct": false},
+        {"text": "Alert and oriented x3", "correct": false}
+      ],
+      "rationale": "RUQ pain radiating to the shoulder, a positive Murphy's sign, fever, and leukocytosis together point to gallbladder inflammation. Normal oxygenation and intact orientation are expected findings."
+    },
+    {
+      "item_id": "NCLEX_MMR_402602", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Acute cholecystitis", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it reflects inflammation/infection, biliary obstruction, or both. Each finding may reflect more than one.",
+      "columns": ["Inflammation/Infection", "Biliary obstruction"],
+      "rows": [
+        {"text": "WBC 16.8 x10^9/L", "answers": [0]},
+        {"text": "Fever 101.5 F", "answers": [0]},
+        {"text": "Total bilirubin 1.9 mg/dL", "answers": [1]},
+        {"text": "Elevated alkaline phosphatase", "answers": [1]},
+        {"text": "Gallbladder wall thickening with gallstones", "answers": [0, 1]}
+      ],
+      "rationale": "Leukocytosis and fever indicate inflammation and infection. Elevated bilirubin and alkaline phosphatase indicate obstruction of bile flow. Wall thickening with obstructing stones reflects both processes."
+    },
+    {
+      "item_id": "NCLEX_CLZ_402603", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Acute cholecystitis", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the immediate nursing goal is to {2}.",
+      "blanks": [
+        {"choices": [{"text": "acute pain with risk of infection from gallbladder inflammation", "correct": true}, {"text": "impaired skin integrity", "correct": false}, {"text": "activity intolerance", "correct": false}]},
+        {"choices": [{"text": "relieve pain and control infection while keeping the client NPO", "correct": true}, {"text": "encourage a high-fat oral diet", "correct": false}, {"text": "promote ambulation before diagnosis", "correct": false}]}
+      ],
+      "rationale": "The immediate threat is severe pain with an infected, inflamed gallbladder; the nurse prioritizes pain relief, antibiotics, and NPO status to rest the gallbladder before surgery."
+    },
+    {
+      "item_id": "NCLEX_MAT_402604", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Basic Care and Comfort", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Acute cholecystitis", "difficulty": "Medium", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Maintain NPO status", "answer": 0},
+        {"text": "Administer IV antibiotics", "answer": 0},
+        {"text": "Provide a high-fat meal to test tolerance", "answer": 1},
+        {"text": "Administer IV analgesia for pain", "answer": 0},
+        {"text": "Apply firm deep pressure to the RUQ every hour", "answer": 1}
+      ],
+      "rationale": "NPO rest, antibiotics, and analgesia treat cholecystitis. Fatty food triggers gallbladder contraction and pain, and repeated deep RUQ palpation is unnecessary and harmful; both are contraindicated."
+    },
+    {
+      "item_id": "NCLEX_SATA_402605", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Acute cholecystitis", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "Which actions should the nurse take now based on the orders? Select all that apply.",
+      "options": [
+        {"text": "Keep the client NPO", "correct": true},
+        {"text": "Administer the IV antibiotic as ordered", "correct": true},
+        {"text": "Infuse IV isotonic fluids at 125 mL/hr", "correct": true},
+        {"text": "Administer IV analgesia for pain", "correct": true},
+        {"text": "Offer a full oral diet immediately", "correct": false},
+        {"text": "Withhold antibiotics until surgery", "correct": false}
+      ],
+      "rationale": "NPO status, antibiotics, fluid resuscitation, and analgesia are the ordered priority actions to stabilize the client before cholecystectomy. Oral feeding and delaying antibiotics are not appropriate."
+    },
+    {
+      "item_id": "NCLEX_SATA_402606", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Acute cholecystitis", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Pain decreased to 3/10 from 9/10", "correct": true},
+        {"text": "Temperature down to 99.4 F", "correct": true},
+        {"text": "Pulse decreased to 84", "correct": true},
+        {"text": "No further vomiting", "correct": true},
+        {"text": "Temperature rising above 102 F", "correct": false},
+        {"text": "Increasing right upper quadrant guarding", "correct": false}
+      ],
+      "rationale": "Reduced pain, resolving fever, normalizing pulse, and cessation of vomiting show the inflammation and infection are responding. Rising fever and worsening guarding would signal deterioration."
+    }
+  ]
+}

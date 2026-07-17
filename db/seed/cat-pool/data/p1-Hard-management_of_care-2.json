@@ -1,0 +1,367 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_347001", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Prioritisation by acuity", "subtopic": "Charge-nurse rounding", "bloom": "Analyze",
+    "stem": "A charge nurse receives report on four clients at shift change. Which client should the charge nurse assess FIRST?",
+    "options": [
+      {"text": "A client 1 day post-thyroidectomy reporting tingling around the mouth and hand spasms", "correct": true, "feedback": "Correct. Perioral tingling and carpopedal spasm signal acute hypocalcemia, which can progress to laryngospasm — an airway threat requiring immediate assessment."},
+      {"text": "A client with pneumonia whose oral temperature rose from 38.1°C to 38.4°C", "correct": false, "feedback": "Incorrect. A modest temperature rise in a known infection is expected and not the highest priority."},
+      {"text": "A client 2 days post-op requesting the next scheduled dose of oral analgesia", "correct": false, "feedback": "Incorrect. Routine pain medication is important but not immediately life-threatening."},
+      {"text": "A client awaiting discharge whose ride has not yet arrived", "correct": false, "feedback": "Incorrect. A logistics delay carries no physiologic risk."}
+    ],
+    "rationale": "Post-thyroidectomy hypocalcemia (Trousseau/Chvostek signs) can cause laryngospasm, making airway risk the top priority over stable or routine concerns."
+  },
+  {
+    "item_id": "NCLEX_MCQ_347002", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Delegation and supervision", "subtopic": "RN vs LPN scope", "bloom": "Analyze",
+    "stem": "An RN is working with an LPN and a UAP on a medical unit. Which assignment is MOST appropriate for the RN to keep and NOT delegate?",
+    "options": [
+      {"text": "Developing the teaching plan for a newly diagnosed client with type 1 diabetes", "correct": true, "feedback": "Correct. Initial client teaching and care-plan development require RN-level assessment and cannot be delegated to the LPN or UAP."},
+      {"text": "Reinforcing previously taught insulin injection technique", "correct": false, "feedback": "Incorrect. Reinforcing established teaching is within the LPN scope."},
+      {"text": "Administering a scheduled oral antibiotic to a stable client", "correct": false, "feedback": "Incorrect. Administering routine oral medications is within the LPN scope in most jurisdictions."},
+      {"text": "Obtaining and recording a set of routine vital signs on a stable client", "correct": false, "feedback": "Incorrect. Routine vital signs on a stable client may be delegated to the UAP."}
+    ],
+    "rationale": "Initial assessment, care-plan creation, and initial teaching are RN-only functions; reinforcement, routine meds, and data collection may be delegated."
+  },
+  {
+    "item_id": "NCLEX_MCQ_347003", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Informed consent", "subtopic": "Nurse role", "bloom": "Apply",
+    "stem": "A client scheduled for a splenectomy tells the nurse, 'I signed the form, but I still don't understand why they can't just fix it with medicine.' Which action should the nurse take?",
+    "options": [
+      {"text": "Notify the surgeon that the client has additional questions before proceeding", "correct": true, "feedback": "Correct. Informed consent requires client understanding; unresolved questions mean consent is not truly informed and the provider must clarify."},
+      {"text": "Explain the surgical risks and alternatives to the client in detail", "correct": false, "feedback": "Incorrect. Disclosing risks and alternatives is the provider's legal responsibility, not the nurse's."},
+      {"text": "Reassure the client that the surgeon is highly experienced and proceed", "correct": false, "feedback": "Incorrect. Reassurance does not restore informed consent and dismisses the client's concern."},
+      {"text": "Document that the client verbalized understanding of the procedure", "correct": false, "feedback": "Incorrect. Documenting understanding that does not exist is inaccurate and unsafe."}
+    ],
+    "rationale": "The nurse witnesses consent and confirms understanding; when the client lacks understanding, the provider must be notified to re-explain before surgery."
+  },
+  {
+    "item_id": "NCLEX_MCQ_347004", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Advance directives", "subtopic": "DNR conflict", "bloom": "Analyze",
+    "stem": "A client with a valid do-not-resuscitate (DNR) order becomes unresponsive and pulseless. The client's adult daughter, who is not the designated healthcare proxy, demands that the team 'do everything.' What should the nurse do?",
+    "options": [
+      {"text": "Honor the existing DNR order and provide comfort-focused care", "correct": true, "feedback": "Correct. A valid DNR reflects the client's own legally documented wishes and remains in effect regardless of a non-proxy family member's demand."},
+      {"text": "Begin cardiopulmonary resuscitation because a family member requested it", "correct": false, "feedback": "Incorrect. A family member cannot override the client's valid advance directive."},
+      {"text": "Wait for the healthcare proxy to arrive before deciding whether to resuscitate", "correct": false, "feedback": "Incorrect. Even the proxy cannot override a valid, current DNR that reflects the client's wishes."},
+      {"text": "Ask the daughter to sign a form assuming responsibility for the decision", "correct": false, "feedback": "Incorrect. This is not a legally valid mechanism and delays appropriate care."}
+    ],
+    "rationale": "A valid DNR expresses the client's autonomous wishes; a non-proxy relative cannot revoke it, and the nurse must honor the directive."
+  },
+  {
+    "item_id": "NCLEX_MCQ_347005", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Handoff communication", "subtopic": "SBAR", "bloom": "Evaluate",
+    "stem": "A nurse is giving an SBAR handoff to the intensive care unit about a deteriorating client. Which statement belongs in the 'Recommendation' component?",
+    "options": [
+      {"text": "'I think this client needs an arterial line and a critical care evaluation now.'", "correct": true, "feedback": "Correct. Stating what the nurse believes is needed and requesting specific action is the Recommendation element of SBAR."},
+      {"text": "'The client is a 58-year-old admitted yesterday with sepsis.'", "correct": false, "feedback": "Incorrect. This is Background."},
+      {"text": "'The blood pressure has dropped to 82/44 despite two fluid boluses.'", "correct": false, "feedback": "Incorrect. This is Assessment/current status."},
+      {"text": "'I am calling about the client in room 12 who is deteriorating.'", "correct": false, "feedback": "Incorrect. This is Situation."}
+    ],
+    "rationale": "In SBAR, the Recommendation states the requested action or next step the nurse believes the client needs."
+  },
+  {
+    "item_id": "NCLEX_MCQ_347006", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Confidentiality and privacy", "subtopic": "HIPAA breach", "bloom": "Apply",
+    "stem": "A nurse discovers that a colleague accessed the electronic health record of a celebrity admitted to another unit and discussed the diagnosis in the break room. What is the nurse's MOST appropriate action?",
+    "options": [
+      {"text": "Report the privacy violation to the nurse manager or privacy officer", "correct": true, "feedback": "Correct. Unauthorized access and disclosure is a reportable HIPAA violation that must be escalated through the proper channel."},
+      {"text": "Ask the colleague to delete the information they viewed", "correct": false, "feedback": "Incorrect. Access is already logged; asking for deletion does not address the breach and is not the nurse's remedy."},
+      {"text": "Remind the colleague to be more discreet in the future", "correct": false, "feedback": "Incorrect. A private reminder fails to address a reportable violation of client privacy."},
+      {"text": "Take no action because the nurse did not access the record personally", "correct": false, "feedback": "Incorrect. Witnessing a breach and failing to report it is itself a professional failure."}
+    ],
+    "rationale": "Accessing a record without a care relationship and disclosing it violates HIPAA; the nurse must report it to management or the privacy officer."
+  },
+  {
+    "item_id": "NCLEX_MCQ_347007", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Verifying and implementing orders", "subtopic": "Questionable order", "bloom": "Analyze",
+    "stem": "A prescriber writes an order for 'heparin 25,000 units subcutaneously every 12 hours.' The usual prophylactic subcutaneous dose is 5,000 units. What should the nurse do FIRST?",
+    "options": [
+      {"text": "Hold the dose and contact the prescriber to clarify the order", "correct": true, "feedback": "Correct. The dose is far outside the safe prophylactic range; the nurse must clarify a questionable high-risk medication order before administering."},
+      {"text": "Administer the dose as written because a prescriber ordered it", "correct": false, "feedback": "Incorrect. Nurses are accountable for questioning unsafe orders; blindly following a written order does not remove liability."},
+      {"text": "Administer 5,000 units instead, assuming the extra digits were a typo", "correct": false, "feedback": "Incorrect. The nurse cannot independently alter a dose; the order must be clarified."},
+      {"text": "Ask another nurse whether the dose seems reasonable and then proceed", "correct": false, "feedback": "Incorrect. A peer opinion does not resolve an unsafe order; the prescriber must clarify."}
+    ],
+    "rationale": "Heparin is a high-alert medication; a dose five times the usual prophylactic amount must be held and clarified with the prescriber before administration."
+  },
+  {
+    "item_id": "NCLEX_MCQ_347008", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Client advocacy and rights", "subtopic": "Refusal of treatment", "bloom": "Apply",
+    "stem": "An alert, oriented adult client with decision-making capacity refuses a prescribed blood transfusion for religious reasons, despite a hemoglobin of 6.2 g/dL. Which action best demonstrates client advocacy?",
+    "options": [
+      {"text": "Support the client's decision and ensure the refusal is documented and communicated to the team", "correct": true, "feedback": "Correct. A competent client has the right to refuse treatment; advocacy means honoring the informed decision and ensuring the team respects it."},
+      {"text": "Persuade the client that the transfusion is necessary to survive", "correct": false, "feedback": "Incorrect. Coercion violates the client's autonomy."},
+      {"text": "Administer the transfusion once the client falls asleep", "correct": false, "feedback": "Incorrect. This is battery and a serious violation of the client's rights."},
+      {"text": "Request a court order to compel the transfusion", "correct": false, "feedback": "Incorrect. A competent adult's informed refusal generally cannot be overridden by court order."}
+    ],
+    "rationale": "A competent adult may refuse treatment; the advocate ensures the informed refusal is respected and clearly documented for the care team."
+  },
+  {
+    "item_id": "NCLEX_MCQ_347009", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Admission, transfer, and discharge", "subtopic": "Discharge readiness", "bloom": "Analyze",
+    "stem": "A nurse is preparing to discharge four clients. Which client's situation should the nurse address BEFORE discharge can safely proceed?",
+    "options": [
+      {"text": "A client going home on warfarin who cannot state when to seek help for bleeding", "correct": true, "feedback": "Correct. Inability to verbalize critical safety information about a high-risk medication indicates an unmet teaching need that must be resolved before discharge."},
+      {"text": "A client who asks to keep the hospital gown as a souvenir", "correct": false, "feedback": "Incorrect. This is a harmless request unrelated to safety."},
+      {"text": "A client whose ride is running 30 minutes late", "correct": false, "feedback": "Incorrect. A short transport delay is a logistics issue, not a safety barrier."},
+      {"text": "A client who wants a printed copy of the discharge summary emailed as well", "correct": false, "feedback": "Incorrect. Providing an additional copy is easily accommodated and not a safety concern."}
+    ],
+    "rationale": "Safe discharge requires that the client can manage high-risk therapy; inability to describe warning signs for warfarin bleeding must be corrected first."
+  },
+  {
+    "item_id": "NCLEX_MCQ_347010", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Mandatory reporting", "subtopic": "Suspected abuse", "bloom": "Apply",
+    "stem": "A home health nurse notices an older adult client with unexplained bruising, an untreated pressure injury, and a caregiver who answers all questions for the client. What is the nurse's priority action?",
+    "options": [
+      {"text": "Report the suspected elder abuse to adult protective services per mandatory reporting requirements", "correct": true, "feedback": "Correct. Nurses are mandatory reporters; reasonable suspicion of abuse must be reported to the appropriate agency, and proof is not required."},
+      {"text": "Confront the caregiver directly about the suspected abuse", "correct": false, "feedback": "Incorrect. Confrontation may escalate risk to the client and is not the nurse's role."},
+      {"text": "Wait to gather definitive proof of abuse before making any report", "correct": false, "feedback": "Incorrect. Reasonable suspicion, not proof, triggers the reporting duty."},
+      {"text": "Document the findings and re-evaluate at the next scheduled visit", "correct": false, "feedback": "Incorrect. Delaying the report leaves a vulnerable client at risk."}
+    ],
+    "rationale": "Nurses are mandatory reporters of suspected abuse; reasonable suspicion of elder abuse must be reported promptly to protective services."
+  },
+  {
+    "item_id": "NCLEX_MCQ_347011", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Conflict management", "subtopic": "Staff conflict", "bloom": "Apply",
+    "stem": "Two nurses on a unit are in an ongoing disagreement over the assignment, and it is affecting client care. Which approach by the nurse manager reflects an effective collaborative conflict-resolution strategy?",
+    "options": [
+      {"text": "Meet with both nurses together to identify shared goals and a mutually acceptable solution", "correct": true, "feedback": "Correct. Collaboration brings both parties together to address underlying interests and reach a win-win solution, the most constructive approach."},
+      {"text": "Assign one nurse to a different unit to keep them apart", "correct": false, "feedback": "Incorrect. Avoidance does not resolve the underlying conflict."},
+      {"text": "Decide the outcome unilaterally and instruct both nurses to comply", "correct": false, "feedback": "Incorrect. Competing/forcing may resolve the moment but breeds resentment and does not address the root issue."},
+      {"text": "Tell the nurses to work it out privately without management involvement", "correct": false, "feedback": "Incorrect. Because client care is affected, the manager must facilitate resolution."}
+    ],
+    "rationale": "Collaboration addresses both parties' interests to reach a mutually acceptable outcome and is the most effective conflict-resolution style when client care is affected."
+  },
+  {
+    "item_id": "NCLEX_MCQ_347012", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Multidisciplinary collaboration", "subtopic": "Referral", "bloom": "Apply",
+    "stem": "A client recovering from a stroke has slurred speech, coughs when drinking water, and is losing weight. Which referral should the nurse prioritize to address the most immediate safety risk?",
+    "options": [
+      {"text": "Speech-language pathologist for a swallowing evaluation", "correct": true, "feedback": "Correct. Coughing with fluids after a stroke suggests dysphagia and aspiration risk; the swallowing evaluation addresses the most immediate safety threat."},
+      {"text": "Dietitian for a weight-gain meal plan", "correct": false, "feedback": "Incorrect. Nutrition matters, but aspiration risk must be evaluated before oral intake is optimized."},
+      {"text": "Physical therapist for gait and mobility training", "correct": false, "feedback": "Incorrect. Mobility is important but not the most immediate safety threat here."},
+      {"text": "Social worker for discharge-planning resources", "correct": false, "feedback": "Incorrect. Discharge planning is appropriate later, not the immediate safety priority."}
+    ],
+    "rationale": "Post-stroke coughing with fluids indicates possible dysphagia; a speech-language pathologist swallowing evaluation addresses the immediate aspiration risk."
+  },
+  {
+    "item_id": "NCLEX_MCQ_347013", "type": "MCQ", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Ethics and ethical dilemmas", "subtopic": "Ethical principles", "bloom": "Analyze",
+    "stem": "A nurse withholds full information about a poor prognosis because a family requests it, even though the alert client has repeatedly asked to know the truth. Which ethical principle is MOST directly violated?",
+    "options": [
+      {"text": "Autonomy", "correct": true, "feedback": "Correct. Denying a capable client truthful information they have requested violates their right to self-determination (autonomy)."},
+      {"text": "Nonmaleficence", "correct": false, "feedback": "Incorrect. Nonmaleficence concerns avoiding harm; the central violation here is the client's right to decide with accurate information."},
+      {"text": "Justice", "correct": false, "feedback": "Incorrect. Justice concerns fairness in distribution of care, not truth-telling to an individual."},
+      {"text": "Beneficence", "correct": false, "feedback": "Incorrect. Beneficence is acting in the client's benefit; the primary breach here is overriding the client's own informed choice."}
+    ],
+    "rationale": "A capable client's request for truthful information is grounded in autonomy; withholding it at the family's request overrides the client's self-determination."
+  },
+  {
+    "item_id": "NCLEX_SATA_347014", "type": "SATA", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Delegation to UAP", "subtopic": "Scope limits", "bloom": "Analyze",
+    "stem": "An RN is delegating to unlicensed assistive personnel (UAP) on a busy unit. Which tasks are appropriate to delegate to the UAP? Select all that apply.",
+    "options": [
+      {"text": "Assisting a stable client to the bathroom", "correct": true},
+      {"text": "Measuring and recording a client's oral intake and output", "correct": true},
+      {"text": "Repositioning a client with a stage 2 pressure injury on a schedule", "correct": true},
+      {"text": "Evaluating whether a client's pain has decreased after medication", "correct": false},
+      {"text": "Providing the first teaching session on ostomy self-care", "correct": false},
+      {"text": "Assessing lung sounds on a newly admitted client with dyspnea", "correct": false}
+    ],
+    "rationale": "UAP may perform stable ADLs, routine data collection, and scheduled repositioning; assessment, evaluation, and initial teaching remain RN functions."
+  },
+  {
+    "item_id": "NCLEX_SATA_347015", "type": "SATA", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Quality and performance improvement", "subtopic": "Sentinel event response", "bloom": "Analyze",
+    "stem": "After a medication error reaches a client, the nurse participates in the facility's response. Which actions reflect appropriate quality-improvement and safety practice? Select all that apply.",
+    "options": [
+      {"text": "Complete an incident/occurrence report describing the facts objectively", "correct": true},
+      {"text": "Assess and monitor the client for effects of the error", "correct": true},
+      {"text": "Participate in a root-cause analysis focused on system factors", "correct": true},
+      {"text": "Notify the prescriber of the error", "correct": true},
+      {"text": "Document 'incident report completed' in the client's chart", "correct": false},
+      {"text": "Identify the individual to blame and note it in the report", "correct": false}
+    ],
+    "rationale": "Just-culture quality improvement focuses on client protection, objective reporting, provider notification, and system-level root-cause analysis, not chart references to reports or individual blame."
+  },
+  {
+    "item_id": "NCLEX_SATA_347016", "type": "SATA", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Client rights", "subtopic": "Advocacy scenarios", "bloom": "Apply",
+    "stem": "A nurse is reviewing situations that involve protecting client rights. In which situations is the nurse acting as an effective client advocate? Select all that apply.",
+    "options": [
+      {"text": "Arranging a medical interpreter for a client with limited English before consent is obtained", "correct": true},
+      {"text": "Ensuring a client's request to change providers is communicated to management", "correct": true},
+      {"text": "Honoring a competent client's decision to leave against medical advice after risks are explained", "correct": true},
+      {"text": "Pausing a procedure when a client withdraws previously given consent", "correct": true},
+      {"text": "Convincing a hesitant client to accept a treatment the nurse believes is best", "correct": false},
+      {"text": "Sharing a client's diagnosis with a visiting friend at the client's bedside without asking", "correct": false}
+    ],
+    "rationale": "Advocacy protects the client's autonomy, informed choice, and access to communication resources; coercion and unauthorized disclosure violate client rights."
+  },
+  {
+    "item_id": "NCLEX_SATA_347017", "type": "SATA", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Disaster triage", "subtopic": "Mass-casualty prioritisation", "bloom": "Analyze",
+    "stem": "During a mass-casualty event using a color-coded triage system, which clients should the nurse tag as 'red' (immediate) priority? Select all that apply.",
+    "options": [
+      {"text": "An adult with a tension pneumothorax and severe respiratory distress", "correct": true},
+      {"text": "A client with active, uncontrolled arterial hemorrhage", "correct": true},
+      {"text": "A client with an open airway obstruction that is relieved by repositioning", "correct": true},
+      {"text": "A client with a closed femur fracture, stable vital signs, and good perfusion", "correct": false},
+      {"text": "A client with no pulse and no respirations after airway repositioning", "correct": false},
+      {"text": "A client with minor lacerations who is walking and following commands", "correct": false}
+    ],
+    "rationale": "Immediate (red) tags go to survivable life threats needing rapid intervention; stable injuries are delayed (yellow/green) and the pulseless client is expectant (black)."
+  },
+  {
+    "item_id": "NCLEX_SATA_347018", "type": "SATA", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Documentation", "subtopic": "Legally sound charting", "bloom": "Apply",
+    "stem": "A nurse is documenting care in the electronic health record. Which practices reflect legally sound documentation? Select all that apply.",
+    "options": [
+      {"text": "Charting the client's own words in quotation marks for subjective reports", "correct": true},
+      {"text": "Recording events in the order they occurred as soon as possible", "correct": true},
+      {"text": "Documenting objective, factual observations rather than opinions", "correct": true},
+      {"text": "Correcting an error by using the system's tracked-amendment function", "correct": true},
+      {"text": "Charting anticipated care before it is actually performed to save time", "correct": false},
+      {"text": "Using labels such as 'the client was uncooperative and difficult'", "correct": false}
+    ],
+    "rationale": "Sound documentation is timely, factual, objective, uses the client's own words, and corrects errors transparently; pre-charting and subjective labeling are unacceptable."
+  },
+  {
+    "item_id": "NCLEX_SELN_347019", "type": "SELECT_N", "difficulty": "Hard", "select_count": 3,
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Prioritisation of care", "subtopic": "Time management", "bloom": "Analyze",
+    "stem": "A nurse begins a shift with six clients and multiple pending tasks. Which 3 actions should the nurse complete FIRST, before the others?",
+    "options": [
+      {"text": "Assess the client whose telemetry now shows a new run of ventricular tachycardia", "correct": true},
+      {"text": "Evaluate the client reporting sudden shortness of breath and chest tightness", "correct": true},
+      {"text": "Check the postoperative client whose dressing is becoming saturated with bright red blood", "correct": true},
+      {"text": "Restock the supply cart in an empty room", "correct": false},
+      {"text": "Return a phone call to a pharmacy about a nonurgent formulary question", "correct": false},
+      {"text": "Reposition a stable client who was turned 30 minutes ago", "correct": false}
+    ],
+    "rationale": "Unstable cardiac rhythm, acute respiratory distress, and active hemorrhage are life-threatening and take priority over supply, administrative, and routine tasks."
+  },
+  {
+    "item_id": "NCLEX_TF_347020", "type": "TF", "difficulty": "Hard", "answer": "False",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Legal scope of practice", "subtopic": "Delegation accountability", "bloom": "Understand",
+    "stem": "When an RN delegates a task to a UAP, the accountability for the outcome of that task transfers entirely to the UAP.",
+    "rationale": "The RN retains accountability for the delegation decision and supervision; delegation transfers the task, not overall accountability for the client's care."
+  },
+  {
+    "item_id": "NCLEX_MAT_347021", "type": "MATRIX", "difficulty": "Hard", "row_label": "Task",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Delegation and scope", "subtopic": "RN / LPN / UAP", "bloom": "Analyze",
+    "stem": "For each task, click the most appropriate personnel to whom it can be assigned within scope of practice.",
+    "columns": ["RN only", "LPN or RN", "UAP, LPN, or RN"],
+    "rows": [
+      {"text": "Initiating a blood transfusion for a client", "answer": 0},
+      {"text": "Developing the nursing plan of care on admission", "answer": 0},
+      {"text": "Administering an oral antihypertensive to a stable client", "answer": 1},
+      {"text": "Inserting an indwelling urinary catheter in a stable client", "answer": 1},
+      {"text": "Feeding a stable client who has no swallowing difficulty", "answer": 2},
+      {"text": "Obtaining a routine blood pressure on a stable client", "answer": 2}
+    ],
+    "rationale": "Care-plan development and blood-product initiation are RN-only; medication administration and catheter insertion may go to the LPN; ADLs and routine vitals may go to the UAP."
+  },
+  {
+    "item_id": "NCLEX_MMR_347022", "type": "MATRIX_MR", "difficulty": "Hard", "row_label": "Client",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Transmission-based assignment", "subtopic": "Cohorting and delegation", "bloom": "Analyze",
+    "stem": "A charge nurse is making assignments. For each client, select all appropriate management actions (more than one may apply).",
+    "columns": ["Assign to experienced RN", "Requires private/isolation room", "Suitable to delegate ADLs to UAP"],
+    "rows": [
+      {"text": "A newly admitted client with active tuberculosis and hemoptysis", "answers": [0, 1]},
+      {"text": "A stable client with Clostridioides difficile who needs help bathing", "answers": [1, 2]},
+      {"text": "A hemodynamically unstable client on a titrated vasopressor drip", "answers": [0]},
+      {"text": "A stable client 2 days post-op needing assistance to ambulate", "answers": [2]}
+    ],
+    "rationale": "High-acuity/unstable clients need an experienced RN; airborne and contact precautions require appropriate room placement; stable ADLs may be delegated to the UAP."
+  },
+  {
+    "item_id": "NCLEX_CLZ_347023", "type": "CLOZE", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Prioritisation frameworks", "subtopic": "ABC and Maslow", "bloom": "Analyze",
+    "stem": "When several clients need attention at once, the nurse first applies the {1} framework to identify life threats, and among clients who are otherwise stable, gives priority to {2} needs before higher-level ones.",
+    "blanks": [
+      {"choices": [{"text": "airway-breathing-circulation", "correct": true}, {"text": "first-come, first-served"}, {"text": "alphabetical-by-name"}]},
+      {"choices": [{"text": "physiological", "correct": true}, {"text": "self-esteem"}, {"text": "self-actualization"}]}
+    ],
+    "rationale": "Life threats are triaged by ABC; among stable clients, Maslow places physiological needs above psychosocial and self-actualization needs."
+  },
+  {
+    "item_id": "NCLEX_HL_347024", "type": "HIGHLIGHT", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Reporting unsafe practice", "subtopic": "Recognising concerns", "bloom": "Analyze",
+    "stem": "Highlight each finding in the shift observation that represents a practice concern the charge nurse should follow up on. A nurse [[scanned the client's wristband before administering medication]]. Another nurse [[documented an assessment on a client she has not yet seen]]. A UAP [[reported a blood pressure of 78/40 promptly to the RN]]. A nurse [[borrowed a coworker's computer login to chart quickly]]. A nurse [[left a controlled-substance waste unwitnessed and undocumented]]. A nurse [[performed hand hygiene between clients]].",
+    "chunks": [
+      {"text": "scanned the client's wristband before administering medication", "correct": false, "feedback": "This is correct practice — barcode verification is appropriate."},
+      {"text": "documented an assessment on a client she has not yet seen", "correct": true, "feedback": "Falsified documentation is a serious practice concern."},
+      {"text": "reported a blood pressure of 78/40 promptly to the RN", "correct": false, "feedback": "This is appropriate escalation of an abnormal finding."},
+      {"text": "borrowed a coworker's computer login to chart quickly", "correct": true, "feedback": "Sharing login credentials violates security and documentation integrity."},
+      {"text": "left a controlled-substance waste unwitnessed and undocumented", "correct": true, "feedback": "Controlled-substance waste requires a witness and documentation — a diversion risk."},
+      {"text": "performed hand hygiene between clients", "correct": false, "feedback": "This is correct infection-control practice."}
+    ],
+    "rationale": "Falsified charting, shared logins, and unwitnessed controlled-substance waste are reportable practice concerns; the other actions reflect correct practice."
+  },
+  {
+    "item_id": "NCLEX_BT_347025", "type": "BOWTIE", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Rapid response coordination", "subtopic": "Deteriorating client", "bloom": "Evaluate",
+    "stem": "A client on a med-surg unit becomes acutely confused with BP 84/50, HR 128, and SpO2 88%. Complete the diagram by selecting the priority management focus, the immediate coordinating actions, and the parameters to reassess.",
+    "left": {"label": "Immediate actions to take", "tokens": [
+      {"text": "Call the rapid response team", "correct": true},
+      {"text": "Apply supplemental oxygen and stay with the client", "correct": true},
+      {"text": "Send the client to radiology for a routine scan"},
+      {"text": "Wait until the scheduled provider rounds"},
+      {"text": "Discharge teaching for the client"}
+    ]},
+    "centre": {"label": "Priority management focus", "tokens": [
+      {"text": "Stabilize airway, breathing, and circulation", "correct": true},
+      {"text": "Complete the admission paperwork"},
+      {"text": "Update the family newsletter"}
+    ]},
+    "right": {"label": "Parameters to reassess", "tokens": [
+      {"text": "Oxygen saturation and respiratory rate", "correct": true},
+      {"text": "Blood pressure and heart rate", "correct": true},
+      {"text": "Preferred meal choices"},
+      {"text": "Visitor schedule"},
+      {"text": "Television channel selection"}
+    ]},
+    "rationale": "An acutely deteriorating client needs rapid response activation and ABC stabilization, with close reassessment of oxygenation and hemodynamic parameters."
+  },
+  {
+    "item_id": "NCLEX_DCZ_347026", "type": "DRAG_CLOZE", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Cost-effective and case management", "subtopic": "Resource stewardship", "bloom": "Apply",
+    "stem": "To provide cost-effective care, the nurse coordinates discharge early with the [1] to arrange home services, and avoids waste by [2] rather than routinely opening extra sterile supplies.",
+    "slots": [{"token": 0}, {"token": 1}],
+    "tokens": ["case manager", "gathering only the supplies needed", "ordering duplicate tests", "delaying the discharge indefinitely"],
+    "rationale": "Cost-effective case management coordinates early discharge planning with the case manager and conserves resources by gathering only needed supplies."
+  },
+  {
+    "item_id": "NCLEX_DO_347027", "type": "DRAG_ORDER", "difficulty": "Hard",
+    "category": "Safe and Effective Care Environment", "subcategory": "Management of Care",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Handoff and escalation", "subtopic": "Chain of command", "bloom": "Apply",
+    "stem": "A nurse identifies a critical lab value that the covering resident dismisses, and the client is deteriorating. Place the nurse's escalation actions in the correct priority order.",
+    "tokens": ["Reassess the client and confirm the critical finding", "Communicate the concern to the covering resident using SBAR", "Notify the charge nurse and escalate up the chain of command", "Contact the attending physician or rapid response as indicated", "Document the escalation steps taken and outcomes"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

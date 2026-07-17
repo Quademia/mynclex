@@ -1,0 +1,62 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09030",
+  "title": "Peak Expiratory Flow Trend in Asthma Exacerbation",
+  "scenario": "A 14-year-old client with a history of asthma is admitted for an acute exacerbation. The nurse records peak expiratory flow (PEF) as a percentage of the client's personal best before and after each nebulized albuterol treatment.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Peak Flow and Respiratory Flowsheet",
+      "headers": ["Time", "Peak flow (% personal best)", "RR", "SpO2", "Breath sounds", "Accessory muscle use"],
+      "rows": [
+        ["08:00", "45%", "30", "90% on RA", "Diffuse wheezes", "Present"],
+        ["08:30", "58%", "28", "92% on 2L NC", "Wheezes throughout", "Present"],
+        ["10:00", "68%", "24", "95% on 2L NC", "Wheezes on expiration", "Mild"],
+        ["12:00", "82%", "18", "97% on RA", "Clear with scattered wheezes", "None"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450301",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Pediatrics",
+      "body_system": "Respiratory",
+      "topic": "Asthma exacerbation",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Based on the overall flowsheet trend, how should the nurse interpret the client's response to treatment?",
+      "options": [
+        {"text": "The client is improving and responding to therapy", "correct": true},
+        {"text": "The client is deteriorating and needs escalation", "correct": false},
+        {"text": "The client's status is unchanged since admission", "correct": false},
+        {"text": "The client is in impending respiratory failure", "correct": false}
+      ],
+      "rationale": "Peak flow rising from 45% to 82% of personal best, a falling respiratory rate, improving oxygen saturation, clearing breath sounds, and resolving accessory muscle use together show a clear positive response to bronchodilator therapy."
+    },
+    {
+      "item_id": "NCLEX_SATA_450302",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Pediatrics",
+      "body_system": "Respiratory",
+      "topic": "Asthma exacerbation",
+      "difficulty": "Easy",
+      "bloom": "Evaluate",
+      "stem": "Which findings on the flowsheet support that the asthma exacerbation is improving? Select all that apply.",
+      "options": [
+        {"text": "Peak flow increasing to 82% of personal best", "correct": true},
+        {"text": "Respiratory rate decreasing to 18", "correct": true},
+        {"text": "SpO2 improving to 97% on room air", "correct": true},
+        {"text": "Accessory muscle use resolving", "correct": true},
+        {"text": "Wheezes present throughout expiration and inspiration", "correct": false}
+      ],
+      "rationale": "Rising peak flow, a normalizing respiratory rate, improved oxygenation on room air, and loss of accessory muscle use all indicate improving airflow. Persistent widespread wheezing would suggest continued obstruction, not improvement."
+    }
+  ]
+}

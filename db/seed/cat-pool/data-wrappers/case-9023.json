@@ -1,0 +1,130 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09023",
+  "title": "Major Burn Injury",
+  "scenario": "A 34-year-old male is brought to the emergency department by EMS after being rescued from a house fire. He has deep partial-thickness and full-thickness burns to the face, anterior chest, and both arms, with singed nasal hairs and a hoarse voice.",
+  "tags": ["synthetic", "integumentary", "multisystem"],
+  "difficulty_tier": "Hard",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["21:10"], "lines": ["34-year-old male rescued from an enclosed house fire, estimated 20 minutes of smoke exposure. Deep partial-thickness and full-thickness burns to the face, anterior chest, and circumferentially to both arms. Estimated 36% total body surface area. Singed nasal hairs, soot around the nares and mouth, carbonaceous sputum, and a hoarse voice noted. Alert but anxious and restless."], "visibleFrom": 1},
+        {"chips": ["21:25"], "lines": ["Two large-bore IV lines placed in unburned tissue. Weight reported as 80 kg. High-flow oxygen applied via non-rebreather. Burns covered with dry sterile sheets. Client reports throat tightness and increasing difficulty swallowing secretions."], "visibleFrom": 2},
+        {"chips": ["22:00"], "lines": ["Lactated Ringer's started per Parkland resuscitation. Indwelling urinary catheter inserted to monitor hourly output. Anesthesia at bedside for airway assessment given progressive stridor."], "visibleFrom": 5},
+        {"chips": ["02:00"], "lines": ["Airway secured by early intubation. Urine output improved to 45 mL/hr over the last two hours. Mentation clearer, less restless. Extremity pulses palpable after escharotomy of the right forearm."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["21:10", "97.2 F (36.2 C)", "128", "30", "94/58", "90% on NRB"],
+        ["21:25", "97.0 F (36.1 C)", "132", "32", "88/54", "91% on NRB"],
+        ["22:00", "96.8 F (36.0 C)", "126", "28", "92/56", "93% on NRB"],
+        ["02:00", "97.6 F (36.4 C)", "104", "18", "112/70", "98% on vent"]
+      ],
+      "rowVisibleFrom": [1, 2, 5, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Hematocrit", "58", "40-52 %"],
+        ["Potassium", "5.8", "3.5-5.0 mEq/L"],
+        ["Carboxyhemoglobin", "22", "< 3 %"],
+        ["pH (ABG)", "7.28", "7.35-7.45"],
+        ["Lactate", "4.6", "0.5-2.2 mmol/L"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Lactated Ringer's IV per Parkland formula (4 mL x kg x %TBSA), half over the first 8 hours from time of injury", "Insert indwelling urinary catheter, monitor hourly urine output", "Titrate fluids to urine output 0.5 mL/kg/hr (30-50 mL/hr)", "Prepare for early intubation for airway protection", "IV opioid analgesia titrated to pain", "NPO, insert nasogastric tube", "Tetanus prophylaxis"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_402301", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Integumentary", "topic": "Burn injury", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings should the nurse recognise as signs of an inhalation injury requiring immediate follow-up?",
+      "options": [
+        {"text": "Singed nasal hairs", "correct": true},
+        {"text": "Carbonaceous (sooty) sputum", "correct": true},
+        {"text": "Hoarse voice", "correct": true},
+        {"text": "Soot around the nares and mouth", "correct": true},
+        {"text": "Deep partial-thickness burn to the forearm", "correct": false},
+        {"text": "Temperature 97.2 F", "correct": false},
+        {"text": "Reported weight of 80 kg", "correct": false}
+      ],
+      "rationale": "Singed nasal hairs, carbonaceous sputum, hoarseness, and facial soot are hallmark signs of smoke inhalation and impending airway compromise. Burn depth, a normal temperature, and body weight do not indicate inhalation injury."
+    },
+    {
+      "item_id": "NCLEX_MMR_402302", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Integumentary", "topic": "Burn injury", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it supports hypovolemic (burn) shock, carbon monoxide poisoning, or both. Each finding may support more than one.",
+      "columns": ["Hypovolemic shock", "Carbon monoxide poisoning"],
+      "rows": [
+        {"text": "Hematocrit 58%", "answers": [0]},
+        {"text": "Blood pressure 88/54", "answers": [0]},
+        {"text": "Carboxyhemoglobin 22%", "answers": [1]},
+        {"text": "Restlessness and anxiety", "answers": [0, 1]},
+        {"text": "Lactate 4.6 mmol/L", "answers": [0, 1]}
+      ],
+      "rationale": "Hemoconcentration and hypotension reflect fluid shifts of burn (hypovolemic) shock, while an elevated carboxyhemoglobin reflects carbon monoxide poisoning. Restlessness and lactic acidosis can result from the tissue hypoxia of either process."
+    },
+    {
+      "item_id": "NCLEX_CLZ_402303", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Burn injury", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. In the first hour of care, the nurse's highest priority is to {1}, followed by {2}.",
+      "blanks": [
+        {"choices": [{"text": "protect and secure the airway", "correct": true}, {"text": "cover the burns with a moist dressing"}, {"text": "administer IV opioid analgesia"}]},
+        {"choices": [{"text": "begin IV fluid resuscitation", "correct": true}, {"text": "obtain a detailed burn history"}, {"text": "apply topical antimicrobial cream"}]}
+      ],
+      "rationale": "With signs of inhalation injury and progressive stridor, airway protection is the immediate priority; fluid resuscitation to counter massive fluid shifts follows. Pain control, wound care, and history-taking come after airway and circulation are addressed."
+    },
+    {
+      "item_id": "NCLEX_MAT_402304", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Integumentary", "topic": "Burn injury", "difficulty": "Hard", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client during the emergent phase.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Infuse Lactated Ringer's via the Parkland formula", "answer": 0},
+        {"text": "Titrate fluids to a urine output of 30-50 mL/hr", "answer": 0},
+        {"text": "Assess distal pulses in the circumferentially burned arms", "answer": 0},
+        {"text": "Apply ice directly to the burned skin", "answer": 1},
+        {"text": "Administer intramuscular pain medication", "answer": 1}
+      ],
+      "rationale": "Lactated Ringer's titrated to urine output and circulation checks of circumferential burns are core emergent-phase care. Ice worsens tissue injury and hypothermia, and IM medication is unreliably absorbed with fluid shifts, so analgesia is given IV."
+    },
+    {
+      "item_id": "NCLEX_SATA_402305", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Integumentary", "topic": "Fluid resuscitation", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "As fluid resuscitation begins, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Monitor hourly urine output", "correct": true},
+        {"text": "Administer IV opioid analgesia titrated to pain", "correct": true},
+        {"text": "Monitor the serum potassium level", "correct": true},
+        {"text": "Keep the client warm and covered", "correct": true},
+        {"text": "Restrict all IV fluids to a keep-vein-open rate", "correct": false},
+        {"text": "Immerse the burns in cold water", "correct": false}
+      ],
+      "rationale": "Hourly urine output guides fluid titration, IV opioids control severe pain, potassium is monitored because cellular injury releases it, and warmth prevents hypothermia. Restricting fluids or cold immersion would worsen shock and tissue injury."
+    },
+    {
+      "item_id": "NCLEX_SATA_402306", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Integumentary", "topic": "Burn injury", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate that resuscitation and airway management have been effective? Select all that apply.",
+      "options": [
+        {"text": "Urine output increased to 45 mL/hr", "correct": true},
+        {"text": "Heart rate decreased to 104", "correct": true},
+        {"text": "Blood pressure improved to 112/70", "correct": true},
+        {"text": "SpO2 improved to 98%", "correct": true},
+        {"text": "Hematocrit rising further to 62%", "correct": false}
+      ],
+      "rationale": "Rising urine output, a lower heart rate, improved blood pressure, and restored oxygen saturation show that perfusion and oxygenation are recovering. A further rise in hematocrit would signal ongoing hemoconcentration and inadequate resuscitation."
+    }
+  ]
+}

@@ -1,0 +1,342 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_306001", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Hand hygiene", "bloom": "Apply",
+    "stem": "A nurse's hands are visibly soiled after removing a soiled dressing. Which hand-hygiene method should the nurse use?",
+    "options": [
+      {"text": "Wash hands with soap and water", "correct": true, "feedback": "Correct. Visibly soiled hands must be washed with soap and water."},
+      {"text": "Apply alcohol-based hand rub", "correct": false, "feedback": "Incorrect. Alcohol rub is not effective on visibly soiled hands."},
+      {"text": "Wipe hands with a dry paper towel", "correct": false, "feedback": "Incorrect. This does not remove pathogens."},
+      {"text": "Change gloves without washing", "correct": false, "feedback": "Incorrect. Hand hygiene is still required."}
+    ],
+    "rationale": "When hands are visibly soiled, soap and water is required; alcohol rub is only for hands that are not visibly soiled."
+  },
+  {
+    "item_id": "NCLEX_MCQ_306002", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Transmission-based precautions", "bloom": "Apply",
+    "stem": "A client is admitted with active pulmonary tuberculosis. Which type of isolation room should the nurse ensure is used?",
+    "options": [
+      {"text": "Airborne isolation with negative-pressure room", "correct": true, "feedback": "Correct. TB requires airborne precautions in a negative-pressure room."},
+      {"text": "Droplet isolation with a standard private room", "correct": false, "feedback": "Incorrect. TB is airborne, not droplet."},
+      {"text": "Contact isolation only", "correct": false, "feedback": "Incorrect. Contact precautions do not address airborne spread."},
+      {"text": "Protective (reverse) isolation", "correct": false, "feedback": "Incorrect. Protective isolation is for immunocompromised clients."}
+    ],
+    "rationale": "Active pulmonary TB requires airborne precautions with a negative-pressure room and N95 respirator."
+  },
+  {
+    "item_id": "NCLEX_MCQ_306003", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "PPE donning", "bloom": "Apply",
+    "stem": "When donning personal protective equipment before entering an isolation room, which item should the nurse put on FIRST?",
+    "options": [
+      {"text": "Gown", "correct": true, "feedback": "Correct. The gown is donned first, followed by mask, goggles, then gloves."},
+      {"text": "Gloves", "correct": false, "feedback": "Incorrect. Gloves are donned last."},
+      {"text": "Goggles", "correct": false, "feedback": "Incorrect. Goggles come after the mask."},
+      {"text": "Shoe covers", "correct": false, "feedback": "Incorrect. This is not the correct first step."}
+    ],
+    "rationale": "The correct donning sequence is gown, mask/respirator, goggles/face shield, then gloves."
+  },
+  {
+    "item_id": "NCLEX_MCQ_306004", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Client identification", "bloom": "Apply",
+    "stem": "Before administering a medication, which action best verifies the nurse has the correct client?",
+    "options": [
+      {"text": "Check two identifiers such as name and date of birth", "correct": true, "feedback": "Correct. Two identifiers are the safety standard."},
+      {"text": "Ask the roommate to confirm the client's name", "correct": false, "feedback": "Incorrect. A roommate is not a reliable identifier."},
+      {"text": "Confirm the room and bed number only", "correct": false, "feedback": "Incorrect. Room number alone is unreliable."},
+      {"text": "Call the client's first name and proceed if they respond", "correct": false, "feedback": "Incorrect. A confused client may respond to any name."}
+    ],
+    "rationale": "Two independent client identifiers (e.g., name and date of birth) must be verified before administering medication."
+  },
+  {
+    "item_id": "NCLEX_MCQ_306005", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Integumentary", "topic": "Sharps disposal", "bloom": "Apply",
+    "stem": "After giving a subcutaneous injection, how should the nurse dispose of the used needle?",
+    "options": [
+      {"text": "Place it uncapped in a puncture-resistant sharps container", "correct": true, "feedback": "Correct. Uncapped disposal in a sharps container prevents needlestick injury."},
+      {"text": "Recap the needle before discarding it", "correct": false, "feedback": "Incorrect. Recapping increases needlestick risk."},
+      {"text": "Break the needle off and throw it in the trash", "correct": false, "feedback": "Incorrect. This is unsafe."},
+      {"text": "Hand the needle to another nurse for disposal", "correct": false, "feedback": "Incorrect. This increases exposure risk."}
+    ],
+    "rationale": "Used needles are discarded uncapped, immediately, in a labeled puncture-resistant sharps container."
+  },
+  {
+    "item_id": "NCLEX_MCQ_306006", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Fire safety", "bloom": "Apply",
+    "stem": "A nurse discovers a small fire in a client's trash can. Using the RACE protocol, what is the FIRST action?",
+    "options": [
+      {"text": "Rescue any clients in immediate danger", "correct": true, "feedback": "Correct. Rescue is the first step of RACE."},
+      {"text": "Activate the fire alarm", "correct": false, "feedback": "Incorrect. Alarm is the second step."},
+      {"text": "Confine the fire by closing doors", "correct": false, "feedback": "Incorrect. Confine comes after rescue and alarm."},
+      {"text": "Extinguish the fire with an extinguisher", "correct": false, "feedback": "Incorrect. Extinguish is the last step."}
+    ],
+    "rationale": "RACE stands for Rescue, Alarm, Confine, Extinguish — rescue of endangered clients is first."
+  },
+  {
+    "item_id": "NCLEX_MCQ_306007", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Maternity", "body_system": "Reproductive", "topic": "Newborn security", "bloom": "Apply",
+    "stem": "Which action by the nurse best prevents infant abduction on the maternity unit?",
+    "options": [
+      {"text": "Verify identification bands match before returning the infant to the mother", "correct": true, "feedback": "Correct. Matching ID bands prevent misidentification and abduction."},
+      {"text": "Allow anyone in scrubs to transport the infant", "correct": false, "feedback": "Incorrect. Identity must be verified, not assumed from clothing."},
+      {"text": "Leave the infant unattended in the hallway", "correct": false, "feedback": "Incorrect. This is unsafe."},
+      {"text": "Post the infant's full name on the door", "correct": false, "feedback": "Incorrect. This is a privacy and security risk."}
+    ],
+    "rationale": "Matching infant and parent identification bands and never releasing infants to unidentified staff prevent abduction."
+  },
+  {
+    "item_id": "NCLEX_MCQ_306008", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Musculoskeletal", "topic": "Safe client handling", "bloom": "Apply",
+    "stem": "When preparing to transfer a heavy, immobile client from bed to chair, which action protects the nurse from injury?",
+    "options": [
+      {"text": "Use a mechanical lift and request assistance", "correct": true, "feedback": "Correct. Mechanical lifts and help reduce injury risk."},
+      {"text": "Lift the client quickly using the back muscles", "correct": false, "feedback": "Incorrect. Using the back causes injury."},
+      {"text": "Bend at the waist to reach the client", "correct": false, "feedback": "Incorrect. Bending at the waist strains the back."},
+      {"text": "Transfer the client alone to save time", "correct": false, "feedback": "Incorrect. This risks injury to nurse and client."}
+    ],
+    "rationale": "Proper body mechanics, mechanical lifts, and adequate help prevent musculoskeletal injury during transfers."
+  },
+  {
+    "item_id": "NCLEX_MCQ_306009", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Standard precautions", "bloom": "Understand",
+    "stem": "Standard precautions require the nurse to treat which of the following as potentially infectious?",
+    "options": [
+      {"text": "All blood and body fluids from every client", "correct": true, "feedback": "Correct. Standard precautions apply to all clients' blood and body fluids."},
+      {"text": "Only fluids from clients with a known infection", "correct": false, "feedback": "Incorrect. Standard precautions apply to everyone."},
+      {"text": "Only fluids from clients in isolation", "correct": false, "feedback": "Incorrect. This describes transmission-based precautions."},
+      {"text": "Only visibly bloody fluids", "correct": false, "feedback": "Incorrect. All body fluids are treated as infectious."}
+    ],
+    "rationale": "Standard precautions treat the blood and body fluids of all clients as potentially infectious, regardless of diagnosis."
+  },
+  {
+    "item_id": "NCLEX_MCQ_306010", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Restraints", "bloom": "Apply",
+    "stem": "A client has a prescribed wrist restraint applied. How often should the nurse assess circulation to the restrained extremity?",
+    "options": [
+      {"text": "At least every 2 hours (per facility policy)", "correct": true, "feedback": "Correct. Regular assessment protects circulation and skin integrity."},
+      {"text": "Once per shift", "correct": false, "feedback": "Incorrect. This is too infrequent."},
+      {"text": "Only when the client complains", "correct": false, "feedback": "Incorrect. Assessment must be proactive."},
+      {"text": "Every 12 hours", "correct": false, "feedback": "Incorrect. This is unsafe."}
+    ],
+    "rationale": "Restrained extremities require frequent assessment (commonly every 2 hours) for circulation, sensation, and skin integrity."
+  },
+  {
+    "item_id": "NCLEX_MCQ_306011", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Sterile technique", "bloom": "Apply",
+    "stem": "While setting up a sterile field, the nurse notices the outer inch of the drape. Which statement is correct?",
+    "options": [
+      {"text": "The outer 1-inch border of the sterile field is considered contaminated", "correct": true, "feedback": "Correct. The 1-inch border is treated as non-sterile."},
+      {"text": "The entire drape including the edges is sterile", "correct": false, "feedback": "Incorrect. The border is contaminated."},
+      {"text": "Only the center is contaminated", "correct": false, "feedback": "Incorrect. The center is sterile."},
+      {"text": "Sterile fields do not have contaminated zones", "correct": false, "feedback": "Incorrect. The border is always non-sterile."}
+    ],
+    "rationale": "The outer 1-inch (2.5 cm) border of a sterile field is considered contaminated and must not hold sterile items."
+  },
+  {
+    "item_id": "NCLEX_MCQ_306012", "type": "MCQ", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Contact precautions", "bloom": "Apply",
+    "stem": "A client has a Clostridioides difficile infection. Which PPE should the nurse wear when providing direct care?",
+    "options": [
+      {"text": "Gown and gloves", "correct": true, "feedback": "Correct. C. difficile requires contact precautions with gown and gloves."},
+      {"text": "N95 respirator only", "correct": false, "feedback": "Incorrect. C. difficile is not airborne."},
+      {"text": "Surgical mask only", "correct": false, "feedback": "Incorrect. Contact precautions require gown and gloves."},
+      {"text": "No PPE is needed", "correct": false, "feedback": "Incorrect. Contact precautions are required."}
+    ],
+    "rationale": "C. difficile requires contact precautions — gown and gloves — plus hand washing with soap and water (spores resist alcohol)."
+  },
+  {
+    "item_id": "NCLEX_TF_306013", "type": "TF", "difficulty": "Easy", "answer": "True",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Respiratory", "topic": "Airborne precautions", "bloom": "Remember",
+    "stem": "A nurse caring for a client on airborne precautions for measles should wear an N95 respirator when entering the room.",
+    "rationale": "Airborne precautions (measles, TB, varicella) require a fitted N95 respirator or higher."
+  },
+  {
+    "item_id": "NCLEX_TF_306014", "type": "TF", "difficulty": "Easy", "answer": "False",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Hand hygiene", "bloom": "Understand",
+    "stem": "Wearing gloves during client care eliminates the need to perform hand hygiene after glove removal.",
+    "rationale": "Hand hygiene is always required after glove removal because gloves can have unseen defects and hands can be contaminated during removal."
+  },
+  {
+    "item_id": "NCLEX_SATA_306015", "type": "SATA", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Fall prevention", "bloom": "Apply",
+    "stem": "Which interventions should the nurse implement to reduce fall risk for a hospitalized older adult? Select all that apply.",
+    "options": [
+      {"text": "Keep the bed in the lowest position", "correct": true},
+      {"text": "Ensure the call light is within reach", "correct": true},
+      {"text": "Provide nonskid footwear", "correct": true},
+      {"text": "Keep the floor clear of clutter", "correct": true},
+      {"text": "Raise all four side rails at all times", "correct": false},
+      {"text": "Dim the lights and remove the client's glasses", "correct": false}
+    ],
+    "rationale": "Low bed, accessible call light, nonskid footwear, and clutter-free floors reduce falls; four raised rails act as a restraint and removing glasses increases risk."
+  },
+  {
+    "item_id": "NCLEX_SATA_306016", "type": "SATA", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Standard precautions", "bloom": "Apply",
+    "stem": "Which situations require the nurse to perform hand hygiene? Select all that apply.",
+    "options": [
+      {"text": "Before contact with a client", "correct": true},
+      {"text": "After removing gloves", "correct": true},
+      {"text": "After contact with body fluids", "correct": true},
+      {"text": "Before an aseptic procedure", "correct": true},
+      {"text": "Only at the start of the shift", "correct": false},
+      {"text": "Only when hands look dirty", "correct": false}
+    ],
+    "rationale": "Hand hygiene is performed before client contact, before aseptic tasks, after body-fluid exposure, and after glove removal — not only when hands appear soiled."
+  },
+  {
+    "item_id": "NCLEX_SATA_306017", "type": "SATA", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Home safety", "bloom": "Apply",
+    "stem": "During a home visit, which findings should the nurse identify as fall hazards for an older adult? Select all that apply.",
+    "options": [
+      {"text": "Loose throw rugs on the floor", "correct": true},
+      {"text": "Poor lighting in the hallway", "correct": true},
+      {"text": "Electrical cords across the walkway", "correct": true},
+      {"text": "Grab bars installed in the bathroom", "correct": false},
+      {"text": "Nonslip mats in the shower", "correct": false}
+    ],
+    "rationale": "Loose rugs, poor lighting, and cords across walkways are fall hazards; grab bars and nonslip mats are protective."
+  },
+  {
+    "item_id": "NCLEX_SATA_306018", "type": "SATA", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Pharmacology", "body_system": "Immune", "topic": "Allergy assessment", "bloom": "Apply",
+    "stem": "Before administering a new antibiotic, which actions related to allergy safety should the nurse take? Select all that apply.",
+    "options": [
+      {"text": "Ask the client about known drug allergies", "correct": true},
+      {"text": "Check the allergy band and chart", "correct": true},
+      {"text": "Ask what reaction previous allergies caused", "correct": true},
+      {"text": "Administer the drug first, then ask about allergies", "correct": false},
+      {"text": "Assume no allergies if the chart is blank", "correct": false}
+    ],
+    "rationale": "Allergy history, the allergy band, and the nature of prior reactions must be verified before administering a new medication."
+  },
+  {
+    "item_id": "NCLEX_SATA_306019", "type": "SATA", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Leadership and Management", "body_system": "Multisystem", "topic": "Error reporting", "bloom": "Apply",
+    "stem": "A nurse discovers a medication error. Which actions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Assess the client for adverse effects", "correct": true},
+      {"text": "Notify the provider", "correct": true},
+      {"text": "Complete an incident report", "correct": true},
+      {"text": "Hide the error to avoid discipline", "correct": false},
+      {"text": "Document the incident report in the client's chart", "correct": false}
+    ],
+    "rationale": "The nurse assesses the client, notifies the provider, and files an incident report; errors are never concealed, and the incident report is not referenced in the chart."
+  },
+  {
+    "item_id": "NCLEX_SELN_306020", "type": "SELECT_N", "difficulty": "Easy", "select_count": 2,
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Droplet precautions", "bloom": "Apply",
+    "stem": "Which 2 actions are required when caring for a client on droplet precautions for influenza?",
+    "options": [
+      {"text": "Wear a surgical mask when within 6 feet of the client", "correct": true},
+      {"text": "Place the client in a private room or cohort", "correct": true},
+      {"text": "Use a negative-pressure room", "correct": false},
+      {"text": "Wear an N95 respirator for all care", "correct": false},
+      {"text": "No mask is needed for routine care", "correct": false}
+    ],
+    "rationale": "Droplet precautions require a surgical mask within close range and a private/cohort room; a negative-pressure room and N95 are for airborne precautions."
+  },
+  {
+    "item_id": "NCLEX_MAT_306021", "type": "MATRIX", "difficulty": "Easy", "row_label": "Disease",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Medical-Surgical", "body_system": "Immune", "topic": "Transmission-based precautions", "bloom": "Understand",
+    "stem": "For each disease, click to indicate the correct type of transmission-based precaution.",
+    "columns": ["Airborne", "Droplet", "Contact"],
+    "rows": [
+      {"text": "Tuberculosis", "answer": 0},
+      {"text": "Influenza", "answer": 1},
+      {"text": "MRSA wound infection", "answer": 2},
+      {"text": "Measles", "answer": 0}
+    ],
+    "rationale": "TB and measles are airborne, influenza is droplet, and MRSA wound infection requires contact precautions."
+  },
+  {
+    "item_id": "NCLEX_MMR_306022", "type": "MATRIX_MR", "difficulty": "Easy", "row_label": "PPE item",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "PPE selection", "bloom": "Apply",
+    "stem": "For each precaution type, select all PPE items required for routine direct care.",
+    "columns": ["Gloves", "Gown", "N95 respirator"],
+    "rows": [
+      {"text": "Contact precautions", "answers": [0, 1]},
+      {"text": "Airborne precautions", "answers": [2]},
+      {"text": "Standard precautions (blood exposure expected)", "answers": [0, 1]}
+    ],
+    "rationale": "Contact precautions need gloves and gown; airborne precautions need an N95; standard precautions with anticipated splash need gloves and gown."
+  },
+  {
+    "item_id": "NCLEX_CLZ_306023", "type": "CLOZE", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Hand hygiene", "bloom": "Apply",
+    "stem": "When hands are not visibly soiled, the nurse may use {1}, but hands that are visibly soiled must be cleaned with {2}.",
+    "blanks": [
+      {"choices": [{"text": "alcohol-based hand rub", "correct": true}, {"text": "sterile water"}, {"text": "a dry towel"}]},
+      {"choices": [{"text": "soap and water", "correct": true}, {"text": "hand rub only"}, {"text": "saline"}]}
+    ],
+    "rationale": "Alcohol-based rub is appropriate for hands that are not visibly soiled; visibly soiled hands require soap and water."
+  },
+  {
+    "item_id": "NCLEX_HL_306024", "type": "HIGHLIGHT", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Environmental safety", "bloom": "Analyze",
+    "stem": "The nurse enters a client's room and notes several conditions. Highlight the findings that are safety hazards. The [[bed is in the highest position]]. The [[call light is within reach]]. There is a [[wet spill on the floor]]. The [[side rails are up on both sides for mobility]]. An [[oxygen tank is stored lying on the floor unsecured]].",
+    "chunks": [
+      {"text": "bed is in the highest position", "correct": true, "feedback": "A high bed increases fall risk."},
+      {"text": "call light is within reach", "correct": false, "feedback": "This is a safe condition."},
+      {"text": "wet spill on the floor", "correct": true, "feedback": "A wet floor is a slip hazard."},
+      {"text": "side rails are up on both sides for mobility", "correct": false, "feedback": "Two side rails for mobility is acceptable."},
+      {"text": "oxygen tank is stored lying on the floor unsecured", "correct": true, "feedback": "An unsecured oxygen tank is a hazard."}
+    ],
+    "rationale": "A high bed, wet floor, and unsecured oxygen tank are safety hazards; an accessible call light and two rails for mobility are safe."
+  },
+  {
+    "item_id": "NCLEX_BT_306025", "type": "BOWTIE", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "Isolation precautions", "bloom": "Apply",
+    "stem": "A client is placed on contact precautions for a resistant wound infection. Complete the diagram by selecting the precaution type, the actions to take, and the equipment to keep at the door.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Don gown and gloves before entering", "correct": true},
+      {"text": "Perform hand hygiene on exit", "correct": true},
+      {"text": "Enter the room without PPE"},
+      {"text": "Transport the client freely without cover"}
+    ]},
+    "centre": {"label": "Precaution type", "tokens": [
+      {"text": "Contact precautions", "correct": true},
+      {"text": "Airborne precautions"},
+      {"text": "Droplet precautions"}
+    ]},
+    "right": {"label": "Equipment at the door", "tokens": [
+      {"text": "Gowns", "correct": true},
+      {"text": "Gloves", "correct": true},
+      {"text": "N95 respirators"},
+      {"text": "Negative-pressure monitor"}
+    ]},
+    "rationale": "Contact precautions require donning gown and gloves before entry, hand hygiene on exit, and gowns and gloves stocked at the door."
+  },
+  {
+    "item_id": "NCLEX_DO_306026", "type": "DRAG_ORDER", "difficulty": "Easy",
+    "category": "Safe and Effective Care Environment", "subcategory": "Safety and Infection Control",
+    "subject": "Fundamentals of Nursing", "body_system": "Immune", "topic": "PPE removal", "bloom": "Apply",
+    "stem": "Place the steps for removing personal protective equipment in the correct order to prevent self-contamination.",
+    "tokens": ["Remove gloves", "Remove goggles or face shield", "Remove gown", "Remove mask or respirator", "Perform hand hygiene"],
+    "order": [{"token": 0}, {"token": 1}, {"token": 2}, {"token": 3}, {"token": 4}]
+  }
+]

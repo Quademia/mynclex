@@ -1,0 +1,64 @@
+{
+  "kind": "trend",
+  "trend_id": "NCLEX_TRD_09010",
+  "title": "Fluid Resuscitation Intake/Output Trend",
+  "scenario": "A 54-year-old male client is admitted with sepsis and started on isotonic IV fluid resuscitation. Hourly intake and output are recorded to guide therapy.",
+  "tags": ["synthetic"],
+  "tabs": [
+    {
+      "kind": "grid",
+      "title": "Intake/Output Flowsheet",
+      "headers": ["Time", "IV intake (mL)", "Urine output (mL)", "MAP (mmHg)", "Heart rate", "Lactate (mmol/L)"],
+      "rows": [
+        ["00:00", "0", "20", "58", "122", "4.2"],
+        ["01:00", "1000", "22", "60", "118", "4.0"],
+        ["02:00", "1000", "28", "64", "110", "3.4"],
+        ["03:00", "1000", "38", "70", "102", "2.6"],
+        ["04:00", "500", "55", "74", "94", "1.9"]
+      ],
+      "rowVisibleFrom": [1, 1, 1, 1, 1]
+    }
+  ],
+  "questions": [
+    {
+      "item_id": "NCLEX_MCQ_450101",
+      "type": "MCQ",
+      "category": "Physiological Integrity",
+      "subcategory": "Physiological Adaptation",
+      "subject": "Medical-Surgical",
+      "body_system": "Multisystem",
+      "topic": "Fluid and electrolyte imbalance",
+      "difficulty": "Medium",
+      "bloom": "Analyze",
+      "stem": "Based on the flowsheet trend, how should the nurse interpret the client's response to fluid resuscitation?",
+      "options": [
+        {"text": "The client is responding appropriately; perfusion is improving", "correct": true},
+        {"text": "The client is developing fluid volume overload", "correct": false},
+        {"text": "The client is not responding and needs an immediate fluid bolus stopped", "correct": false},
+        {"text": "The client is showing signs of acute kidney injury", "correct": false}
+      ],
+      "rationale": "Rising urine output, climbing MAP, falling heart rate, and a declining lactate together indicate improving perfusion and an appropriate response to resuscitation."
+    },
+    {
+      "item_id": "NCLEX_SATA_450102",
+      "type": "SATA",
+      "category": "Physiological Integrity",
+      "subcategory": "Reduction of Risk Potential",
+      "subject": "Medical-Surgical",
+      "body_system": "Multisystem",
+      "topic": "Trend recognition",
+      "difficulty": "Easy",
+      "bloom": "Evaluate",
+      "stem": "Which findings across the flowsheet indicate the resuscitation is effective? Select all that apply.",
+      "options": [
+        {"text": "Urine output increased from 20 to 55 mL/hr", "correct": true},
+        {"text": "MAP increased from 58 to 74 mmHg", "correct": true},
+        {"text": "Lactate decreased from 4.2 to 1.9 mmol/L", "correct": true},
+        {"text": "Heart rate decreased from 122 to 94", "correct": true},
+        {"text": "IV intake decreased in the final hour", "correct": false},
+        {"text": "The client remained afebrile throughout", "correct": false}
+      ],
+      "rationale": "Increasing urine output, rising MAP, falling lactate, and a slowing heart rate all reflect restored tissue perfusion and effective fluid resuscitation."
+    }
+  ]
+}

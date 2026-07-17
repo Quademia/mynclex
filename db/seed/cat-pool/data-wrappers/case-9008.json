@@ -1,0 +1,133 @@
+{
+  "kind": "case",
+  "case_id": "NCLEX_CS_09008",
+  "title": "Upper Gastrointestinal Bleed",
+  "scenario": "A 54-year-old male presents to the emergency department after vomiting bright red blood twice at home and passing several black, tarry stools over the past day. He appears pale and diaphoretic.",
+  "tags": ["synthetic", "gastrointestinal"],
+  "difficulty_tier": "Medium",
+  "tabs": [
+    {
+      "kind": "narrative", "key": "nurses_notes", "title": "Nurses' Notes",
+      "entries": [
+        {"chips": ["10:00"], "lines": ["54-year-old male brought in by wife after two episodes of hematemesis (bright red) at home and multiple melena stools over 24 hours. Reports history of daily NSAID use for chronic back pain and heavy alcohol intake. Skin pale, cool, and diaphoretic. Alert but anxious and lightheaded. Denies chest pain."], "visibleFrom": 1},
+        {"chips": ["10:15"], "lines": ["Two large-bore IV lines placed. Type and crossmatch, CBC, and coagulation studies drawn. NPO. Cardiac monitor and continuous SpO2 applied. Provider notified."], "visibleFrom": 2},
+        {"chips": ["10:45"], "lines": ["Normal saline bolus infusing. IV pantoprazole administered per order. One unit packed red blood cells started per order after consent obtained. NG tube inserted, returned coffee-ground drainage."], "visibleFrom": 5},
+        {"chips": ["12:30"], "lines": ["Post-transfusion and endoscopy with band ligation completed. Client reports feeling less dizzy. Skin warmer, color improved. No further emesis; NG output cleared."], "visibleFrom": 6}
+      ]
+    },
+    {
+      "kind": "grid", "title": "Vital Signs",
+      "headers": ["Time", "Temp", "Pulse", "RR", "B/P", "SpO2"],
+      "rows": [
+        ["10:00", "98.0 F (36.7 C)", "118", "24", "88/54", "94% on RA"],
+        ["10:15", "98.0 F (36.7 C)", "116", "22", "90/56", "96% on 2L NC"],
+        ["12:30", "98.2 F (36.8 C)", "88", "18", "116/72", "98% on 2L NC"]
+      ],
+      "rowVisibleFrom": [1, 2, 6]
+    },
+    {
+      "kind": "grid", "title": "Laboratory Report",
+      "headers": ["Lab", "Result", "Reference range"],
+      "rows": [
+        ["Hemoglobin", "7.2", "13.5-17.5 g/dL"],
+        ["Hematocrit", "22", "40-52 %"],
+        ["Platelets", "142", "150-400 x10^9/L"],
+        ["BUN", "42", "7-20 mg/dL"],
+        ["INR", "1.6", "0.8-1.1"]
+      ],
+      "rowVisibleFrom": [2, 2, 2, 2, 2]
+    },
+    {
+      "kind": "narrative", "key": "custom_narrative", "title": "Medications",
+      "entries": [
+        {"chips": [], "lines": ["Ibuprofen 800 mg PO three times daily (home use)", "Pantoprazole 80 mg IV bolus, then 8 mg/hr infusion", "Octreotide 50 mcg IV bolus, then infusion"], "visibleFrom": 1}
+      ]
+    },
+    {
+      "kind": "narrative", "key": "orders", "title": "Orders",
+      "entries": [
+        {"chips": [], "lines": ["Keep NPO", "Insert two large-bore IV catheters", "Infuse 1 L normal saline bolus, reassess", "Type and crossmatch; transfuse 1 unit PRBC", "IV pantoprazole per protocol", "Insert nasogastric tube to low intermittent suction", "Prepare for urgent endoscopy", "Notify provider for SBP < 90 or HR > 120"], "visibleFrom": 5}
+      ]
+    }
+  ],
+  "children": [
+    {
+      "item_id": "NCLEX_SELN_400801", "type": "SELECT_N", "position": 1, "cjmm": "Recognise cues", "select_count": 4,
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Upper GI bleed", "difficulty": "Easy", "bloom": "Understand",
+      "stem": "Which 4 findings require immediate follow-up?",
+      "options": [
+        {"text": "Hematemesis of bright red blood", "correct": true},
+        {"text": "Blood pressure 88/54", "correct": true},
+        {"text": "Heart rate 118", "correct": true},
+        {"text": "Pale, cool, diaphoretic skin", "correct": true},
+        {"text": "Temperature 98.0 F", "correct": false},
+        {"text": "SpO2 94% on room air", "correct": false}
+      ],
+      "rationale": "Active hematemesis, hypotension, tachycardia, and pallor with diaphoresis signal significant blood loss and hypovolemia requiring urgent intervention."
+    },
+    {
+      "item_id": "NCLEX_MMR_400802", "type": "MATRIX_MR", "position": 2, "cjmm": "Analyse cues", "row_label": "Finding",
+      "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Upper GI bleed", "difficulty": "Hard", "bloom": "Analyze",
+      "stem": "For each finding, click to specify whether it indicates active bleeding, hypovolemia, or both. Each finding may support more than one.",
+      "columns": ["Active bleeding", "Hypovolemia"],
+      "rows": [
+        {"text": "Melena stools", "answers": [0]},
+        {"text": "Blood pressure 88/54", "answers": [1]},
+        {"text": "Hemoglobin 7.2 g/dL", "answers": [0, 1]},
+        {"text": "Elevated BUN 42 mg/dL", "answers": [0]},
+        {"text": "Heart rate 118", "answers": [1]}
+      ],
+      "rationale": "Melena and elevated BUN reflect digested blood in the GI tract, while low BP and tachycardia reflect hypovolemia. A low hemoglobin results from both ongoing loss and depleted volume."
+    },
+    {
+      "item_id": "NCLEX_CLZ_400803", "type": "CLOZE", "position": 3, "cjmm": "Prioritise",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Upper GI bleed", "difficulty": "Medium", "bloom": "Analyze",
+      "stem": "Complete the sentence. The nurse determines that the priority problem is {1}, and the most immediate goal is {2}.",
+      "blanks": [
+        {"choices": [{"text": "decreased cardiac output from hypovolemia", "correct": true}, {"text": "risk for infection", "correct": false}, {"text": "acute pain", "correct": false}]},
+        {"choices": [{"text": "restoring circulating volume", "correct": true}, {"text": "promoting nutrition", "correct": false}, {"text": "preventing skin breakdown", "correct": false}]}
+      ],
+      "rationale": "Ongoing blood loss with hypotension and tachycardia makes decreased cardiac output from hypovolemia the priority; restoring circulating volume with fluids and blood is the most immediate goal."
+    },
+    {
+      "item_id": "NCLEX_MAT_400804", "type": "MATRIX", "position": 4, "cjmm": "Generate solutions", "row_label": "Intervention",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Upper GI bleed", "difficulty": "Medium", "bloom": "Evaluate",
+      "stem": "For each intervention, click to specify whether it is indicated or contraindicated for this client.",
+      "columns": ["Indicated", "Contraindicated"],
+      "rows": [
+        {"text": "Establish two large-bore IV lines", "answer": 0},
+        {"text": "Keep the client NPO", "answer": 0},
+        {"text": "Administer IV proton pump inhibitor", "answer": 0},
+        {"text": "Give oral iron supplements now", "answer": 1},
+        {"text": "Continue scheduled NSAIDs", "answer": 1}
+      ],
+      "rationale": "Large-bore access, NPO status, and a PPI support resuscitation and reduce rebleeding. Oral iron and continued NSAIDs are inappropriate during active upper GI bleeding."
+    },
+    {
+      "item_id": "NCLEX_SATA_400805", "type": "SATA", "position": 5, "cjmm": "Take action",
+      "category": "Physiological Integrity", "subcategory": "Pharmacological and Parenteral Therapies", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Blood transfusion", "difficulty": "Medium", "bloom": "Apply",
+      "stem": "When administering the packed red blood cell transfusion, which actions should the nurse take? Select all that apply.",
+      "options": [
+        {"text": "Verify the blood product with a second nurse", "correct": true},
+        {"text": "Obtain a baseline set of vital signs before starting", "correct": true},
+        {"text": "Stay with the client for the first 15 minutes", "correct": true},
+        {"text": "Infuse the unit with dextrose 5% in water", "correct": false},
+        {"text": "Warm the unit in a microwave before hanging", "correct": false}
+      ],
+      "rationale": "Two-nurse verification, baseline vitals, and close monitoring during the first 15 minutes catch transfusion reactions early. Blood is infused only with normal saline and never heated in a microwave."
+    },
+    {
+      "item_id": "NCLEX_SATA_400806", "type": "SATA", "position": 6, "cjmm": "Evaluate outcomes",
+      "category": "Physiological Integrity", "subcategory": "Physiological Adaptation", "subject": "Medical-Surgical", "body_system": "Gastrointestinal", "topic": "Upper GI bleed", "difficulty": "Easy", "bloom": "Evaluate",
+      "stem": "Which findings indicate the treatment has been effective? Select all that apply.",
+      "options": [
+        {"text": "Blood pressure improved to 116/72", "correct": true},
+        {"text": "Heart rate decreased to 88", "correct": true},
+        {"text": "Skin warm with improved color", "correct": true},
+        {"text": "NG drainage cleared with no further emesis", "correct": true},
+        {"text": "Client remains pale and diaphoretic", "correct": false}
+      ],
+      "rationale": "A normalizing blood pressure and heart rate, warm well-perfused skin, and resolution of bleeding show hemodynamic stability is restored. Persistent pallor and diaphoresis would indicate ongoing instability."
+    }
+  ]
+}

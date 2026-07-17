@@ -1,0 +1,323 @@
+[
+  {
+    "item_id": "NCLEX_MCQ_317001", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Vital-sign monitoring", "subtopic": "Pulse oximetry", "bloom": "Apply",
+    "stem": "A nurse reviews the pulse oximetry reading of a stable adult client and obtains an SpO2 of 88% on room air. Which action should the nurse take FIRST?",
+    "options": [
+      {"text": "Apply supplemental oxygen as prescribed", "correct": true, "feedback": "Correct. An SpO2 of 88% is below the target range and needs oxygen."},
+      {"text": "Document the reading and continue monitoring", "correct": false, "feedback": "Incorrect. A reading of 88% requires intervention, not just documentation."},
+      {"text": "Encourage the client to increase oral fluids", "correct": false, "feedback": "Incorrect. Fluids do not correct hypoxemia."},
+      {"text": "Reposition the client to the left side", "correct": false, "feedback": "Incorrect. Positioning alone will not raise a low SpO2."}
+    ],
+    "rationale": "An SpO2 below 90% indicates hypoxemia and the priority is to correct oxygenation with supplemental oxygen."
+  },
+  {
+    "item_id": "NCLEX_MCQ_317002", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Lab-value interpretation", "subtopic": "Potassium", "bloom": "Understand",
+    "stem": "A nurse reviews morning labs. Which serum potassium value is within the normal reference range for an adult?",
+    "options": [
+      {"text": "4.0 mEq/L", "correct": true, "feedback": "Correct. Normal potassium is 3.5-5.0 mEq/L."},
+      {"text": "2.8 mEq/L", "correct": false, "feedback": "Incorrect. This value is low (hypokalemia)."},
+      {"text": "6.2 mEq/L", "correct": false, "feedback": "Incorrect. This value is high (hyperkalemia)."},
+      {"text": "1.9 mEq/L", "correct": false, "feedback": "Incorrect. This is critically low."}
+    ],
+    "rationale": "The normal serum potassium range for adults is 3.5-5.0 mEq/L."
+  },
+  {
+    "item_id": "NCLEX_MCQ_317003", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Renal/Genitourinary", "topic": "Urinary catheter care", "bloom": "Apply",
+    "stem": "A nurse cares for a client with an indwelling urinary catheter. Which action best reduces the risk of a catheter-associated urinary tract infection?",
+    "options": [
+      {"text": "Keep the drainage bag below the level of the bladder", "correct": true, "feedback": "Correct. This promotes gravity drainage and prevents urine backflow."},
+      {"text": "Disconnect the tubing to obtain samples", "correct": false, "feedback": "Incorrect. Breaking a closed system increases infection risk."},
+      {"text": "Place the drainage bag on the bed beside the client", "correct": false, "feedback": "Incorrect. This allows backflow of urine."},
+      {"text": "Irrigate the catheter every shift routinely", "correct": false, "feedback": "Incorrect. Routine irrigation is not recommended and raises infection risk."}
+    ],
+    "rationale": "Keeping the drainage bag below bladder level maintains gravity flow and prevents reflux, reducing CAUTI risk."
+  },
+  {
+    "item_id": "NCLEX_MCQ_317004", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "NG tube management", "bloom": "Apply",
+    "stem": "A nurse verifies correct placement of a newly inserted nasogastric tube before use. Which method is the most reliable confirmation of placement?",
+    "options": [
+      {"text": "Obtain a radiographic (X-ray) confirmation", "correct": true, "feedback": "Correct. X-ray is the gold standard for confirming NG tube placement."},
+      {"text": "Auscultate air injected into the stomach", "correct": false, "feedback": "Incorrect. The air-bolus method is unreliable."},
+      {"text": "Ask the client if the tube feels comfortable", "correct": false, "feedback": "Incorrect. Comfort does not confirm placement."},
+      {"text": "Observe for condensation in the tube", "correct": false, "feedback": "Incorrect. This does not confirm gastric placement."}
+    ],
+    "rationale": "Radiographic confirmation is the most reliable method to verify NG tube placement before initial use."
+  },
+  {
+    "item_id": "NCLEX_MCQ_317005", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Venous-return devices", "subtopic": "SCDs", "bloom": "Understand",
+    "stem": "A nurse applies sequential compression devices (SCDs) to a postoperative client. What is the primary purpose of this intervention?",
+    "options": [
+      {"text": "Prevent venous thromboembolism", "correct": true, "feedback": "Correct. SCDs promote venous return and reduce clot formation."},
+      {"text": "Reduce surgical wound pain", "correct": false, "feedback": "Incorrect. SCDs do not manage pain."},
+      {"text": "Improve arterial circulation to the feet", "correct": false, "feedback": "Incorrect. SCDs address venous, not arterial, flow."},
+      {"text": "Prevent pressure injuries on the heels", "correct": false, "feedback": "Incorrect. That is not their purpose."}
+    ],
+    "rationale": "SCDs enhance venous return from the legs, reducing the risk of deep vein thrombosis and VTE."
+  },
+  {
+    "item_id": "NCLEX_MCQ_317006", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "Cardiovascular", "topic": "Peripheral IV monitoring", "bloom": "Apply",
+    "stem": "A nurse assesses a peripheral IV site and finds it cool, swollen, and pale with a slowed infusion. Which complication is most likely?",
+    "options": [
+      {"text": "Infiltration", "correct": true, "feedback": "Correct. Coolness, swelling, and pallor indicate infiltration."},
+      {"text": "Phlebitis", "correct": false, "feedback": "Incorrect. Phlebitis presents with warmth, redness, and a palpable cord."},
+      {"text": "Systemic infection", "correct": false, "feedback": "Incorrect. These are localized signs."},
+      {"text": "Air embolism", "correct": false, "feedback": "Incorrect. Air embolism causes respiratory distress, not local swelling."}
+    ],
+    "rationale": "A cool, swollen, pale IV site with slowed flow indicates fluid leaking into tissue — infiltration."
+  },
+  {
+    "item_id": "NCLEX_MCQ_317007", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Preoperative care", "subtopic": "NPO status", "bloom": "Apply",
+    "stem": "A nurse prepares a client for surgery scheduled in the morning. Which preoperative instruction is most important to reduce the risk of aspiration?",
+    "options": [
+      {"text": "Remain NPO after midnight as prescribed", "correct": true, "feedback": "Correct. NPO status reduces the risk of aspiration under anesthesia."},
+      {"text": "Take all home medications with a full glass of water", "correct": false, "feedback": "Incorrect. This should be verified against NPO orders."},
+      {"text": "Eat a light breakfast the morning of surgery", "correct": false, "feedback": "Incorrect. Eating violates NPO and raises aspiration risk."},
+      {"text": "Drink clear juice up until surgery", "correct": false, "feedback": "Incorrect. Oral intake should stop per NPO orders."}
+    ],
+    "rationale": "Maintaining NPO status before surgery keeps the stomach empty and reduces the risk of aspiration during anesthesia."
+  },
+  {
+    "item_id": "NCLEX_MCQ_317008", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Diagnostic-test monitoring", "subtopic": "Cardiac catheterization", "bloom": "Apply",
+    "stem": "Following a femoral cardiac catheterization, which nursing assessment is the priority to detect a complication?",
+    "options": [
+      {"text": "Check the insertion site and distal pulses", "correct": true, "feedback": "Correct. Bleeding and impaired circulation are key post-procedure risks."},
+      {"text": "Assess the client's appetite", "correct": false, "feedback": "Incorrect. This is not a priority post-procedure."},
+      {"text": "Measure the client's height", "correct": false, "feedback": "Incorrect. Not relevant to complication detection."},
+      {"text": "Ask about family medical history", "correct": false, "feedback": "Incorrect. Not a priority assessment now."}
+    ],
+    "rationale": "After femoral catheterization, monitoring the site for bleeding and checking distal pulses detects hemorrhage and arterial occlusion."
+  },
+  {
+    "item_id": "NCLEX_MCQ_317009", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "Diagnostic-test education", "subtopic": "Colonoscopy prep", "bloom": "Understand",
+    "stem": "A nurse teaches a client scheduled for a colonoscopy. Which statement by the client indicates correct understanding of the bowel preparation?",
+    "options": [
+      {"text": "I will drink the entire prep solution to clear my bowel", "correct": true, "feedback": "Correct. Completing the prep ensures adequate visualization."},
+      {"text": "I can eat a steak dinner the night before", "correct": false, "feedback": "Incorrect. A clear liquid diet is required before the procedure."},
+      {"text": "I should stop drinking fluids 24 hours before", "correct": false, "feedback": "Incorrect. Clear fluids are encouraged during prep."},
+      {"text": "I only need to take half the prep if I feel full", "correct": false, "feedback": "Incorrect. The full prep is needed for adequate cleansing."}
+    ],
+    "rationale": "Completing the full bowel preparation clears stool so the colon can be adequately visualized during colonoscopy."
+  },
+  {
+    "item_id": "NCLEX_MCQ_317010", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Moderate sedation", "bloom": "Apply",
+    "stem": "A nurse monitors a client during moderate (conscious) sedation. Which parameter is most important to monitor continuously?",
+    "options": [
+      {"text": "Respiratory status and oxygen saturation", "correct": true, "feedback": "Correct. Respiratory depression is the main risk of sedation."},
+      {"text": "24-hour urine output", "correct": false, "feedback": "Incorrect. Not the priority during the procedure."},
+      {"text": "Bowel sounds", "correct": false, "feedback": "Incorrect. Not a sedation priority."},
+      {"text": "Skin turgor", "correct": false, "feedback": "Incorrect. Not the priority during sedation."}
+    ],
+    "rationale": "Respiratory depression is the primary risk of moderate sedation, so airway, breathing, and SpO2 are monitored continuously."
+  },
+  {
+    "item_id": "NCLEX_MCQ_317011", "type": "MCQ", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Endocrine", "topic": "Blood/specimen collection", "subtopic": "Blood glucose", "bloom": "Apply",
+    "stem": "A nurse obtains a capillary blood glucose sample. Which action promotes an accurate point-of-care result?",
+    "options": [
+      {"text": "Wipe away the first drop of blood and use the second", "correct": true, "feedback": "Correct. The first drop may be diluted and gives a less accurate reading."},
+      {"text": "Squeeze the fingertip firmly to force out blood", "correct": false, "feedback": "Incorrect. Excessive squeezing dilutes the sample with tissue fluid."},
+      {"text": "Use an expired test strip if available", "correct": false, "feedback": "Incorrect. Expired strips give inaccurate results."},
+      {"text": "Puncture the center pad of the fingertip", "correct": false, "feedback": "Incorrect. The side of the fingertip is preferred and less painful."}
+    ],
+    "rationale": "Wiping the first drop and testing the second gives a more accurate point-of-care glucose reading."
+  },
+  {
+    "item_id": "NCLEX_TF_317012", "type": "TF", "difficulty": "Easy", "answer": "True",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Postoperative complication prevention", "bloom": "Understand",
+    "stem": "Using an incentive spirometer as taught helps a postoperative client reduce the risk of atelectasis and pneumonia.",
+    "rationale": "Incentive spirometry promotes deep lung expansion, preventing alveolar collapse (atelectasis) and postoperative pneumonia."
+  },
+  {
+    "item_id": "NCLEX_SATA_317013", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Vital-sign trend recognition", "bloom": "Analyze",
+    "stem": "A nurse reviews a client's vital signs. Which findings should the nurse recognize as abnormal and requiring follow-up? Select all that apply.",
+    "options": [
+      {"text": "Blood pressure 190/104 mmHg", "correct": true},
+      {"text": "Heart rate 128 beats/min", "correct": true},
+      {"text": "Respiratory rate 8 breaths/min", "correct": true},
+      {"text": "Temperature 37.0°C (98.6°F)", "correct": false},
+      {"text": "SpO2 98% on room air", "correct": false},
+      {"text": "Heart rate 76 beats/min", "correct": false}
+    ],
+    "rationale": "Severe hypertension, tachycardia, and bradypnea are abnormal and require follow-up; the other values are within normal limits."
+  },
+  {
+    "item_id": "NCLEX_SATA_317014", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "Cardiovascular", "topic": "Peripheral IV complications", "bloom": "Apply",
+    "stem": "A nurse assesses a peripheral IV site for signs of phlebitis. Which findings support this complication? Select all that apply.",
+    "options": [
+      {"text": "Redness along the vein", "correct": true},
+      {"text": "Warmth at the site", "correct": true},
+      {"text": "A palpable cord along the vein", "correct": true},
+      {"text": "Coolness and pallor at the site", "correct": false},
+      {"text": "Brisk capillary refill in the hand", "correct": false}
+    ],
+    "rationale": "Phlebitis produces redness, warmth, tenderness, and a palpable venous cord; coolness and pallor instead suggest infiltration."
+  },
+  {
+    "item_id": "NCLEX_SATA_317015", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Postoperative complication prevention", "bloom": "Apply",
+    "stem": "A nurse plans care to prevent postoperative complications. Which interventions are appropriate? Select all that apply.",
+    "options": [
+      {"text": "Encourage early ambulation", "correct": true},
+      {"text": "Promote deep breathing and coughing", "correct": true},
+      {"text": "Apply antiembolism stockings as prescribed", "correct": true},
+      {"text": "Keep the client on strict bed rest for one week", "correct": false},
+      {"text": "Withhold all pain medication", "correct": false}
+    ],
+    "rationale": "Early ambulation, deep breathing, and antiembolism stockings reduce the risk of VTE and respiratory complications."
+  },
+  {
+    "item_id": "NCLEX_SATA_317016", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Hematologic", "topic": "Lab-value interpretation", "bloom": "Understand",
+    "stem": "A nurse reviews laboratory results. Which values are within normal adult reference ranges? Select all that apply.",
+    "options": [
+      {"text": "Sodium 140 mEq/L", "correct": true},
+      {"text": "Hemoglobin 14 g/dL", "correct": true},
+      {"text": "White blood cells 7,500/mm3", "correct": true},
+      {"text": "Serum potassium 6.5 mEq/L", "correct": false},
+      {"text": "Platelets 40,000/mm3", "correct": false}
+    ],
+    "rationale": "Sodium 140, hemoglobin 14, and WBC 7,500 are normal; the potassium is high and platelets are critically low."
+  },
+  {
+    "item_id": "NCLEX_SATA_317017", "type": "SATA", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "GI", "topic": "NG tube safety", "bloom": "Apply",
+    "stem": "A nurse cares for a client with a nasogastric tube to suction. Which actions promote safe management? Select all that apply.",
+    "options": [
+      {"text": "Verify placement before administering anything", "correct": true},
+      {"text": "Keep the head of the bed elevated", "correct": true},
+      {"text": "Provide frequent oral and nasal care", "correct": true},
+      {"text": "Lay the client flat during feedings", "correct": false},
+      {"text": "Irrigate with the tube disconnected from suction indefinitely", "correct": false}
+    ],
+    "rationale": "Verifying placement, elevating the head of the bed, and oral care reduce aspiration and skin breakdown risks."
+  },
+  {
+    "item_id": "NCLEX_SELN_317018", "type": "SELECT_N", "difficulty": "Easy", "select_count": 3,
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Cardiovascular", "topic": "Focused assessment", "bloom": "Apply",
+    "stem": "A nurse performs a focused neurovascular assessment on an extremity after a cast application. Which 3 findings should the nurse assess?",
+    "options": [
+      {"text": "Distal pulse", "correct": true},
+      {"text": "Capillary refill", "correct": true},
+      {"text": "Sensation and movement of toes", "correct": true},
+      {"text": "Bowel sounds", "correct": false},
+      {"text": "Deep tendon reflexes of the opposite arm", "correct": false},
+      {"text": "Pupillary response", "correct": false}
+    ],
+    "rationale": "Neurovascular checks after casting assess circulation (pulse, capillary refill) and nerve function (sensation, movement) to detect compartment syndrome."
+  },
+  {
+    "item_id": "NCLEX_MAT_317019", "type": "MATRIX", "difficulty": "Easy", "row_label": "Vital sign",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "Multisystem", "topic": "Vital-sign interpretation", "bloom": "Understand",
+    "stem": "For each adult vital sign, click to specify whether it is within normal limits or abnormal.",
+    "columns": ["Normal", "Abnormal"],
+    "rows": [
+      {"text": "Heart rate 80 beats/min", "answer": 0},
+      {"text": "Respiratory rate 30 breaths/min", "answer": 1},
+      {"text": "Temperature 39.5°C (103.1°F)", "answer": 1},
+      {"text": "Blood pressure 118/76 mmHg", "answer": 0},
+      {"text": "SpO2 85% on room air", "answer": 1}
+    ],
+    "rationale": "Normal adult values: HR 60-100, RR 12-20, temp ~37°C, BP <120/80, SpO2 >=95%."
+  },
+  {
+    "item_id": "NCLEX_MMR_317020", "type": "MATRIX_MR", "difficulty": "Easy", "row_label": "Complication",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "Cardiovascular", "topic": "IV site complications", "bloom": "Understand",
+    "stem": "For each peripheral IV complication, select all assessment findings that apply.",
+    "columns": ["Redness/Warmth", "Swelling", "Coolness"],
+    "rows": [
+      {"text": "Phlebitis", "answers": [0]},
+      {"text": "Infiltration", "answers": [1, 2]},
+      {"text": "Local site infection", "answers": [0, 1]}
+    ],
+    "rationale": "Phlebitis is warm and red; infiltration is cool and swollen; a site infection shows redness, warmth, and swelling."
+  },
+  {
+    "item_id": "NCLEX_CLZ_317021", "type": "CLOZE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Respiratory", "topic": "Postoperative monitoring", "bloom": "Apply",
+    "stem": "A postoperative client has an SpO2 of 87% and shallow breathing. The nurse recognizes this as {1} and should first {2}.",
+    "blanks": [
+      {"choices": [{"text": "hypoxemia", "correct": true}, {"text": "hyperventilation"}, {"text": "hypertension"}]},
+      {"choices": [{"text": "apply oxygen and encourage deep breathing", "correct": true}, {"text": "restrict the client's fluids"}, {"text": "place the client flat"}]}
+    ],
+    "rationale": "A low SpO2 with shallow breathing indicates hypoxemia; oxygen and deep breathing improve oxygenation."
+  },
+  {
+    "item_id": "NCLEX_HL_317022", "type": "HIGHLIGHT", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Medical-Surgical", "body_system": "Multisystem", "topic": "Trend recognition", "bloom": "Analyze",
+    "stem": "Highlight the assessment findings that require immediate follow-up. The client is resting. Temperature [[37.1°C]]. Blood pressure [[88/54]]. Heart rate [[124]]. Respiratory rate [[16]]. SpO2 [[84% on room air]].",
+    "chunks": [
+      {"text": "37.1°C", "correct": false, "feedback": "Normal temperature — no follow-up needed."},
+      {"text": "88/54", "correct": true, "feedback": "Hypotension — needs follow-up."},
+      {"text": "124", "correct": true, "feedback": "Tachycardia — needs follow-up."},
+      {"text": "16", "correct": false, "feedback": "Normal respiratory rate."},
+      {"text": "84% on room air", "correct": true, "feedback": "Significant hypoxemia — urgent."}
+    ],
+    "rationale": "Hypotension, tachycardia, and low SpO2 are abnormal and require follow-up; the temperature and respiratory rate are normal."
+  },
+  {
+    "item_id": "NCLEX_BT_317023", "type": "BOWTIE", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "Cardiovascular", "topic": "IV infiltration", "bloom": "Apply",
+    "stem": "A peripheral IV site is cool, swollen, and pale. Complete the diagram by selecting the complication, actions to take, and parameters to monitor.",
+    "left": {"label": "Actions to take", "tokens": [
+      {"text": "Stop the infusion", "correct": true},
+      {"text": "Remove the IV catheter", "correct": true},
+      {"text": "Increase the infusion rate"},
+      {"text": "Apply firm continuous pressure to speed flow"}
+    ]},
+    "centre": {"label": "Complication", "tokens": [
+      {"text": "Infiltration", "correct": true},
+      {"text": "Phlebitis"},
+      {"text": "Air embolism"}
+    ]},
+    "right": {"label": "Parameters to monitor", "tokens": [
+      {"text": "Swelling of the affected limb", "correct": true},
+      {"text": "Skin color and temperature at the site", "correct": true},
+      {"text": "Bowel sounds"},
+      {"text": "Pupil size"}
+    ]},
+    "rationale": "Infiltration is managed by stopping the infusion and removing the catheter, while monitoring the limb for swelling and skin changes."
+  },
+  {
+    "item_id": "NCLEX_DO_317024", "type": "DRAG_ORDER", "difficulty": "Easy",
+    "category": "Physiological Integrity", "subcategory": "Reduction of Risk Potential",
+    "subject": "Fundamentals of Nursing", "body_system": "Hematologic", "topic": "Blood/specimen collection", "bloom": "Apply",
+    "stem": "A nurse prepares to collect a venous blood specimen. Place the steps in the correct order.",
+    "tokens": ["Perform hand hygiene and apply gloves", "Verify the client's identity using two identifiers", "Apply the tourniquet and select the vein", "Insert the needle and collect the sample", "Remove the tourniquet and apply pressure to the site", "Label the tube at the bedside"],
+    "order": [{"token": 1}, {"token": 0}, {"token": 2}, {"token": 3}, {"token": 4}, {"token": 5}]
+  }
+]

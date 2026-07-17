@@ -97,6 +97,7 @@ import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc } from '@/lib/authoring/rich-doc';
 import { bankImageRenderer } from '@/lib/authoring/bank-image-render';
 import type { BankImageResolver } from '@/lib/authoring/bank-image-view';
+import { orderedOptions } from '@/lib/practice/runner/option-order';
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   MCQ:       'Multiple choice',
@@ -232,7 +233,11 @@ function PerTypeRunner(props: Props) {
 
   switch (item.question_type) {
     case 'MCQ': {
-      const content = item.content_snapshot_json as unknown as McqContent;
+      const raw = item.content_snapshot_json as unknown as McqContent;
+      const content: McqContent = {
+        ...raw,
+        options: orderedOptions(raw.options, item.option_order_json),
+      };
 
       if (props.itemMode === 'answering') {
         return (
@@ -280,7 +285,11 @@ function PerTypeRunner(props: Props) {
     }
 
     case 'SATA': {
-      const content = item.content_snapshot_json as unknown as SataContent;
+      const raw = item.content_snapshot_json as unknown as SataContent;
+      const content: SataContent = {
+        ...raw,
+        options: orderedOptions(raw.options, item.option_order_json),
+      };
 
       if (props.itemMode === 'answering') {
         return (
@@ -304,7 +313,11 @@ function PerTypeRunner(props: Props) {
     }
 
     case 'SELECT_N': {
-      const content = item.content_snapshot_json as unknown as SelectNContent;
+      const raw = item.content_snapshot_json as unknown as SelectNContent;
+      const content: SelectNContent = {
+        ...raw,
+        options: orderedOptions(raw.options, item.option_order_json),
+      };
 
       if (props.itemMode === 'answering') {
         return (
@@ -404,7 +417,15 @@ function PerTypeRunner(props: Props) {
     }
 
     case 'CLOZE': {
-      const content = item.content_snapshot_json as unknown as ClozeContent;
+      const raw = item.content_snapshot_json as unknown as ClozeContent;
+      const order = (item.option_order_json ?? {}) as Record<string, unknown>;
+      const content: ClozeContent = {
+        ...raw,
+        blanks: raw.blanks.map((b) => ({
+          ...b,
+          choices: orderedOptions(b.choices, order[b.id]),
+        })),
+      };
 
       if (props.itemMode === 'answering') {
         return (
@@ -432,7 +453,11 @@ function PerTypeRunner(props: Props) {
     }
 
     case 'DRAG_CLOZE': {
-      const content = item.content_snapshot_json as unknown as DragClozeContent;
+      const raw = item.content_snapshot_json as unknown as DragClozeContent;
+      const content: DragClozeContent = {
+        ...raw,
+        tokens: orderedOptions(raw.tokens, item.option_order_json),
+      };
 
       if (props.itemMode === 'answering') {
         return (
@@ -460,7 +485,11 @@ function PerTypeRunner(props: Props) {
     }
 
     case 'DRAG_ORDER': {
-      const content = item.content_snapshot_json as unknown as DragOrderContent;
+      const raw = item.content_snapshot_json as unknown as DragOrderContent;
+      const content: DragOrderContent = {
+        ...raw,
+        tokens: orderedOptions(raw.tokens, item.option_order_json),
+      };
 
       if (props.itemMode === 'answering') {
         return (
@@ -486,7 +515,14 @@ function PerTypeRunner(props: Props) {
     }
 
     case 'BOWTIE': {
-      const content = item.content_snapshot_json as unknown as BowtieContent;
+      const raw = item.content_snapshot_json as unknown as BowtieContent;
+      const order = (item.option_order_json ?? {}) as Record<string, unknown>;
+      const content: BowtieContent = {
+        ...raw,
+        left:   { ...raw.left,   tokens: orderedOptions(raw.left.tokens,   order.left) },
+        centre: { ...raw.centre, tokens: orderedOptions(raw.centre.tokens, order.centre) },
+        right:  { ...raw.right,  tokens: orderedOptions(raw.right.tokens,  order.right) },
+      };
       const emptyBowtieAnswer: BowtieAnswer = { left: [], centre: null, right: [] };
 
       if (props.itemMode === 'answering') {
