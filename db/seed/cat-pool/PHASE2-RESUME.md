@@ -9,6 +9,19 @@ The rest of this file is kept as a runbook (rebuild / verify / rollback).
 
 Everything is idempotent (`ON CONFLICT DO NOTHING`), so re-running is safe.
 
+## ⚠️ Known issue — option shuffle not built (do ASAP before student-facing)
+
+The generated SATA/SELECT_N (and option-list) items tend to have the correct
+answers clustered at the front (A, B, C…) — an artifact of authoring order.
+This is fine in dev, BUT the **runtime option shuffle is not implemented**: the
+create-attempt RPC stores `option_order_json = '{}'` ("deferred to runner
+shuffle (slice 4.x)"), `shuffle_seed` is NULL, and nothing consumes them — the
+runner renders options in stored order. So the answer-position pattern is
+currently visible/gameable. Decision (Sam 2026-07-17): leave the dev pool as-is;
+**the runtime shuffle ("slice 4.x") must be built ASAP** — it is a prerequisite
+before any authored bank content goes student-facing. See
+`docs/product-plan/bank-consumption-cat.html` §19 (execution list).
+
 ## To finish the dev insert
 
 ```bash
