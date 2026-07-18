@@ -156,7 +156,20 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-19 — <strong>the CAT build started; Slices 1 and 2 are BUILT</strong>
+  Living planning document. Last updated: 2026-07-19 — <strong>§19.4 remaining slices audited against the day's
+  decisions and revised.</strong> Slice 4 was materially wrong: it described the whole loop running inside the RPC,
+  the pre-§10.6 architecture. Rewritten as the two pieces it now is (a server-side TypeScript orchestrator +
+  <code>cat_next_item</code>), with atomicity restated precisely and the <em>new</em> response-history read called
+  out — §19.4.1's estimator recomputes from the full history, work the old incremental design never needed. Slice 3
+  gains SE = 1.0 and the stamp-at-creation of <code>cat_engine_version</code>. A gap between Slices 4 and 5 closed:
+  neither said who <em>writes</em> <code>cat_weight</code> (1.0 standalone, 0.5 case child), so as written the
+  column would have stayed NULL and the tuning capability we deliberately built would silently not exist. Slice 6
+  gains the ABANDONED mechanism (unspecified — a closed laptop leaves the row IN_PROGRESS forever; readiness
+  lazy-expiry is the precedent). Slice 7 records that the readiness probability and clinical-judgment figures are
+  computed on read, plus the §9.5 copy warning. Slice 10 names its inputs and carries a new open question — whether
+  a case child's response counts fully when calibrating that <em>item's</em> difficulty, which §5 never addresses.
+  Plus a scope note that the ten slices are the engine, not the deferred §15.5 surfaces. Same day:
+  <strong>the CAT build started; Slices 1 and 2 are BUILT</strong>
   (§19.4). Slice 1 = the schema migration <code>20260808120000</code>, dev-applied and verified, entirely additive
   (a doc error was caught building it: §12.7.5 specified the audit table's FK as UUID → <code>nclex_bank_items(id)</code>,
   but the real key is <code>item_id TEXT</code> and the migration would have failed as written — corrected).
@@ -2469,16 +2482,42 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     <code>types.ts</code>, <code>index.ts</code> barrel. 56 tests; the doc's own numbers are the fixtures, so
     drift between code and plan fails loudly. No user surface. See §19.4.1 for the two decisions taken during
     the build.</li>
-  <li><strong>Slice 3 — <code>create_cat_attempt</code>.</strong> Opens the attempt, starts at theta = 0.0, picks
-    and snapshots the first item, returns the payload. <strong>Carries the §15.5 allowance guard</strong> —
-    most-generous-wins across active bank subscription rows, counted against <code>nclex_attempts</code>; refusal
-    routes to the reason-aware <code>/no-access</code> wall rather than dead-ending.</li>
-  <li><strong>Slice 4 — <code>cat_next_item</code>, standalone-only.</strong> The core loop: score → Rasch update
-    → termination check → select next standalone (§7.1 difficulty match + category tiebreaker + §7.3 eligibility +
-    §7.5 fallback) → snapshot → return CONTINUE / COMPLETE. Atomic transaction.</li>
+  <li><strong>Slice 3 — <code>create_cat_attempt</code>.</strong> Opens the attempt at
+    <strong>theta = 0.0, SE = 1.0</strong> (the §19.4.1 prior — the starting uncertainty is not a free parameter,
+    it is the prior's spread), picks and snapshots the first item, returns the payload.
+    <strong>Stamps <code>cat_engine_version</code> at creation</strong>, not completion — that timing is the whole
+    reason the column exists, so an ABANDONED attempt still records which formula produced its responses
+    (§12.7.12). <strong>Carries the §15.5 allowance guard</strong> — most-generous-wins across active bank
+    subscription rows, counted against <code>nclex_attempts</code>; refusal routes to the reason-aware
+    <code>/no-access</code> wall rather than dead-ending.</li>
+  <li><strong>Slice 4 — the core loop, standalone-only.</strong> <em>Rewritten 2026-07-19 — the earlier wording
+    ("score → Rasch update → termination check → select → snapshot, atomic transaction") described the whole loop
+    running inside the RPC, which is the pre-§10.6 architecture.</em> The loop now spans <strong>two pieces</strong>:
+    <ul>
+      <li><strong>A server-side orchestrator (TypeScript).</strong> Loads the attempt's prior responses, scores the
+        new answer with <code>@/lib/scoring</code> (reused unchanged, §10.2), re-estimates ability with
+        <code>@/lib/cat</code>, and runs the termination check. <strong>The response-history read is new work</strong>
+        that the old design did not need: §19.4.1's estimator recomputes from the full history rather than nudging a
+        running value, which is what makes an attempt exactly replayable. Runs server-side, never in the browser,
+        so a fabricated theta cannot be posted.</li>
+      <li><strong><code>cat_next_item</code> (PL/pgSQL).</strong> Receives the already-computed score and updated
+        theta/SE, persists the answer, selects the next standalone (§7.1 difficulty match + category tiebreaker +
+        §7.3 eligibility + §7.5 fallback), snapshots it, and returns CONTINUE / COMPLETE.</li>
+    </ul>
+    <strong>Atomicity, stated precisely:</strong> every <em>write</em> happens inside the one RPC transaction. The
+    computation sits outside it and is pure, so if it throws, nothing was written — §10.3's "either the answer is
+    recorded and the next item snapshotted, or neither" still holds.
+    <strong>Writes <code>cat_weight = 1.0</code> on every standalone snapshot</strong> (§12.7.12) — without this the
+    column stays NULL and the §7.4 tuning capability silently does not exist.
+    <em>Verification should include a pool sanity check:</em> that the live pool can actually sustain a 150-item CAT
+    under §15.2 exposure exclusion, given 68 bank items still carry no difficulty and are therefore unselectable.</li>
   <li><strong>Slice 5 — Case &amp; trend handling (the hybrid).</strong> 3 cases/exam, never at position 1, spread
     within the first 85; each case child a <strong>half-weight</strong> update on the main level (§7.4); trends
-    served as single questions with the within-exam one-per-dataset rule. Built on the working standalone loop.</li>
+    served as single questions with the within-exam one-per-dataset rule. Built on the working standalone loop.
+    <strong>Writes <code>cat_weight = 0.5</code> on every case-child snapshot</strong> (§12.7.12). The maths itself
+    is already built and tested — <code>@/lib/cat</code> takes a per-response weight, and Slice 2 asserts that a
+    6-child case equals 3 standalone questions exactly — so this slice is <em>scheduling and plumbing</em>, not new
+    estimation logic.</li>
 </ol>
 
 <p><strong>Phase C — The student experience</strong> (first browser-testable slices).</p>
@@ -2487,11 +2526,24 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     the attempt however it ends) + "How CAT works" link, the pessimistic
     between-question transition (§10.1), current-question-only progress (§16.1), no back nav (§16.3),
     browser-close = ABANDONED (§16.5), 4-hour timer (§9.3). Reuses the runner shell, the 9 renderers, and the
-    shipped option shuffle.</li>
+    shipped option shuffle.
+    <strong>Decide the ABANDONED mechanism here.</strong> §16.5 says a browser-close abandons the attempt but never
+    says what <em>writes</em> that — a closed laptop leaves the row <code>IN_PROGRESS</code> indefinitely, which
+    matters because §15.2 excludes items seen in "the last 3 CAT attempts" and the history/results surfaces need a
+    terminal state. <strong>Precedent: readiness lazy-expiry</strong> — stamp it on the next touch (a dashboard or
+    history read) rather than running a cron. The retired readiness nightly sweep is the argument against a cron
+    here.</li>
   <li><strong>Slice 7 — Results / summary page (§13).</strong> Verdict + readiness probability, items administered,
     trajectory graph + per-item marker, per-category breakdown (with the §4.5 partial-credit footnote),
     clinical-judgment read (display-only from the case answers, per the hybrid), compare-to-previous-CATs, and the
-    "Review answers" CTA.</li>
+    "Review answers" CTA.
+    <strong>Two values are computed on read, not stored</strong> (§12.7.12): the readiness probability, via
+    <code>readinessProbability()</code> from <code>@/lib/cat</code> against <code>cat_final_theta</code> +
+    <code>cat_final_se</code>, and the clinical-judgment figure, from the stored case answers.
+    <strong>Copy warning (§9.5):</strong> a CAT that ran to the 150 ceiling can legitimately display a
+    confident-looking readiness probability — say 92% — because the probability and the stopping rule are the same
+    statement read at different thresholds (the band clears only at 97.5%). It looks like a contradiction and is
+    not. The copy must accommodate it rather than imply every high percentage means the engine was sure.</li>
   <li><strong>Slice 8 — Review wiring (§14).</strong> Small — CAT reuses the shared per-question Review surface;
     this hooks up the entry points (summary → Review, History → summary).</li>
   <li><strong>Slice 9 — Dashboard + entry points.</strong> The two separate dashboard cards (CAT card +
@@ -2504,8 +2556,25 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li><strong>Slice 10 — Weekly recalibration job (§5.3 / §17).</strong> Turns curator-labelled difficulties into
     empirical ones over time: 30-response threshold, 70/30 blend, writes <code>difficulty_irt</code> +
     <code>difficulty_source</code> + the audit table, plus a manual trigger. A CAT runs fully without it — it only
-    sharpens difficulty as data accumulates.</li>
+    sharpens difficulty as data accumulates.
+    <strong>Inputs:</strong> the per-item CAT columns (§12.7.4) — the snapshotted
+    <code>cat_item_difficulty</code>, the recorded <code>cat_weight</code>, and
+    <code>nclex_attempts.cat_engine_version</code>, which tells the job which update formula produced a given
+    response set (§12.7.12). Per §4.5's consistency requirement, the job must define a "response" the same way the
+    live engine does — the <em>fraction</em> <code>score_awarded / marks</code>, not a dichotomised right/wrong —
+    or difficulty values drift against a different definition than the engine scores against.
+    <strong>⬜ Open question for this slice:</strong> does a case child's response count <em>fully</em> when
+    calibrating that item's own difficulty? The §7.4 half-weight exists because six children share one scenario and
+    should not over-inform the <em>student's ability</em>. Whether the same discount applies to the <em>item's
+    difficulty</em> is a separate question, and §5 does not address it. Decide before the job first writes.</li>
 </ol>
+<p class="callout">
+  <strong>Scope note.</strong> These ten slices cover the CAT <em>engine and its student-facing surfaces</em>. They
+  are deliberately not the full scope of everything CAT touches — the §15.5 deferrals sit outside the list: the
+  admin UI for editing <code>cat_allowance</code>, any student-facing "N CATs left" copy or exhausted-state upsell,
+  and the per-user admin grant that serves as the support remedy for a burnt attempt. Those get built when wanted;
+  the mechanism ships first. Don't read the list as complete scope.
+</p>
 <p>
   <strong>Verification split:</strong> Slices 1–5 are back-end (verified by SQL checks, unit tests, and a scratch
   harness — little to see in the browser); Slices 6–9 are the click-through experience (Sam tests a real CAT live);
