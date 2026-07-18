@@ -1,5 +1,25 @@
 # MyNclex Build List
 
+> **CAT — ✅ Slice 7 (the results page) BUILT + MERGED to `main` 2026-07-20
+> (NOT prod).** The surface a student lands on when a CAT ends, and re-opens
+> from history (`7462682`; app-layer, **no migration**; tsc + eslint clean;
+> vitest **280 → 306**). All seven §13 regions in priority order, plus the
+> abandoned CAT as its own page. Built from a Claude Design prototype
+> (concept-not-source, two rounds). The readiness probability and the
+> clinical-judgment read are **derived on read, never stored** — the
+> probability via the same `readinessProbability()` the stopping rule uses,
+> so page and engine cannot disagree. **⚠ Found on screen:** the category
+> percentages (19–48%) sit beside a 98%-confident pass and look like a
+> contradiction — they aren't. A CAT serves questions at the edge of ability,
+> so raw success converges toward half *for everyone*; the footnote now names
+> that alongside partial credit. This makes the §13.6 drill-down + remediation
+> the strongest remaining gap on the page.
+> **⏭ NEXT on CAT:** re-point the termination results popup at the new report ·
+> Slice 6c (transition escalation) · §16.6 exam-mode display leaks · Slices 8–9.
+> **Two decisions reopened, noted not changed:** §9.3 the 4-hour time limit
+> (vs real NCLEX's 5) and §9.1.1 the passing standard (theta 0.0 was inherited,
+> not chosen). Both in cat.html §19 carried-forward.
+
 Slice-by-slice list of work in the MyNclex product, split by the two
 layers MyNclex is built around: the **Bank** (self-study question
 bank) and the **Programme** (tutored prep). Each line is one slice.
@@ -2414,7 +2434,7 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 - ⬜ **6.1** Preflight screen — between builder Start click and Q1; shows config summary, mode-specific note, "skip preflight next time" checkbox (per-mode localStorage). Calls `nclex_mark_attempt_started`.
 - ⬜ **6.2** Results screen (fixed-length) — score, session-scoped breakdown across 6 axes, transition to Review.
-- ⬜ **6.3** CAT summary page — verdict copy, items-administered fact line, **trajectory graph** (theta over question number, with passing-standard reference + per-item marker), per-Client-Needs-Category breakdown, "Compared to your previous CATs" panel, "Review answers" CTA.
+- ✅ **6.3** CAT summary page — **BUILT 2026-07-20** (`7462682`; = CAT plan **Slice 7**, §13; app-layer, no migration; vitest 280 → 306). Verdict copy, items-administered fact line, **trajectory graph** (theta over question number, with passing-standard reference + a 95% confidence band + per-item marker), per-Client-Needs-Category breakdown, "Compared to your previous CATs" panel, "Review answers" CTA + a "take another CAT" secondary, and the abandoned CAT as its own surface. Built from a Claude Design prototype (two rounds). **Raw theta / SE / duration deliberately NOT shown** — engine internals aren't a student-facing measure. **⚠ Finding:** category percentages read 19–48% beside a 98%-confident pass — correct, not a bug (a CAT serves at the edge of ability, so raw success converges near half for everyone), so the footnote now names that effect as well as partial credit. See cat.html §19.4.5.
 - ⬜ **6.4** Help routes — `app/help/[slug]/` (top-level, public, audience-neutral). First articles: `/help/cat`, `/help/payments`. Linked from CAT preflight + summary footer + dashboard CAT card.
 
 ### Phase F — Dashboard, history, analytics

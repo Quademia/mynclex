@@ -3133,7 +3133,9 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     terminal state. <strong>Precedent: readiness lazy-expiry</strong> — stamp it on the next touch (a dashboard or
     history read) rather than running a cron. The retired readiness nightly sweep is the argument against a cron
     here.</li>
-  <li><strong>Slice 7 — Results / summary page (§13).</strong> Verdict + readiness probability, items administered,
+  <li><strong>Slice 7 — Results / summary page (§13). ✅ BUILT 2026-07-20</strong>
+    (<code>7462682</code>; app-layer, NO migration; see §19.4.5 for the build decisions and the
+    category-percentage finding). Verdict + readiness probability, items administered,
     trajectory graph + per-item marker, per-category breakdown (with the §4.5 partial-credit footnote),
     clinical-judgment read (display-only from the case answers, per the hybrid), compare-to-previous-CATs, and the
     "Review answers" CTA.
@@ -3497,6 +3499,85 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   <li><strong>§16.6</strong> — exam-mode display leaks, deferred as one coherent pass.</li>
   <li>At termination the student still hits the generic results popup ("30 of 85"), which is meaningless for a CAT.
     Slice 7 replaces it.</li>
+</ul>
+
+<h3 id="s19-slice7-decisions">19.4.5 Slice 7 — build decisions, and what the real data revealed
+  <span class="status settled">settled 2026-07-20</span></h3>
+<p>
+  Built from a Claude Design prototype (concept-not-source; two rounds). Commit <code>7462682</code>, app-layer,
+  <strong>no migration</strong> — every value is either already on the attempt rows or derived on read. tsc +
+  eslint clean; vitest <strong>280 → 306</strong>.
+</p>
+<p>
+  Structure: pure <code>lib/practice/cat/report-derive.ts</code> (+26 tests) · server loader
+  <code>lib/practice/cat/report.ts</code> · route
+  <code>app/(app)/student/bank/cat/result/[attemptId]/</code> (page + view + chart + abandoned view) ·
+  <code>.catr-*</code> in <code>styles/cat.css</code>, mobile-first at 768px. The CAT home's history rows now
+  link in.
+</p>
+
+<h4>⚠ The category percentages are not what they look like — found on screen, 2026-07-20</h4>
+<p>
+  The page rendered <strong>19–48% per Client Needs category beside "Above standard — 98% confident."</strong>
+  Checked against the database, this is <em>not</em> a bug: the run's mean item difficulty was
+  <strong>0.765</strong> against an ability of 0.48, so Rasch predicts ~43% and the student scored
+  <strong>41.6%</strong>. The engine is exactly right.
+</p>
+<p>
+  The consequence is the point: <strong>a CAT serves questions at the edge of a student's ability, so the raw
+  success rate converges toward roughly half FOR EVERYONE, at every level.</strong> Absolute category percentages
+  are therefore close to uninformative in a CAT, and a page that shows them bare reads as contradicting its own
+  verdict — with the student likely to trust the small number over the headline.
+</p>
+<p>
+  §13.2's mandated footnote only ever anticipated the <em>partial-credit</em> effect (§4.5), which is much the
+  smaller of the two. The shipped footnote names both and tells the student to read the categories
+  <strong>against each other, not out of 100</strong>; the rows are ordered weakest-first for the same reason.
+  Three tests assert the footnote keeps naming both effects.
+</p>
+<p>
+  <strong>This strengthens the §13.6 case.</strong> The region §13.2 calls "the most actionable read on the page"
+  is weaker than it looks — four coarse categories all hovering near half by construction. The deferred
+  drill-down (subcategory / subject / body system) plus a remediation path is what would make this page
+  genuinely actionable, and the readiness report's existing "next moves" cards are the working precedent.
+</p>
+
+<h4>Build decisions</h4>
+<ul>
+  <li><strong>The trajectory shift.</strong> The engine stores theta <em>before</em> each question (that is what
+    it knew when it picked the item); the graph plots the estimate <em>after</em> each answer. So each point takes
+    the NEXT item's before-value and the last takes the attempt's final theta. Getting this wrong draws a
+    plausible graph that lags the truth by one question and nothing else would catch it — three tests guard the
+    shift alone.</li>
+  <li><strong>The confidence band is drawn from the engine's own <code>CONFIDENCE_Z</code></strong>, so the
+    picture cannot drift from the rule it depicts. This is what makes the §9.5 ceiling case legible: a student who
+    ran to 150 can <em>see</em> the band still straddling zero, which is precisely why the exam never stopped.</li>
+  <li><strong>Raw theta and standard error are NOT shown</strong> (Sam, 2026-07-20). The CD draft surfaced both as
+    stat tiles; cut because engine internals are not a student-facing measure and "θ" is jargon for a working
+    nurse. The trajectory <em>is</em> the ability estimate, drawn rather than named. Duration was cut with them —
+    pacing is a §13.6 v2 item.</li>
+  <li><strong>The readiness probability is display-capped at <code>&gt;99%</code> / <code>&lt;1%</code></strong>
+    rather than printing 99.999%. Honest at any spread, and stops being load-bearing once §10.5 widens the ladder.
+    Not a fix for §7.7 — a refusal to overstate it.</li>
+  <li><strong>A "take another CAT" secondary CTA was added</strong> — §13 specifies only "Review answers", yet the
+    Below-standard body copy tells the student to come back for another CAT and gave them nowhere to go. Kept
+    subordinate to Review, with copy noting it is one full sitting and spends an attempt (§15.5.3).</li>
+  <li><strong>The abandoned surface is a different return shape, not a report full of nulls</strong> — a caller
+    that must check <code>verdict !== null</code> before every read will eventually forget to.</li>
+  <li><strong>The per-question chip grid was kept</strong> despite letting a student count right/wrong answers,
+    which brushes against §13.5's raw-score exclusion — it is what makes §13.3's tap-to-place marker work.
+    Reviewed and accepted rather than overlooked.</li>
+</ul>
+
+<h4>Outstanding after Slice 7</h4>
+<ul>
+  <li><strong>Clinical-judgment thresholds are provisional.</strong> §13.2 specifies the region and gives one
+    example label but never defines the bands. Shipped as Strong ≥ 0.75 / Developing &lt; 0.5 / Mixed between,
+    needing ≥ 3 case children to render at all. Tune from real case data (§5 / §17).</li>
+  <li><strong>The results popup still fires at termination.</strong> 19.4.4 flagged that Slice 7 would replace it;
+    the report page exists but the generic popup has not yet been re-pointed at it.</li>
+  <li><strong>§13.6 drill-down + remediation</strong> — see the finding above; the strongest remaining gap on this
+    surface.</li>
 </ul>
 
 
