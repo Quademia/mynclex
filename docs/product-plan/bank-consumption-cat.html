@@ -156,8 +156,23 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-19 — <strong>Slices 3 and 4 BUILT; the CAT engine now runs end
-  to end</strong> (§19.4, all of Slices 1–4 marked ✅). Slice 3 = <code>create_cat_attempt</code>
+  Living planning document. Last updated: 2026-07-19 — <strong>Slice 5 BUILT; the CAT ENGINE IS FEATURE-COMPLETE</strong>
+  (Slices 1–5 all ✅; Phase C, the student-facing surfaces, is what remains). Cases are delivered on a schedule
+  <strong>randomised within three windows</strong> (Q8–20, Q30–45, Q55–75) rather than fixed — fixed positions are
+  learnable across repeat sittings — and <strong>derived deterministically from <code>attempt_id</code></strong>
+  rather than stored, so the schedule is replay-stable and needs no column. Case children are snapshotted
+  <strong>one per turn</strong>, not six upfront: <code>cat_theta_before</code> records the estimate the student
+  faced each question with, and children 2–6 have not happened yet. Trends are ordinary adaptive items, one per
+  dataset per exam. <strong>New §19.4.3</strong> records this plus the <strong>Slice 6 runner survey</strong>:
+  the 9 renderers, option shuffle, snapshot loader, timer, save-on-tap and case-exit gate are all reusable, and
+  no-back-navigation comes free because <code>getArchetype()</code> already maps CAT → SEQUENTIAL; what does NOT
+  work is the runner's fixed <code>data.items</code> array (a CAT's grows one per turn, so it would render
+  "Question 1 of 1"), leaving Slice 6 with one genuinely new mechanism — the fetch-next loop. Verified by driving
+  real exams: cases landed at exactly the scheduled positions with all six CJMM steps in order, and a
+  <strong>full-length 150-item exam</strong> ran (the pool sanity check), delivering exactly 3 cases, a trend item
+  with its snapshot, and <strong>141.0 total evidence weight against 150 items administered</strong> — the 18 case
+  items carrying 9 questions' worth, exactly as §7.4 designs. Earlier same day: <strong>Slices 3 and 4 BUILT; the
+  CAT engine now runs end to end</strong> (§19.4, all of Slices 1–4 marked ✅). Slice 3 = <code>create_cat_attempt</code>
   (<code>20260809120000</code>); Slice 4 = <code>cat_next_item</code> + <code>lib/practice/cat/</code>
   (<code>20260810120000</code>). <strong>New §19.4.2</strong> records their build decisions: a CAT is stored as
   <code>source = 'CUSTOM_BUILT'</code> with no new source value added (it launches from the Builder, and
@@ -2631,7 +2646,8 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     column stays NULL and the §7.4 tuning capability silently does not exist.
     <em>Verification should include a pool sanity check:</em> that the live pool can actually sustain a 150-item CAT
     under §15.2 exposure exclusion, given 68 bank items still carry no difficulty and are therefore unselectable.</li>
-  <li><strong>Slice 5 — Case &amp; trend handling (the hybrid).</strong> 3 cases/exam, never at position 1, spread
+  <li><strong>Slice 5 — Case &amp; trend handling (the hybrid). ✅ BUILT 2026-07-19</strong> (<code>34403f6</code>,
+    migration <code>20260811120000</code>, dev-applied and verified; see §19.4.3). 3 cases/exam, never at position 1, spread
     within the first 85; each case child a <strong>half-weight</strong> update on the main level (§7.4); trends
     served as single questions with the within-exam one-per-dataset rule. Built on the working standalone loop.
     <strong>Writes <code>cat_weight = 0.5</code> on every case-child snapshot</strong> (§12.7.12). The maths itself
@@ -2840,6 +2856,87 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   rather than dropped: removing it to make a module testable would trade a real safety guarantee (a Client
   Component importing server code fails loudly) for test convenience.
 </p>
+
+<h3 id="s19-slice5-decisions">19.4.3 Slice 5 build decisions + the Slice 6 runner survey <span class="status settled">settled 2026-07-19</span></h3>
+
+<h4>The case schedule is randomised within windows, and derived not stored</h4>
+<p>
+  §7.4 asks for "fixed-ish positions," spread within the first 85, never first. Built as <strong>one case
+  randomised inside each of three windows — Q8–20, Q30–45, Q55–75</strong>. Fully fixed positions would be
+  learnable: a student sitting several CATs would know a case always lands on Q8. Windows keep the required spread
+  without the predictability.
+</p>
+<p>
+  The positions are <strong>derived deterministically from <code>attempt_id</code></strong>
+  (<code>nclex_cat_case_positions()</code>) rather than stored on the attempt. Deterministic on the id means the
+  schedule is stable across replays and re-deriving mid-exam always yields the same three positions — so no column
+  is needed. Same technique as the embed-player option shuffle.
+</p>
+
+<h4>Case children are snapshotted ONE PER TURN, not six upfront</h4>
+<p>
+  Readiness snapshots every question at creation. CAT cannot copy that for a case block:
+  <code>cat_theta_before</code> records the estimate the student <em>faced each question with</em>, and children
+  2–6 have not happened yet — snapshotting all six upfront would mean writing that column with values that do not
+  exist. Per-turn preserves the trajectory record that makes an attempt replayable.
+</p>
+
+<h4>Two robustness rules</h4>
+<ul>
+  <li><strong>A case can never be cut short by confidence.</strong> CONFIDENCE_REACHED requires ≥ 85 items and
+    every case sits inside the first 85, so only a 4-hour timeout can land mid-block — acceptable, since the
+    answered children have already contributed their half-weight evidence.</li>
+  <li><strong>A missing case degrades to a standalone pick.</strong> If no eligible unseen case exists, the
+    schedule slot silently falls through rather than stalling the exam.</li>
+</ul>
+
+<h4>Verified by driving real exams, including a full-length one</h4>
+<ul>
+  <li><strong>60-turn drive:</strong> cases landed at exactly the scheduled 18 / 31 / 58, each running six
+    consecutive children in correct CJMM order (Recognise cues → Analyse cues → Prioritise → Generate solutions →
+    Take action → Evaluate outcomes), <code>cat_weight</code> 0.5 throughout, three distinct cases with three
+    snapshots, and standalone selection resuming cleanly after each block. Schedule proven deterministic.</li>
+  <li><strong>Full-length drive:</strong> <strong>150 items</strong> — the pool sustains a max-length exam
+    (the §19.4 Slice 4 pool sanity check). Exactly 3 cases. One trend item served with its dataset snapshot
+    written, proving the trend branch live.</li>
+  <li><strong>The evidence maths, confirmed end to end:</strong> 150 items administered,
+    <strong>141.0 total weight</strong> — the 18 case items carrying 9 questions' worth, exactly as §7.4 designs.</li>
+</ul>
+<p>
+  <strong>Note on the trend path:</strong> it took a full-length exam to observe one. Trend-linked items are ~6.6%
+  of a difficulty rung and sit in only 2 of the 4 Client Needs categories, so the balanced category rotation
+  (§8.1) makes them genuinely rare per pick. This was checked to be thin probability rather than a bug. If trends
+  should appear more often, the lever is <strong>authoring more trend datasets across more categories</strong>,
+  not weakening the category tiebreaker.
+</p>
+
+<h4>Slice 6 runner survey — what is already free, and what is not</h4>
+<p>Surveyed 2026-07-19 so Slice 6 is scoped from fact rather than assumption.</p>
+<p><strong>Reusable unchanged:</strong> the 9 question renderers · the option shuffle (already observed firing on a
+  CAT snapshot) · the four-table snapshot loader with its answer-key sealing · the timer · save-on-tap · the
+  case-exit warning gate. <strong>And no back-navigation comes free:</strong> <code>getArchetype()</code> already
+  maps <code>CAT → SEQUENTIAL</code>, which blocks it — a defensive default left in place months ago
+  (<em>"create-attempt rejects CAT mode until slice 3.x, and Sequential is the closest defensive default"</em>)
+  that turns out to be exactly right.
+</p>
+<p><strong>What genuinely does not work:</strong> the runner is built around a <em>fixed array</em>. It loads
+  <code>data.items</code> upfront and sets <code>total = data.items.length</code>, navigating by index. A CAT's
+  array holds ONE item at the start and grows by one per turn, so it would render "Question 1 of 1", then "2 of
+  2". Two pieces follow:
+</p>
+<ul>
+  <li><strong>Progress display</strong> — current-question-only, already specified by §16.1, so a spec'd change
+    rather than a surprise.</li>
+  <li><strong>The fetch-next loop</strong> — submit, ask the server for the next question, append it, advance.
+    Every other mode knows all its questions in advance, so this mechanism does not exist anywhere yet. It is the
+    real work in Slice 6.</li>
+</ul>
+<p>
+  <strong>Revised sizing:</strong> smaller than the slice list implies on rendering (all the hard question-display
+  work is free), but with one genuinely new mechanism. Net neutral rather than a saving — and contained: a new
+  mode branch in the runner, not a rewrite.
+</p>
+
 
 <p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>
 <ul>
