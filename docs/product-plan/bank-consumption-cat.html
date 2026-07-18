@@ -156,10 +156,14 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-18 (§7.4 gains §7.4.1 — the two worked examples (Kojo, a case
-  mid-exam; Kofi, three cases across a full exam) plus an explicit merge-computation note, recovered from the
-  2026-07-16 planning session and folded in-doc so the reference is self-contained; the earlier "see the planning
-  session notes" pointer is retired). Earlier — 2026-07-16: results-report scope expanded — §13.2 gains the
+  Living planning document. Last updated: 2026-07-18 (§7.4 case-scoring method revised — the <strong>hybrid</strong>
+  is now the chosen build (each case child updates the main level directly at half weight → a case counts as ~3
+  questions, not 6; certainty folds in automatically, no separate estimate or merge); the <strong>testlet</strong>
+  model is retained as the documented alternative. Same session: §7.4.1 added — the two worked examples (Kojo, a case
+  mid-exam; Kofi, three cases across a full exam) plus an explicit merge-computation note + a 3-way method
+  comparison, recovered from the 2026-07-16 planning session and folded in-doc so the reference is self-contained;
+  the earlier "see the planning session notes" pointer is retired). Earlier — 2026-07-16: results-report scope
+  expanded — §13.2 gains the
   clinical-judgment read (from the §7.4 testlet model); new §13.6 captures five WANTED v2 report additions
   (average difficulty faced, performance by question type, finer topic drill-down, clinical-judgment step detail,
   pacing — data already captured); §13.5 reframed from "deliberately excluded" to "flagged for REVISIT," notably
@@ -744,10 +748,49 @@
   <li>Trend-linked questions carry shared dataset context that has to travel with them into the adaptive sequence.</li>
 </ul>
 <p>
-  <strong>The mechanism — settled 2026-07-16 (Sam), the "testlet" model.</strong> A case is treated as its own
-  self-contained mini-estimate that runs alongside the main exam and hands back a single combined result. This
-  is the recognised way to handle a bundle of items sharing one stimulus (a "testlet"), and it honours the
-  local-independence problem instead of ignoring it. Five parts:
+  <strong>The mechanism.</strong> It has two layers. First, a set of <em>administration</em> decisions that hold
+  regardless of how a case is scored (how many cases, where they fall, exposure) — settled 2026-07-16. Second, the
+  <em>scoring</em> method: how a case moves the student's ability. On the scoring method there are two designs that
+  reach essentially the same result, and the <strong>chosen build is the "hybrid" (2026-07-18, Sam)</strong>; the
+  <strong>"testlet" model</strong> it grew out of is retained below as the documented alternative. Both enforce the
+  same safeguard — a 6-question case counts as <em>fewer</em> than six independent measurements — so the engine is
+  never made falsely over-confident by one correlated block.
+</p>
+<p>
+  <strong>Chosen scoring method — the hybrid (2026-07-18, Sam).</strong> When a case is served, the engine stops
+  difficulty-picking and delivers the 6 children in their fixed clinical-judgment order, but <strong>each child
+  updates the main ability level directly, counting as HALF a normal question</strong>. "Counts as half" applies to
+  <em>both</em> jobs an answer does — it moves the level half as much <em>and</em> tightens the engine's certainty
+  half as much (stating it as "each case question counts as half a question, full stop" guarantees both halve
+  together). So a 6-child case contributes about <strong>three questions' worth</strong> of evidence, not six — the
+  local-independence safeguard, applied inline. Why this is the build choice over the testlet:
+</p>
+<ul>
+  <li><strong>Simpler and more robust.</strong> One ability track — no separate case estimate, no merge step. It
+    reuses the existing standalone level-update path with a single "half-weight" setting; fewer moving parts, fewer
+    places to get it wrong.</li>
+  <li><strong>No noisy from-scratch estimate.</strong> The testlet measures the case from a fresh theta = 0.0 using
+    only 6 questions (inherently noisy). The hybrid keeps building on the student's already-established main level.</li>
+  <li><strong>Certainty is handled automatically.</strong> The testlet's most error-prone step is computing the
+    case's own certainty, inflating it, and merging it into the main certainty. The hybrid needs no separate case
+    certainty — the half-weight folds certainty in one child at a time, so "count as ~three, not six" happens for
+    free.</li>
+  <li><strong>The "half" is a starting default, not a magic number.</strong> It encodes an assumption about how much
+    the 6 children overlap (they share one scenario, so are worth fewer than six independent questions). It is tuned
+    from real response data later through the same recalibration pipeline (§5 / §17) that refines difficulty — if
+    cases overlap more, the weight drops toward "count as ~one"; if less, toward "~six". Equivalent framings: a case
+    counts as <code>effective ≈ 6 ÷ (1 + 5 × overlap)</code> questions; half-weight corresponds to ~three.</li>
+  <li><strong>Clinical-judgment read still available.</strong> The testlet produced a standalone "case level" as a
+    by-product (feeding the §13 clinical-judgment read). The hybrid doesn't feed one into the engine, but the same
+    number can be computed <em>display-only</em> from the 6 answers for the results page — it never touches the exam.</li>
+</ul>
+<p>
+  <strong>Retained alternative — the "testlet" model (settled 2026-07-16; superseded as the build choice
+  2026-07-18).</strong> A case is treated as its own self-contained mini-estimate that runs alongside the main exam
+  and hands back a single combined result — the recognised "testlet" technique for a bundle of items sharing one
+  stimulus. Its five parts below; note that parts 1, 3 and 5 (administration, no new difficulty field, exposure) are
+  <strong>common to the hybrid too</strong> — only parts 2 and 4 (the separate estimate + the merge) are what the
+  hybrid replaces with its simpler inline half-weight update. Five parts:
 </p>
 <ol>
   <li>
@@ -810,22 +853,26 @@
 </ul>
 <p>
   This collapses the engine's world to exactly two shapes: <strong>items</strong> (every MCQ/SATA/bow-tie… and
-  every trend) and <strong>testlets</strong> (case studies only — the 3-per-exam blocks above). The engine never
+  every trend) and <strong>case blocks</strong> (case studies only — the 3-per-exam blocks above, scored by the
+  hybrid half-weight method). The engine never
   has to ask "how many questions does this trend have?" — it always serves one. If a bank trend was ever authored
   as a genuinely sequential multi-question set, that is structurally a case, not a trend, and should be authored
   as a case; CAT does not treat any trend as a block.
 </p>
 <p>
-  <strong>Bonus the testlet model unlocks:</strong> because each case produces a standalone case level, the
-  results page can surface a distinct <strong>"clinical judgment" read</strong> (case performance as its own
-  skill signal) on top of the overall verdict — matching how the real NCLEX treats clinical judgment as a
-  separately-measured competency. See §13 for where this lands on the summary page.
+  <strong>Clinical-judgment read:</strong> either scoring method lets the results page surface a distinct
+  <strong>"clinical judgment" read</strong> (case performance as its own skill signal) on top of the overall
+  verdict — matching how the real NCLEX treats clinical judgment as a separately-measured competency. Under the
+  testlet it fell out of the case's standalone level; under the chosen hybrid it is computed <em>display-only</em>
+  from the case's 6 answers (it does not feed the engine). See §13 for where this lands on the summary page.
 </p>
 <p>
-  <strong>Schema implication (for §12 build handoff):</strong> the within-case level path can live on the child
-  <code>nclex_attempt_items</code> rows (each child's <code>cat_theta_before</code> = the within-case level at
-  that step). A small addition may be wanted to record each case's <em>final</em> case level + its merge, to
-  power the clinical-judgment read and replay — to be specified in the build slice.
+  <strong>Schema implication (for §12 build handoff):</strong> under the hybrid, each child's main-track level and
+  uncertainty <em>before</em> its half-weight update already live on the child <code>nclex_attempt_items</code> rows
+  (<code>cat_theta_before</code> / <code>cat_se_before</code>) — no separate case-estimate columns are needed for the
+  engine. A small <em>optional</em> addition may still be wanted to store a per-case display-only "clinical judgment"
+  figure for the results page and replay — to be specified in the build slice. (The testlet alternative would
+  instead need to persist each case's final case level + merge.)
 </p>
 <p>
   §11's snapshot design already anticipated wrappers: case/trend snapshot behaviour for CAT is specified there and
@@ -836,9 +883,27 @@
 <h4 id="s7.4-worked">7.4.1 Worked examples — the testlet flow in numbers <span class="status settled">recovered 2026-07-18</span></h4>
 <p>
   These two worked examples make the mechanism concrete. They were developed in the 2026-07-16 planning session
-  (the session that settled §7.4) and are recorded here so the plan is self-contained rather than pointing at an
-  external transcript. <strong>All numbers are illustrative</strong> — they show how the mechanism behaves, not the
-  output of the final formula.
+  and are recorded here so the plan is self-contained rather than pointing at an external transcript.
+  <strong>All numbers are illustrative</strong> — they show how the mechanism behaves, not the output of the final
+  formula. They walk the <em>testlet</em> flow (separate case estimate → merge); the <strong>chosen hybrid reaches
+  essentially the same net position by a simpler path</strong> — each case question updates the main level directly
+  at half weight, so no separate estimate or merge is computed. The three approaches on the Kojo case
+  (enters at main level 0.70, uncertainty ≈ 0.45, scores 5/6):
+</p>
+<table>
+  <thead>
+    <tr><th>Scoring method</th><th>Case counts as</th><th>Main level after</th><th>Certainty after</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Naive — 6 full updates (rejected)</td><td>6</td><td>0.70 → 0.90</td><td>0.45 → 0.30 (over-confident)</td></tr>
+    <tr><td>Testlet — separate estimate + merge (alternative)</td><td>~1</td><td>0.70 → 0.75</td><td>0.45 → 0.40</td></tr>
+    <tr><td>Hybrid — half-weight inline (chosen)</td><td>~3</td><td>0.70 → 0.77</td><td>0.45 → 0.42</td></tr>
+  </tbody>
+</table>
+<p>
+  The testlet and hybrid both land the case as a small, safe nudge (only the rejected naive path overshoots on both
+  level and certainty). The tables below detail the testlet flow; under the hybrid, read each case-question row as a
+  <em>half-strength</em> update applied straight to the main level instead of to a separate case level.
 </p>
 
 <p><strong>How the merge is computed — the method (settled).</strong> After a case, the engine holds two estimates
@@ -1940,7 +2005,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li>§4 — IRT model: Rasch (1PL), TypeScript live engine in existing stack, recalibration uses heavier offline tooling separately (settled 2026-05-04). <strong>§4.5 added 2026-07-16:</strong> partial-credit items (SATA/MATRIX/etc.) feed the ability estimate as a fraction (<code>score_awarded / marks</code>, "Option 2") for v1 — not all-or-nothing — growing into the full partial-credit model the real NCLEX uses ("Option 3") once recalibration data accumulates.</li>
   <li>§5 — Calibration plan: Easy/Medium/Hard → −1.0/0.0/+1.0, separate <code>difficulty_irt</code> NUMERIC column on <code>nclex_bank_items</code>, weekly batch recalibration (Sundays 02:00 UTC) with 30-response threshold and 70/30 dampened blend, plus manual trigger (settled 2026-05-04).</li>
   <li>§6 — Starting difficulty: always theta = 0.0, no carry-over (settled 2026-05-04).</li>
-  <li>§7 — Selection rule: closest difficulty + category as tiebreaker; bank-exhaustion fallback locked (settled 2026-05-04). §7.4 reversed 2026-07-14: cases/trends IN for v1. <strong>§7.4 wrapper mechanics settled 2026-07-16 (testlet model):</strong> 3 cases/CAT, spread within the first 85, never at position 1, fixed-schedule (not difficulty-matched); each case runs its own internal Rasch estimate (fresh from 0.0, per-child difficulty) and merges back as ONE confidence-weighted, uncertainty-inflated measurement (counts as ~one, not six — local independence); wrapper-level exposure; unlocks a distinct "clinical judgment" read on the results page. Trends are ALWAYS single questions in CAT (never testlets) — the engine serves one of a trend's linked items as an ordinary adaptive question; testlets = cases only. Engine taxonomy: items vs cases, full stop.</li>
+  <li>§7 — Selection rule: closest difficulty + category as tiebreaker; bank-exhaustion fallback locked (settled 2026-05-04). §7.4 reversed 2026-07-14: cases/trends IN for v1. <strong>§7.4 wrapper mechanics settled 2026-07-16 (testlet model):</strong> 3 cases/CAT, spread within the first 85, never at position 1, fixed-schedule (not difficulty-matched); a 6-question case counts as FEWER than six independent measurements (local independence). <strong>Case-scoring method revised 2026-07-18 (Sam): the HYBRID is the chosen build</strong> — each case child updates the main level directly at HALF weight (both the level-move and the certainty-gain halve), so a case counts as ~3 questions, not 6; certainty folds in automatically with no separate case estimate or merge, and it avoids the testlet's noisy fresh-0.0 start. The <strong>testlet model</strong> (separate fresh-0.0 case estimate → confidence-weighted merge with inflated case uncertainty, counting as ~one) is RETAINED as the documented alternative. The "half" is a starting default (an assumption about how much a case's children overlap), tuned from data via the §5/§17 recalibration pipeline. Clinical-judgment read available either way (testlet: by-product; hybrid: computed display-only from the 6 answers). Common to both: 3 cases/CAT, spread within the first 85, never at position 1, fixed-schedule (not difficulty-matched), no new wrapper-difficulty field, wrapper-level exposure. Trends are ALWAYS single questions in CAT — the engine serves one of a trend's linked items as an ordinary adaptive question; case blocks = cases only. Engine taxonomy: items vs case blocks, full stop.</li>
   <li>§8 — Content blueprint: tiebreaker only, never overrides difficulty; monitoring logged for curator dashboard (settled 2026-05-04).</li>
   <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 85/150 (corrected 2026-07-14 from the pre-NGN 75/145), time limit 4 hours, inconclusive framing (settled 2026-05-04).</li>
   <li>§10 — Architecture: two-RPC flow (<code>create_cat_attempt</code> + <code>cat_next_item</code>), both atomic transactions; pessimistic UI with graceful degradation (current Q stays visible dimmed; spinner at 300ms; "still loading" at 3s; error+retry at 10s); 2-retry silent backoff on network failure, immediate error on server-side throw; engine runtime location (Supabase RPC vs Edge Function vs Worker) deferred to build time with PL/pgSQL recommendation (settled 2026-05-05).</li>
