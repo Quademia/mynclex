@@ -162,8 +162,9 @@
   model is retained as the documented alternative. Same session: §7.4.1 added — the two worked examples (Kojo, a case
   mid-exam; Kofi, three cases across a full exam) plus an explicit merge-computation note + a 3-way method
   comparison, recovered from the 2026-07-16 planning session and folded in-doc so the reference is self-contained;
-  the earlier "see the planning session notes" pointer is retired). Earlier — 2026-07-16: results-report scope
-  expanded — §13.2 gains the
+  the earlier "see the planning session notes" pointer is retired. Also added §19.4 — the ordered build slice plan
+  (10 slices / 4 phases, entry point = Slice 1 schema migration) ahead of the build starting next session). Earlier
+  — 2026-07-16: results-report scope expanded — §13.2 gains the
   clinical-judgment read (from the §7.4 testlet model); new §13.6 captures five WANTED v2 report additions
   (average difficulty faced, performance by question type, finer topic drill-down, clinical-judgment step detail,
   pacing — data already captured); §13.5 reframed from "deliberately excluded" to "flagged for REVISIT," notably
@@ -2043,6 +2044,76 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li><strong>Seed pipeline — built + proven end-to-end 2026-07-14.</strong> The generator lives at <code>db/seed/cat-pool/build.mjs</code>: it consumes plain-text item definitions from <code>data/*.json</code> (authored by the generation workflow), deterministically assembles the exact <code>nclex_bank_items</code> content/correct JSONB, computes <code>marks</code> (ported verbatim from <code>lib/scoring/dispatch.ts</code> → <code>computeMarksFromKey</code>), hard-validates every row, and emits SQL split by band. Storage is <strong>plain text</strong> (not Tiptap) — the runner's <code>parseRichDoc()</code> wraps any non-Tiptap string as paragraphs, so plain strings render correctly; confirmed against the render path. All 11 standalone question types round-trip through the real scoring engine (<code>db/seed/cat-pool/scoring-roundtrip.test.ts</code>): builder marks == runner marks, and a fully-correct answer earns full credit and reads as correct via <code>scoreAttempt</code>. IDs use a clean <code>300000+</code> band (disjoint sub-range per workflow agent, no collision with the ~99961 existing max).</li>
   <li><strong>Phase 1 (standalone) — COMPLETE + applied to dev 2026-07-15.</strong> A 69-agent authoring workflow produced <strong>1,800 items</strong>; the aggregate build validated 1,811 (incl. 11 fixtures), 0 errors. Applied to dev via chunked applier subagents (the SQL is ~1.9 MB, so applied by subagents rather than from the main context). Verified in dev: <strong>1,811 <code>CATPREP</code> rows, all CAT-eligible</strong> — Easy 602 / Medium 605 / Hard 604 (all ≥600), 11 question types, 0 bad marks. Coverage blueprint-weighted across the 8 subcategories per the 2026 test plan; realistic NGN type mix (MCQ ~45%, SATA ~20%, rest spread). Everything committed to <code>claude/remote-session-zo5yrp</code>. <strong>Remaining: Phase 2 — 36 case studies + 30 trend datasets (NOT started; paused 2026-07-15 at Sam's request).</strong></li>
 </ul>
+
+<h3 id="s19-slices">19.4 Build slice plan — ordered execution <span class="status settled">2026-07-18</span></h3>
+<p>
+  The structured build order for the execution work above, agreed 2026-07-18 (Sam). Ten slices in four phases,
+  ordered so each stands on a verified foundation. The dev CAT test pool (2,087 items) and the runtime option
+  shuffle are already done, so the build starts at the schema. <strong>Recommended entry point: Slice 1.</strong>
+</p>
+<p><strong>Two build decisions to lock before / at the start of the engine phase:</strong></p>
+<ul>
+  <li><strong>Engine runtime</strong> (§10.5) — the live Rasch engine as a Supabase RPC (PL/pgSQL, keeps the
+    score→update→select→snapshot transaction atomic — the §10.5 recommendation) vs a TypeScript edge function
+    (§4.2's "TS Rasch" preference). Resolve at the top of Slice 2.</li>
+  <li><strong>Case-scoring "half" default</strong> (§7.4) — confirm the hybrid half-weight (a case counts as ~3)
+    as the launch default; it is data-tuned later via the §5/§17 pipeline.</li>
+</ul>
+
+<p><strong>Phase A — Foundation.</strong></p>
+<ol>
+  <li><strong>Slice 1 — Schema migration (§12.7), dev only.</strong> The two difficulty columns on
+    <code>nclex_bank_items</code> + <code>nclex_tutor_questions</code>, 5 result columns on
+    <code>nclex_attempts</code>, 4 per-item columns on <code>nclex_attempt_items</code>, the
+    <code>nclex_bank_item_calibration_history</code> audit table, and the two RPC <em>stubs</em> (raise "not yet
+    implemented"). Seed <code>difficulty_irt</code> from each item's Easy/Medium/Hard label. Additive, low-risk,
+    unblocks everything. <em>Verified by the §12.7.8 queries — database-only, nothing in the browser.</em></li>
+</ol>
+
+<p><strong>Phase B — The engine.</strong></p>
+<ol start="2">
+  <li><strong>Slice 2 — Rasch math, pure + unit-tested.</strong> Expected-score, ability update (with the §4.5
+    partial-credit <em>fraction</em>), uncertainty update, readiness probability, termination check (SE ≤ 0.40,
+    85/150, 4 h). No user surface. Lock the engine-runtime decision here.</li>
+  <li><strong>Slice 3 — <code>create_cat_attempt</code>.</strong> Opens the attempt, starts at theta = 0.0, picks
+    and snapshots the first item, returns the payload.</li>
+  <li><strong>Slice 4 — <code>cat_next_item</code>, standalone-only.</strong> The core loop: score → Rasch update
+    → termination check → select next standalone (§7.1 difficulty match + category tiebreaker + §7.3 eligibility +
+    §7.5 fallback) → snapshot → return CONTINUE / COMPLETE. Atomic transaction.</li>
+  <li><strong>Slice 5 — Case &amp; trend handling (the hybrid).</strong> 3 cases/exam, never at position 1, spread
+    within the first 85; each case child a <strong>half-weight</strong> update on the main level (§7.4); trends
+    served as single questions with the within-exam one-per-dataset rule. Built on the working standalone loop.</li>
+</ol>
+
+<p><strong>Phase C — The student experience</strong> (first browser-testable slices).</p>
+<ol start="6">
+  <li><strong>Slice 6 — CAT runner screen.</strong> One-shot preflight + "How CAT works" link, the pessimistic
+    between-question transition (§10.1), current-question-only progress (§16.1), no back nav (§16.3),
+    browser-close = ABANDONED (§16.5), 4-hour timer (§9.3). Reuses the runner shell, the 9 renderers, and the
+    shipped option shuffle.</li>
+  <li><strong>Slice 7 — Results / summary page (§13).</strong> Verdict + readiness probability, items administered,
+    trajectory graph + per-item marker, per-category breakdown (with the §4.5 partial-credit footnote),
+    clinical-judgment read (display-only from the case answers, per the hybrid), compare-to-previous-CATs, and the
+    "Review answers" CTA.</li>
+  <li><strong>Slice 8 — Review wiring (§14).</strong> Small — CAT reuses the shared per-question Review surface;
+    this hooks up the entry points (summary → Review, History → summary).</li>
+  <li><strong>Slice 9 — Dashboard + entry points.</strong> The two separate dashboard cards (CAT card +
+    Readiness Signal card, §13.4), the Builder's CAT option under EXAM intent (§2.3), and the public
+    <code>/help/cat</code> page (§3.2).</li>
+</ol>
+
+<p><strong>Phase D — Calibration (trails; not needed to launch CAT).</strong></p>
+<ol start="10">
+  <li><strong>Slice 10 — Weekly recalibration job (§5.3 / §17).</strong> Turns curator-labelled difficulties into
+    empirical ones over time: 30-response threshold, 70/30 blend, writes <code>difficulty_irt</code> +
+    <code>difficulty_source</code> + the audit table, plus a manual trigger. A CAT runs fully without it — it only
+    sharpens difficulty as data accumulates.</li>
+</ol>
+<p>
+  <strong>Verification split:</strong> Slices 1–5 are back-end (verified by SQL checks, unit tests, and a scratch
+  harness — little to see in the browser); Slices 6–9 are the click-through experience (Sam tests a real CAT live);
+  Slice 10 trails after launch.
+</p>
 
 <p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>
 <ul>
