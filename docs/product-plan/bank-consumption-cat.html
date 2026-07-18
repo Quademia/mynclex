@@ -1584,7 +1584,12 @@
 </p>
 <ul>
   <li><code>id</code> — primary key (UUID, default <code>gen_random_uuid()</code>).</li>
-  <li><code>bank_item_id</code> — UUID, NOT NULL, FK to <code>nclex_bank_items(id)</code> ON DELETE CASCADE.</li>
+  <li><code>bank_item_id</code> — <strong>TEXT</strong>, NOT NULL, FK to
+    <code>nclex_bank_items(item_id)</code> ON DELETE CASCADE.
+    <em>Corrected 2026-07-19 during the Slice 1 build</em> — this section previously specified
+    <code>UUID</code> referencing <code>nclex_bank_items(id)</code>. That column does not exist: the table's
+    primary key is <code>item_id TEXT</code> (e.g. <code>BQ_00123</code>). Written as specified, the migration
+    fails outright.</li>
   <li><code>previous_difficulty_irt</code> — NUMERIC, nullable (NULL when transitioning from no value).</li>
   <li><code>new_difficulty_irt</code> — NUMERIC, NOT NULL.</li>
   <li><code>previous_source</code> — TEXT, nullable, same CHECK as <code>nclex_bank_items.difficulty_source</code>.</li>
