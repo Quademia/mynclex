@@ -1540,11 +1540,92 @@ Sam's live run @ Q35     theta 1.65  SE 0.369   P(above)  99.999%</code></pre>
   <strong>Why theta = 0.0 as the passing standard:</strong> the real NCLEX standard is set by NCSBN's standard-
   setting committee from outcome data we don't have, so we can't copy them. theta = 0.0 means "measurably above
   average ability" — honest and defensible without outcome data. Once empirical calibration matures and we
-  have student outcome data, we can revisit.
+  have student outcome data, we can revisit. <strong>⚠ Reopened 2026-07-20 (Sam) — see §9.1.1.</strong>
 </p>
 <p>
   <strong>Why SE ≤ 0.40:</strong> standard CAT systems use 0.30–0.50. 0.40 sits in the middle — confident enough
   to give a meaningful verdict, loose enough that we don't push too many students to the 150 ceiling.
+</p>
+
+<h3 id="s9-1-1">9.1.1 The passing standard — should it be raised?
+  <span class="status open">reopened — Sam 2026-07-20</span></h3>
+<p>
+  Raised by Sam after seeing the Slice 7 results page render the first real CAT. Recorded for a decision,
+  <strong>nothing changed in code</strong> — <code>PASSING_THETA</code> is still 0.0.
+</p>
+
+<p><strong>The standard was inherited, not chosen.</strong> Three separate things in the engine are all zero,
+  for three unrelated reasons:</p>
+<ul>
+  <li><code>PRIOR_MEAN = 0</code> — where we assume a student sits before any evidence (§19.4.1).</li>
+  <li><strong>Medium = 0.0</strong> — the middle rung of the curator difficulty labels (§5.1).</li>
+  <li><code>PASSING_THETA = 0</code> — the passing standard.</li>
+</ul>
+<p>
+  The first two are principled. The third took zero because zero was already the centre of a scale we invented.
+  So "Above standard" currently means <em>"better than the middle of our own difficulty labelling"</em> — a
+  statement about how curators tag questions, not about NCLEX readiness. In behavioural terms a student exactly
+  at the standard has about a <strong>50% chance on a Medium item</strong>, ~73% on Easy, ~27% on Hard.
+</p>
+<p>
+  <strong>Sam's argument (2026-07-20): for an exam this consequential, passing should not sit at the midpoint by
+  construction.</strong> A licensure-prep bar ought to be defined by what competence looks like, not by where the
+  centre of a distribution happens to fall; the two coincide only by accident. This holds independently of
+  calibration quality — it is an argument about what the number is <em>for</em>.
+</p>
+
+<p><strong>It is not a cosmetic dial.</strong> Probed against the real run (theta 0.4798, SE 0.2322, 85 items):</p>
+<table>
+  <thead><tr><th>Candidate standard</th><th>Readiness probability</th><th>Would it have stopped at 85?</th></tr></thead>
+  <tbody>
+    <tr><td><strong>0.00 (today)</strong></td><td>98.1%</td><td><strong>yes — cleared by 0.025</strong></td></tr>
+    <tr><td>0.10</td><td>94.9%</td><td>no</td></tr>
+    <tr><td>0.25</td><td>83.9%</td><td>no</td></tr>
+    <tr><td>0.50</td><td>46.5%</td><td>no</td></tr>
+    <tr><td>0.75</td><td>12.2%</td><td>no</td></tr>
+  </tbody>
+</table>
+<p>
+  The 95% band was [0.025, 0.935]. Raising the bar by as little as <strong>0.1</strong> means that exam does not
+  terminate at 85 — it runs on, possibly to the 150 ceiling, and could resolve either way. So the standard moves
+  exam length, termination reasons and verdicts together, not just labels.
+</p>
+
+<p>
+  <strong>⚠ The trap: do NOT raise it to fix the saturation.</strong> A standard of 0.5 would make this run read
+  46.5% instead of 98.1%, largely dissolving §7.7's readiness-probability saturation. That is a
+  <em>consequence</em> worth knowing and <strong>not a reason</strong>. Moving the bar changes what we claim about
+  a student's readiness; choosing it to make a display artifact look better would be setting the standard
+  backwards. If a properly-set standard happens to land higher, fine — but the saturation gets fixed by widening
+  the difficulty ladder (§7.7, §10.5), not by moving the goalposts.
+</p>
+
+<p>
+  <strong>The root cause is the ladder, not the standard (Sam, 2026-07-20).</strong> The engine is behaving
+  correctly — §19.4.4's live run and the Slice 7 verification both bear that out. What is coarse is the scale:
+  with difficulty taking only −1.0 / 0.0 / +1.0, theta itself is a blunt instrument, and setting a
+  <em>precise</em> bar on a blunt scale is false precision. <strong>Widening the ladder should come first</strong>
+  — which is the same §10.5 / curator-authoring work §7.7 already calls for.
+</p>
+
+<p>
+  <strong>How to set it honestly — standard setting, not a guess.</strong> Replacing 0.0 with 0.5 on instinct
+  swaps one unjustified number for another, and could easily be far too strict (we do not know whether our
+  "Medium" is NCLEX's medium). But outcome data is <em>not</em> the only route: NCSBN itself sets its standard
+  with expert panels, not pass statistics. The lightweight version we could run: sample bank items, have Sam and
+  one or two tutors judge for each <em>"would a nurse who is only just ready get this right?"</em>, and the
+  proportion backs out directly into a theta. A few hours of clinical judgement, defensible, and the same family
+  of method the real exam uses. That also gives §3.5's deferred pass-probability a stronger footing later.
+</p>
+
+<p>
+  <strong>Open: hold at 0.0, raise it, or set it by an expert-judgement pass — and in what order relative to
+  widening the ladder.</strong> Cost of the change itself is one constant (<code>PASSING_THETA</code> in
+  <code>lib/cat/rasch.ts</code>, consumed by <code>bandClearsStandard</code> and
+  <code>readinessProbability</code>); no migration, since the standard is never stored. But unlike §9.3's time
+  limit, changing this one <strong>re-interprets every CAT already sat</strong> — verdicts are computed live from
+  stored theta, so a past attempt's report would change its answer. Decide whether historical attempts are
+  re-read against the new bar or pinned to the one in force when they were sat.
 </p>
 
 <h3>9.2 Min and max question counts</h3>
@@ -2889,7 +2970,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li>§6 — Starting difficulty: always theta = 0.0, no carry-over (settled 2026-05-04).</li>
   <li>§7 — Selection rule: closest difficulty + category as tiebreaker; bank-exhaustion fallback locked (settled 2026-05-04). §7.4 reversed 2026-07-14: cases/trends IN for v1. <strong>§7.4 wrapper mechanics settled 2026-07-16 (testlet model):</strong> 3 cases/CAT, spread within the first 85, never at position 1, fixed-schedule (not difficulty-matched); a 6-question case counts as FEWER than six independent measurements (local independence). <strong>Case-scoring method revised 2026-07-18 (Sam): the HYBRID is the chosen build</strong> — each case child updates the main level directly at HALF weight (both the level-move and the certainty-gain halve), so a case counts as ~3 questions, not 6; certainty folds in automatically with no separate case estimate or merge, and it avoids the testlet's noisy fresh-0.0 start. The <strong>testlet model</strong> (separate fresh-0.0 case estimate → confidence-weighted merge with inflated case uncertainty, counting as ~one) is RETAINED as the documented alternative. The "half" is a starting default (an assumption about how much a case's children overlap), tuned from data via the §5/§17 recalibration pipeline. Clinical-judgment read available either way (testlet: by-product; hybrid: computed display-only from the 6 answers). Common to both: 3 cases/CAT, spread within the first 85, never at position 1, fixed-schedule (not difficulty-matched), no new wrapper-difficulty field, wrapper-level exposure. Trends are ALWAYS single questions in CAT — the engine serves one of a trend's linked items as an ordinary adaptive question; case blocks = cases only. Engine taxonomy: items vs case blocks, full stop.</li>
   <li>§8 — Content blueprint: tiebreaker only, never overrides difficulty; monitoring logged for curator dashboard (settled 2026-05-04).</li>
-  <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 85/150 (corrected 2026-07-14 from the pre-NGN 75/145), time limit 4 hours, inconclusive framing (settled 2026-05-04). <strong>§9.3 reopened 2026-07-20 (Sam)</strong> — the 4-hour limit is under review against real NCLEX's 5; see the carried-forward list below.</li>
+  <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 85/150 (corrected 2026-07-14 from the pre-NGN 75/145), time limit 4 hours, inconclusive framing (settled 2026-05-04). <strong>Two sub-decisions reopened 2026-07-20 (Sam)</strong> — §9.3 the 4-hour limit (vs real NCLEX's 5) and §9.1.1 the passing standard (whether theta = 0.0 is the right bar, and whether it was ever chosen at all); both in the carried-forward list below.</li>
   <li>§10 — Architecture: two-RPC flow (<code>create_cat_attempt</code> + <code>cat_next_item</code>), both atomic transactions; pessimistic UI with graceful degradation (current Q stays visible dimmed; spinner at 300ms; "still loading" at 3s; error+retry at 10s); 2-retry silent backoff on network failure, immediate error on server-side throw; engine runtime location (Supabase RPC vs Edge Function vs Worker) deferred to build time with PL/pgSQL recommendation (settled 2026-05-05).</li>
   <li>§11 — Snapshot strategy: per-question at administration time (settled at file creation).</li>
   <li>§12 — Schema additions: build-handoff package locked. Two new columns on <code>nclex_bank_items</code> (<code>difficulty_irt</code> NUMERIC, <code>difficulty_source</code> TEXT with CHECK), mirrored on <code>nclex_tutor_questions</code> for v2 parity. Five new columns on <code>nclex_attempts</code> (<code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>); four new columns on <code>nclex_attempt_items</code> (<code>cat_theta_before</code>, <code>cat_se_before</code>, <code>cat_item_difficulty</code>, <code>cat_item_difficulty_source</code>). One new audit table <code>nclex_bank_item_calibration_history</code> with FK + ON DELETE CASCADE. Two RPC stubs (<code>create_cat_attempt</code>, <code>cat_next_item</code>) raising "not yet implemented." Verification queries + rollback SQL alongside. Termination reasons collapsed from 5 to 4; audit-table column names rationalised — see §12.7.11 (settled 2026-05-05).</li>
@@ -2902,6 +2983,16 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Carried forward — settle in subsequent planning sessions:</strong></p>
 <ul>
+  <li><strong>The passing standard — REOPENED (Sam 2026-07-20, §9.1.1).</strong> Should
+    <code>PASSING_THETA</code> stay at 0.0? The standard was never independently chosen — it inherited zero
+    because zero was already both the prior mean and the Medium difficulty rung, so "Above standard" currently
+    means "better than the middle of our own difficulty labelling." Sam's argument: for an exam this
+    consequential, passing should not sit at the scale's midpoint by construction. Not cosmetic — the real run
+    cleared 0.0 by <strong>0.025</strong>, so a bar even 0.1 higher changes exam length and verdicts. Root cause
+    is the three-rung ladder (§7.7), so <strong>widen the difficulty spread first</strong>; then set the bar by an
+    expert-judgement standard-setting pass rather than a guess. ⚠ Do not raise it merely because a higher bar
+    would dissolve the readiness-probability saturation. Also decide whether a change re-reads past attempts or
+    pins them to the bar in force when sat.</li>
   <li><strong>The 4-hour time limit — REOPENED (Sam 2026-07-20, §9.3).</strong> Should the CAT clock be 5 hours
     (real NCLEX's figure), 4.5 (real NCLEX's effective working time once the tutorial and breaks are removed), or
     stay at 4? Three arguments against the current 4: it contradicts §9.2's "match real NCLEX exactly" principle,
