@@ -156,8 +156,17 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-19 — <strong>new §10.7: creating a CAT is ONE atomic act, no
-  create/start split.</strong> Raised by Sam thinking ahead to the UI — the spend belongs at the preflight, the last
+  Living planning document. Last updated: 2026-07-19 — <strong>§7.1 selection revised to nearest-neighbour</strong>
+  (Sam, before Slice 4). The step read "within a small difficulty tolerance (<em>provisional: ±0.1</em>) of theta,"
+  which assumes difficulty is a continuum. It is not until Slice 10 runs: every <code>difficulty_irt</code> is
+  seeded from the Easy/Medium/Hard label, so all 2,353 eligible items sit on exactly three values (−1.0, 0.0,
+  +1.0). Implemented literally, a student at theta 0.35 would match <em>nothing</em> — nearest rungs 0.0 and 1.0
+  both fall outside the window — so the engine would hit the §7.5 fallback on nearly every pick and the
+  "exposure relaxed" thin-pool signal (§15.3) would fire meaninglessly. Rule is now: rank by distance from theta,
+  take the closest available rung, apply the category tiebreaker among everything tied at that distance.
+  Behaviourally identical once recalibration spreads difficulties out; degrades gracefully today; and no
+  provisional constant is left to be implemented literally. Same day: <strong>new §10.7: creating a CAT is ONE
+  atomic act, no create/start split.</strong> Raised by Sam thinking ahead to the UI — the spend belongs at the preflight, the last
   point a student can change their mind. Both candidate designs put the spend there, so the split was weighed on
   its side effects and rejected for CAT: the reason readiness splits (its preflight renders
   <code>itemCount</code> off the created row) cannot apply, since CAT length is 85–150 and unknowable in advance,
@@ -785,14 +794,35 @@
 <p>The engine, on each pick:</p>
 <ol>
   <li>Calculates the student's current ability estimate (theta).</li>
-  <li>Finds the set of unseen, eligible questions within a small difficulty tolerance (provisional: ±0.1) of theta.</li>
+  <li>Finds the set of unseen, eligible questions <strong>closest to theta — nearest-neighbour, not a fixed
+    window</strong> (revised 2026-07-19; see below).</li>
   <li>Within that set, checks if any are in an under-represented Client Needs Category (running count of categories so far in this attempt).</li>
   <li>If yes → picks one at random from the under-represented-category subset.</li>
-  <li>If no under-represented matches → picks any from the difficulty-tolerance set at random.</li>
+  <li>If no under-represented matches → picks any from the closest-difficulty set at random.</li>
 </ol>
 <p>
-  <strong>The engine never goes outside the difficulty tolerance to find an under-represented question.</strong>
+  <strong>The engine never widens the difficulty match to find an under-represented question.</strong>
   Difficulty match is sacred. Category is a thoughtful tiebreaker only.
+</p>
+<p class="callout">
+  <strong>Nearest-neighbour, not ±0.1 — revised 2026-07-19 (Sam), before Slice 4.</strong> This step previously
+  read "within a small difficulty tolerance (<em>provisional: ±0.1</em>) of theta." That assumes difficulty is a
+  smooth continuum. <strong>It is not, and will not be until Slice 10 runs.</strong> Every
+  <code>difficulty_irt</code> is seeded from the curator's Easy/Medium/Hard label (§12.7.1), so the entire eligible
+  pool sits on exactly <strong>three values</strong>: −1.0, 0.0, +1.0.
+</p>
+<p>
+  A ±0.1 window would therefore find <strong>nothing</strong> for any theta that is not almost exactly on a rung —
+  a student at theta 0.35 has its nearest questions at 0.0 and 1.0, both far outside the window. Implemented
+  literally, the engine would hit the §7.5 fallback on nearly every pick and the "exposure relaxed" signal built to
+  detect a thin pool (§15.3) would fire constantly and meaninglessly.
+</p>
+<p>
+  <strong>The rule is therefore: rank by distance from theta and take the closest available rung, then apply the
+  category tiebreaker among everything tied at that distance.</strong> This is identical in behaviour to a
+  tolerance window once empirical recalibration spreads difficulties into real numbers, and it degrades gracefully
+  on today's three-rung ladder instead of failing. No tolerance constant is needed, so there is no provisional
+  number left to be implemented literally.
 </p>
 
 <h3>7.2 Why this rule (and why not stronger category enforcement)</h3>
