@@ -167,6 +167,12 @@
   distinguished (SE = precision floor, band = separation rule; not redundant). §9.5 gains the equivalence —
   a 95% band clearing zero is exactly P(ability &gt; 0) ≥ 97.5% — which doubles as a Slice 2 cross-check and
   explains why a 150-ceiling CAT can still show a confident-looking readiness probability.
+  <strong>§9.4 termination reasons reconciled to the schema</strong> — the list named five values while the applied
+  CHECK constraint allows four. Settled on the four: the reason records <em>why the exam stopped</em> and does not
+  also carry the direction, because the direction already lives in <code>cat_verdict</code> (duplicating it lets
+  the two disagree), because splitting only the confidence case is asymmetric (max-items and time-out produce a
+  direction too, which would demand eight values), and because <code>ABANDONED</code> shows the two are different
+  questions — it has a reason and deliberately no verdict. Old-to-new mapping recorded in-section.
   Earlier same day: two pre-build decisions taken, both folded into Slice 1.
   <strong>New §15.5 — CAT allowance</strong>: §15.1's "unlimited" becomes a policy <em>default</em> rather than a
   constant. A nullable <code>cat_allowance</code> on <code>nclex_products</code> (NULL = unlimited, 0 = none,
@@ -1227,14 +1233,42 @@
 </p>
 
 <h3>9.4 Termination reasons</h3>
-<p>Each terminated CAT records why it ended. Five values:</p>
+<p>
+  Each terminated CAT records why it ended. <strong>Four values</strong>, and they are exactly the four the
+  <code>cat_termination_reason</code> CHECK constraint allows (§12.7.3). <em>Revised 2026-07-19 — this list
+  previously named five, splitting the confidence case into PASS/FAIL; see the note below.</em>
+</p>
 <ul>
-  <li><code>CONFIDENCE_PASS</code> — SE ≤ 0.40 with theta clearly above 0.0. Verdict = ABOVE_STANDARD.</li>
-  <li><code>CONFIDENCE_FAIL</code> — SE ≤ 0.40 with theta clearly below 0.0. Verdict = BELOW_STANDARD.</li>
-  <li><code>MAX_ITEMS</code> — 150 questions reached. <strong>Revised 2026-07-15:</strong> the confidence requirement is dropped and the verdict is resolved by which side of 0.0 the final estimate sits — final theta ≥ 0 → ABOVE_STANDARD, &lt; 0 → BELOW_STANDARD (mirrors the real NCLEX Maximum-Length rule). No longer INCONCLUSIVE. (Canonical reason code in the schema is <code>MAX_ITEMS_HIT</code>, §12.7.3.)</li>
-  <li><code>TIME</code> — 4-hour time limit reached. If ≥ 85 items answered → verdict by final-estimate side (as MAX_ITEMS). If fewer than 85 answered → BELOW_STANDARD (mirrors the real NCLEX Run-Out-Of-Time rule). Never INCONCLUSIVE.</li>
-  <li><code>ABANDONED</code> — student manually discarded mid-CAT, or browser-close. No verdict produced.</li>
+  <li><code>CONFIDENCE_REACHED</code> — the 95% band (±1.96 SE) cleared zero with SE ≤ 0.40, at ≥ 85 items
+    (§9.1). Verdict = whichever side it cleared on.</li>
+  <li><code>MAX_ITEMS_HIT</code> — 150 questions reached. <strong>Revised 2026-07-15:</strong> the confidence
+    requirement is dropped and the verdict is resolved by which side of 0.0 the final estimate sits — final theta
+    ≥ 0 → ABOVE_STANDARD, &lt; 0 → BELOW_STANDARD (mirrors the real NCLEX Maximum-Length rule). No longer
+    INCONCLUSIVE.</li>
+  <li><code>TIME_LIMIT_HIT</code> — 4-hour time limit reached. If ≥ 85 items answered → verdict by final-estimate
+    side (as MAX_ITEMS_HIT). If fewer than 85 answered → BELOW_STANDARD (mirrors the real NCLEX Run-Out-Of-Time
+    rule). Never INCONCLUSIVE.</li>
+  <li><code>ABANDONED</code> — student manually discarded mid-CAT, or browser-close. <strong>No verdict
+    produced</strong> — <code>cat_verdict</code> stays NULL.</li>
 </ul>
+<p class="callout">
+  <strong>Why the reason does NOT carry the direction (settled 2026-07-19, Sam).</strong> Earlier drafts split the
+  confidence case into <code>CONFIDENCE_PASS</code> / <code>CONFIDENCE_FAIL</code>. Dropped, for three reasons.
+  <strong>(1) It duplicates a fact.</strong> The direction already lives in <code>cat_verdict</code>; two columns
+  holding one fact can disagree, and nothing would catch a <code>CONFIDENCE_PASS</code> row sitting next to a
+  <code>BELOW_STANDARD</code> verdict. <strong>(2) It is asymmetric.</strong> Max-items and time-out produce a
+  direction too, so consistency would demand <code>MAX_ITEMS_PASS</code>, <code>MAX_ITEMS_FAIL</code>,
+  <code>TIME_PASS</code>, <code>TIME_FAIL</code> as well — eight values to express what four plus the verdict
+  column already express. <strong>(3) They are different questions.</strong> "Why did it stop" and "how did it turn
+  out" are distinct; <code>ABANDONED</code> is the proof, having a reason but deliberately no verdict.
+</p>
+<p>
+  <strong>Mapping from the old five, for anyone reading older notes:</strong> <code>CONFIDENCE_PASS</code> →
+  <code>CONFIDENCE_REACHED</code> + <code>cat_verdict = 'ABOVE_STANDARD'</code>; <code>CONFIDENCE_FAIL</code> →
+  <code>CONFIDENCE_REACHED</code> + <code>cat_verdict = 'BELOW_STANDARD'</code>; <code>MAX_ITEMS</code> →
+  <code>MAX_ITEMS_HIT</code>; <code>TIME</code> → <code>TIME_LIMIT_HIT</code>. The longer schema names are kept —
+  they read more precisely and are already applied.
+</p>
 
 <h3>9.5 Verdict resolution — always a side, plus a readiness probability <span class="status settled">revised 2026-07-15</span></h3>
 <p>
