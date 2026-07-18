@@ -156,7 +156,25 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-19 — <strong>new §7.7: the three-rung difficulty ladder's observed consequences</strong> (status OPEN), found
+  Living planning document. Last updated: 2026-07-19 — <strong>Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
+  85 items, CONFIDENCE_REACHED, ABOVE_STANDARD, final theta 0.480 / SE 0.232 in 121 minutes; 3 cases at the
+  scheduled 8/35/59, evidence weight 76.0 across 85 items, and near-perfect blueprint balance (22/21/21/21).
+  <strong>It terminated by 0.025</strong> — one more wrong answer and the band would not have cleared — and
+  §9.5's equivalence held live (P(above) 98.06%, over the 97.5% bar by the same hair). Four bugs were found by
+  LOOKING AT THE SCREEN, all of which passed tsc/eslint/tests: the preflight put the irreversible confirm above
+  the cancel on mobile; backdrop click did nothing (CLAUDE.md UI #2); "No questions in this attempt." flashed
+  between questions (a stored index advanced before the new question arrived — now DERIVED, which also delivers
+  §10.1's "stays visible" for free); and the footer told CAT students to "Submit to see the rationale, then
+  Next" — controls that do not exist. The §10.1 dim + disabled inputs were mis-filed into 6c and moved back, since
+  they are one behaviour, not polish. <strong>cat_next_item gained an idempotency guard</strong> — it had assumed
+  the newest item is always the one being answered, false on a retry, which would mark a student on a question
+  they never saw; adding a DEFAULTed parameter also silently CREATED AN OVERLOAD, briefly leaving three
+  signatures. <strong>New §16.6</strong> records what the runner must HIDE in exam mode — chiefly the difficulty
+  chip, which is a live readout of the engine's opinion of the candidate and an integrity problem, not a cosmetic
+  one; deferred as one coherent pass (Sam). <strong>§7.7 gains the theta-capping question</strong> — considered
+  and rejected, because capping would poison Slice 10's recalibration and discard real information; 1.0 is a
+  seeding artifact, not a design ceiling, and the faster widening route is curator authoring beyond ±1.
+  Still outstanding: 6c, the idempotency migration file, and the generic results popup. Earlier same day: <strong>new §7.7: the three-rung difficulty ladder's observed consequences</strong> (status OPEN), found
   by Sam driving a real CAT rather than by testing. §7.1 anticipated the coarse ladder and switched to
   nearest-neighbour so it "degrades gracefully" — it does, but two things that phrase undersold showed up live.
   <strong>(1)</strong> At theta 2.14 against a hardest item of 1.0, every question is over a logit too easy and each
@@ -1336,6 +1354,42 @@ Sam's live run @ Q35     theta 1.65  SE 0.369   P(above)  99.999%</code></pre>
 <p>
   A student who scores 50% on <em>Hard</em> items landing at 0.97 — a pass — is the model working, not a loophole:
   where you score is as meaningful as how much.
+</p>
+
+<h4>Capping theta at the hardest item — considered and REJECTED</h4>
+<p>
+  Sam's question (2026-07-19): if the hardest item is 1.0, should theta be capped there? It would genuinely help
+  the symptom — from a capped 1.0 a student needs ~6 wrong answers to reach the Medium switch instead of ~15 from
+  2.14. <strong>Rejected anyway, on two grounds.</strong>
+</p>
+<ul>
+  <li><strong>It would poison Slice 10.</strong> Recalibration estimates an item's difficulty from the abilities of
+    the students who answered it. Feed it capped thetas and every strong student looks identical, so the job would
+    systematically under-estimate how hard the hard items are — and the ladder would never widen. The cap would
+    sabotage the very thing that fixes the problem.</li>
+  <li><strong>It discards real information.</strong> A student at 3.5 and one at 1.5 would both flatten to 1.0, so
+    the cross-CAT trajectory §15.4 shows students stops meaning anything at the top end.</li>
+</ul>
+<p>
+  The estimate is not <em>wrong</em> at 2.14 — it correctly says "at least this good, and we cannot tell how much
+  better." The imprecision is already reported honestly in the SE (0.45 where a matched bank would give ~0.19).
+</p>
+<p>
+  <strong>Clarification worth keeping: 1.0 is not a design ceiling.</strong> <code>difficulty_irt</code> is an
+  unbounded <code>NUMERIC</code> with no CHECK. Nothing exceeds 1.0 only because §12.7.1 seeded three curator
+  labels to three numbers. An item <em>can</em> sit at 2.5; none does yet.
+</p>
+<p>
+  <strong>Two routes to widen the ladder</strong> — recalibration (Slice 10, self-maintaining but needs response
+  data), or <strong>curator authoring beyond the range</strong> (immediate, needs no data, but requires either a
+  finer authoring scale or letting <code>difficulty_irt</code> be set directly for outliers). The second is the
+  faster of the two and does not touch the engine.
+</p>
+<p>
+  <strong>The honest caveat:</strong> even with a well-spread bank the strongest student always outruns the pool —
+  that is inherent to adaptive testing, not something to engineer away. What is fixable is the <em>degree</em>:
+  today the ceiling bites at theta 0.5, barely above average. It should bite somewhere like 2.5, where almost
+  nobody lives.
 </p>
 
 <h4>What this changes</h4>
@@ -2642,6 +2696,42 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 </p>
 
 
+<h3 id="s16-6">16.6 What the runner must HIDE in exam mode <span class="status open">open — Sam 2026-07-19</span></h3>
+<p>
+  §16 settles what the CAT runner must <em>do</em> — no back navigation, the timer, browser-close behaviour. It says
+  nothing about what it must <strong>not show</strong>. That hole surfaced the moment Sam sat a real CAT: the runner
+  is shared with practice modes and inherits their chrome, which is built to be informative rather than
+  exam-safe.
+</p>
+<p>
+  <strong>The serious one is the difficulty chip.</strong> A CAT serves harder questions when you succeed and easier
+  ones when you fail, so a visible <code>Difficulty · Medium</code> label is a <em>live readout of the engine's
+  opinion of the candidate</em>. A student who watches it drop to Easy knows they are failing with 60 questions
+  still to go. That is an exam-integrity problem, not a cosmetic one, and the real NCLEX shows nothing comparable.
+</p>
+<table>
+  <thead><tr><th>Leak</th><th>Severity</th></tr></thead>
+  <tbody>
+    <tr><td><code>Difficulty · Medium</code> chip</td><td><strong>High — reveals the ability estimate</strong></td></tr>
+    <tr><td><code>Case 1 of 1</code> · <code>CJMM step 1 of 6</code> in the topbar</td><td>Structure the real exam does not expose</td></tr>
+    <tr><td>"the chart panel applies to the next N questions" banner</td><td>Same — and currently wrong, see below</td></tr>
+    <tr><td>Question grid answered/unanswered cells</td><td>Low</td></tr>
+    <tr><td>Subject chips (e.g. <code>Medical-Surgical Nursing</code>)</td><td>Low — arguably fine to keep</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>Two of those are also factually wrong for CAT, from the same root cause.</strong> The runner computes
+  <code>caseTotal</code> and the case-child count from the items array, which for every other mode holds the whole
+  attempt up front. CAT snapshots case children <em>one per turn</em> (§19.4.3), so mid-case it reports
+  <em>"Case 1 of 1"</em> when three are coming, and <em>"applies to the next 1 questions"</em> when six are. Both
+  are constants for CAT — always 3 cases, always 6 children — and should be stated, not counted.
+</p>
+<p>
+  <strong>Deferred deliberately (Sam):</strong> not worth fixing the two count bugs in isolation, because the
+  exam-mode pass will remove or rewrite those displays anyway. They ride together.
+</p>
+
+
 <h2 id="s17">17. Calibration data capture <span class="status settled">settled</span></h2>
 <p>
   What gets logged for empirical recalibration to work, and how the audit history of difficulty changes is
@@ -2894,7 +2984,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Phase C — The student experience</strong> (first browser-testable slices).</p>
 <ol start="6">
-  <li><strong>Slice 6 — CAT runner screen.</strong> One-shot preflight (stating per §15.5.3 that starting spends
+  <li><strong>Slice 6 — CAT runner screen. ✅ 6a + 6b BUILT 2026-07-19</strong> (6a <code>5ad2b68</code>+<code>2e4d668</code>, 6b <code>77217aa</code>+<code>d3216e9</code>; see §19.4.4. <strong>6c outstanding</strong> — the timed spinner/Retry escalation.) One-shot preflight (stating per §15.5.3 that starting spends
     the attempt however it ends) — <strong>its OWN surface on the CAT entry page, not a branch of the shared
     <code>/session</code> preflight</strong>, because per §10.7 no attempt exists until Confirm; the shared gate is
     addressed by an attempt id and renders only while <code>started_at</code> is NULL, so it correctly skips a CAT
@@ -3176,6 +3266,104 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   work is free), but with one genuinely new mechanism. Net neutral rather than a saving — and contained: a new
   mode branch in the runner, not a rewrite.
 </p>
+
+
+<h3 id="s19-slice6-decisions">19.4.4 Slice 6a / 6b — decisions, bugs found on screen, and the first full CAT <span class="status settled">settled 2026-07-19</span></h3>
+<p>
+  Slice 6 was split into <strong>6a</strong> (CAT home + preflight), <strong>6b</strong> (the turn loop) and
+  <strong>6c</strong> (transition escalation) so the risky middle piece could be tested alone. 6a and 6b are built;
+  6c remains.
+</p>
+
+<h4>Bugs found by looking at the screen, not by review</h4>
+<p>Every one of these passed tsc, eslint and the test suite first.</p>
+<ol>
+  <li><strong>The preflight's confirm button was above the cancel on mobile.</strong> <code>column-reverse</code> put
+    "Start my CAT" — irreversible, spends the attempt, starts a 4-hour clock — as a full-width red button exactly
+    where the thumb lands after reading. Now stacks in DOM order: the safe option is met first.</li>
+  <li><strong>Backdrop click did nothing</strong>, though CLAUDE.md UI #2 requires it to map to the safe option.
+    Now dismisses, and is ignored while a start is in flight.</li>
+  <li><strong>"No questions in this attempt." flashed between questions.</strong> The stub meant for a
+    <em>broken</em> attempt, shown mid-exam. Cause: <code>current</code> was stored state and the turn handler
+    advanced it before the new question arrived, so for one round-trip the index pointed past the end of the array.
+    ~100ms on localhost; a second or more on mobile data, which is the audience. Fix in §19.4.4 below.</li>
+  <li><strong>The footer told CAT students the wrong thing</strong> — "pick an option, Submit to see the rationale,
+    then Next →". There is no rationale mid-exam and no Next button; it described controls that do not exist.</li>
+</ol>
+
+<h4>The derive-don't-store fix (and why it was the right shape)</h4>
+<p>
+  For CAT the current index is now <strong>derived</strong> from <code>items.length - 1</code>, never stored. There
+  is no navigation, so "which question am I on" was always a computed value — storing it is what let it drift.
+  <strong>Scoped to CAT deliberately:</strong> every other mode needs the stored index for Prev/Next and grid clicks.
+</p>
+<p>
+  It also delivers §10.1 for free: during the wait the index still points at the last item of the <em>old</em> array,
+  so the answered question stays on screen rather than vanishing — which is exactly the specced
+  "current question stays visible."
+</p>
+
+<h4>The dim was mis-filed, and moved back</h4>
+<p>
+  The dim and disabled inputs were originally put in 6c as "polish." That was wrong: <strong>§10.1 describes one
+  behaviour</strong> — "stays visible during the wait (dimmed, inputs disabled)" — so shipping half of it and
+  deferring the rest left the fix incomplete. Disabled inputs is not polish either; without it a student can click
+  options on a question already submitted and scored, with nothing explaining why nothing happens.
+  <code>inert</code> does the disabling, not <code>pointer-events</code>, which leaves controls keyboard-reachable.
+  <strong>Only the timed escalation</strong> (spinner 300ms / "Still loading…" 3s / Retry 10s) genuinely belongs in
+  6c — it needs timers and an error path.
+</p>
+
+<h4>Turn idempotency — and an overload trap</h4>
+<p>
+  <code>cat_next_item</code> assumed the newest item is always the one being answered. False on a retry: if the
+  server commits and the response is lost, the newest item is by then the NEW question, and the old answer would be
+  recorded against it — <strong>marking a student on a question they never saw</strong>. Over 150 turns on flaky
+  connections that will happen. The caller now passes <code>p_expected_item_id</code>; if it is no longer newest the
+  RPC replays instead of advancing.
+</p>
+<p>
+  <strong>Trap worth remembering:</strong> adding a DEFAULTed parameter <em>creates a new overload</em> rather than
+  replacing the function. The database briefly held three <code>cat_next_item</code> signatures, which would have
+  made 8-argument calls ambiguous. The stale 6-arg stub and 8-arg body were dropped; exactly one signature remains.
+</p>
+
+<h4>The first complete CAT, sat by a human</h4>
+<p>Sam sat a full exam in the browser on 2026-07-19. It is the end-to-end proof the engine had not previously had.</p>
+<pre><code>status      COMPLETED          verdict   ABOVE_STANDARD
+reason      CONFIDENCE_REACHED items     85 (the minimum)
+final theta 0.480              final SE  0.232
+time        121 min            engine    rasch-1pl-eap-v1
+final_score NULL (correct — a CAT has no raw score)</code></pre>
+<ul>
+  <li><strong>It terminated by 0.025.</strong> <code>0.480 − 1.96×0.232 = 0.025</code>. One more wrong answer and
+    the band would not have cleared, and the exam would have run on toward 150. A genuine knife-edge, which is what
+    the 95% rule exists to adjudicate.</li>
+  <li><strong>§9.5's equivalence held on live data.</strong> A 95% band clearing zero must equal
+    <em>P(above) ≥ 97.5%</em>; the final numbers give <strong>98.06%</strong> — over by the same hair. The band test
+    and the probability test agreed on a real exam.</li>
+  <li><strong>Blueprint balance:</strong> Health Promotion 22 · Safe and Effective 21 · Psychosocial 21 ·
+    Physiological 21. The §8.1 tiebreaker delivered near-perfect rotation across 85 items.</li>
+  <li><strong>3 cases / 18 items</strong> at the scheduled positions 8, 35, 59 — the NCLEX shape exactly.
+    <strong>Evidence weight 76.0 across 85 items</strong>: the 18 case items correctly counting as 9.</li>
+  <li><strong>30 of 85 fully correct</strong> — and pointedly <em>not</em> the verdict basis. Partial credit and item
+    difficulty produced 0.480; a raw percentage would have told a different and wrong story.</li>
+</ul>
+<p>
+  <strong>Prediction error worth recording:</strong> the forecast before Q85 was that the band would sit at −0.05 and
+  <em>fail</em> to clear. It cleared at +0.025 — right about the knife-edge, wrong about the side, on a 0.07 error in
+  theta. Near the boundary these predictions are genuinely delicate.
+</p>
+
+<h4>Outstanding after 6b</h4>
+<ul>
+  <li><strong>6c</strong> — the timed escalation (spinner 300ms / "Still loading…" 3s / Retry 10s).</li>
+  <li><strong>The idempotency migration has no file on disk.</strong> Applied to dev; without a
+    <code>db/migrations/</code> entry it will not reach prod.</li>
+  <li><strong>§16.6</strong> — exam-mode display leaks, deferred as one coherent pass.</li>
+  <li>At termination the student still hits the generic results popup ("30 of 85"), which is meaningless for a CAT.
+    Slice 7 replaces it.</li>
+</ul>
 
 
 <p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>
