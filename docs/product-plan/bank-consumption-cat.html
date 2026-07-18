@@ -156,7 +156,10 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-16 (results-report scope expanded — §13.2 gains the
+  Living planning document. Last updated: 2026-07-18 (§7.4 gains §7.4.1 — the two worked examples (Kojo, a case
+  mid-exam; Kofi, three cases across a full exam) plus an explicit merge-computation note, recovered from the
+  2026-07-16 planning session and folded in-doc so the reference is self-contained; the earlier "see the planning
+  session notes" pointer is retired). Earlier — 2026-07-16: results-report scope expanded — §13.2 gains the
   clinical-judgment read (from the §7.4 testlet model); new §13.6 captures five WANTED v2 report additions
   (average difficulty faced, performance by question type, finer topic drill-down, clinical-judgment step detail,
   pacing — data already captured); §13.5 reframed from "deliberately excluded" to "flagged for REVISIT," notably
@@ -826,8 +829,97 @@
 </p>
 <p>
   §11's snapshot design already anticipated wrappers: case/trend snapshot behaviour for CAT is specified there and
-  needs no rework — only activation. Worked examples of the whole flow (a case mid-exam, and three cases across a
-  full exam) are in the 2026-07-16 planning session notes.
+  needs no rework — only activation. Two worked examples of the whole flow (a case mid-exam, and three cases across
+  a full exam) are folded in below (§7.4.1).
+</p>
+
+<h4 id="s7.4-worked">7.4.1 Worked examples — the testlet flow in numbers <span class="status settled">recovered 2026-07-18</span></h4>
+<p>
+  These two worked examples make the mechanism concrete. They were developed in the 2026-07-16 planning session
+  (the session that settled §7.4) and are recorded here so the plan is self-contained rather than pointing at an
+  external transcript. <strong>All numbers are illustrative</strong> — they show how the mechanism behaves, not the
+  output of the final formula.
+</p>
+
+<p><strong>How the merge is computed — the method (settled).</strong> After a case, the engine holds two estimates
+  of the student's ability, each with its own uncertainty: the <em>main exam</em> level (built from every standalone
+  so far) and the <em>case</em> level (built fresh across the 6 children). They combine as a
+  <strong>confidence-weighted average</strong> — each estimate's weight is how tight its uncertainty is, so the more
+  confident estimate pulls harder; it is <em>not</em> a naive 50/50 split. Crucially, <strong>before merging, the
+  case's uncertainty is deliberately widened ("inflated")</strong>: its 6 children lean on one scenario, so they are
+  worth only ~1–2 independent questions, not 6. That widening (a) lowers the case's weight so it nudges rather than
+  dominates, and (b) keeps the combined certainty from jumping as if six independent questions had landed — the
+  local-independence safeguard against false over-confidence. <strong>Settled principle:</strong> confidence-weighted
+  average, with the case's uncertainty inflated so it counts as ~one measurement. <strong>Build-time dial:</strong>
+  the exact inflation amount (how correlated we assume the 6 children are) — seed a sensible default, refine from
+  real data later.
+</p>
+
+<p><strong>Worked example 1 — a case mid-exam ("Kojo").</strong> Kojo has answered 25 standalones; the engine has
+  settled his main level at ≈ 0.70 with moderate confidence. The first case is fixed at Q26, so Q26–31 are the
+  6-question block. The case runs its own estimate, fresh from 0.0:</p>
+<table>
+  <thead>
+    <tr><th>Case Q</th><th>CJMM step</th><th>Difficulty</th><th>Case level before</th><th>Result</th><th>Case level after</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Recognise cues</td><td>Hard (+1)</td><td>0.00</td><td>right</td><td>0.70</td></tr>
+    <tr><td>2</td><td>Analyse cues</td><td>Medium (0)</td><td>0.70</td><td>right</td><td>0.95</td></tr>
+    <tr><td>3</td><td>Prioritise</td><td>Hard (+1)</td><td>0.95</td><td>wrong</td><td>0.75</td></tr>
+    <tr><td>4</td><td>Generate solutions</td><td>Medium (0)</td><td>0.75</td><td>right</td><td>0.85</td></tr>
+    <tr><td>5</td><td>Take action</td><td>Easy (−1)</td><td>0.85</td><td>right</td><td>0.90</td></tr>
+    <tr><td>6</td><td>Evaluate outcomes</td><td>Medium (0)</td><td>0.90</td><td>right</td><td>0.95</td></tr>
+  </tbody>
+</table>
+<p>
+  5 of 6 right, and because difficulty is weighted in (the hard children move it more than the easy ones), the
+  <strong>case level lands ≈ 0.95</strong>. Merge: main 0.70 (fairly confident) gets ~80% of the say, the case 0.95
+  (deliberately treated as low-confidence) ~20% → <strong>main level 0.70 → 0.75</strong>. He answered 6 questions
+  but his level moved only a little and certainty tightened only slightly — the whole case counted as one
+  measurement, not six. The exam resumes at Q32 on the updated 0.75. That 0.95 case level also surfaces as a
+  "clinical judgment: strong (5/6)" read on the results page (§13).
+</p>
+
+<p><strong>Worked example 2 — three cases across a full exam ("Kofi").</strong> Kofi's cases fall at the start,
+  ~Q36, and ~Q76 (all inside the first 85, so every student receives all three before the earliest possible finish).
+  Case 1 at the very start runs from an empty main estimate:</p>
+<table>
+  <thead>
+    <tr><th>Case Q</th><th>Difficulty</th><th>Result</th><th>Case level</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Hard</td><td>wrong</td><td>−0.30</td></tr>
+    <tr><td>2</td><td>Medium</td><td>right</td><td>0.10</td></tr>
+    <tr><td>3</td><td>Hard</td><td>right</td><td>0.55</td></tr>
+    <tr><td>4</td><td>Medium</td><td>right</td><td>0.65</td></tr>
+    <tr><td>5</td><td>Easy</td><td>right</td><td>0.70</td></tr>
+    <tr><td>6</td><td>Medium</td><td>wrong</td><td>0.40</td></tr>
+  </tbody>
+</table>
+<p>4 of 6 → case level ≈ 0.40. With no prior information to weigh against, the case essentially <em>sets</em> his
+  starting level (0.0 → 0.40, still very unsure). His journey through the exam:</p>
+<table>
+  <thead>
+    <tr><th>Milestone</th><th>What happens</th><th>Main level</th><th>Certainty</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>After Case 1 (Q6)</td><td>Case sets his level</td><td>0.40</td><td>very low</td></tr>
+    <tr><td>Standalone Q7–35</td><td>Normal adaptive homing-in</td><td>0.60</td><td>building</td></tr>
+    <tr><td>Case 2 (Q36–41)</td><td>5/6 → case level ~0.75; nudges him up</td><td>0.63</td><td>fairly good</td></tr>
+    <tr><td>Standalone Q42–75</td><td>Keeps refining</td><td>0.68</td><td>good</td></tr>
+    <tr><td>Case 3 (Q76–81)</td><td>Tough one, 3/6 → case level ~0.20; tugs him down a touch</td><td>0.64</td><td>good</td></tr>
+    <tr><td>Standalone Q82–90</td><td>Settles</td><td>0.65</td><td>confident</td></tr>
+    <tr><td>Stops ~Q90</td><td>Band clears the line</td><td>0.65</td><td>done</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>Verdict: Above standard, ~95% confident he's above our bar.</strong> The insight the two examples share:
+  a case's influence depends on how confident the exam already is when it lands — <strong>Case 1 set his level</strong>
+  (0.0 → 0.40, the engine had nothing else to go on), while <strong>Case 3 barely moved it</strong> (0.68 → 0.64,
+  even though he did worse on it) because by Q76 his level is well-established. Early = big influence, late = gentle
+  nudge; honest and self-correcting. This is also the example that produced the <strong>"never a case at position
+  1"</strong> rule (§7.4 part 1): leading with a correlated block gives the engine a weak first read, so Case 1
+  starts ~Q8 after a few standalones give it footing.
 </p>
 
 <h3>7.5 Bank-exhaustion fallback</h3>
