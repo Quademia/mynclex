@@ -8,6 +8,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('.', import.meta.url)),
+      // `import 'server-only'` is the repo's server-module marker, but the
+      // package is not in node_modules — Next.js resolves it through its own
+      // build alias. Without this stub, any module carrying the marker is
+      // untestable. See test/stubs/server-only.ts.
+      'server-only': fileURLToPath(new URL('./test/stubs/server-only.ts', import.meta.url)),
     },
   },
 });
