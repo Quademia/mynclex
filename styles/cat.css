@@ -1,0 +1,245 @@
+/* mynclex/styles/cat.css
+ *
+ * The CAT home (/student/bank/cat) + its one-shot preflight.
+ * Page-scoped under .cat-home / .cat-preflight so nothing leaks.
+ *
+ * Mobile-first per CLAUDE.md UI convention #3: student surfaces are the
+ * priority and must work at narrow widths. Breakpoint 768px.
+ */
+
+.cat-home {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+}
+
+/* ── Hero ───────────────────────────────────────────────────────── */
+
+.cat-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748b);
+  margin: 0 0 6px;
+}
+
+.cat-title {
+  font-size: 30px;
+  line-height: 1.15;
+  margin: 0 0 12px;
+  color: var(--text, #0f172a);
+}
+
+.cat-lede {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--text-muted, #475569);
+  margin: 0 0 22px;
+  max-width: 62ch;
+}
+
+.cat-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.cat-facts li {
+  flex: 1 1 168px;
+  background: var(--surface, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.cat-facts strong {
+  display: block;
+  font-size: 16px;
+  color: var(--text, #0f172a);
+}
+
+.cat-facts span {
+  display: block;
+  font-size: 12.5px;
+  color: var(--text-muted, #64748b);
+  margin-top: 2px;
+}
+
+.cat-allowance {
+  font-size: 13.5px;
+  color: var(--text-muted, #475569);
+  margin: 0 0 18px;
+}
+
+.cat-allowance.is-exhausted {
+  color: var(--warn-text, #92400e);
+  background: var(--warn-bg, #fffbeb);
+  border: 1px solid var(--warn-border, #fde68a);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.cat-actions { margin-top: 4px; }
+
+.cat-note {
+  font-size: 13px;
+  color: var(--text-muted, #64748b);
+  margin: 10px 0 0;
+  max-width: 56ch;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+
+.cat-btn {
+  font: inherit;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 11px 20px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.cat-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.cat-btn-primary {
+  background: var(--primary, #1e3a5f);
+  color: #fff;
+}
+.cat-btn-primary:hover:not(:disabled) { background: var(--primary-dark, #16304e); }
+
+.cat-btn-ghost {
+  background: transparent;
+  color: var(--text, #0f172a);
+  border-color: var(--border, #cbd5e1);
+}
+.cat-btn-ghost:hover:not(:disabled) { background: var(--surface, #f1f5f9); }
+
+/* The confirm is deliberately the heavier-weight control: pressing it
+ * spends the attempt. */
+.cat-btn-danger {
+  background: var(--danger, #b91c1c);
+  color: #fff;
+}
+.cat-btn-danger:hover:not(:disabled) { background: var(--danger-dark, #991b1b); }
+
+/* ── History ────────────────────────────────────────────────────── */
+
+.cat-section { margin-top: 40px; }
+
+.cat-h2 {
+  font-size: 17px;
+  margin: 0 0 12px;
+  color: var(--text, #0f172a);
+}
+
+.cat-empty {
+  font-size: 14px;
+  color: var(--text-muted, #64748b);
+  background: var(--surface, #f8fafc);
+  border: 1px dashed var(--border, #e2e8f0);
+  border-radius: 10px;
+  padding: 18px;
+  margin: 0;
+}
+
+.cat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.cat-table th,
+.cat-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.cat-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #64748b);
+}
+
+/* ── Preflight ──────────────────────────────────────────────────── */
+
+.cat-preflight-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 60;
+}
+
+.cat-preflight {
+  background: var(--white, #fff);
+  border-radius: 14px;
+  max-width: 520px;
+  width: 100%;
+  padding: 26px 26px 22px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.28);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.cat-preflight-title {
+  font-size: 19px;
+  margin: 0 0 14px;
+  color: var(--text, #0f172a);
+}
+
+.cat-preflight-points {
+  margin: 0 0 18px;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-muted, #475569);
+}
+
+.cat-preflight-points li { margin-bottom: 10px; }
+.cat-preflight-points strong { color: var(--text, #0f172a); }
+
+.cat-preflight-error {
+  font-size: 13.5px;
+  color: var(--danger-text, #991b1b);
+  background: var(--danger-bg, #fef2f2);
+  border: 1px solid var(--danger-border, #fecaca);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 14px;
+}
+
+.cat-preflight-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ── Mobile (CLAUDE.md UI #3 — students are phone-first) ────────── */
+
+@media (max-width: 768px) {
+  .cat-home { padding: 18px 16px 56px; }
+  .cat-title { font-size: 25px; }
+  .cat-lede { font-size: 15px; }
+  .cat-facts li { flex: 1 1 100%; }
+
+  .cat-actions .cat-btn,
+  .cat-preflight-actions .cat-btn { width: 100%; }
+
+  .cat-preflight-actions {
+    flex-direction: column-reverse;
+  }
+
+  /* Let a long history table scroll inside itself rather than pushing the
+   * page sideways. */
+  .cat-section { overflow-x: auto; }
+  .cat-table { min-width: 380px; }
+}
