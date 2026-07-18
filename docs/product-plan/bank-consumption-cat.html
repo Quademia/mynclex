@@ -156,7 +156,26 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-18 (§7.4 case-scoring method revised — the <strong>hybrid</strong>
+  Living planning document. Last updated: 2026-07-19 (two pre-build decisions taken, both folded into Slice 1.
+  <strong>New §15.5 — CAT allowance</strong>: §15.1's "unlimited" becomes a policy <em>default</em> rather than a
+  constant. A nullable <code>cat_allowance</code> on <code>nclex_products</code> (NULL = unlimited, 0 = none,
+  N = N per window) is snapshotted onto <code>nclex_subscriptions</code> at activation and enforced by one guard in
+  <code>create_cat_attempt</code>; consumption is <em>derived</em> by counting attempts in the window, so it is a
+  ceiling rather than a balance and the readiness-credit machinery is deliberately not copied. Stacked
+  subscriptions resolve <strong>most-generous-wins</strong> (consistent with the existing <code>max(end_at)</code>
+  rule). An <strong>abandoned CAT burns the attempt</strong> (unenforceable otherwise — the preflight says so up
+  front; the deferred admin per-user grant becomes the support remedy). <strong>CAT is bank-family</strong>, behind
+  the existing bank gate — with the readiness-only student's exclusion stated explicitly. Admin UI, student-facing
+  counts and the exhausted-state upsell are deliberately deferred. Columns spec'd as §12.7.5b.
+  <strong>New §10.6 — engine runtime RESOLVED</strong> (brought forward from Slice 2 because it sets the Slice 1
+  stub signatures): the §4.2-vs-§10.5 "conflict" was a misreading — §4.2 chose a language (TypeScript over a Python
+  service), §10.5 a location. Deciding fact: <code>lib/scoring</code> is pure TypeScript and §10.2 requires it be
+  "reused unchanged," which a PL/pgSQL engine cannot do without reimplementing all five scoring functions in SQL —
+  the same duplication that caused the <code>marks</code> bug. So <strong>TypeScript computes (server-side, Rasch +
+  scoring), the PL/pgSQL RPC persists and selects</strong>; atomicity is preserved because every write stays inside
+  the one RPC, and <code>cat_next_item</code> gains a wider signature taking computed score/theta (§12.7.6).
+  Still open: whether Slice 1's schema captures enough to tune the §7.4 "half" weight without a later backfill.)
+  Previous update: 2026-07-18 (§7.4 case-scoring method revised — the <strong>hybrid</strong>
   is now the chosen build (each case child updates the main level directly at half weight → a case counts as ~3
   questions, not 6; certainty folds in automatically, no separate estimate or merge); the <strong>testlet</strong>
   model is retained as the documented alternative. Same session: §7.4.1 added — the two worked examples (Kojo, a case
@@ -1252,9 +1271,61 @@
 <h3>10.5 Build-time deferrals (not blocking the plan)</h3>
 <ul>
   <li>Exact NUMERIC precision on theta/SE columns (lives in §12 polish, not §10).</li>
-  <li><strong>Engine runtime location</strong> — Supabase RPC (PL/pgSQL) vs Edge Function vs Cloudflare Worker. Recommendation: Supabase RPC for v1 because it keeps the transaction atomic and avoids a network hop between scoring, theta update, and item selection. Confirm at build time when we can measure actual Rasch math performance in PL/pgSQL.</li>
+  <li><strong>Engine runtime location</strong> — <em>RESOLVED 2026-07-19, see §10.6.</em> The split is:
+    TypeScript computes (Rasch math + scoring), the RPC persists and selects.</li>
   <li>Exact wording of the error UI ("Connection lost" / "Couldn't load next question" / etc.).</li>
 </ul>
+
+<h3 id="s10-6">10.6 Engine runtime — where each half runs <span class="status settled">settled 2026-07-19</span></h3>
+<p>
+  §10.5 left the engine's runtime location open, and §19.4 scheduled the decision for the top of Slice 2. It was
+  brought forward to before Slice 1 because it changes the <strong>RPC stub signatures</strong> that Slice 1 ships
+  (§12.7.6) — deferring it would have meant stubbing the wrong shape and rewriting it.
+</p>
+<p>
+  <strong>First, a framing correction.</strong> This was initially posed as a conflict between §4.2 ("TypeScript
+  Rasch") and §10.5 ("recommendation: Supabase RPC"). It is not one. §4.2 chose a <em>language</em> — TypeScript
+  over standing up a separate <strong>Python</strong> service; PL/pgSQL was never a candidate there. §10.5 chose a
+  <em>location</em>. The two sections are answering different questions.
+</p>
+<p>
+  <strong>The deciding fact.</strong> <code>lib/scoring/README.md</code> describes the scoring engine as "pure
+  TypeScript, no DB calls, deterministic," and §10.2 specifies that <code>cat_next_item</code> "scores the last
+  answer using the existing per-question scoring functions (<em>reused unchanged</em>)." Both cannot be true if
+  <code>cat_next_item</code> is PL/pgSQL — reusing TypeScript functions from inside a Postgres function is not
+  possible. A pure-PL/pgSQL engine would require reimplementing all five scoring functions plus the 13-type
+  dispatch in SQL and maintaining them in lockstep forever. That is the exact failure mode already seen with the
+  <code>marks</code> bug (one place computing a value, another validating it against a different rule, blocking
+  submission across 547 questions). Duplicating the scoring engine is the most expensive duplication available in
+  this codebase.
+</p>
+<p><strong>Decision — the work splits along the line the codebase already uses: TypeScript computes, the database persists.</strong></p>
+<ul>
+  <li><strong>Rasch math → pure TypeScript</strong> (<code>lib/cat/</code>), Vitest-tested. This is how §19.4
+    already describes Slice 2 ("Rasch math, pure + unit-tested") — a description that only makes sense for a
+    testable pure module. PL/pgSQL math would have to be tested through SQL fixtures instead.</li>
+  <li><strong>Scoring → <code>@/lib/scoring</code>, reused unchanged</strong>, exactly as §10.2 requires.</li>
+  <li><strong>Item selection → stays in SQL, deliberately.</strong> "Closest to theta, category tiebreaker, minus
+    everything seen in the last 3 CATs, eligible only" (§7.1/§7.3/§15.2) is a query over thousands of rows.
+    Doing it in TypeScript would mean dragging candidate rows over the wire to sort them.</li>
+  <li><strong><code>cat_next_item</code> stays PL/pgSQL</strong> but receives the <em>already-computed</em> score
+    and updated theta/SE rather than a raw answer payload. It performs the atomic write, the selection, and
+    returns the next payload.</li>
+</ul>
+<p><strong>What this protects:</strong></p>
+<ul>
+  <li><strong>Atomicity (§10.3) survives intact.</strong> Every write still happens inside the one RPC; the
+    TypeScript half is pure computation with no side effects, so if it throws, nothing was written. "Either the
+    answer is recorded and the next item is snapshotted, or neither" still holds.</li>
+  <li><strong>Trust.</strong> The TypeScript runs <strong>server-side</strong> (Server Action), never in the
+    browser, so a student cannot post a fabricated theta. This is stated explicitly because the practice runner
+    <em>does</em> score client-side with the RPC range-checking the result — an arrangement that is not good
+    enough for a high-stakes verdict.</li>
+</ul>
+<p>
+  <strong>The honest cost:</strong> two places to look when debugging a single CAT step, and a wider RPC signature
+  than §10.2's prose implies.
+</p>
 
 <h2 id="s11">11. Snapshot strategy for CAT <span class="status settled">settled</span></h2>
 <p>
@@ -1463,6 +1534,27 @@
   for time-range queries.
 </p>
 
+<h4 id="s12-7-5b">12.7.5b Step 5b — CAT allowance columns (§15.5)</h4>
+<p>
+  Two columns carrying the per-tier CAT entitlement. Both are additive and inert until the Slice 3 guard reads
+  them — they ride along in this migration because the alternative is a second migration later against tables
+  that are already live. See §15.5 for the policy.
+</p>
+<ul>
+  <li><code>nclex_products.cat_allowance</code> — INTEGER, nullable. <strong>NULL = unlimited</strong> (the
+    current §15.1 behaviour, so an unset column changes nothing), <code>0</code> = no CAT access,
+    <code>N</code> = N CATs per entitlement window. CHECK <code>cat_allowance IS NULL OR cat_allowance &gt;= 0</code>.
+    This is the SKU's grant, parallel to <code>readiness_credits</code>.</li>
+  <li><code>nclex_subscriptions.cat_allowance</code> — INTEGER, nullable, same CHECK. Snapshotted from the
+    product at activation so a later admin edit to the SKU does not retroactively change what an existing buyer
+    paid for — the same reasoning that snapshots price. Denormalised onto the row for cheap entitlement reads,
+    exactly as <code>pack_type</code> already is on that table.</li>
+</ul>
+<p>
+  <strong>No backfill.</strong> Existing product and subscription rows keep NULL, which reads as unlimited — so
+  the migration is behaviour-neutral for everyone already holding access.
+</p>
+
 <h4 id="s12-7-6">12.7.6 Step 6 — Create RPC stubs (signatures only, bodies TODO)</h4>
 <p>
   Create both functions in the database with proper signatures and a placeholder body that raises an exception
@@ -1473,10 +1565,17 @@
   <li>Returns: JSONB with shape <code>{ attempt_id: UUID, first_item_payload: JSONB }</code>.</li>
   <li>Body for now: <code>RAISE EXCEPTION 'create_cat_attempt not yet implemented';</code></li>
 </ul>
-<p><strong><code>cat_next_item(p_attempt_id UUID, p_last_answer_payload JSONB)</code></strong></p>
+<p>
+  <strong><code>cat_next_item(p_attempt_id UUID, p_last_answer_payload JSONB, p_score_awarded NUMERIC,
+  p_is_correct BOOLEAN, p_theta_after NUMERIC, p_se_after NUMERIC)</code></strong>
+</p>
 <ul>
   <li>Returns: JSONB with shape either <code>{ status: 'CONTINUE', next_item_payload: JSONB }</code> or <code>{ status: 'COMPLETE', verdict_payload: JSONB }</code>.</li>
   <li>Body for now: <code>RAISE EXCEPTION 'cat_next_item not yet implemented';</code></li>
+  <li><strong>Why the wider signature (§10.6):</strong> scoring and the Rasch update both run in server-side
+    TypeScript before this call, so the RPC receives computed values rather than deriving them. It persists,
+    selects the next item, and returns — it does not score. The raw answer payload is still passed because the
+    RPC writes it into <code>nclex_attempt_answers</code> verbatim.</li>
 </ul>
 <p>
   Both functions should be <code>LANGUAGE plpgsql SECURITY DEFINER</code> once implemented; for stubs
@@ -1754,6 +1853,11 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 </p>
 
 <h3>15.1 Frequency</h3>
+<p class="callout">
+  <strong>Revised 2026-07-19 — this is now the <em>default</em>, not a constant.</strong> Unlimited remains what
+  every tier grants unless configured otherwise; §15.5 adds the policy lever that can cap or withdraw it per
+  product. Nothing below changes for a student on an unlimited tier.
+</p>
 <p>
   <strong>Unlimited re-takes within the student's active subscription window.</strong> Matches industry standard
   — UWorld and Archer both offer unlimited CAT practice. Students under exam pressure want to drill; capping
@@ -1808,6 +1912,99 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   Each CAT starts at theta = 0.0 regardless of the student's prior CATs. Already settled in §6. Cross-CAT theta
   IS shown in History / Analytics (<em>"your last 3 CATs landed at theta 0.5, 0.6, 0.65 — improving"</em>) but
   doesn't seed the next CAT's starting position.
+</p>
+
+<h3 id="s15-5">15.5 CAT allowance — how many CATs a tier grants <span class="status settled">settled 2026-07-19</span></h3>
+<p>
+  §15.1 settled frequency as "unlimited within the active subscription window." That is the right
+  <em>default</em>, but it is currently an <strong>implicit</strong> one — unlimited means no gate exists at all.
+  This section makes the ceiling a configurable property of the product so the answer can eventually differ per
+  tier ("this tier gets one CAT," "this tier gets none," "this tier is unlimited") without re-opening the engine.
+</p>
+<p>
+  <strong>Why now rather than later (Sam, 2026-07-19).</strong> The enforcement point belongs at the top of
+  <code>create_cat_attempt</code> — a function Slice 3 writes anyway. Adding one guard while writing that function
+  is minutes. Retrofitting a gate into a live RPC afterwards means re-testing every path that opens a CAT plus
+  every surface offering a "Start a CAT" button that must now handle refusal. The storage is free now and the
+  gate is nearly free now; both get materially more expensive once CAT is live.
+</p>
+<p><strong>The build splits into three parts, and only two are cheap:</strong></p>
+<ol>
+  <li><strong>The policy value</strong> — where the allowance lives (§12.7.5b). Built now.</li>
+  <li><strong>The enforcement point</strong> — one guard in <code>create_cat_attempt</code>. Built at Slice 3.</li>
+  <li><strong>The surfaces</strong> — admin UI to edit the value, student-facing counts ("2 of 3 CATs left"), the
+    exhausted-state card and its upsell. <strong>Deliberately deferred</strong> — not needed to launch CAT. This
+    follows the standing rule of capturing the mechanism now and building the readout when it is actually wanted.</li>
+</ol>
+
+<h4>15.5.1 Shape — a ceiling, not a balance</h4>
+<p>
+  The instinct is to copy readiness credits, and it is the wrong model. A readiness credit is a
+  <strong>consumable object the student owns</strong> — minted, claimed, spent, expired — which is why it needs a
+  real table with rows. A CAT allowance is a <strong>ceiling</strong>, and §15.1 already anchors it to the
+  subscription window, which means the consumed count is <strong>derivable</strong>: how many CATs has this
+  student started inside this window? No balance table, no minting, and the entire double-spend class of bug
+  never arises.
+</p>
+<ul>
+  <li><code>cat_allowance</code> on <code>nclex_products</code> — the SKU's grant. NULL = unlimited, 0 = none,
+    N = N per window.</li>
+  <li>Snapshotted onto <code>nclex_subscriptions</code> at activation, inside the
+    <code>grantProductEntitlement</code> path that already inserts that row.</li>
+  <li>Consumption counted from <code>nclex_attempts</code> (CAT mode, within the window). Nothing to keep in sync.</li>
+  <li>One guard at the top of <code>create_cat_attempt</code>.</li>
+</ul>
+
+<h4>15.5.2 Stacked subscriptions — most-generous-wins</h4>
+<p>
+  <code>nclex_subscriptions</code> documents its own stacking rule: "two active rows → access runs to
+  <code>max(end_at)</code>." So a student may hold more than one ACTIVE bank row (buy 30 days, top up 60), and
+  "read the allowance off the subscription" has to say <em>which row</em>.
+</p>
+<p>
+  <strong>Rule: a student may start a CAT if any currently-active row still has headroom; NULL on any active row
+  means unlimited.</strong> Counting is per-row, from that row's <code>started_at</code>.
+</p>
+<p>
+  Summing the allowances was considered and rejected: it re-frames the ceiling as a balance (dragging back the
+  double-spend problem this shape avoids) and has no sensible answer when one row says unlimited. The deciding
+  argument for most-generous-wins is <em>consistency</em> — <code>max(end_at)</code> already resolves overlapping
+  purchases in the student's favour, and having the allowance resolve restrictively would be an inconsistency
+  someone eventually hits and reasonably reads as a bug.
+</p>
+
+<h4>15.5.3 An abandoned CAT burns the attempt</h4>
+<p>
+  §16.5 makes a browser-close an ABANDONED attempt. Under unlimited this never mattered; under a ceiling it is a
+  real policy. <strong>Decision (Sam): it burns.</strong> We cannot distinguish a genuine laptop failure from a
+  student abandoning a CAT that is going badly, so the honest design is to <strong>say so before they start</strong>
+  rather than adjudicate afterwards — the one-shot preflight warning states plainly that starting spends the
+  attempt regardless of how it ends. The readiness one-shot preflight is the existing model to follow.
+</p>
+<p>
+  This gives the deferred <strong>per-user admin grant</strong> a defined purpose: it is the remedy path for a
+  student who contacts support, not a speculative feature. It stays deferred and is safely deferrable — the read
+  already routes through the entitlement row, so it later costs a column and one condition at a point the code
+  already touches.
+</p>
+
+<h4>15.5.4 CAT is bank-family</h4>
+<p>
+  <strong>Decision (Sam): CAT is a Bank capability, not a Programme one.</strong> A programme student without bank
+  access cannot take a CAT regardless, so no programme-side concept is needed. CAT therefore sits behind the same
+  <code>requireActiveBankSubscription</code> gate as the other five bank consumption surfaces, and the allowance
+  rides on the bank entitlement row. No new access concept is introduced.
+</p>
+<p>
+  <strong>Consequence worth stating explicitly:</strong> a <em>readiness-only</em> student — someone who bought
+  packs but holds no bank subscription — has no bank entitlement to carry an allowance, and so cannot take a CAT.
+  That follows correctly from the decision, but it is exactly the kind of thing that surfaces as a confused
+  student hitting a wall. The reason-aware <code>/no-access</code> wall already exists for this case; CAT needs to
+  route through it rather than dead-end.
+</p>
+<p>
+  <strong>First real use of the column is likely TRIAL</strong> — a <code>BANK_DURATION</code> pack type where
+  <code>0</code> or <code>1</code> is the sensible grant, well before any paid tier gets capped.
 </p>
 
 
@@ -2053,11 +2250,12 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 </p>
 <p><strong>Two build decisions to lock before / at the start of the engine phase:</strong></p>
 <ul>
-  <li><strong>Engine runtime</strong> (§10.5) — the live Rasch engine as a Supabase RPC (PL/pgSQL, keeps the
-    score→update→select→snapshot transaction atomic — the §10.5 recommendation) vs a TypeScript edge function
-    (§4.2's "TS Rasch" preference). Resolve at the top of Slice 2.</li>
+  <li><strong>Engine runtime</strong> (§10.5) — <strong>RESOLVED 2026-07-19, see §10.6.</strong> Brought forward
+    from "top of Slice 2" because it determines the RPC stub signatures Slice 1 ships (§12.7.6). TypeScript
+    computes (Rasch math + scoring reused unchanged); the PL/pgSQL RPC persists and selects.</li>
   <li><strong>Case-scoring "half" default</strong> (§7.4) — confirm the hybrid half-weight (a case counts as ~3)
-    as the launch default; it is data-tuned later via the §5/§17 pipeline.</li>
+    as the launch default; it is data-tuned later via the §5/§17 pipeline. <em>Still open — the live question is
+    whether Slice 1's schema captures enough to tune it later without a backfill.</em></li>
 </ul>
 
 <p><strong>Phase A — Foundation.</strong></p>
@@ -2067,7 +2265,9 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     <code>nclex_attempts</code>, 4 per-item columns on <code>nclex_attempt_items</code>, the
     <code>nclex_bank_item_calibration_history</code> audit table, and the two RPC <em>stubs</em> (raise "not yet
     implemented"). Seed <code>difficulty_irt</code> from each item's Easy/Medium/Hard label. Additive, low-risk,
-    unblocks everything. <em>Verified by the §12.7.8 queries — database-only, nothing in the browser.</em></li>
+    unblocks everything. <em>Verified by the §12.7.8 queries — database-only, nothing in the browser.</em>
+    <strong>Also carries the two <code>cat_allowance</code> columns (§12.7.5b / §15.5)</strong> — inert until the
+    Slice 3 guard reads them, folded in here rather than as a later migration against live tables.</li>
 </ol>
 
 <p><strong>Phase B — The engine.</strong></p>
@@ -2076,7 +2276,9 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     partial-credit <em>fraction</em>), uncertainty update, readiness probability, termination check (SE ≤ 0.40,
     85/150, 4 h). No user surface. Lock the engine-runtime decision here.</li>
   <li><strong>Slice 3 — <code>create_cat_attempt</code>.</strong> Opens the attempt, starts at theta = 0.0, picks
-    and snapshots the first item, returns the payload.</li>
+    and snapshots the first item, returns the payload. <strong>Carries the §15.5 allowance guard</strong> —
+    most-generous-wins across active bank subscription rows, counted against <code>nclex_attempts</code>; refusal
+    routes to the reason-aware <code>/no-access</code> wall rather than dead-ending.</li>
   <li><strong>Slice 4 — <code>cat_next_item</code>, standalone-only.</strong> The core loop: score → Rasch update
     → termination check → select next standalone (§7.1 difficulty match + category tiebreaker + §7.3 eligibility +
     §7.5 fallback) → snapshot → return CONTINUE / COMPLETE. Atomic transaction.</li>
@@ -2087,7 +2289,8 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Phase C — The student experience</strong> (first browser-testable slices).</p>
 <ol start="6">
-  <li><strong>Slice 6 — CAT runner screen.</strong> One-shot preflight + "How CAT works" link, the pessimistic
+  <li><strong>Slice 6 — CAT runner screen.</strong> One-shot preflight (stating per §15.5.3 that starting spends
+    the attempt however it ends) + "How CAT works" link, the pessimistic
     between-question transition (§10.1), current-question-only progress (§16.1), no back nav (§16.3),
     browser-close = ABANDONED (§16.5), 4-hour timer (§9.3). Reuses the runner shell, the 9 renderers, and the
     shipped option shuffle.</li>
