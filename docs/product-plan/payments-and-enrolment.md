@@ -101,8 +101,44 @@ price_minor_usd   INTEGER NOT NULL
 readiness_pack_id TEXT
                   -- nullable FK to nclex_readiness_packs;
                   -- set only when pack_type = 'READINESS'
+cat_allowance     INTEGER
+                  -- nullable; NULL = unlimited, 0 = none, N = N per window
 created_at        TIMESTAMPTZ DEFAULT NOW()
 ```
+
+> ⚠️ This sketch is illustrative, not a live schema dump (see the
+> 2026-05-19 note in the header). It predates several shipped columns —
+> `readiness_credits` and the `full_price_minor_*` pair among them. Treat
+> `db/migrations/` as the source of truth.
+
+### `cat_allowance` — how many CATs a product grants
+
+Added 2026-07-19 by the CAT Slice 1 migration (`20260808120000`). It sits
+on **both** `nclex_products` and `nclex_subscriptions`: the product
+declares the grant, and it is **snapshotted onto the subscription at
+activation** inside the existing `grantProductEntitlement` path — so a
+later admin edit to the SKU does not retroactively change what an existing
+buyer paid for, the same reasoning that snapshots price.
+
+- `NULL` = unlimited (today's behaviour, so existing rows are unaffected)
+- `0` = no CAT access
+- `N` = N CATs per entitlement window
+
+It is a **ceiling, not a balance** — consumption is derived by counting CAT
+attempts inside the window, so there is nothing to decrement and no
+double-spend to guard against. This is deliberately *not* the readiness
+credits model, which needs real rows because a credit is an object the
+student owns.
+
+Where stacked subscriptions overlap, **most-generous-wins**: a student may
+start a CAT if any active row still has headroom, and `NULL` on any active
+row means unlimited. This matches the table's existing `max(end_at)`
+stacking rule, which already resolves overlaps in the student's favour.
+
+Enforced by one guard in `create_cat_attempt` (CAT Slice 3). The admin UI
+for editing the value, and any student-facing "N CATs left" copy, are
+**deliberately deferred** — the mechanism ships first, the readout when it
+is wanted. Full rationale: `bank-consumption-cat.html` §15.5.
 
 **Dropped from the Licensure pattern** (`products` table):
 

@@ -83,7 +83,9 @@ nursing_subject             TEXT
 body_system                 TEXT
 topic                       TEXT
 subtopic                    TEXT
-difficulty                  TEXT     -- Easy | Medium | Hard
+difficulty                  TEXT     -- Easy | Medium | Hard (curator-set)
+difficulty_irt              NUMERIC  -- system-managed; see note below
+difficulty_source           TEXT     -- CURATOR_LABEL | EMPIRICAL
 bloom_level                 TEXT     -- Remember through Create
 tags                        TEXT[]
 
@@ -368,6 +370,35 @@ All 10 fields are filterable:
 
 The two starred fields are effectively required at authoring time;
 everything else is optional. Students filter on any combination.
+
+### `difficulty` has a system-managed numeric twin
+
+Added 2026-07-19 by the CAT Slice 1 migration (`20260808120000`).
+`difficulty` stays exactly what it has always been — the curator's
+`Easy | Medium | Hard` label, authored by hand, filtered on by students.
+Two companion columns sit beside it and are **not curator-editable**:
+
+- `difficulty_irt` (NUMERIC) — the same difficulty on the numeric Rasch
+  scale the adaptive engine does arithmetic against. Seeded from the label
+  (Easy → −1.0, Medium → 0.0, Hard → +1.0).
+- `difficulty_source` (TEXT) — `CURATOR_LABEL` or `EMPIRICAL`, recording
+  whether the number is still the curator's seeded guess or has been
+  refitted from real student responses.
+
+The two can legitimately diverge over time: the weekly recalibration job
+(CAT Slice 10) rewrites `difficulty_irt` from response data and flips the
+source to `EMPIRICAL`, while the curator's word-label stays untouched. A
+question labelled "Medium" that students consistently find hard will end up
+with a `difficulty_irt` well above 0.0. That is the system working, not a
+mismatch to fix.
+
+**A question with no `difficulty` label keeps `difficulty_irt` NULL**, and
+the engine will not select it — defaulting it to 0.0 would inject fake
+"Medium" evidence into a student's ability estimate. 68 bank questions were
+in this state at migration time, so an unlabelled question is effectively
+invisible to CAT until a curator supplies a difficulty.
+
+Full schema rationale: `bank-consumption-cat.html` §12.7.1 and §5.
 
 ---
 
