@@ -1559,11 +1559,45 @@ Sam's live run @ Q35     theta 1.65  SE 0.369   P(above)  99.999%</code></pre>
   and since our rationale is "match real NCLEX exactly," the numbers are corrected throughout this doc.
 </p>
 
-<h3>9.3 Time limit</h3>
+<h3>9.3 Time limit <span class="status open">reopened — Sam 2026-07-20</span></h3>
 <p>
-  <strong>4 hours.</strong> Real NCLEX gives 5; 4 hours is enough to feel real and build stamina, short enough
+  <strong>4 hours</strong> — as built (<code>TIME_LIMIT_SECONDS</code> in <code>lib/cat/termination.ts</code>).
+  Real NCLEX gives 5; 4 hours is enough to feel real and build stamina, short enough
   not to be punishing for practice. Behaviour at time expiry: auto-terminate, score against current theta + SE,
   mark termination reason as <code>TIME</code>.
+</p>
+<p>
+  <strong>Reopened 2026-07-20 (Sam) — should this be 5 hours?</strong> Noted for a decision, not yet
+  changed. The 4 was deliberate, not an oversight, but three things argue against it.
+</p>
+<ul>
+  <li><strong>It contradicts the principle applied one section earlier.</strong> §9.2 sets 85/150 on the
+    rationale "match real NCLEX exactly. No reason to deviate — students practising for NCLEX should experience
+    NCLEX's range," and the 75/145 → 85/150 correction (2026-07-14) was made on exactly that basis. The time
+    limit is the third dimension of the same envelope and got a different principle.</li>
+  <li><strong>The "not punishing" rationale is inverted.</strong> A time limit is a <em>ceiling</em>, not a
+    duration — nobody is made to sit the full clock. Shortening it cannot help a fast student; it can only cut
+    off a slow one. So 4 hours is <em>more</em> punishing than 5, and most punishing to the students who can
+    least afford it.</li>
+  <li><strong>The pacing maths is tighter than it looks.</strong> The first real CAT (2026-07-19, §19.4.4) ran
+    121 minutes for 85 items ≈ <strong>1.4 min/item</strong>. At that pace a full 150-item run lands near
+    <strong>3 h 35 m</strong> — close to a 4-hour ceiling. A student pacing at 2 min/item hits the clock around
+    question 120 and takes a <code>TIME_LIMIT_HIT</code> verdict on an estimate the engine never got to sharpen.</li>
+</ul>
+<p>
+  <strong>The nuance in the other direction.</strong> Real NCLEX's 5 hours <em>includes</em> the tutorial and all
+  breaks; ours would be 5 hours of pure answering, making a straight 5 somewhat <em>more</em> generous than the
+  real exam rather than identical to it. If the goal is matching effective working time, ~4.5 hours is the closer
+  mirror; if it is matching the number students recognise and compare against, 5 is. <strong>Open: 5 h, 4.5 h, or
+  keep 4 h.</strong>
+</p>
+<p>
+  <strong>Cost of changing it: one line.</strong> The limit is enforced in TypeScript, never stored in the
+  database — no migration, nothing to re-apply. Student-facing copy derives from the constant
+  (<code>home-view.ts</code> → <code>shape.hours</code> → the CAT home), so it propagates on its own. The edit
+  touches the constant + its comment, one test name in <code>termination.test.ts</code> ("stops at 4 hours"), a
+  now-stale comment in the already-applied migration <code>20260809120000</code>, and the ~8 places this doc
+  repeats "4 hours".
 </p>
 
 <h3>9.4 Termination reasons</h3>
@@ -2855,7 +2889,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <li>§6 — Starting difficulty: always theta = 0.0, no carry-over (settled 2026-05-04).</li>
   <li>§7 — Selection rule: closest difficulty + category as tiebreaker; bank-exhaustion fallback locked (settled 2026-05-04). §7.4 reversed 2026-07-14: cases/trends IN for v1. <strong>§7.4 wrapper mechanics settled 2026-07-16 (testlet model):</strong> 3 cases/CAT, spread within the first 85, never at position 1, fixed-schedule (not difficulty-matched); a 6-question case counts as FEWER than six independent measurements (local independence). <strong>Case-scoring method revised 2026-07-18 (Sam): the HYBRID is the chosen build</strong> — each case child updates the main level directly at HALF weight (both the level-move and the certainty-gain halve), so a case counts as ~3 questions, not 6; certainty folds in automatically with no separate case estimate or merge, and it avoids the testlet's noisy fresh-0.0 start. The <strong>testlet model</strong> (separate fresh-0.0 case estimate → confidence-weighted merge with inflated case uncertainty, counting as ~one) is RETAINED as the documented alternative. The "half" is a starting default (an assumption about how much a case's children overlap), tuned from data via the §5/§17 recalibration pipeline. Clinical-judgment read available either way (testlet: by-product; hybrid: computed display-only from the 6 answers). Common to both: 3 cases/CAT, spread within the first 85, never at position 1, fixed-schedule (not difficulty-matched), no new wrapper-difficulty field, wrapper-level exposure. Trends are ALWAYS single questions in CAT — the engine serves one of a trend's linked items as an ordinary adaptive question; case blocks = cases only. Engine taxonomy: items vs case blocks, full stop.</li>
   <li>§8 — Content blueprint: tiebreaker only, never overrides difficulty; monitoring logged for curator dashboard (settled 2026-05-04).</li>
-  <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 85/150 (corrected 2026-07-14 from the pre-NGN 75/145), time limit 4 hours, inconclusive framing (settled 2026-05-04).</li>
+  <li>§9 — Termination: passing standard theta = 0.0, SE ≤ 0.40, min/max 85/150 (corrected 2026-07-14 from the pre-NGN 75/145), time limit 4 hours, inconclusive framing (settled 2026-05-04). <strong>§9.3 reopened 2026-07-20 (Sam)</strong> — the 4-hour limit is under review against real NCLEX's 5; see the carried-forward list below.</li>
   <li>§10 — Architecture: two-RPC flow (<code>create_cat_attempt</code> + <code>cat_next_item</code>), both atomic transactions; pessimistic UI with graceful degradation (current Q stays visible dimmed; spinner at 300ms; "still loading" at 3s; error+retry at 10s); 2-retry silent backoff on network failure, immediate error on server-side throw; engine runtime location (Supabase RPC vs Edge Function vs Worker) deferred to build time with PL/pgSQL recommendation (settled 2026-05-05).</li>
   <li>§11 — Snapshot strategy: per-question at administration time (settled at file creation).</li>
   <li>§12 — Schema additions: build-handoff package locked. Two new columns on <code>nclex_bank_items</code> (<code>difficulty_irt</code> NUMERIC, <code>difficulty_source</code> TEXT with CHECK), mirrored on <code>nclex_tutor_questions</code> for v2 parity. Five new columns on <code>nclex_attempts</code> (<code>cat_verdict</code>, <code>cat_final_theta</code>, <code>cat_final_se</code>, <code>cat_termination_reason</code>, <code>cat_items_administered</code>); four new columns on <code>nclex_attempt_items</code> (<code>cat_theta_before</code>, <code>cat_se_before</code>, <code>cat_item_difficulty</code>, <code>cat_item_difficulty_source</code>). One new audit table <code>nclex_bank_item_calibration_history</code> with FK + ON DELETE CASCADE. Two RPC stubs (<code>create_cat_attempt</code>, <code>cat_next_item</code>) raising "not yet implemented." Verification queries + rollback SQL alongside. Termination reasons collapsed from 5 to 4; audit-table column names rationalised — see §12.7.11 (settled 2026-05-05).</li>
@@ -2868,6 +2902,15 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Carried forward — settle in subsequent planning sessions:</strong></p>
 <ul>
+  <li><strong>The 4-hour time limit — REOPENED (Sam 2026-07-20, §9.3).</strong> Should the CAT clock be 5 hours
+    (real NCLEX's figure), 4.5 (real NCLEX's effective working time once the tutorial and breaks are removed), or
+    stay at 4? Three arguments against the current 4: it contradicts §9.2's "match real NCLEX exactly" principle,
+    applied one section earlier and used to correct 75/145 → 85/150; a time limit is a <em>ceiling</em>, so
+    shortening it can only ever cut off a slow student — the "less punishing" rationale is inverted; and the first
+    real CAT's pace (1.4 min/item) puts a 150-item run at ~3 h 35 m, close enough that a 2-min/item student would
+    time out near question 120. Against a straight 5: real NCLEX's 5 hours includes the tutorial and breaks, so 5
+    hours of pure answering is more generous than the real exam, not equal to it. One-line change, no migration —
+    see §9.3 for the full note and the files it touches.</li>
   <li><strong>Results-report enhancements — WANTED (Sam 2026-07-16, §13.6).</strong> Build after the v1 summary page: average difficulty faced, performance by question type, finer topic drill-down (subcategory/subject/body system), clinical-judgment step detail, and pacing. All are additive report surfaces — the data is already captured; no engine work.</li>
   <li><strong>Results-report exclusions — REVISIT (Sam 2026-07-16, §13.5).</strong> Reconsider (not permanently closed): a theta <strong>percentile</strong> vs other CAT-takers (statistically valid — the old "meaningless" reasoning only applied to raw scores); a supplementary "X of N correct" stat; and the timeline for promoting the readiness probability to a real-NCLEX pass-probability once outcome data exists.</li>
   <li><strong>Classification vocabulary drift vs the 2026 test plan (flagged 2026-07-14).</strong> The 2026 NCLEX-RN Test Plan (effective April 2026, reviewed against the doc this session) renamed one subcategory: <em>"Safety and Infection Control" → "Safety and Infection Prevention and Control."</em> <code>lib/bank/classifications.ts</code> still uses the old name, and all existing bank rows are classified with it. Blueprint <em>percentages</em> are unchanged, so the meter/tiebreaker logic is unaffected. The seed pool deliberately uses the OLD codebase string for consistency. Renaming the enum + migrating existing rows is a small, separate codebase-accuracy fix — not done here.</li>
