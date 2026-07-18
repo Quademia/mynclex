@@ -156,7 +156,21 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-19 — <strong>§7.1 selection revised to nearest-neighbour</strong>
+  Living planning document. Last updated: 2026-07-19 — <strong>Slices 3 and 4 BUILT; the CAT engine now runs end
+  to end</strong> (§19.4, all of Slices 1–4 marked ✅). Slice 3 = <code>create_cat_attempt</code>
+  (<code>20260809120000</code>); Slice 4 = <code>cat_next_item</code> + <code>lib/practice/cat/</code>
+  (<code>20260810120000</code>). <strong>New §19.4.2</strong> records their build decisions: a CAT is stored as
+  <code>source = 'CUSTOM_BUILT'</code> with no new source value added (it launches from the Builder, and
+  <code>mode='CAT'</code> already identifies it — a second column would duplicate a fact); the engine version has
+  one home in <code>nclex_cat_engine_version()</code>; <code>requested_question_count</code> carries the 150
+  ceiling; and <strong>four schema names in §12 prose did not match the live tables</strong>
+  (<code>submission_status</code> not <code>status</code>/'ANSWERED', an own <code>student_id</code>,
+  <code>submitted_at</code> not <code>answered_at</code>, <code>ended_at</code> not <code>completed_at</code>) —
+  the same class of error as the §12.7.5 FK mistake, so treat the live schema as authoritative when writing SQL.
+  Verified by driving a real 13-turn CAT through the RPCs: difficulty escalated Medium→Hard at exactly theta 0.5,
+  the §8.1 category tiebreaker cycled all four categories, and the distance from theta grew once the estimate
+  passed the hardest available rung — the live vindication of the §7.1 revision, since a ±0.1 window would have
+  matched nothing there. Same day: <strong>§7.1 selection revised to nearest-neighbour</strong>
   (Sam, before Slice 4). The step read "within a small difficulty tolerance (<em>provisional: ±0.1</em>) of theta,"
   which assumes difficulty is a continuum. It is not until Slice 10 runs: every <code>difficulty_irt</code> is
   seeded from the Easy/Medium/Hard label, so all 2,353 eligible items sit on exactly three values (−1.0, 0.0,
@@ -2581,7 +2595,8 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     <code>types.ts</code>, <code>index.ts</code> barrel. 56 tests; the doc's own numbers are the fixtures, so
     drift between code and plan fails loudly. No user surface. See §19.4.1 for the two decisions taken during
     the build.</li>
-  <li><strong>Slice 3 — <code>create_cat_attempt</code>.</strong> Opens the attempt at
+  <li><strong>Slice 3 — <code>create_cat_attempt</code>. ✅ BUILT 2026-07-19</strong> (<code>18c2015</code>,
+    migration <code>20260809120000</code>, dev-applied and verified). Opens the attempt at
     <strong>theta = 0.0, SE = 1.0</strong> (the §19.4.1 prior — the starting uncertainty is not a free parameter,
     it is the prior's spread), picks and snapshots the first item, returns the payload.
     <strong>Stamps <code>cat_engine_version</code> at creation</strong>, not completion — that timing is the whole
@@ -2593,7 +2608,9 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     start RPC and no unstarted-attempt state. That makes <strong>idempotency mandatory</strong>: a double-click or
     a retried request must return the existing attempt, never open a second exam. It is called from the CAT entry
     page's preflight, not from <code>/session</code>.</li>
-  <li><strong>Slice 4 — the core loop, standalone-only.</strong> <em>Rewritten 2026-07-19 — the earlier wording
+  <li><strong>Slice 4 — the core loop, standalone-only. ✅ BUILT 2026-07-19</strong> (<code>73e60e7</code>,
+    migration <code>20260810120000</code> + <code>lib/practice/cat/</code>, dev-applied and verified; see
+    §19.4.2). <em>Rewritten 2026-07-19 — the earlier wording
     ("score → Rasch update → termination check → select → snapshot, atomic transaction") described the whole loop
     running inside the RPC, which is the pre-§10.6 architecture.</em> The loop now spans <strong>two pieces</strong>:
     <ul>
@@ -2742,6 +2759,86 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   student (true 0.3) took <strong>107</strong> items. None reached the 150 ceiling. That is the §9.1 95% rule
   behaving as predicted — clearly-placed students finish fast, genuinely borderline students earn more evidence.
   <em>Idealised: a real pool cannot always supply a perfectly matched item, so expect somewhat longer.</em>
+</p>
+
+<h3 id="s19-slice34-decisions">19.4.2 Slice 3 &amp; 4 build decisions <span class="status settled">settled 2026-07-19</span></h3>
+<p>
+  Recorded here for the same reason as §19.4.1 — these were taken during the build and would otherwise live only
+  in the code.
+</p>
+
+<h4>No <code>CAT</code> value is added to <code>nclex_attempts.source</code></h4>
+<p>
+  <code>source</code> permits only <code>CUSTOM_BUILT</code> / <code>READINESS_PACK</code> /
+  <code>PROGRAMME_ASSIGNED</code>. A CAT is stored as <strong><code>CUSTOM_BUILT</code></strong>, deliberately:
+  CAT is launched from the Builder under EXAM intent (parent <code>bank-consumption.html</code> §17), so it
+  genuinely is student-built; the <code>source_refs</code> CHECK is satisfied (all four reference columns NULL);
+  and Exit resolves correctly to <code>/student/bank/practice</code>. <code>mode = 'CAT'</code> already identifies
+  a CAT uniquely — the <code>intent_mode_tuple</code> CHECK pairs EXAM+CAT — so a second column saying the same
+  thing would duplicate a fact, the same reasoning that kept the direction out of
+  <code>cat_termination_reason</code> (§9.4).
+</p>
+<p>
+  <strong>No migration was needed for the attempt shape at all</strong>, which was checked rather than assumed:
+  <code>CAT</code> mode, the EXAM+CAT tuple and the <code>ABANDONED</code> status were already permitted.
+</p>
+
+<h4>The engine version has one home</h4>
+<p>
+  <code>nclex_cat_engine_version()</code> (currently <code>rasch-1pl-eap-v1</code>) rather than a literal repeated
+  in SQL and TypeScript. Bump it when the update formula changes (§4.4 2PL, §4.5 Option 3); the Slice 10
+  recalibration job reads the same value.
+</p>
+
+<h4><code>requested_question_count</code> carries the 150 ceiling</h4>
+<p>
+  The column is NOT NULL with a <code>&gt; 0</code> CHECK, and a CAT's true length (85–150) is unknowable in
+  advance, so the ceiling is the only honest fixed number available.
+</p>
+
+<h4>Four schema names in §12 prose did not match the live tables</h4>
+<p>
+  Caught while writing Slice 4, by checking rather than by a failed migration:
+  <code>nclex_attempt_answers</code> uses <strong><code>submission_status</code></strong>
+  (DRAFT / SUBMITTED / AUTO_SUBMITTED / SKIPPED), not a <code>status</code> column with an 'ANSWERED' value;
+  it carries its own <strong><code>student_id</code></strong>; it stamps <strong><code>submitted_at</code></strong>,
+  not <code>answered_at</code>; and <code>nclex_attempts</code> ends at <strong><code>ended_at</code></strong>,
+  not <code>completed_at</code>. Same class of error as the §12.7.5 <code>bank_item_id</code> mistake — treat the
+  live schema, not this doc's prose, as authoritative when writing SQL.
+</p>
+<p>
+  <strong><code>answer_changes_json</code> is deliberately NOT touched on conflict.</strong> It is the
+  second-guessing log the results report reads, and a retried turn must not erase it.
+</p>
+
+<h4>Verified by driving a real CAT, not only by unit tests</h4>
+<p>
+  A 13-turn exam run through the actual RPCs on dev. The trajectory is the evidence:
+</p>
+<pre><code>pos   theta_before   item_diff   distance   category
+ 1       0.00           0.0        0.00     Physiological
+ 2       0.18           0.0        0.18     Health Promotion
+ 3       0.36           0.0        0.36     Psychosocial
+ 4       0.54           1.0        0.46     Safe and Effective
+13       2.16           1.0        1.16     Health Promotion</code></pre>
+<ul>
+  <li><strong>Difficulty escalated Medium → Hard at exactly theta 0.5</strong> — the nearest-neighbour crossover,
+    unprompted.</li>
+  <li><strong>The §8.1 category tiebreaker cycled all four Client Needs categories in strict rotation.</strong></li>
+  <li><strong>The distance grows after position 10</strong> because theta passed the hardest available rung. This
+    is the live vindication of the §7.1 revision: a ±0.1 window would have matched <em>nothing</em> at theta 1.98
+    and fired the §7.5 fallback on every pick. It is also a standing signal that the pool needs difficulty spread
+    at the extremes — Slice 10's job.</li>
+</ul>
+
+<h4>Test-infrastructure note — the <code>server-only</code> marker</h4>
+<p>
+  <code>import 'server-only'</code> is the repo's server-module marker, but the package is not in
+  <code>node_modules</code> — Next.js resolves it through its own build alias. Any module carrying it was
+  therefore untestable under Vitest, which had never surfaced because no existing server module had tests. A stub
+  (<code>test/stubs/server-only.ts</code>) plus a <code>vitest.config.ts</code> alias fixes it. The marker was kept
+  rather than dropped: removing it to make a module testable would trade a real safety guarantee (a Client
+  Component importing server code fails loudly) for test convenience.
 </p>
 
 <p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>
