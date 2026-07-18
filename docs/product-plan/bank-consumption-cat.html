@@ -156,7 +156,18 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-19 (two pre-build decisions taken, both folded into Slice 1.
+  Living planning document. Last updated: 2026-07-19 (<strong>§9.1 confidence rule corrected to 95% (±1.96 SE)</strong>
+  — raised by Sam, who noticed the real NCLEX's well-known "95% confidence interval rule" appeared nowhere in this
+  plan. It didn't, and the omission was live: §9.1 defined the rule only as "the SE band doesn't cross zero" and
+  illustrated it with <em>0.5 / SE 0.40 → band 0.1 to 0.9</em>, which is a <strong>±1 SE</strong> band ≈ 68%
+  confidence — apparently never chosen, just a by-product of writing the example with one SE. It would have shipped
+  "you're ready" verdicts at ~84% one-sided confidence, wrong about one time in six. Now stated explicitly as
+  theta ± 1.96 × SE, with the cost named (fewer early stops, more exams running toward the 150 ceiling; if that
+  rate is too high the lever is the SE ≤ 0.40 threshold, not the confidence rule) and the two conditions
+  distinguished (SE = precision floor, band = separation rule; not redundant). §9.5 gains the equivalence —
+  a 95% band clearing zero is exactly P(ability &gt; 0) ≥ 97.5% — which doubles as a Slice 2 cross-check and
+  explains why a 150-ceiling CAT can still show a confident-looking readiness probability.
+  Earlier same day: two pre-build decisions taken, both folded into Slice 1.
   <strong>New §15.5 — CAT allowance</strong>: §15.1's "unlimited" becomes a policy <em>default</em> rather than a
   constant. A nullable <code>cat_allowance</code> on <code>nclex_products</code> (NULL = unlimited, 0 = none,
   N = N per window) is snapshotted onto <code>nclex_subscriptions</code> at activation and enforced by one guard in
@@ -1145,8 +1156,46 @@
 <p>The engine terminates when both are true at the same time:</p>
 <ul>
   <li><strong>Standard error of the ability estimate ≤ 0.40.</strong> The margin of error has shrunk to the point where the engine is confident in the estimate.</li>
-  <li><strong>Ability estimate is clearly above (or clearly below) the passing standard of theta = 0.0.</strong> "Clearly" means the SE band around the estimate doesn't cross zero. If the estimate is 0.5 and the SE is 0.40, the band is 0.1 to 0.9 — entirely above zero, confident pass. If the estimate is 0.2 and the SE is 0.40, the band is −0.2 to +0.6 — crosses zero, keep going.</li>
+  <li><strong>Ability estimate is clearly above (or clearly below) the passing standard of theta = 0.0.</strong>
+    "Clearly" means the <strong>95% confidence interval</strong> around the estimate — <strong>theta ± 1.96 ×
+    SE</strong> — lies entirely on one side of zero. Revised 2026-07-19; see the multiplier note below.
+    <ul>
+      <li>Estimate 0.5, SE 0.40 → band <strong>−0.28 to 1.28</strong> — crosses zero, <em>keep going</em>.</li>
+      <li>Estimate 0.9, SE 0.40 → band <strong>0.12 to 1.68</strong> — entirely above zero, <em>terminate,
+        ABOVE_STANDARD</em>.</li>
+      <li>Estimate 0.5, SE 0.20 (later in the exam, evidence accumulated) → band <strong>0.11 to 0.89</strong> —
+        <em>terminate, ABOVE_STANDARD</em>.</li>
+    </ul>
+  </li>
 </ul>
+<p class="callout">
+  <strong>The multiplier is 1.96, and it must be stated explicitly (settled 2026-07-19, Sam).</strong>
+  This section previously defined the rule as "the SE band doesn't cross zero" and illustrated it with
+  <em>estimate 0.5, SE 0.40 → band 0.1 to 0.9</em>. That worked example is a <strong>±1 SE</strong> band — roughly
+  <strong>68%</strong> confidence — which nobody appears to have chosen deliberately; it fell out of writing the
+  example with a single SE. Under it, a student would be told "you're ready" on about <strong>84%</strong>
+  one-sided confidence, i.e. roughly <strong>one such verdict in six would be wrong</strong>.
+</p>
+<p>
+  <strong>Why 95%.</strong> The real NCLEX's core stopping rule <em>is</em> the 95% confidence-interval rule — it
+  serves questions until it is 95% confident the candidate sits on one side of the standard. This doc's stated
+  north star is to match the real exam (the same principle that corrected 75/145 → 85/150 in §9.2), and the
+  verdict is high-stakes: students use it to decide whether to book a real exam sitting. ~84% is too loose for
+  that decision.
+</p>
+<p>
+  <strong>What it costs, stated honestly.</strong> A wider band takes longer to clear zero, so fewer CATs stop
+  early and more run toward the 150 ceiling — precisely what §9.1's SE ≤ 0.40 choice was hedging against. At
+  SE 0.40 the old rule needed |theta| &gt; 0.40; the new one needs |theta| &gt; 0.78. This lengthens exams rather
+  than stranding students, because SE keeps shrinking as evidence accumulates: by SE 0.20 the 95% rule only needs
+  |theta| &gt; 0.39. <strong>Watch the 150-ceiling rate once real CATs run.</strong> If too many students hit it,
+  the honest lever is the SE ≤ 0.40 threshold, <em>not</em> weakening the confidence rule back toward a coin-flip.
+</p>
+<p>
+  <strong>The two conditions are not redundant.</strong> SE ≤ 0.40 is a <em>precision</em> floor (the estimate must
+  be sharp); the 95% band is a <em>separation</em> rule (it must be far enough from the line). A sharp estimate
+  sitting at theta = 0.05 fails the second; a distant estimate with a huge SE fails the first. Both are required.
+</p>
 <p>
   <strong>Why theta = 0.0 as the passing standard:</strong> the real NCLEX standard is set by NCSBN's standard-
   setting committee from outcome data we don't have, so we can't copy them. theta = 0.0 means "measurably above
@@ -1197,7 +1246,8 @@
 </p>
 <p><strong>How the side is decided:</strong></p>
 <ul>
-  <li><strong>Confidence reached</strong> (SE ≤ 0.40, the estimate's band clears 0, ≥ 85 items) → that side. (§9.1)</li>
+  <li><strong>Confidence reached</strong> (SE ≤ 0.40, the estimate's <strong>95% band (±1.96 SE)</strong> clears 0,
+    ≥ 85 items) → that side. (§9.1)</li>
   <li><strong>Maximum length (150)</strong> → confidence requirement dropped; decided by which side of 0.0 the final estimate sits (≥ 0 → above, &lt; 0 → below). Mirrors the NCLEX Maximum-Length rule.</li>
   <li><strong>Time-out (4 h)</strong> → same as max length if ≥ 85 answered; BELOW_STANDARD if fewer than 85 answered. Mirrors the NCLEX Run-Out-Of-Time rule.</li>
 </ul>
@@ -1206,8 +1256,23 @@
   compute <em>P(true ability &gt; 0)</em> — the normal-curve area above the 0.0 line. This is the honest, native
   Rasch output, available from launch day. Examples: estimate 0.5 / SE 0.40 → <strong>~89%</strong>; 0.1 / 0.40 →
   <strong>~60%</strong>; −0.3 / 0.40 → <strong>~23%</strong>. It is derivable from <code>cat_final_theta</code> +
-  <code>cat_final_se</code>, so no new stored column is strictly required (an optional
-  <code>cat_readiness_probability</code> may be stored for display/analytics convenience).
+  <code>cat_final_se</code>, so no new stored column is strictly required. <em>Build note 2026-07-19: the optional
+  <code>cat_readiness_probability</code> column was considered and NOT added in Slice 1 — a recomputable value
+  should not also be stored, because the copy can drift from the formula that produces it (§12.7.12).</em>
+</p>
+<p class="callout">
+  <strong>This probability and the §9.1 stopping rule are the same statement.</strong> A 95% interval
+  (±1.96 SE) clearing zero is <em>exactly</em> the condition <em>P(true ability &gt; 0) ≥ 97.5%</em> — or ≤ 2.5%
+  on the below side. So the termination check can be read either way, which makes a useful implementation
+  cross-check in Slice 2: the band test and the probability test must always agree.
+</p>
+<p>
+  It also explains the examples above. Estimate 0.5 / SE 0.40 gives <strong>~89%</strong> — short of 97.5%, so the
+  engine does <em>not</em> stop there, matching §9.1's worked example where that band (−0.28 to 1.28) still crosses
+  zero. Estimate 0.9 / SE 0.40 gives <strong>~98.8%</strong>, which clears the bar, matching §9.1's terminating
+  example. <strong>A student can therefore see a confident-looking readiness probability on a CAT that ran to the
+  150 ceiling</strong> — the number and the verdict are consistent, the exam simply never reached the stricter
+  stopping bar. Worth keeping in mind for the §13 results copy.
 </p>
 <p>
   <strong>Honesty guardrail (see §3.5):</strong> this probability is framed as <em>"how confident we are you're
