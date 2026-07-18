@@ -156,7 +156,20 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-19 — <strong>new §7.6: how many trends land in a sitting is
+  Living planning document. Last updated: 2026-07-19 — <strong>new §7.7: the three-rung difficulty ladder's observed consequences</strong> (status OPEN), found
+  by Sam driving a real CAT rather than by testing. §7.1 anticipated the coarse ladder and switched to
+  nearest-neighbour so it "degrades gracefully" — it does, but two things that phrase undersold showed up live.
+  <strong>(1)</strong> At theta 2.14 against a hardest item of 1.0, every question is over a logit too easy and each
+  answer carries ~27% less information; five deliberate wrong answers moved theta correctly (2.24 → 1.65) but could
+  not change the served difficulty, because Hard stays the nearest rung until theta falls below 0.5 — a student
+  reads that as an exam that has stopped listening. <strong>(2)</strong> The §9.5 readiness probability
+  <strong>saturates at ~100%</strong> for anyone clearly above the line (Sam's live run: 99.999%); the worked
+  89/60/23% values in §9.5 quietly assume a bank with spread, and §13 plans to show that number to students.
+  Two things the same run CONFIRMED correct: theta asymptotes rather than running away (20/60/120 all-correct →
+  2.85/3.55/3.80), and a high estimate cannot be banked — "60 right then 60 wrong" and "alternating 60/60" both
+  give theta 0.97, because the estimator recomputes from the whole history. <strong>Consequence: Slice 10's
+  priority is raised</strong> from "trails, not needed to launch" — true of the engine, not of the plan's promises.
+  Decide before Slice 7 builds the results display. Earlier same day: <strong>new §7.6: how many trends land in a sitting is
   currently NOT guaranteed, and that is a real divergence from the real exam</strong> (status OPEN, for Sam).
   Cases have a quota (exactly 3); trends have none, so the count is emergent — measured on the dev pool at ~1 per
   85-item exam and ~2 at 150, with <em>zero</em> a realistic outcome (observed in two of three drives). The
@@ -1269,6 +1282,71 @@
 </ol>
 <p>
   Nothing blocks the remaining slices; this is a v1-scope question that can be settled any time before launch.
+</p>
+
+
+<h3 id="s7-7">7.7 The three-rung difficulty ladder — observed consequences <span class="status open">open — Sam 2026-07-19</span></h3>
+<p>
+  Found by Sam driving a real CAT in the browser on 2026-07-19, not by testing. Every
+  <code>difficulty_irt</code> is currently seeded from the curator's Easy/Medium/Hard label, so the entire
+  eligible pool sits on <strong>three values: −1.0, 0.0, +1.0</strong>. §7.1 already anticipated this and switched
+  selection to nearest-neighbour so it <em>degrades gracefully</em>. It does. But two consequences show up in a
+  live exam that "degrades gracefully" undersold.
+</p>
+
+<h4>1. The exam stops visibly responding to a strong student</h4>
+<p>
+  Sam reached theta 2.14 while the hardest item we own is 1.0. Every question was then over a logit too easy —
+  ~76% correct on ability alone, and <strong>each answer carrying ~27% less information</strong> than a matched
+  one. He then answered five in a row deliberately wrong; theta fell correctly (2.24 → 1.65) but the served
+  difficulty <em>could not change</em>, because Hard remains the nearest rung until theta drops below <strong>0.5</strong>
+  — the midpoint. From 2.24 that is roughly ten more wrong answers before the engine can appear to react.
+</p>
+<p>
+  Nothing is broken; there is simply nothing between 1.0 and 0.0 to serve. But a student reads it as an exam that
+  has stopped listening, which is the opposite of what an adaptive test is meant to feel like.
+</p>
+
+<h4>2. The readiness probability saturates — and §9.5 promises otherwise</h4>
+<p>
+  §9.5 offers the readiness probability as "the honest, native Rasch output, available from launch day," with
+  worked values of 89% / 60% / 23%. Those illustrations quietly assume a bank with spread difficulty. On a
+  three-rung bank it <strong>pins at ~100% for anyone clearly above the line and ~0% below</strong>, and only says
+  anything useful for a student sitting almost exactly on the boundary. Measured against the built engine:
+</p>
+<pre><code>20 Hard, all correct     theta 2.85  SE 0.509   P(above) 100.0%
+60 Hard, all correct     theta 3.55  SE 0.311   P(above) 100.0%
+60 right THEN 60 wrong   theta 0.97  SE 0.180   P(above) 100.0%
+Sam's live run @ Q35     theta 1.65  SE 0.369   P(above)  99.999%</code></pre>
+<p>
+  The maths is right — we genuinely are that confident. But <strong>§13 plans to show this number to
+  students</strong>, and a "readiness" figure reading 100% for most passing candidates is not the honest,
+  informative signal §9.5 describes.
+</p>
+
+<h4>Two things this run also CONFIRMED as correct</h4>
+<ul>
+  <li><strong>theta does not run away.</strong> It asymptotes — 20 → 60 → 120 all-correct answers give 2.85 → 3.55
+    → 3.80. Once a student is well above an item's difficulty, getting it right is expected and barely updates the
+    estimate; the prior and the ±4 grid bound the rest.</li>
+  <li><strong>A high estimate cannot be banked.</strong> The estimator recomputes from the whole history, so
+    "60 right then 60 wrong" and "alternating 60/60" both give <strong>theta 0.97</strong> — identical. There is no
+    coasting on early success. (Slice 2 asserts this order-independence explicitly.)</li>
+</ul>
+<p>
+  A student who scores 50% on <em>Hard</em> items landing at 0.97 — a pass — is the model working, not a loophole:
+  where you score is as meaningful as how much.
+</p>
+
+<h4>What this changes</h4>
+<p>
+  <strong>Slice 10 is no longer only a post-launch nicety.</strong> §19.4 files it as "trails; not needed to launch
+  CAT," which is true of the engine but <em>not</em> of the plan's promises: meaningful difficulty tracking for
+  strong students and an informative readiness probability both depend on difficulty having real spread, which is
+  exactly what recalibration produces. <strong>Open — decide before Slice 7 builds the results display</strong>
+  whether to show the probability as planned, reshape it, or gate it until recalibration has run.
+  A curator-side alternative worth weighing: authoring items deliberately above +1.0 and below −1.0 would widen
+  the ladder without waiting for response data.
 </p>
 
 
@@ -2855,6 +2933,10 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     empirical ones over time: 30-response threshold, 70/30 blend, writes <code>difficulty_irt</code> +
     <code>difficulty_source</code> + the audit table, plus a manual trigger. A CAT runs fully without it — it only
     sharpens difficulty as data accumulates.
+    <strong>⚠ Priority raised 2026-07-19 (§7.7).</strong> "Not needed to launch" is true of the <em>engine</em> but
+    not of the plan's <em>promises</em>: a live run showed that on the current three-rung ladder the exam cannot
+    visibly track a strong student, and the §9.5 readiness probability saturates at ~100% — the number §13 intends
+    to show students. Both need difficulty spread, which is what this slice produces.
     <strong>Inputs:</strong> the per-item CAT columns (§12.7.4) — the snapshotted
     <code>cat_item_difficulty</code>, the recorded <code>cat_weight</code>, and
     <code>nclex_attempts.cat_engine_version</code>, which tells the job which update formula produced a given
