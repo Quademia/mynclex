@@ -13,6 +13,7 @@
 // advance — so every line here is fixed copy.
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { startCatAttemptAction } from '@/lib/practice/cat/start-action';
 import type { CatHomeView } from '@/lib/practice/cat/home-view';
@@ -112,7 +113,7 @@ export function CatHomeClient({ view }: { view: CatHomeView }) {
         ) : (
           <table className="cat-table">
             <thead>
-              <tr><th>Date</th><th>Questions</th><th>Result</th></tr>
+              <tr><th>Date</th><th>Questions</th><th>Result</th><th /></tr>
             </thead>
             <tbody>
               {history.map((h) => (
@@ -120,12 +121,19 @@ export function CatHomeClient({ view }: { view: CatHomeView }) {
                   <td>{formatDate(h.endedAt)}</td>
                   <td>{h.itemsAdministered ?? '—'}</td>
                   <td>{verdictLabel(h.verdict)}</td>
+                  <td className="cat-table-go">
+                    {/* Every terminal row links — including one with no
+                        verdict, which lands on the abandoned surface and is
+                        told why there is nothing to show. */}
+                    <Link href={`/student/bank/cat/result/${h.attemptId}`}>
+                      {h.verdict ? 'View report' : 'Details'}
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-        {/* Slice 7 turns these rows into links to the full report. */}
       </section>
 
       {showPreflight && (

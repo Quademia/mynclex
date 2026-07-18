@@ -247,3 +247,488 @@
   .cat-section { overflow-x: auto; }
   .cat-table { min-width: 380px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * The CAT results page (§13) — /student/bank/cat/result/[attemptId]
+ *
+ * Page-scoped under .catr. Mobile-first per CLAUDE.md UI #3: the phone
+ * layout is the base and the 768px block widens it, because the audience
+ * is phone-first and the trajectory graph is the hard case at 375px.
+ *
+ * Tone (.catr-pass / -fail / -caution) is set once on the root and drives
+ * the ring, chips and bars, so a verdict's colour cannot disagree with
+ * itself between regions.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+.catr {
+  --catr-tone: #16a34a;
+  --catr-tone-bg: #dcfce7;
+  --catr-tone-fg: #15803d;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 18px 16px 56px;
+}
+
+.catr-fail {
+  --catr-tone: #dc2626;
+  --catr-tone-bg: #fee2e2;
+  --catr-tone-fg: #b91c1c;
+}
+
+.catr-caution {
+  --catr-tone: #d97706;
+  --catr-tone-bg: #fef3c7;
+  --catr-tone-fg: #92400e;
+}
+
+.catr-top { margin-bottom: 14px; }
+
+.catr-back {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  text-decoration: none;
+  margin-bottom: 14px;
+}
+.catr-back:hover { color: var(--text, #0f172a); }
+
+.catr-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  margin: 0 0 4px;
+}
+
+.catr-date {
+  font-size: 12.5px;
+  color: var(--text-muted, #94a3b8);
+  margin: 0;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────── */
+
+.catr-card {
+  background: #fff;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 6%);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.catr-h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy, #1e3a5f);
+  margin: 0;
+}
+
+.catr-sub {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted, #94a3b8);
+  margin: 3px 0 0;
+}
+
+.catr-footnote {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted, #94a3b8);
+  margin: 14px 0 0;
+  border-top: 1px solid var(--border-subtle, #f3f4f6);
+  padding-top: 11px;
+}
+
+/* ── Verdict hero ───────────────────────────────────────────────── */
+
+.catr-verdict { padding: 0; overflow: hidden; }
+
+.catr-verdict-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  background: var(--catr-tone-bg);
+}
+
+.catr-ring {
+  flex: none;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #fff;
+  border: 5px solid var(--catr-tone);
+  padding: 4px;
+}
+
+.catr-ring-pct {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--catr-tone-fg);
+  line-height: 1;
+}
+
+.catr-ring-cap {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--catr-tone-fg);
+  line-height: 1.2;
+  margin-top: 2px;
+  opacity: 0.85;
+}
+
+.catr-verdict-text { flex: 1; min-width: 0; }
+
+.catr-chip {
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--catr-tone-fg);
+}
+
+.catr-headline {
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 8px 0 0;
+  color: var(--text, #0f172a);
+}
+
+.catr-verdict-body { padding: 16px 18px 18px; }
+
+.catr-subline {
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 500;
+  color: var(--text, #374151);
+  margin: 0 0 10px;
+}
+
+.catr-body {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-muted, #6b7280);
+  margin: 0 0 10px;
+}
+.catr-body:last-child { margin-bottom: 0; }
+
+.catr-items {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text, #374151);
+  margin: 0 0 12px;
+  padding: 0 2px;
+}
+
+/* ── The ceiling caveat (§9.5) ──────────────────────────────────── */
+
+.catr-caveat {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.catr-caveat-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 5px;
+}
+
+.catr-caveat-body {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #78350f;
+  margin: 0;
+}
+
+/* ── Trajectory ─────────────────────────────────────────────────── */
+
+.catr-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 12px;
+}
+
+.catr-focus {
+  background: var(--surface-subtle, #f8fafc);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 9px;
+  padding: 10px 12px;
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text, #374151);
+}
+
+.catr-chips-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted, #94a3b8);
+  margin: 16px 0 8px;
+}
+
+.catr-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22px, 1fr));
+  gap: 4px;
+}
+
+.catr-chip-q {
+  appearance: none;
+  border: 1px solid transparent;
+  aspect-ratio: 1;
+  width: 100%;
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.catr-chip-q.is-correct { background: #2f9e58; }
+.catr-chip-q.is-partial { background: #e0912f; }
+.catr-chip-q.is-wrong   { background: #d5544f; }
+.catr-chip-q.is-case    { border-radius: 50%; }
+.catr-chip-q.is-focused {
+  outline: 2px solid var(--navy, #1e3a5f);
+  outline-offset: 1px;
+  transform: scale(1.15);
+}
+.catr-chip-q:focus-visible {
+  outline: 2px solid var(--navy, #1e3a5f);
+  outline-offset: 2px;
+}
+
+.catr-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+}
+.catr-legend li { display: inline-flex; align-items: center; gap: 5px; }
+
+.catr-key {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+.catr-key.is-correct { background: #2f9e58; }
+.catr-key.is-partial { background: #e0912f; }
+.catr-key.is-wrong   { background: #d5544f; }
+.catr-key.is-case    { background: var(--navy, #1e3a5f); border-radius: 50%; }
+
+/* ── Category breakdown ─────────────────────────────────────────── */
+
+.catr-cats { list-style: none; margin: 14px 0 0; padding: 0; }
+.catr-cat + .catr-cat { margin-top: 12px; }
+
+.catr-cat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.catr-cat-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #374151);
+}
+
+.catr-cat-num {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--catr-tone-fg);
+  white-space: nowrap;
+}
+
+.catr-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--border-subtle, #f1f5f9);
+  overflow: hidden;
+}
+
+.catr-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--catr-tone);
+}
+
+/* ── Clinical judgment ──────────────────────────────────────────── */
+
+.catr-cj-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.catr-cj-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.catr-cj-chip.is-strong     { background: #dcfce7; color: #15803d; }
+.catr-cj-chip.is-mixed      { background: #fef3c7; color: #92400e; }
+.catr-cj-chip.is-developing { background: #fee2e2; color: #b91c1c; }
+
+/* ── Compare to previous ────────────────────────────────────────── */
+
+.catr-prior { list-style: none; margin: 14px 0 0; padding: 0; }
+
+.catr-prior-row {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+}
+.catr-prior-row.is-current .catr-prior-label,
+.catr-prior-row.is-current .catr-prior-verdict {
+  font-weight: 700;
+  color: var(--navy, #1e3a5f);
+}
+
+.catr-prior-label,
+.catr-prior-verdict {
+  font-size: 11.5px;
+  color: var(--text-muted, #94a3b8);
+}
+.catr-prior-verdict { text-align: right; }
+
+.catr-prior-track {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-subtle, #f1f5f9);
+}
+/* The passing standard, dead centre of the track. */
+.catr-prior-track::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  bottom: -4px;
+  width: 1px;
+  background: var(--navy, #1e3a5f);
+  opacity: 0.35;
+}
+
+.catr-prior-dot {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid #fff;
+}
+.catr-prior-dot.is-above { background: #16a34a; }
+.catr-prior-dot.is-below { background: #dc2626; }
+
+.catr-first { background: var(--surface-subtle, #f8fafc); border-style: dashed; }
+
+/* ── Actions ────────────────────────────────────────────────────── */
+
+.catr-actions { margin-top: 18px; }
+
+.catr-btn {
+  display: block;
+  border-radius: 9px;
+  padding: 13px 20px;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.catr-btn-primary { background: var(--navy, #1e3a5f); color: #fff; }
+.catr-btn-primary:hover { filter: brightness(1.1); }
+
+.catr-btn-ghost {
+  background: transparent;
+  color: var(--navy, #1e3a5f);
+  border: 1px solid var(--border-strong, #cbd5e1);
+  font-size: 14px;
+}
+.catr-btn-ghost:hover { background: var(--surface-subtle, #f8fafc); }
+
+.catr-btn-note {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-muted, #94a3b8);
+  text-align: center;
+  margin: 9px 0 16px;
+}
+.catr-btn-note:last-child { margin-bottom: 0; }
+
+/* ── Abandoned ──────────────────────────────────────────────────── */
+
+.catr-abandoned-body {
+  text-align: center;
+  padding: 28px 0;
+  max-width: 38ch;
+  margin: 0 auto;
+}
+.catr-abandoned-body .catr-headline { margin: 6px 0 14px; }
+.catr-abandoned-body .catr-actions { margin-top: 24px; }
+
+/* ═══ Desktop (CLAUDE.md UI #3 — 768px) ═══════════════════════════
+ * The rail carries the verdict; the trajectory and breakdown take the
+ * main column, mirroring the readiness report's two-pane shape.
+ */
+@media (min-width: 769px) {
+  .catr {
+    max-width: 1000px;
+    padding: 26px 24px 64px;
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 0 18px;
+    align-items: start;
+  }
+
+  /* Exactly three children — header, rail, main — so the main column
+   * flows on its own. Auto-placing every card instead gave the items
+   * line a grid row as tall as the verdict card beside it. */
+  .catr-top { grid-column: 1 / -1; }
+  .catr-rail { grid-column: 1; position: sticky; top: 20px; }
+  .catr-main { grid-column: 2; }
+
+  .catr-ring { width: 104px; height: 104px; }
+  .catr-ring-pct { font-size: 23px; }
+  .catr-headline { font-size: 27px; }
+
+  .catr-chips { grid-template-columns: repeat(auto-fill, minmax(20px, 1fr)); }
+
+  /* The abandoned page has no rail — it stays one centred column. */
+  .catr-abandoned { display: block; max-width: 560px; }
+}
