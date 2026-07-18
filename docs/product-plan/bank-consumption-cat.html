@@ -156,8 +156,22 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-19 — <strong>§19.4 remaining slices audited against the day's
-  decisions and revised.</strong> Slice 4 was materially wrong: it described the whole loop running inside the RPC,
+  Living planning document. Last updated: 2026-07-19 — <strong>new §10.7: creating a CAT is ONE atomic act, no
+  create/start split.</strong> Raised by Sam thinking ahead to the UI — the spend belongs at the preflight, the last
+  point a student can change their mind. Both candidate designs put the spend there, so the split was weighed on
+  its side effects and rejected for CAT: the reason readiness splits (its preflight renders
+  <code>itemCount</code> off the created row) cannot apply, since CAT length is 85–150 and unknowable in advance,
+  so every word on a CAT preflight is static; and an unstarted attempt row is a standing hazard — it looks like a
+  CAT attempt but is not one, so the allowance count, history, analytics and above all <strong>§15.2 exposure
+  exclusion</strong> would each have to remember a <code>started_at</code> filter. Miss it there and a preflight the
+  student abandoned leaves a snapshotted question 1 marked "seen," withholding it from their next three real CATs —
+  silently, with nothing erroring. Collapsing creation and start gives that bug nowhere to live. Cost paid
+  knowingly: two patterns for one-shot exams, principled rather than accidental, recorded so nobody "fixes" it.
+  Consequences — idempotency is mandatory (one call creates, starts and spends), and the CAT preflight is its OWN
+  surface on the entry page rather than a branch of the shared <code>/session</code> gate, which is addressed by an
+  attempt id that does not yet exist; the shared runner needs no change because it renders only while
+  <code>started_at</code> is NULL. Slice 3 and Slice 6 updated. Same day: <strong>§19.4 remaining slices audited
+  against the day's decisions and revised.</strong> Slice 4 was materially wrong: it described the whole loop running inside the RPC,
   the pre-§10.6 architecture. Rewritten as the two pieces it now is (a server-side TypeScript orchestrator +
   <code>cat_next_item</code>), with atomicity restated precisely and the <em>new</em> response-history read called
   out — §19.4.1's estimator recomputes from the full history, work the old incremental design never needed. Slice 3
@@ -1470,6 +1484,61 @@
   than §10.2's prose implies.
 </p>
 
+<h3 id="s10-7">10.7 Creating a CAT is one atomic act — no create/start split <span class="status settled">settled 2026-07-19</span></h3>
+<p>
+  <strong>Decision (Sam, 2026-07-19): nothing exists until the student confirms at the preflight.</strong> The
+  preflight is the last honest moment to change their mind, so it is where the attempt row is created, the clock
+  starts, and the allowance is spent — all in the one call, all in one transaction. Before that button there is no
+  attempt row, no snapshotted item, and nothing counted.
+</p>
+<p>
+  <strong>This deliberately does NOT mirror the readiness pattern. Do not "fix" it to match.</strong> Readiness
+  splits creation from starting — <code>nclex_create_readiness_attempt</code> leaves <code>started_at</code> NULL
+  and spends nothing, then <code>nclex_start_readiness_attempt</code> stamps <code>used_at</code> and starts the
+  clock together. Both designs put the spend at the confirm, so both satisfy the requirement; the split was
+  weighed and rejected for CAT on two grounds:
+</p>
+<ul>
+  <li><strong>The reason readiness splits does not apply to CAT.</strong> The readiness preflight renders content
+    off the created row — <em>"You're about to sit a {itemCount}-question readiness exam"</em> — so the attempt has
+    to exist before the gate can be drawn. A CAT preflight has nothing equivalent: its length is
+    <strong>85–150 and unknowable in advance</strong> (§9.2), so every word on the screen is static. The split buys
+    something CAT cannot use.</li>
+  <li><strong>An unstarted attempt row is a standing hazard.</strong> Under a split, a row exists that looks like a
+    CAT attempt but is not one, and <em>every</em> query about a student's CAT attempts must remember to exclude it
+    — the §15.5 allowance count, history and results lists, analytics, and most dangerously <strong>§15.2 exposure
+    exclusion</strong>. An abandoned preflight would leave a snapshotted question 1 attached to a row that never
+    became an exam; if the exposure query omits the <code>started_at</code> filter, that question is treated as
+    "seen" and withheld from the student's next three real CATs. Nothing errors, nothing looks wrong — the pool
+    quietly narrows and measurement degrades. Collapsing creation and start makes created and started the same
+    event, so the bug has nowhere to live.</li>
+</ul>
+<p>
+  <strong>The cost, stated plainly:</strong> two patterns in the codebase for one-shot exams instead of one. That is
+  a real price and it is paid knowingly — the divergence is principled (readiness has pack content to render, CAT
+  has none), not an oversight.
+</p>
+<p>
+  <strong>Consequences for the build:</strong>
+</p>
+<ul>
+  <li><strong>Idempotency is not optional.</strong> One call now creates, starts and spends, so a double-click or a
+    retried request must return the <em>existing</em> attempt rather than opening a second exam. This single guard
+    protects everything, because every consequence lives in that one call.</li>
+  <li><strong>The CAT preflight is its own surface, not a branch of the shared one.</strong> The existing preflight
+    (<code>app/(app)/(focused)/session/[attempt_id]/preflight.tsx</code>) renders only when
+    <code>attempt.started_at === null</code> and is addressed by an attempt id — neither is available before the
+    attempt exists. The CAT gate therefore lives on the CAT entry page, ahead of <code>/session</code>. Its copy and
+    styling should still borrow from <code>ReadinessPreflight</code>, which is the right visual language for a
+    full-stop gate.</li>
+  <li><strong>The shared runner needs no change.</strong> A CAT arrives at <code>/session/[attempt_id]</code>
+    already started, so the <code>started_at === null</code> condition is false and the shared preflight correctly
+    skips itself.</li>
+  <li><strong>A read-only allowance check should run before the preflight renders</strong>, so a student who is out
+    of CATs sees that instead of a Start button that fails. The authoritative guard stays inside the RPC — the
+    precheck is courtesy, not security.</li>
+</ul>
+
 <h2 id="s11">11. Snapshot strategy for CAT <span class="status settled">settled</span></h2>
 <p>
   Per-question snapshot at administration time, identical to the fixed-length snapshot strategy.
@@ -2489,7 +2558,11 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     reason the column exists, so an ABANDONED attempt still records which formula produced its responses
     (§12.7.12). <strong>Carries the §15.5 allowance guard</strong> — most-generous-wins across active bank
     subscription rows, counted against <code>nclex_attempts</code>; refusal routes to the reason-aware
-    <code>/no-access</code> wall rather than dead-ending.</li>
+    <code>/no-access</code> wall rather than dead-ending.
+    <strong>Per §10.7 this one call also starts the clock and spends the allowance</strong> — there is no separate
+    start RPC and no unstarted-attempt state. That makes <strong>idempotency mandatory</strong>: a double-click or
+    a retried request must return the existing attempt, never open a second exam. It is called from the CAT entry
+    page's preflight, not from <code>/session</code>.</li>
   <li><strong>Slice 4 — the core loop, standalone-only.</strong> <em>Rewritten 2026-07-19 — the earlier wording
     ("score → Rasch update → termination check → select → snapshot, atomic transaction") described the whole loop
     running inside the RPC, which is the pre-§10.6 architecture.</em> The loop now spans <strong>two pieces</strong>:
@@ -2523,7 +2596,11 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 <p><strong>Phase C — The student experience</strong> (first browser-testable slices).</p>
 <ol start="6">
   <li><strong>Slice 6 — CAT runner screen.</strong> One-shot preflight (stating per §15.5.3 that starting spends
-    the attempt however it ends) + "How CAT works" link, the pessimistic
+    the attempt however it ends) — <strong>its OWN surface on the CAT entry page, not a branch of the shared
+    <code>/session</code> preflight</strong>, because per §10.7 no attempt exists until Confirm; the shared gate is
+    addressed by an attempt id and renders only while <code>started_at</code> is NULL, so it correctly skips a CAT
+    that arrives already started. Copy/styling borrow from <code>ReadinessPreflight</code>. Note the preflight
+    cannot state a question count — CAT length is 85–150 and unknowable in advance. Plus a "How CAT works" link, the pessimistic
     between-question transition (§10.1), current-question-only progress (§16.1), no back nav (§16.3),
     browser-close = ABANDONED (§16.5), 4-hour timer (§9.3). Reuses the runner shell, the 9 renderers, and the
     shipped option shuffle.
