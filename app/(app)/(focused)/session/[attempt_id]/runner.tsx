@@ -69,6 +69,7 @@ import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
 import { Preflight }          from './preflight';
 import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction } from './actions';
+import { catTurnAction } from '@/lib/practice/cat/turn-action';
 import { useQuestionTimer } from './use-question-timer';
 
 interface Props {
@@ -113,8 +114,13 @@ function statusMessage(mode: RunnerData['mode'], attemptMode: RunnerData['attemp
   if (mode === 'review') {
     return 'Review · use the grid to filter Wrong / Marked / Unanswered, or step in order';
   }
+  // CAT (slice 6b): the generic line below is actively wrong here — there is
+  // no rationale shown mid-exam and no Next button, because the engine
+  // decides what comes next and whether the exam is over.
+  if (attemptMode === 'CAT') {
+    return 'CAT · answer each question and submit — the exam adapts as you go and ends when it is confident';
+  }
   // 4.5 will branch on attemptMode for timer / sequential / batched-submit copy.
-  void attemptMode;
   return 'Untimed Learning · pick an option, Submit to see the rationale, then Next →';
 }
 
@@ -323,6 +329,13 @@ function RunnerShell({ data }: Props) {
   const modeMsg     = statusMessage(data.mode, data.attempt.mode);
 
   const archetype = getArchetype(data.attempt.mode);
+
+  // ── CAT (slice 6b) ────────────────────────────────────────────────
+  // A CAT's item list GROWS one row per turn — every other mode knows all
+  // its questions up front. So `total` is not a length here, it is just
+  // "how many have been served so far", and the current question is always
+  // the newest one (no back navigation, §16.3).
+  const isCat = data.attempt.mode === 'CAT';
 
   // Per-item mode (slice 4.5b — corrects the DRAFT bug from 4.5a):
   //   • Whole-attempt review (`data.mode === 'review'`) always wins.
@@ -669,6 +682,43 @@ function RunnerShell({ data }: Props) {
     });
   };
 
+  // CAT turn (slice 6b). One call does everything the other modes split
+  // across submitAnswerAction + advance: the server scores the answer,
+  // re-estimates ability, decides whether the exam is over, and either
+  // snapshots the next question or writes the verdict.
+  //
+  // On CONTINUE we router.refresh() rather than appending the item
+  // client-side. The server loader is what strips answer keys from a live
+  // attempt (the "no answer-key leakage" boundary), so building an item in
+  // the browser would step around the one place that seal is enforced.
+  // Refreshing costs a round-trip and keeps the seal honest.
+  const onCatTurn = () => {
+    if (!currentItem || !submitGate?.canSubmit || submitGate.submitValue === null) return;
+    const submission = submitGate.submitValue;
+
+    startSubmit(async () => {
+      await flushActive(); // bank the time segment before the row finalises
+
+      const elapsed = data.attempt.started_at
+        ? Math.max(0, Math.floor((Date.now() - Date.parse(data.attempt.started_at)) / 1000))
+        : 0;
+
+      const r = await catTurnAction(data.attempt.attempt_id, submission, elapsed);
+      if (!r.ok) { setError(r.error); return; }
+
+      if (r.status === 'COMPLETE') {
+        setShowResults(true);
+        router.refresh();
+        return;
+      }
+
+      // Advance to the newly-served question. data.items has not grown yet
+      // — the refresh below brings it — so target the next index directly.
+      setCurrent(total);
+      router.refresh();
+    });
+  };
+
   // Sequential last-Q "Submit & finish" — submit the last DRAFT then
   // finalise. completeAttemptAction's _flushDrafts is a no-op for this
   // attempt by then (every prior Q was already submitted via
@@ -706,6 +756,18 @@ function RunnerShell({ data }: Props) {
     primaryDisabled = isLastQ;
     primaryHint     = isLastQ ? 'You\'re on the last question' : undefined;
     onPrimary       = onNext;
+
+  } else if (isCat) {
+    // CAT (slice 6b): one button, always. There is no Next (the server
+    // decides what comes next) and no Finish (the engine decides when the
+    // exam is over), so "Submit answer" is the only control the whole way
+    // through — including on the final question, which the student cannot
+    // know is final.
+    const canSubmit = submitGate?.canSubmit ?? false;
+    primaryLabel    = submitting ? 'Loading next…' : 'Submit answer';
+    primaryDisabled = !canSubmit || submitting;
+    primaryHint     = canSubmit ? undefined : submitGate?.hint;
+    onPrimary       = onCatTurn;
 
   } else if (archetype === 'UL') {
     // UL behaviour (4.1 — unchanged): per-Q Submit → review → Next/Finish.
@@ -940,7 +1002,7 @@ function RunnerShell({ data }: Props) {
       <RunnerTopbar
         modeLabel={modeLabel}
         current={current + 1}
-        total={total}
+        total={isCat ? null : total}
         marked={marked.has(currentItem?.attempt_item_id ?? '')}
         statusLabel={statusLabel}
         caseMeta={caseMeta}
@@ -988,7 +1050,7 @@ function RunnerShell({ data }: Props) {
         ) : (
           <RunnerGridHandle
             current={current + 1}
-            total={total}
+            total={isCat ? null : total}
             onExpand={() => setGridOpen(true)}
           />
         )}
@@ -996,7 +1058,7 @@ function RunnerShell({ data }: Props) {
 
       <RunnerFooter
         current={current + 1}
-        total={total}
+        total={isCat ? null : total}
         modeMsg={modeMsg}
         primaryLabel={primaryLabel}
         primaryDisabled={primaryDisabled}

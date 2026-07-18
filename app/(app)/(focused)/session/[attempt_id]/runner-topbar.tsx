@@ -37,7 +37,13 @@ export interface ClockProps {
 interface Props {
   modeLabel:   string;
   current:     number;          // 1-indexed for display
-  total:       number;
+  /**
+   * NULL = length unknown, so show the current question only.
+   * CAT passes null: the exam runs 85-150 questions and stops when it is
+   * confident, so there is no total to show and a running "Q 12 / 12" would
+   * be actively misleading (bank-consumption-cat.html §16.1).
+   */
+  total:       number | null;
   marked:      boolean;
   statusLabel: string;          // "Score · 67%" in review (live ignores)
   caseMeta?:   CaseMeta;
@@ -82,7 +88,7 @@ export function RunnerTopbar({
         <div className="meta">
           <span>{modeLabel}</span>
           <span className="dot" />
-          <span>{total} questions</span>
+          <span>{total === null ? 'Adaptive length' : `${total} questions`}</span>
           {caseMeta && (
             <>
               <span className="dot" />
@@ -98,8 +104,12 @@ export function RunnerTopbar({
 
       <div className="rn-counter">
         Q <strong>{current}</strong>
-        <span style={{ color: 'var(--text-faint)' }}>/</span>
-        <strong>{total}</strong>
+        {total !== null && (
+          <>
+            <span style={{ color: 'var(--text-faint)' }}>/</span>
+            <strong>{total}</strong>
+          </>
+        )}
       </div>
 
       {clock ? (

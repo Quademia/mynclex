@@ -14,7 +14,8 @@
 
 interface Props {
   current:    number;     // 1-indexed
-  total:      number;
+  /** NULL = adaptive length (CAT) — there is no known last question. */
+  total:      number | null;
   modeMsg:    string;     // mode-aware status message
   primaryLabel?: string;
   primaryDisabled?: boolean;
@@ -38,7 +39,7 @@ export function RunnerFooter({
   onPrimary,
 }: Props) {
   const atFirst = current <= 1;
-  const atLast  = current >= total;
+  const atLast  = total !== null && current >= total;
 
   // Combined disable: at-first OR mode forces it.
   const prevIsDisabled = atFirst || prevDisabled;
