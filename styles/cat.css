@@ -234,8 +234,12 @@
   .cat-actions .cat-btn,
   .cat-preflight-actions .cat-btn { width: 100%; }
 
+  /* Stack in DOM order — "Not now" first, the commit second.
+   * NOT column-reverse: that put the irreversible red confirm at the top,
+   * exactly where the thumb lands after reading the warning. The safe
+   * option should be the one you meet first (CLAUDE.md UI #2). */
   .cat-preflight-actions {
-    flex-direction: column-reverse;
+    flex-direction: column;
   }
 
   /* Let a long history table scroll inside itself rather than pushing the

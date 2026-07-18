@@ -129,9 +129,13 @@ export function CatHomeClient({ view }: { view: CatHomeView }) {
       </section>
 
       {showPreflight && (
+        // Backdrop click maps to the SAFE option (CLAUDE.md UI #2). Ignored
+        // while a start is in flight, so a stray click cannot leave the
+        // student on this page while an attempt is being created.
         <div className="cat-preflight-backdrop" role="dialog" aria-modal="true"
-             aria-labelledby="cat-preflight-title">
-          <div className="cat-preflight">
+             aria-labelledby="cat-preflight-title"
+             onClick={() => { if (!pending) { setShowPreflight(false); setError(null); } }}>
+          <div className="cat-preflight" onClick={(e) => e.stopPropagation()}>
             <h2 id="cat-preflight-title" className="cat-preflight-title">
               Before you begin
             </h2>
