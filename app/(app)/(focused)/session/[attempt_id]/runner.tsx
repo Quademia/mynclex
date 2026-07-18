@@ -154,7 +154,7 @@ function RunnerShell({ data }: Props) {
   // because the jump is also a UX improvement for UL + Free-batched
   // resume. If every item is finalised (rare — completeAttemptAction
   // would normally have fired), land on the last one to surface Finish.
-  const [current, setCurrent]   = useState<number>(() => {
+  const [navCurrent, setCurrent] = useState<number>(() => {
     const finalised = new Set<string>();
     for (const a of data.answers) {
       if (a.submission_status !== 'DRAFT') finalised.add(a.attempt_item_id);
@@ -164,6 +164,32 @@ function RunnerShell({ data }: Props) {
     }
     return Math.max(0, data.items.length - 1);
   });
+
+  // ── CAT (slice 6b) ────────────────────────────────────────────────
+  // A CAT's item list GROWS one row per turn — every other mode knows all
+  // its questions up front.
+  const isCat = data.attempt.mode === 'CAT';
+
+  // For CAT the current index is DERIVED, never stored. There is no
+  // navigation, so "which question am I on" is always "the newest one" —
+  // a computed value, not state.
+  //
+  // Storing it caused a real bug (fixed 2026-07-19): the turn handler
+  // advanced the index immediately but the new question only arrives a
+  // round-trip later, so for that gap the index pointed past the end of the
+  // array, `currentItem` was undefined, and the runner fell through to its
+  // "No questions in this attempt." stub — the message meant for a broken
+  // attempt, shown mid-exam. Fast on localhost; a second or more on mobile
+  // data.
+  //
+  // Deriving it also delivers §10.1 for free: during the wait the index
+  // still points at the LAST item of the old array, so the question the
+  // student just answered stays on screen instead of vanishing — exactly
+  // the "current question stays visible, dimmed" the spec asks for.
+  //
+  // Scoped to CAT deliberately. Every other mode needs the stored index:
+  // they have free navigation, Prev/Next and clickable grid cells.
+  const current = isCat ? Math.max(0, data.items.length - 1) : navCurrent;
   const [filter, setFilter]     = useState<GridFilter>('all');
   const [gridOpen, setGridOpen] = useState(true);
 
@@ -330,12 +356,10 @@ function RunnerShell({ data }: Props) {
 
   const archetype = getArchetype(data.attempt.mode);
 
-  // ── CAT (slice 6b) ────────────────────────────────────────────────
-  // A CAT's item list GROWS one row per turn — every other mode knows all
-  // its questions up front. So `total` is not a length here, it is just
-  // "how many have been served so far", and the current question is always
-  // the newest one (no back navigation, §16.3).
-  const isCat = data.attempt.mode === 'CAT';
+  // NOTE: `isCat` and the derived `current` are declared with the state
+  // block above — `current` is read at the question timer before this point.
+  // For CAT, `total` is not a length: it is "how many have been served so
+  // far", which is why the topbar/footer/grid take `number | null`.
 
   // Per-item mode (slice 4.5b — corrects the DRAFT bug from 4.5a):
   //   • Whole-attempt review (`data.mode === 'review'`) always wins.
@@ -712,9 +736,11 @@ function RunnerShell({ data }: Props) {
         return;
       }
 
-      // Advance to the newly-served question. data.items has not grown yet
-      // — the refresh below brings it — so target the next index directly.
-      setCurrent(total);
+      // Deliberately does NOT advance an index. `current` is derived from
+      // data.items.length for CAT, so the refresh below grows the array and
+      // the new question becomes current on its own. Advancing here was the
+      // bug: it pointed past the end of the array for a round-trip and
+      // flashed the "No questions in this attempt." stub.
       router.refresh();
     });
   };
@@ -983,6 +1009,25 @@ function RunnerShell({ data }: Props) {
     );
   } else {
     questionArea = questionAreaInner;
+  }
+
+  // CAT between-question wait (§10.1). The question the student just
+  // answered stays on screen — but it must LOOK finished, or it reads as a
+  // live question that has stopped responding.
+  //
+  // `inert` is what actually disables it: pointer-events alone still leaves
+  // the controls keyboard-reachable, so a student could tab into and change
+  // an answer that has already been submitted and scored.
+  //
+  // Only the 0-300ms "dim, no spinner" layer of §10.1 is here. The timed
+  // escalation (spinner at 300ms, "Still loading…" at 3s, Retry at 10s)
+  // needs timers and an error path — slice 6c.
+  if (isCat && submitting) {
+    questionArea = (
+      <div className="rn-cat-waiting" aria-busy="true" inert>
+        {questionArea}
+      </div>
+    );
   }
 
   // Topbar case meta — only shown on case-childs.

@@ -2600,3 +2600,24 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ── CAT between-question wait (§10.1) ───────────────────────────────
+ * The question just answered stays on screen while the next is fetched,
+ * rather than blanking. It has to LOOK finished though, or it reads as a
+ * live question that has stopped responding.
+ *
+ * Dim only — no spinner at this layer. §10.1: under ~300ms a spinner is
+ * noise, and that is the happy path the vast majority of the time. The
+ * spinner / "Still loading…" / Retry escalation is slice 6c.
+ *
+ * `inert` on the wrapper is what disables interaction (including keyboard);
+ * this rule is purely the visual half.
+ */
+.rn-cat-waiting {
+  opacity: 0.45;
+  transition: opacity 140ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rn-cat-waiting { transition: none; }
+}

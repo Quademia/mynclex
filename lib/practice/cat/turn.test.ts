@@ -67,6 +67,7 @@ function makeDb(history: CatHistoryRow[], over: Partial<CatDb> = {}): CatDb & { 
     calls,
     loadHistory: async () => history,
     loadCurrent: async () => ({
+      attempt_item_id: 'cur-ai',
       correct: { answer: 'A' } as BankItemCorrect,
       question_type: 'MCQ',
       marks_snapshot: 1,
@@ -181,6 +182,7 @@ describe('playTurn — termination', () => {
   it('a wrong answer moves the estimate down', async () => {
     const db = makeDb([row()], {
       loadCurrent: async () => ({
+        attempt_item_id: 'cur-ai',
         correct: { answer: 'B' } as BankItemCorrect,   // student answers A → wrong
         question_type: 'MCQ', marks_snapshot: 1, cat_item_difficulty: 0, cat_weight: 1,
       }),
@@ -191,10 +193,23 @@ describe('playTurn — termination', () => {
   });
 });
 
+describe('playTurn — idempotency guard', () => {
+  it('tells the RPC which item it believes it is answering', async () => {
+    // Without this the RPC assumes "newest item = the one being answered",
+    // which is false on a retry after a lost response: the newest item is by
+    // then the NEW question, and the old answer would be recorded against
+    // it — marking a student on a question they never saw.
+    const db = makeDb([row()]);
+    await playTurn(db, { attemptId: 'a', answer: answerA, elapsedSeconds: 60 });
+    expect(db.calls[0].expectedItemId).toBe('cur-ai');
+  });
+});
+
 describe('playTurn — purity guarantee (§10.3)', () => {
   it('writes nothing when scoring throws', async () => {
     const db = makeDb([row()], {
       loadCurrent: async () => ({
+        attempt_item_id: 'cur-ai',
         correct: {} as BankItemCorrect,
         question_type: 'NOT_A_TYPE',   // dispatch will reject
         marks_snapshot: 1, cat_item_difficulty: 0, cat_weight: 1,

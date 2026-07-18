@@ -75,15 +75,26 @@ export type CatDb = {
   loadHistory(attemptId: string): Promise<CatHistoryRow[]>;
   /** The current (highest-position) item's answer key + marks + weight. */
   loadCurrent(attemptId: string): Promise<{
+    /** Passed back to the RPC as the idempotency guard — see nextItem. */
+    attempt_item_id: string;
     correct:        BankItemCorrect;
     question_type:  string;
     marks_snapshot: number;
     cat_item_difficulty: number | null;
     cat_weight:     number | null;
   }>;
-  /** The persist-and-select RPC. */
+  /**
+   * The persist-and-select RPC.
+   *
+   * `expectedItemId` is the idempotency guard: if it is no longer the
+   * attempt's newest item, this turn already landed and the RPC replays the
+   * current state instead of answering the NEW question with the OLD answer.
+   * Without it, a lost response on a flaky connection would mark a student
+   * on a question they never saw.
+   */
   nextItem(args: {
     attemptId: string;
+    expectedItemId: string;
     answer: BankItemAnswer;
     scoreAwarded: number;
     isCorrect: boolean;
@@ -139,6 +150,7 @@ export async function playTurn(db: CatDb, input: CatTurnInput): Promise<CatTurnR
   // 5. Persist (+ select, when continuing). One transaction.
   const raw = await db.nextItem({
     attemptId: input.attemptId,
+    expectedItemId: current.attempt_item_id,
     answer: input.answer,
     scoreAwarded: scored.score_awarded,
     isCorrect: scored.is_correct,

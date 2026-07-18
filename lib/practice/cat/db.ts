@@ -62,7 +62,7 @@ export function makeCatDb(supabase: Db): CatDb {
     async loadCurrent(attemptId: string) {
       const { data, error } = await supabase
         .from('nclex_attempt_items')
-        .select('question_type, marks_snapshot, correct_answer_snapshot_json, cat_item_difficulty, cat_weight')
+        .select('attempt_item_id, question_type, marks_snapshot, correct_answer_snapshot_json, cat_item_difficulty, cat_weight')
         .eq('attempt_id', attemptId)
         .order('position', { ascending: false })
         .limit(1)
@@ -72,6 +72,7 @@ export function makeCatDb(supabase: Db): CatDb {
       if (!data) throw new Error('attempt has no administered item');
 
       return {
+        attempt_item_id: data.attempt_item_id,
         correct: data.correct_answer_snapshot_json,
         question_type: data.question_type,
         marks_snapshot: data.marks_snapshot,
@@ -91,6 +92,7 @@ export function makeCatDb(supabase: Db): CatDb {
         p_se_after: args.seAfter,
         p_terminate_reason: args.terminateReason,
         p_terminate_verdict: args.terminateVerdict,
+        p_expected_item_id: args.expectedItemId,
       });
 
       if (error) throw new Error(`cat_next_item failed: ${error.message}`);
