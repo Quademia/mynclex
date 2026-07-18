@@ -156,7 +156,18 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-19 (<strong>§9.1 confidence rule corrected to 95% (±1.96 SE)</strong>
+  Living planning document. Last updated: 2026-07-19 — <strong>the CAT build started; Slices 1 and 2 are BUILT</strong>
+  (§19.4). Slice 1 = the schema migration <code>20260808120000</code>, dev-applied and verified, entirely additive
+  (a doc error was caught building it: §12.7.5 specified the audit table's FK as UUID → <code>nclex_bank_items(id)</code>,
+  but the real key is <code>item_id TEXT</code> and the migration would have failed as written — corrected).
+  Slice 2 = <code>lib/cat/</code>, the Rasch maths as pure unit-tested functions, 56 tests. <strong>New §19.4.1</strong>
+  records the decisions taken during that build: the estimator is <strong>EAP with a Normal(0, 1) prior</strong>
+  (maximum likelihood diverges when a student is all-right or all-wrong — the state after question 1 of every CAT),
+  which also fixes §6's unquantified "high SE" at <strong>1.0</strong>; the §7.4 half-weight is applied to the
+  <em>log-likelihood</em> so the level move and the certainty gain halve together structurally; and confidence
+  outranks max-items/time-out when stopping conditions collide. Simulated students behaved as §9.1 predicts —
+  clearly-placed ones stop at 85, the borderline one took 107, none hit the ceiling. Same day:
+  <strong>§9.1 confidence rule corrected to 95% (±1.96 SE)</strong>
   — raised by Sam, who noticed the real NCLEX's well-known "95% confidence interval rule" appeared nowhere in this
   plan. It didn't, and the omission was live: §9.1 defined the rule only as "the SE band doesn't cross zero" and
   illustrated it with <em>0.5 / SE 0.40 → band 0.1 to 0.9</em>, which is a <strong>±1 SE</strong> band ≈ 68%
@@ -2434,9 +2445,11 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Phase A — Foundation.</strong></p>
 <ol>
-  <li><strong>Slice 1 — Schema migration (§12.7), dev only.</strong> The two difficulty columns on
-    <code>nclex_bank_items</code> + <code>nclex_tutor_questions</code>, 5 result columns on
-    <code>nclex_attempts</code>, 4 per-item columns on <code>nclex_attempt_items</code>, the
+  <li><strong>Slice 1 — Schema migration (§12.7), dev only. ✅ BUILT 2026-07-19</strong> (<code>cb97f50</code>,
+    migration <code>20260808120000_cat_slice1_schema.sql</code>, dev-applied and verified; tracker version
+    reconciled to the filename). The two difficulty columns on
+    <code>nclex_bank_items</code> + <code>nclex_tutor_questions</code>, <strong>6</strong> result columns on
+    <code>nclex_attempts</code>, <strong>5</strong> per-item columns on <code>nclex_attempt_items</code>, the
     <code>nclex_bank_item_calibration_history</code> audit table, and the two RPC <em>stubs</em> (raise "not yet
     implemented"). Seed <code>difficulty_irt</code> from each item's Easy/Medium/Hard label. Additive, low-risk,
     unblocks everything. <em>Verified by the §12.7.8 queries — database-only, nothing in the browser.</em>
@@ -2450,9 +2463,12 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Phase B — The engine.</strong></p>
 <ol start="2">
-  <li><strong>Slice 2 — Rasch math, pure + unit-tested.</strong> Expected-score, ability update (with the §4.5
-    partial-credit <em>fraction</em>), uncertainty update, readiness probability, termination check (SE ≤ 0.40,
-    85/150, 4 h). No user surface. Lock the engine-runtime decision here.</li>
+  <li><strong>Slice 2 — Rasch math, pure + unit-tested. ✅ BUILT 2026-07-19</strong> (<code>0b2ac99</code>).
+    New <code>lib/cat/</code> — <code>rasch.ts</code> (expected score, item information, ability estimate,
+    readiness probability), <code>termination.ts</code> (the §9 thresholds + <code>checkTermination</code>),
+    <code>types.ts</code>, <code>index.ts</code> barrel. 56 tests; the doc's own numbers are the fixtures, so
+    drift between code and plan fails loudly. No user surface. See §19.4.1 for the two decisions taken during
+    the build.</li>
   <li><strong>Slice 3 — <code>create_cat_attempt</code>.</strong> Opens the attempt, starts at theta = 0.0, picks
     and snapshots the first item, returns the payload. <strong>Carries the §15.5 allowance guard</strong> —
     most-generous-wins across active bank subscription rows, counted against <code>nclex_attempts</code>; refusal
@@ -2494,6 +2510,62 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <strong>Verification split:</strong> Slices 1–5 are back-end (verified by SQL checks, unit tests, and a scratch
   harness — little to see in the browser); Slices 6–9 are the click-through experience (Sam tests a real CAT live);
   Slice 10 trails after launch.
+</p>
+
+<h3 id="s19-slice2-decisions">19.4.1 Slice 2 build decisions <span class="status settled">settled 2026-07-19</span></h3>
+<p>
+  Recorded here because they were taken <em>during</em> the build and would otherwise live only in the code. §19.4
+  listed the estimation method as an open decision; this closes it.
+</p>
+
+<h4>The estimator — EAP with a Normal(0, 1) prior</h4>
+<p>
+  §4.2 settled the <em>language</em> ("~30 lines of TypeScript") but never named the <em>algorithm</em>, and the
+  obvious choice does not work. <strong>Maximum likelihood has no answer when a student has got everything right
+  or everything wrong</strong> — the estimate runs to infinity. That is not an edge case: it is the state after
+  question 1 of every single CAT.
+</p>
+<p>
+  <strong>Chosen: Expected A Posteriori (EAP) over a quadrature grid, anchored to a mild prior</strong> — before
+  any answers, assume the student is near average. Each answer moves the estimate; the prior only keeps it finite.
+  Concretely: grid −4…+4 in 0.05 steps, prior Normal(mean 0, SD 1), posterior = prior × likelihood of every
+  response, estimate = posterior mean, SE = posterior SD.
+</p>
+<ul>
+  <li><strong>It answers §6's unquantified "high SE".</strong> With no responses the posterior <em>is</em> the
+    prior, so a fresh CAT starts at exactly theta = 0.0, <strong>SE = 1.0</strong>. The starting position and the
+    starting uncertainty are one decision, not two.</li>
+  <li><strong>The honest cost:</strong> a mild pull toward average. With the 85-item minimum (§9.2) it is swamped
+    by real evidence long before any verdict is issued — but it is an assumption, not a neutral stance.</li>
+  <li><strong>Recomputed from the full response history</strong> rather than nudging a running value, so replaying
+    an attempt always reproduces the same trajectory. 150 responses over 161 grid points is trivial work. The
+    TypeScript layer therefore loads the attempt's prior responses before calling <code>cat_next_item</code>.</li>
+</ul>
+
+<h4>The half-weight is applied to the log-likelihood</h4>
+<p>
+  §7.4 requires that "counts as half a question" halve <em>both</em> the level move and the certainty gain, and
+  warns that stating it as two separate rules invites halving one without the other. Scaling the response's
+  <strong>log-likelihood</strong> by the weight makes it structurally automatic — there is no separate theta
+  adjustment and no separate SE adjustment to keep in step. Asserted exactly in the tests: two half-weight answers
+  equal one full-weight answer, and a 6-child case equals 3 standalone questions, to 10 decimal places.
+</p>
+
+<h4>Termination precedence when conditions collide</h4>
+<p>
+  A student can reach question 150 at the same moment the estimate becomes confident. <strong>Confidence is
+  checked first</strong>, because it is the more informative reason — it says the engine measured the student
+  rather than running out of room. The verdict is identical either way (both resolve by side), so this affects
+  only the reason recorded, never the result.
+</p>
+
+<h4>Observed behaviour</h4>
+<p>
+  Simulated students of known ability, run through the built module with difficulty-matched selection: true
+  ability ±1.5, ±0.8 and −0.3 all terminated at the 85-item minimum with the correct verdict, while the borderline
+  student (true 0.3) took <strong>107</strong> items. None reached the 150 ceiling. That is the §9.1 95% rule
+  behaving as predicted — clearly-placed students finish fast, genuinely borderline students earn more evidence.
+  <em>Idealised: a real pool cannot always supply a perfectly matched item, so expect somewhat longer.</em>
 </p>
 
 <p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>
