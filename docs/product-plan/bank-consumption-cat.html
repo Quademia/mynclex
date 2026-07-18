@@ -156,7 +156,25 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-19 — <strong>Slice 5 BUILT; the CAT ENGINE IS FEATURE-COMPLETE</strong>
+  Living planning document. Last updated: 2026-07-19 — <strong>new §7.6: how many trends land in a sitting is
+  currently NOT guaranteed, and that is a real divergence from the real exam</strong> (status OPEN, for Sam).
+  Cases have a quota (exactly 3); trends have none, so the count is emergent — measured on the dev pool at ~1 per
+  85-item exam and ~2 at 150, with <em>zero</em> a realistic outcome (observed in two of three drives). The
+  §8.1 category rotation is the dominant factor: trends compete within their own category, and two of the four
+  currently hold none at all. <strong>Researched against the primary source:</strong> the 2026 RN Test Plan states
+  <em>twice</em> that clinical judgment is measured by 18 case-study items <strong>and approximately 10%
+  stand-alone items</strong>, as an explicit CAT selection constraint — so NCLEX guarantees ~10% where we guarantee
+  0%. An earlier argument this session against a quota leaned partly on "NCLEX doesn't set one"; that reasoning was
+  wrong and is retracted in §7.6. But <em>trend</em> is not NCSBN's word — it never appears as an item format; their
+  category is "stand-alone clinical judgment items", an umbrella. The real gap is therefore that <strong>we have
+  never defined which of our formats count as clinical-judgment items</strong> (BOWTIE, CLOZE, HIGHLIGHT, MATRIX_MR,
+  DRAG_* are all candidates), so a 10% target is not currently expressible. Three options recorded, none chosen;
+  nothing blocks the remaining slices. <strong>⚠️ Also found: §8 is built on the superseded 2023 test plan</strong>
+  — the 2026 plan renames a subcategory ("Safety and Infection <em>Prevention and</em> Control") and shifts the
+  Client Needs percentages; flagged in §8, deliberately NOT patched inline since it may touch the bank's
+  classification vocabulary. Two things the same source confirmed: the <strong>95% rule</strong> (§9.1, corrected
+  earlier today) verbatim, and §4.5's three partial-credit methods. Earlier same day:
+  <strong>Slice 5 BUILT; the CAT ENGINE IS FEATURE-COMPLETE</strong>
   (Slices 1–5 all ✅; Phase C, the student-facing surfaces, is what remains). Cases are delivered on a schedule
   <strong>randomised within three windows</strong> (Q8–20, Q30–45, Q55–75) rather than fixed — fixed positions are
   learnable across repeat sittings — and <strong>derived deterministically from <code>attempt_id</code></strong>
@@ -1182,7 +1200,94 @@
 </p>
 
 
+<h3 id="s7-6">7.6 How many trends land in a sitting — currently NOT guaranteed <span class="status open">open — Sam 2026-07-19</span></h3>
+<p>
+  <strong>Final state as built (Slice 5): we cannot guarantee any. Zero is a realistic outcome.</strong> Cases have
+  an explicit quota — exactly 3, by schedule. Trends have none: a trend-linked question is an ordinary adaptive
+  item (§7.4), so how many appear is purely emergent from bank composition.
+</p>
+<p>
+  <strong>Measured on the dev pool, 2026-07-19.</strong> The §8.1 category tiebreaker balances picks across the
+  four Client Needs categories, so a trend competes <em>within its own category</em>, not against the whole bank —
+  and two categories currently hold none at all:
+</p>
+<table>
+  <thead><tr><th>Category</th><th>Eligible</th><th>Trend-linked</th><th>% of category</th></tr></thead>
+  <tbody>
+    <tr><td>Physiological Integrity</td><td>1,045</td><td>53</td><td>5.1%</td></tr>
+    <tr><td>Safe and Effective Care Environment</td><td>589</td><td>7</td><td>1.2%</td></tr>
+    <tr><td>Health Promotion and Maintenance</td><td>173</td><td>0</td><td><strong>0%</strong></td></tr>
+    <tr><td>Psychosocial Integrity</td><td>169</td><td>0</td><td><strong>0%</strong></td></tr>
+  </tbody>
+</table>
+<p>
+  Expected yield: <strong>~1 trend in an 85-item exam, ~2 at 150</strong> — an average, not a floor. Observed: one
+  trend across a full-length 150-item drive, and <em>zero</em> across two shorter drives.
+</p>
+
+<h4>What the real NCLEX does — researched 2026-07-19 from the primary source</h4>
+<p>
+  The <strong>2026 RN Test Plan states a target, twice</strong>: <em>"clinical judgment processes are explicitly
+  measured by 18 case study items (i.e., three item sets) and <strong>approximately 10% stand-alone items</strong>,
+  which will be selected depending on exam length"</em> — repeated in the CAT section as an explicit selection
+  constraint, not merely a content note. On an 85-item exam that is ~8–9 stand-alone clinical-judgment items on top
+  of the 18 case items; ~15 at maximum length.
+</p>
+<p>
+  <strong>So this is a real divergence: NCLEX guarantees ~10%, we guarantee 0%.</strong> An earlier argument in
+  this session against adding a quota leaned partly on "NCLEX doesn't set one" — that reasoning was wrong and is
+  retracted here.
+</p>
+<p>
+  <strong>But "trend" is not NCSBN's word.</strong> Searching the full test plan, <em>trend</em> never appears as an
+  item format — only in clinical content statements ("Recognize trends and changes in client condition"). NCSBN's
+  category is <strong>"stand-alone clinical judgment items"</strong>, the umbrella for any single item measuring
+  clinical judgment. Our "trend" is our own naming for one such format.
+</p>
+
+<h4>The actual gap — and why it is not "author more trend datasets"</h4>
+<p>
+  The comparison is not trend-vs-10%; it is <em>our whole stand-alone clinical-judgment share</em> vs 10%. The pool
+  already holds plenty of candidate formats — BOWTIE 3.6%, CLOZE 3.9%, HIGHLIGHT 3.7%, MATRIX_MR 3.5%, DRAG_ORDER
+  3.2%, DRAG_CLOZE 2.7% of eligible items.
+</p>
+<p>
+  <strong>We have never defined which of these count as clinical-judgment items</strong>, so there is no way to
+  target 10% even if we decided to. That definition is the missing piece, and it is a product decision rather than
+  an engine one.
+</p>
+<p><strong>Open — for Sam. Three options, not yet chosen:</strong></p>
+<ol>
+  <li><strong>Leave it emergent</strong> (today's behaviour). Honest, zero engine complexity, but a student can sit
+    a full CAT and meet no clinical-judgment stand-alone at all, which the real exam would never do.</li>
+  <li><strong>Define the clinical-judgment set and treat 10% as a curation target.</strong> No engine change; the
+    bank is shaped until the emergent rate lands near 10%. Consistent with §8.2's principle that bank-balance
+    signals should be fixed by curating questions, not by engine compensation.</li>
+  <li><strong>Define the set and enforce a quota in selection</strong>, as cases are scheduled. Matches the real
+    exam most closely, but overrides the difficulty match §7.1 calls sacred — the same objection §8.2 raised
+    against hard category enforcement.</li>
+</ol>
+<p>
+  Nothing blocks the remaining slices; this is a v1-scope question that can be settled any time before launch.
+</p>
+
+
 <h2 id="s8">8. Content-blueprint constraints <span class="status settled">settled</span></h2>
+<p class="callout">
+  <strong>⚠️ This section is built on the 2023 test plan, which has been superseded.</strong> Noticed 2026-07-19
+  while researching §7.6. A <strong>2026 RN Test Plan</strong> is now in effect and at least two things moved: a
+  subcategory was renamed (<em>"Safety and Infection <strong>Prevention and</strong> Control"</em>), and the Client
+  Needs percentages differ slightly from the table below — the 2026 plan gives Management of Care 15–21% + Safety
+  and Infection Prevention and Control 10–16% (so Safe and Effective Care Environment reads <strong>25–37%</strong>,
+  not 26–38%). The published per-subcategory distribution is Management of Care 18% · Safety and Infection
+  Prevention and Control 13% · Health Promotion and Maintenance 9% · Psychosocial Integrity 9% · Basic Care and
+  Comfort 9% · Pharmacological and Parenteral Therapies 16% · Reduction of Risk Potential 12% · Physiological
+  Adaptation 14%. <strong>Not yet reconciled</strong> — it touches this section and possibly the bank's
+  classification vocabulary, so it deserves its own pass rather than an inline patch.
+  <em>Also confirmed from the same source: the 95% confidence rule (§9.1) — "the computer is 95% certain that the
+  candidate's ability is either clearly above or clearly below the passing standard" — and the three partial-credit
+  methods named in §4.5 (plus/minus, zero/one, rationale scoring).</em>
+</p>
 <p>
   Real NCLEX enforces a content blueprint — minimum percentages of each Client Needs Category in the test the
   candidate sees. The question for us was how strictly to enforce the same. Settled 2026-05-04.
