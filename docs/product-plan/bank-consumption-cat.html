@@ -1703,6 +1703,59 @@
     precheck is courtesy, not security.</li>
 </ul>
 
+<h4 id="s10-7-1">10.7.1 Exactly one place can spend a CAT — the Builder hands off <span class="status settled">settled 2026-07-19</span></h4>
+<p>
+  The practice Builder already offers <strong>EXAM → CAT</strong>, and selecting it collapses the filters, pool and
+  count (parent <code>bank-consumption.html</code> §17). So a student could in principle start a CAT from there,
+  and the question arose (Sam, 2026-07-19) whether both surfaces should launch one.
+</p>
+<p>
+  <strong>Decision: no. The Builder becomes a doorway, not a launcher.</strong> Choosing CAT there shows a short
+  explanation and a <strong>"Go to CAT"</strong> button that navigates to the CAT home. It creates nothing, spends
+  nothing, and shows no preflight.
+</p>
+<ul>
+  <li><strong>Because §10.7 puts the spend at the preflight</strong>, a second launcher would need its own
+    preflight — meaning two places that must each get the full-stop warning, the allowance guard and idempotency
+    right. Two paths that spend an entitlement will drift, and the failure mode is a student burning a CAT through
+    whichever path forgot the gate. Same duplication objection as §10.6 (scoring), §19.4.2 (the source column) and
+    the engine-version constant.</li>
+  <li><strong>The Builder's CAT mode has nothing to build.</strong> Filters, pool and count all collapse, so it is
+    a configuration screen with nothing left to configure — a mode <em>selector</em> wearing a builder's clothes.</li>
+  <li><strong>Arriving at a dedicated page is the point</strong> (Sam): it is what teaches a student that CAT is
+    its own kind of assessment rather than a practice variant.</li>
+  <li>The extra click is real, but for a 4-hour one-shot commitment a deliberate step is a feature — the same
+    reasoning that justifies having a preflight at all.</li>
+</ul>
+<p>
+  <strong>Consequence for §19.4 Slice 9:</strong> "the Builder's CAT option under EXAM intent" remains an entry
+  point, but is a <strong>handoff</strong>. Do not wire it to <code>create_cat_attempt</code>.
+</p>
+
+<h4 id="s10-7-2">10.7.2 The CAT home — planned shape <span class="status settled">settled 2026-07-19</span></h4>
+<p>
+  <code>/student/bank/cat</code>, sibling to <code>/student/bank/practice</code> and
+  <code>/student/bank/packs</code> where the other consumption surfaces live. Planned as CAT's <em>home</em>, not a
+  launcher, so later slices extend it rather than rebuild it (Sam, 2026-07-19).
+</p>
+<table>
+  <thead><tr><th>Region</th><th>Lands in</th></tr></thead>
+  <tbody>
+    <tr><td>What CAT is + link to <code>/help/cat</code> (§3.2)</td><td>Slice 6a</td></tr>
+    <tr><td><strong>Start a CAT</strong> → preflight → confirm</td><td>Slice 6a</td></tr>
+    <tr><td>Remaining allowance</td><td>rendered only when finite — see below</td></tr>
+    <tr><td>Your CAT history (date · items · verdict)</td><td>region 6a; rows link to reports at Slice 7</td></tr>
+    <tr><td>Readiness Signal card (§13.4)</td><td>Slice 9</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>Honesty constraint: never render a region that lies.</strong> §15.5 deliberately deferred student-facing
+  allowance counts, and every allowance is currently <code>NULL</code> (unlimited) — so a "2 of 3 left" widget
+  would invent a limit nobody set. The allowance region renders <em>only when a finite allowance exists</em>.
+  Likewise an empty history shows an honest empty state, not a placeholder table. This mirrors the §1.3 data-honesty
+  rules the public readiness page follows.
+</p>
+
 <h2 id="s11">11. Snapshot strategy for CAT <span class="status settled">settled</span></h2>
 <p>
   Per-question snapshot at administration time, identical to the fixed-length snapshot strategy.
