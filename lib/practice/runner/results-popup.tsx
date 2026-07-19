@@ -145,16 +145,26 @@ export function ResultsPopup({
                 reason, using the report's sentence — the popup and the page
                 one tap later describe the ending identically. '…' holds the
                 line's height for the one round trip so nothing jumps. */}
-            <p className="results-cat-reason">{ctx?.catReasonLine ?? '…'}</p>
+            <p className="results-cat-reason">{ctx?.cat?.reasonLine ?? '…'}</p>
 
-            {/* Pre-empts the misreading the score would have caused: a
-                student who felt they got a lot wrong probably did, and that
-                is not what the exam measured. */}
-            <p className="results-cat-note">
-              Your result is on the next screen. A CAT keeps serving questions
-              at the edge of what you can do, so how many you got right isn’t
-              what it measures.
-            </p>
+            {/* Two different endings, two different promises. With a verdict
+                this pre-empts the misreading the raw score would have caused.
+                WITHOUT one there is no result at all — the exam was ended
+                from outside before the engine measured anything — and
+                promising a result on the next screen would be a plain lie:
+                the report renders its "This CAT ended early" surface. The
+                note is held back entirely until the context arrives rather
+                than defaulting to the optimistic wording. */}
+            {ctx?.cat && (
+              <p className="results-cat-note">
+                {ctx.cat.hasVerdict
+                  ? `Your result is on the next screen. A CAT keeps serving
+                     questions at the edge of what you can do, so how many you
+                     got right isn’t what it measures.`
+                  : `It ended before the engine could measure where you stand,
+                     so there’s no result for this one.`}
+              </p>
+            )}
 
             <div className="results-actions">
               <button
@@ -163,7 +173,7 @@ export function ResultsPopup({
                 onClick={() => ctx?.reportHref && router.push(ctx.reportHref)}
                 disabled={!ctx?.reportHref}
               >
-                See your results
+                {ctx?.cat && !ctx.cat.hasVerdict ? 'See what happened' : 'See your results'}
               </button>
 
               <button

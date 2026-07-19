@@ -46,11 +46,23 @@ export interface ResultsContext {
    *  popup renders a "see your report" CTA in place of the inline review +
    *  retake (review is reached from the report). Null for every other kind. */
   reportHref:      string | null;
-  /** CAT only: one sentence saying HOW the exam ended (confidence reached /
-   *  the item ceiling / the clock). A CAT stops without warning, so the
-   *  reason is the popup's whole job — it's the difference between "this
-   *  ended on purpose" and "something broke". Null for every other kind. */
-  catReasonLine:   string | null;
+  /** CAT only; null for every other kind.
+   *
+   *  Grouped rather than parallel nullable fields so the two cases can't
+   *  drift apart: a CAT can end WITH a verdict (the engine ran its stop
+   *  rule) or WITHOUT one (the exam was ended from outside — the wall
+   *  clock expiring it, or abandonment). Those need different sentences
+   *  AND different surrounding copy, so `hasVerdict` travels with the
+   *  line that depends on it. */
+  cat: {
+    /** One sentence saying HOW the exam ended. A CAT stops without warning,
+     *  so this is the popup's whole job — it's the difference between "this
+     *  ended on purpose" and "something broke". */
+    reasonLine:  string;
+    /** True when the engine produced a measurement. False when the exam
+     *  ended from outside and there is no result to show. */
+    hasVerdict:  boolean;
+  } | null;
 }
 
 /**
@@ -66,7 +78,7 @@ export async function getResultsContext(
   const { data: attempt, error: aErr } = await supabase
     .from('nclex_attempts')
     .select(
-      'source, mode, programme_activity_id, cat_termination_reason, cat_items_administered',
+      'source, mode, status, programme_activity_id, cat_verdict, cat_termination_reason, cat_items_administered',
     )
     .eq('attempt_id', attemptId)
     .maybeSingle();
@@ -77,6 +89,7 @@ export async function getResultsContext(
   const exitHref = await resolveAttemptExitHref(supabase, {
     source:                attempt.source,
     programme_activity_id: attempt.programme_activity_id,
+    mode:                  attempt.mode,
   });
 
   // CAT — branch on MODE, not source. A CAT attempt is stored with
@@ -90,26 +103,59 @@ export async function getResultsContext(
   // `mode` is the authoritative CAT marker and is set on the same insert, so
   // this stays correct whether or not a 'CAT' source value is added later.
   //
-  // The exit href is overridden rather than resolved: the shared resolver
-  // maps CUSTOM_BUILT → /student/bank/practice, which is the Builder, not
-  // where a CAT came from.
+  // exitHref needs no override here — the shared resolver above is itself
+  // CAT-aware, which is what keeps this popup's Exit and the runner topbar's
+  // Exit pointing at the same place.
   if (attempt.mode === 'CAT') {
+    // A verdict means the ENGINE ended the exam — it ran its stop rule and
+    // wrote cat_verdict / cat_termination_reason / cat_items_administered
+    // together in playTurn. No verdict means the exam was ended from
+    // OUTSIDE it: the runner's generic auto-expire flipping the attempt to
+    // TIMED_OUT on the wall clock, or abandonment. That path writes none of
+    // the CAT columns, so they are all NULL and there is nothing measured.
+    //
+    // The distinction is load-bearing, and getting it wrong is not a
+    // cosmetic failure. itemsAdministeredLine()'s fall-through branch
+    // asserts "the engine reached confidence at question N" — safe on the
+    // report, which only calls it once a verdict exists, but called here
+    // with NULLs it told a student who answered 49 questions and ran out of
+    // time that they answered 0 and the engine was confident. Seen on dev.
+    const hasVerdict = attempt.cat_verdict !== null;
+
+    let reasonLine: string;
+    if (hasVerdict) {
+      // Reuses the report's own sentence, so the popup and the page one tap
+      // later cannot describe the same ending two different ways.
+      reasonLine = itemsAdministeredLine(
+        attempt.cat_items_administered ?? 0,
+        attempt.cat_termination_reason,
+        TIME_LIMIT_SECONDS / 3600,
+      );
+    } else {
+      // cat_items_administered is NULL here by definition, so count the
+      // snapshotted questions instead — the same figure the report's
+      // abandoned view shows, so the two agree.
+      const { count } = await supabase
+        .from('nclex_attempt_items')
+        .select('attempt_item_id', { count: 'exact', head: true })
+        .eq('attempt_id', attemptId);
+      const seen = count ?? 0;
+      const qs = `${seen} ${seen === 1 ? 'question' : 'questions'}`;
+      reasonLine = attempt.status === 'TIMED_OUT'
+        ? `Your exam ran out of time after ${qs}.`
+        : `Your exam ended after ${qs}.`;
+    }
+
     return {
       ok: true,
       data: {
-        exitHref:        '/student/bank/cat',
+        exitHref,
         exitLabel:       'Back to CAT home',
         retakeLabel:     '',
         retakeAvailable: false,
         attemptsLine:    null,
         reportHref:      `/student/bank/cat/result/${attemptId}`,
-        // Reuses the report's own sentence, so the popup and the page a tap
-        // later cannot describe the same ending two different ways.
-        catReasonLine:   itemsAdministeredLine(
-          attempt.cat_items_administered ?? 0,
-          attempt.cat_termination_reason,
-          TIME_LIMIT_SECONDS / 3600,
-        ),
+        cat: { reasonLine, hasVerdict },
       },
     };
   }
@@ -126,7 +172,7 @@ export async function getResultsContext(
         retakeAvailable: true,
         attemptsLine:    null,
         reportHref:      null,
-        catReasonLine:   null,
+        cat:             null,
       },
     };
   }
@@ -145,7 +191,7 @@ export async function getResultsContext(
         retakeAvailable: false,
         attemptsLine:    null,
         reportHref:      `/student/bank/packs/report/${attemptId}`,
-        catReasonLine:   null,
+        cat:             null,
       },
     };
   }
@@ -214,7 +260,7 @@ export async function getResultsContext(
         retakeAvailable,
         attemptsLine,
         reportHref:      null,
-        catReasonLine:   null,
+        cat:             null,
       },
     };
   }
@@ -229,7 +275,7 @@ export async function getResultsContext(
       retakeAvailable: false,
       attemptsLine:    null,
       reportHref:      null,
-      catReasonLine:   null,
+      cat:             null,
     },
   };
 }

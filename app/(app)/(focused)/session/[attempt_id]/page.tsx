@@ -220,6 +220,7 @@ export default async function SessionPage({ params }: PageProps) {
   const exitHref = await resolveAttemptExitHref(supabase, {
     source:                attempt.source,
     programme_activity_id: attempt.programme_activity_id,
+    mode:                  attempt.mode,
   });
 
   // Multi-line / concatenated select strings defeat supabase-js's row-
