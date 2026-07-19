@@ -2983,6 +2983,17 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Carried forward — settle in subsequent planning sessions:</strong></p>
 <ul>
+  <li><strong>⚠ DEFECT — a CAT that times out produces no verdict (found 2026-07-21, §19.4.6).</strong> Not a
+    decision awaiting a call; a bug awaiting a fix, listed here because it is the most consequential open item on
+    the engine. <code>checkTermination</code>'s <code>TIME_LIMIT_HIT</code> branch resolves a timed-out exam
+    correctly (by side at or above <code>MIN_ITEMS</code>, <code>BELOW_STANDARD</code> beneath it) but only runs
+    inside a turn, and the runner's mode-blind auto-expire fires the instant the countdown hits zero — so the
+    branch never executes and every CAT timeout is written as <code>TIMED_OUT</code> with all three CAT columns
+    NULL. A student who times out at question 149 is told the exam "ended early" and shown nothing, while the
+    ability estimate sits unused on the item rows. <strong>Fix = route CAT expiry through the CAT path so the stop
+    rule resolves it.</strong> Sequence it <em>with</em> §9.3 below: if the limit moves, this is the code that has
+    to honour it. Also decide whether the existing dev attempt <code>4113c191</code> (49 items, no verdict) is
+    backfilled or left as a historical artifact.</li>
   <li><strong>The passing standard — REOPENED (Sam 2026-07-20, §9.1.1).</strong> Should
     <code>PASSING_THETA</code> stay at 0.0? The standard was never independently chosen — it inherited zero
     because zero was already both the prior mean and the Medium difficulty rung, so "Above standard" currently
@@ -3574,11 +3585,109 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   <li><strong>Clinical-judgment thresholds are provisional.</strong> §13.2 specifies the region and gives one
     example label but never defines the bands. Shipped as Strong ≥ 0.75 / Developing &lt; 0.5 / Mixed between,
     needing ≥ 3 case children to render at all. Tune from real case data (§5 / §17).</li>
-  <li><strong>The results popup still fires at termination.</strong> 19.4.4 flagged that Slice 7 would replace it;
-    the report page exists but the generic popup has not yet been re-pointed at it.</li>
+  <li><strong>✅ DONE 2026-07-21 — the results popup has been re-pointed at the report</strong> (§19.4.6). It was
+    the last thing standing between a finished CAT and the Slice 7 page.</li>
   <li><strong>§13.6 drill-down + remediation</strong> — see the finding above; the strongest remaining gap on this
     surface.</li>
 </ul>
+
+
+<h3 id="s19-slice7b-decisions">19.4.6 Re-pointing the termination popup — and the timeout defect it exposed
+  <span class="status settled">2026-07-21</span></h3>
+<p>
+  Commits <code>09975c0</code> + <code>296e789</code>, app-layer, <strong>no migration</strong>. tsc + eslint clean
+  on touched files; vitest 306 pass. The slice itself is small; what it turned up is not.
+</p>
+
+<h4>The popup</h4>
+<p>
+  A finished CAT was falling into the bank-Builder variant of the shared results popup: <em>"Session complete"</em>,
+  a raw <strong>"X of N correct"</strong>, and buttons for <em>Review attempt</em> / <em>Build another</em> /
+  <em>Exit to bank</em> — with no mention of the report, which was reachable only by returning to CAT home and
+  finding the row in the history table.
+</p>
+<p>
+  The score is the specific harm, and §19.4.5's finding is exactly why: raw correctness in a CAT converges toward
+  half for everyone, so the first real CAT read <strong>41.6%</strong> under a 98%-confident pass. As the headline
+  number, that tells a passing student they failed. The CAT variant is therefore deliberately near-empty — the exam
+  ended, why it ended, one route onward — with no score, percentage or verdict; the report says those properly.
+</p>
+<p>
+  Two implementation decisions worth keeping:
+</p>
+<ul>
+  <li><strong>Branch on <code>mode</code>, not <code>source</code>.</strong> A CAT is stored as
+    <code>source = 'CUSTOM_BUILT'</code> (§19.4.2 — there is no <code>'CAT'</code> source value), so source cannot
+    distinguish it; <code>mode</code> is written on the same insert and is the authoritative marker. This stays
+    correct whether or not a <code>'CAT'</code> source value is ever added.</li>
+  <li><strong><code>isCat</code> is a prop, not part of the fetched context.</strong> The popup resolves its
+    source-specific bits in a round trip on mount; routing CAT-ness through that would leave one frame where the
+    popup did not yet know, and it would render the forbidden score in it.</li>
+  <li><strong>The reason sentence reuses the report's own <code>itemsAdministeredLine()</code></strong> so the popup
+    and the page one tap later cannot describe the same ending two different ways — the same principle as deriving
+    the readiness probability from the engine's own function (§19.4.5).</li>
+</ul>
+
+<h4>⚠ Sam's question — "if someone is at 70 and times out, it won't be reported?"</h4>
+<p>
+  Asked while reviewing the slice, and the answer turned out to be <strong>yes, it won't — and that is the normal
+  timeout path, not an edge case.</strong>
+</p>
+<p>
+  <code>checkTermination</code> case 3 handles the clock properly and always has: at or above
+  <code>MIN_ITEMS</code> it resolves by side, below it resolves <code>BELOW_STANDARD</code>, and it returns
+  <code>TIME_LIMIT_HIT</code> <em>with a verdict</em> — the real NCLEX run-out-of-time rule, exactly as §9.3/§9.4
+  specify. But it only runs <strong>inside a turn</strong>, and a student cannot take a turn after the limit: the
+  runner's generic auto-expire effect fires <code>expireAttemptAction</code> the instant the countdown reaches
+  zero. That path is mode-blind. It stamps <code>TIMED_OUT</code> and <code>final_score</code> and writes
+  <strong>none</strong> of <code>cat_verdict</code> / <code>cat_termination_reason</code> /
+  <code>cat_items_administered</code>.
+</p>
+<p>
+  <strong>So the auto-expire always wins the race, and §9.3's <code>TIME_LIMIT_HIT</code> branch is effectively
+  dead code.</strong> Every CAT timeout currently produces no verdict, and the student is shown "this CAT ended
+  early" — a student who answered 149 questions and timed out on the last one gets nothing, while the engine's
+  ability estimate sits in <code>cat_theta_before</code> on every item row.
+</p>
+<p>
+  Confirmed on dev attempt <code>4113c191</code>: <code>TIMED_OUT</code>, 49 items,
+  <code>ended_at</code> exactly <code>started_at + 4:00:00</code> (the synthetic stamp the generic RPC writes),
+  all three CAT columns NULL.
+</p>
+<p>
+  <strong>The fix is not the popup.</strong> CAT expiry has to route through the CAT path so the stop rule resolves
+  it — the intent is already written down and tested in <code>lib/cat/termination.ts</code>, it simply never gets to
+  run. Carried forward below rather than fixed blind, because it interacts with the reopened §9.3: if the limit
+  moves, this is the code that has to honour it.
+</p>
+<p class="callout">
+  ⚠ A correction worth recording, because it nearly became a wrong entry in this doc. This was first written up as
+  "a CAT shows no clock at all", on the strength of an <em>"Untimed"</em> pill in the topbar. Sam pushed back — a
+  CAT does show a countdown. That pill is <code>statusLabel</code>, the <strong>review-mode</strong> fallback on a
+  finished attempt; live CATs get <code>clockProps</code> like any timed attempt, because <code>isTimed</code> is
+  just <code>duration_seconds !== null</code> and a CAT's is 14400. The label had been read off a completed attempt
+  and generalised to the live exam. Correcting it made the defect <em>worse</em>, not better: with no visible clock
+  the loss would need a student to wander off unaware, but with a countdown running to zero in front of them, the
+  silent auto-expire is simply what a timeout <em>is</em>.
+</p>
+
+<h4>Two defects fixed on the way</h4>
+<ul>
+  <li><strong>Exit went to the Builder.</strong> <code>resolveAttemptExitHref</code> mapped CAT → CUSTOM_BUILT →
+    <code>/student/bank/practice</code>. First "fixed" in the popup alone, which was wrong: the resolver is also
+    called in <code>session/page.tsx</code> and feeds four <em>other</em> exits (runner topbar, the CAT preflight's
+    Back, two runner pushes). The resolver itself is now CAT-aware and <code>mode</code> is <strong>required</strong>
+    on its input type, so a new call site cannot silently inherit the Builder destination.</li>
+  <li><strong>A CAT could be handed to the wrong create RPC.</strong> <code>restartAttemptAction</code> would have
+    passed <code>mode = 'CAT'</code> to <code>nclex_create_attempt</code> — a CAT is created by
+    <code>nclex_create_cat_attempt</code>, which also spends the student's allowance (§15.5). Unreachable from the
+    UI (the CAT popup renders no retake button), guarded anyway: a Server Action is callable directly.</li>
+</ul>
+<p>
+  Both were found by re-reading rather than by tests, and the first only because Sam asked whether the fix was
+  actually a fix. The pattern is the same one §19.4.4 recorded: <strong>tsc, eslint and the suite were green for
+  every one of these.</strong>
+</p>
 
 
 <p><strong>Follow-up edits in sibling docs — done 2026-05-05:</strong></p>
