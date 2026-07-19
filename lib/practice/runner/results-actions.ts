@@ -23,6 +23,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { TIME_LIMIT_SECONDS } from '@/lib/cat';
+import { itemsAdministeredLine } from '@/lib/practice/cat/report-derive';
 import { resolveAttemptExitHref } from './resolve-exit-href';
 
 export type ActionResult<T> =
@@ -40,11 +42,15 @@ export interface ResultsContext {
   retakeAvailable: boolean;
   /** Programme only: "Attempt 1 of 3" / null for unlimited / null for bank. */
   attemptsLine:    string | null;
-  /** Readiness only: the permanent per-sitting report page. When set, the
-   *  popup renders the readiness variant — a "See your full report" CTA in
-   *  place of the inline review + retake (review is reached from the report).
-   *  Null for every other source. */
+  /** Readiness + CAT: the permanent per-sitting report page. When set, the
+   *  popup renders a "see your report" CTA in place of the inline review +
+   *  retake (review is reached from the report). Null for every other kind. */
   reportHref:      string | null;
+  /** CAT only: one sentence saying HOW the exam ended (confidence reached /
+   *  the item ceiling / the clock). A CAT stops without warning, so the
+   *  reason is the popup's whole job — it's the difference between "this
+   *  ended on purpose" and "something broke". Null for every other kind. */
+  catReasonLine:   string | null;
 }
 
 /**
@@ -59,7 +65,9 @@ export async function getResultsContext(
 
   const { data: attempt, error: aErr } = await supabase
     .from('nclex_attempts')
-    .select('source, programme_activity_id')
+    .select(
+      'source, mode, programme_activity_id, cat_termination_reason, cat_items_administered',
+    )
     .eq('attempt_id', attemptId)
     .maybeSingle();
   if (aErr || !attempt) return { ok: false, error: 'Attempt not found.' };
@@ -70,6 +78,41 @@ export async function getResultsContext(
     source:                attempt.source,
     programme_activity_id: attempt.programme_activity_id,
   });
+
+  // CAT — branch on MODE, not source. A CAT attempt is stored with
+  // source = 'CUSTOM_BUILT' (there is no 'CAT' source value; see
+  // 20260809120000_cat_slice3_create_attempt.sql), so without this branch a
+  // finished CAT falls into the bank-Builder case below and gets the wrong
+  // popup entirely: a raw "X of N correct" score — the one number §13.5
+  // forbids — under a "Session complete" eyebrow, with a "Build another"
+  // button that would run the exam through the Builder's RPC.
+  //
+  // `mode` is the authoritative CAT marker and is set on the same insert, so
+  // this stays correct whether or not a 'CAT' source value is added later.
+  //
+  // The exit href is overridden rather than resolved: the shared resolver
+  // maps CUSTOM_BUILT → /student/bank/practice, which is the Builder, not
+  // where a CAT came from.
+  if (attempt.mode === 'CAT') {
+    return {
+      ok: true,
+      data: {
+        exitHref:        '/student/bank/cat',
+        exitLabel:       'Back to CAT home',
+        retakeLabel:     '',
+        retakeAvailable: false,
+        attemptsLine:    null,
+        reportHref:      `/student/bank/cat/result/${attemptId}`,
+        // Reuses the report's own sentence, so the popup and the page a tap
+        // later cannot describe the same ending two different ways.
+        catReasonLine:   itemsAdministeredLine(
+          attempt.cat_items_administered ?? 0,
+          attempt.cat_termination_reason,
+          TIME_LIMIT_SECONDS / 3600,
+        ),
+      },
+    };
+  }
 
   // Bank Builder — retake always allowed (re-running the same filter
   // is a fresh build, never blocked).
@@ -83,6 +126,7 @@ export async function getResultsContext(
         retakeAvailable: true,
         attemptsLine:    null,
         reportHref:      null,
+        catReasonLine:   null,
       },
     };
   }
@@ -101,6 +145,7 @@ export async function getResultsContext(
         retakeAvailable: false,
         attemptsLine:    null,
         reportHref:      `/student/bank/packs/report/${attemptId}`,
+        catReasonLine:   null,
       },
     };
   }
@@ -169,6 +214,7 @@ export async function getResultsContext(
         retakeAvailable,
         attemptsLine,
         reportHref:      null,
+        catReasonLine:   null,
       },
     };
   }
@@ -183,6 +229,7 @@ export async function getResultsContext(
       retakeAvailable: false,
       attemptsLine:    null,
       reportHref:      null,
+      catReasonLine:   null,
     },
   };
 }
@@ -204,6 +251,17 @@ export async function restartAttemptAction(
     .eq('attempt_id', attemptId)
     .maybeSingle();
   if (aErr || !attempt) return { ok: false, error: 'Attempt not found.' };
+
+  // A CAT is stored as source = 'CUSTOM_BUILT', so without this guard it
+  // would fall into the Builder branch below and hand mode = 'CAT' to
+  // nclex_create_attempt — the wrong RPC entirely (a CAT is created by
+  // nclex_create_cat_attempt, which also spends the student's allowance).
+  // The CAT popup renders no retake button, so this is unreachable from the
+  // UI today; it is guarded anyway because a Server Action is callable
+  // directly and "unreachable" is a UI fact, not a server one.
+  if (attempt.mode === 'CAT') {
+    return { ok: false, error: 'A CAT cannot be retaken from here. Start a new one from CAT home.' };
+  }
 
   if (attempt.source === 'CUSTOM_BUILT') {
     const { data, error } = await supabase.rpc('nclex_create_attempt', {

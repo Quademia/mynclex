@@ -2500,6 +2500,35 @@
   text-align: center;
   margin-bottom: 6px;
 }
+/* CAT variant — no score block, so the type carries the whole surface.
+   The headline takes the visual weight the percentage holds elsewhere,
+   which keeps the popup from reading as an error dialog. */
+.results-cat {
+  text-align: center;
+}
+.results-cat-head {
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--text);
+  margin: 8px 0 10px;
+}
+.results-cat-reason {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0 0 12px;
+  /* Holds the line while the reason loads, so nothing below shifts. */
+  min-height: 1.5em;
+}
+.results-cat-note {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0 auto 18px;
+  max-width: 40ch;
+}
+
 .results-score {
   text-align: center;
   margin: 4px 0 2px;

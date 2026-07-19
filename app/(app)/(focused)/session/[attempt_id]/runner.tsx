@@ -1179,6 +1179,7 @@ function RunnerShell({ data }: Props) {
           passScore={data.attempt.pass_score}
           totalQ={total}
           source={data.attempt.source}
+          isCat={isCat}
           onReview={() => {
             setCurrent(0);
             setShowResults(false);
