@@ -14,8 +14,25 @@
 > so raw success converges toward half *for everyone*; the footnote now names
 > that alongside partial credit. This makes the §13.6 drill-down + remediation
 > the strongest remaining gap on the page.
-> **⏭ NEXT on CAT:** re-point the termination results popup at the new report ·
-> Slice 6c (transition escalation) · §16.6 exam-mode display leaks · Slices 8–9.
+> **✅ 2026-07-21 — the termination popup is re-pointed at the report** (4 commits,
+> branch `claude/work-session-093b0c`, **NOT yet on `main`**; app-layer, no
+> migration; vitest 306). Also fixed: the CAT exit landed on the practice
+> Builder (fixed at the *resolver*, which feeds five exits, not just the popup);
+> and the Builder's CAT card both quoted the **pre-NGN 75–145** and, worse,
+> **actually started something that was not a CAT** — the Builder's RPC with
+> `mode='CAT'` and a hardcoded 75. §10.7.1 had settled that card as a
+> **doorway** on 2026-07-19; it now says "Go to CAT" and creates nothing.
+>
+> **⚠ NEW DEFECT — a CAT that times out is never reported.** `checkTermination`
+> resolves the clock correctly and *with a verdict*, but only inside a turn,
+> and the runner's mode-blind auto-expire fires the instant the countdown hits
+> zero — so `TIME_LIMIT_HIT` is effectively dead code and every CAT timeout
+> produces no verdict. A student who answers 149 and times out on the last is
+> told the exam "ended early". Now the top carried-forward item in cat.html
+> §19 (see §19.4.6), sequenced with §9.3.
+>
+> **⏭ NEXT on CAT:** the timeout defect · Slice 6c (transition escalation) ·
+> §16.6 exam-mode display leaks · Slices 8–9.
 > **Two decisions reopened, noted not changed:** §9.3 the 4-hour time limit
 > (vs real NCLEX's 5) and §9.1.1 the passing standard (theta 0.0 was inherited,
 > not chosen). Both in cat.html §19 carried-forward.
