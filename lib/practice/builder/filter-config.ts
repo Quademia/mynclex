@@ -22,6 +22,7 @@ import {
   DIFFICULTY_LEVELS,
   QUESTION_TYPES,
 } from '@/lib/bank/classifications';
+import { MIN_ITEMS, MAX_ITEMS } from '@/lib/cat';
 
 // ─── Pool chips ─────────────────────────────────────────────────────
 // 'SEEN' is a UI-only concept (= CORRECT ∪ INCORRECT). 'ALL' is a
@@ -139,7 +140,9 @@ export const MODES_EXAM: ModeDef[] = [
     clock: 'wall',
     feedback: 'Verdict',
     nav: 'Adaptive',
-    desc: '75–145 questions. Difficulty adapts. Terminates on confidence.',
+    // Range interpolated from the engine's constants — a literal here was
+    // the pre-NGN 75–145 and outlived the §9 correction to 85–150.
+    desc: `${MIN_ITEMS}–${MAX_ITEMS} questions. Difficulty adapts. Terminates on confidence.`,
   },
 ];
 

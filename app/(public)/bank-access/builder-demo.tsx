@@ -11,6 +11,10 @@
 // page-scoped `.bkc-*` in styles/bank-public.css.
 
 import { useState } from 'react';
+// Public marketing demo, but the CAT length it quotes is a factual claim
+// about the product — so it reads the engine's constants like every other
+// surface rather than carrying its own copy of the numbers.
+import { MIN_ITEMS, MAX_ITEMS } from '@/lib/cat';
 
 type Intent = 'STUDY' | 'EXAM';
 
@@ -227,7 +231,7 @@ export function BuilderDemo() {
             <div className="bkc-rail">
               <div className="bkc-rail-h">Your quiz</div>
               <div className={`bkc-match${err ? ' err' : warn ? ' warn' : ''}`}>
-                <strong>{isCat ? '75–145' : total.toLocaleString()}</strong>
+                <strong>{isCat ? `${MIN_ITEMS}–${MAX_ITEMS}` : total.toLocaleString()}</strong>
                 <span>{isCat ? 'adaptive — the engine picks each question live' : 'questions match your filters'}</span>
               </div>
 
