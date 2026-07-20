@@ -10,6 +10,7 @@ import 'server-only';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { CatDb } from './turn';
+import type { CatExpireDb } from './expire';
 import type { CatHistoryRow } from './types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -17,6 +18,23 @@ type Db = SupabaseClient<any, any, any>;
 
 export function makeCatDb(supabase: Db): CatDb {
   return {
+    /** The attempt's clock settings — the authority on this exam's time limit. */
+    async loadAttempt(attemptId: string) {
+      const { data, error } = await supabase
+        .from('nclex_attempts')
+        .select('duration_seconds, started_at')
+        .eq('attempt_id', attemptId)
+        .maybeSingle();
+
+      if (error) throw new Error(`loadAttempt failed: ${error.message}`);
+      if (!data) throw new Error('attempt not found');
+
+      return {
+        duration_seconds: data.duration_seconds,
+        started_at: data.started_at,
+      };
+    },
+
     /**
      * Prior administered items with their scores, in position order.
      *
@@ -97,6 +115,34 @@ export function makeCatDb(supabase: Db): CatDb {
 
       if (error) throw new Error(`cat_next_item failed: ${error.message}`);
       return (data ?? {}) as Record<string, unknown>;
+    },
+  };
+}
+
+/**
+ * The expiry adapter — reuses the turn adapter's reads and swaps the write.
+ *
+ * Composed rather than duplicated so the two paths can never drift on HOW the
+ * history is loaded: a difference there would mean a CAT that times out
+ * between turns estimates ability from different evidence than one that times
+ * out inside a turn, and the two would resolve to different verdicts.
+ */
+export function makeCatExpireDb(supabase: Db): CatExpireDb {
+  const base = makeCatDb(supabase);
+  return {
+    loadAttempt: base.loadAttempt,
+    loadHistory: base.loadHistory,
+
+    async expire(args) {
+      const { error } = await supabase.rpc('nclex_expire_cat_attempt', {
+        p_attempt_id:         args.attemptId,
+        p_theta:              args.theta,
+        p_se:                 args.se,
+        p_verdict:            args.verdict,
+        p_items_administered: args.itemsAdministered,
+      });
+
+      if (error) throw new Error(`nclex_expire_cat_attempt failed: ${error.message}`);
     },
   };
 }

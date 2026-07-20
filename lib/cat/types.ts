@@ -69,6 +69,28 @@ export type TerminationInput = {
   itemsAdministered: number;
   /** Seconds since the exam clock started. */
   elapsedSeconds: number;
+  /**
+   * The exam's own time limit, in seconds — read from the attempt row's
+   * `duration_seconds`, NOT from a module constant.
+   *
+   * REQUIRED, deliberately undefaulted (2026-07-22). TIME_LIMIT_SECONDS is
+   * what STAMPS `duration_seconds` at creation; it is not the authority at
+   * runtime. Two reasons the row wins:
+   *
+   *   1. There were two independent copies of "4 hours" — this constant and
+   *      C_DURATION_SECONDS in the creation migration — with nothing keeping
+   *      them in step. The runner expires on the row's copy, so a drift
+   *      between them means the clock and the engine disagree about when the
+   *      exam is over.
+   *   2. §9.3 is reopened (4 hours vs the real NCLEX's 5). Reading the row
+   *      means a change applies to NEW exams while an exam already in
+   *      progress keeps the limit it started under. Reading the constant
+   *      would retroactively rewrite the rules for someone mid-sitting.
+   *
+   * A default here would let a call site silently fall back to the constant,
+   * which is exactly the bug this removes.
+   */
+  timeLimitSeconds: number;
 };
 
 /**

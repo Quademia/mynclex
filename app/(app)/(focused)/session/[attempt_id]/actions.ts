@@ -30,6 +30,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { expireCat } from '@/lib/practice/cat/expire';
+import { makeCatExpireDb } from '@/lib/practice/cat/db';
 import { scoreAttempt } from '@/lib/scoring';
 import type { BankItemAnswer } from '@/lib/scoring';
 import type { BankItemCorrect } from '@/lib/bank/types';
@@ -288,15 +290,61 @@ export async function recordQuestionTimeAction(
 // Idempotent end-to-end: if the attempt is already terminal, the expire
 // RPC short-circuits and returns the stored final_score; _flushDrafts
 // runs over an empty set in that case.
+//
+// CAT TAKES A DIFFERENT ROUTE (§19.4.6, 2026-07-22). Both expiry triggers —
+// the countdown hitting zero in runner.tsx and the lazy catch-up in page.tsx
+// — call THIS function, which is why the branch lives here rather than at
+// either trigger. Putting it in the client runner would also mean trusting
+// the browser to say which path a high-stakes verdict takes.
+//
+// nclex_expire_attempt is mode-blind: it flips a CAT to TIMED_OUT and writes
+// none of the cat_* columns, which left every timed-out CAT with no verdict
+// at all. See lib/practice/cat/expire.ts for the full write-up.
 export async function expireAttemptAction(
   attemptId: string,
-): Promise<ActionResult<{ final_score: number }>> {
+): Promise<ActionResult<{ final_score: number | null }>> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
   const flush = await _flushDrafts(supabase, attemptId, 'AUTO_SUBMITTED');
   if (!flush.ok) return { ok: false, error: flush.error };
+
+  const { data: attempt, error: attemptErr } = await supabase
+    .from('nclex_attempts')
+    .select('mode, started_at, duration_seconds')
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
+  if (attemptErr) return { ok: false, error: attemptErr.message };
+  if (!attempt)   return { ok: false, error: 'That attempt could not be found.' };
+
+  if (attempt.mode === 'CAT') {
+    // Elapsed is derived from the ROW, server-side. The turn path takes it
+    // from the client (pre-existing, and there a wrong value only shortens
+    // the student's own exam) — but this call decides a verdict with no
+    // answer behind it, so it must not be influenceable from the browser.
+    if (!attempt.started_at || attempt.duration_seconds === null) {
+      return { ok: false, error: 'That exam has no clock to expire.' };
+    }
+    const elapsedSeconds = Math.floor((Date.now() - Date.parse(attempt.started_at)) / 1000);
+
+    try {
+      await expireCat(makeCatExpireDb(supabase), { attemptId, elapsedSeconds });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      // "has not timed out" / "timer has not yet expired" mean the caller
+      // raced the clock. Surface it rather than silently falling through to
+      // the generic path, which would strip the verdict off a live exam.
+      if (msg.includes('has not timed out') || msg.includes('timer has not yet expired')) {
+        return { ok: false, error: 'This exam has not run out of time yet.' };
+      }
+      return { ok: false, error: 'Could not finalise this exam. Please reload.' };
+    }
+
+    // A CAT has no final_score by design — §13.5 forbids showing one, and
+    // the engine's own terminal branch does not write one either.
+    return { ok: true, data: { final_score: null } };
+  }
 
   const { data, error } = await supabase.rpc('nclex_expire_attempt', {
     p_attempt_id: attemptId,

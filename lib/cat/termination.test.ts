@@ -21,6 +21,9 @@ const at = (over: Partial<Parameters<typeof checkTermination>[0]> = {}) =>
     se: 0.3,
     itemsAdministered: 100,
     elapsedSeconds: 3600,
+    // The fixture supplies the creation default so the existing cases read
+    // unchanged; the suite below covers a row whose limit differs.
+    timeLimitSeconds: TIME_LIMIT_SECONDS,
     ...over,
   });
 
@@ -152,6 +155,66 @@ describe('checkTermination — time limit (§9.3)', () => {
     expect(
       at({ theta: 0.2, se: 0.6, itemsAdministered: 100, elapsedSeconds: TIME_LIMIT_SECONDS - 1 })
     ).toEqual({ stop: false });
+  });
+});
+
+describe('the limit comes from the attempt row, not the constant (§9.3)', () => {
+  // The whole point of taking timeLimitSeconds as input: an exam is judged
+  // against the limit IT started under. If §9.3 moves 4 hours to 5, an exam
+  // already in progress must keep its 4 — and a 5-hour exam must not be cut
+  // off at 4 just because the constant still says so.
+  const FIVE_HOURS = 5 * 60 * 60;
+
+  it('a 5-hour exam does NOT time out at 4 hours', () => {
+    expect(
+      at({
+        theta: 0.4, se: 0.6, itemsAdministered: 100,
+        elapsedSeconds: TIME_LIMIT_SECONDS,
+        timeLimitSeconds: FIVE_HOURS,
+      })
+    ).toEqual({ stop: false });
+  });
+
+  it('a 5-hour exam times out at 5 hours', () => {
+    expect(
+      at({
+        theta: 0.4, se: 0.6, itemsAdministered: 100,
+        elapsedSeconds: FIVE_HOURS,
+        timeLimitSeconds: FIVE_HOURS,
+      })
+    ).toMatchObject({ stop: true, reason: 'TIME_LIMIT_HIT' });
+  });
+
+  it('a shorter-limit exam times out earlier than the constant', () => {
+    expect(
+      at({
+        theta: 0.4, se: 0.6, itemsAdministered: 100,
+        elapsedSeconds: 3600,
+        timeLimitSeconds: 1800,
+      })
+    ).toMatchObject({ stop: true, reason: 'TIME_LIMIT_HIT' });
+  });
+});
+
+describe('the TS and SQL copies of the creation default agree', () => {
+  // TIME_LIMIT_SECONDS stamps duration_seconds via C_DURATION_SECONDS in the
+  // creation migration, and SQL cannot import TS. Before this guard the two
+  // drifted freely: the runner expires on the row's copy while the engine
+  // judged against its own, so a mismatch would silently mean the clock and
+  // the stopping rule disagree about when the exam is over.
+  it('C_DURATION_SECONDS matches TIME_LIMIT_SECONDS', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const sql = readFileSync(
+      join(process.cwd(), 'db/migrations/20260809120000_cat_slice3_create_attempt.sql'),
+      'utf8',
+    );
+    const m = sql.match(/C_DURATION_SECONDS\s+CONSTANT\s+INTEGER\s*:=\s*([^;]+);/);
+    expect(m, 'C_DURATION_SECONDS not found — did the migration get renamed?').toBeTruthy();
+
+    // The literal is an arithmetic expression ("4 * 60 * 60"), not a number.
+    const sqlValue = Function(`"use strict"; return (${m![1]});`)() as number;
+    expect(sqlValue).toBe(TIME_LIMIT_SECONDS);
   });
 });
 

@@ -65,6 +65,7 @@ function makeDb(history: CatHistoryRow[], over: Partial<CatDb> = {}): CatDb & { 
   const calls: RpcArgs[] = [];
   return {
     calls,
+    loadAttempt: async () => ({ duration_seconds: 4 * 60 * 60, started_at: null }),
     loadHistory: async () => history,
     loadCurrent: async () => ({
       attempt_item_id: 'cur-ai',

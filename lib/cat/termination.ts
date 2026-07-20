@@ -16,7 +16,19 @@ export const MIN_ITEMS = 85;
 /** Forced stop at this count regardless of SE (§9.2). */
 export const MAX_ITEMS = 150;
 
-/** 4 hours (§9.3). Real NCLEX allows 5; 4 is real enough without being punishing. */
+/**
+ * 4 hours (§9.3). Real NCLEX allows 5; 4 is real enough without being punishing.
+ *
+ * This is the CREATION default — it is what `nclex_create_cat_attempt` stamps
+ * into the attempt's `duration_seconds`, and what the marketing/home surfaces
+ * quote. It is NOT the runtime authority: `checkTermination` takes the limit
+ * from the attempt row (see `TerminationInput.timeLimitSeconds`), so an exam
+ * already in progress is judged against the limit it actually started under.
+ *
+ * ⚠ Kept in step with C_DURATION_SECONDS in
+ * `20260809120000_cat_slice3_create_attempt.sql` by the test in
+ * `termination.test.ts` — the SQL side cannot import this.
+ */
 export const TIME_LIMIT_SECONDS = 4 * 60 * 60;
 
 /** The precision floor: the estimate must be this sharp to stop early (§9.1). */
@@ -72,7 +84,7 @@ export function bandClearsStandard(theta: number, se: number): boolean {
  * or quit), not a state the engine detects (§9.4).
  */
 export function checkTermination(input: TerminationInput): TerminationResult {
-  const { theta, se, itemsAdministered, elapsedSeconds } = input;
+  const { theta, se, itemsAdministered, elapsedSeconds, timeLimitSeconds } = input;
 
   // 1. Confidence reached — the engine is sure (§9.1).
   //    All three must hold: enough items, a sharp enough estimate, and an
@@ -99,7 +111,7 @@ export function checkTermination(input: TerminationInput): TerminationResult {
   //    At or past the minimum, resolve by side as above. Below the minimum
   //    there is not enough evidence to credit a pass, so it resolves BELOW —
   //    the real NCLEX Run-Out-Of-Time rule.
-  if (elapsedSeconds >= TIME_LIMIT_SECONDS) {
+  if (elapsedSeconds >= timeLimitSeconds) {
     const verdict: CatVerdict =
       itemsAdministered >= MIN_ITEMS ? verdictBySide(theta) : 'BELOW_STANDARD';
     return { stop: true, reason: 'TIME_LIMIT_HIT', verdict };

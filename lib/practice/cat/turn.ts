@@ -71,6 +71,17 @@ export function historyToResponses(rows: readonly CatHistoryRow[]): CatResponse[
 
 /** Minimal client surface, so this module is testable without a live DB. */
 export type CatDb = {
+  /**
+   * The attempt's own clock settings.
+   *
+   * The time limit is read from the ROW, never from TIME_LIMIT_SECONDS — the
+   * constant only stamps the row at creation. See
+   * `TerminationInput.timeLimitSeconds` for why.
+   */
+  loadAttempt(attemptId: string): Promise<{
+    duration_seconds: number | null;
+    started_at: string | null;
+  }>;
   /** Prior administered items with their scores, position order. */
   loadHistory(attemptId: string): Promise<CatHistoryRow[]>;
   /** The current (highest-position) item's answer key + marks + weight. */
@@ -114,7 +125,8 @@ export type CatDb = {
  * the point it was already sure.
  */
 export async function playTurn(db: CatDb, input: CatTurnInput): Promise<CatTurnResult> {
-  const [history, current] = await Promise.all([
+  const [attempt, history, current] = await Promise.all([
+    db.loadAttempt(input.attemptId),
     db.loadHistory(input.attemptId),
     db.loadCurrent(input.attemptId),
   ]);
@@ -145,6 +157,11 @@ export async function playTurn(db: CatDb, input: CatTurnInput): Promise<CatTurnR
     se,
     itemsAdministered,
     elapsedSeconds: input.elapsedSeconds,
+    // From the row, not the constant. A CAT always has a duration
+    // (nclex_create_cat_attempt stamps one); the fallback exists only so a
+    // malformed row cannot crash a live exam mid-turn, and it errs toward
+    // letting the student continue rather than cutting them off.
+    timeLimitSeconds: attempt.duration_seconds ?? Number.POSITIVE_INFINITY,
   });
 
   // 5. Persist (+ select, when continuing). One transaction.
