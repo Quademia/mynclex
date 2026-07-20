@@ -2409,11 +2409,17 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   shared runner Review surface used by every other quiz type.
 </p>
 
-<h3>13.1 Verdict copy <span class="status settled">revised 2026-07-15</span></h3>
+<h3>13.1 Verdict copy <span class="status settled">revised 2026-07-22</span></h3>
 <p>
   <strong>Two verdicts only</strong> (INCONCLUSIVE retired, §9.5). Each headline is paired with a
   <strong>readiness probability</strong> — "how confident we are you're above our standard" — from §9.5.
   A boundary student lands here too, just with a mid-range percentage.
+</p>
+<p class="callout">
+  ⚠ <strong>But the pairing does not hold for every ending</strong>, and this section shipped assuming it did.
+  See <strong>the unmeasured ending</strong> below, added 2026-07-22 after the contradiction it causes was seen on
+  screen. The two variants immediately following are correct for <code>CONFIDENCE_REACHED</code>,
+  <code>MAX_ITEMS_HIT</code>, and a time-out at or above <code>MIN_ITEMS</code>.
 </p>
 <p><strong>ABOVE_STANDARD</strong></p>
 <ul>
@@ -2429,8 +2435,73 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   <strong>Near-boundary framing.</strong> When the probability sits close to 50% (typically a max-length or
   time-out finish), the sub-line acknowledges it: <em>"This was close — your ability sat right around our
   standard. The category breakdown below is where to focus."</em> Honest and actionable, never a non-answer, and
-  never "chance of passing the NCLEX."
+  never "chance of passing the NCLEX." <strong>Suppressed on the unmeasured ending below</strong> — there it would
+  claim the result was close when in truth it was never taken.
 </p>
+
+<h4 id="s13-unmeasured">THE UNMEASURED ENDING — a time-out below <code>MIN_ITEMS</code>
+  <span class="status settled">added 2026-07-22</span></h4>
+<p>
+  <strong>The third kind of ending.</strong> The two variants above both read the verdict as though it
+  <em>follows</em> the ability estimate, which is what licenses quoting a probability as the explanation. That
+  holds for <code>CONFIDENCE_REACHED</code>, for <code>MAX_ITEMS_HIT</code>, and for a time-out with 85 or more
+  answered. It breaks for a time-out <strong>under</strong> the minimum, where §9.3 forces
+  <code>BELOW_STANDARD</code> on insufficient evidence whatever the estimate says: the verdict stops following the
+  estimate, while the probability carries on being computed from it.
+</p>
+<p>
+  <strong>Seen on screen, on real data</strong> (2026-07-22, dev, 48 items): <em>"Below standard"</em> sitting
+  directly above <em>"We're ~93% confident you're above our standard."</em> Flatly self-contradictory, and the
+  confidence ring read 93% too. This was latent from the day this section was written; it was invisible only
+  because <strong>no CAT timeout ever reached the report at all</strong> until §19.4.7 fixed that — one defect was
+  hiding the other.
+</p>
+<p>
+  <strong>Why the near-boundary variant did not already cover it.</strong> That variant sorts results by how
+  <em>confident</em> we are (probability 40–60%) and names a time-out as a typical case. But this case is about how
+  much <em>evidence</em> we have, and the two come apart precisely here: a student can run out of time at question
+  48 while sitting at 93%. Sorting by confidence cannot reach a result whose verdict ignores confidence by design.
+</p>
+<p>
+  <strong>The settled shape</strong> (Sam, 2026-07-22). Two claims, stated separately, because only one of them is
+  supportable:
+</p>
+<ul>
+  <li><strong>The result is a fail.</strong> On the real NCLEX, running out of time is a fail, and it counts as one
+    here. The fail <strong>leads in the headline</strong> — <em>"not enough information"</em> as a headline reads as
+    "this one doesn't count", i.e. a free do-over.</li>
+  <li><strong>The measurement is declined.</strong> Too few questions to place the student. Headline:
+    <em>"Not passed — you ran out of time"</em> · sub-line: <em>"You answered <strong>[N]</strong> of the
+    <strong>85</strong> questions we need before we can place your ability — so this sitting can't tell you where
+    you stand."</em></li>
+  <li><strong>No probability may appear anywhere on this variant</strong> — not in the sub-line, not in the body,
+    not in the ring. It is computed from an estimate the verdict deliberately ignores. The ring shows the evidence
+    gap instead (<em>"48 / of 85 needed"</em>), which is the fact that actually explains the page. A unit test
+    asserts no <code>%</code> and no "confident" reaches this copy.</li>
+  <li><strong>The body advises on PACE, not content.</strong> Every other variant sends the student to the category
+    breakdown; here the clock ended the exam, so that advice would send them back to do exactly the same thing
+    again. Body: <em>"On the real NCLEX, running out of time is a fail, and it counts as one here. But what ended
+    this exam was pace, not knowledge: <strong>[N]</strong> questions in <strong>[H]</strong> hours is about
+    <strong>[M]</strong> each, and a full-length exam needs closer to <strong>[P]</strong>. Sit another CAT and
+    focus on keeping moving — the breakdown below is still worth reading, but time is the thing to fix first."</em>
+    All four figures are derived, so §9.3 moving to 5 hours needs no copy edit.</li>
+  <li><strong>The category breakdown stays</strong> (Sam's call) — secondary to the pacing advice, not removed.</li>
+</ul>
+<p>
+  <strong>It is display-only — <code>cat_verdict</code> stays <code>BELOW_STANDARD</code></strong> in the database
+  and on every other surface, so nothing needs an override. But every surface that <em>labels</em> a verdict must
+  branch, or they will describe one sitting several different ways: the CAT home history row reads
+  <em>"Not passed — ran out of time"</em>, and the compare-to-previous strip reads <strong>"Timed out"</strong>
+  rather than "Below" — its dot still plots, since the estimate is real, but labelling it Below beside genuinely
+  measured sittings would read as a decline in ability that never happened. One shared predicate,
+  <code>isUnmeasured(reason, items)</code>, is what keeps the three in step.
+</p>
+<p>
+  <strong>Known and accepted: the 85-item cliff.</strong> Answer 84 and you get this page; answer 85 and you get a
+  full verdict and percentage. Inherited from the real NCLEX rule (§9.3), so kept — but two near-identical sittings
+  can land on visibly different pages.
+</p>
+
 <p><strong>ABANDONED</strong> (no verdict)</p>
 <ul>
   <li>Per §16.5 — abandoned CATs never reach a result state. The History page shows them as <em>"CAT — Abandoned"</em>; opening the row goes to a minimal summary that explains the attempt was ended early and offers <em>"Start a new CAT"</em>.</li>
@@ -2983,17 +3054,15 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Carried forward — settle in subsequent planning sessions:</strong></p>
 <ul>
-  <li><strong>⚠ DEFECT — a CAT that times out produces no verdict (found 2026-07-21, §19.4.6).</strong> Not a
-    decision awaiting a call; a bug awaiting a fix, listed here because it is the most consequential open item on
-    the engine. <code>checkTermination</code>'s <code>TIME_LIMIT_HIT</code> branch resolves a timed-out exam
-    correctly (by side at or above <code>MIN_ITEMS</code>, <code>BELOW_STANDARD</code> beneath it) but only runs
-    inside a turn, and the runner's mode-blind auto-expire fires the instant the countdown hits zero — so the
-    branch never executes and every CAT timeout is written as <code>TIMED_OUT</code> with all three CAT columns
-    NULL. A student who times out at question 149 is told the exam "ended early" and shown nothing, while the
-    ability estimate sits unused on the item rows. <strong>Fix = route CAT expiry through the CAT path so the stop
-    rule resolves it.</strong> Sequence it <em>with</em> §9.3 below: if the limit moves, this is the code that has
-    to honour it. Also decide whether the existing dev attempt <code>4113c191</code> (49 items, no verdict) is
-    backfilled or left as a historical artifact.</li>
+  <li><strong>✅ FIXED 2026-07-22 — a CAT that times out now gets a verdict</strong> (was the top carried-forward
+    item; found 2026-07-21 §19.4.6, fixed §19.4.7). CAT expiry routes through the CAT path, reusing the same
+    <code>checkTermination</code> the engine uses so a time-out between turns cannot resolve differently from one
+    inside a turn. The duplicated 4-hour constant was collapsed at the same time: the limit now comes from the
+    attempt row, which is what makes §9.3 below a one-constant change rather than a re-open.
+    <strong>Fixing it exposed a second defect</strong> — the report had no copy for a sub-85 time-out and read
+    "Below standard" above "~93% confident you're above our standard". Settled and built the same session as
+    <strong>the unmeasured ending</strong> (§13.1). <em>Still open:</em> whether dev attempt
+    <code>4113c191</code> (49 items, no verdict, pre-fix) is backfilled or left as a historical artifact.</li>
   <li><strong>The passing standard — REOPENED (Sam 2026-07-20, §9.1.1).</strong> Should
     <code>PASSING_THETA</code> stay at 0.0? The standard was never independently chosen — it inherited zero
     because zero was already both the prior mean and the Medium difficulty rung, so "Above standard" currently
@@ -3012,7 +3081,12 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     real CAT's pace (1.4 min/item) puts a 150-item run at ~3 h 35 m, close enough that a 2-min/item student would
     time out near question 120. Against a straight 5: real NCLEX's 5 hours includes the tutorial and breaks, so 5
     hours of pure answering is more generous than the real exam, not equal to it. One-line change, no migration —
-    see §9.3 for the full note and the files it touches.</li>
+    see §9.3 for the full note and the files it touches. <strong>Genuinely one line as of 2026-07-22</strong>
+    (§19.4.7): the duplicated TS/SQL copies of the limit were collapsed onto the attempt row, so changing
+    <code>TIME_LIMIT_SECONDS</code> now applies to new exams while an exam in progress keeps the limit it started
+    under — and the report copy derives its pacing figures, so none of it needs rewording. This was the reason the
+    timeout defect was sequenced <em>with</em> this decision; that sequencing is now discharged and §9.3 can be
+    settled on its own merits whenever Sam wants to.</li>
   <li><strong>Results-report enhancements — WANTED (Sam 2026-07-16, §13.6).</strong> Build after the v1 summary page: average difficulty faced, performance by question type, finer topic drill-down (subcategory/subject/body system), clinical-judgment step detail, and pacing. All are additive report surfaces — the data is already captured; no engine work.</li>
   <li><strong>Results-report exclusions — REVISIT (Sam 2026-07-16, §13.5).</strong> Reconsider (not permanently closed): a theta <strong>percentile</strong> vs other CAT-takers (statistically valid — the old "meaningless" reasoning only applied to raw scores); a supplementary "X of N correct" stat; and the timeline for promoting the readiness probability to a real-NCLEX pass-probability once outcome data exists.</li>
   <li><strong>Classification vocabulary drift vs the 2026 test plan (flagged 2026-07-14).</strong> The 2026 NCLEX-RN Test Plan (effective April 2026, reviewed against the doc this session) renamed one subcategory: <em>"Safety and Infection Control" → "Safety and Infection Prevention and Control."</em> <code>lib/bank/classifications.ts</code> still uses the old name, and all existing bank rows are classified with it. Blueprint <em>percentages</em> are unchanged, so the meter/tiebreaker logic is unaffected. The seed pool deliberately uses the OLD codebase string for consistency. Renaming the enum + migrating existing rows is a small, separate codebase-accuracy fix — not done here.</li>
@@ -3687,6 +3761,75 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   Both were found by re-reading rather than by tests, and the first only because Sam asked whether the fix was
   actually a fix. The pattern is the same one §19.4.4 recorded: <strong>tsc, eslint and the suite were green for
   every one of these.</strong>
+</p>
+
+<h3 id="s19-timeout-fix">19.4.7 The timeout fix — and the second defect it uncovered
+  <span class="status settled">built 2026-07-22</span></h3>
+<p>
+  The §19.4.6 defect, fixed. App-layer plus one additive migration
+  (<code>20260813120000_cat_expire_with_verdict.sql</code>); vitest 306 → 328.
+</p>
+<p>
+  <strong>Why it needed new code rather than a redirect.</strong> The stop rule was already correct and already
+  tested — it simply lives inside <code>playTurn</code>, and a turn needs an answer to score. A time-out is exactly
+  the case with no answer: the clock ran out while the student was still reading. So the fix is a sibling of
+  <code>playTurn</code> minus its scoring step — <code>lib/practice/cat/expire.ts</code>: load the history,
+  re-estimate, apply <strong>the same <code>checkTermination</code></strong>, persist. Reusing the rule rather than
+  reimplementing it is what stops a CAT that times out <em>between</em> turns resolving differently from one that
+  times out <em>inside</em> a turn — the property that made a separate SQL implementation the wrong shape.
+</p>
+<p>
+  <strong>Where the branch lives, and why.</strong> In <code>expireAttemptAction</code>, because both triggers —
+  the countdown in <code>runner.tsx</code> and the lazy catch-up in <code>session/page.tsx</code> — call it, so one
+  branch covers both. Elapsed time is derived from the attempt row <strong>server-side</strong>: this call decides
+  a verdict with no answer behind it, so unlike the turn path it must not be influenceable from the browser.
+</p>
+<p><strong>Two deliberate differences from <code>nclex_expire_attempt</code>:</strong></p>
+<ul>
+  <li><strong>No <code>final_score</code>.</strong> The engine's own terminal branch writes none either, and §13.5
+    forbids showing a CAT a raw score. A number no surface is allowed to display is a number that eventually leaks
+    onto one. (The pre-fix dev row carries <code>final_score</code> 0.40 — exactly that.)</li>
+  <li><strong><code>ended_at</code> back-dated</strong> to <code>started_at + duration_seconds</code>, not the
+    detection moment, which on the lazy path can be days later. Note the asymmetry with <code>cat_next_item</code>,
+    which stamps <code>NOW()</code> and is <em>right</em> to: that branch is reached because an answer just landed,
+    so "now" is when the exam ended, and back-dating there would place <code>ended_at</code> before that answer's
+    <code>submitted_at</code>. (Planned as "back-date both"; corrected while building.)</li>
+</ul>
+<p>
+  <strong>The duplicated 4-hour constant, collapsed.</strong> The limit was defined twice with nothing keeping the
+  copies in step — <code>TIME_LIMIT_SECONDS</code> in TS and <code>C_DURATION_SECONDS</code> in the creation
+  migration — while the runner expired on the row and the engine judged against its own copy. A drift between them
+  would mean the clock and the stopping rule disagree about when the exam is over.
+  <code>checkTermination</code> now takes <code>timeLimitSeconds</code> from the <strong>attempt row</strong>,
+  required and undefaulted so no call site can silently inherit the constant; the constant remains what stamps the
+  row at creation, guarded by a test that reads the migration file. <strong>This is what makes §9.3 a
+  one-constant change:</strong> a move to 5 hours applies to new exams while an exam in progress keeps the limit it
+  started under, rather than retroactively rewriting the rules for someone mid-sitting.
+</p>
+<p>
+  <strong>A guard the tests corrected.</strong> The first version asserted the rule must return
+  <code>TIME_LIMIT_HIT</code>. It does not: confidence is checked first by design (§9.4 precedence), so a strong
+  history returns <code>CONFIDENCE_REACHED</code> and the guard rejected a legitimate timeout. The precondition is
+  <em>the clock</em>, checked directly; the verdict is taken from the rule whichever branch names it. In a live CAT
+  the confidence branch is unreachable there anyway — the previous turn saw the same evidence and chose to continue.
+</p>
+<p>
+  <strong>Verified against the real path</strong>, not a simulation: a cloned live CAT back-dated past its limit,
+  then the actual lazy expiry fired in the browser. <code>TIMED_OUT</code> · <code>TIME_LIMIT_HIT</code> ·
+  <code>BELOW_STANDARD</code> · <strong>48</strong> items administered · <code>ended_at</code> back-dated exactly ·
+  <code>final_score</code> NULL · one <code>SKIPPED</code> row for the live question. The count landing on 48 and
+  not 49 is the detail worth keeping: 49 were served, the 49th was on screen unanswered. Counting it would inflate
+  the report's "You answered N questions" <em>and</em> could tip a student over the 85-item line on a question they
+  never saw.
+</p>
+<p class="callout">
+  <strong>⚠ The fix uncovered a second defect, and this is the pattern worth remembering.</strong> With a timeout
+  finally reaching the report, the page read <em>"Below standard"</em> above <em>"~93% confident you're above our
+  standard."</em> §13.1 had no copy for a result whose verdict ignores the estimate — latent since it was written,
+  invisible only because the first defect stopped anything from getting there. <strong>One bug was hiding the
+  other.</strong> Settled with Sam and built the same session; see §13.1 → <em>the unmeasured ending</em>. Both the
+  contradiction and the fix were found by <em>looking at the screen</em> — tsc, eslint and 320 tests were green
+  throughout, the same note §19.4.4 and §19.4.6 both end on.
 </p>
 
 

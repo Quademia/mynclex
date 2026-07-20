@@ -23,19 +23,44 @@
 > `mode='CAT'` and a hardcoded 75. §10.7.1 had settled that card as a
 > **doorway** on 2026-07-19; it now says "Go to CAT" and creates nothing.
 >
-> **⚠ NEW DEFECT — a CAT that times out is never reported.** `checkTermination`
-> resolves the clock correctly and *with a verdict*, but only inside a turn,
-> and the runner's mode-blind auto-expire fires the instant the countdown hits
-> zero — so `TIME_LIMIT_HIT` is effectively dead code and every CAT timeout
-> produces no verdict. A student who answers 149 and times out on the last is
-> told the exam "ended early". Now the top carried-forward item in cat.html
-> §19 (see §19.4.6), sequenced with §9.3.
+> **✅ 2026-07-22 — the timeout defect is FIXED, and a second one it was hiding
+> with it** (2 commits, branch `claude/work-session-ba4acf`; app-layer + **one
+> additive migration** `20260813120000`, dev-applied; tsc + eslint clean;
+> vitest **306 → 328**). See cat.html **§19.4.7** + **§13.1**.
+> - **A timed-out CAT now gets a verdict.** The stop rule was always correct but
+>   lives inside `playTurn`, which needs an answer to score — and a time-out is
+>   exactly the case with no answer. New `lib/practice/cat/expire.ts` is
+>   `playTurn` minus the scoring step, reusing the **same `checkTermination`** so
+>   a time-out between turns can't resolve differently from one inside a turn.
+>   Branch sits in `expireAttemptAction` because both triggers call it; elapsed
+>   time is derived **server-side** (this decides a verdict with no answer behind
+>   it). No `final_score` (§13.5), `ended_at` back-dated to the true deadline.
+> - **The duplicated 4-hour constant is collapsed** onto the attempt row —
+>   which is what makes **§9.3 a genuine one-constant change**: a move to 5
+>   hours applies to new exams while an in-progress exam keeps its own limit.
+> - **⚠ Fixing it exposed a second defect.** With a timeout finally reaching the
+>   report, the page read *"Below standard"* above *"~93% confident you're above
+>   our standard"* — §13.1 had no copy for a result whose verdict **ignores** the
+>   estimate (a sub-85 time-out is forced BELOW on insufficient evidence). Latent
+>   since §13.1 was written; invisible only because the first bug stopped
+>   anything getting there. **One bug was hiding the other.**
+> - **New: the unmeasured ending** (settled with Sam, built same session). The
+>   fail leads in the headline (*"Not passed — you ran out of time"*), the
+>   measurement is declined separately, **no probability appears anywhere** on
+>   the variant (ring shows the evidence gap, "48 of 85 needed"), and the body
+>   advises on **pace, not content** — every other variant sends the student to
+>   the category breakdown, which here would send them back to do the same thing
+>   again. One shared `isUnmeasured()` keeps the report, the history row
+>   (*"Not passed — ran out of time"*) and the compare strip (*"Timed out"*) in
+>   step. `cat_verdict` stays `BELOW_STANDARD` — display-only, no overrides.
 >
-> **⏭ NEXT on CAT:** the timeout defect · Slice 6c (transition escalation) ·
-> §16.6 exam-mode display leaks · Slices 8–9.
+> **⏭ NEXT on CAT:** Slice 6c (transition escalation) · §16.6 exam-mode display
+> leaks · Slices 8–9.
 > **Two decisions reopened, noted not changed:** §9.3 the 4-hour time limit
-> (vs real NCLEX's 5) and §9.1.1 the passing standard (theta 0.0 was inherited,
-> not chosen). Both in cat.html §19 carried-forward.
+> (vs real NCLEX's 5 — now a one-constant change) and §9.1.1 the passing standard
+> (theta 0.0 was inherited, not chosen). Both in cat.html §19 carried-forward.
+> Also open: whether dev attempt `4113c191` (49 items, no verdict, pre-fix) is
+> backfilled or left as a historical artifact.
 
 Slice-by-slice list of work in the MyNclex product, split by the two
 layers MyNclex is built around: the **Bank** (self-study question
