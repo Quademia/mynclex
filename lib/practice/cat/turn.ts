@@ -165,9 +165,14 @@ export async function playTurn(db: CatDb, input: CatTurnInput): Promise<CatTurnR
   });
 
   // 5. Persist (+ select, when continuing). One transaction.
+  //
+  // expectedItemId is the CLIENT's — the item it displayed as it submitted,
+  // NOT current.attempt_item_id (the server's newest). Passing newest here is
+  // what made the guard inert: it could never differ from what the RPC reads
+  // as newest in the same transaction. See CatTurnInput.expectedItemId.
   const raw = await db.nextItem({
     attemptId: input.attemptId,
-    expectedItemId: current.attempt_item_id,
+    expectedItemId: input.expectedItemId,
     answer: input.answer,
     scoreAwarded: scored.score_awarded,
     isCorrect: scored.is_correct,
@@ -177,7 +182,16 @@ export async function playTurn(db: CatDb, input: CatTurnInput): Promise<CatTurnR
     terminateVerdict: decision.stop ? decision.verdict : null,
   });
 
-  if (decision.stop) {
+  // A replay means the turn had already landed — the RPC wrote nothing and
+  // re-served the current state, because the answer we just scored was for an
+  // item that is no longer newest (the lost-response retry). Our locally
+  // computed score AND termination decision are for that stale item, so
+  // discard them: honour what the server actually did, not what we intended.
+  // Without this, a replay whose stale decision happened to be `stop` would
+  // return COMPLETE to a client whose attempt is still IN_PROGRESS.
+  const replayed = Boolean((raw as { replayed?: boolean }).replayed);
+
+  if (!replayed && decision.stop) {
     return {
       status: 'COMPLETE',
       theta,

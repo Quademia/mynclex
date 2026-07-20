@@ -23,6 +23,11 @@ export async function catTurnAction(
   attemptId: string,
   answer: BankItemAnswer,
   elapsedSeconds: number,
+  // The item the client is displaying as it submits — the idempotency guard.
+  // A Retry (slice 6c) re-invokes with the SAME id, so a turn that had already
+  // landed replays instead of recording this answer against the next question.
+  // See CatTurnInput.expectedItemId.
+  expectedItemId: string,
 ): Promise<
   | { ok: true; status: 'CONTINUE'; position: number }
   | { ok: true; status: 'COMPLETE'; verdict: string; reason: string; itemsAdministered: number; readinessProbability: number }
@@ -37,6 +42,7 @@ export async function catTurnAction(
       attemptId,
       answer,
       elapsedSeconds,
+      expectedItemId,
     });
 
     if (result.status === 'COMPLETE') {

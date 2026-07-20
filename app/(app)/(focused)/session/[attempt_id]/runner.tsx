@@ -71,6 +71,9 @@ import { Preflight }          from './preflight';
 import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction } from './actions';
 import { catTurnAction } from '@/lib/practice/cat/turn-action';
 import { useQuestionTimer } from './use-question-timer';
+import { useTurnTransition } from './use-turn-transition';
+import { CatTransition } from './cat-transition';
+import { isBlocking } from '@/lib/practice/cat/turn-transition';
 
 interface Props {
   data: RunnerData;
@@ -249,6 +252,12 @@ function RunnerShell({ data }: Props) {
 
   const [error, setError]   = useState<string | null>(null);
   const [submitting, startSubmit] = useTransition();
+
+  // CAT between-question escalation (slice 6c). Owns the dim → spinner →
+  // "Still loading…" → Retry timeline for the turn round-trip. Driven by
+  // onCatTurn: begin() on submit, fail() on error, reset() when the next
+  // question lands. Inert for every other mode.
+  const turnTx = useTurnTransition();
 
   // ── Live clock state (slice 4.5a) ─────────────────────────────────
   // `nowMs` ticks every second while the attempt is live with a started_at
@@ -719,6 +728,15 @@ function RunnerShell({ data }: Props) {
   const onCatTurn = () => {
     if (!currentItem || !submitGate?.canSubmit || submitGate.submitValue === null) return;
     const submission = submitGate.submitValue;
+    // Captured here, so a Retry re-submits with the id of the SAME question —
+    // the idempotency guard. currentItem is stable across a failed turn (items
+    // only grows on success), so this equals what the student saw.
+    const expectedItemId = currentItem.attempt_item_id;
+
+    // Start the escalation timeline. On a fast turn it never gets past the
+    // 300ms dim; on a slow or dropped one it climbs to the spinner, message
+    // and Retry (slice 6c).
+    turnTx.begin();
 
     startSubmit(async () => {
       await flushActive(); // bank the time segment before the row finalises
@@ -727,10 +745,18 @@ function RunnerShell({ data }: Props) {
         ? Math.max(0, Math.floor((Date.now() - Date.parse(data.attempt.started_at)) / 1000))
         : 0;
 
-      const r = await catTurnAction(data.attempt.attempt_id, submission, elapsed);
-      if (!r.ok) { setError(r.error); return; }
+      const r = await catTurnAction(data.attempt.attempt_id, submission, elapsed, expectedItemId);
+      if (!r.ok) {
+        // Hold the question on screen with a Retry rather than dropping a
+        // toast and clearing the dim — a CAT has no other way forward.
+        // Retry re-invokes onCatTurn with the SAME expectedItemId, so a turn
+        // that had actually landed replays instead of double-recording.
+        turnTx.fail();
+        return;
+      }
 
       if (r.status === 'COMPLETE') {
+        turnTx.reset();
         setShowResults(true);
         router.refresh();
         return;
@@ -741,6 +767,7 @@ function RunnerShell({ data }: Props) {
       // the new question becomes current on its own. Advancing here was the
       // bug: it pointed past the end of the array for a round-trip and
       // flashed the "No questions in this attempt." stub.
+      turnTx.reset();
       router.refresh();
     });
   };
@@ -791,7 +818,9 @@ function RunnerShell({ data }: Props) {
     // know is final.
     const canSubmit = submitGate?.canSubmit ?? false;
     primaryLabel    = submitting ? 'Loading next…' : 'Submit answer';
-    primaryDisabled = !canSubmit || submitting;
+    // isBlocking covers the error phase too, where `submitting` has gone false
+    // but the overlay's Retry is the only way on — the footer must stay dead.
+    primaryDisabled = !canSubmit || submitting || isBlocking(turnTx.phase);
     primaryHint     = canSubmit ? undefined : submitGate?.hint;
     onPrimary       = onCatTurn;
 
@@ -1011,21 +1040,25 @@ function RunnerShell({ data }: Props) {
     questionArea = questionAreaInner;
   }
 
-  // CAT between-question wait (§10.1). The question the student just
-  // answered stays on screen — but it must LOOK finished, or it reads as a
-  // live question that has stopped responding.
+  // CAT between-question wait (§10.1 + slice 6c). The question the student
+  // just answered stays on screen — but it must LOOK finished, or it reads as
+  // a live question that has stopped responding.
   //
-  // `inert` is what actually disables it: pointer-events alone still leaves
-  // the controls keyboard-reachable, so a student could tab into and change
-  // an answer that has already been submitted and scored.
+  // `inert` is what actually disables the question: pointer-events alone still
+  // leaves the controls keyboard-reachable, so a student could tab into and
+  // change an answer that has already been submitted and scored.
   //
-  // Only the 0-300ms "dim, no spinner" layer of §10.1 is here. The timed
-  // escalation (spinner at 300ms, "Still loading…" at 3s, Retry at 10s)
-  // needs timers and an error path — slice 6c.
-  if (isCat && submitting) {
+  // The escalation overlay (spinner / "Still loading…" / Retry) sits OUTSIDE
+  // the inert wrapper — otherwise its Retry button would be unreachable too.
+  // It drives off the transition phase, not `submitting`, so the error phase
+  // (submitting already false) keeps the overlay up with Retry.
+  if (isCat && isBlocking(turnTx.phase)) {
     questionArea = (
-      <div className="rn-cat-waiting" aria-busy="true" inert>
-        {questionArea}
+      <div className="rn-cat-tx">
+        <div className="rn-cat-waiting" aria-busy={turnTx.phase !== 'error'} inert>
+          {questionArea}
+        </div>
+        <CatTransition phase={turnTx.phase} onRetry={onCatTurn} />
       </div>
     );
   }

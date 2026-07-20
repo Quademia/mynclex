@@ -110,7 +110,7 @@ const realisticHistory = (n: number): CatHistoryRow[] =>
 describe('playTurn — mid-exam', () => {
   it('continues and returns the next item', async () => {
     const db = makeDb([row(), row({ position: 2 })]);
-    const r = await playTurn(db, { attemptId: 'a', answer: answerA, elapsedSeconds: 600 });
+    const r = await playTurn(db, { attemptId: 'a', answer: answerA, expectedItemId: 'cur-ai', elapsedSeconds: 600 });
 
     expect(r.status).toBe('CONTINUE');
     if (r.status === 'CONTINUE') expect(r.nextItem.item_id).toBe('Q-next');
@@ -119,7 +119,7 @@ describe('playTurn — mid-exam', () => {
   it('passes a COMPUTED score and theta to the RPC, never raw answers to score', async () => {
     // The §10.6 contract: TypeScript computes, the RPC persists.
     const db = makeDb([row()]);
-    await playTurn(db, { attemptId: 'a', answer: answerA, elapsedSeconds: 60 });
+    await playTurn(db, { attemptId: 'a', answer: answerA, expectedItemId: 'cur-ai', elapsedSeconds: 60 });
 
     expect(db.calls).toHaveLength(1);
     expect(db.calls[0]).toMatchObject({ scoreAwarded: 1, isCorrect: true });
@@ -129,7 +129,7 @@ describe('playTurn — mid-exam', () => {
 
   it('sends no termination while the exam should continue', async () => {
     const db = makeDb([row()]);
-    await playTurn(db, { attemptId: 'a', answer: answerA, elapsedSeconds: 60 });
+    await playTurn(db, { attemptId: 'a', answer: answerA, expectedItemId: 'cur-ai', elapsedSeconds: 60 });
     expect(db.calls[0].terminateReason).toBeNull();
     expect(db.calls[0].terminateVerdict).toBeNull();
   });
@@ -138,7 +138,7 @@ describe('playTurn — mid-exam', () => {
     // Otherwise the exam always runs one question past being sure.
     const eighty4 = realisticHistory(84);
     const db = makeDb(eighty4);
-    const r = await playTurn(db, { attemptId: 'a', answer: answerA, elapsedSeconds: 600 });
+    const r = await playTurn(db, { attemptId: 'a', answer: answerA, expectedItemId: 'cur-ai', elapsedSeconds: 600 });
 
     // 84 in history + this one = 85, the minimum. A strong run should now stop.
     expect(r.status).toBe('COMPLETE');
@@ -150,7 +150,7 @@ describe('playTurn — termination', () => {
   it('completes with a verdict and a readiness probability', async () => {
     const strong = realisticHistory(90);
     const db = makeDb(strong);
-    const r = await playTurn(db, { attemptId: 'a', answer: answerA, elapsedSeconds: 3600 });
+    const r = await playTurn(db, { attemptId: 'a', answer: answerA, expectedItemId: 'cur-ai', elapsedSeconds: 3600 });
 
     expect(r.status).toBe('COMPLETE');
     if (r.status === 'COMPLETE') {
@@ -163,7 +163,7 @@ describe('playTurn — termination', () => {
   it('forwards the termination to the RPC so it writes the verdict columns', async () => {
     const strong = realisticHistory(90);
     const db = makeDb(strong);
-    await playTurn(db, { attemptId: 'a', answer: answerA, elapsedSeconds: 3600 });
+    await playTurn(db, { attemptId: 'a', answer: answerA, expectedItemId: 'cur-ai', elapsedSeconds: 3600 });
 
     expect(db.calls[0].terminateReason).toBe('CONFIDENCE_REACHED');
     expect(db.calls[0].terminateVerdict).toBe('ABOVE_STANDARD');
@@ -171,7 +171,7 @@ describe('playTurn — termination', () => {
 
   it('times out below the minimum as BELOW_STANDARD (§9.4 run-out-of-time)', async () => {
     const db = makeDb(Array.from({ length: 20 }, (_, i) => row({ position: i + 1, score_awarded: 1 })));
-    const r = await playTurn(db, { attemptId: 'a', answer: answerA, elapsedSeconds: 4 * 3600 });
+    const r = await playTurn(db, { attemptId: 'a', answer: answerA, expectedItemId: 'cur-ai', elapsedSeconds: 4 * 3600 });
 
     expect(r.status).toBe('COMPLETE');
     if (r.status === 'COMPLETE') {
@@ -188,21 +188,73 @@ describe('playTurn — termination', () => {
         question_type: 'MCQ', marks_snapshot: 1, cat_item_difficulty: 0, cat_weight: 1,
       }),
     });
-    await playTurn(db, { attemptId: 'a', answer: answerA, elapsedSeconds: 60 });
+    await playTurn(db, { attemptId: 'a', answer: answerA, expectedItemId: 'cur-ai', elapsedSeconds: 60 });
     expect(db.calls[0].isCorrect).toBe(false);
     expect(db.calls[0].scoreAwarded).toBe(0);
   });
 });
 
 describe('playTurn — idempotency guard', () => {
-  it('tells the RPC which item it believes it is answering', async () => {
-    // Without this the RPC assumes "newest item = the one being answered",
-    // which is false on a retry after a lost response: the newest item is by
-    // then the NEW question, and the old answer would be recorded against
-    // it — marking a student on a question they never saw.
+  it('sends the CLIENT’s item id, not the server’s newest', async () => {
+    // The bug this guards (fixed 2026-07-21): turn.ts used to set
+    // expectedItemId from its OWN loadCurrent (= newest), so within a request
+    // it always equalled what the RPC reads as newest and the guard could
+    // never fire. It must be the id the CLIENT passes in — the question it
+    // displayed. loadCurrent here returns 'cur-ai' (newest); the client is on
+    // 'client-ai'. If turn.ts still used newest, this would read 'cur-ai'.
     const db = makeDb([row()]);
-    await playTurn(db, { attemptId: 'a', answer: answerA, elapsedSeconds: 60 });
-    expect(db.calls[0].expectedItemId).toBe('cur-ai');
+    await playTurn(db, { attemptId: 'a', answer: answerA, expectedItemId: 'client-ai', elapsedSeconds: 60 });
+    expect(db.calls[0].expectedItemId).toBe('client-ai');
+  });
+
+  it('honours a replay — does NOT complete on a stale decision', async () => {
+    // The scenario: turn 1 committed (answer recorded, next item inserted) but
+    // the response was lost; the client retries still on the OLD question. By
+    // then newest ≠ the client's item, so the RPC replays and writes nothing.
+    // playTurn's locally-computed decision is for the stale item — if it were
+    // trusted, a decision that happened to be `stop` would tell a client whose
+    // attempt is still IN_PROGRESS that the exam is over.
+    //
+    // Force exactly that: a history that WOULD terminate (time is up, 90 items),
+    // and an RPC that replays. The result must still be CONTINUE.
+    const strong = realisticHistory(90);
+    const db = makeDb(strong, {
+      nextItem: async (args) => {
+        // Emulate the RPC guard: replay when the client's id is not newest.
+        if (args.expectedItemId !== 'cur-ai') {
+          return {
+            status: 'CONTINUE',
+            replayed: true,
+            exposure_relaxed: false,
+            next_item_payload: {
+              attempt_item_id: 'cur-ai', position: 91,
+              item_id: 'Q-current', question_type: 'MCQ', difficulty_irt: 0,
+            },
+          };
+        }
+        throw new Error('expected a replay in this test');
+      },
+    });
+
+    const r = await playTurn(db, {
+      attemptId: 'a', answer: answerA, expectedItemId: 'stale-ai', elapsedSeconds: 4 * 3600,
+    });
+
+    // Would have been COMPLETE without the replay guard — the history is a
+    // time-out at 90 items.
+    expect(r.status).toBe('CONTINUE');
+    if (r.status === 'CONTINUE') expect(r.nextItem.item_id).toBe('Q-current');
+  });
+
+  it('completes normally when the id matches newest (no replay)', async () => {
+    // The control: same terminating history, but the client IS on the newest
+    // item, so no replay — the decision stands and the exam ends.
+    const strong = realisticHistory(90);
+    const db = makeDb(strong);
+    const r = await playTurn(db, {
+      attemptId: 'a', answer: answerA, expectedItemId: 'cur-ai', elapsedSeconds: 4 * 3600,
+    });
+    expect(r.status).toBe('COMPLETE');
   });
 });
 
@@ -217,7 +269,7 @@ describe('playTurn — purity guarantee (§10.3)', () => {
       }),
     });
     await expect(
-      playTurn(db, { attemptId: 'a', answer: answerA, elapsedSeconds: 60 })
+      playTurn(db, { attemptId: 'a', answer: answerA, expectedItemId: 'cur-ai', elapsedSeconds: 60 })
     ).rejects.toBeTruthy();
     expect(db.calls).toHaveLength(0);
   });
