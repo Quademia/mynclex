@@ -14,6 +14,7 @@
 // to fix — §13.2 requires the full-credit count and requires the page to say
 // so. See CATEGORY_FOOTNOTE below.
 
+import { MIN_ITEMS, MAX_ITEMS } from '@/lib/cat';
 import type { CatVerdict } from '@/lib/cat';
 
 /** One administered question, flattened from the attempt tables. */
@@ -258,6 +259,107 @@ export function formatProbability(p: number): string {
 /** Verdict headline (§13.1) — fixed copy. */
 export function verdictHeadline(verdict: CatVerdict): string {
   return verdict === 'ABOVE_STANDARD' ? 'Above standard' : 'Below standard';
+}
+
+// ── The unmeasured ending (§13.1, added 2026-07-22) ──────────────────
+//
+// THE THIRD KIND OF ENDING. §13.1 defined copy for two outcomes, both of
+// which read the verdict as though it follows the ability estimate. That
+// holds for CONFIDENCE_REACHED and MAX_ITEMS_HIT, and for a time-out with
+// enough questions answered.
+//
+// It breaks for a time-out UNDER the 85-item minimum, where §9.3 forces
+// BELOW_STANDARD on insufficient evidence, whatever the estimate says. The
+// verdict stops following the estimate; the probability carries on being
+// computed from it. So the page could read "Below standard" directly above
+// "we're ~93% confident you're above our standard" — seen on screen, on real
+// data, the moment the timeout fix let this ending reach the report at all.
+//
+// §13.1 half-anticipated this with the near-boundary variant, which it says
+// is "typically a max-length or time-out finish". But that sorts results by
+// how CONFIDENT we are (probability 40-60%), and this case is about how much
+// EVIDENCE we have. Those come apart precisely here: a student can run out of
+// time at question 48 while sitting at 93%.
+//
+// So this is a third case, not a fourth wording of the other two:
+//   • the RESULT is a fail — on the real NCLEX, running out of time is a fail
+//   • the MEASUREMENT is declined — too few questions to place them
+// Stating both separately is what keeps the page honest without contradicting
+// cat_verdict, which remains BELOW_STANDARD in the database and on every
+// other surface.
+
+/**
+ * Did the exam end before enough questions were answered to measure the
+ * student? (§9.3's sub-minimum run-out-of-time rule.)
+ *
+ * The single predicate every surface branches on — the report, the history
+ * row, and anything added later. Duplicating this test is how the report and
+ * the list would come to describe the same sitting two different ways.
+ */
+export function isUnmeasured(reason: string | null, itemsAdministered: number): boolean {
+  return reason === 'TIME_LIMIT_HIT' && itemsAdministered < MIN_ITEMS;
+}
+
+/** Headline for an unmeasured ending. The fail leads — it is not a footnote. */
+export const UNMEASURED_HEADLINE = 'Not passed — you ran out of time';
+
+/** The same words the history row uses, so the two surfaces cannot drift. */
+export const UNMEASURED_SHORT_LABEL = 'Not passed — ran out of time';
+
+/** Sub-line: what we can and cannot say. Replaces the confidence claim. */
+export function unmeasuredSubline(itemsAdministered: number): string {
+  return (
+    `You answered ${itemsAdministered} of the ${MIN_ITEMS} questions we need before we ` +
+    `can place your ability — so this sitting can’t tell you where you stand.`
+  );
+}
+
+/**
+ * Body: the fail, then the actual remediation.
+ *
+ * Deliberately about PACE rather than content. Every other variant sends the
+ * student to the category breakdown, which is the wrong advice here: what
+ * ended this exam was the clock, so studying Physiological Integrity harder
+ * sends them back to do exactly the same thing again.
+ */
+export function unmeasuredBody(itemsAdministered: number, limitHours: number): string {
+  const minutesEach = paceMinutesPerQuestion(itemsAdministered, limitHours);
+  const fullPace = fullLengthPaceMinutes(limitHours);
+  return (
+    `On the real NCLEX, running out of time is a fail, and it counts as one here. ` +
+    `But what ended this exam was pace, not knowledge: ${itemsAdministered} questions in ` +
+    `${limitHours} hours is about ${minutesEach} each, and a full-length exam needs closer ` +
+    `to ${fullPace}. Sit another CAT and focus on keeping moving — the breakdown below is ` +
+    `still worth reading, but time is the thing to fix first.`
+  );
+}
+
+/** "5 minutes" / "1 minute" — the student's own pace, rounded for prose. */
+export function paceMinutesPerQuestion(itemsAdministered: number, limitHours: number): string {
+  if (itemsAdministered <= 0) return '—';
+  const mins = Math.round((limitHours * 60) / itemsAdministered);
+  return `${mins} ${mins === 1 ? 'minute' : 'minutes'}`;
+}
+
+/**
+ * The pace a full-length exam demands: the limit spread over MAX_ITEMS.
+ *
+ * Rendered in SECONDS below two minutes. Today's figure is 1.6 minutes, and
+ * "closer to 1.6 minutes" reads like a spreadsheet next to the student's own
+ * "about 5 minutes each" — while "95 seconds" is the same fact in a unit a
+ * person actually paces by. Still derived, so §9.3 moving to 5 hours gives
+ * "2 minutes" on its own.
+ */
+export function fullLengthPaceMinutes(limitHours: number): string {
+  const mins = (limitHours * 60) / MAX_ITEMS;
+  if (mins < 2) {
+    // To the nearest 5s — the precision is spurious past that, and "96
+    // seconds" invites a student to think the number is a target.
+    const secs = Math.round((mins * 60) / 5) * 5;
+    return `${secs} seconds`;
+  }
+  // One decimal, trimmed — "2 minutes", not "2.0000000000000004".
+  return `${Number(mins.toFixed(1))} minutes`;
 }
 
 /**

@@ -16,11 +16,25 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { startCatAttemptAction } from '@/lib/practice/cat/start-action';
-import type { CatHomeView } from '@/lib/practice/cat/home-view';
+import { isUnmeasured, UNMEASURED_SHORT_LABEL } from '@/lib/practice/cat/report-derive';
+import type { CatHomeView, CatHistoryEntry } from '@/lib/practice/cat/home-view';
 
-function verdictLabel(v: 'ABOVE_STANDARD' | 'BELOW_STANDARD' | null): string {
-  if (v === 'ABOVE_STANDARD') return 'Above standard';
-  if (v === 'BELOW_STANDARD') return 'Below standard';
+/**
+ * The Result column.
+ *
+ * Takes the whole row, not just the verdict, because a sitting that ran out
+ * of time under the 85-item minimum carries BELOW_STANDARD without having
+ * been measured. Labelling it "Below standard" here would put a silent
+ * apparent decline in a list a student scans for progress — and would
+ * contradict the report, which says "Not passed — ran out of time". Both
+ * surfaces read the same predicate and the same string.
+ */
+function verdictLabel(entry: CatHistoryEntry): string {
+  if (isUnmeasured(entry.terminationReason, entry.itemsAdministered ?? 0)) {
+    return UNMEASURED_SHORT_LABEL;
+  }
+  if (entry.verdict === 'ABOVE_STANDARD') return 'Above standard';
+  if (entry.verdict === 'BELOW_STANDARD') return 'Below standard';
   return 'Not completed';
 }
 
@@ -120,7 +134,7 @@ export function CatHomeClient({ view }: { view: CatHomeView }) {
                 <tr key={h.attemptId}>
                   <td>{formatDate(h.endedAt)}</td>
                   <td>{h.itemsAdministered ?? '—'}</td>
-                  <td>{verdictLabel(h.verdict)}</td>
+                  <td>{verdictLabel(h)}</td>
                   <td className="cat-table-go">
                     {/* Every terminal row links — including one with no
                         verdict, which lands on the abandoned surface and is

@@ -28,7 +28,12 @@ import {
   verdictSubline,
   verdictBody,
   isNearBoundary,
+  isUnmeasured,
+  unmeasuredSubline,
+  unmeasuredBody,
+  UNMEASURED_HEADLINE,
 } from '@/lib/practice/cat/report-derive';
+import { MIN_ITEMS } from '@/lib/cat';
 import type { CatReport } from '@/lib/practice/cat/report';
 import { TrajectoryChart } from './trajectory-chart';
 
@@ -72,15 +77,23 @@ export function CatResultView({ report }: { report: CatReport }) {
     endedAt,
   } = report;
 
-  const nearBoundary = isNearBoundary(probability);
   const hitCeiling = terminationReason === 'MAX_ITEMS_HIT';
   const reachedConfidence = terminationReason === 'CONFIDENCE_REACHED';
+
+  // The exam ran out of time before it had enough questions to measure the
+  // student (§9.3). This ending gets its own copy: the verdict is a fail, but
+  // it was FORCED by insufficient evidence rather than derived from the
+  // estimate, so every sentence built on the probability is unsupportable
+  // here — including the near-boundary variant, which claims the result was
+  // close when in truth it was never taken.
+  const unmeasured = isUnmeasured(terminationReason, itemsAdministered);
+  const nearBoundary = !unmeasured && isNearBoundary(probability);
 
   // Amber whenever the engine did NOT settle — a near-boundary result or a
   // run that was cut off. Green/red are reserved for a confident verdict, so
   // the colour itself carries how much to trust the headline.
   const tone: 'pass' | 'fail' | 'caution' =
-    nearBoundary || !reachedConfidence
+    unmeasured || nearBoundary || !reachedConfidence
       ? 'caution'
       : verdict === 'ABOVE_STANDARD'
         ? 'pass'
@@ -106,23 +119,43 @@ export function CatResultView({ report }: { report: CatReport }) {
       <div className="catr-rail">
       <section className="catr-card catr-verdict">
         <div className="catr-verdict-head">
+          {/* The ring carries the readiness probability — EXCEPT on an
+              unmeasured ending, where no probability may be shown: it is
+              computed from an estimate the verdict deliberately ignores, so
+              it would read as a number contradicting the headline beside it.
+              The evidence gap takes the slot instead, which is the fact that
+              actually explains this page. */}
           <div className="catr-ring" aria-hidden="true">
-            <span className="catr-ring-pct">{formatProbability(probability)}</span>
+            <span className="catr-ring-pct">
+              {unmeasured ? itemsAdministered : formatProbability(probability)}
+            </span>
             {/* Just "confident" — the sub-line below already says confident
                 OF WHAT, and the longer caption wrapped to three cramped
                 lines inside the ring. */}
-            <span className="catr-ring-cap">confident</span>
+            <span className="catr-ring-cap">
+              {unmeasured ? `of ${MIN_ITEMS} needed` : 'confident'}
+            </span>
           </div>
           <div className="catr-verdict-text">
             <span className="catr-chip">
-              {hitCeiling ? 'Maximum length reached' : 'Result'}
+              {unmeasured ? 'Time ran out' : hitCeiling ? 'Maximum length reached' : 'Result'}
             </span>
-            <h1 className="catr-headline">{verdictHeadline(verdict)}</h1>
+            <h1 className="catr-headline">
+              {unmeasured ? UNMEASURED_HEADLINE : verdictHeadline(verdict)}
+            </h1>
           </div>
         </div>
         <div className="catr-verdict-body">
-          <p className="catr-subline">{verdictSubline(verdict, probability)}</p>
-          <p className="catr-body">{verdictBody(verdict, probability)}</p>
+          <p className="catr-subline">
+            {unmeasured
+              ? unmeasuredSubline(itemsAdministered)
+              : verdictSubline(verdict, probability)}
+          </p>
+          <p className="catr-body">
+            {unmeasured
+              ? unmeasuredBody(itemsAdministered, limitHours)
+              : verdictBody(verdict, probability)}
+          </p>
         </div>
       </section>
       </div>
@@ -272,8 +305,14 @@ export function CatResultView({ report }: { report: CatReport }) {
                     style={{ left: `${Math.round(((Math.max(-2, Math.min(2, p.theta)) + 2) / 4) * 100)}%` }}
                   />
                 </span>
+                {/* An unmeasured sitting is not labelled with a side: its
+                    verdict was forced by the clock, not measured, and sitting
+                    it next to genuinely measured results as "Below" would
+                    read as a decline in ability that never happened. */}
                 <span className="catr-prior-verdict">
-                  {p.verdict === 'ABOVE_STANDARD' ? 'Above' : 'Below'}
+                  {p.unmeasured
+                    ? 'Timed out'
+                    : p.verdict === 'ABOVE_STANDARD' ? 'Above' : 'Below'}
                 </span>
               </li>
             ))}

@@ -27,6 +27,7 @@ import {
   trajectoryPoints,
   categoryRows,
   clinicalJudgment,
+  isUnmeasured,
   type CatReportItem,
   type TrajectoryPoint,
   type CategoryRow,
@@ -39,6 +40,15 @@ export interface PriorCat {
   endedAt: string | null;
   theta: number;
   verdict: CatVerdict;
+  /**
+   * True when this sitting ran out of time under the 85-item minimum.
+   *
+   * Its verdict is BELOW_STANDARD, but forced by insufficient evidence rather
+   * than measured — so the strip must not label it "Below" alongside sittings
+   * that were actually measured. The dot still plots: the estimate is real,
+   * it just was not enough to conclude on.
+   */
+  unmeasured: boolean;
   /** True for the sitting currently on screen. */
   isCurrent: boolean;
 }
@@ -141,7 +151,7 @@ export async function getCatReport(
     // left to right in time.
     supabase
       .from('nclex_attempts')
-      .select('attempt_id, ended_at, cat_verdict, cat_final_theta')
+      .select('attempt_id, ended_at, cat_verdict, cat_final_theta, cat_termination_reason, cat_items_administered')
       .eq('student_id', userId)
       .eq('mode', 'CAT')
       .not('cat_verdict', 'is', null)
@@ -184,6 +194,7 @@ export async function getCatReport(
       endedAt: r.ended_at,
       theta: Number(r.cat_final_theta),
       verdict: r.cat_verdict as CatVerdict,
+      unmeasured: isUnmeasured(r.cat_termination_reason, r.cat_items_administered ?? 0),
       isCurrent: r.attempt_id === attemptId,
     }));
 

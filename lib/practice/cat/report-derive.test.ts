@@ -18,8 +18,15 @@ import {
   verdictSubline,
   verdictBody,
   isNearBoundary,
+  isUnmeasured,
+  unmeasuredSubline,
+  unmeasuredBody,
+  paceMinutesPerQuestion,
+  UNMEASURED_HEADLINE,
+  UNMEASURED_SHORT_LABEL,
   type CatReportItem,
 } from './report-derive';
+import { MIN_ITEMS } from '@/lib/cat';
 
 const item = (over: Partial<CatReportItem> = {}): CatReportItem => ({
   position: 1,
@@ -172,6 +179,79 @@ describe('itemsAdministeredLine', () => {
 
   it('reads the limit from its argument, so the copy tracks the engine constant', () => {
     expect(itemsAdministeredLine(118, 'TIME_LIMIT_HIT', 5)).toContain('5-hour');
+  });
+});
+
+describe('the unmeasured ending (§13.1, the sub-85 time-out)', () => {
+  it('fires only on a time-out below the minimum', () => {
+    expect(isUnmeasured('TIME_LIMIT_HIT', 48)).toBe(true);
+    // At the minimum the verdict IS measured — §9.3 resolves it by side.
+    expect(isUnmeasured('TIME_LIMIT_HIT', MIN_ITEMS)).toBe(false);
+    expect(isUnmeasured('TIME_LIMIT_HIT', 120)).toBe(false);
+    // Every other ending, at any count.
+    expect(isUnmeasured('CONFIDENCE_REACHED', 85)).toBe(false);
+    expect(isUnmeasured('MAX_ITEMS_HIT', 150)).toBe(false);
+    expect(isUnmeasured(null, 10)).toBe(false);
+  });
+
+  it('never claims a confidence, at any probability', () => {
+    // THE BUG THIS EXISTS FOR. The verdict is forced BELOW on insufficient
+    // evidence while the probability is still computed from the estimate, so
+    // a student at 93% saw "Below standard" above "we're ~93% confident
+    // you're above our standard". Nothing in this copy may cite a percentage.
+    const subline = unmeasuredSubline(48);
+    const body = unmeasuredBody(48, 4);
+    for (const text of [UNMEASURED_HEADLINE, subline, body]) {
+      expect(text).not.toMatch(/%/);
+      expect(text).not.toMatch(/confident/i);
+    }
+  });
+
+  it('leads with the fail rather than burying it', () => {
+    // "Not enough information" as a headline reads as "this one doesn't
+    // count" — a free do-over. On the real NCLEX it is a fail.
+    expect(UNMEASURED_HEADLINE).toMatch(/not passed/i);
+    expect(unmeasuredBody(48, 4)).toMatch(/fail/i);
+  });
+
+  it('declines the measurement without denying the result', () => {
+    expect(unmeasuredSubline(48)).toContain('48');
+    expect(unmeasuredSubline(48)).toContain(String(MIN_ITEMS));
+    expect(unmeasuredSubline(48)).toMatch(/can’t tell you where you stand/);
+  });
+
+  it('advises on PACE, not content', () => {
+    // Every other variant sends the student to the category breakdown. Here
+    // the clock ended the exam, so that advice would send them back to do
+    // exactly the same thing again.
+    const body = unmeasuredBody(48, 4);
+    expect(body).toMatch(/pace, not knowledge/);
+    expect(body).toMatch(/5 minutes/);
+    expect(body).toMatch(/another CAT/);
+  });
+
+  it('computes the student’s own pace', () => {
+    expect(paceMinutesPerQuestion(48, 4)).toBe('5 minutes');
+    expect(paceMinutesPerQuestion(120, 4)).toBe('2 minutes');
+    expect(paceMinutesPerQuestion(240, 4)).toBe('1 minute');
+    // A degenerate row must not print "Infinity minutes".
+    expect(paceMinutesPerQuestion(0, 4)).toBe('—');
+  });
+
+  it('tracks the time limit, so §9.3 moving to 5 hours needs no copy edit', () => {
+    expect(unmeasuredBody(48, 5)).toContain('5 hours');
+    expect(unmeasuredBody(48, 5)).not.toContain('4 hours');
+    // The full-length pace moves with the limit too: 4h/150 -> 95s, 5h -> 2min.
+    expect(unmeasuredBody(48, 4)).toContain('95 seconds');
+    expect(unmeasuredBody(48, 5)).toContain('2 minutes');
+  });
+
+  it('the report headline and the history label say the same thing', () => {
+    // The two surfaces a student compares. They are separate strings only
+    // because one has room for "you" and the other does not.
+    expect(UNMEASURED_HEADLINE).toContain('ran out of time');
+    expect(UNMEASURED_SHORT_LABEL).toContain('ran out of time');
+    expect(UNMEASURED_SHORT_LABEL).toMatch(/not passed/i);
   });
 });
 

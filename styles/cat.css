@@ -607,7 +607,11 @@
 
 .catr-prior-row {
   display: grid;
-  grid-template-columns: 62px minmax(0, 1fr) 52px;
+  /* The result column fits "Timed out" on one line — at 52px it was sized for
+     "Above"/"Below" and wrapped the timed-out label to two, which read as a
+     rendering fault beside the single-line rows. The track is minmax(0, 1fr)
+     so it absorbs the extra width. */
+  grid-template-columns: 62px minmax(0, 1fr) 66px;
   align-items: center;
   gap: 10px;
   padding: 7px 0;
@@ -623,7 +627,7 @@
   font-size: 11.5px;
   color: var(--text-muted, #94a3b8);
 }
-.catr-prior-verdict { text-align: right; }
+.catr-prior-verdict { text-align: right; white-space: nowrap; }
 
 .catr-prior-track {
   position: relative;

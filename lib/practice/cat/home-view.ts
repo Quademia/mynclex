@@ -21,6 +21,8 @@ export type CatHistoryEntry = {
   endedAt:     string | null;
   status:      string;
   verdict:     'ABOVE_STANDARD' | 'BELOW_STANDARD' | null;
+  /** Needed to tell a measured Below from a ran-out-of-time one (§9.3). */
+  terminationReason: string | null;
   itemsAdministered: number | null;
   finalTheta:  number | null;
   finalSe:     number | null;
@@ -59,7 +61,7 @@ export async function getCatHomeView(): Promise<CatHomeView> {
   // Own CAT attempts. RLS restricts to the owner; ordering newest first.
   const { data: attempts } = await supabase
     .from('nclex_attempts')
-    .select('attempt_id, status, started_at, ended_at, cat_verdict, cat_items_administered, cat_final_theta, cat_final_se')
+    .select('attempt_id, status, started_at, ended_at, cat_verdict, cat_termination_reason, cat_items_administered, cat_final_theta, cat_final_se')
     .eq('student_id', userId)
     .eq('mode', 'CAT')
     .order('created_at', { ascending: false });
@@ -75,6 +77,7 @@ export async function getCatHomeView(): Promise<CatHomeView> {
       endedAt: r.ended_at,
       status: r.status,
       verdict: r.cat_verdict,
+      terminationReason: r.cat_termination_reason,
       itemsAdministered: r.cat_items_administered,
       finalTheta: r.cat_final_theta,
       finalSe: r.cat_final_se,
