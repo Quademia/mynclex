@@ -1,7 +1,17 @@
 # Journey Tracker
 
 *Planning document. Captures the design conversation of 2026-06-19.*
-Last updated: 2026-06-21 (**architecture decision:** build the Journey
+Last updated: 2026-07-21 (**decision reaffirmed:** building the Journey
+Tracker as a standalone product *from day one* (option "B") was
+reconsidered and **declined** — we stay with the module-now / extract-later
+approach ("A") below. Rationale: only one concrete use-case (Ghana→US nurse
+migration) has real users today; the generic-product cases (university
+applications, visas, other verticals) are real *ideas* but have no users
+yet, so building a standalone product now means building for nobody and
+delaying value to the paying v1 audience. **Revisit if a concrete second
+use-case with real users appears** — that flips the calculus toward
+standalone-first. No design change: the *Architecture* section below already
+commits to A. Earlier — 2026-06-21 (**architecture decision:** build the Journey
 Tracker as a **bounded, neutrally-named (`journey_*`) module inside the
 MyNclex repo now, with intent to extract it into a standalone QAcademy
 platform product later** — it's a generic case-management engine, not an
@@ -765,6 +775,17 @@ see below.)
 
 **Resolved this session:**
 
+- **Standalone-from-day-one (option B) declined; staying with A** *(2026-07-21)*.
+  Building the Journey Tracker as its own product/app/deployment from the
+  start was reconsidered and set aside. We keep the *module now → extract
+  later* approach: build it embedded-but-extractable inside MyNclex, spin it
+  out once a real second use-case pulls on it. Reason: only the Ghana→US
+  nurse-migration case has real users today; the generic cases (university
+  applications, visas, other verticals) are real ideas without users, so
+  standalone-first means building for nobody and delaying value to the paying
+  v1 audience. **Trigger to revisit:** a concrete second use-case with real
+  users lined up. See the *Architecture* section (unchanged — it already
+  commits to A).
 - **Service scope is per-relationship** — the tutor's menu of offerable
   services is standing; *which* a given student takes is decided per
   relationship. See *Stages as priced services*.
