@@ -3203,7 +3203,7 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Phase C — The student experience</strong> (first browser-testable slices).</p>
 <ol start="6">
-  <li><strong>Slice 6 — CAT runner screen. ✅ 6a + 6b BUILT 2026-07-19</strong> (6a <code>5ad2b68</code>+<code>2e4d668</code>, 6b <code>77217aa</code>+<code>d3216e9</code>; see §19.4.4. <strong>6c outstanding</strong> — the timed spinner/Retry escalation.) One-shot preflight (stating per §15.5.3 that starting spends
+  <li><strong>Slice 6 — CAT runner screen. ✅ 6a + 6b BUILT 2026-07-19, ✅ 6c BUILT 2026-07-21</strong> (6a <code>5ad2b68</code>+<code>2e4d668</code>, 6b <code>77217aa</code>+<code>d3216e9</code>; see §19.4.4. <strong>6c — the timed spinner/Retry escalation — see §19.4.8</strong>, which also fixed the idempotency guard that 6b had wired inert.) One-shot preflight (stating per §15.5.3 that starting spends
     the attempt however it ends) — <strong>its OWN surface on the CAT entry page, not a branch of the shared
     <code>/session</code> preflight</strong>, because per §10.7 no attempt exists until Confirm; the shared gate is
     addressed by an attempt id and renders only while <code>started_at</code> is NULL, so it correctly skips a CAT
@@ -3543,6 +3543,16 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   connections that will happen. The caller now passes <code>p_expected_item_id</code>; if it is no longer newest the
   RPC replays instead of advancing.
 </p>
+<p class="callout">
+  ⚠ <strong>Correction (2026-07-21): this guard was inert as first wired, and §19.4.8 fixed it.</strong> The RPC
+  compares "the item you believe you're answering" against its own newest item — but <code>turn.ts</code> set that
+  first value from its OWN <code>loadCurrent</code> (= newest), computed server-side in the same request. So it
+  always equalled newest and the replay branch could never fire; the guard was built and tested (the test only
+  asserted the value was passed through) but unreachable — the same shape as the §19.4.7 time-limit dead code. It
+  never bit because a lost-response retry was a rare manual act. Slice 6c's Retry button makes it a routine one-tap
+  action, so it was fixed first: <code>expectedItemId</code> now comes from the CLIENT (the item it displayed), so
+  a Retry re-submits the same id and a turn that had already landed replays. See §19.4.8.
+</p>
 <p>
   <strong>Trap worth remembering:</strong> adding a DEFAULTed parameter <em>creates a new overload</em> rather than
   replacing the function. The database briefly held three <code>cat_next_item</code> signatures, which would have
@@ -3830,6 +3840,51 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   other.</strong> Settled with Sam and built the same session; see §13.1 → <em>the unmeasured ending</em>. Both the
   contradiction and the fix were found by <em>looking at the screen</em> — tsc, eslint and 320 tests were green
   throughout, the same note §19.4.4 and §19.4.6 both end on.
+</p>
+
+<h3 id="s19-slice6c">19.4.8 Slice 6c — the transition escalation, on a now-real idempotency guard
+  <span class="status settled">built 2026-07-21</span></h3>
+<p>
+  The last piece of Slice 6. App-layer, no migration; vitest 328 → 341. Two parts — the UI was the slice, the
+  guard fix was the prerequisite it turned out to need, found while checking that Retry would be safe.
+</p>
+<p>
+  <strong>Part 1 — the idempotency guard was inert, and Retry is what makes that matter.</strong> §19.4.4's
+  <code>p_expected_item_id</code> was meant to catch the lost-response retry (the RPC replays instead of recording
+  the old answer against the new question). But <code>turn.ts</code> set that id from its OWN
+  <code>loadCurrent</code> — the server's newest item — so within a request it always equalled what the RPC reads
+  as newest, and the replay branch could never fire. Built, tested at the wrong altitude (the test only asserted
+  the value was passed through), unreachable: the <strong>same shape as the §19.4.7 time-limit dead code</strong>.
+  It never bit because a lost-response retry was a rare manual act; Slice 6c's Retry button makes it a routine
+  one-tap action, on flaky mobile data, for exactly the audience the guard names — so it was fixed first.
+  <code>expectedItemId</code> now comes from the CLIENT (the question it displayed, captured before submit and
+  reused on Retry). <code>turn.ts</code> also now <strong>honours a replay</strong>: a replay means the turn had
+  already landed, so the locally-computed score AND termination decision are for a stale item and are discarded —
+  without which a replay whose stale decision happened to be <code>stop</code> would tell a client whose attempt is
+  still <code>IN_PROGRESS</code> that the exam is over. The real replay test that §19.4.4 lacked now exists.
+</p>
+<p>
+  <strong>Part 2 — the escalation (the actual slice).</strong> A CAT turn is a server round-trip: fast almost
+  always, but on mobile data it can take seconds or drop, and the student must never be left staring at an answered
+  question wondering if it worked. The 0–300ms dim + <code>inert</code> shipped in 6a/6b; 6c adds the timed climb —
+  <strong>dim (0–300ms, no spinner, so a fast turn never flickers one) → spinner (300ms) → "Still loading…" (3s) →
+  Retry (10s)</strong>, plus an <strong>error phase</strong> (message + Retry, no spinner) when the turn fails.
+  Structure: a pure state machine (<code>lib/practice/cat/turn-transition.ts</code>, 16 tests) + a thin timer hook
+  (<code>use-turn-transition.ts</code>, one <code>setTimeout</code> toward each threshold — the phase only changes
+  at 300ms/3s/10s) + the overlay (<code>cat-transition.tsx</code>, OUTSIDE the <code>inert</code> wrapper so Retry
+  is reachable, in a contained panel so it reads over the dimmed question, <code>role="status"</code> +
+  <code>aria-live</code> so a screen reader hears it). The footer's primary is disabled whenever the transition is
+  blocking — including the error phase, where <code>submitting</code> has gone false — so the overlay's Retry is
+  the single way on.
+</p>
+<p>
+  <strong>Verified live (desktop):</strong> the stuck phase (spinner + "Still loading…" + Retry over the dimmed,
+  inert question), the error phase (footer confirmed disabled), Retry recovering and advancing, and a slow turn
+  completing → reset → advance — all driven by injecting artificial latency / a forced failure, reverted after.
+  <strong>Mobile</strong> was taken structurally: the overlay is a <code>max-width: 300px</code> centred card with
+  no responsive branches, so it cannot overflow 375px; the escalation itself was not driven on mobile
+  (Select-N / Matrix touch input resisted scripting). The "no spinner under 300ms" property is unit-tested rather
+  than eyeballed — a sub-300ms flicker is not reliably catchable by hand.
 </p>
 
 

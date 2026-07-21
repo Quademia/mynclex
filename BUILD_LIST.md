@@ -54,8 +54,22 @@
 >   (*"Not passed — ran out of time"*) and the compare strip (*"Timed out"*) in
 >   step. `cat_verdict` stays `BELOW_STANDARD` — display-only, no overrides.
 >
-> **⏭ NEXT on CAT:** Slice 6c (transition escalation) · §16.6 exam-mode display
-> leaks · Slices 8–9.
+> **✅ 2026-07-21 — Slice 6c (the transition escalation) BUILT** (1 commit, same
+> branch, **NOT yet on `main`** at time of writing; app-layer, no migration; vitest
+> 328 → 341). See cat.html **§19.4.8**. The timed climb for a slow CAT turn —
+> dim (0–300ms, no spinner) → spinner → "Still loading…" (3s) → Retry (10s), plus
+> an error phase (message + Retry) when the turn fails. Pure state machine + thin
+> timer hook + overlay component; the footer is dead while blocking so the
+> overlay's Retry is the single way on. **⚠ It also fixed the idempotency guard
+> that 6b had wired inert** — `expectedItemId` was set from the server's own newest
+> item, so the replay branch could never fire (same shape as the §19.4.7 dead
+> code). Retry made the lost-response retry a routine action, so it had to be
+> real: the id now comes from the CLIENT, and `turn.ts` honours a replay so a
+> stale decision can't falsely complete an attempt. The missing replay test now
+> exists. Verified live on desktop; mobile taken structurally (a ≤300px centred
+> card can't overflow). **⏭ NEXT on CAT:** §16.6 exam-mode display leaks (the
+> difficulty chip broadcasting the engine's opinion mid-exam — seen on screen
+> during 6c testing) · Slices 8–9.
 > **Two decisions reopened, noted not changed:** §9.3 the 4-hour time limit
 > (vs real NCLEX's 5 — now a one-constant change) and §9.1.1 the passing standard
 > (theta 0.0 was inherited, not chosen). Both in cat.html §19 carried-forward.
