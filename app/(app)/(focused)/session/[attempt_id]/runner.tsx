@@ -173,9 +173,9 @@ function RunnerShell({ data }: Props) {
   // its questions up front.
   const isCat = data.attempt.mode === 'CAT';
 
-  // For CAT the current index is DERIVED, never stored. There is no
-  // navigation, so "which question am I on" is always "the newest one" —
-  // a computed value, not state.
+  // For a LIVE CAT the current index is DERIVED, never stored. During the
+  // exam there is no navigation, so "which question am I on" is always "the
+  // newest one" — a computed value, not state.
   //
   // Storing it caused a real bug (fixed 2026-07-19): the turn handler
   // advanced the index immediately but the new question only arrives a
@@ -190,9 +190,16 @@ function RunnerShell({ data }: Props) {
   // student just answered stays on screen instead of vanishing — exactly
   // the "current question stays visible, dimmed" the spec asks for.
   //
-  // Scoped to CAT deliberately. Every other mode needs the stored index:
-  // they have free navigation, Prev/Next and clickable grid cells.
-  const current = isCat ? Math.max(0, data.items.length - 1) : navCurrent;
+  // Scoped to LIVE CAT deliberately. Every other mode — and a CAT in
+  // REVIEW — needs the stored index: they have free navigation, Prev/Next
+  // and clickable grid cells. A finished CAT is just a fixed-length attempt
+  // with a known item list, so its review navigates like any other; only the
+  // live exam (which grows one item per turn and forbids going back) pins to
+  // the newest item. Reviewing a CAT with this still `isCat`-only would have
+  // frozen the pane on the last question — Prev/Next/grid all inert.
+  const current = isCat && data.mode === 'live'
+    ? Math.max(0, data.items.length - 1)
+    : navCurrent;
   const [filter, setFilter]     = useState<GridFilter>('all');
   const [gridOpen, setGridOpen] = useState(true);
 
@@ -359,6 +366,10 @@ function RunnerShell({ data }: Props) {
   const marked = useMemo(() => new Set<string>(), []);
 
   const total       = data.items.length;
+  // A live CAT hides its total (length unknowable mid-exam → "Adaptive
+  // length"); in review the length is final and known, so a CAT review shows
+  // "Q N / 85" like any other finished attempt.
+  const displayTotal = isCat && data.mode === 'live' ? null : total;
   const currentItem = data.items[current];
   const modeLabel   = MODE_LABELS[data.attempt.mode];
   const modeMsg     = statusMessage(data.mode, data.attempt.mode);
@@ -1080,16 +1091,25 @@ function RunnerShell({ data }: Props) {
       <RunnerTopbar
         modeLabel={modeLabel}
         current={current + 1}
-        total={isCat ? null : total}
+        total={displayTotal}
         marked={marked.has(currentItem?.attempt_item_id ?? '')}
         statusLabel={statusLabel}
         caseMeta={caseMeta}
         clock={clockProps}
         onExit={
           // Live (mid-flight) → confirm first. Review → leave directly.
+          // A CAT review came from its summary page (§14.3: review is a
+          // sub-action of the summary, reached History → summary → Review),
+          // so Exit returns THERE — the richer CAT surface — rather than the
+          // resolver's CAT-home default (which is right for a live exam, that
+          // has no summary yet). Every other review keeps data.exitHref.
           data.mode === 'live'
             ? () => setShowExitConfirm(true)
-            : () => router.push(data.exitHref)
+            : () => router.push(
+                isCat
+                  ? `/student/bank/cat/result/${data.attempt.attempt_id}`
+                  : data.exitHref,
+              )
         }
         onPillClick={
           data.mode === 'review' && data.attempt.final_score !== null
@@ -1128,7 +1148,7 @@ function RunnerShell({ data }: Props) {
         ) : (
           <RunnerGridHandle
             current={current + 1}
-            total={isCat ? null : total}
+            total={displayTotal}
             onExpand={() => setGridOpen(true)}
           />
         )}
@@ -1136,7 +1156,7 @@ function RunnerShell({ data }: Props) {
 
       <RunnerFooter
         current={current + 1}
-        total={isCat ? null : total}
+        total={displayTotal}
         modeMsg={modeMsg}
         primaryLabel={primaryLabel}
         primaryDisabled={primaryDisabled}

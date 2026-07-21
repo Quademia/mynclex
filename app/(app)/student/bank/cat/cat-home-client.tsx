@@ -127,24 +127,40 @@ export function CatHomeClient({ view }: { view: CatHomeView }) {
         ) : (
           <table className="cat-table">
             <thead>
-              <tr><th>Date</th><th>Questions</th><th>Result</th><th /></tr>
+              <tr><th>Date</th><th>Questions</th><th>Result</th><th /><th /></tr>
             </thead>
             <tbody>
-              {history.map((h) => (
-                <tr key={h.attemptId}>
-                  <td>{formatDate(h.endedAt)}</td>
-                  <td>{h.itemsAdministered ?? '—'}</td>
-                  <td>{verdictLabel(h)}</td>
-                  <td className="cat-table-go">
-                    {/* Every terminal row links — including one with no
-                        verdict, which lands on the abandoned surface and is
-                        told why there is nothing to show. */}
-                    <Link href={`/student/bank/cat/result/${h.attemptId}`}>
-                      {h.verdict ? 'View report' : 'Details'}
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {history.map((h) => {
+                // A direct shortcut into the per-question walkthrough, beside
+                // the report link (§14.3 keeps the report the row's primary
+                // destination; this is an added convenience). Only shown when
+                // there is actually something to review: an ABANDONED CAT has
+                // its rows hard-deleted, so /session would bounce to Practice.
+                const reviewable =
+                  h.status !== 'ABANDONED' && (h.itemsAdministered ?? 0) > 0;
+                return (
+                  <tr key={h.attemptId}>
+                    <td>{formatDate(h.endedAt)}</td>
+                    <td>{h.itemsAdministered ?? '—'}</td>
+                    <td>{verdictLabel(h)}</td>
+                    <td className="cat-table-go">
+                      {reviewable && (
+                        <Link href={`/session/${h.attemptId}`} className="cat-review-btn">
+                          Review
+                        </Link>
+                      )}
+                    </td>
+                    <td className="cat-table-go">
+                      {/* Every terminal row links — including one with no
+                          verdict, which lands on the abandoned surface and is
+                          told why there is nothing to show. */}
+                      <Link href={`/student/bank/cat/result/${h.attemptId}`}>
+                        {h.verdict ? 'View report' : 'Details'}
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

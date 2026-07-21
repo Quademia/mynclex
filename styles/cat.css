@@ -8,9 +8,18 @@
  */
 
 .cat-home {
+  width: 100%;
   max-width: 880px;
   margin: 0 auto;
   padding: 24px 20px 64px;
+  /* width:100% is load-bearing, not cosmetic. .product-content is a COLUMN
+   * flex; `margin:0 auto` (auto cross-axis margins) cancels the default
+   * stretch, so without an explicit width this box sizes to its widest child
+   * — the history table's min-width — and that overflow escapes to the shell's
+   * scroll container, scrolling the whole content area sideways on a phone
+   * (and clipping the hero cards). A definite 100% pins it to the viewport, so
+   * the table scrolls INSIDE .cat-section's own overflow-x:auto instead
+   * (CLAUDE.md UI #3: wide content scrolls in its own container, never the page). */
 }
 
 /* ── Hero ───────────────────────────────────────────────────────── */
@@ -166,6 +175,26 @@
   color: var(--text-muted, #64748b);
 }
 
+/* Direct shortcut into the per-question review, beside the report link.
+ * A small outlined pill so it reads as a distinct action next to the plain
+ * "View report" link, without competing with it for primacy. */
+.cat-review-btn {
+  display: inline-block;
+  padding: 5px 12px;
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #0f172a);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.cat-review-btn:hover {
+  border-color: var(--brand, #2563eb);
+  color: var(--brand, #2563eb);
+}
+
 /* ── Preflight ──────────────────────────────────────────────────── */
 
 .cat-preflight-backdrop {
@@ -245,7 +274,7 @@
   /* Let a long history table scroll inside itself rather than pushing the
    * page sideways. */
   .cat-section { overflow-x: auto; }
-  .cat-table { min-width: 380px; }
+  .cat-table { min-width: 460px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
