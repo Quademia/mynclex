@@ -31,9 +31,15 @@ export function bankPlanIncludes(opts: {
 }): BankInclude[] {
   const { catAllowance, readinessCredits } = opts;
 
+  // Static features — true of every pass, so plain tone. The tier-varying
+  // CAT + readiness lines are appended below and kept last, so the things
+  // that actually differ between plans stay prominent.
   const items: BankInclude[] = [
-    { key: 'bank',  label: 'Full question bank',    tone: 'plain' },
-    { key: 'modes', label: 'Practice & exam modes', tone: 'plain' },
+    { key: 'bank',      label: 'Full question bank',              tone: 'plain' },
+    { key: 'ngn',       label: 'Every NGN question type',         tone: 'plain' },
+    { key: 'modes',     label: 'Practice & exam modes',           tone: 'plain' },
+    { key: 'rationale', label: 'Full rationale on every question', tone: 'plain' },
+    { key: 'devices',   label: 'Works on mobile & desktop',       tone: 'plain' },
   ];
 
   if (catAllowance === null) {
