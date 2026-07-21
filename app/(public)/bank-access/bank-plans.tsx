@@ -12,6 +12,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { bankPlanIncludes } from '@/lib/products/bank-includes';
 
 export interface BankPlan {
   productId: string;
@@ -75,11 +76,10 @@ export function BankPlans({
         {plans.map((p) => {
           const minor = currency === 'GHS' ? p.ghsMinor : p.usdMinor;
           const popular = p.days === 90;
-          const hasCredits = p.readinessCredits > 0;
-          // CAT line (§15.5): null = unlimited (a selling point → highlighted),
-          // a positive N = that many, 0 = none (dimmed, like "no packs").
-          const catUnlimited = p.catAllowance === null;
-          const catNone = p.catAllowance === 0;
+          const includes = bankPlanIncludes({
+            catAllowance: p.catAllowance,
+            readinessCredits: p.readinessCredits,
+          });
           return (
             <div key={p.productId} className={`bkc-plan${popular ? ' popular' : ''}`}>
               {popular && <div className="bkc-plan-badge">Most popular</div>}
@@ -87,20 +87,14 @@ export function BankPlans({
               <div className="bkc-plan-price">{money(minor, currency)}</div>
               <div className="bkc-plan-perday">{perDay(minor, p.days, currency)}</div>
               <div className="bkc-plan-feats">
-                <span className="bkc-feat"><Tick />Full question bank</span>
-                <span className="bkc-feat"><Tick />Practice &amp; exam modes</span>
-                {catUnlimited ? (
-                  <span className="bkc-feat credit"><Tick />Unlimited CAT exams</span>
-                ) : catNone ? (
-                  <span className="bkc-feat muted"><Tick />No CAT exams</span>
-                ) : (
-                  <span className="bkc-feat credit"><Tick />{p.catAllowance} CAT exam{p.catAllowance === 1 ? '' : 's'} included</span>
-                )}
-                {hasCredits ? (
-                  <span className="bkc-feat credit"><Tick />{p.readinessCredits} readiness pack{p.readinessCredits === 1 ? '' : 's'} included</span>
-                ) : (
-                  <span className="bkc-feat muted"><Tick />No readiness packs</span>
-                )}
+                {includes.map((f) => (
+                  <span
+                    key={f.key}
+                    className={`bkc-feat${f.tone === 'credit' ? ' credit' : f.tone === 'muted' ? ' muted' : ''}`}
+                  >
+                    <Tick />{f.label}
+                  </span>
+                ))}
               </div>
               <Link className="bkc-plan-btn" href={`/checkout/bank?product=${p.productId}&currency=${currency}`}>
                 Get access →

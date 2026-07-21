@@ -29,7 +29,7 @@ export default async function BankCheckoutPage({
   const [{ data: product }, { data: { user } }] = await Promise.all([
     supabase
       .from('nclex_products')
-      .select('product_id, name, duration_days, kind, pack_type, status, price_minor_ghs, price_minor_usd')
+      .select('product_id, name, duration_days, kind, pack_type, status, readiness_credits, cat_allowance, price_minor_ghs, price_minor_usd')
       .eq('product_id', productId)
       .maybeSingle(),
     supabase.auth.getUser(),
@@ -66,6 +66,8 @@ export default async function BankCheckoutPage({
       <BankCheckout
         productId={product.product_id}
         days={product.duration_days ?? 0}
+        catAllowance={product.cat_allowance}
+        readinessCredits={product.readiness_credits ?? 0}
         currency={currency}
         amountMinor={amountMinor}
         accountEmail={user?.email ?? null}
