@@ -22,6 +22,10 @@ export interface ProductRow {
   pack_type:            PackType;
   duration_days:        number | null;
   readiness_credits:    number;
+  /** CATs this pass grants per window (§15.5). NULL = unlimited, 0 = none,
+   *  N = N. Bank-family only — always NULL on a READINESS SKU, since a
+   *  readiness-only buyer holds no bank entitlement to carry it. */
+  cat_allowance:        number | null;
   price_minor_ghs:      number;
   price_minor_usd:      number;
   full_price_minor_ghs: number | null;
@@ -38,6 +42,7 @@ export interface ProductFormValues {
   pack_type:         PackType;
   duration_days:     number | null;
   readiness_credits: number;
+  cat_allowance:     number | null;  // NULL = unlimited, 0 = none, N = N
   priceGhs:          number;   // minor units, post-conversion
   priceUsd:          number;
   fullPriceGhs:      number | null;

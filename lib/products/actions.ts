@@ -40,6 +40,7 @@ function revalidateProducts() {
 interface ParsedEditable {
   name:              string;
   readiness_credits: number;
+  cat_allowance:     number | null;
   priceGhs:          number;
   priceUsd:          number;
   fullPriceGhs:      number | null;
@@ -98,9 +99,27 @@ function parseEditable(
     return { error: 'Sort order must be a whole number of 0 or more.' };
   }
 
+  // CAT allowance (§15.5). Blank = unlimited (NULL); a number = a per-pass
+  // cap (0 = none). Bank-family only: a READINESS SKU always stores NULL,
+  // since its buyer holds no bank entitlement to carry the allowance — the
+  // form doesn't render the field for readiness, but force it server-side
+  // so a hand-posted value can't slip a meaningless cap onto a pack.
+  let catAllowance: number | null = null;
+  if (packType === 'BANK_DURATION') {
+    const raw = String(formData.get('cat_allowance') ?? '').trim();
+    if (raw !== '') {
+      const n = Number(raw);
+      if (!Number.isInteger(n) || n < 0) {
+        return { error: 'CAT allowance must be a whole number of 0 or more, or blank for unlimited.' };
+      }
+      catAllowance = n;
+    }
+  }
+
   return {
     name,
     readiness_credits: credits,
+    cat_allowance: catAllowance,
     priceGhs: priceGhs.minor,
     priceUsd: priceUsd.minor,
     fullPriceGhs,
@@ -152,6 +171,7 @@ export async function createProductAction(
     pack_type:            packType,
     duration_days:        durationDays,
     readiness_credits:    editable.readiness_credits,
+    cat_allowance:        editable.cat_allowance,
     price_minor_ghs:      editable.priceGhs,
     price_minor_usd:      editable.priceUsd,
     full_price_minor_ghs: editable.fullPriceGhs,
@@ -204,6 +224,7 @@ export async function updateProductAction(
     .update({
       name:                 editable.name,
       readiness_credits:    editable.readiness_credits,
+      cat_allowance:        editable.cat_allowance,
       price_minor_ghs:      editable.priceGhs,
       price_minor_usd:      editable.priceUsd,
       full_price_minor_ghs: editable.fullPriceGhs,

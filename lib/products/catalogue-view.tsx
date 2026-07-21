@@ -203,7 +203,7 @@ function ProductRowView({
   const grants =
     p.pack_type === 'READINESS'
       ? `${p.readiness_credits} mock exam${p.readiness_credits === 1 ? '' : 's'} · 100 Q each`
-      : `Full question bank · ${p.duration_days} days`;
+      : `Full question bank · ${p.duration_days} days · ${catAllowanceLabel(p.cat_allowance)}`;
 
   // The Credits column shows CREDITS, in both groups. The per-pack unit
   // price lives under each currency's price, where it is correct in that
@@ -266,6 +266,14 @@ function ProductRowView({
       </div>
     </div>
   );
+}
+
+/** The CAT-allowance descriptor shown in a bank pass's "Grants" cell
+ *  (§15.5): NULL = unlimited, 0 = none, N = N. */
+function catAllowanceLabel(allowance: number | null): string {
+  if (allowance === null) return 'Unlimited CATs';
+  if (allowance === 0)    return 'No CATs';
+  return `${allowance} CAT${allowance === 1 ? '' : 's'}`;
 }
 
 /**
