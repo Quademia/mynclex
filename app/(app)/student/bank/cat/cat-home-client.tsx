@@ -105,12 +105,24 @@ export function CatHomeClient({ view }: { view: CatHomeView }) {
                 costs nothing extra.
               </p>
             </>
+          ) : exhausted ? (
+            // Allowance used up (§15.5): a dead disabled button leaves no way
+            // forward, so the CTA becomes a route to buy more bank access —
+            // a new pass carries its own CAT allowance.
+            <>
+              <Link href="/bank-access" className="cat-btn cat-btn-primary">
+                Get more bank access →
+              </Link>
+              <p className="cat-note">
+                You&apos;ve used every CAT included in your current plan. A new bank
+                pass includes more.
+              </p>
+            </>
           ) : (
             <button
               type="button"
               className="cat-btn cat-btn-primary"
               onClick={() => setShowPreflight(true)}
-              disabled={exhausted}
             >
               Start a CAT
             </button>

@@ -79,16 +79,20 @@
 
 .cat-allowance {
   font-size: 13.5px;
-  color: var(--text-muted, #475569);
   margin: 0 0 18px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  /* The "N of M remaining" reads as a neutral banner; the exhausted state
+   * below keeps the same shape but switches to the amber warning tone. */
+  color: var(--text, #0f172a);
+  background: var(--surface, #f1f5f9);
+  border: 1px solid var(--border, #e2e8f0);
 }
 
 .cat-allowance.is-exhausted {
   color: var(--warn-text, #92400e);
   background: var(--warn-bg, #fffbeb);
-  border: 1px solid var(--warn-border, #fde68a);
-  border-radius: 8px;
-  padding: 10px 12px;
+  border-color: var(--warn-border, #fde68a);
 }
 
 .cat-actions { margin-top: 4px; }
@@ -110,6 +114,10 @@
   border: 1px solid transparent;
   cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease;
+  /* Works on both <button> and the exhausted-state upsell <a>. */
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
 }
 
 .cat-btn:disabled { opacity: 0.55; cursor: not-allowed; }
