@@ -17,6 +17,8 @@ export interface BankPlan {
   productId: string;
   days: number;
   readinessCredits: number;
+  /** CATs the pass grants (§15.5): null = unlimited, 0 = none, N = N. */
+  catAllowance: number | null;
   ghsMinor: number;
   usdMinor: number;
 }
@@ -74,6 +76,10 @@ export function BankPlans({
           const minor = currency === 'GHS' ? p.ghsMinor : p.usdMinor;
           const popular = p.days === 90;
           const hasCredits = p.readinessCredits > 0;
+          // CAT line (§15.5): null = unlimited (a selling point → highlighted),
+          // a positive N = that many, 0 = none (dimmed, like "no packs").
+          const catUnlimited = p.catAllowance === null;
+          const catNone = p.catAllowance === 0;
           return (
             <div key={p.productId} className={`bkc-plan${popular ? ' popular' : ''}`}>
               {popular && <div className="bkc-plan-badge">Most popular</div>}
@@ -83,6 +89,13 @@ export function BankPlans({
               <div className="bkc-plan-feats">
                 <span className="bkc-feat"><Tick />Full question bank</span>
                 <span className="bkc-feat"><Tick />Practice &amp; exam modes</span>
+                {catUnlimited ? (
+                  <span className="bkc-feat credit"><Tick />Unlimited CAT exams</span>
+                ) : catNone ? (
+                  <span className="bkc-feat muted"><Tick />No CAT exams</span>
+                ) : (
+                  <span className="bkc-feat credit"><Tick />{p.catAllowance} CAT exam{p.catAllowance === 1 ? '' : 's'} included</span>
+                )}
                 {hasCredits ? (
                   <span className="bkc-feat credit"><Tick />{p.readinessCredits} readiness pack{p.readinessCredits === 1 ? '' : 's'} included</span>
                 ) : (

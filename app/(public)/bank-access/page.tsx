@@ -37,7 +37,7 @@ const FEATURES = [
   { n: '03', title: 'Practice or exam mode', body: 'Study with instant feedback, or sit timed exam-style sets that mirror real test pressure.', soon: false },
   { n: '04', title: 'Know your weak spots', body: 'Every attempt is saved. Filter to the questions you got wrong and drill them until they stick.', soon: false },
   { n: '05', title: 'Build your own sets', body: 'Pick the topics, client-needs categories, difficulty and length — the builder assembles a session to match.', soon: false },
-  { n: '06', title: 'Adaptive CAT mode', body: 'A computer-adaptive practice mode that tunes to your level, just like the real exam.', soon: true },
+  { n: '06', title: 'Adaptive CAT mode', body: 'A computer-adaptive practice mode that tunes to your level, just like the real exam.', soon: false },
 ];
 
 export default async function BankLandingPage() {
@@ -49,7 +49,7 @@ export default async function BankLandingPage() {
 
   const { data: products } = await supabase
     .from('nclex_products')
-    .select('product_id, name, duration_days, readiness_credits, price_minor_ghs, price_minor_usd')
+    .select('product_id, name, duration_days, readiness_credits, cat_allowance, price_minor_ghs, price_minor_usd')
     .eq('pack_type', 'BANK_DURATION')
     .eq('kind', 'PAID')
     .eq('status', 'ACTIVE')
@@ -59,6 +59,7 @@ export default async function BankLandingPage() {
     productId: p.product_id,
     days: p.duration_days ?? 0,
     readinessCredits: p.readiness_credits ?? 0,
+    catAllowance: p.cat_allowance,
     ghsMinor: p.price_minor_ghs,
     usdMinor: p.price_minor_usd,
   }));
