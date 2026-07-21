@@ -3235,7 +3235,53 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     this hooks up the entry points (summary → Review, History → summary).</li>
   <li><strong>Slice 9 — Dashboard + entry points.</strong> The two separate dashboard cards (CAT card +
     Readiness Signal card, §13.4), the Builder's CAT option under EXAM intent (§2.3), and the public
-    <code>/help/cat</code> page (§3.2).</li>
+    <code>/help/cat</code> page (§3.2).
+    <p><strong>📐 Design + build shape settled with Sam 2026-07-22 (planning only — not yet built).</strong>
+    Slice 9's "dashboard" is the <strong>student Bank-area home</strong> — the page a bank student lands on. Decisions:</p>
+    <ul>
+      <li><strong>Design adopted — Claude Design, variant 1b.</strong> CD produced a "Bank Dashboard" canvas of
+        variants; <strong>1b</strong> is chosen — a two-column layout: a left <em>work</em> column (resume banner,
+        coach nudge, mastery-by-category, recent activity) and a right <em>status</em> rail (readiness ring +
+        doorways list). A separate remote agent's build
+        (<code>origin/codex/student-bank-dashboard</code>) was previewed and <strong>set aside</strong> — functional
+        and wired to real loaders, but off the design system (hardcoded hex, inline Tailwind) and thinner than 1b.</li>
+      <li><strong>Folder technique — the <code>lib/home/&lt;audience&gt;/</code> home pattern</strong> (as used by the
+        tutor home). Thin route: <code>app/(app)/student/bank/dashboard/page.tsx</code> = gate + one
+        <code>getBankDashboardData()</code> call + <code>&lt;BankDashboard data&gt;</code> inside the student shell.
+        All logic in a <strong>new sub-group <code>lib/home/student/bank/</code></strong> (queries + types + view +
+        one component per card). Sub-grouped because the bank home and the programme home are independent surfaces;
+        the existing programme/cohort overview (currently flat in <code>lib/home/student/</code>) is to be factored
+        into <code>lib/home/student/program/</code> as a later tidy-up. A home surface <em>aggregates</em>, it owns
+        no new tables.</li>
+      <li><strong>Build approach — card-by-card.</strong> A proper multi-card slice, planned before built. Each CD
+        card is checked for a real data source before it goes in; <strong>nothing invented on a live student
+        surface</strong> (honesty rule).</li>
+      <li><strong>Data-availability map (2026-07-22).</strong>
+        <em>Ready off existing loaders:</em> resume banner (<code>getResumableAttempt</code>), CAT doorway
+        (<code>getCatHomeView</code>), Readiness-Packs "credits ready" (<code>getStudentReadinessView().unclaimed</code>),
+        recent activity (<code>getHistoryAttempts</code>).
+        <em>Partial (small derivation):</em> bank-access countdown bar (<code>getMyBankAccess</code> gives
+        <code>daysLeft</code>/<code>lifetime</code> but no window length for the bar — derive from the subscription
+        <code>started_at</code>); Question-Bank total count (only a filter-scoped <code>nclex_count_eligible_items</code>
+        RPC exists, no bare grand-total loader); study streak (the <code>studyStreak()</code> math in
+        <code>lib/home/student/overview-queries.ts</code> is reusable but is keyed to <em>programme</em> completions,
+        not bank attempts — needs rewiring + a per-day bank-activity feed).
+        <em>Missing (new plumbing):</em> the cross-history Readiness Signal (see next); per-student cross-history
+        <strong>Client-Needs mastery aggregation</strong> (the <code>clientNeedsTree()</code> /
+        <code>weakestSubcategory()</code> math in <code>lib/payments/readiness-breakdowns.ts</code> exists but only
+        over one readiness-pack sitting — a new loader over all of a student's answered items joined to
+        <code>client_needs_category</code> would power both the 8 mastery bars <em>and</em> the coach "drill your
+        weakest area" nudge); Journey Tracker doorway status (no loader anywhere — the pillar isn't built).</li>
+      <li><strong>The Readiness Ring — a MyNclex-defined convention; this is the §13.4 Readiness Signal card getting
+        its definition.</strong> <em>Not</em> the per-CAT <code>readinessProbability()</code>. Sam's decision: we
+        define our own transparent, <strong>evidence-gated</strong> cross-history readiness score — e.g. shown only
+        once the student has answered enough questions (≈500), derived from <em>coverage</em> across topics /
+        categories plus accuracy — and <strong>explain it to the student with a 💡 bulb</strong> (what it means, what
+        it is based on). This keeps §13.4 intact: it stays a <em>separate</em> card from the CAT verdict (we are not
+        blending the CAT verdict into a single number), while finally defining the "cross-history practice signal"
+        §13.4 left as a concept. The formula, the question-count threshold, and the bulb copy are
+        <strong>⬜ still to be designed with Sam.</strong></li>
+    </ul></li>
 </ol>
 
 <p><strong>Phase D — Calibration (trails; not needed to launch CAT).</strong></p>
