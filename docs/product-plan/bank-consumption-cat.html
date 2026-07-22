@@ -3281,6 +3281,75 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
         blending the CAT verdict into a single number), while finally defining the "cross-history practice signal"
         §13.4 left as a concept. The formula, the question-count threshold, and the bulb copy are
         <strong>⬜ still to be designed with Sam.</strong></li>
+      <li><strong>Card-by-card data-sourcing walk — settled with Sam 2026-07-22.</strong> Went through variant 1b
+        one card at a time, deciding the <em>real</em> data source for each (honesty rule — nothing invented on a
+        live student surface). Cards 1&ndash;7 settled; 8&ndash;9 still to walk.
+        <ul>
+          <li><strong>1 &middot; Welcome header</strong> (name + today's date) &mdash; &#10003; ready (profile +
+            server date).</li>
+          <li><strong>2 &middot; Bank-access countdown</strong> &mdash; <code>getMyBankAccess()</code> already
+            returns <code>daysLeft</code> (the number); the <em>bar</em> needs a denominator, so extend the loader to
+            also read <code>started_at</code> and return the window length, deriving the bar from the row that owns the
+            <em>furthest</em> <code>end_at</code> (bar + number always agree). The eyebrow label
+            (&ldquo;90-day / 60-day / 30-day&rdquo;) is <strong>derived from the window</strong> &mdash; worth showing
+            because it tells the student <em>which</em> pass is counting down when they have <strong>stacked</strong>
+            subscriptions. <strong>No &ldquo;lifetime&rdquo; state</strong>: a bank pass is never lifetime; a stray
+            NULL <code>end_at</code> in dev is legacy pre-duration data, handled <em>defensively</em> (no bogus bar),
+            not surfaced as a feature. Card <strong>hidden entirely</strong> for a readiness-only user (no bank
+            sub).</li>
+          <li><strong>3 &middot; Study streak</strong> &mdash; reuse the existing <em>pure</em>
+            <code>studyStreak(times[], nowMs)</code> unchanged; the only new piece is a small feed of the student's
+            bank-activity days (distinct UTC days from <code>nclex_attempts.started_at</code>, falling back to
+            <code>created_at</code>). A <strong>bank streak, independent of the programme</strong> &mdash; counts
+            <em>everything bank-related</em> (<code>CUSTOM_BUILT</code> incl. CAT + <code>READINESS_PACK</code>; the
+            programme home keeps its own streak). Kept at the design's prominent full-width banner; the week strip and
+            &ldquo;N days off your best&rdquo; derive from the same feed.</li>
+          <li><strong>4 &middot; Resume banner</strong> &mdash; <code>getResumableAttempt()</code> ready as-is.
+            <strong>No invented subject</strong>: a filter-built attempt has no single topic (the mock's
+            &ldquo;Pharmacology&rdquo; title is invented) &mdash; the title uses the <em>mode</em>
+            (&ldquo;Untimed practice&rdquo;) + &ldquo;{done} of {total} questions &middot; saved {when}&rdquo;. The
+            dashboard shows <strong>Resume &rarr; only</strong> (routes to the runner); the destructive &ldquo;Start
+            fresh&rdquo; / discard stays on the practice page.</li>
+          <li><strong>5 + 6 &middot; Coach nudge + Mastery-by-category bars</strong> &mdash; one lean read powers both.
+            Because each answered question's classification is <strong>snapshotted onto
+            <code>nclex_attempt_items.classification_snapshot</code></strong>, a whole-history mastery reading is the
+            <em>same query shape</em> as one readiness sitting (just <code>WHERE attempt.user_id = X</code> across all
+            the student's attempts), feeding the <strong>existing pure <code>clientNeedsTree()</code> unchanged</strong>
+            &mdash; the 8 L1 category bars (card 6) + the weakest L1 category (card 5's nudge). Decisions:
+            <ul>
+              <li><strong>&#9888; CAT is EXCLUDED from mastery.</strong> A CAT serves at the edge of ability, so raw
+                correctness converges to ~50% for everyone (the &sect;13.2 finding); letting it in drags every bar
+                toward 50%. Mastery counts <strong>non-CAT practice + readiness packs only</strong>. (Contrast card 3:
+                CAT counts as <em>activity</em> for the streak, just not as a <em>mastery</em> signal.)</li>
+              <li><strong>Readiness packs ARE included</strong> &mdash; a <em>fixed</em>, non-adaptive 100-Q sitting at
+                normal difficulty, so a correct answer means what it looks like.</li>
+              <li><strong>Repeats: count every answered occurrence</strong> (v1; latest-answer-per-item is a possible
+                later refinement &mdash; barely changes category bars at whole-history volume).</li>
+              <li><strong>Bar metric: bare %</strong> (the mock's shape). The report's &ldquo;X of Y, never a bare
+                %&rdquo; rule guards <em>thin</em> slices; at whole-history volume a category's n is large, so a % is
+                honest here. The count stays available under &ldquo;Full breakdown &rarr;&rdquo;.</li>
+              <li><strong>Coach nudge = weakest L1 category</strong> (matches the bars; the drill scopes a quiz to it).
+                <strong>Drop</strong> the mock's &ldquo;biggest slice of the blueprint&rdquo; claim for v1 unless it is
+                actually blueprint-weighted (nothing invented).</li>
+              <li><strong>Cold-start gate</strong> &mdash; hide the bars / hold the nudge until there's enough data
+                (&ldquo;keep practising to unlock your mastery map&rdquo;), set consistently with the ring's evidence
+                gate.</li>
+            </ul></li>
+          <li><strong>7 &middot; Recent activity</strong> &mdash; reuse the History feed + its
+            <code>summariseRecent()</code> + per-source display, top <strong>3</strong> rows. Result badge:
+            <strong>%</strong> for a quiz, <strong>pass/fail band</strong> for a readiness pack, <strong>verdict</strong>
+            for a CAT. <em>Includes</em> CAT sittings (it's an activity feed, not a mastery reading).</li>
+          <li><strong>8 &middot; Readiness ring</strong> &mdash; the ring <em>number</em> is the still-undesigned
+            &sect;13.4 signal (see the Readiness-Ring decision above). Its <em>footer</em> (answered count &middot;
+            accuracy &middot; last-CAT verdict) is all real and buildable now. Recommendation carried into the ring
+            design: build the footer as a real evidence panel, treat the ring number as its own mini-design step.
+            <strong>&#11036; formula / gate / bulb copy still to design.</strong></li>
+          <li><strong>9 &middot; &ldquo;Where to next&rdquo; doorways</strong> &mdash; Question-Bank count &#128993;
+            (needs a bare grand-total; no such loader yet) &middot; Readiness credits &#10003; &middot; CAT &#10003;
+            &middot; <strong>Journey Tracker &#128308;</strong> (pillar not built &mdash; show a locked / &ldquo;coming
+            soon&rdquo; doorway rather than invent &ldquo;Phase 3 of 7&rdquo;) &middot; History count &#10003;.
+            <strong>&#11036; still to walk with Sam.</strong></li>
+        </ul></li>
     </ul></li>
 </ol>
 
