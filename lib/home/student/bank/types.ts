@@ -14,6 +14,8 @@
 // invented figure it was replaced, not approximated — see ./readiness.ts
 // for the readiness band, which is the sharpest case.
 
+import type { BankAccuracy } from './accuracy';
+
 // ── Card 2 · Bank-access countdown ───────────────────────────
 export type BankAccessCard = {
   /** Whole days remaining on the furthest-running active bank pass. */
@@ -37,6 +39,23 @@ export type BankStreak = {
   caption: string;
 };
 
+// ── Card 4 · Resume banner ───────────────────────────────────
+// NO invented subject. A bank quiz is built from filters and has no
+// single topic, so the design's "Pharmacology · Untimed practice" is a
+// title we cannot honestly produce — the mode IS the title. The
+// dashboard offers Resume only; discarding an attempt stays on the
+// practice page, where the consequence is explained.
+export type ResumeCard = {
+  attemptId: string;
+  /** "Untimed Learning", "Timed · Sequential" — resolved upstream. */
+  modeLabel: string;
+  done: number;
+  total: number;
+  /** "3h ago" / "yesterday". */
+  savedWhen: string;
+  href: string;
+};
+
 // ── The page ─────────────────────────────────────────────────
 export type BankDashboardData = {
   /** Forename only — the greeting reads "Welcome back, Ama". */
@@ -47,4 +66,7 @@ export type BankDashboardData = {
    *  gate means a student without bank access never gets here. */
   access: BankAccessCard | null;
   streak: BankStreak;
+  /** Null when there's nothing unfinished to pick up. */
+  resume: ResumeCard | null;
+  accuracy: BankAccuracy;
 };

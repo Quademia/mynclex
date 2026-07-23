@@ -40,10 +40,223 @@
 }
 
 .bd-track-fill {
+  display: block;
   height: 100%;
   border-radius: 999px;
   background: var(--accent);
 }
+
+/* Bar bands — the thresholds live in accuracy.ts (barTone) so a row's
+   colour and its accessible label can't drift apart. */
+.bd-track-fill.is-strong { background: var(--success); }
+.bd-track-fill.is-ok     { background: var(--accent); }
+.bd-track-fill.is-warn   { background: var(--warning); }
+.bd-track-fill.is-low    { background: var(--danger); }
+
+.bd-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+
+.bd-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bd-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.bd-card-note {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.bd-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* The shared 💡 bulb (lib/hints/shared/bulb.tsx) anchors its popover
+   `right: 0`, which is right for the curator toolbars it was built for
+   — there the bulb sits at the END of a row, so the card opens
+   leftward into the page. Here the bulb sits beside a card TITLE on
+   the left, so opening leftward runs it off the edge and clips it.
+   Page-scoped flip; the shared component is untouched. */
+.bd .auth-help-bulb-card {
+  right: auto;
+  left: 0;
+}
+
+/* The bulb body has no stylesheet of its own anywhere, so the global
+   reset (margin/padding 0) strips a <ul>'s indent and hides its
+   markers — every bulb that uses a list runs together as one block.
+   Scoped here rather than fixed globally, which would change the
+   curator surfaces uninvited. */
+.bd .auth-help-bulb-card-body ul {
+  padding-left: 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.bd-btn {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 10px 20px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bd-btn:hover {
+  background: var(--accent-dark);
+  text-decoration: none;
+}
+
+/* Layout ───────────────────────────────────────────────── */
+
+.bd-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.bd-col-work {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Card 4 · Resume banner ──────────────────────────────── */
+
+.bd-resume {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(180deg, var(--primary-light), var(--white));
+  border-color: rgba(45, 125, 114, 0.35);
+}
+
+.bd-resume-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--white);
+  border: 1px solid rgba(45, 125, 114, 0.3);
+  color: var(--accent);
+}
+
+.bd-resume-body,
+.bd-focus-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.bd-resume-title {
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.bd-resume-meta,
+.bd-focus-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Card 5 · Lowest-scoring category ────────────────────── */
+
+.bd-focus {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-left: 3px solid var(--accent);
+}
+
+.bd-focus-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--primary-light);
+  font-size: 17px;
+}
+
+.bd-focus-title {
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Card 6 · Accuracy by category ───────────────────────── */
+
+.bd-acc-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  list-style: none;
+}
+
+.bd-acc-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* The blueprint's real names are long ("Pharmacological and Parenteral
+   Therapies"). Wrapping to a second line beats an ellipsis: a truncated
+   category is a category the student has to guess at, and the tooltip
+   that would explain it doesn't exist on a phone. */
+.bd-acc-name {
+  width: 200px;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.bd-acc-track {
+  flex: 1;
+  height: 8px;
+  min-width: 0;
+}
+
+.bd-acc-pct {
+  width: 38px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.bd-acc-pct.is-low { color: var(--danger); }
 
 /* Card 1 · Welcome header + Card 2 · access countdown ──── */
 
@@ -228,5 +441,64 @@
 
   .bd-streak-num {
     font-size: 24px;
+  }
+
+  /* One column, work first. */
+  .bd-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* At 375px the popover is nearly as wide as the screen, so anchoring
+     it to the bulb overflows whichever side it opens toward. Anchor it
+     to the card HEADER instead and let it span the card's full width. */
+  .bd-card-head {
+    position: relative;
+  }
+
+  .bd .auth-help-bulb-wrap {
+    position: static;
+  }
+
+  .bd .auth-help-bulb-card {
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: none;
+  }
+
+  /* The banners stack: icon + text on one row, the action full-width
+     beneath, so the button stays a comfortable tap target instead of
+     being squeezed against a wrapping title. */
+  .bd-resume,
+  .bd-focus {
+    flex-wrap: wrap;
+  }
+
+  .bd-resume-body,
+  .bd-focus-body {
+    flex-basis: 0;
+  }
+
+  .bd-btn {
+    flex-basis: 100%;
+    text-align: center;
+  }
+
+  /* The category label drops above its own bar — at 375px a 190px
+     label column leaves the track too short to read. */
+  .bd-acc-row {
+    flex-wrap: wrap;
+    gap: 5px 10px;
+  }
+
+  .bd-acc-name {
+    width: auto;
+    flex: 1;
+    font-size: 12px;
+  }
+
+  .bd-acc-track {
+    flex-basis: 100%;
+    order: 3;
   }
 }
