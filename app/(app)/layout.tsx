@@ -51,6 +51,8 @@ import '@/styles/packs.css';
 import '@/styles/readiness-student.css';
 // The CAT home + its one-shot preflight, `cat-*`.
 import '@/styles/cat.css';
+// The student Bank Dashboard (the bank home), `bd-*`.
+import '@/styles/bank-dashboard.css';
 // After packs.css: the admin Products & Pricing surface reuses that
 // file's .rp-modal* / .rp-btn-* primitives and adds its own `pr-*`.
 import '@/styles/products.css';

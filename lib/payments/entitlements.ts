@@ -17,26 +17,56 @@ export type BankAccess = {
   active: boolean;
   lifetime: boolean; // an active row with no end_at (e.g. future grants)
   daysLeft: number | null; // from the furthest end_at; null when lifetime/none
+  // The length of the window that `daysLeft` counts down, in whole days —
+  // start to end of the SAME subscription row that owns the furthest
+  // end_at, so a progress bar drawn from it can never disagree with the
+  // number beside it. Null when lifetime/none, or when a legacy row has
+  // no started_at. Also names the pass ("90-day") when a student has
+  // stacked subscriptions and needs to know which one is running out.
+  windowDays: number | null;
 };
 
-const NONE: BankAccess = { active: false, lifetime: false, daysLeft: null };
+const NONE: BankAccess = {
+  active: false,
+  lifetime: false,
+  daysLeft: null,
+  windowDays: null,
+};
+
+const DAY_MS = 86_400_000;
 
 export async function bankAccessForUser(supabase: SbClient, userId: string): Promise<BankAccess> {
   const nowIso = new Date().toISOString();
   const { data } = await supabase
     .from('nclex_subscriptions')
-    .select('end_at')
+    .select('started_at, end_at')
     .eq('user_id', userId)
     .eq('status', 'ACTIVE')
     .in('pack_type', ['BANK_DURATION', 'TRIAL'])
     .or(`end_at.is.null,end_at.gt.${nowIso}`);
 
   if (!data || data.length === 0) return NONE;
-  if (data.some((r) => r.end_at === null)) return { active: true, lifetime: true, daysLeft: null };
+  if (data.some((r) => r.end_at === null)) {
+    return { active: true, lifetime: true, daysLeft: null, windowDays: null };
+  }
 
-  const maxEnd = Math.max(...data.map((r) => new Date(r.end_at as string).getTime()));
-  const daysLeft = Math.max(0, Math.ceil((maxEnd - Date.now()) / 86_400_000));
-  return { active: true, lifetime: false, daysLeft };
+  // The furthest end_at wins — that is the access the student actually
+  // has — and the bar must be drawn from THAT row's own window.
+  const furthest = data.reduce((best, r) =>
+    new Date(r.end_at as string).getTime() > new Date(best.end_at as string).getTime() ? r : best,
+  );
+  const maxEnd = new Date(furthest.end_at as string).getTime();
+  const daysLeft = Math.max(0, Math.ceil((maxEnd - Date.now()) / DAY_MS));
+
+  // Defensive: pre-duration legacy rows may carry no started_at. No
+  // denominator means no bar — the number still shows.
+  const startMs = furthest.started_at ? new Date(furthest.started_at as string).getTime() : NaN;
+  const windowDays =
+    Number.isFinite(startMs) && maxEnd > startMs
+      ? Math.max(1, Math.round((maxEnd - startMs) / DAY_MS))
+      : null;
+
+  return { active: true, lifetime: false, daysLeft, windowDays };
 }
 
 // Convenience for surfaces that don't already hold an auth context.

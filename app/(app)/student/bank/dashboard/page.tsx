@@ -1,17 +1,20 @@
-import { Placeholder } from '@/components/nav/shared/placeholder';
+// mynclex/app/(app)/student/bank/dashboard/page.tsx
+//
+// The bank home — where /student/bank sends a student with bank access.
+// Thin by design (the lib/home/<audience>/ pattern): gate, one data
+// call, one view. Everything else lives in lib/home/student/bank/.
+//
+// Per-page bank gate: the layout admits readiness-only students, so
+// each bank-consumption page re-asserts bank access (→ /no-access?need=bank).
+
 import { requireActiveBankSubscription } from '@/lib/access';
+import { getBankDashboardData } from '@/lib/home/student/bank/queries';
+import { BankDashboard } from '@/lib/home/student/bank/bank-dashboard';
 
 export const dynamic = 'force-dynamic';
 
-// Per-page bank gate: the layout now admits readiness-only students, so
-// each bank-consumption page re-asserts bank access (→ /no-access?need=bank).
 export default async function BankDashboardPage() {
   await requireActiveBankSubscription();
-  return (
-    <Placeholder
-      title="Dashboard"
-      subtitle="Your bank subscription overview"
-      description="Bank 90-day · 42 days left. Recent practice sessions, readiness score, quick links."
-    />
-  );
+  const data = await getBankDashboardData();
+  return <BankDashboard data={data} />;
 }
