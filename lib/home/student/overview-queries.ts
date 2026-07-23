@@ -304,6 +304,14 @@ function studyStreakFromMap(
 // current run (held if the latest study day is today or yesterday — a day's
 // grace so "haven't studied yet today" doesn't read as a broken streak) and
 // the longest run ever.
+//
+// The Bank Dashboard keeps its OWN copy of this (lib/home/student/bank/
+// streak.ts) rather than sharing this one. Deliberate, settled with Sam
+// 2026-07-23: a programme streak and a bank streak measure different
+// achievements from different tables, and they should be free to define
+// a "study day" differently — the bank's already does (it requires an
+// ANSWERED question, where this one counts a completed activity). Sharing
+// the arithmetic would have coupled two rules that are meant to diverge.
 function studyStreak(completedAtIso: string[], nowMs: number): OverviewStreak {
   const days = new Set<number>();
   for (const iso of completedAtIso) {

@@ -31,17 +31,31 @@ import {
 } from '@/lib/practice/builder/filter-config';
 import type { ResumableAttempt } from './types';
 
-export async function getResumableAttempt(): Promise<ResumableAttempt | null> {
+/**
+ * @param sources Optional attempt-source allowlist. The Bank Dashboard
+ *   passes the bank sources so its Resume banner cannot offer to
+ *   continue a PROGRAMME_ASSIGNED quiz — that work belongs to the
+ *   programme surfaces, and resuming it from the bank home would drop
+ *   the student somewhere they didn't expect. Omitted = every source,
+ *   which is the Builder's existing behaviour.
+ */
+export async function getResumableAttempt(
+  sources?: string[],
+): Promise<ResumableAttempt | null> {
   const supabase = await createClient();
 
-  const { data: attempt, error } = await supabase
+  let query = supabase
     .from('nclex_attempts')
     .select(
       'attempt_id, intent, mode, actual_question_count, last_activity_at, requested_question_count'
     )
     .eq('status', 'IN_PROGRESS')
     .neq('mode', 'CAT')
-    .not('started_at', 'is', null)
+    .not('started_at', 'is', null);
+
+  if (sources?.length) query = query.in('source', sources);
+
+  const { data: attempt, error } = await query
     .order('last_activity_at', { ascending: false })
     .limit(1)
     .maybeSingle();

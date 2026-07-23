@@ -69,7 +69,11 @@ import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
 import { Preflight }          from './preflight';
 import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction } from './actions';
+import { catTurnAction } from '@/lib/practice/cat/turn-action';
 import { useQuestionTimer } from './use-question-timer';
+import { useTurnTransition } from './use-turn-transition';
+import { CatTransition } from './cat-transition';
+import { isBlocking } from '@/lib/practice/cat/turn-transition';
 
 interface Props {
   data: RunnerData;
@@ -113,8 +117,13 @@ function statusMessage(mode: RunnerData['mode'], attemptMode: RunnerData['attemp
   if (mode === 'review') {
     return 'Review · use the grid to filter Wrong / Marked / Unanswered, or step in order';
   }
+  // CAT (slice 6b): the generic line below is actively wrong here — there is
+  // no rationale shown mid-exam and no Next button, because the engine
+  // decides what comes next and whether the exam is over.
+  if (attemptMode === 'CAT') {
+    return 'CAT · answer each question and submit — the exam adapts as you go and ends when it is confident';
+  }
   // 4.5 will branch on attemptMode for timer / sequential / batched-submit copy.
-  void attemptMode;
   return 'Untimed Learning · pick an option, Submit to see the rationale, then Next →';
 }
 
@@ -148,7 +157,7 @@ function RunnerShell({ data }: Props) {
   // because the jump is also a UX improvement for UL + Free-batched
   // resume. If every item is finalised (rare — completeAttemptAction
   // would normally have fired), land on the last one to surface Finish.
-  const [current, setCurrent]   = useState<number>(() => {
+  const [navCurrent, setCurrent] = useState<number>(() => {
     const finalised = new Set<string>();
     for (const a of data.answers) {
       if (a.submission_status !== 'DRAFT') finalised.add(a.attempt_item_id);
@@ -158,6 +167,39 @@ function RunnerShell({ data }: Props) {
     }
     return Math.max(0, data.items.length - 1);
   });
+
+  // ── CAT (slice 6b) ────────────────────────────────────────────────
+  // A CAT's item list GROWS one row per turn — every other mode knows all
+  // its questions up front.
+  const isCat = data.attempt.mode === 'CAT';
+
+  // For a LIVE CAT the current index is DERIVED, never stored. During the
+  // exam there is no navigation, so "which question am I on" is always "the
+  // newest one" — a computed value, not state.
+  //
+  // Storing it caused a real bug (fixed 2026-07-19): the turn handler
+  // advanced the index immediately but the new question only arrives a
+  // round-trip later, so for that gap the index pointed past the end of the
+  // array, `currentItem` was undefined, and the runner fell through to its
+  // "No questions in this attempt." stub — the message meant for a broken
+  // attempt, shown mid-exam. Fast on localhost; a second or more on mobile
+  // data.
+  //
+  // Deriving it also delivers §10.1 for free: during the wait the index
+  // still points at the LAST item of the old array, so the question the
+  // student just answered stays on screen instead of vanishing — exactly
+  // the "current question stays visible, dimmed" the spec asks for.
+  //
+  // Scoped to LIVE CAT deliberately. Every other mode — and a CAT in
+  // REVIEW — needs the stored index: they have free navigation, Prev/Next
+  // and clickable grid cells. A finished CAT is just a fixed-length attempt
+  // with a known item list, so its review navigates like any other; only the
+  // live exam (which grows one item per turn and forbids going back) pins to
+  // the newest item. Reviewing a CAT with this still `isCat`-only would have
+  // frozen the pane on the last question — Prev/Next/grid all inert.
+  const current = isCat && data.mode === 'live'
+    ? Math.max(0, data.items.length - 1)
+    : navCurrent;
   const [filter, setFilter]     = useState<GridFilter>('all');
   const [gridOpen, setGridOpen] = useState(true);
 
@@ -217,6 +259,12 @@ function RunnerShell({ data }: Props) {
 
   const [error, setError]   = useState<string | null>(null);
   const [submitting, startSubmit] = useTransition();
+
+  // CAT between-question escalation (slice 6c). Owns the dim → spinner →
+  // "Still loading…" → Retry timeline for the turn round-trip. Driven by
+  // onCatTurn: begin() on submit, fail() on error, reset() when the next
+  // question lands. Inert for every other mode.
+  const turnTx = useTurnTransition();
 
   // ── Live clock state (slice 4.5a) ─────────────────────────────────
   // `nowMs` ticks every second while the attempt is live with a started_at
@@ -318,11 +366,20 @@ function RunnerShell({ data }: Props) {
   const marked = useMemo(() => new Set<string>(), []);
 
   const total       = data.items.length;
+  // A live CAT hides its total (length unknowable mid-exam → "Adaptive
+  // length"); in review the length is final and known, so a CAT review shows
+  // "Q N / 85" like any other finished attempt.
+  const displayTotal = isCat && data.mode === 'live' ? null : total;
   const currentItem = data.items[current];
   const modeLabel   = MODE_LABELS[data.attempt.mode];
   const modeMsg     = statusMessage(data.mode, data.attempt.mode);
 
   const archetype = getArchetype(data.attempt.mode);
+
+  // NOTE: `isCat` and the derived `current` are declared with the state
+  // block above — `current` is read at the question timer before this point.
+  // For CAT, `total` is not a length: it is "how many have been served so
+  // far", which is why the topbar/footer/grid take `number | null`.
 
   // Per-item mode (slice 4.5b — corrects the DRAFT bug from 4.5a):
   //   • Whole-attempt review (`data.mode === 'review'`) always wins.
@@ -669,6 +726,63 @@ function RunnerShell({ data }: Props) {
     });
   };
 
+  // CAT turn (slice 6b). One call does everything the other modes split
+  // across submitAnswerAction + advance: the server scores the answer,
+  // re-estimates ability, decides whether the exam is over, and either
+  // snapshots the next question or writes the verdict.
+  //
+  // On CONTINUE we router.refresh() rather than appending the item
+  // client-side. The server loader is what strips answer keys from a live
+  // attempt (the "no answer-key leakage" boundary), so building an item in
+  // the browser would step around the one place that seal is enforced.
+  // Refreshing costs a round-trip and keeps the seal honest.
+  const onCatTurn = () => {
+    if (!currentItem || !submitGate?.canSubmit || submitGate.submitValue === null) return;
+    const submission = submitGate.submitValue;
+    // Captured here, so a Retry re-submits with the id of the SAME question —
+    // the idempotency guard. currentItem is stable across a failed turn (items
+    // only grows on success), so this equals what the student saw.
+    const expectedItemId = currentItem.attempt_item_id;
+
+    // Start the escalation timeline. On a fast turn it never gets past the
+    // 300ms dim; on a slow or dropped one it climbs to the spinner, message
+    // and Retry (slice 6c).
+    turnTx.begin();
+
+    startSubmit(async () => {
+      await flushActive(); // bank the time segment before the row finalises
+
+      const elapsed = data.attempt.started_at
+        ? Math.max(0, Math.floor((Date.now() - Date.parse(data.attempt.started_at)) / 1000))
+        : 0;
+
+      const r = await catTurnAction(data.attempt.attempt_id, submission, elapsed, expectedItemId);
+      if (!r.ok) {
+        // Hold the question on screen with a Retry rather than dropping a
+        // toast and clearing the dim — a CAT has no other way forward.
+        // Retry re-invokes onCatTurn with the SAME expectedItemId, so a turn
+        // that had actually landed replays instead of double-recording.
+        turnTx.fail();
+        return;
+      }
+
+      if (r.status === 'COMPLETE') {
+        turnTx.reset();
+        setShowResults(true);
+        router.refresh();
+        return;
+      }
+
+      // Deliberately does NOT advance an index. `current` is derived from
+      // data.items.length for CAT, so the refresh below grows the array and
+      // the new question becomes current on its own. Advancing here was the
+      // bug: it pointed past the end of the array for a round-trip and
+      // flashed the "No questions in this attempt." stub.
+      turnTx.reset();
+      router.refresh();
+    });
+  };
+
   // Sequential last-Q "Submit & finish" — submit the last DRAFT then
   // finalise. completeAttemptAction's _flushDrafts is a no-op for this
   // attempt by then (every prior Q was already submitted via
@@ -706,6 +820,20 @@ function RunnerShell({ data }: Props) {
     primaryDisabled = isLastQ;
     primaryHint     = isLastQ ? 'You\'re on the last question' : undefined;
     onPrimary       = onNext;
+
+  } else if (isCat) {
+    // CAT (slice 6b): one button, always. There is no Next (the server
+    // decides what comes next) and no Finish (the engine decides when the
+    // exam is over), so "Submit answer" is the only control the whole way
+    // through — including on the final question, which the student cannot
+    // know is final.
+    const canSubmit = submitGate?.canSubmit ?? false;
+    primaryLabel    = submitting ? 'Loading next…' : 'Submit answer';
+    // isBlocking covers the error phase too, where `submitting` has gone false
+    // but the overlay's Retry is the only way on — the footer must stay dead.
+    primaryDisabled = !canSubmit || submitting || isBlocking(turnTx.phase);
+    primaryHint     = canSubmit ? undefined : submitGate?.hint;
+    onPrimary       = onCatTurn;
 
   } else if (archetype === 'UL') {
     // UL behaviour (4.1 — unchanged): per-Q Submit → review → Next/Finish.
@@ -923,6 +1051,29 @@ function RunnerShell({ data }: Props) {
     questionArea = questionAreaInner;
   }
 
+  // CAT between-question wait (§10.1 + slice 6c). The question the student
+  // just answered stays on screen — but it must LOOK finished, or it reads as
+  // a live question that has stopped responding.
+  //
+  // `inert` is what actually disables the question: pointer-events alone still
+  // leaves the controls keyboard-reachable, so a student could tab into and
+  // change an answer that has already been submitted and scored.
+  //
+  // The escalation overlay (spinner / "Still loading…" / Retry) sits OUTSIDE
+  // the inert wrapper — otherwise its Retry button would be unreachable too.
+  // It drives off the transition phase, not `submitting`, so the error phase
+  // (submitting already false) keeps the overlay up with Retry.
+  if (isCat && isBlocking(turnTx.phase)) {
+    questionArea = (
+      <div className="rn-cat-tx">
+        <div className="rn-cat-waiting" aria-busy={turnTx.phase !== 'error'} inert>
+          {questionArea}
+        </div>
+        <CatTransition phase={turnTx.phase} onRetry={onCatTurn} />
+      </div>
+    );
+  }
+
   // Topbar case meta — only shown on case-childs.
   const caseMeta = inCase && currentCaseId
     ? {
@@ -940,16 +1091,25 @@ function RunnerShell({ data }: Props) {
       <RunnerTopbar
         modeLabel={modeLabel}
         current={current + 1}
-        total={total}
+        total={displayTotal}
         marked={marked.has(currentItem?.attempt_item_id ?? '')}
         statusLabel={statusLabel}
         caseMeta={caseMeta}
         clock={clockProps}
         onExit={
           // Live (mid-flight) → confirm first. Review → leave directly.
+          // A CAT review came from its summary page (§14.3: review is a
+          // sub-action of the summary, reached History → summary → Review),
+          // so Exit returns THERE — the richer CAT surface — rather than the
+          // resolver's CAT-home default (which is right for a live exam, that
+          // has no summary yet). Every other review keeps data.exitHref.
           data.mode === 'live'
             ? () => setShowExitConfirm(true)
-            : () => router.push(data.exitHref)
+            : () => router.push(
+                isCat
+                  ? `/student/bank/cat/result/${data.attempt.attempt_id}`
+                  : data.exitHref,
+              )
         }
         onPillClick={
           data.mode === 'review' && data.attempt.final_score !== null
@@ -988,7 +1148,7 @@ function RunnerShell({ data }: Props) {
         ) : (
           <RunnerGridHandle
             current={current + 1}
-            total={total}
+            total={displayTotal}
             onExpand={() => setGridOpen(true)}
           />
         )}
@@ -996,7 +1156,7 @@ function RunnerShell({ data }: Props) {
 
       <RunnerFooter
         current={current + 1}
-        total={total}
+        total={displayTotal}
         modeMsg={modeMsg}
         primaryLabel={primaryLabel}
         primaryDisabled={primaryDisabled}
@@ -1072,6 +1232,7 @@ function RunnerShell({ data }: Props) {
           passScore={data.attempt.pass_score}
           totalQ={total}
           source={data.attempt.source}
+          isCat={isCat}
           onReview={() => {
             setCurrent(0);
             setShowResults(false);

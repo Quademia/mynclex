@@ -64,6 +64,10 @@ export function ProductFormModal({
   const [name, setName]         = useState(product?.name ?? '');
   const [days, setDays]         = useState<number | ''>(product?.duration_days ?? '');
   const [credits, setCredits]   = useState<number | ''>(product?.readiness_credits ?? 0);
+  // CAT allowance (§15.5): unlimited (NULL) is the default; a cap is a
+  // deliberate choice. `catCap` only matters while catUnlimited is false.
+  const [catUnlimited, setCatUnlimited] = useState(product ? product.cat_allowance === null : true);
+  const [catCap, setCatCap]     = useState<number | ''>(product?.cat_allowance ?? '');
   const [priceGhs, setPriceGhs] = useState(minorToInput(product?.price_minor_ghs ?? 0));
   const [priceUsd, setPriceUsd] = useState(minorToInput(product?.price_minor_usd ?? 0));
   const [fullGhs, setFullGhs]   = useState(minorToInput(product?.full_price_minor_ghs ?? null));
@@ -126,6 +130,9 @@ export function ProductFormModal({
   const daysOk       = !isBank || (typeof days === 'number' && days >= 1);
   const creditsOk    = typeof credits === 'number' && credits >= 0 && (!isReadiness || credits >= 1);
   const sortOk       = typeof sortOrder === 'number' && sortOrder >= 0;
+  // A cap must be a real count once "Limit per pass" is chosen; unlimited
+  // needs nothing. Readiness never shows the control, so it's always ok.
+  const catOk        = catUnlimited || (typeof catCap === 'number' && catCap >= 0);
 
   const priceGhsParse = parseMoneyToMinor(priceGhs, { allowBlank: true });
   const priceUsdParse = parseMoneyToMinor(priceUsd, { allowBlank: true });
@@ -140,7 +147,7 @@ export function ProductFormModal({
     (!fullUsdParse.ok || (priceUsdParse.ok && fullUsdParse.minor <= priceUsdParse.minor));
 
   const blocked =
-    !slugOk || !nameOk || !daysOk || !creditsOk || !sortOk ||
+    !slugOk || !nameOk || !daysOk || !creditsOk || !sortOk || !catOk ||
     !priceGhsParse.ok || !priceUsdParse.ok || fullGhsBad || fullUsdBad;
 
   // ── Amber advisories (save anyway) ─────────────────────────────────
@@ -189,6 +196,9 @@ export function ProductFormModal({
     fd.set('product_id', isEdit ? product!.product_id : slug.trim().toUpperCase());
     fd.set('name', name.trim());
     fd.set('readiness_credits', String(credits));
+    // Blank = unlimited (server stores NULL); a number = the per-pass cap.
+    // Only meaningful for bank passes — the server ignores it for readiness.
+    fd.set('cat_allowance', catUnlimited ? '' : String(catCap));
     fd.set('price_ghs', priceGhs);
     fd.set('price_usd', priceUsd);
     fd.set('full_price_ghs', fullGhs);
@@ -463,6 +473,53 @@ export function ProductFormModal({
             a student can&apos;t claim the same pack twice, so the extra
             credit{credits === (packCount + 1) ? '' : 's'} can never be spent.
           </p>
+        )}
+
+        {/* CAT allowance (§15.5) — bank-family only. A readiness-only buyer
+            holds no bank access, so a CAT cap on that SKU would be
+            meaningless; the control is hidden and the server stores NULL. */}
+        {isBank && (
+          <div className="pr-cat-allowance">
+            <span className="pr-cat-label">Computer-adaptive exams (CATs)</span>
+            <div className="pr-cat-toggle">
+              <label>
+                <input
+                  type="radio"
+                  name="cat-allowance-mode"
+                  checked={catUnlimited}
+                  onChange={() => setCatUnlimited(true)}
+                  disabled={pending}
+                />
+                Unlimited
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="cat-allowance-mode"
+                  checked={!catUnlimited}
+                  onChange={() => setCatUnlimited(false)}
+                  disabled={pending}
+                />
+                Limit to
+              </label>
+              <input
+                type="number"
+                min={0}
+                className="pr-cat-cap"
+                value={catUnlimited ? '' : catCap}
+                onChange={(e) => setCatCap(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                onFocus={() => setCatUnlimited(false)}
+                placeholder="3"
+                disabled={pending || catUnlimited}
+                aria-label="CATs per pass"
+              />
+              <span className="pr-cat-unit">per pass</span>
+            </div>
+            <span className="pr-hint">
+              How many full adaptive exams this pass grants. Unlimited is the
+              default; <strong>0</strong> means this tier includes no CATs.
+            </span>
+          </div>
         )}
       </div>
 

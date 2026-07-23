@@ -2500,6 +2500,35 @@
   text-align: center;
   margin-bottom: 6px;
 }
+/* CAT variant — no score block, so the type carries the whole surface.
+   The headline takes the visual weight the percentage holds elsewhere,
+   which keeps the popup from reading as an error dialog. */
+.results-cat {
+  text-align: center;
+}
+.results-cat-head {
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--text);
+  margin: 8px 0 10px;
+}
+.results-cat-reason {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0 0 12px;
+  /* Holds the line while the reason loads, so nothing below shifts. */
+  min-height: 1.5em;
+}
+.results-cat-note {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0 auto 18px;
+  max-width: 40ch;
+}
+
 .results-score {
   text-align: center;
   margin: 4px 0 2px;
@@ -2599,4 +2628,94 @@
 .results-actions .btn.tertiary:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ── CAT between-question wait (§10.1 + slice 6c) ────────────────────
+ * The question just answered stays on screen while the next is fetched,
+ * rather than blanking. It has to LOOK finished though, or it reads as a
+ * live question that has stopped responding.
+ *
+ * Dim first — no spinner under ~300ms (§10.1): a spinner that quick is
+ * noise, and that is the happy path almost every time. Past the thresholds
+ * the overlay below escalates spinner → "Still loading…" → Retry.
+ *
+ * `inert` on the wrapper is what disables interaction (including keyboard);
+ * this rule is purely the visual half.
+ */
+.rn-cat-tx {
+  position: relative;
+}
+
+.rn-cat-waiting {
+  opacity: 0.45;
+  transition: opacity 140ms ease;
+}
+
+/* The escalation overlay — ON TOP of the dimmed question, itself NOT dimmed
+ * and NOT inert (Retry must be clickable). Centred over the question area. */
+.rn-cat-tx-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  pointer-events: none;   /* let the dim show through; the panel re-enables */
+}
+
+/* The contained card the escalation content sits in — reads clearly over the
+ * dimmed question rather than colliding with its text. */
+.rn-cat-tx-panel {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 28px;
+  background: var(--rn-pane-bg, #fff);
+  border: 1px solid var(--rn-pane-border, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.12);
+  max-width: 300px;
+}
+
+.rn-cat-tx-spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid var(--rn-pane-border, #e5e7eb);
+  border-top-color: var(--accent, #2d7d72);
+  animation: rn-cat-tx-spin 0.7s linear infinite;
+}
+
+.rn-cat-tx-msg {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted, #64748b);
+}
+
+.rn-cat-tx-retry {
+  appearance: none;
+  border: 1px solid var(--primary, #1e3a5f);
+  background: var(--primary, #1e3a5f);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 22px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.rn-cat-tx-retry:hover { background: var(--primary-dark, #142d4c); }
+.rn-cat-tx-retry:focus-visible {
+  outline: 2px solid var(--accent, #2d7d72);
+  outline-offset: 2px;
+}
+
+@keyframes rn-cat-tx-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rn-cat-waiting { transition: none; }
+  /* No spin — a static ring still reads as "working" without motion. */
+  .rn-cat-tx-spinner { animation: none; border-top-color: var(--accent, #2d7d72); }
 }

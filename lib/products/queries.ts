@@ -13,7 +13,7 @@ import type { CatalogueData, ProductRow } from './types';
 // from the literal type of this string, and `a + b` widens it to
 // `string` (which then infers as GenericStringError[]).
 export const PRODUCT_COLUMNS =
-  'product_id, name, kind, pack_type, duration_days, readiness_credits, price_minor_ghs, price_minor_usd, full_price_minor_ghs, full_price_minor_usd, status, sort_order';
+  'product_id, name, kind, pack_type, duration_days, readiness_credits, cat_allowance, price_minor_ghs, price_minor_usd, full_price_minor_ghs, full_price_minor_usd, status, sort_order';
 
 /**
  * The whole catalogue (ACTIVE + ARCHIVED), plus the live readiness-pack

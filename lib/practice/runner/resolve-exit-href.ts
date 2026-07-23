@@ -16,11 +16,16 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export type AttemptForExit = {
   source:                'CUSTOM_BUILT' | 'READINESS_PACK' | 'PROGRAMME_ASSIGNED';
   programme_activity_id: string | null;
+  /** Attempt mode. Only CAT changes the answer, but it is REQUIRED rather
+   *  than optional on purpose: every caller must state it, so a new call
+   *  site can't silently inherit the Builder destination for a CAT. */
+  mode:                  string | null;
 };
 
 /**
- * Resolves the Exit destination for any attempt. Source-aware.
+ * Resolves the Exit destination for any attempt. Mode first, then source.
  *
+ *   • mode CAT           → /student/bank/cat
  *   • CUSTOM_BUILT       → /student/bank/practice
  *   • PROGRAMME_ASSIGNED → prefer a cohort URL when a cohort has this
  *     activity in its checklist (Permissive v1 — any cohort is
@@ -34,6 +39,16 @@ export async function resolveAttemptExitHref(
   supabase: SupabaseClient<any, any, any>,
   attempt: AttemptForExit,
 ): Promise<string> {
+  // CAT is checked before source because a CAT is STORED as CUSTOM_BUILT
+  // (there is no 'CAT' source value), so the source branch below would
+  // otherwise claim it and send a student exiting an adaptive exam to the
+  // practice Builder — a surface they did not come from and cannot start
+  // another CAT from. This one resolver feeds five exits: the runner
+  // topbar, the preflight Back, two runner pushes, and the results popup.
+  if (attempt.mode === 'CAT') {
+    return '/student/bank/cat';
+  }
+
   if (attempt.source === 'CUSTOM_BUILT') {
     return '/student/bank/practice';
   }
@@ -88,11 +103,18 @@ export async function resolveAttemptExitHref(
 
 
 /**
- * Source-aware label for back/exit buttons. Used by the preflight
- * "← Back" button. The popup uses its own slightly different copy
- * ("Exit to bank", "Exit to curriculum") tuned for that context.
+ * Label for back/exit buttons. Used by the preflight "← Back" button.
+ * The popup uses its own slightly different copy ("Exit to bank",
+ * "Exit to curriculum") tuned for that context.
+ *
+ * Takes `mode` for the same reason the resolver does — a CAT reads as
+ * CUSTOM_BUILT, and the label has to name where the href actually goes.
  */
-export function exitBackLabel(source: AttemptForExit['source']): string {
+export function exitBackLabel(
+  source: AttemptForExit['source'],
+  mode:   string | null,
+): string {
+  if (mode === 'CAT') return '← Back to CAT home';
   switch (source) {
     case 'CUSTOM_BUILT':       return '← Back to Practice';
     case 'PROGRAMME_ASSIGNED': return '← Back to curriculum';

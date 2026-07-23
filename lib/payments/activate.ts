@@ -81,6 +81,7 @@ type ActivatableProductRow = {
   pack_type: 'BANK_DURATION' | 'READINESS';
   duration_days: number | null;
   readiness_credits: number;
+  cat_allowance: number | null;  // §15.5 — snapshotted onto the subscription
 };
 
 // Insert the bank-time subscription row. Idempotent: one per payment
@@ -120,6 +121,11 @@ async function insertBankSubscriptionOnce(
     status: 'ACTIVE',
     end_at: endAt,
     payment_id: payment.payment_id,
+    // §15.5 snapshot — freeze the product's CAT allowance onto the grant so a
+    // later catalogue edit never changes what an existing buyer holds. NULL =
+    // unlimited (the default, and what every past subscription carries). The
+    // create_cat_attempt guard + the CAT-home count read this column.
+    cat_allowance: product.cat_allowance,
   });
   if (insErr) {
     // A concurrent activation already inserted the one allowed row
@@ -179,7 +185,7 @@ async function grantProductEntitlement(
 
   const { data: product, error: prodErr } = await admin
     .from('nclex_products')
-    .select('product_id, pack_type, duration_days, readiness_credits')
+    .select('product_id, pack_type, duration_days, readiness_credits, cat_allowance')
     .eq('product_id', payment.product_id)
     .maybeSingle();
   if (prodErr || !product) return { ok: false, error: 'Product not found for activation.' };

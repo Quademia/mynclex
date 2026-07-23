@@ -11,6 +11,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { MIN_ITEMS, MAX_ITEMS } from '@/lib/cat';
 
 interface RecapRow {
   label: string;
@@ -67,8 +68,12 @@ export function SummaryPanel({
   const matchClass =
     total === null ? '' : total === 0 ? ' err' : total < 10 ? ' warn' : '';
 
+  // CAT is a DOORWAY here, not a launcher (§10.7.1). The label has to say
+  // so: "Start Exam — CAT" promised something this button must not do, and
+  // until 2026-07-21 it did do it — it created an ordinary attempt with 75
+  // pre-snapshotted items and mode='CAT', which is not a CAT at all.
   const startLabel = isCAT
-    ? 'Start Exam — CAT'
+    ? 'Go to CAT'
     : intent === 'EXAM'
       ? `Start Exam · ${modeLabel}`
       : `Start Quiz · ${modeLabel}`;
@@ -124,11 +129,14 @@ export function SummaryPanel({
         </div>
       )}
 
-      {/* CAT length tile */}
+      {/* CAT length tile. Read from the engine's own constants — the
+          hardcoded "75–145" here was the PRE-NGN pair, left behind when
+          §9 corrected the range to 85–150 on 2026-07-14, and it told a
+          student the exam was shorter than it is. */}
       {isCAT && (
         <div className="bk-cat-len">
           <div className="bk-cat-len-eyebrow">CAT length</div>
-          <div className="bk-cat-len-main">75–145 questions</div>
+          <div className="bk-cat-len-main">{MIN_ITEMS}–{MAX_ITEMS} questions</div>
           <div className="bk-cat-len-sub">Terminates when confidence is reached.</div>
         </div>
       )}
@@ -174,6 +182,14 @@ export function SummaryPanel({
           </svg>
         </button>
         {disabledReason && <div className="bk-start-msg">{disabledReason}</div>}
+        {/* §10.7.1 — the doorway states plainly that it hands off, so the
+            button isn't a surprise navigation. */}
+        {!disabledReason && isCAT && (
+          <div className="bk-start-note">
+            A CAT is its own exam — one sitting, no filters, no going back.
+            You start it from the CAT page.
+          </div>
+        )}
         {!disabledReason && intent === 'EXAM' && !isCAT && (
           <div className="bk-start-note">
             Wall-clock timer · single sitting · cannot be resumed.

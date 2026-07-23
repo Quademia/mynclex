@@ -263,6 +263,35 @@
 .pr-field input:focus { outline: none; border-color: var(--accent); }
 .pr-hint { font-size: 11.5px; font-weight: 400; color: var(--text-muted); }
 
+/* CAT allowance — a radio toggle (Unlimited / Limit to N) rather than a bare
+   number box, so capping a tier reads as a deliberate act (§15.5). */
+.pr-cat-allowance { display: flex; flex-direction: column; gap: 6px; }
+.pr-cat-label { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.pr-cat-toggle { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.pr-cat-toggle label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+}
+.pr-cat-toggle input[type='radio'] { cursor: pointer; }
+.pr-cat-cap {
+  width: 72px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--white);
+}
+.pr-cat-cap:focus { outline: none; border-color: var(--accent); }
+.pr-cat-cap:disabled { background: var(--primary-light); color: var(--text-muted); }
+.pr-cat-unit { font-size: 12.5px; color: var(--text-muted); }
+
 /* Advisory (amber, saves) vs structural block (red, disables Save). */
 .pr-advice {
   margin: 0;

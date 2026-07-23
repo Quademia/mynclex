@@ -29,6 +29,9 @@ export const STUDENT_BANK_NAV: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard',       icon: 'home',   href: '/student/bank/dashboard', mobileTab: true },
   { key: 'practice',  label: 'Question Bank',   icon: 'book',   href: '/student/bank/practice',  mobileTab: true, tabLabel: 'Practice' },
   { key: 'packs',     label: 'Readiness Packs', icon: 'target', href: '/student/bank/packs',     mobileTab: true, tabLabel: 'Packs' },
+  // No mobileTab: the bar is capped at 4 and dashboard/practice/packs/history
+  // already fill it. CAT reaches mobile through the drawer.
+  { key: 'cat',       label: 'CAT',             icon: 'target', href: '/student/bank/cat' },
   { key: 'journey',   label: 'Journey Tracker', icon: 'map',    href: '/student/bank/journey' },
   { key: 'history',   label: 'History',         icon: 'clock',  href: '/student/bank/history',   mobileTab: true },
   { key: 'profile',   label: 'Profile',         icon: 'user',   href: '/student/bank/profile' },

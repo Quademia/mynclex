@@ -1,0 +1,861 @@
+/* mynclex/styles/bank-dashboard.css
+ *
+ * The student Bank Dashboard (/student/bank/dashboard) — CAT plan
+ * §19.4 Slice 9, from the Claude Design "Bank Dashboard" 2d handoff.
+ * Prefix: `bd-`.
+ *
+ * The handoff's palette maps onto the existing tokens one-for-one
+ * (navy = --primary, teal = --accent, tint = --primary-light, track =
+ * --bg-soft, and so on), so nothing here hardcodes a brand colour. The
+ * one addition is a lighter teal for figures sitting on the navy
+ * streak bar, where --accent has too little contrast.
+ *
+ * Mobile: reflows at 768px per CLAUDE.md UI convention #3. Student
+ * surfaces are the phone-first priority.
+ */
+
+.bd {
+  --bd-teal-on-navy: #7fd0c6;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 26px 30px;
+}
+
+/* Shared bits ─────────────────────────────────────────── */
+
+.bd-eyebrow {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.bd-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+
+.bd-track-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+/* Bar bands — the thresholds live in accuracy.ts (barTone) so a row's
+   colour and its accessible label can't drift apart. */
+.bd-track-fill.is-strong { background: var(--success); }
+.bd-track-fill.is-ok     { background: var(--accent); }
+.bd-track-fill.is-warn   { background: var(--warning); }
+.bd-track-fill.is-low    { background: var(--danger); }
+
+.bd-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+
+.bd-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bd-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.bd-card-note {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.bd-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* The shared 💡 bulb (lib/hints/shared/bulb.tsx) anchors its popover
+   `right: 0`, which is right for the curator toolbars it was built for
+   — there the bulb sits at the END of a row, so the card opens
+   leftward into the page. Here the bulb sits beside a card TITLE on
+   the left, so opening leftward runs it off the edge and clips it.
+   Page-scoped flip; the shared component is untouched. */
+.bd .auth-help-bulb-card {
+  right: auto;
+  left: 0;
+}
+
+/* The bulb body has no stylesheet of its own anywhere, so the global
+   reset (margin/padding 0) strips a <ul>'s indent and hides its
+   markers — every bulb that uses a list runs together as one block.
+   Scoped here rather than fixed globally, which would change the
+   curator surfaces uninvited. */
+.bd .auth-help-bulb-card-body ul {
+  padding-left: 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.bd-btn {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 10px 20px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bd-btn:hover {
+  background: var(--accent-dark);
+  text-decoration: none;
+}
+
+/* Card 8 · Exam readiness ─────────────────────────────── */
+
+.bd-readiness .bd-card-head {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.bd-band {
+  margin-left: auto;
+  display: grid;
+  grid-template-columns: auto 150px;
+  align-items: center;
+  gap: 4px 14px;
+}
+
+.bd-band.is-locked {
+  grid-template-columns: auto;
+}
+
+.bd-band-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.bd-band-label {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.bd-band-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.bd-band.is-locked .bd-band-label {
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.bd-meter {
+  display: flex;
+  gap: 4px;
+}
+
+.bd-meter-seg {
+  flex: 1;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+}
+
+.bd-meter-seg.is-on {
+  background: var(--accent);
+}
+
+.bd-meter-ends {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  color: var(--text-faint);
+}
+
+.bd-gate-note {
+  margin: -4px 0 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 62ch;
+}
+
+/* The four signal cards */
+
+.bd-sigs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bd-sig {
+  flex: 1 1 160px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+  padding: 14px 12px;
+  border: 1px solid var(--bg-soft);
+  border-radius: 12px;
+  background: var(--white);
+}
+
+/* Evidence, not a result — visually quieter than the three signals. */
+.bd-sig.is-gate {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+.bd-sig-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 68px;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.bd-ring {
+  height: 68px;
+  width: 68px;
+}
+
+.bd-sig-value {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.bd-sig-cta {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.bd-sig-note {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.bd-sig-mark {
+  margin-top: 3px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.bd-sig-mark.is-met { color: var(--success); }
+.bd-sig-mark.is-unmet { color: var(--warning); }
+.bd-sig-mark.is-none { color: var(--text-faint); }
+
+.bd-sig-empty {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--bg-soft),
+    var(--bg-soft) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  opacity: 0.7;
+}
+
+/* Peer histogram */
+
+.bd-hist {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 0 6px;
+}
+
+.bd-hist-bar {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  background: var(--border-strong);
+}
+
+.bd-hist-bar.is-mine {
+  background: var(--primary);
+}
+
+/* Mini trajectory */
+
+.bd-traj {
+  width: 100%;
+  height: 100%;
+}
+
+/* Layout ───────────────────────────────────────────────── */
+
+.bd-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.bd-col-work,
+.bd-col-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.bd-card-link {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* Card 9 · Where to next ──────────────────────────────── */
+
+.bd-doors,
+.bd-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+}
+
+.bd-door,
+.bd-recent-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 8px;
+  border-radius: 9px;
+  color: inherit;
+  transition: background 0.14s ease;
+}
+
+.bd-door:hover,
+.bd-recent-row:hover {
+  background: var(--bg);
+  text-decoration: none;
+}
+
+/* Teal-tint tile, matching the design's door rows and the recent-activity
+   tile beside it. */
+.bd-door-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--primary-light);
+  border: 1px solid rgba(45, 125, 114, 0.2);
+  color: var(--accent);
+}
+
+.bd-door.is-locked .bd-door-icon {
+  background: var(--bg-soft);
+  border-color: var(--border);
+  color: var(--text-faint);
+}
+
+.bd-door-body,
+.bd-recent-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.bd-door-title,
+.bd-recent-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.bd-door-sub,
+.bd-recent-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bd-door.is-attention .bd-door-sub {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+/* Not built yet — visibly shut, and not clickable. */
+.bd-door.is-locked {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.bd-door.is-locked:hover {
+  background: transparent;
+}
+
+.bd-chev {
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+
+/* Card 7 · Recent activity ────────────────────────────── */
+
+.bd-recent-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: var(--bg-soft);
+  font-size: 14px;
+}
+
+.bd-pill {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bd-pill.is-good {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+/* A practice-quiz score is a fact, not a verdict — it gets neutral
+   styling. The prototype rendered 55% in fail-red, which invents a
+   pass mark practice sets don't have. */
+.bd-pill.is-neutral {
+  background: var(--bg-soft);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.bd-pill.is-low {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
+}
+
+/* Card 4 · Resume banner ──────────────────────────────── */
+
+.bd-resume {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(180deg, var(--primary-light), var(--white));
+  border-color: rgba(45, 125, 114, 0.35);
+}
+
+.bd-resume-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--white);
+  border: 1px solid rgba(45, 125, 114, 0.3);
+  color: var(--accent);
+}
+
+.bd-resume-body,
+.bd-focus-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.bd-resume-title {
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.bd-resume-meta,
+.bd-focus-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Card 5 · Lowest-scoring category ────────────────────── */
+
+.bd-focus {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-left: 3px solid var(--accent);
+}
+
+.bd-focus-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--primary-light);
+  border: 1px solid rgba(45, 125, 114, 0.2);
+  color: var(--accent);
+}
+
+.bd-focus-title {
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Card 6 · Accuracy by category ───────────────────────── */
+
+.bd-acc-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  list-style: none;
+}
+
+.bd-acc-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* The blueprint's real names are long ("Pharmacological and Parenteral
+   Therapies"). Wrapping to a second line beats an ellipsis: a truncated
+   category is a category the student has to guess at, and the tooltip
+   that would explain it doesn't exist on a phone. */
+.bd-acc-name {
+  width: 200px;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.bd-acc-track {
+  flex: 1;
+  height: 8px;
+  min-width: 0;
+}
+
+.bd-acc-pct {
+  width: 68px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.bd-acc-pct.is-low { color: var(--danger); }
+
+/* Muted: the percentage stays the headline, the count is the context
+   that stops it being read out of proportion. */
+.bd-acc-n {
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.bd-acc-pct.is-low .bd-acc-n { color: var(--text-faint); }
+
+/* Card 1 · Welcome header + Card 2 · access countdown ──── */
+
+.bd-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.bd-greet-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--primary);
+}
+
+.bd-greet-sub {
+  margin-top: 3px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.bd-access {
+  min-width: 210px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 11px 14px 12px;
+  box-shadow: var(--shadow);
+}
+
+.bd-access-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.bd-access-days {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.bd-access-days strong {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+/* Card 3 · Study streak ────────────────────────────────── */
+
+.bd-streak {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 13px 20px;
+  border-radius: 14px;
+  background: var(--primary);
+  color: var(--white);
+}
+
+.bd-streak-flame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 17px;
+}
+
+.bd-streak-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.bd-streak-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.bd-streak-num {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bd-streak-num.is-best {
+  color: var(--bd-teal-on-navy);
+}
+
+.bd-streak-unit {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.bd-streak-rule {
+  width: 1px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.bd-streak-week {
+  display: flex;
+  gap: 5px;
+  flex: 1;
+  min-width: 140px;
+  max-width: 260px;
+}
+
+.bd-streak-cell {
+  flex: 1;
+  height: 22px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.bd-streak-cell.is-on {
+  background: var(--accent);
+}
+
+.bd-streak-caption {
+  font-size: 12px;
+  color: var(--border-strong);
+}
+
+/* Mobile ───────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .bd {
+    padding: 18px 14px 26px;
+    gap: 14px;
+  }
+
+  .bd-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bd-access {
+    min-width: 0;
+  }
+
+  .bd-greet-title {
+    font-size: 19px;
+  }
+
+  /* The streak bar stacks: the two figures share a row, the week strip
+   * takes its own full-width line so the cells stay tappable-wide. */
+  .bd-streak {
+    gap: 12px 14px;
+    padding: 13px 15px;
+  }
+
+  /* The stats stack, so the divider between them has nothing left to
+     divide — it would hang off the end of the first row. */
+  .bd-streak-rule {
+    display: none;
+  }
+
+  .bd-streak-week {
+    order: 5;
+    max-width: none;
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .bd-streak-caption {
+    order: 6;
+    flex-basis: 100%;
+  }
+
+  .bd-streak-num {
+    font-size: 24px;
+  }
+
+  /* One column, work first. */
+  .bd-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* The band drops under the title rather than being squeezed beside
+     it, and the four signals go two-up — four across at 375px would
+     leave each ring about 60px wide. */
+  .bd-band {
+    margin-left: 0;
+    width: 100%;
+    grid-template-columns: auto 1fr;
+  }
+
+  .bd-band-text {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .bd-sig {
+    flex-basis: calc(50% - 6px);
+  }
+
+  /* At 375px the popover is nearly as wide as the screen, so anchoring
+     it to the bulb overflows whichever side it opens toward. Anchor it
+     to the card HEADER instead and let it span the card's full width. */
+  .bd-card-head {
+    position: relative;
+  }
+
+  .bd .auth-help-bulb-wrap {
+    position: static;
+  }
+
+  .bd .auth-help-bulb-card {
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: none;
+  }
+
+  /* The banners stack: icon + text on one row, the action full-width
+     beneath, so the button stays a comfortable tap target instead of
+     being squeezed against a wrapping title. */
+  .bd-resume,
+  .bd-focus {
+    flex-wrap: wrap;
+  }
+
+  .bd-resume-body,
+  .bd-focus-body {
+    flex-basis: 0;
+  }
+
+  .bd-btn {
+    flex-basis: 100%;
+    text-align: center;
+  }
+
+  /* The category label drops above its own bar — at 375px a 190px
+     label column leaves the track too short to read. */
+  .bd-acc-row {
+    flex-wrap: wrap;
+    gap: 5px 10px;
+  }
+
+  .bd-acc-name {
+    width: auto;
+    flex: 1;
+    font-size: 12px;
+  }
+
+  .bd-acc-track {
+    flex-basis: 100%;
+    order: 3;
+  }
+}

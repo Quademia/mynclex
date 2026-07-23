@@ -241,7 +241,8 @@ export function RunnerGridHandle({
   onExpand,
 }: {
   current: number;        // 1-indexed
-  total:   number;
+  /** NULL = adaptive length (CAT). */
+  total:   number | null;
   onExpand: () => void;
 }) {
   return (
@@ -249,7 +250,7 @@ export function RunnerGridHandle({
       <button type="button" onClick={onExpand} aria-label="Expand grid">‹</button>
       <button type="button" onClick={onExpand} aria-label="Open grid">⊞</button>
       <div className="vertical-counter">
-        Q <strong>{current}</strong>/{total}
+        Q <strong>{current}</strong>{total === null ? null : <>/{total}</>}
       </div>
     </aside>
   );

@@ -285,12 +285,30 @@ export function PracticeBuilder({
   // ─── Start handler ───────────────────────────────────────────────
   const onStart = () => {
     if (disabledReason) return;
+
+    // CAT hands off — it does not launch here (§10.7.1). Exactly one place
+    // may spend a CAT, and that is the CAT preflight; a second launcher
+    // would need its own full-stop warning, allowance guard and
+    // idempotency, and the failure mode of the two drifting is a student
+    // burning a 4-hour one-shot through whichever path forgot a gate.
+    //
+    // What this replaces was worse than a duplicate launcher. It called
+    // createAttemptAction with mode='CAT' and a hardcoded count of 75 —
+    // the BUILDER's RPC, not the CAT one — producing an ordinary attempt
+    // with 75 pre-snapshotted items and none of the engine state. The
+    // runner would then see mode === 'CAT' and try to play adaptive turns
+    // against it. Nothing about that was a CAT.
+    if (isCAT) {
+      router.push('/student/bank/cat');
+      return;
+    }
+
     startTransition(async () => {
       const res = await createAttemptAction({
         filters,
         mode,
         intent,
-        count: isCAT ? 75 : count,
+        count,
       });
       if (!res.ok) {
         setError(res.error);

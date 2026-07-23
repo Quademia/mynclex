@@ -1,5 +1,99 @@
 # MyNclex Build List
 
+> **CAT — ✅ Slice 7 (the results page) BUILT + MERGED to `main` 2026-07-20
+> (NOT prod).** The surface a student lands on when a CAT ends, and re-opens
+> from history (`7462682`; app-layer, **no migration**; tsc + eslint clean;
+> vitest **280 → 306**). All seven §13 regions in priority order, plus the
+> abandoned CAT as its own page. Built from a Claude Design prototype
+> (concept-not-source, two rounds). The readiness probability and the
+> clinical-judgment read are **derived on read, never stored** — the
+> probability via the same `readinessProbability()` the stopping rule uses,
+> so page and engine cannot disagree. **⚠ Found on screen:** the category
+> percentages (19–48%) sit beside a 98%-confident pass and look like a
+> contradiction — they aren't. A CAT serves questions at the edge of ability,
+> so raw success converges toward half *for everyone*; the footnote now names
+> that alongside partial credit. This makes the §13.6 drill-down + remediation
+> the strongest remaining gap on the page.
+> **✅ 2026-07-21 — the termination popup is re-pointed at the report** (4 commits,
+> branch `claude/work-session-093b0c`, **NOT yet on `main`**; app-layer, no
+> migration; vitest 306). Also fixed: the CAT exit landed on the practice
+> Builder (fixed at the *resolver*, which feeds five exits, not just the popup);
+> and the Builder's CAT card both quoted the **pre-NGN 75–145** and, worse,
+> **actually started something that was not a CAT** — the Builder's RPC with
+> `mode='CAT'` and a hardcoded 75. §10.7.1 had settled that card as a
+> **doorway** on 2026-07-19; it now says "Go to CAT" and creates nothing.
+>
+> **✅ 2026-07-22 — the timeout defect is FIXED, and a second one it was hiding
+> with it** (2 commits, branch `claude/work-session-ba4acf`; app-layer + **one
+> additive migration** `20260813120000`, dev-applied; tsc + eslint clean;
+> vitest **306 → 328**). See cat.html **§19.4.7** + **§13.1**.
+> - **A timed-out CAT now gets a verdict.** The stop rule was always correct but
+>   lives inside `playTurn`, which needs an answer to score — and a time-out is
+>   exactly the case with no answer. New `lib/practice/cat/expire.ts` is
+>   `playTurn` minus the scoring step, reusing the **same `checkTermination`** so
+>   a time-out between turns can't resolve differently from one inside a turn.
+>   Branch sits in `expireAttemptAction` because both triggers call it; elapsed
+>   time is derived **server-side** (this decides a verdict with no answer behind
+>   it). No `final_score` (§13.5), `ended_at` back-dated to the true deadline.
+> - **The duplicated 4-hour constant is collapsed** onto the attempt row —
+>   which is what makes **§9.3 a genuine one-constant change**: a move to 5
+>   hours applies to new exams while an in-progress exam keeps its own limit.
+> - **⚠ Fixing it exposed a second defect.** With a timeout finally reaching the
+>   report, the page read *"Below standard"* above *"~93% confident you're above
+>   our standard"* — §13.1 had no copy for a result whose verdict **ignores** the
+>   estimate (a sub-85 time-out is forced BELOW on insufficient evidence). Latent
+>   since §13.1 was written; invisible only because the first bug stopped
+>   anything getting there. **One bug was hiding the other.**
+> - **New: the unmeasured ending** (settled with Sam, built same session). The
+>   fail leads in the headline (*"Not passed — you ran out of time"*), the
+>   measurement is declined separately, **no probability appears anywhere** on
+>   the variant (ring shows the evidence gap, "48 of 85 needed"), and the body
+>   advises on **pace, not content** — every other variant sends the student to
+>   the category breakdown, which here would send them back to do the same thing
+>   again. One shared `isUnmeasured()` keeps the report, the history row
+>   (*"Not passed — ran out of time"*) and the compare strip (*"Timed out"*) in
+>   step. `cat_verdict` stays `BELOW_STANDARD` — display-only, no overrides.
+>
+> **✅ 2026-07-21 — Slice 6c (the transition escalation) BUILT** (1 commit, same
+> branch, **NOT yet on `main`** at time of writing; app-layer, no migration; vitest
+> 328 → 341). See cat.html **§19.4.8**. The timed climb for a slow CAT turn —
+> dim (0–300ms, no spinner) → spinner → "Still loading…" (3s) → Retry (10s), plus
+> an error phase (message + Retry) when the turn fails. Pure state machine + thin
+> timer hook + overlay component; the footer is dead while blocking so the
+> overlay's Retry is the single way on. **⚠ It also fixed the idempotency guard
+> that 6b had wired inert** — `expectedItemId` was set from the server's own newest
+> item, so the replay branch could never fire (same shape as the §19.4.7 dead
+> code). Retry made the lost-response retry a routine action, so it had to be
+> real: the id now comes from the CLIENT, and `turn.ts` honours a replay so a
+> stale decision can't falsely complete an attempt. The missing replay test now
+> exists. Verified live on desktop; mobile taken structurally (a ≤300px centred
+> card can't overflow).
+>
+> **✅ 2026-07-23 — SLICE 9, the student Bank Dashboard, BUILT + merged to
+> `main`** (7 commits, branch `claude/work-session-ad4124`; app-layer, **no
+> migration**; vitest **393 → 412**; NOT prod). Slice 7.4 in the Bank list
+> below; full write-up in cat.html **§19.4.9**. Built in four stages from the
+> Claude Design "Bank Dashboard" **variant 2d** handoff, into the
+> `lib/home/<audience>/` pattern. **The readiness card is a rules-based BAND,
+> not the invented score the earlier plan needed** — and the three decisions
+> that made it shippable: an unattempted signal is its own state (so a
+> bank-only student is never marked down for products she hasn't bought), the
+> band borrows the packs' own words rather than inventing a third scale, and
+> **volume is the evidence gate rather than a fourth signal** (which also
+> supplies the cold-start state). **⚠ Two cap bugs, one already live** — the
+> History doorway was reporting a 50-row query limit as a real total.
+> **⚠ Not tested by Sam** — merged on his explicit instruction; first
+> user-eyes pass still outstanding.
+> **⏭ NEXT on CAT:** §16.6 exam-mode display leaks (the
+> difficulty chip broadcasting the engine's opinion mid-exam — seen on screen
+> during 6c testing) · the Builder's EXAM-intent CAT option (§2.3) + public
+> `/help/cat` (§3.2), the two pieces of Slice 9 still open.
+> **Two decisions reopened, noted not changed:** §9.3 the 4-hour time limit
+> (vs real NCLEX's 5 — now a one-constant change) and §9.1.1 the passing standard
+> (theta 0.0 was inherited, not chosen). Both in cat.html §19 carried-forward.
+> Also open: whether dev attempt `4113c191` (49 items, no verdict, pre-fix) is
+> backfilled or left as a historical artifact.
+
 Slice-by-slice list of work in the MyNclex product, split by the two
 layers MyNclex is built around: the **Bank** (self-study question
 bank) and the **Programme** (tutored prep). Each line is one slice.
@@ -2414,7 +2508,7 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 - ⬜ **6.1** Preflight screen — between builder Start click and Q1; shows config summary, mode-specific note, "skip preflight next time" checkbox (per-mode localStorage). Calls `nclex_mark_attempt_started`.
 - ⬜ **6.2** Results screen (fixed-length) — score, session-scoped breakdown across 6 axes, transition to Review.
-- ⬜ **6.3** CAT summary page — verdict copy, items-administered fact line, **trajectory graph** (theta over question number, with passing-standard reference + per-item marker), per-Client-Needs-Category breakdown, "Compared to your previous CATs" panel, "Review answers" CTA.
+- ✅ **6.3** CAT summary page — **BUILT 2026-07-20** (`7462682`; = CAT plan **Slice 7**, §13; app-layer, no migration; vitest 280 → 306). Verdict copy, items-administered fact line, **trajectory graph** (theta over question number, with passing-standard reference + a 95% confidence band + per-item marker), per-Client-Needs-Category breakdown, "Compared to your previous CATs" panel, "Review answers" CTA + a "take another CAT" secondary, and the abandoned CAT as its own surface. Built from a Claude Design prototype (two rounds). **Raw theta / SE / duration deliberately NOT shown** — engine internals aren't a student-facing measure. **⚠ Finding:** category percentages read 19–48% beside a 98%-confident pass — correct, not a bug (a CAT serves at the edge of ability, so raw success converges near half for everyone), so the footnote now names that effect as well as partial credit. See cat.html §19.4.5.
 - ⬜ **6.4** Help routes — `app/help/[slug]/` (top-level, public, audience-neutral). First articles: `/help/cat`, `/help/payments`. Linked from CAT preflight + summary footer + dashboard CAT card.
 
 ### Phase F — Dashboard, history, analytics
@@ -2422,7 +2516,7 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 - ⬜ **7.1** History page polish — analytics + filtering layered on the MVP shipped in slice 4.6a. Per-attempt-card details (avg score, time-per-Q distribution, accuracy by axis), filter chips (mode, status, date range), sort options beyond newest-first. CAT-attempt cards open to the CAT summary page (slice 6.3) instead of the runner. The MVP list shipped earlier in 4.6a (pulled forward from this slice during 4.5 close).
 - ⬜ **7.2** Analytics page — `app/(app)/student/bank/analytics/`. All 6 breakdown axes with topic/subtopic drill-downs, peer percentile, answer-change tracking, time-per-question drill-down. Thin-slice gating.
 - ⬜ **7.3** Per-student-per-question state — materialised view over `nclex_attempt_answers` + marking table. Drives Unseen/Seen/Correct/Incorrect counts in the builder. Refresh on attempt completion. Promote to physical table only if measurable bottleneck.
-- ⬜ **7.4** Dashboard surface — `app/(app)/student/bank/dashboard/`. Readiness card (with cold-start gating), Client Needs Category breakdown card (compact), trend, coverage, recent activity, CAT card, consistency indicator.
+- ✅ **7.4** Dashboard surface — **BUILT 2026-07-23** (= CAT plan **Slice 9**; app-layer, no migration; vitest 341 → 412; see cat.html §19.4.9). `app/(app)/student/bank/dashboard/` rebuilt from the Claude Design "Bank Dashboard" **variant 2d** handoff into the `lib/home/<audience>/` pattern — thin route + new `lib/home/student/bank/` + `styles/bank-dashboard.css` (`bd-`). Nine cards: welcome header · bank-access countdown · bank study streak · resume banner · lowest-scoring category · accuracy by category (8 bars) · exam-readiness panel · Where-to-next doorways · recent activity. **The readiness card is a rules-based BAND, not an invented score** — three real signals (accuracy / latest pack / last CAT) with **three states each** so a student is never marked down for a product she hasn't bought, band words borrowed from the packs (Building / Approaching / Ready), and **volume as the evidence GATE rather than a fourth signal** (which doubles as the cold-start state). **⚠ Two cap bugs fixed, one already live:** the History count was reporting `getHistoryAttempts()`'s 50-row limit as a real total (true figure 51). **⚠ Not tested by Sam** — merged on his instruction. **Still open from Slice 9:** the Builder's EXAM-intent CAT option and the public `/help/cat` page (slice 6.4).
 
 ### Phase G — Multi-audience runner entries
 

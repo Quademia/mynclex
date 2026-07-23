@@ -12,6 +12,22 @@
 //                          page) + Back to packs; no inline review, no
 //                          retake (one shot, "Exam complete" eyebrow)
 //
+// CAT overrides all of the above and is keyed off `isCat` (the attempt's
+// MODE) rather than source, because a CAT is stored as CUSTOM_BUILT. It
+// renders a deliberately near-empty variant: the exam ended, why it ended,
+// and one way onward to the report. No score, no percentage, no verdict.
+// Two reasons:
+//   1. §13.5 — a raw "X of N correct" must never front a CAT. A CAT serves
+//      questions at the edge of ability, so raw correctness converges toward
+//      half for everyone; the first real CAT read 41.6% under a 98%-confident
+//      pass. That number as the headline would tell a passing student they
+//      failed.
+//   2. A CAT stops mid-flow with no warning. Without an explicit "this ended
+//      on purpose", the ending is indistinguishable from a crash.
+// `isCat` is a prop, not read from the fetched context, so the variant is
+// known at FIRST paint — routing it through `ctx` would flash the forbidden
+// score for the length of one round trip.
+//
 // Pass/fail badge only renders when `pass_score` is set on the attempt
 // (programme quizzes today; bank Builder + future Readiness Packs may
 // populate later). Ungraded attempts show just the score.
@@ -43,6 +59,9 @@ interface Props {
   totalQ:       number;
   /** Source from AttemptHeader. Drives the eyebrow copy. */
   source:       'CUSTOM_BUILT' | 'READINESS_PACK' | 'PROGRAMME_ASSIGNED';
+  /** True when the attempt's mode is CAT. Overrides `source` entirely — see
+   *  the file header. Passed rather than derived so it holds at first paint. */
+  isCat:        boolean;
   /** "Review attempt" handler — dismisses popup + jumps to Q1 in review. */
   onReview:     () => void;
   /** "Close" handler — dismisses popup, leaves review screen behind it. */
@@ -55,6 +74,7 @@ export function ResultsPopup({
   passScore,
   totalQ,
   source,
+  isCat,
   onReview,
   onDismiss,
 }: Props) {
@@ -105,6 +125,70 @@ export function ResultsPopup({
   function onExit() {
     if (!ctx) return;
     router.push(ctx.exitHref);
+  }
+
+  // ── CAT ───────────────────────────────────────────────────────────
+  // Its own body rather than a branch inside the shared one: nearly every
+  // region below (score, verdict badge, pass mark, attempts, review, retake)
+  // is one a CAT must NOT show, so sharing would be a chain of negations.
+  if (isCat) {
+    return (
+      <>
+        <ErrorToast error={error} onDismiss={() => setError(null)} />
+        <ViewerModalShell title="Results" onClose={onDismiss} size="narrow">
+          <div className="results-popup results-cat">
+            <div className="results-eyebrow">Exam complete</div>
+
+            <p className="results-cat-head">Your exam has ended.</p>
+
+            {/* Resolved server-side from the attempt's own termination
+                reason, using the report's sentence — the popup and the page
+                one tap later describe the ending identically. '…' holds the
+                line's height for the one round trip so nothing jumps. */}
+            <p className="results-cat-reason">{ctx?.cat?.reasonLine ?? '…'}</p>
+
+            {/* Two different endings, two different promises. With a verdict
+                this pre-empts the misreading the raw score would have caused.
+                WITHOUT one there is no result at all — the exam was ended
+                from outside before the engine measured anything — and
+                promising a result on the next screen would be a plain lie:
+                the report renders its "This CAT ended early" surface. The
+                note is held back entirely until the context arrives rather
+                than defaulting to the optimistic wording. */}
+            {ctx?.cat && (
+              <p className="results-cat-note">
+                {ctx.cat.hasVerdict
+                  ? `Your result is on the next screen. A CAT keeps serving
+                     questions at the edge of what you can do, so how many you
+                     got right isn’t what it measures.`
+                  : `It ended before the engine could measure where you stand,
+                     so there’s no result for this one.`}
+              </p>
+            )}
+
+            <div className="results-actions">
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => ctx?.reportHref && router.push(ctx.reportHref)}
+                disabled={!ctx?.reportHref}
+              >
+                {ctx?.cat && !ctx.cat.hasVerdict ? 'See what happened' : 'See your results'}
+              </button>
+
+              <button
+                type="button"
+                className="btn tertiary"
+                onClick={onExit}
+                disabled={!ctx}
+              >
+                {ctx?.exitLabel ?? 'Exit'}
+              </button>
+            </div>
+          </div>
+        </ViewerModalShell>
+      </>
+    );
   }
 
   return (
