@@ -33,7 +33,6 @@ import { getProgrammeHistoryAttempts } from '@/lib/practice/history/programme-qu
 import { getStudentProgrammeQuizzes } from '@/lib/student-quizzes/queries';
 import { getStudentLibrarySnapshot } from '@/lib/library/student/queries';
 import { getStudentLibraryHomeData } from '@/lib/library/student/home-queries';
-import { studyStreak } from './streak';
 import type { ProgrammeHistoryAttempt } from '@/lib/practice/history/programme-types';
 import type { StudentQuizRow } from '@/lib/student-quizzes/types';
 import type {
@@ -51,6 +50,8 @@ import type {
   OverviewStreak,
   StudentOverviewData,
 } from './types';
+
+const DAY_MS = 86_400_000;
 
 // ─────────────────────────────────────────────────────────
 // Public entry points (one per route / delivery mode)
@@ -299,8 +300,51 @@ function studyStreakFromMap(
   return studyStreak(times, nowMs);
 }
 
-// The streak maths itself now lives in ./streak (pure, shared with the
-// Bank dashboard) — see the note there on why there is only one copy.
+// Pure: bucket completion timestamps into UTC day numbers, then derive the
+// current run (held if the latest study day is today or yesterday — a day's
+// grace so "haven't studied yet today" doesn't read as a broken streak) and
+// the longest run ever.
+//
+// The Bank Dashboard keeps its OWN copy of this (lib/home/student/bank/
+// streak.ts) rather than sharing this one. Deliberate, settled with Sam
+// 2026-07-23: a programme streak and a bank streak measure different
+// achievements from different tables, and they should be free to define
+// a "study day" differently — the bank's already does (it requires an
+// ANSWERED question, where this one counts a completed activity). Sharing
+// the arithmetic would have coupled two rules that are meant to diverge.
+function studyStreak(completedAtIso: string[], nowMs: number): OverviewStreak {
+  const days = new Set<number>();
+  for (const iso of completedAtIso) {
+    const t = new Date(iso).getTime();
+    if (!Number.isNaN(t)) days.add(Math.floor(t / DAY_MS));
+  }
+  if (days.size === 0) return { current: 0, best: 0 };
+
+  const sorted = [...days].sort((a, b) => a - b);
+  let best = 1;
+  let run = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === sorted[i - 1] + 1) {
+      run += 1;
+      if (run > best) best = run;
+    } else {
+      run = 1;
+    }
+  }
+
+  const today = Math.floor(nowMs / DAY_MS);
+  let cursor: number;
+  if (days.has(today)) cursor = today;
+  else if (days.has(today - 1)) cursor = today - 1;
+  else return { current: 0, best };
+
+  let current = 0;
+  while (days.has(cursor)) {
+    current += 1;
+    cursor -= 1;
+  }
+  return { current, best };
+}
 
 // ─────────────────────────────────────────────────────────
 // Recent activity (both modes)

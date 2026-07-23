@@ -6,7 +6,7 @@
 // by looking at the page.
 
 import type { BankAccessCard, BankStreak } from './types';
-import { activeDayFlags, studyStreak } from '../streak';
+import { activeDayFlags, bankStudyStreak } from './streak';
 
 /**
  * "Thursday, 23 July" — the design's date line. Built from two formats
@@ -65,13 +65,13 @@ export function streakCaption(current: number, best: number): string {
   return `${gap} ${gap === 1 ? 'day' : 'days'} off your best — keep it alive today`;
 }
 
-/** Assemble the whole streak card from one feed of activity timestamps. */
-export function bankStreak(activeAtIso: string[], nowMs: number): BankStreak {
-  const { current, best } = studyStreak(activeAtIso, nowMs);
+/** Assemble the whole streak card from one feed of answered-at timestamps. */
+export function bankStreak(answeredAtIso: string[], nowMs: number): BankStreak {
+  const { current, best } = bankStudyStreak(answeredAtIso, nowMs);
   return {
     current,
     best,
-    days: activeDayFlags(activeAtIso, nowMs, 7),
+    days: activeDayFlags(answeredAtIso, nowMs, 7),
     caption: streakCaption(current, best),
   };
 }

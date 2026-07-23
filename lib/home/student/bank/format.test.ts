@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { accessCard, bankStreak, streakCaption, todayLabel } from './format';
-import { activeDayFlags, studyStreak } from '../streak';
+import { activeDayFlags, bankStudyStreak } from './streak';
 
 const DAY = 86_400_000;
 /** Thursday 23 July 2026, midday UTC. */
@@ -100,9 +100,9 @@ describe('bankStreak', () => {
   });
 });
 
-describe('studyStreak (shared with the programme home)', () => {
+describe('bankStudyStreak', () => {
   it('drops the run once the gap exceeds the day of grace', () => {
-    expect(studyStreak([daysAgo(2), daysAgo(3)], NOW)).toEqual({ current: 0, best: 2 });
+    expect(bankStudyStreak([daysAgo(2), daysAgo(3)], NOW)).toEqual({ current: 0, best: 2 });
   });
 
   it('remembers the longest run even when the current one is shorter', () => {
@@ -110,11 +110,11 @@ describe('studyStreak (shared with the programme home)', () => {
       daysAgo(10), daysAgo(9), daysAgo(8), daysAgo(7), // a run of 4
       daysAgo(1), daysAgo(0), // and the current run of 2
     ];
-    expect(studyStreak(times, NOW)).toEqual({ current: 2, best: 4 });
+    expect(bankStudyStreak(times, NOW)).toEqual({ current: 2, best: 4 });
   });
 
   it('ignores timestamps it cannot parse rather than throwing', () => {
-    expect(studyStreak(['not-a-date', daysAgo(0)], NOW)).toEqual({ current: 1, best: 1 });
+    expect(bankStudyStreak(['not-a-date', daysAgo(0)], NOW)).toEqual({ current: 1, best: 1 });
   });
 });
 
