@@ -3233,10 +3233,15 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     not. The copy must accommodate it rather than imply every high percentage means the engine was sure.</li>
   <li><strong>Slice 8 — Review wiring (§14).</strong> Small — CAT reuses the shared per-question Review surface;
     this hooks up the entry points (summary → Review, History → summary).</li>
-  <li><strong>Slice 9 — Dashboard + entry points.</strong> The two separate dashboard cards (CAT card +
+  <li><strong>Slice 9 — Dashboard + entry points.</strong>
+    <span class="status settled">the dashboard BUILT 2026-07-23</span>
+    The two separate dashboard cards (CAT card +
     Readiness Signal card, §13.4), the Builder's CAT option under EXAM intent (§2.3), and the public
     <code>/help/cat</code> page (§3.2).
-    <p><strong>📐 Design + build shape settled with Sam 2026-07-22 (planning only — not yet built).</strong>
+    <p><strong>✅ The dashboard shipped 2026-07-23</strong> — see <em>19.4.9 What was built</em> below for
+    what changed on contact with the data. <strong>Still open from this slice:</strong> the Builder's
+    EXAM-intent CAT option (§2.3) and the public <code>/help/cat</code> page (§3.2).</p>
+    <p><strong>📐 Design + build shape settled with Sam 2026-07-22 (planning at the time).</strong>
     Slice 9's "dashboard" is the <strong>student Bank-area home</strong> — the page a bank student lands on. Decisions:</p>
     <ul>
       <li><strong>Design adopted — Claude Design, variant 1b.</strong> CD produced a "Bank Dashboard" canvas of
@@ -4011,6 +4016,146 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   <li><code>bank-consumption-runner.html</code> §18 + TOC — backreference to cat.html §16 (runner UX) + §10 (runner-server contract); cross-mode timer reference noted. ✓</li>
   <li><code>bank-marks-and-scoring.html</code> §11 — "CAT-specific scoring flow" line updated: scoring functions reused unchanged inside <code>cat_next_item</code>; CAT does not introduce new scoring logic. ✓</li>
 </ul>
+
+<h3 id="s19-slice9-built">19.4.9 Slice 9 — the Bank Dashboard as built
+  <span class="status settled">built 2026-07-23</span></h3>
+<p>
+  Built in four stages from the Claude Design "Bank Dashboard" <strong>variant 2d</strong> handoff
+  (concept-not-source — rebuilt against our own tokens, which the handoff's palette maps onto
+  one-for-one). Route <code>app/(app)/student/bank/dashboard/</code> is a gate, one
+  <code>getBankDashboardData()</code> call and one view; everything else is in the new
+  <code>lib/home/student/bank/</code>. New <code>styles/bank-dashboard.css</code> (<code>bd-</code>).
+  App-layer, <strong>no migration</strong>. vitest 341 → 412.
+</p>
+
+<h4>A level correction the plan had wrong</h4>
+<p>
+  §19.4's card walk called the mastery bars "the 8 <strong>L1 category</strong> bars". There are only
+  <strong>four</strong> L1 client-needs categories. The <strong>eight</strong> the design draws — and the
+  eight any NCLEX candidate recognises — are the <strong>L2 subcategories</strong>. Bars and the
+  weakest-area nudge therefore both work at L2, which is also the level
+  <code>weakestSubcategory()</code> and the practice builder's <code>?subcat=</code> deep link already
+  speak, so "Drill it" reuses the link the readiness report already uses rather than inventing one.
+</p>
+
+<h4>The readiness panel — four decisions that replaced the design's</h4>
+<p>
+  Card 8 was reshaped with Sam before building, because the prototype's version could not be shipped
+  honestly. The logic lives in one pure file (<code>lib/home/student/bank/readiness.ts</code>, 27 tests)
+  so none of it can erode into the view:
+</p>
+<ol>
+  <li><strong>Three signal states, not two.</strong> The prototype used one ○ for both "you fell short"
+    and "you never attempted this" — and two of the three signals are <em>separate purchases</em>. A
+    bank-only student with 2,000 answers at 78% would have read <em>"Not yet ready · 1 of 4"</em>,
+    marked down for products she has not bought, with no route to the top band that does not involve
+    spending more money. A signal is now met / not met / <strong>not yet attempted</strong>, the band
+    counts only what was <strong>attempted</strong>, and an unattempted signal renders as a doorway
+    ("Sit a pack →"), never as a mark against her.</li>
+  <li><strong>The band reuses the pack's vocabulary</strong> — Building / Approaching / Ready — rather
+    than a third scale. The page would otherwise carry three vocabularies for one idea (the pack's four
+    bands, the CAT's two verdicts, and a new "Not yet / Likely ready"). <strong>Excelling is
+    excluded</strong>: a pack earns it with a real score out of 100, and three yes/no signals are not
+    precise enough to claim it. <strong>Ready also needs ≥2 attempted signals</strong> — clearing
+    accuracy alone is real, but thin ground for telling someone they are ready for the exam.</li>
+  <li><strong>Volume is the GATE, not a signal.</strong> The other three are <em>results</em> (how well
+    you did); volume is <em>evidence</em> (how much we know). As a fourth signal, 1,600 answers at 45%
+    would tick a box and read as progress toward ready. Below the gate the band is withheld entirely —
+    which also supplies the first-week empty state the handoff README explicitly left undesigned. The
+    gate card carries no met/unmet mark, so the difference in kind is visible.</li>
+  <li><strong>The copy never promises odds.</strong> Sam's framing of the threshold was "at about 1,500
+    answers we could do an estimate of your chances" — but a real pass probability needs outcome data
+    from nurses who have sat the NCLEX, which we do not have. The threshold buys
+    <strong>reliability</strong> and the copy says exactly that; a test asserts the words "chance" and
+    "probability" never appear in it.</li>
+</ol>
+<p>
+  <strong>The accuracy bar is 75, not the design's 65.</strong> 75 is the boundary our own readiness
+  packs call "Ready", the one number in the product documented as pass-associated. A lower figure would
+  put two different bars on "good enough" and only one would trace back to anything. ⬜ Open: whether 75
+  is too strict in practice — it is a single constant.
+</p>
+<p>
+  Both richer visuals go through the <strong>same derivations as the pages they preview</strong> — the
+  pack report's peer RPC, and the CAT report's <code>trajectoryPoints()</code> including its
+  one-question shift. A preview that disagreed with the page it links to would be worse than no
+  preview. The mini trajectory drops <em>only</em> the shaded confidence band: at 150px the band, the
+  trace and the dashed standard line collapse into a smudge, and the dashed line is what carries the
+  meaning.
+</p>
+
+<h4>Honesty corrections applied across the other cards</h4>
+<ul>
+  <li><strong>The readiness pack has no pass/fail.</strong> The design showed a green "Passed" pill; our
+    packs return one of four <em>band words</em>. Corrected on the signal card and in Recent activity.</li>
+  <li><strong>There is no "At standard" for a CAT</strong> — the verdict is binary. The design's
+    three-step meter invented a middle rung that can never light.</li>
+  <li><strong>A practice-quiz score is not a verdict.</strong> The design rendered 55% in fail-red; a
+    practice set has no pass mark, so the pill is neutral.</li>
+  <li><strong>No invented subject.</strong> The resume banner and Recent rows are MODE-only — a
+    filter-built quiz has no single topic, so the design's "Pharmacology · Untimed practice" is fiction.</li>
+  <li><strong>Journey Tracker is a locked door</strong>, not the design's "Phase 3 of 7". The pillar is
+    not built.</li>
+  <li><strong>The timed-out CAT goes through the shared <code>isUnmeasured()</code></strong> +
+    <code>UNMEASURED_SHORT_LABEL</code> rather than re-deriving the rule, making the dashboard the
+    <em>fourth</em> surface in step with the report and the CAT home rather than a fifth opinion.</li>
+  <li><strong>The bars carry their own denominator.</strong> Sittings before the 2026-07-14
+    classification backfill snapshotted no subcategory and cannot be placed on the map, so the card
+    says "from 231 answered" and means exactly those. The gap is historical and self-healing —
+    unclassified answers stop at 12 July.</li>
+  <li><strong>Off-canonical subcategory values stay out of the map</strong> (dev carries an
+    "Ante/Intra/Postpartum and Newborn Care" value in the subcategory field) — a ninth bar named
+    something no candidate recognises as a blueprint area confuses more than it informs. Those answers
+    still count in the overall figure.</li>
+  <li><strong>Thin-slice guard.</strong> Each bar shows its count beside the percentage ("100% · 10"
+    against "59% · 88"). On real data these run from 8 to 88 answered, and a bare 100% off ten
+    questions reads as the strongest area when it is the least-tested one.</li>
+</ul>
+
+<h4>The bank streak — its own rule, deliberately not shared</h4>
+<p>
+  Card 3 was first built on the programme home's streak maths, extracted to a shared module. Sam
+  reversed that: a programme streak and a bank streak measure different achievements from different
+  tables and should be free to define a "study day" differently — <strong>which they immediately
+  do</strong>. The bank's requires an <strong>answered question</strong>
+  (<code>nclex_attempt_answers</code>, SUBMITTED / AUTO_SUBMITTED), not merely an attempt row: a streak
+  you can hold by building a quiz, looking at question 1 and closing the tab is not measuring study.
+  Verified against SQL — the strict rule removed exactly two days on the test account, both days where
+  an attempt was opened and nothing answered. <strong>CAT counts toward the streak</strong> (it is
+  study) but never toward <strong>mastery</strong> (§13.2 — a CAT serves at the edge of ability, so raw
+  correctness converges toward ~50% for everyone).
+</p>
+
+<h4>⚠ Two cap bugs, one already live</h4>
+<p>
+  <code>getHistoryAttempts()</code> limits to 50 rows, so counting its length reported <em>"50 past
+  sessions"</em> — the true figure was 51, and it would have said 50 for ever after. The session count
+  and the CAT count now come from real count queries; a CAT sat more than fifty sessions ago would
+  otherwise have silently stopped being counted.
+</p>
+
+<h4>Found by looking, not by tests</h4>
+<p>
+  The shared 💡 bulb anchors <code>right: 0</code> — correct for the curator toolbars it was built for,
+  where the bulb <em>ends</em> a row — so beside a card title on the left it opened off-screen and was
+  clipped; at 375px it then overflowed the other way. Both fixed page-scoped. Its body has
+  <strong>no stylesheet anywhere in the repo</strong>, so the global reset strips a <code>&lt;ul&gt;</code>'s
+  indent and markers and every bulb's list runs together as one block — <strong>⬜ still true of the
+  curator bulbs</strong>, worth a separate cleanup. Sam also caught the 💡 glyph being used as
+  <em>decoration</em> on the lowest-scoring-category card: it is the app's help affordance everywhere
+  else, and a bulb that does nothing when clicked costs us the real ones. Now a flag.
+</p>
+
+<h4>Verification</h4>
+<p>
+  Every figure was checked against SQL rather than eyeballed: accuracy 55% (159 of 287), all eight
+  category bars, 51 sessions, 3 CATs, 3 unclaimed credits. Two panel states no account could show were
+  exercised deliberately and reverted — lowering the gate rendered the band ("Approaching · 1 of 3
+  signals met"), and nulling the pack + CAT rendered the invitations ("Building · 0 of 1 signal met",
+  singular handled). Desktop + 375px, no horizontal overflow.
+  <strong>⚠ Not tested by Sam</strong> — merged to <code>main</code> on his explicit instruction while
+  tired, so the first real user-eyes pass is still outstanding.
+</p>
 
 <h2 id="s20">20. Related docs</h2>
 <ul>

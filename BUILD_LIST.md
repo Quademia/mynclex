@@ -67,9 +67,27 @@
 > real: the id now comes from the CLIENT, and `turn.ts` honours a replay so a
 > stale decision can't falsely complete an attempt. The missing replay test now
 > exists. Verified live on desktop; mobile taken structurally (a ≤300px centred
-> card can't overflow). **⏭ NEXT on CAT:** §16.6 exam-mode display leaks (the
+> card can't overflow).
+>
+> **✅ 2026-07-23 — SLICE 9, the student Bank Dashboard, BUILT + merged to
+> `main`** (7 commits, branch `claude/work-session-ad4124`; app-layer, **no
+> migration**; vitest **393 → 412**; NOT prod). Slice 7.4 in the Bank list
+> below; full write-up in cat.html **§19.4.9**. Built in four stages from the
+> Claude Design "Bank Dashboard" **variant 2d** handoff, into the
+> `lib/home/<audience>/` pattern. **The readiness card is a rules-based BAND,
+> not the invented score the earlier plan needed** — and the three decisions
+> that made it shippable: an unattempted signal is its own state (so a
+> bank-only student is never marked down for products she hasn't bought), the
+> band borrows the packs' own words rather than inventing a third scale, and
+> **volume is the evidence gate rather than a fourth signal** (which also
+> supplies the cold-start state). **⚠ Two cap bugs, one already live** — the
+> History doorway was reporting a 50-row query limit as a real total.
+> **⚠ Not tested by Sam** — merged on his explicit instruction; first
+> user-eyes pass still outstanding.
+> **⏭ NEXT on CAT:** §16.6 exam-mode display leaks (the
 > difficulty chip broadcasting the engine's opinion mid-exam — seen on screen
-> during 6c testing) · Slices 8–9.
+> during 6c testing) · the Builder's EXAM-intent CAT option (§2.3) + public
+> `/help/cat` (§3.2), the two pieces of Slice 9 still open.
 > **Two decisions reopened, noted not changed:** §9.3 the 4-hour time limit
 > (vs real NCLEX's 5 — now a one-constant change) and §9.1.1 the passing standard
 > (theta 0.0 was inherited, not chosen). Both in cat.html §19 carried-forward.
@@ -2498,7 +2516,7 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 - ⬜ **7.1** History page polish — analytics + filtering layered on the MVP shipped in slice 4.6a. Per-attempt-card details (avg score, time-per-Q distribution, accuracy by axis), filter chips (mode, status, date range), sort options beyond newest-first. CAT-attempt cards open to the CAT summary page (slice 6.3) instead of the runner. The MVP list shipped earlier in 4.6a (pulled forward from this slice during 4.5 close).
 - ⬜ **7.2** Analytics page — `app/(app)/student/bank/analytics/`. All 6 breakdown axes with topic/subtopic drill-downs, peer percentile, answer-change tracking, time-per-question drill-down. Thin-slice gating.
 - ⬜ **7.3** Per-student-per-question state — materialised view over `nclex_attempt_answers` + marking table. Drives Unseen/Seen/Correct/Incorrect counts in the builder. Refresh on attempt completion. Promote to physical table only if measurable bottleneck.
-- ⬜ **7.4** Dashboard surface — `app/(app)/student/bank/dashboard/`. Readiness card (with cold-start gating), Client Needs Category breakdown card (compact), trend, coverage, recent activity, CAT card, consistency indicator.
+- ✅ **7.4** Dashboard surface — **BUILT 2026-07-23** (= CAT plan **Slice 9**; app-layer, no migration; vitest 341 → 412; see cat.html §19.4.9). `app/(app)/student/bank/dashboard/` rebuilt from the Claude Design "Bank Dashboard" **variant 2d** handoff into the `lib/home/<audience>/` pattern — thin route + new `lib/home/student/bank/` + `styles/bank-dashboard.css` (`bd-`). Nine cards: welcome header · bank-access countdown · bank study streak · resume banner · lowest-scoring category · accuracy by category (8 bars) · exam-readiness panel · Where-to-next doorways · recent activity. **The readiness card is a rules-based BAND, not an invented score** — three real signals (accuracy / latest pack / last CAT) with **three states each** so a student is never marked down for a product she hasn't bought, band words borrowed from the packs (Building / Approaching / Ready), and **volume as the evidence GATE rather than a fourth signal** (which doubles as the cold-start state). **⚠ Two cap bugs fixed, one already live:** the History count was reporting `getHistoryAttempts()`'s 50-row limit as a real total (true figure 51). **⚠ Not tested by Sam** — merged on his instruction. **Still open from Slice 9:** the Builder's EXAM-intent CAT option and the public `/help/cat` page (slice 6.4).
 
 ### Phase G — Multi-audience runner entries
 
