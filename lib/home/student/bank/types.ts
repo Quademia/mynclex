@@ -15,6 +15,7 @@
 // for the readiness band, which is the sharpest case.
 
 import type { BankAccuracy } from './accuracy';
+import type { NavIcon as NavIconName } from '@/lib/nav/types';
 
 // ── Card 2 · Bank-access countdown ───────────────────────────
 export type BankAccessCard = {
@@ -59,6 +60,9 @@ export type ResumeCard = {
 // ── Card 9 · "Where to next" doorways ────────────────────────
 export type Doorway = {
   key: string;
+  /** From the app's own icon set (components/nav/shared/nav-icon), so
+   *  a door and its sidebar entry are the same shape. */
+  icon: NavIconName;
   title: string;
   /** The live figure under the title. Null when we have no honest
    *  number for it — the row still opens, it just says nothing. */

@@ -30,9 +30,18 @@ export function buildDoorways(c: DoorwayCounts): Doorway[] {
   if (c.catsTaken > 0) cat.push(plural(c.catsTaken, 'taken', 'taken'));
   if (c.lastCatLabel) cat.push(c.lastCatLabel);
 
+  // Icons come from the app's own set and match each destination's
+  // sidebar entry — except CAT. The sidebar gives CAT and Readiness
+  // Packs the SAME `target` bullseye, which is survivable when they sit
+  // apart in a long nav list but reads as a mistake when the two rows
+  // are adjacent here. CAT takes `chart` instead: it is the one door
+  // whose result is a trajectory, so the rising line fits it better
+  // than a bullseye anyway. (The sidebar collision is pre-existing and
+  // left alone — changing nav chrome is its own decision.)
   return [
     {
       key: 'bank',
+      icon: 'book',
       title: 'Question Bank',
       sub: c.bankTotal !== null ? `${c.bankTotal.toLocaleString()} questions available` : null,
       href: '/student/bank/practice',
@@ -40,6 +49,7 @@ export function buildDoorways(c: DoorwayCounts): Doorway[] {
     },
     {
       key: 'packs',
+      icon: 'target',
       title: 'Readiness Packs',
       // Only shout when something is actually waiting.
       sub: c.creditsReady > 0 ? `${plural(c.creditsReady, 'credit')} ready` : null,
@@ -48,6 +58,7 @@ export function buildDoorways(c: DoorwayCounts): Doorway[] {
     },
     {
       key: 'cat',
+      icon: 'chart',
       title: 'CAT',
       sub: cat.length ? cat.join(' · ') : 'Not taken yet',
       href: '/student/bank/cat',
@@ -55,6 +66,7 @@ export function buildDoorways(c: DoorwayCounts): Doorway[] {
     },
     {
       key: 'history',
+      icon: 'clock',
       title: 'History',
       sub: c.sessions > 0 ? plural(c.sessions, 'past session') : null,
       href: '/student/bank/history',
@@ -62,6 +74,7 @@ export function buildDoorways(c: DoorwayCounts): Doorway[] {
     },
     {
       key: 'journey',
+      icon: 'map',
       title: 'Journey Tracker',
       sub: 'Coming soon',
       href: null,

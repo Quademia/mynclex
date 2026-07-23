@@ -7,6 +7,7 @@
 // nowhere is worse than a door that visibly isn't open yet.
 
 import Link from 'next/link';
+import { NavIcon } from '@/components/nav/shared/nav-icon';
 import type { Doorway, RecentItem } from './types';
 
 function Chevron() {
@@ -29,6 +30,9 @@ function Chevron() {
 function DoorwayRow({ door }: { door: Doorway }) {
   const inner = (
     <>
+      <span className="bd-door-icon" aria-hidden="true">
+        <NavIcon name={door.icon} />
+      </span>
       <span className="bd-door-body">
         <span className="bd-door-title">{door.title}</span>
         {door.sub && <span className="bd-door-sub">{door.sub}</span>}
