@@ -56,6 +56,38 @@ export type ResumeCard = {
   href: string;
 };
 
+// ── Card 9 · "Where to next" doorways ────────────────────────
+export type Doorway = {
+  key: string;
+  title: string;
+  /** The live figure under the title. Null when we have no honest
+   *  number for it — the row still opens, it just says nothing. */
+  sub: string | null;
+  /** Null = not openable yet (Journey Tracker, which isn't built). A
+   *  locked door beats inventing "Phase 3 of 7" for a pillar that
+   *  doesn't exist. */
+  href: string | null;
+  /** `attention` draws the eye to something waiting (unclaimed
+   *  credits); `locked` greys the row out. */
+  tone: 'default' | 'attention' | 'locked';
+};
+
+// ── Card 7 · Recent activity ─────────────────────────────────
+export type RecentBadgeTone = 'good' | 'neutral' | 'low';
+
+export type RecentItem = {
+  key: string;
+  icon: string;
+  /** Mode-only, like the resume banner — no invented subject. */
+  title: string;
+  meta: string;
+  /** Per-source result: a percentage for a practice quiz, the BAND
+   *  WORD for a readiness pack (our packs have no pass/fail), the
+   *  verdict for a CAT. Null while a sitting is unfinished. */
+  badge: { label: string; tone: RecentBadgeTone } | null;
+  href: string | null;
+};
+
 // ── The page ─────────────────────────────────────────────────
 export type BankDashboardData = {
   /** Forename only — the greeting reads "Welcome back, Ama". */
@@ -69,4 +101,6 @@ export type BankDashboardData = {
   /** Null when there's nothing unfinished to pick up. */
   resume: ResumeCard | null;
   accuracy: BankAccuracy;
+  doorways: Doorway[];
+  recent: RecentItem[];
 };

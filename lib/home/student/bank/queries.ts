@@ -27,8 +27,13 @@ import { getResumableAttempt } from '@/lib/practice/launchers/get-resumable-atte
 // Reused rather than copied — the repo already carries three near-identical
 // implementations of this and a fourth would be worse than the import.
 import { relativeTime } from '@/lib/enrolments/format';
+import { getHistoryAttempts } from '@/lib/practice/history/queries';
+import { getStudentReadinessView } from '@/lib/payments/readiness-packs-view';
+import { isUnmeasured, UNMEASURED_SHORT_LABEL } from '@/lib/practice/cat/report-derive';
 import { accessCard, bankStreak, todayLabel } from './format';
 import { bankAccuracy, type AnsweredRow } from './accuracy';
+import { buildDoorways } from './doorways';
+import { recentItems } from './recent';
 import type { BankDashboardData, ResumeCard } from './types';
 
 /** Attempt sources that belong to the bank product. */
@@ -54,10 +59,23 @@ export async function getBankDashboardData(): Promise<BankDashboardData> {
       streak: bankStreak([], Date.now()),
       resume: null,
       accuracy: bankAccuracy([]),
+      doorways: [],
+      recent: [],
     };
   }
 
-  const [profileRes, access, activityRes, accuracyRes, resumable] = await Promise.all([
+  const [
+    profileRes,
+    access,
+    activityRes,
+    accuracyRes,
+    resumable,
+    history,
+    readiness,
+    bankCountRes,
+    sessionCountRes,
+    catCountRes,
+  ] = await Promise.all([
     supabase.from('nclex_users').select('forename').eq('id', user.id).maybeSingle(),
     bankAccessForUser(supabase, user.id),
     // The streak feed: one row per ANSWERED question, inner-joined to
@@ -85,6 +103,37 @@ export async function getBankDashboardData(): Promise<BankDashboardData> {
       .neq('nclex_attempts.mode', 'CAT'),
 
     getResumableAttempt(BANK_SOURCES),
+
+    // The bank history feed — powers Recent activity AND the session /
+    // CAT counts on the doorways, so those figures are read from one
+    // place and can't disagree with the rows above them.
+    getHistoryAttempts(),
+
+    getStudentReadinessView(),
+
+    // The Question Bank grand total. The eligibility RPC already takes
+    // a filter object, so an EMPTY one is the whole eligible pool —
+    // no new loader needed. It counts what THIS student may be served,
+    // which is the honest reading of "questions available".
+    supabase.rpc('nclex_count_eligible_items', { p_filters: {} }),
+
+    // The TRUE session count. getHistoryAttempts() caps at 50 rows, so
+    // counting its length would report "50 past sessions" forever once
+    // a student passed fifty — a number that stops being true exactly
+    // when it starts mattering.
+    supabase
+      .from('nclex_attempts')
+      .select('attempt_id', { count: 'exact', head: true })
+      .neq('source', 'PROGRAMME_ASSIGNED'),
+
+    // Same reasoning for "N taken": a CAT sat more than fifty sessions
+    // ago would drop out of the history feed and quietly stop being
+    // counted. A sitting counts as taken once it has a verdict.
+    supabase
+      .from('nclex_attempts')
+      .select('attempt_id', { count: 'exact', head: true })
+      .eq('mode', 'CAT')
+      .not('cat_verdict', 'is', null),
   ]);
 
   const now = new Date();
@@ -123,6 +172,21 @@ export async function getBankDashboardData(): Promise<BankDashboardData> {
       }
     : null;
 
+  // CAT figures for the doorway, read from the same history feed the
+  // Recent rows use. A finished CAT is one with a verdict.
+  const catRows = history.filter((h) => h.mode === 'CAT');
+  const finishedCats = catRows.filter((h) => h.cat_verdict !== null);
+  const lastCat = finishedCats[0] ?? null;
+  const lastCatLabel = lastCat
+    ? isUnmeasured(lastCat.cat_termination_reason, lastCat.cat_items_administered ?? 0)
+      ? UNMEASURED_SHORT_LABEL
+      : lastCat.cat_verdict === 'ABOVE_STANDARD'
+        ? 'Above standard'
+        : 'Below standard'
+    : null;
+
+  const bankCount = (bankCountRes.data as { total?: number } | null)?.total;
+
   return {
     firstName: (profileRes.data?.forename ?? '').trim(),
     todayLabel: todayLabel(now),
@@ -130,5 +194,16 @@ export async function getBankDashboardData(): Promise<BankDashboardData> {
     streak: bankStreak(answeredAt, now.getTime()),
     resume,
     accuracy: bankAccuracy(answeredRows),
+    doorways: buildDoorways({
+      bankTotal: typeof bankCount === 'number' ? bankCount : null,
+      // "Ready" = owned but not yet placed on a pack — the ones that
+      // need the student to do something. A claimed credit is already
+      // committed to a pack and shows up there instead.
+      creditsReady: readiness.unclaimed,
+      catsTaken: catCountRes.count ?? finishedCats.length,
+      lastCatLabel,
+      sessions: sessionCountRes.count ?? history.length,
+    }),
+    recent: recentItems(history, relativeTime),
   };
 }

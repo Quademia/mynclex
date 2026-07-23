@@ -136,11 +136,132 @@
   align-items: start;
 }
 
-.bd-col-work {
+.bd-col-work,
+.bd-col-rail {
   display: flex;
   flex-direction: column;
   gap: 14px;
   min-width: 0;
+}
+
+.bd-card-link {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* Card 9 · Where to next ──────────────────────────────── */
+
+.bd-doors,
+.bd-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+}
+
+.bd-door,
+.bd-recent-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 8px;
+  border-radius: 9px;
+  color: inherit;
+  transition: background 0.14s ease;
+}
+
+.bd-door:hover,
+.bd-recent-row:hover {
+  background: var(--bg);
+  text-decoration: none;
+}
+
+.bd-door-body,
+.bd-recent-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.bd-door-title,
+.bd-recent-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.bd-door-sub,
+.bd-recent-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bd-door.is-attention .bd-door-sub {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+/* Not built yet — visibly shut, and not clickable. */
+.bd-door.is-locked {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.bd-door.is-locked:hover {
+  background: transparent;
+}
+
+.bd-chev {
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+
+/* Card 7 · Recent activity ────────────────────────────── */
+
+.bd-recent-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: var(--bg-soft);
+  font-size: 14px;
+}
+
+.bd-pill {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bd-pill.is-good {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+/* A practice-quiz score is a fact, not a verdict — it gets neutral
+   styling. The prototype rendered 55% in fail-red, which invents a
+   pass mark practice sets don't have. */
+.bd-pill.is-neutral {
+  background: var(--bg-soft);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.bd-pill.is-low {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
 }
 
 /* Card 4 · Resume banner ──────────────────────────────── */
@@ -248,7 +369,7 @@
 }
 
 .bd-acc-pct {
-  width: 38px;
+  width: 68px;
   flex-shrink: 0;
   text-align: right;
   font-size: 12.5px;
@@ -257,6 +378,15 @@
 }
 
 .bd-acc-pct.is-low { color: var(--danger); }
+
+/* Muted: the percentage stays the headline, the count is the context
+   that stops it being read out of proportion. */
+.bd-acc-n {
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.bd-acc-pct.is-low .bd-acc-n { color: var(--text-faint); }
 
 /* Card 1 · Welcome header + Card 2 · access countdown ──── */
 

@@ -6,6 +6,7 @@
 // the launchers cherry-pick a single banner row or a top-3 chip set.
 
 import type { FilterPayload } from '@/lib/practice/builder/types';
+import type { ModeId } from '@/lib/practice/builder/filter-config';
 
 export type AttemptStatus =
   | 'IN_PROGRESS'
@@ -32,4 +33,16 @@ export interface HistoryAttempt {
   /** Saved filter payload — fed to summariseRecent() for the Session
    *  column so each row reads as e.g. "Pharmacology · Hard · 25 Q". */
   filters_json: FilterPayload;
+
+  // ── CAT ──────────────────────────────────────────────────
+  // A CAT is stored as CUSTOM_BUILT with mode 'CAT', so `source`
+  // alone can't identify one. These let a consumer render a CAT
+  // sitting by its verdict instead of a score — including the
+  // timed-out-under-the-minimum case, which must go through
+  // isUnmeasured() rather than being re-derived per surface.
+  /** Raw mode id — 'CAT' marks an adaptive sitting. */
+  mode: ModeId;
+  cat_verdict: 'ABOVE_STANDARD' | 'BELOW_STANDARD' | null;
+  cat_termination_reason: string | null;
+  cat_items_administered: number | null;
 }

@@ -91,7 +91,16 @@ export function AccuracyCard({ accuracy }: { accuracy: BankAccuracy }) {
                 style={{ width: `${bar.percent}%` }}
               />
             </span>
-            <span className={`bd-acc-pct is-${barTone(bar.percent)}`}>{bar.percent}%</span>
+            {/* The count sits beside the percentage rather than only in
+                the accessible label. On real data these bars run from 8
+                to 88 answered, and a bare "100%" off 10 questions reads
+                as the strongest area when it is really the least-tested
+                one. This is the thin-slice guard the readiness report's
+                "X of Y" rule exists for, at the smallest cost. */}
+            <span className={`bd-acc-pct is-${barTone(bar.percent)}`}>
+              {bar.percent}%
+              <span className="bd-acc-n"> · {bar.answered}</span>
+            </span>
           </li>
         ))}
       </ul>

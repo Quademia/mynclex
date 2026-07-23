@@ -12,6 +12,7 @@ import { AccessCard } from './access-card';
 import { StreakStrip } from './streak-strip';
 import { ResumeBanner } from './resume-banner';
 import { AccuracyCard, FocusBanner } from './accuracy-card';
+import { RecentActivity, WhereToNext } from './rail';
 import type { BankDashboardData } from './types';
 
 export function BankDashboard({ data }: { data: BankDashboardData }) {
@@ -34,13 +35,17 @@ export function BankDashboard({ data }: { data: BankDashboardData }) {
 
       <StreakStrip streak={data.streak} />
 
-      {/* Two columns: the work on the left, status + doorways on the
-          right (the right rail arrives in Stage 3). */}
+      {/* Two columns: the work on the left, doorways + activity on the
+          right. */}
       <div className="bd-grid">
         <div className="bd-col-work">
           {data.resume && <ResumeBanner resume={data.resume} />}
           <FocusBanner accuracy={data.accuracy} />
           <AccuracyCard accuracy={data.accuracy} />
+        </div>
+        <div className="bd-col-rail">
+          <WhereToNext doorways={data.doorways} />
+          <RecentActivity recent={data.recent} />
         </div>
       </div>
     </div>

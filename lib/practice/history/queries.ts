@@ -30,7 +30,7 @@ export async function getHistoryAttempts(): Promise<HistoryAttempt[]> {
   const { data, error } = await supabase
     .from('nclex_attempts')
     .select(
-      'attempt_id, created_at, status, intent, mode, source, requested_question_count, final_score, filters_json'
+      'attempt_id, created_at, status, intent, mode, source, requested_question_count, final_score, filters_json, cat_verdict, cat_termination_reason, cat_items_administered'
     )
     .neq('source', 'PROGRAMME_ASSIGNED')
     .order('created_at', { ascending: false })
@@ -52,6 +52,10 @@ export async function getHistoryAttempts(): Promise<HistoryAttempt[]> {
       requested_count: row.requested_question_count,
       final_score: row.final_score,
       filters_json: (row.filters_json ?? {}) as FilterPayload,
+      mode,
+      cat_verdict: row.cat_verdict as HistoryAttempt['cat_verdict'],
+      cat_termination_reason: row.cat_termination_reason,
+      cat_items_administered: row.cat_items_administered,
     };
   });
 }
