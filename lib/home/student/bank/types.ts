@@ -15,7 +15,10 @@
 // for the readiness band, which is the sharpest case.
 
 import type { BankAccuracy } from './accuracy';
+import type { ReadinessPanel } from './readiness';
 import type { NavIcon as NavIconName } from '@/lib/nav/types';
+import type { PeerStats } from '@/lib/payments/readiness-report';
+import type { TrajectoryPoint } from '@/lib/practice/cat/report-derive';
 
 // ── Card 2 · Bank-access countdown ───────────────────────────
 export type BankAccessCard = {
@@ -92,6 +95,24 @@ export type RecentItem = {
   href: string | null;
 };
 
+// ── Card 8 · Exam readiness ──────────────────────────────────
+// The panel's derived logic lives in ./readiness (pure); this bundles
+// it with the three visuals' raw data.
+export type ReadinessPanelData = {
+  panel: ReadinessPanel;
+  /** Whole-history non-CAT accuracy, 0–100. Null if nothing answered. */
+  accuracyPct: number | null;
+  /** Peer distribution for the latest pack. Null when never sat, or
+   *  when the cohort is too small to compare against fairly. */
+  peer: PeerStats | null;
+  /** The latest CAT's ability trace, through the report's own
+   *  derivation. Empty when there is no CAT to draw. */
+  trajectory: TrajectoryPoint[];
+  catPassed: boolean;
+  /** Gate copy, carried from the one place it is written. */
+  gateBody: string;
+};
+
 // ── The page ─────────────────────────────────────────────────
 export type BankDashboardData = {
   /** Forename only — the greeting reads "Welcome back, Ama". */
@@ -105,6 +126,7 @@ export type BankDashboardData = {
   /** Null when there's nothing unfinished to pick up. */
   resume: ResumeCard | null;
   accuracy: BankAccuracy;
+  readiness: ReadinessPanelData;
   doorways: Doorway[];
   recent: RecentItem[];
 };

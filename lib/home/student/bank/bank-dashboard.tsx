@@ -13,6 +13,7 @@ import { StreakStrip } from './streak-strip';
 import { ResumeBanner } from './resume-banner';
 import { AccuracyCard, FocusBanner } from './accuracy-card';
 import { RecentActivity, WhereToNext } from './rail';
+import { ReadinessPanel } from './readiness-panel';
 import type { BankDashboardData } from './types';
 
 export function BankDashboard({ data }: { data: BankDashboardData }) {
@@ -34,6 +35,8 @@ export function BankDashboard({ data }: { data: BankDashboardData }) {
       </header>
 
       <StreakStrip streak={data.streak} />
+
+      <ReadinessPanel data={data.readiness} />
 
       {/* Two columns: the work on the left, doorways + activity on the
           right. */}

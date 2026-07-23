@@ -127,6 +127,193 @@
   text-decoration: none;
 }
 
+/* Card 8 · Exam readiness ─────────────────────────────── */
+
+.bd-readiness .bd-card-head {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.bd-band {
+  margin-left: auto;
+  display: grid;
+  grid-template-columns: auto 150px;
+  align-items: center;
+  gap: 4px 14px;
+}
+
+.bd-band.is-locked {
+  grid-template-columns: auto;
+}
+
+.bd-band-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.bd-band-label {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.bd-band-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.bd-band.is-locked .bd-band-label {
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.bd-meter {
+  display: flex;
+  gap: 4px;
+}
+
+.bd-meter-seg {
+  flex: 1;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+}
+
+.bd-meter-seg.is-on {
+  background: var(--accent);
+}
+
+.bd-meter-ends {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  color: var(--text-faint);
+}
+
+.bd-gate-note {
+  margin: -4px 0 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 62ch;
+}
+
+/* The four signal cards */
+
+.bd-sigs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bd-sig {
+  flex: 1 1 160px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+  padding: 14px 12px;
+  border: 1px solid var(--bg-soft);
+  border-radius: 12px;
+  background: var(--white);
+}
+
+/* Evidence, not a result — visually quieter than the three signals. */
+.bd-sig.is-gate {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+.bd-sig-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 68px;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.bd-ring {
+  height: 68px;
+  width: 68px;
+}
+
+.bd-sig-value {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.bd-sig-cta {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.bd-sig-note {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.bd-sig-mark {
+  margin-top: 3px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.bd-sig-mark.is-met { color: var(--success); }
+.bd-sig-mark.is-unmet { color: var(--warning); }
+.bd-sig-mark.is-none { color: var(--text-faint); }
+
+.bd-sig-empty {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--bg-soft),
+    var(--bg-soft) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  opacity: 0.7;
+}
+
+/* Peer histogram */
+
+.bd-hist {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 0 6px;
+}
+
+.bd-hist-bar {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  background: var(--border-strong);
+}
+
+.bd-hist-bar.is-mine {
+  background: var(--primary);
+}
+
+/* Mini trajectory */
+
+.bd-traj {
+  width: 100%;
+  height: 100%;
+}
+
 /* Layout ───────────────────────────────────────────────── */
 
 .bd-grid {
@@ -597,6 +784,24 @@
   /* One column, work first. */
   .bd-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* The band drops under the title rather than being squeezed beside
+     it, and the four signals go two-up — four across at 375px would
+     leave each ring about 60px wide. */
+  .bd-band {
+    margin-left: 0;
+    width: 100%;
+    grid-template-columns: auto 1fr;
+  }
+
+  .bd-band-text {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .bd-sig {
+    flex-basis: calc(50% - 6px);
   }
 
   /* At 375px the popover is nearly as wide as the screen, so anchoring

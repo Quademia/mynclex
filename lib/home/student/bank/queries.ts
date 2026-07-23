@@ -34,6 +34,8 @@ import { accessCard, bankStreak, todayLabel } from './format';
 import { bankAccuracy, type AnsweredRow } from './accuracy';
 import { buildDoorways } from './doorways';
 import { recentItems } from './recent';
+import { GATE_BODY, readinessPanel } from './readiness';
+import { catTrajectoryFor, peerStatsFor } from './readiness-read';
 import type { BankDashboardData, ResumeCard } from './types';
 
 /** Attempt sources that belong to the bank product. */
@@ -59,6 +61,21 @@ export async function getBankDashboardData(): Promise<BankDashboardData> {
       streak: bankStreak([], Date.now()),
       resume: null,
       accuracy: bankAccuracy([]),
+      readiness: {
+        panel: readinessPanel({
+          accuracyPct: null,
+          answered: 0,
+          latestPackScore: null,
+          latestCatVerdict: null,
+          latestCatTerminationReason: null,
+          latestCatItems: null,
+        }),
+        accuracyPct: null,
+        peer: null,
+        trajectory: [],
+        catPassed: false,
+        gateBody: GATE_BODY,
+      },
       doorways: [],
       recent: [],
     };
@@ -187,13 +204,65 @@ export async function getBankDashboardData(): Promise<BankDashboardData> {
 
   const bankCount = (bankCountRes.data as { total?: number } | null)?.total;
 
+  // ── The readiness panel's two richer signals ────────────────
+  // Latest COMPLETED pack sitting, and the latest CAT that reached a
+  // verdict. Both drawn from the history feed already loaded above, so
+  // the panel and the Recent rows read the same sittings.
+  const latestPack =
+    history.find(
+      (h) => h.source === 'READINESS_PACK' && h.status === 'COMPLETED' && h.final_score !== null,
+    ) ?? null;
+
+  const accuracyView = bankAccuracy(answeredRows);
+
+  const [peer, trajectory] = await Promise.all([
+    peerStatsFor(supabase, latestPack?.attempt_id ?? null),
+    // The trace needs the engine's final estimate, which the history
+    // feed doesn't carry — one narrow read for the newest CAT only.
+    (async () => {
+      if (!lastCat) return [];
+      const { data } = await supabase
+        .from('nclex_attempts')
+        .select('cat_final_theta, cat_final_se')
+        .eq('attempt_id', lastCat.attempt_id)
+        .maybeSingle();
+      return catTrajectoryFor(
+        supabase,
+        lastCat.attempt_id,
+        data?.cat_final_theta === null || data?.cat_final_theta === undefined
+          ? null
+          : Number(data.cat_final_theta),
+        data?.cat_final_se === null || data?.cat_final_se === undefined
+          ? null
+          : Number(data.cat_final_se),
+      );
+    })(),
+  ]);
+
+  const panel = readinessPanel({
+    accuracyPct: accuracyView.percent,
+    answered: accuracyView.answered,
+    latestPackScore: latestPack?.final_score ?? null,
+    latestCatVerdict: lastCat?.cat_verdict ?? null,
+    latestCatTerminationReason: lastCat?.cat_termination_reason ?? null,
+    latestCatItems: lastCat?.cat_items_administered ?? null,
+  });
+
   return {
     firstName: (profileRes.data?.forename ?? '').trim(),
     todayLabel: todayLabel(now),
     access: accessCard(access.daysLeft, access.windowDays),
     streak: bankStreak(answeredAt, now.getTime()),
     resume,
-    accuracy: bankAccuracy(answeredRows),
+    accuracy: accuracyView,
+    readiness: {
+      panel,
+      accuracyPct: accuracyView.percent,
+      peer,
+      trajectory,
+      catPassed: lastCat?.cat_verdict === 'ABOVE_STANDARD',
+      gateBody: GATE_BODY,
+    },
     doorways: buildDoorways({
       bankTotal: typeof bankCount === 'number' ? bankCount : null,
       // "Ready" = owned but not yet placed on a pack — the ones that
