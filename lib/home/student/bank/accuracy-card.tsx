@@ -14,6 +14,7 @@
 // a handful of questions is noise wearing the clothes of a diagnosis.
 
 import Link from 'next/link';
+import { NavIcon } from '@/components/nav/shared/nav-icon';
 import { DashboardAccuracyBulb } from '@/lib/hints/practice/dashboard-accuracy-bulb';
 import { barTone, type BankAccuracy } from './accuracy';
 
@@ -29,8 +30,13 @@ export function FocusBanner({ accuracy }: { accuracy: BankAccuracy }) {
   if (!weakest) return null;
   return (
     <section className="bd-card bd-focus" aria-label="Lowest-scoring category">
+      {/* NOT a 💡 — that glyph is the app's explainer affordance (the
+          bulb that opens a hint card), and using it as decoration on a
+          card that explains nothing teaches students to distrust it.
+          A flag reads as "marked for attention", which is what this
+          card is. */}
       <span className="bd-focus-icon" aria-hidden="true">
-        💡
+        <NavIcon name="flag" />
       </span>
       <div className="bd-focus-body">
         <span className="bd-eyebrow">Lowest-scoring category</span>

@@ -533,7 +533,8 @@
   flex-shrink: 0;
   border-radius: 10px;
   background: var(--primary-light);
-  font-size: 17px;
+  border: 1px solid rgba(45, 125, 114, 0.2);
+  color: var(--accent);
 }
 
 .bd-focus-title {
