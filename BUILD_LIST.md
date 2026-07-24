@@ -66,37 +66,41 @@
 > ### The four findings from the mode investigation (2026-07-24)
 >
 > Full write-up in `bank-consumption-attempt-creation.html` §6.1.2 and
-> `bank-consumption.html` §15.
+> `bank-consumption.html` §15. **#6 built 2026-07-25 (`da850cc`), which also
+> closes #7 and #9; #8 still open.**
 >
-> 6. **⭐ The engagement clock does not exist.** Study's timed mode advertises
->    "pauses if you step away — resumable"; the runner derives the countdown
->    from `started_at + duration_seconds` with **no intent branch**, and
->    `nclex_attempts` has **no pause columns**. So the clock runs down while
->    the student is away. Sam's intent confirmed 2026-07-24: a 60-minute quiz
->    should hold its remaining time while you're gone. The per-question time
->    engine already pauses on the Page-Visibility signal, so the pattern
->    exists — it just lives one level down and explicitly does not sum with
->    the attempt clock (runner §8). **Two design questions come with it:**
->    what counts as "away" (screen-off only, or tab switches too — pausing on
->    tab switch lets a student look things up), and how much time is credited
->    when someone vanishes (needs a heartbeat; on resume credit only to the
->    last one). **Now load-bearing:** after this session's cut, Timed Free Nav
->    is Study's ONLY timed mode.
-> 7. **Study-timed and Exam-timed are mechanically identical** — same 90s ×
->    count duration (set by a trigger that branches on mode only), same wall
->    clock, same nav, same feedback, same submit model. A direct consequence
->    of #6.
+> 6. ✅ **⭐ The engagement clock — BUILT 2026-07-25 (`da850cc`, on the session
+>    branch, NOT `main`).** (STUDY, TIMED_FREE_NAV) now counts ENGAGED time:
+>    the countdown freezes while the page is hidden (tab-switch / screen-off /
+>    backgrounded / closed) and resumes on return, durably across a full close
+>    days later — `remaining = duration - engaged_seconds_used`, persisted
+>    server-side. **Design settled with Sam:** "away" = page hidden, tab-
+>    switches included (reusing the per-question engine's own signal); away-time
+>    forgiven in full ("all of it"); saved on submit / navigation / page-hide
+>    with **no heartbeat** (a crash mid-question forgives that one question's
+>    time, in the student's favour). Migration `20260815120000`
+>    (`engaged_seconds_used` + mode-guarded `nclex_record_engaged_time`); the
+>    load-bearing fix is the lazy expiry (engaged ≥ duration, not wall).
+>    Verified live on dev (froze 8s hidden; reload resumed at engaged-remaining
+>    not wall; exam control drained while hidden, its column stayed NULL).
+>    ⚠ Known minor: an engagement *timeout* still back-dates `ended_at` (rare,
+>    cosmetic — needs an RPC to fix, deferred).
+> 7. ✅ **Study-timed and Exam-timed are no longer identical** — resolved by #6.
+>    Study-timed now pauses on the engagement clock; Exam-timed keeps the wall
+>    clock. Proven live on two attempts of the *same* mode id (`TIMED_FREE_NAV`)
+>    that behaved differently by intent.
 > 8. **Resume is a three-way contradiction.** Parent §15 says "impossible for
 >    any timed mode"; §6.1.2 says it rewrites to "STUDY intent only"; the code
 >    (slice 4.5a) resumes **everything except CAT**, filtering `mode ≠ 'CAT'`
 >    with no intent condition. Meanwhile the Builder tells EXAM students
 >    "single sitting · cannot be resumed" — and an abandoned EXAM attempt
 >    **does** reappear in the Resume banner. Which rule is right is a product
->    decision, not a tidy-up.
-> 9. **`intent` drives no behaviour.** Across the whole session route it is
->    read in exactly one place — `preflight.tsx`, to print the word "Study" or
->    "Exam". Every mechanical difference comes from `mode` +
->    `duration_seconds`. Fixing #6 is what would finally give it meaning.
+>    decision, not a tidy-up. **Still open** — and now more pointed: an
+>    engagement (STUDY timed) attempt is genuinely resumable by design, so the
+>    Builder's blanket "cannot be resumed" copy needs an intent split.
+> 9. ✅ **`intent` now drives behaviour** — resolved by #6. `intent === 'STUDY'`
+>    (with `mode === 'TIMED_FREE_NAV'`) is what selects the engagement clock, so
+>    intent is no longer a display-only word.
 >
 > ### Bigger CAT work still open
 >
