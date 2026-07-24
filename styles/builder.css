@@ -540,8 +540,17 @@
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
+/* Icon and name share the top row; the description spans both columns
+ * beneath them. The icon used to sit on a line of its own (a 32px block
+ * with margin-bottom), which cost ~33px of height per card for a row that
+ * held one 32px glyph — doubled on mobile, where the two cards stack. */
 .bk-intent {
   position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 6px;
   padding: 16px;
   border-radius: 10px;
   cursor: pointer;
@@ -559,7 +568,8 @@
 .bk-intent-icon {
   width: 32px; height: 32px;
   border-radius: 8px;
-  margin-bottom: 10px;
+  /* No margin-bottom: the grid's row-gap owns the spacing now, and the
+   * icon shares its row with the name rather than sitting above it. */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -577,9 +587,12 @@
   letter-spacing: -0.01em;
 }
 .bk-intent-desc {
+  /* Spans both columns rather than indenting under the name — the point
+   * of the change was to reclaim space, and indenting would hand back
+   * the icon's 42px on every line of the description. */
+  grid-column: 1 / -1;
   font-size: 12.5px;
   color: var(--text-muted);
-  margin-top: 4px;
   line-height: 1.5;
 }
 
