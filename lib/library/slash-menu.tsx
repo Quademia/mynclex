@@ -557,9 +557,9 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
                   {it.comingIn ? (
                     <span
                       className="lib-slash-pill"
-                      title={`Lands in slice ${it.comingIn}`}
+                      title="Coming soon"
                     >
-                      {it.comingIn}
+                      Soon
                     </span>
                   ) : it.disabledNow ? (
                     <span className="lib-slash-pill" title={it.disabledReason}>

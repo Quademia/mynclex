@@ -26,9 +26,9 @@ const VIEW_TITLE: Record<LibraryViewKey, string> = {
 
 const VIEW_SUB: Record<LibraryViewKey, string> = {
   'all-notes':
-    'Every note you own, newest edits first. Filters and search land in a future polish slice.',
+    'Every note you own, newest edits first. Use the search box above, or the lenses on the left, to narrow down.',
   drafts:
-    'Notes that haven’t been published yet — students don’t see these. Publish them from each note’s editor when slice 11.10 ships.',
+    'Notes that haven’t been published yet — students don’t see these. Publish them from each note’s editor.',
   'used-nowhere':
     'Notes that aren’t attached to any programme unit. Useful for spotting orphan content you’d like to put to work.',
 };
