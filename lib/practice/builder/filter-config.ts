@@ -51,6 +51,27 @@ export const POOLS: PoolDef[] = [
 // Mode IDs match the nclex_attempts CHECK constraint exactly so we can
 // pass them straight to the create-attempt RPC.
 //
+// THREE MODES PER INTENT — six tuples, not the original eight. Two pairings
+// were removed 2026-07-24 (migration 20260814120000) because each was
+// MECHANICALLY IDENTICAL to its twin under the other intent, `intent` driving
+// no runner behaviour today:
+//
+//   • UNTIMED_TEST is no longer offered under EXAM. Untimed means
+//     duration_seconds = NULL, so there was no clock either way — leaving a
+//     card that promised "no clock, single sitting" and delivered the STUDY
+//     quiz. "Exam framing without time pressure" is what STUDY already is.
+//   • TIMED_SEQUENTIAL is no longer offered under STUDY. Forward-only exists
+//     to reproduce exam mechanics (NCSBN: answer in order, no going back, no
+//     skipping); it teaches nothing, it only removes an option.
+//
+// Both modes still exist — each just lives under one intent now. Neither the
+// ModeId union nor the runner archetypes changed.
+//
+// ⚠ These two arrays are ALSO the label lookup for history/launcher reads
+// (`intent === 'STUDY' ? MODES_STUDY : MODES_EXAM`, then find by id). An
+// attempt row on a tuple missing here falls back to printing its raw id, so
+// removing an entry means any stored rows on it must be converted, not left.
+//
 // Clock / Feedback / Nav metadata drives the rich Mode card pills.
 //   clock    — none / engagement / wall (visual pill colour key)
 //   feedback — when rationales appear
@@ -99,25 +120,9 @@ export const MODES_STUDY: ModeDef[] = [
     nav: 'Free',
     desc: 'Engagement-clock — pauses if you step away. Resumable.',
   },
-  {
-    id: 'TIMED_SEQUENTIAL',
-    label: 'Timed · Sequential',
-    clock: 'engagement',
-    feedback: 'At the end',
-    nav: 'Forward',
-    desc: 'Engagement-clock, forward-only. Practise pacing without losing your place.',
-  },
 ];
 
 export const MODES_EXAM: ModeDef[] = [
-  {
-    id: 'UNTIMED_TEST',
-    label: 'Untimed Test',
-    clock: 'none',
-    feedback: 'At the end',
-    nav: 'Free',
-    desc: 'No clock, single sitting. Rationales at the end only.',
-  },
   {
     id: 'TIMED_FREE_NAV',
     label: 'Timed · Free Nav',

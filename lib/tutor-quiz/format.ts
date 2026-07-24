@@ -6,17 +6,29 @@
 import type { QuizKind, QuizMode, QuizStatus } from './types';
 
 // Which modes each quiz kind allows. Mirrors the DB CHECK
-// nclex_tutor_quizzes_kind_mode_tuple: PRACTICE gets all four
-// non-adaptive modes; MOCK excludes UNTIMED_LEARNING (that mode
-// reveals answers live, wrong for an exam-style mock).
+// nclex_tutor_quizzes_kind_mode_tuple — and, through it, the attempts CHECK
+// nclex_attempts_intent_mode_tuple, because a quiz has no intent column:
+// intent is DERIVED at launch (MOCK → EXAM, PRACTICE → STUDY). So this list
+// must move whenever that one does, or a tutor could author a quiz that
+// explodes on launch when the attempt INSERT hits the tightened constraint.
+//
+// MOCK excludes UNTIMED_LEARNING — that mode reveals answers live, wrong for
+// an exam-style mock. MOCK cannot be CAT either: a CAT is its own surface,
+// spends a metered allowance, and is never authored as a tutor quiz.
+//
+// Trimmed 2026-07-24 (migration 20260814120000) alongside the student
+// builder, for the same reasons:
+//   • MOCK loses UNTIMED_TEST — an untimed mock exam is the same
+//     contradiction as Untimed Test under EXAM intent was. With no clock the
+//     only exam-ness left is "you can't come back to it", which is an
+//     arbitrary restriction rather than a simulation.
+//   • PRACTICE loses TIMED_SEQUENTIAL — forward-only is an exam constraint
+//     with no pedagogical purpose; blocking a student from reconsidering an
+//     earlier question teaches nothing.
+// Verified at the time: no existing quiz used either pairing.
 export const QUIZ_MODES_BY_KIND: Record<QuizKind, QuizMode[]> = {
-  PRACTICE: [
-    'UNTIMED_LEARNING',
-    'UNTIMED_TEST',
-    'TIMED_FREE_NAV',
-    'TIMED_SEQUENTIAL',
-  ],
-  MOCK: ['UNTIMED_TEST', 'TIMED_FREE_NAV', 'TIMED_SEQUENTIAL'],
+  PRACTICE: ['UNTIMED_LEARNING', 'UNTIMED_TEST', 'TIMED_FREE_NAV'],
+  MOCK: ['TIMED_FREE_NAV', 'TIMED_SEQUENTIAL'],
 };
 
 // Timed modes carry a duration; untimed modes leave it null.

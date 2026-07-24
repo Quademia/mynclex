@@ -142,9 +142,12 @@
 <div class="doc-meta">
   Living planning document. Last updated: 2026-07-24 — <strong>new §15.1 records a mode-label naming proposal that is
   PROPOSED, NOT APPLIED</strong> (Sam to decide; stored mode IDs unchanged under any outcome), plus the reasoning for
-  rejecting numbered mode names and a naming avoid-list. Nothing student-visible changed. Same session: agreed to
-  remove two (intent, mode) tuples — <code>(EXAM, UNTIMED_TEST)</code> and <code>(STUDY, TIMED_SEQUENTIAL)</code> —
-  which is a separate piece of work; the §15 mode list below still shows the pre-cut five.
+  rejecting numbered mode names and a naming avoid-list. Nothing student-visible changed. <strong>Same session, and
+  BUILT:</strong> two (intent, mode) tuples removed — <code>(EXAM, UNTIMED_TEST)</code> and
+  <code>(STUDY, TIMED_SEQUENTIAL)</code> — taking the framework to <strong>six tuples, three per intent</strong>;
+  the §15 mode list now carries per-mode intent availability, which also closes the "needs intent annotations" note
+  §6.1.2 had been holding against it. Both cuts are enforced in the database (migration
+  <code>20260814120000</code>), and the mode <em>labels</em> are unchanged.
   Earlier: 2026-05-06 (whole doc converted from plain text to proper HTML formatting — same structure and CSS as <code>bank-consumption-runner.html</code>; content preserved as-is, only markup added. Same day: §15 "Open for runner planning" subsection annotated to mark navigation specifics as settled in runner.html §15 + §16 — see SESSIONS.md 2026-05-06 (planning, late evening). Earlier 2026-05-04: §10 rule 1 marked SUPERSEDED — mid-case auto-discard no longer applies under STUDY/EXAM intent split. Earlier same day: §17 Builder — added Intent picker step (Study vs Exam) before Mode selection; modes filter by chosen intent; Recent Quizzes + Default form state updated. Driven by attempt-creation sub-plan §6.1.2 + §6.3.1 — see <code>bank-consumption-attempt-creation.html</code>).
 </div>
 
@@ -651,14 +654,44 @@
   <li><strong>Programme-assigned</strong> — tutor set up an activity in a programme week (covers practice quizzes and mocks; the difference is the mode the tutor chose, not the source).</li>
 </ul>
 
-<h3>Modes (5) — provisional v1 list</h3>
-<ul>
-  <li><strong>Untimed Learning</strong> — rationales after each submit.</li>
-  <li><strong>Untimed Test</strong> — rationales at the end.</li>
-  <li><strong>Timed Free navigation</strong> — clock running, can skip and return.</li>
-  <li><strong>Timed Sequential</strong> — clock running, no going back.</li>
-  <li><strong>CAT</strong> — adaptive, IRT-based, terminates on confidence. In scope for v1. Detailed design in its own section (§16).</li>
-</ul>
+<h3>Modes (5) — with intent availability <span class="status settled">annotated 2026-07-24</span></h3>
+<p>
+  Five modes, but <strong>six (intent, mode) tuples — three per intent</strong>, not ten. The <em>Offered under</em>
+  column is the canonical availability; the authority is
+  <code>nclex_attempts_intent_mode_tuple</code>, and the reasoning for each pairing is in
+  attempt-creation §6.1.2. <em>(This closes the "the mode list needs intent annotations" note that §6.1.2 had been
+  carrying against this section.)</em>
+</p>
+<table>
+  <thead>
+    <tr><th>Mode</th><th>Behaviour</th><th>Offered under</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Untimed Learning</strong></td><td>Rationales after each submit.</td><td>STUDY only</td></tr>
+    <tr><td><strong>Untimed Test</strong></td><td>Rationales at the end.</td><td>STUDY only <span class="status open">EXAM removed 2026-07-24</span></td></tr>
+    <tr><td><strong>Timed Free navigation</strong></td><td>Clock running, can skip and return.</td><td>STUDY <em>and</em> EXAM — the only mode under both</td></tr>
+    <tr><td><strong>Timed Sequential</strong></td><td>Clock running, no going back.</td><td>EXAM only <span class="status open">STUDY removed 2026-07-24</span></td></tr>
+    <tr><td><strong>CAT</strong></td><td>Adaptive, IRT-based, terminates on confidence. In scope for v1; detailed design in its own section (§16).</td><td>EXAM only</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>Why two pairings were removed</strong> (migration
+  <code>20260814120000_modes_remove_two_tuples.sql</code>). Each was <em>mechanically identical</em> to its twin under
+  the other intent, because <code>intent</code> drives no runner behaviour today — so each was a duplicate card
+  distinguished only by a label making a promise the runner does not keep.
+  <strong>(EXAM, Untimed Test)</strong>: untimed means <code>duration_seconds</code> is NULL, so there was no clock
+  either way, and "exam framing without time pressure" is exactly what the STUDY version already is.
+  <strong>(STUDY, Timed Sequential)</strong>: forward-only exists to reproduce exam mechanics (NCSBN — answer in the
+  order presented, no going back, no skipping) and carries no pedagogical purpose; blocking a student from
+  reconsidering an earlier question teaches nothing.
+</p>
+<p>
+  <strong>⚠ Consequence — the engagement clock is now load-bearing.</strong> STUDY's only remaining timed mode is
+  Timed Free navigation, whose entire distinction from the EXAM one is an engagement-clock that pauses when the
+  student steps away. <strong>That clock is not built</strong> — runner.html §8 derives the countdown from
+  <code>started_at + duration_seconds</code> with no intent branch, and <code>nclex_attempts</code> has no pause
+  columns. So the two remain identical while the STUDY card advertises that it pauses. Next piece of work.
+</p>
 
 <h3 id="s15-labels">15.1 Proposed mode labels <span class="status open">PROPOSED — NOT APPLIED · Sam to decide (2026-07-24)</span></h3>
 <div class="callout">

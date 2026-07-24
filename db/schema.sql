@@ -556,14 +556,19 @@ CREATE TABLE nclex_attempts (
   -- of "Score · NN% · Pass/Fail".
   pass_score                 NUMERIC CHECK (pass_score IS NULL OR (pass_score >= 0 AND pass_score <= 1)),
 
-  -- (intent, mode) tuple validation per attempt-creation §6.1.2
+  -- (intent, mode) tuple validation per attempt-creation §6.1.2.
+  -- SIX tuples, three per intent. Was eight until 2026-07-24, when
+  -- (EXAM, UNTIMED_TEST) and (STUDY, TIMED_SEQUENTIAL) were removed as
+  -- duplicates of their twins under the other intent — migration
+  -- 20260814120000_modes_remove_two_tuples.sql carries the full reasoning.
+  -- Note no mode was deleted: both still exist under one intent.
   CONSTRAINT nclex_attempts_intent_mode_tuple CHECK (
     (intent, mode) IN (
+      -- STUDY — your own pace, resumable
       ('STUDY','UNTIMED_LEARNING'),
       ('STUDY','UNTIMED_TEST'),
       ('STUDY','TIMED_FREE_NAV'),
-      ('STUDY','TIMED_SEQUENTIAL'),
-      ('EXAM', 'UNTIMED_TEST'),
+      -- EXAM — one bounded sitting, all timed
       ('EXAM', 'TIMED_FREE_NAV'),
       ('EXAM', 'TIMED_SEQUENTIAL'),
       ('EXAM', 'CAT')
@@ -1379,15 +1384,22 @@ CREATE TABLE nclex_tutor_quizzes (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   -- (quiz_kind, mode) pairing, mirroring nclex_attempts_intent_
-  -- mode_tuple via MOCK -> EXAM / PRACTICE -> STUDY. MOCK excludes
-  -- UNTIMED_LEARNING (that mode reveals answers live).
+  -- mode_tuple via MOCK -> EXAM / PRACTICE -> STUDY. There is no
+  -- intent column here — intent is DERIVED at launch — so this CHECK
+  -- must move whenever that one does, or a tutor could author a quiz
+  -- that fails on launch. MOCK excludes UNTIMED_LEARNING (that mode
+  -- reveals answers live) and cannot be CAT (own surface, metered
+  -- allowance, never authored as a tutor quiz).
+  -- FIVE pairs. Was seven until 2026-07-24: MOCK lost UNTIMED_TEST (an
+  -- untimed mock exam is the same contradiction as Untimed Test under
+  -- EXAM was) and PRACTICE lost TIMED_SEQUENTIAL (forward-only is an
+  -- exam constraint, not a teaching one). Full reasoning in
+  -- db/migrations/20260814120000_modes_remove_two_tuples.sql.
   CONSTRAINT nclex_tutor_quizzes_kind_mode_tuple CHECK (
     (quiz_kind, mode) IN (
       ('PRACTICE', 'UNTIMED_LEARNING'),
       ('PRACTICE', 'UNTIMED_TEST'),
       ('PRACTICE', 'TIMED_FREE_NAV'),
-      ('PRACTICE', 'TIMED_SEQUENTIAL'),
-      ('MOCK',     'UNTIMED_TEST'),
       ('MOCK',     'TIMED_FREE_NAV'),
       ('MOCK',     'TIMED_SEQUENTIAL')
     )

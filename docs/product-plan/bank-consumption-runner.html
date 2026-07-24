@@ -951,19 +951,27 @@ Runner mounts → reads from those 5 tables → renders Q1
 <p>TBD: marking UI placement, mark-icon design, behaviour across re-attempts.</p>
 
 <h2 id="s15">15. Navigation rules <span class="status settled">settled (high level)</span></h2>
-<p>Per mode (settled 2026-05-06 alongside §16):</p>
+<p>Per mode (settled 2026-05-06 alongside §16). <em>Intent column added 2026-07-24.</em></p>
 <table>
   <thead>
-    <tr><th>Mode</th><th>Within-session navigation</th><th>Submit model</th></tr>
+    <tr><th>Mode</th><th>Offered under</th><th>Within-session navigation</th><th>Submit model</th></tr>
   </thead>
   <tbody>
-    <tr><td>Untimed Learning</td><td>Free — student can jump to any question, in any order</td><td>Per-Q submit; rationale shown immediately for the cell that was just submitted</td></tr>
-    <tr><td>Untimed Test</td><td>Free</td><td>Batched submit at the end</td></tr>
-    <tr><td>Timed Free Navigation</td><td>Free</td><td>Batched submit at the end</td></tr>
-    <tr><td>Timed Sequential</td><td>Strict forward — no going back</td><td>Batched submit at the end</td></tr>
-    <tr><td>CAT</td><td>Strict forward — IRT engine, one item at a time, no back nav</td><td>Per-Q internal scoring; verdict at the end</td></tr>
+    <tr><td>Untimed Learning</td><td>STUDY</td><td>Free — student can jump to any question, in any order</td><td>Per-Q submit; rationale shown immediately for the cell that was just submitted</td></tr>
+    <tr><td>Untimed Test</td><td>STUDY</td><td>Free</td><td>Batched submit at the end</td></tr>
+    <tr><td>Timed Free Navigation</td><td>STUDY <em>and</em> EXAM</td><td>Free</td><td>Batched submit at the end</td></tr>
+    <tr><td>Timed Sequential</td><td>EXAM</td><td>Strict forward — no going back</td><td>Batched submit at the end</td></tr>
+    <tr><td>CAT</td><td>EXAM</td><td>Strict forward — IRT engine, one item at a time, no back nav</td><td>Per-Q internal scoring; verdict at the end</td></tr>
   </tbody>
 </table>
+<p>
+  <strong>Navigation is a property of the MODE, not the intent</strong> — which is why the tuple list narrowed on
+  2026-07-24. Timed Sequential is no longer offered under STUDY: forward-only exists to reproduce exam mechanics
+  (NCSBN — answer in the order presented, no going back, no skipping) and teaches nothing on its own, so it was an
+  exam constraint wearing a study label. Untimed Test is no longer offered under EXAM for the mirror-image reason.
+  See attempt-creation §6.1.2. <strong>The runner itself did not change</strong>: both modes still exist, so the three
+  archetypes (<code>UL</code>, <code>FREE_BATCHED</code>, <code>SEQUENTIAL</code>) and their dispatch are untouched.
+</p>
 <p>
   <strong>Untimed Learning was earlier sketched as "sequential, no skip" — that draft is superseded.</strong>
   Free nav is the v1 design: a student can jump to Q47 from Q5, submit it, see its rationale, then jump back —
