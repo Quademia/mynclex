@@ -1,5 +1,110 @@
 # MyNclex Build List
 
+> ## ⏭ THE OPEN LIST — carried forward from 2026-07-24
+>
+> Everything currently flagged and unbuilt, in one place, so a session can
+> pick from it without re-deriving. Grouped by what each one needs from us.
+> **Sam's pick for next session: #6, the pausing clock.**
+>
+> **✅ Built and merged this session** (so it isn't re-opened): two
+> conflicting `(intent, mode)` tuples removed — `(EXAM, UNTIMED_TEST)` and
+> `(STUDY, TIMED_SEQUENTIAL)` — taking the framework to **6 tuples, 3 per
+> intent**, enforced in the DB (migration `20260814120000`) with the tutor
+> mirror moved in step; interim mode labels across every surface, resolved
+> through one `modeLabelFor()`; the Builder made mobile-compatible; the
+> intent card tightened; and the runner/preflight stale-copy cleanup.
+>
+> ### Needs a decision from Sam
+>
+> 1. **The settled mode names.** Today's labels are explicitly interim. The
+>    full proposal, the rejected numbering scheme and the naming avoid-list
+>    are parked in `bank-consumption.html` **§15.1**.
+> 2. **The Builder's filter accordion on a phone.** 5 of the 9 axes default
+>    open, so the Filters tab measures ~3,000px on a 375px screen. Making it
+>    viewport-dependent isn't CSS (the open state is React state → needs
+>    client detection, risks a hydration mismatch); closing them for everyone
+>    changes desktop behaviour. **Agreed to judge on a real phone first.**
+>
+> ### Small fixes, ready to run
+>
+> 3. **Public `/bank-access` demo — the CAT button** still says "Start Exam —
+>    CAT" when the real Builder hands off with **"Go to CAT"** (§10.7.1).
+>    One line. Known since 2026-07-21.
+> 4. **Four build notes visible to users**, all on tutor **library**
+>    surfaces — `"coming in slice ${item.comingIn}"` (`note-body-editor`),
+>    "ships with slice 11.15" + "become unit activities in slice 11.11"
+>    (`note-editor`), "when slice 11.10 ships" (`notes-view`). Same defect
+>    class as the runner/preflight notes fixed 2026-07-24, different surface.
+> 5. **The 💡 bulb body has no stylesheet anywhere in the repo**, so every
+>    curator bulb's `<ul>` loses its markers to the global reset.
+>
+> ### The four findings from the mode investigation (2026-07-24)
+>
+> Full write-up in `bank-consumption-attempt-creation.html` §6.1.2 and
+> `bank-consumption.html` §15.
+>
+> 6. **⭐ The engagement clock does not exist.** Study's timed mode advertises
+>    "pauses if you step away — resumable"; the runner derives the countdown
+>    from `started_at + duration_seconds` with **no intent branch**, and
+>    `nclex_attempts` has **no pause columns**. So the clock runs down while
+>    the student is away. Sam's intent confirmed 2026-07-24: a 60-minute quiz
+>    should hold its remaining time while you're gone. The per-question time
+>    engine already pauses on the Page-Visibility signal, so the pattern
+>    exists — it just lives one level down and explicitly does not sum with
+>    the attempt clock (runner §8). **Two design questions come with it:**
+>    what counts as "away" (screen-off only, or tab switches too — pausing on
+>    tab switch lets a student look things up), and how much time is credited
+>    when someone vanishes (needs a heartbeat; on resume credit only to the
+>    last one). **Now load-bearing:** after this session's cut, Timed Free Nav
+>    is Study's ONLY timed mode.
+> 7. **Study-timed and Exam-timed are mechanically identical** — same 90s ×
+>    count duration (set by a trigger that branches on mode only), same wall
+>    clock, same nav, same feedback, same submit model. A direct consequence
+>    of #6.
+> 8. **Resume is a three-way contradiction.** Parent §15 says "impossible for
+>    any timed mode"; §6.1.2 says it rewrites to "STUDY intent only"; the code
+>    (slice 4.5a) resumes **everything except CAT**, filtering `mode ≠ 'CAT'`
+>    with no intent condition. Meanwhile the Builder tells EXAM students
+>    "single sitting · cannot be resumed" — and an abandoned EXAM attempt
+>    **does** reappear in the Resume banner. Which rule is right is a product
+>    decision, not a tidy-up.
+> 9. **`intent` drives no behaviour.** Across the whole session route it is
+>    read in exactly one place — `preflight.tsx`, to print the word "Study" or
+>    "Exam". Every mechanical difference comes from `mode` +
+>    `duration_seconds`. Fixing #6 is what would finally give it meaning.
+>
+> ### Bigger CAT work still open
+>
+> 10. **§16.6 — exam-mode display leaks.** Chiefly the `Difficulty · Medium`
+>     chip, a live readout of the engine's opinion of the candidate mid-exam.
+>     **Parked by Sam 2026-07-24** to ride with a wider runner pass. Sites
+>     located: `runner-question-area.tsx:176`, `runner-topbar.tsx:95`,
+>     `cjmm-strip.tsx`. Recommendation on record: hide the difficulty pill,
+>     the case counter and the CJMM strip in exam mode; **keep** the subject
+>     chip and the question grid (neither leaks the estimate, and the grid
+>     can't navigate anyway).
+> 11. **`/help/cat` — and the route to it.** Grep returns **zero references
+>     anywhere in the app**, though §10.7.2 assigned the link to Slice 6a. A
+>     student meeting an adaptive exam has no explanation outside the
+>     preflight. Last real build item before Slice 10.
+> 12. **Slice 10 — weekly recalibration** (§5.3 / §17). The only substantial
+>     slice left. Priority raised: on the current three-rung difficulty ladder
+>     the exam can't visibly track a strong student and the readiness
+>     probability saturates near 100%.
+> 13. **Two reopened CAT decisions, noted not changed** — §9.3 the 4-hour
+>     limit (real NCLEX gives 5; now a genuine one-constant change) and
+>     §9.1.1 the passing standard (theta 0.0 was inherited from three
+>     unrelated defaults, never chosen; ⚠ changing it re-interprets every CAT
+>     already sat).
+>
+> ### Operational
+>
+> 14. **Prod is behind `main`.** `origin/prod` is at `1a6717d`; everything
+>     from 2026-07-24 is `main`-only. The next release ships migration
+>     `20260814120000` — a no-op on prod data (no attempts, no tutor quizzes).
+> 15. **⚠ `PAYSTACK_SECRET_KEY`** (live key) still not on the prod Worker —
+>     launch-day only, not a release blocker.
+
 > **CAT — ✅ Slice 7 (the results page) BUILT + MERGED to `main` 2026-07-20
 > (NOT prod).** The surface a student lands on when a CAT ends, and re-opens
 > from history (`7462682`; app-layer, **no migration**; tsc + eslint clean;
