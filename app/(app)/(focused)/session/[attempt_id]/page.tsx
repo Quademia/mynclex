@@ -83,14 +83,23 @@ export default async function SessionPage({ params }: PageProps) {
   }
 
   // Lazy expire detection (slice 4.5a — runner.html §8.6 + attempt-creation
-  // §6.1.3). When a timed EXAM has already passed `started_at +
-  // duration_seconds`, the row may still be IN_PROGRESS because the cron
-  // sweep hasn't fired yet (slice 2.4 will add it). Detect on page load
-  // and finalise inline: expireAttemptAction iterates DRAFT rows, scores
-  // each in TS via scoreAttempt, AUTO_SUBMITs them, then flips status to
-  // TIMED_OUT. The page re-fetches with the flipped status and renders
-  // review naturally — no special "exam ended" view (per the revised
-  // §6.1.3 rule).
+  // §6.1.3). When a timed attempt has already run out its clock, the row may
+  // still be IN_PROGRESS because the cron sweep hasn't fired yet (slice 2.4
+  // will add it). Detect on page load and finalise inline: expireAttemptAction
+  // iterates DRAFT rows, scores each in TS via scoreAttempt, AUTO_SUBMITs them,
+  // then flips status to TIMED_OUT. The page re-fetches with the flipped
+  // status and renders review naturally — no special "exam ended" view (per
+  // the revised §6.1.3 rule).
+  //
+  // TWO clock kinds, TWO expiry tests (BUILD_LIST #6, 2026-07-25):
+  //   • EXAM wall clock — expired once `now >= started_at + duration`.
+  //   • STUDY engagement clock (TIMED_FREE_NAV) — expired once the ENGAGED
+  //     total has reached the budget: `engaged_seconds_used >= duration`.
+  //     The wall-clock test MUST NOT apply here — an engagement attempt
+  //     reopened days later has almost always passed `started_at + duration`
+  //     in wall time while barely touching its engaged budget, so the old
+  //     test would wrongly kill it on return. That is the whole bug this
+  //     slice fixes.
   //
   // Untimed attempts (duration_seconds NULL) skip this — they only end
   // via deliberate Finish or orphan cleanup.
@@ -99,9 +108,14 @@ export default async function SessionPage({ params }: PageProps) {
     attempt.duration_seconds !== null &&
     attempt.started_at !== null
   ) {
-    const startedAtMs = Date.parse(attempt.started_at);
-    const expiryMs    = startedAtMs + attempt.duration_seconds * 1000;
-    if (Date.now() >= expiryMs) {
+    const isEngagementClock =
+      attempt.intent === 'STUDY' && attempt.mode === 'TIMED_FREE_NAV';
+
+    const expired = isEngagementClock
+      ? (attempt.engaged_seconds_used ?? 0) >= attempt.duration_seconds
+      : Date.now() >= Date.parse(attempt.started_at) + attempt.duration_seconds * 1000;
+
+    if (expired) {
       const r = await expireAttemptAction(attempt_id);
       if (!r.ok) notFound();
 

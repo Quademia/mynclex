@@ -531,6 +531,13 @@ CREATE TABLE nclex_attempts (
                                ('UNTIMED_LEARNING','UNTIMED_TEST',
                                 'TIMED_FREE_NAV','TIMED_SEQUENTIAL','CAT')),
   duration_seconds           INTEGER,
+  -- Engagement clock (STUDY, TIMED_FREE_NAV only): engaged seconds spent so
+  -- far. remaining = duration_seconds - engaged_seconds_used. NULL elsewhere
+  -- / before first save = treated as 0. Written only by
+  -- nclex_record_engaged_time (monotonic, clamped to duration).
+  -- Migration 20260815120000_engagement_clock.sql.
+  engaged_seconds_used       INTEGER
+                               CHECK (engaged_seconds_used IS NULL OR engaged_seconds_used >= 0),
   mode_overrides_json        JSONB,
   filters_json               JSONB NOT NULL DEFAULT '{}'::jsonb,
 

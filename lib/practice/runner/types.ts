@@ -31,6 +31,11 @@ export interface AttemptHeader {
   mode:                     'UNTIMED_LEARNING' | 'UNTIMED_TEST' | 'TIMED_FREE_NAV' | 'TIMED_SEQUENTIAL' | 'CAT';
   status:                   'IN_PROGRESS' | 'COMPLETED' | 'TIMED_OUT' | 'ABANDONED';
   duration_seconds:         number | null;
+  /** Engagement clock (STUDY, TIMED_FREE_NAV only): engaged seconds spent so
+   *  far. remaining = duration_seconds - engaged_seconds_used. NULL for every
+   *  other mode and for a fresh engagement attempt before its first save —
+   *  both read as 0. See migration 20260815120000. */
+  engaged_seconds_used:     number | null;
   filters_json:             Record<string, unknown>;
   requested_question_count: number;
   actual_question_count:    number;

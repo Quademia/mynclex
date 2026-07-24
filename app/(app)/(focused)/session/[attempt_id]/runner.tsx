@@ -69,7 +69,8 @@ import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
 import { Preflight }          from './preflight';
-import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction } from './actions';
+import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction, recordEngagedTimeAction } from './actions';
+import { useEngagementClock } from './use-engagement-clock';
 import { catTurnAction } from '@/lib/practice/cat/turn-action';
 import { useQuestionTimer } from './use-question-timer';
 import { useTurnTransition } from './use-turn-transition';
@@ -253,6 +254,21 @@ function RunnerShell({ data }: Props) {
   const isTimed     = durationSec !== null;
   const isLive      = data.mode === 'live';
 
+  // ── Engagement clock (BUILD_LIST #6) ──────────────────────────────
+  // (STUDY, TIMED_FREE_NAV) counts ENGAGED time, not wall time: the
+  // countdown freezes while the page is hidden and resumes on return,
+  // durably across a full close (engaged_seconds_used persists server-side).
+  // Every other mode keeps the wall clock below. The hook is a no-op unless
+  // enabled, so calling it unconditionally is safe.
+  const isEngagementClock =
+    data.attempt.intent === 'STUDY' && data.attempt.mode === 'TIMED_FREE_NAV';
+  const { engagedSec, persistNow: persistEngaged } = useEngagementClock({
+    enabled:         isLive && startedAtMs !== null && isEngagementClock && isTimed,
+    priorEngagedSec: data.attempt.engaged_seconds_used ?? 0,
+    attemptId:       data.attempt.attempt_id,
+    onPersist:       recordEngagedTimeAction,
+  });
+
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   useEffect(() => {
     if (!isLive)              return;
@@ -261,10 +277,13 @@ function RunnerShell({ data }: Props) {
     return () => clearInterval(t);
   }, [isLive, startedAtMs]);
 
-  // Stopwatch / countdown derivations (purely from nowMs + anchors).
+  // Stopwatch / countdown derivations. Engagement mode counts down from
+  // ENGAGED time (frozen while away); every other timed mode from wall
+  // elapsed. Untimed → null (stopwatch).
   const elapsedSec   = startedAtMs !== null ? (nowMs - startedAtMs) / 1000 : 0;
+  const usedSec      = isEngagementClock ? engagedSec : elapsedSec;
   const remainingSec = isTimed && durationSec !== null
-    ? Math.max(0, durationSec - elapsedSec)
+    ? Math.max(0, durationSec - usedSec)
     : null;
 
   // Warning tier with sticky escalation (§8.4 — tone never reverts).
@@ -316,13 +335,23 @@ function RunnerShell({ data }: Props) {
 
     setFiredExpire(true);
     startSubmit(async () => {
-      await flushActive(); // bank the last segment before status flips
+      await flushActive();  // bank the last per-question segment
+      persistEngaged();     // and the engaged total, before status flips
       const r = await expireAttemptAction(data.attempt.attempt_id);
       if (!r.ok) { setError(r.error); return; }
       setShowResults(true);
       router.refresh();
     });
-  }, [isLive, isTimed, remainingSec, firedExpire, data.attempt.attempt_id, router, flushActive]);
+  }, [isLive, isTimed, remainingSec, firedExpire, data.attempt.attempt_id, router, flushActive, persistEngaged]);
+
+  // Engagement clock — save the engaged total on every question change
+  // (navigation + submit-and-advance), one of its natural save points.
+  // Leaving the page is saved inside the hook; a hard crash mid-question
+  // forgives that question's engaged time, in the student's favour
+  // (BUILD_LIST #6). No-op for every non-engagement attempt.
+  useEffect(() => {
+    persistEngaged();
+  }, [navCurrent, persistEngaged]);
 
   // Server answers + client overlays. Client wins on conflict — student
   // just submitted in this session, so their fresh row is authoritative.
