@@ -51,7 +51,7 @@ export type BankStreak = {
 // practice page, where the consequence is explained.
 export type ResumeCard = {
   attemptId: string;
-  /** "Untimed Learning", "Timed · Sequential" — resolved upstream. */
+  /** "Learning", "Sequential Exams" — resolved upstream via modeLabelFor(). */
   modeLabel: string;
   done: number;
   total: number;

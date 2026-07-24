@@ -46,6 +46,6 @@ export interface RecentAttempt {
   /** Pre-rendered display label — e.g. "Pharmacology · Hard · 50 Q".
    *  Built server-side via summarise-recent.ts. */
   summary: string;
-  /** "Untimed Learning", "Timed · Sequential" etc. — resolved at fetch. */
+  /** "Learning", "Sequential Exams" etc. — resolved at fetch via modeLabelFor(). */
   mode_label: string;
 }

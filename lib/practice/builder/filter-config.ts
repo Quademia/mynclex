@@ -129,10 +129,14 @@ export const MODES_STUDY: ModeDef[] = [
   },
 ];
 
+// ⚠ EXAM LABELS ARE INTERIM too (2026-07-24, Sam), matching the STUDY set
+// above. Named for the thing that varies within this intent — navigation,
+// then adaptivity — since every exam mode is timed with feedback at the end,
+// so "Timed" was the shared axis rather than the distinguishing one.
 export const MODES_EXAM: ModeDef[] = [
   {
     id: 'TIMED_FREE_NAV',
-    label: 'Timed · Free Nav',
+    label: 'Free Navigational Exams',
     clock: 'wall',
     feedback: 'At the end',
     nav: 'Free',
@@ -140,7 +144,7 @@ export const MODES_EXAM: ModeDef[] = [
   },
   {
     id: 'TIMED_SEQUENTIAL',
-    label: 'Timed · Sequential',
+    label: 'Sequential Exams',
     clock: 'wall',
     feedback: 'At the end',
     nav: 'Forward',
@@ -148,7 +152,7 @@ export const MODES_EXAM: ModeDef[] = [
   },
   {
     id: 'CAT',
-    label: 'CAT',
+    label: 'Computer Adaptive Testing (CAT)',
     clock: 'wall',
     feedback: 'Verdict',
     nav: 'Adaptive',
