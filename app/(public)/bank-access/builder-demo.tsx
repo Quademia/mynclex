@@ -106,9 +106,11 @@ export function BuilderDemo() {
     ? pools.length === 0
       ? 'Pick at least one pool to draw from.'
       : 'No questions match these filters. Loosen your filters.'
-    : isCat || intent === 'EXAM'
+    : isCat
       ? 'Wall-clock timer · single sitting · cannot be resumed.'
-      : 'You can pause and resume. Progress saves automatically.';
+      : intent === 'EXAM'
+        ? 'Wall-clock timer · single sitting · the clock keeps running if you leave.'
+        : 'You can pause and resume. Progress saves automatically.';
 
   return (
     <section id="builder" className="bkc-builder">

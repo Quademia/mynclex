@@ -215,7 +215,7 @@ export function SummaryPanel({
         )}
         {!disabledReason && intent === 'EXAM' && !isCAT && (
           <div className="bk-start-note">
-            Wall-clock timer · single sitting · cannot be resumed.
+            Wall-clock timer · single sitting · the clock keeps running if you leave.
           </div>
         )}
         {!disabledReason && intent === 'STUDY' && (

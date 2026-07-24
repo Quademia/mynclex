@@ -783,14 +783,14 @@
 <p>A session is in exactly one of three states at any moment. The runner behaves differently in each.</p>
 <ul>
   <li><strong>New</strong> — fresh start. Builder finished, runner opens at question 1. Always available for any source/mode.</li>
-  <li><strong>Resume</strong> — student previously started a session and didn't finish (closed browser, lost connection, paused intentionally). They re-open it and pick up where they left off — saved progress restored, answers already given preserved. Restricted to untimed modes only. Timed modes (including CAT) cannot be resumed — if the student exits, the session is abandoned, same rule as case-study mid-session abandonment in §10.</li>
+  <li><strong>Resume</strong> — student previously started a session and didn't finish (closed browser, lost connection, paused intentionally). They re-open it and pick up where they left off — saved progress restored, answers already given preserved. <strong>[CORRECTED 2026-07-25 — the "untimed only" restriction below was never how the code behaved and is superseded by attempt-creation §6.1.3 + §6.1.2.]</strong> Every non-CAT attempt is resumable; the only difference is whether the clock waited: <strong>STUDY timed</strong> froze on the engagement clock (BUILD_LIST #6), so they resume with the same time left; <strong>EXAM timed</strong> kept its wall clock running, so they resume with less time (or it finalises on open if fully drained). <strong>CAT</strong> is the one exception — adaptive state cannot be resumed; if the student exits a CAT it is abandoned.</li>
   <li><strong>Review</strong> — read-only review of a completed session. Student's answers shown alongside correct answers and rationales; no further submission accepted. Available for every source/mode. CAT review additionally shows the result verdict and confidence band.</li>
 </ul>
 
 <h3>Source × Mode × State — quick rules</h3>
 <ul>
-  <li>Resume is impossible for any timed mode, regardless of source.</li>
-  <li>Resume is impossible for Readiness Packs (always timed-sequential by default).</li>
+  <li>Resume works for every non-CAT mode (corrected 2026-07-25 — see the Resume state above and attempt-creation §6.1.3). Timed modes resume too: STUDY timed with the same time left (engagement clock), EXAM timed with the wall clock having continued. CAT is the only mode that cannot be resumed.</li>
+  <li>Readiness Packs are timed-sequential (EXAM framing) by default. Their re-entry is governed by their own one-shot-credit + 21-day review-window rules (see the readiness-packs doc), not by this general resume rule — confirm that path separately before relying on it.</li>
   <li>Review is available for every finished session, regardless of source or mode.</li>
   <li>Abandoned timed sessions never become Reviewable until they complete — abandoning a timed session is equivalent to discarding it (same rule as abandoned case-study sessions).</li>
 </ul>

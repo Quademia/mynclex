@@ -456,14 +456,17 @@
 <p>
   <strong>Note for parent doc §15.</strong> ✅ The intent annotations asked for here are <strong>done</strong> — §15's
   mode list now carries an "Offered under" column (2026-07-24). ✅ The §17 builder spec gained its intent-picker step.
-  <strong>⬜ The resume rule is still unresolved, and is now a three-way contradiction rather than a rewrite:</strong>
-  parent §15 says "resume is impossible for any timed mode", this section says it rewrites to "resume restricted to
-  STUDY intent", and <em>the code does neither</em> — <code>getResumableAttempt()</code> (revised in slice 4.5a)
-  resumes everything except CAT, filtering on <code>mode ≠ 'CAT'</code> with no intent condition. Meanwhile the
-  builder's EXAM start-note tells the student "single sitting · cannot be resumed", and an abandoned EXAM attempt
-  <em>does</em> reappear in the Resume banner. Recorded 2026-07-24 as one of four findings from the mode
-  investigation; deliberately NOT changed in the tuple-removal pass, because which of the three rules is correct is a
-  product decision, not a tidy-up.
+  <strong>✅ The resume rule is RESOLVED (2026-07-25, Sam).</strong> The three-way contradiction — parent §15 "no
+  timed resume", this section's "STUDY only" rewrite, and the code (<code>getResumableAttempt()</code>) resuming
+  everything except CAT — is settled in favour of <strong>what the code already does, which is the coherent
+  behaviour</strong>: <strong>every non-CAT attempt is resumable; the only difference is whether the clock waited for
+  the student.</strong> STUDY timed froze on the engagement clock (BUILD_LIST #6, built the same day) so they resume
+  with the same time left; EXAM timed kept its wall clock running, so they resume with less time — or, if it fully
+  drained, <code>page.tsx</code> finalises it on next open. This matches the settled re-entry rule already written in
+  <strong>§6.1.3</strong>. The defect was never the behaviour — it was the builder's EXAM start-note falsely claiming
+  "cannot be resumed"; that copy is now <em>"single sitting · the clock keeps running if you leave"</em>
+  (<code>summary-panel.tsx</code> + the public demo). Parent §15's "resume is impossible for any timed mode" line is
+  corrected to match. CAT remains the one true exception (adaptive state).
 </p>
 
 <h3>6.1.3 Status enum + lifecycle</h3>
