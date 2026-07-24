@@ -29,9 +29,16 @@
 >
 > ### Needs a decision from Sam
 >
-> 1. **The settled mode names.** Today's labels are explicitly interim. The
->    full proposal, the rejected numbering scheme and the naming avoid-list
->    are parked in `bank-consumption.html` **§15.1**.
+> 1. ✅ **The mode names — reviewed 2026-07-25, interim labels kept for now.**
+>    Sam walked the §15.1 proposal (Study: Tutor · Untimed · Timed / Exam:
+>    Timed exam · Exam simulation · CAT) against the labels adopted 2026-07-24
+>    (Study: Learning · Untimed practice · Timed practice / Exam: Free
+>    Navigation · Sequential · CAT) and chose to **keep the current labels as
+>    they are for now**. The §15.1 proposal is **retained as a future
+>    alternative**, not discarded — ⚠ if it's ever revisited, its **"Tutor"**
+>    label collides with MyNclex's real tutor role (a collision UWorld doesn't
+>    have and the §15.1 avoid-list didn't catch; candidate replacement "Learn").
+>    No code change — labels are display-only and already live.
 > 2. **The Builder's filter accordion on a phone.** 5 of the 9 axes default
 >    open, so the Filters tab measures ~3,000px on a 375px screen. Making it
 >    viewport-dependent isn't CSS (the open state is React state → needs
