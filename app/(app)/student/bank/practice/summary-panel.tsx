@@ -19,6 +19,37 @@ interface RecapRow {
   muted?: boolean;
 }
 
+/**
+ * The Start CTA's wording, shared with the phone launch strip so the two
+ * cannot drift apart.
+ *
+ * CAT is a DOORWAY here, not a launcher (§10.7.1). The label has to say
+ * so: "Start Exam — CAT" promised something this button must not do, and
+ * until 2026-07-21 it did do it — it created an ordinary attempt with 75
+ * pre-snapshotted items and mode='CAT', which is not a CAT at all.
+ *
+ * `short` drops the mode suffix for the launch strip, where the full
+ * string ("Start Quiz · Untimed Learning") cannot fit beside the count on
+ * a 375px screen. It keeps Quiz/Exam, because that word is the difference
+ * between a session you can pause and one you cannot — too consequential
+ * to lose on the surface that launches with a single tap.
+ */
+export function startLabelFor({
+  isCAT,
+  intent,
+  modeLabel,
+  short = false,
+}: {
+  isCAT: boolean;
+  intent: 'STUDY' | 'EXAM';
+  modeLabel: string;
+  short?: boolean;
+}): string {
+  if (isCAT) return 'Go to CAT';
+  const verb = intent === 'EXAM' ? 'Start Exam' : 'Start Quiz';
+  return short ? verb : `${verb} · ${modeLabel}`;
+}
+
 interface SummaryPanelProps {
   /** Live total from nclex_count_eligible_items, or null while pending. */
   total: number | null;
@@ -68,15 +99,7 @@ export function SummaryPanel({
   const matchClass =
     total === null ? '' : total === 0 ? ' err' : total < 10 ? ' warn' : '';
 
-  // CAT is a DOORWAY here, not a launcher (§10.7.1). The label has to say
-  // so: "Start Exam — CAT" promised something this button must not do, and
-  // until 2026-07-21 it did do it — it created an ordinary attempt with 75
-  // pre-snapshotted items and mode='CAT', which is not a CAT at all.
-  const startLabel = isCAT
-    ? 'Go to CAT'
-    : intent === 'EXAM'
-      ? `Start Exam · ${modeLabel}`
-      : `Start Quiz · ${modeLabel}`;
+  const startLabel = startLabelFor({ isCAT, intent, modeLabel });
 
   return (
     <aside className="bk-summary">

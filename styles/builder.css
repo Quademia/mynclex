@@ -984,3 +984,182 @@
   gap: 10px;
   justify-content: center;
 }
+
+/* ─── Mobile launch strip ───────────────────────────────────────────── */
+/* Phone-only furniture (see mobile-launch-bar.tsx). Hidden by default so
+ * the desktop layout is untouched; the media query below turns it on. */
+.bk-launchbar { display: none; }
+
+/* ─── Mobile (≤768px) ───────────────────────────────────────────────── */
+/*
+ * Until 2026-07-24 this file had NO media query at all, and the builder
+ * did not merely look cramped on a phone — it was unusable. `.bk-grid`'s
+ * second track is a fixed 340px, wider than a 375px phone's ~319px
+ * content box, so the grid allotted the FIRST track — the column holding
+ * every control in the builder — 0px, and the rail overflowed 31px into a
+ * strip the page could not scroll to (page scrollWidth stayed at 375, so
+ * the clipped edge was unreachable rather than merely off-screen).
+ *
+ * The fix is structural rather than cosmetic. On desktop the builder is a
+ * two-pane workbench — you work on the left, the rail watches from the
+ * right. On a phone there is no "beside", so it becomes a form filled
+ * top-to-bottom. Because <SummaryPanel> is already the LAST child of
+ * .bk-grid, collapsing to one column lands the summary at the end of the
+ * form for free — which is why nothing had to be dropped from it. The two
+ * things you need while scrolling (the live count, Start) are re-supplied
+ * by the fixed .bk-launchbar.
+ *
+ * Breakpoint is 768px to match the shared mobile-nav system (CLAUDE.md UI
+ * rule 3) — the same width at which .m-tabbar appears below.
+ */
+@media (max-width: 768px) {
+  .bk-builder {
+    padding: 16px 14px 96px;
+  }
+  .bk-builder-head h1 {
+    font-size: 22px;
+  }
+
+  /* One column. */
+  .bk-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  /* Sticky is meaningless once the panel is below the form rather than
+   * beside it — it would pin the summary over the thing it summarises. */
+  .bk-summary {
+    position: static;
+  }
+
+  /* Fixed column counts that assume desktop width. The mode cards carry
+   * three meta pills and a description each, so two-up at 375px is not a
+   * squeeze but a wall of text. .bk-checks needs nothing — its
+   * auto-fill/minmax already collapses to a single column on its own. */
+  .bk-intent-grid,
+  .bk-mode-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bk-pools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Each tab is a label plus an inline meta note ("Untimed Learning",
+   * "configured"). Side by side in 375px they interleave into two ragged
+   * two-line columns. Stack them instead, and let the two tabs split the
+   * width evenly so the strip reads as two targets, not four fragments. */
+  .bk-tabs {
+    gap: 0;
+  }
+  .bk-tab {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    padding: 10px 12px;
+  }
+  .bk-tab .bk-tab-meta {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The resume banner is icon + text + two buttons on ONE row, and both
+   * the icon and the button pair are flex-shrink:0 — so at 375px the text
+   * absorbed the entire squeeze and rendered one word per line. Drop the
+   * actions onto their own full-width row and split them evenly, which
+   * also gives two properly sized tap targets. */
+  .bk-builder .bk-resume {
+    flex-wrap: wrap;
+    gap: 10px 12px;
+  }
+  .bk-builder .bk-resume-actions {
+    flex: 1 0 100%;
+  }
+  .bk-builder .bk-resume-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* ── The launch strip ── */
+  .bk-launchbar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    /* Sits directly on top of the student bottom tab bar — .m-tabbar in
+     * mobile-nav.css is fixed, bottom 0, and 56px tall plus the safe-area
+     * inset it pads itself with. */
+    bottom: calc(56px + env(safe-area-inset-bottom));
+    /* Under .m-tabbar (20) is fine — they do not overlap — and it MUST
+     * stay under the drawer (45) and account sheet (55), or a launch
+     * button would float over an open menu. */
+    z-index: 19;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -6px 18px rgba(17, 24, 39, 0.07);
+    /* Kept tight on purpose: the strip plus .m-tabbar is permanent
+     * furniture on an 812px screen, so every pixel here is one the form
+     * does not get. The button's own 44px is the floor (tap target). */
+    padding: 7px 14px;
+  }
+  .bk-launchbar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .bk-launchbar-count {
+    min-width: 0;
+    line-height: 1.2;
+    color: var(--text-muted);
+  }
+  .bk-launchbar-count strong {
+    display: block;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .bk-launchbar-count span {
+    font-size: 10.5px;
+  }
+  /* Same three states as the rail's count tile, so the two readouts of
+   * one number never disagree about whether it is a problem. */
+  .bk-launchbar-count.warn strong { color: #7c2d12; }
+  .bk-launchbar-count.warn span   { color: #92400e; }
+  .bk-launchbar-count.err strong  { color: #7f1d1d; }
+  .bk-launchbar-count.err span    { color: #991b1b; }
+
+  .bk-launchbar-start {
+    margin-left: auto;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 18px;
+    font-size: 13.5px;
+    font-weight: 700;
+    font-family: inherit;
+    background: var(--primary);
+    color: var(--white);
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .bk-launchbar-start:active:not(:disabled) { transform: scale(0.99); }
+  .bk-launchbar-start:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .bk-launchbar-msg {
+    margin-top: 6px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--warning);
+    text-align: center;
+  }
+}

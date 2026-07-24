@@ -55,6 +55,7 @@ import { discardAttemptAction } from '@/lib/practice/builder/actions';
 import { Axis } from './axis';
 import { ModeCard } from './mode-card';
 import { SummaryPanel } from './summary-panel';
+import { MobileLaunchBar } from './mobile-launch-bar';
 
 // Set helpers — toggle a value, replace the set, etc. Local only.
 function toggle<T>(s: Set<T>, v: T): Set<T> {
@@ -394,8 +395,12 @@ export function PracticeBuilder({
 
       <div className="bk-builder-head">
         <h1>Build a practice quiz</h1>
+        {/* "on the right" was true of the desktop rail only — on a phone
+            the summary sits at the end of the form and the live count
+            rides in the launch strip, so the direction pointed at
+            nothing. Stated without a direction, it is true of both. */}
         <div className="sub">
-          Pick what you’re practising and how. The count on the right updates as you go.
+          Pick what you’re practising and how. The count updates as you go.
         </div>
       </div>
 
@@ -738,6 +743,19 @@ export function PracticeBuilder({
           onStart={onStart}
         />
       </div>
+
+      {/* Phone-only (≤768px, hidden by CSS above it). Outside .bk-grid
+          because it is fixed-position furniture, not a column. */}
+      <MobileLaunchBar
+        total={isCAT ? null : total}
+        loading={countLoading}
+        intent={intent}
+        modeLabel={modeLabel}
+        isCAT={isCAT}
+        disabledReason={disabledReason}
+        starting={starting}
+        onStart={onStart}
+      />
     </div>
   );
 }
