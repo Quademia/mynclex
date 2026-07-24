@@ -143,7 +143,7 @@ export function QuizSelectorEditor({
       {selected && (
         <p className="activity-quiz-summary">
           {formatQuizKind(selected.quiz_kind)} ·{' '}
-          {formatQuizMode(selected.mode)} ·{' '}
+          {formatQuizMode(selected.quiz_kind, selected.mode)} ·{' '}
           {formatItemCount(selected.item_count)}
           {selectedUnavailable && (
             <span className="activity-quiz-warn">

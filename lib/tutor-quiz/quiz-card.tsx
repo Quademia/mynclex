@@ -80,7 +80,7 @@ export function QuizCard({ quiz }: { quiz: QuizListRow }) {
             </span>
             <span className="quiz-card-metaitem">
               <QuizIcon name={isTimedMode(quiz.mode) ? 'timer' : 'clock'} />
-              {formatQuizMode(quiz.mode)}
+              {formatQuizMode(quiz.quiz_kind, quiz.mode)}
               {durationLabel ? ` · ${durationLabel}` : ''}
             </span>
           </div>

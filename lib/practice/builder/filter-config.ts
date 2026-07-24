@@ -133,10 +133,17 @@ export const MODES_STUDY: ModeDef[] = [
 // above. Named for the thing that varies within this intent — navigation,
 // then adaptivity — since every exam mode is timed with feedback at the end,
 // so "Timed" was the shared axis rather than the distinguishing one.
+//
+// The word "Exams" was dropped from the first two: the student has already
+// chosen the Exam intent before these are shown, so it added nothing, and it
+// read twice over on the surfaces that prefix with the intent themselves
+// ("Start Exam · Sequential Exams", "Mode: Exam · Sequential Exams").
+// "Free Navigation" rather than "Free Navigational" — the latter is an
+// adjective with nothing to modify once the noun is gone.
 export const MODES_EXAM: ModeDef[] = [
   {
     id: 'TIMED_FREE_NAV',
-    label: 'Free Navigational Exams',
+    label: 'Free Navigation',
     clock: 'wall',
     feedback: 'At the end',
     nav: 'Free',
@@ -144,7 +151,7 @@ export const MODES_EXAM: ModeDef[] = [
   },
   {
     id: 'TIMED_SEQUENTIAL',
-    label: 'Sequential Exams',
+    label: 'Sequential',
     clock: 'wall',
     feedback: 'At the end',
     nav: 'Forward',

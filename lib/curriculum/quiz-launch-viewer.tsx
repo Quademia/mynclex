@@ -179,7 +179,7 @@ export function QuizLaunchBody({ ctx }: { ctx: QuizLaunchContext }) {
 
   return (
     <div className="quiz-launch-meta">
-      <p className="quiz-launch-mode">{formatQuizMode(ctx.quiz.mode)}</p>
+      <p className="quiz-launch-mode">{formatQuizMode(ctx.quiz.quiz_kind, ctx.quiz.mode)}</p>
 
       <dl className="quiz-launch-facts">
         <div>

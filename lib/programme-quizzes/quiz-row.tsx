@@ -57,7 +57,7 @@ export function QuizRow({
         <div className="prow-subline">
           <span className="prow-meta-text">
             <span>
-              {formatQuizMode(quiz.mode)}
+              {formatQuizMode(quiz.quiz_kind, quiz.mode)}
               {durationLabel ? ` · ${durationLabel}` : ''}
             </span>
             <span aria-hidden="true" className="dot-sep">

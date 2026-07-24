@@ -4,6 +4,7 @@
 // no React — safe to import from both server and client modules.
 
 import type { QuizKind, QuizMode, QuizStatus } from './types';
+import { modeLabelFor, type Intent } from '@/lib/practice/builder/filter-config';
 
 // Which modes each quiz kind allows. Mirrors the DB CHECK
 // nclex_tutor_quizzes_kind_mode_tuple — and, through it, the attempts CHECK
@@ -40,14 +41,30 @@ export function formatQuizKind(kind: QuizKind): string {
   return kind === 'MOCK' ? 'Mock exam' : 'Practice quiz';
 }
 
-const MODE_LABELS: Record<QuizMode, string> = {
-  UNTIMED_LEARNING: 'Untimed — learning',
-  UNTIMED_TEST: 'Untimed — test',
-  TIMED_FREE_NAV: 'Timed — free navigation',
-  TIMED_SEQUENTIAL: 'Timed — sequential',
-};
-export function formatQuizMode(mode: QuizMode): string {
-  return MODE_LABELS[mode];
+/**
+ * A quiz kind IS an intent — MOCK launches as EXAM, PRACTICE as STUDY.
+ * That derivation is the system's rule (both launch RPCs apply it, and the
+ * kind/mode CHECK mirrors the intent/mode one through it), so the label
+ * follows it too.
+ */
+export function intentForQuizKind(kind: QuizKind): Intent {
+  return kind === 'MOCK' ? 'EXAM' : 'STUDY';
+}
+
+/**
+ * The mode's label, resolved through the SAME source the student sees
+ * (modeLabelFor in the practice builder's config). A tutor configuring a
+ * quiz should read the words their students will read — otherwise the two
+ * halves of the product name the same behaviour differently.
+ *
+ * Takes `kind` because mode alone is not enough: TIMED_FREE_NAV is the one
+ * mode allowed under BOTH kinds, and it is named differently under each
+ * ("Timed practice" for PRACTICE/STUDY, "Free Navigation" for MOCK/EXAM).
+ * This file previously kept its own mode-keyed map, which could not express
+ * that and had drifted to its own vocabulary ("Timed — free navigation").
+ */
+export function formatQuizMode(kind: QuizKind, mode: QuizMode): string {
+  return modeLabelFor(intentForQuizKind(kind), mode);
 }
 
 const MODE_HELP: Record<QuizMode, string> = {

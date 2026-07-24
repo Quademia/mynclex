@@ -190,7 +190,7 @@ export function AddExistingPicker({
                           >
                             {formatQuizKind(q.quiz_kind)}
                           </span>
-                          <span>{formatQuizMode(q.mode)}</span>
+                          <span>{formatQuizMode(q.quiz_kind, q.mode)}</span>
                           <span aria-hidden="true">·</span>
                           <span>{formatItemCount(q.item_count)}</span>
                         </span>

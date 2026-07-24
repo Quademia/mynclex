@@ -230,7 +230,7 @@ export function QuizEditor({
               <QuizIcon name="list" />
               Mode
             </span>
-            <span className="v">{formatQuizMode(quiz.mode)}</span>
+            <span className="v">{formatQuizMode(quiz.quiz_kind, quiz.mode)}</span>
           </div>
           {durationLabel && (
             <div className="chip">
