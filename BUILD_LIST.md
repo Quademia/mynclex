@@ -6,7 +6,20 @@
 > pick from it without re-deriving. Grouped by what each one needs from us.
 > **Sam's pick for next session: #6, the pausing clock.**
 >
-> **✅ Built and merged this session** (so it isn't re-opened): two
+> **✅ Cleared 2026-07-25 (branch `claude/work-session-4fe7ee`, on that
+> branch — NOT yet on `main`):** the whole **Small fixes** group below.
+> #3 done (`f0b5901`) — the public demo's CAT button now reads "Go to CAT".
+> #4 done (`0266425`) — five stale slice-number build notes on the tutor
+> library retired (including the dormant `comingIn` template → "coming
+> soon", so a future disabled block type can't leak a slice number). #5
+> **closed as not-actually-broken** — inspected the live curator bulb; it
+> renders as a properly spaced, indented list (the note had generalized the
+> dashboard's already-fixed squashing onto the curator bulbs, which never
+> had it). The only residue is latent fragility: the shared `<Bulb>` ships
+> no default list style, so a *future* bare-`<ul>` bulb on a non-`.bd` page
+> could squash — hardening deferred, nothing visible today.
+>
+> **✅ Built and merged 2026-07-24** (so it isn't re-opened): two
 > conflicting `(intent, mode)` tuples removed — `(EXAM, UNTIMED_TEST)` and
 > `(STUDY, TIMED_SEQUENTIAL)` — taking the framework to **6 tuples, 3 per
 > intent**, enforced in the DB (migration `20260814120000`) with the tutor
@@ -25,18 +38,23 @@
 >    client detection, risks a hydration mismatch); closing them for everyone
 >    changes desktop behaviour. **Agreed to judge on a real phone first.**
 >
-> ### Small fixes, ready to run
+> ### Small fixes — ✅ all cleared 2026-07-25 (see the note above)
 >
-> 3. **Public `/bank-access` demo — the CAT button** still says "Start Exam —
->    CAT" when the real Builder hands off with **"Go to CAT"** (§10.7.1).
->    One line. Known since 2026-07-21.
-> 4. **Four build notes visible to users**, all on tutor **library**
->    surfaces — `"coming in slice ${item.comingIn}"` (`note-body-editor`),
->    "ships with slice 11.15" + "become unit activities in slice 11.11"
->    (`note-editor`), "when slice 11.10 ships" (`notes-view`). Same defect
->    class as the runner/preflight notes fixed 2026-07-24, different surface.
-> 5. **The 💡 bulb body has no stylesheet anywhere in the repo**, so every
->    curator bulb's `<ul>` loses its markers to the global reset.
+> 3. ✅ **Public `/bank-access` demo CAT button** → "Go to CAT" (`f0b5901`).
+> 4. ✅ **Stale slice-number build notes on the tutor library** retired —
+>    five strings in `note-editor`, `notes-view`, `note-body-editor` and
+>    `slash-menu` (`0266425`). Two edge cases resolved: the dormant
+>    `comingIn` template now reads "coming soon" (closes the leak for good);
+>    a fifth, "filters and search land in a future slice" on the all-notes
+>    view, was folded in (both already exist). ⓘ One left untouched on
+>    purpose: the "Recent" view's *"Needs visit tracking — ships with a later
+>    slice"* — genuinely unbuilt, no slice-number jargon, so it's an honest
+>    "not yet", not a false "coming".
+> 5. ✅ **The 💡 bulb** — closed as **not actually broken** (inspected live;
+>    the curator bulb renders as a clean, spaced, indented list). The note
+>    over-generalized the dashboard's already-fixed squashing. Latent
+>    hardening (give the shared `<Bulb>` its own default list style so a
+>    future bare-`<ul>` bulb can't squash) left for a rainy day.
 >
 > ### The four findings from the mode investigation (2026-07-24)
 >
