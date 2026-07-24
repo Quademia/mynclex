@@ -101,7 +101,7 @@ export function BuilderDemo() {
   const shownCount = Math.min(count, total || count);
 
   const disabled = !isCat && (pools.length === 0 || total === 0);
-  const startLabel = isCat ? 'Start Exam — CAT' : intent === 'EXAM' ? `Start Exam · ${modeLabel}` : `Start Quiz · ${modeLabel}`;
+  const startLabel = isCat ? 'Go to CAT' : intent === 'EXAM' ? `Start Exam · ${modeLabel}` : `Start Quiz · ${modeLabel}`;
   const startNote = disabled
     ? pools.length === 0
       ? 'Pick at least one pool to draw from.'
