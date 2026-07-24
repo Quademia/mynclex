@@ -95,10 +95,17 @@ export interface ModeDef {
   desc: string;
 }
 
+// ⚠ STUDY LABELS ARE INTERIM (2026-07-24, Sam). They read as one
+// "Learning" mode plus two "practice" modes separated only by the clock —
+// which is their only actual difference now that Timed Sequential has left
+// STUDY. "Free Nav" was dropped from the timed one for the same reason:
+// with no other timed study mode to contrast against, the words were no
+// longer distinguishing anything. A settled naming decision is still open —
+// see bank-consumption.html §15.1 for the full proposal and the reasoning.
 export const MODES_STUDY: ModeDef[] = [
   {
     id: 'UNTIMED_LEARNING',
-    label: 'Untimed Learning',
+    label: 'Learning',
     clock: 'none',
     feedback: 'After each submit',
     nav: 'Free',
@@ -106,7 +113,7 @@ export const MODES_STUDY: ModeDef[] = [
   },
   {
     id: 'UNTIMED_TEST',
-    label: 'Untimed Test',
+    label: 'Untimed practice',
     clock: 'none',
     feedback: 'At the end',
     nav: 'Free',
@@ -114,7 +121,7 @@ export const MODES_STUDY: ModeDef[] = [
   },
   {
     id: 'TIMED_FREE_NAV',
-    label: 'Timed · Free Nav',
+    label: 'Timed practice',
     clock: 'engagement',
     feedback: 'At the end',
     nav: 'Free',
@@ -150,6 +157,27 @@ export const MODES_EXAM: ModeDef[] = [
     desc: `${MIN_ITEMS}–${MAX_ITEMS} questions. Difficulty adapts. Terminates on confidence.`,
   },
 ];
+
+/**
+ * The display label for a stored attempt's (intent, mode), resolved from
+ * the arrays above so there is exactly one place a mode is named.
+ *
+ * Needed because the two lists deliberately disagree on TIMED_FREE_NAV —
+ * the one mode offered under BOTH intents — where STUDY says "Timed
+ * practice" and EXAM says "Timed · Free Nav". A label map keyed on mode
+ * alone cannot express that, and the runner and preflight each kept one:
+ * three hardcoded lists that had already drifted into three spellings of
+ * the same mode ("Timed · Free Nav" / "Timed · free navigation" /
+ * "Timed · free nav"). They now all resolve through here.
+ *
+ * Falls back to the raw id, matching what the history and launcher reads
+ * already do — a stored row on a tuple no longer offered still renders
+ * something rather than blank.
+ */
+export function modeLabelFor(intent: Intent, mode: ModeId): string {
+  const list = intent === 'STUDY' ? MODES_STUDY : MODES_EXAM;
+  return list.find((m) => m.id === mode)?.label ?? mode;
+}
 
 export const DEFAULT_MODE_FOR_INTENT: Record<Intent, ModeId> = {
   STUDY: 'UNTIMED_LEARNING',

@@ -74,18 +74,16 @@ import { useQuestionTimer } from './use-question-timer';
 import { useTurnTransition } from './use-turn-transition';
 import { CatTransition } from './cat-transition';
 import { isBlocking } from '@/lib/practice/cat/turn-transition';
+import { modeLabelFor } from '@/lib/practice/builder/filter-config';
 
 interface Props {
   data: RunnerData;
 }
 
-const MODE_LABELS: Record<RunnerData['attempt']['mode'], string> = {
-  UNTIMED_LEARNING:  'Untimed Learning',
-  UNTIMED_TEST:      'Untimed Test',
-  TIMED_FREE_NAV:    'Timed · free nav',
-  TIMED_SEQUENTIAL:  'Timed · sequential',
-  CAT:               'CAT',
-};
+// Mode labels come from lib/practice/builder/filter-config via
+// modeLabelFor(intent, mode). This file used to keep its own hardcoded map,
+// which could not express the fact that TIMED_FREE_NAV is named differently
+// under each intent — and had already drifted to a third spelling of it.
 
 // Archetype collapses 8 (mode, intent) tuples into 3 behavioural groups
 // (slice 4.5b — runner.html §15 + BUILD_LIST 4.5):
@@ -371,7 +369,7 @@ function RunnerShell({ data }: Props) {
   // "Q N / 85" like any other finished attempt.
   const displayTotal = isCat && data.mode === 'live' ? null : total;
   const currentItem = data.items[current];
-  const modeLabel   = MODE_LABELS[data.attempt.mode];
+  const modeLabel   = modeLabelFor(data.attempt.intent, data.attempt.mode);
   const modeMsg     = statusMessage(data.mode, data.attempt.mode);
 
   const archetype = getArchetype(data.attempt.mode);

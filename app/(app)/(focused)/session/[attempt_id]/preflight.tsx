@@ -20,14 +20,11 @@ import { ErrorToast } from '@/lib/toast/error-toast';
 import { markStartedAction, startReadinessAttemptAction } from './actions';
 import type { AttemptHeader } from '@/lib/practice/runner';
 import { exitBackLabel } from '@/lib/practice/runner/resolve-exit-href';
+import { modeLabelFor } from '@/lib/practice/builder/filter-config';
 
-const MODE_LABELS: Record<AttemptHeader['mode'], string> = {
-  UNTIMED_LEARNING:  'Untimed Learning',
-  UNTIMED_TEST:      'Untimed Test',
-  TIMED_FREE_NAV:    'Timed · free navigation',
-  TIMED_SEQUENTIAL:  'Timed · sequential',
-  CAT:               'CAT',
-};
+// Mode labels resolve through modeLabelFor(intent, mode) — see the note on
+// that helper. This file used to keep its own hardcoded map, which could not
+// express TIMED_FREE_NAV being named differently under each intent.
 
 const SOURCE_LABELS: Record<AttemptHeader['source'], string> = {
   CUSTOM_BUILT:       'Custom-built',
@@ -99,7 +96,7 @@ export function Preflight({ attempt, itemCount, exitHref }: Props) {
         </p>
 
         <dl className="rn-preflight-summary">
-          <dt>Mode</dt>      <dd>{MODE_LABELS[attempt.mode]}</dd>
+          <dt>Mode</dt>      <dd>{modeLabelFor(attempt.intent, attempt.mode)}</dd>
           <dt>Intent</dt>    <dd>{attempt.intent === 'STUDY' ? 'Study' : 'Exam'}</dd>
           <dt>Questions</dt> <dd>{itemCount}</dd>
           <dt>Source</dt>    <dd>{SOURCE_LABELS[attempt.source]}</dd>
