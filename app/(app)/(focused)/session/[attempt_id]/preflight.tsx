@@ -21,6 +21,7 @@ import { markStartedAction, startReadinessAttemptAction } from './actions';
 import type { AttemptHeader } from '@/lib/practice/runner';
 import { exitBackLabel } from '@/lib/practice/runner/resolve-exit-href';
 import { modeLabelFor } from '@/lib/practice/builder/filter-config';
+import { preflightBrief } from '@/lib/practice/runner/mode-brief';
 
 // Mode labels resolve through modeLabelFor(intent, mode) — see the note on
 // that helper. This file used to keep its own hardcoded map, which could not
@@ -102,10 +103,12 @@ export function Preflight({ attempt, itemCount, exitHref }: Props) {
           <dt>Source</dt>    <dd>{SOURCE_LABELS[attempt.source]}</dd>
         </dl>
 
+        {/* Was a build note ("In 4.1 every mode runs with per-question submit
+            ... land with slice 4.5") — internal slice jargon shown to a
+            student, and false since 4.5 shipped. Now the real behaviour of
+            the mode they are about to start, from the one shared source. */}
         <p className="rn-preflight-note">
-          In 4.1 every mode runs with per-question submit and free navigation
-          (Untimed-Learning behaviour). Timer, sequential lock, and batched
-          submit land with slice 4.5.
+          {preflightBrief(attempt.intent, attempt.mode, attempt.duration_seconds)}
         </p>
 
         <div className="rn-preflight-actions">

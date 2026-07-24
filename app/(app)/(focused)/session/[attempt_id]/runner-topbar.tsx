@@ -131,7 +131,10 @@ export function RunnerTopbar({
         type="button"
         className={'rn-mark-btn' + (marked ? ' on' : '')}
         disabled
-        title="Mark-for-review · slice 4.7"
+        // The button is a placeholder until the marking table is wired
+        // (BUILD_LIST 4.7). The tooltip said "Mark-for-review · slice 4.7" —
+        // our build vocabulary, shown to a student hovering a dead control.
+        title="Marking questions for review isn’t available yet"
       >
         ⚑ {marked ? 'Marked' : 'Mark'}
       </button>

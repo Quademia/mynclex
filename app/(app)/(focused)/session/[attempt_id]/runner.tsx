@@ -15,10 +15,11 @@
 //                      runner.html §2.3.1; review mode reads the
 //                      same fields off the unsealed item directly.
 //
-// Mode policy reminder (BUILD_LIST.md slice 4.1): every mode renders as
-// Untimed Learning behaviour for now — per-Q submit + immediate
-// rationale + free nav. Per-mode deltas (timer, sequential lock,
-// batched submit) layer in with slice 4.5.
+// Mode policy: the runner dispatches on ARCHETYPE — UL, FREE_BATCHED,
+// SEQUENTIAL — defined in lib/practice/runner/mode-brief.ts. (The note that
+// stood here saying "every mode renders as Untimed Learning behaviour for
+// now ... layer in with slice 4.5" described the pre-4.5 runner and was years
+// out of date: the timer, the sequential lock and batched submit all ship.)
 
 'use client';
 
@@ -75,55 +76,28 @@ import { useTurnTransition } from './use-turn-transition';
 import { CatTransition } from './cat-transition';
 import { isBlocking } from '@/lib/practice/cat/turn-transition';
 import { modeLabelFor } from '@/lib/practice/builder/filter-config';
+import { archetypeFor, footerBrief } from '@/lib/practice/runner/mode-brief';
 
 interface Props {
   data: RunnerData;
 }
 
-// Mode labels come from lib/practice/builder/filter-config via
-// modeLabelFor(intent, mode). This file used to keep its own hardcoded map,
-// which could not express the fact that TIMED_FREE_NAV is named differently
-// under each intent — and had already drifted to a third spelling of it.
-
-// Archetype collapses 8 (mode, intent) tuples into 3 behavioural groups
-// (slice 4.5b — runner.html §15 + BUILD_LIST 4.5):
+// This file keeps NO copy of its own for modes. Three things it used to
+// hardcode now resolve from one place each, because all three had gone stale
+// in the same way — they described a runner that no longer exists:
 //
-//   • UL            — per-Q submit + immediate rationale + free nav (4.1).
-//   • FREE_BATCHED  — per-Q submit removed; footer is Prev / Next / Finish;
-//                     rationale hidden mid-quiz; revisable until Finish.
-//   • SEQUENTIAL    — per-Q "Submit & continue"; Prev disabled; no Skip.
-//                     In 4.5b the lock semantics (DRAFT → SUBMITTED on
-//                     submit, cell read-only) are deferred to 4.5c — for
-//                     now "Submit & continue" advances + saves like Next.
-//
-// CAT is treated as Sequential for the dispatch — it isn't reachable in
-// v1 (create-attempt rejects CAT mode until slice 3.x), and Sequential is
-// the closest defensive default.
-type Archetype = 'UL' | 'FREE_BATCHED' | 'SEQUENTIAL';
-
-function getArchetype(mode: RunnerData['attempt']['mode']): Archetype {
-  switch (mode) {
-    case 'UNTIMED_LEARNING': return 'UL';
-    case 'UNTIMED_TEST':
-    case 'TIMED_FREE_NAV':   return 'FREE_BATCHED';
-    case 'TIMED_SEQUENTIAL':
-    case 'CAT':              return 'SEQUENTIAL';
-  }
-}
-
-function statusMessage(mode: RunnerData['mode'], attemptMode: RunnerData['attempt']['mode']): string {
-  if (mode === 'review') {
-    return 'Review · use the grid to filter Wrong / Marked / Unanswered, or step in order';
-  }
-  // CAT (slice 6b): the generic line below is actively wrong here — there is
-  // no rationale shown mid-exam and no Next button, because the engine
-  // decides what comes next and whether the exam is over.
-  if (attemptMode === 'CAT') {
-    return 'CAT · answer each question and submit — the exam adapts as you go and ends when it is confident';
-  }
-  // 4.5 will branch on attemptMode for timer / sequential / batched-submit copy.
-  return 'Untimed Learning · pick an option, Submit to see the rationale, then Next →';
-}
+//   • the mode LABEL  → modeLabelFor(intent, mode) in the builder's config.
+//     The local map was mode-keyed, so it could not express TIMED_FREE_NAV
+//     being named differently under each intent, and had drifted to a third
+//     spelling of it.
+//   • the ARCHETYPE   → archetypeFor(mode) in mode-brief.ts, which sits next
+//     to the per-mode copy that has to agree with it. CAT dispatches as
+//     SEQUENTIAL; the old note claiming CAT "isn't reachable in v1" predates
+//     the engine, which has been live since 2026-07-19 and is on prod.
+//   • the FOOTER LINE → footerBrief(...). The local version returned
+//     Untimed-Learning copy for EVERY non-CAT mode, promising a rationale
+//     after each submit to students in batched and sequential modes who see
+//     nothing until the end.
 
 
 // Outer router: preflight gate vs runner shell. Split out so the
@@ -370,9 +344,9 @@ function RunnerShell({ data }: Props) {
   const displayTotal = isCat && data.mode === 'live' ? null : total;
   const currentItem = data.items[current];
   const modeLabel   = modeLabelFor(data.attempt.intent, data.attempt.mode);
-  const modeMsg     = statusMessage(data.mode, data.attempt.mode);
+  const modeMsg     = footerBrief(data.attempt.intent, data.attempt.mode, data.mode === 'review');
 
-  const archetype = getArchetype(data.attempt.mode);
+  const archetype = archetypeFor(data.attempt.mode);
 
   // NOTE: `isCat` and the derived `current` are declared with the state
   // block above — `current` is read at the question timer before this point.
@@ -814,7 +788,7 @@ function RunnerShell({ data }: Props) {
   if (data.mode === 'review' || !isLive) {
     // Review state — primary is unused (no footer interaction needed).
     // Keep a Next-style label so the rendered button shape is preserved.
-    primaryLabel    = 'Next →';
+    primaryLabel    = 'Next';
     primaryDisabled = isLastQ;
     primaryHint     = isLastQ ? 'You\'re on the last question' : undefined;
     onPrimary       = onNext;
@@ -849,7 +823,7 @@ function RunnerShell({ data }: Props) {
       primaryHint     = undefined;
       onPrimary       = onFinish;
     } else {
-      primaryLabel    = 'Next →';
+      primaryLabel    = 'Next';
       primaryDisabled = isLastQ;
       primaryHint     = isLastQ ? 'You\'re on the last question' : undefined;
       onPrimary       = onNextGuarded;
@@ -868,7 +842,7 @@ function RunnerShell({ data }: Props) {
       primaryHint     = undefined;
       onPrimary       = onFinishFreeBatched;
     } else {
-      primaryLabel    = 'Next →';
+      primaryLabel    = 'Next';
       primaryDisabled = false;
       primaryHint     = undefined;
       onPrimary       = onNextGuarded;
@@ -898,7 +872,7 @@ function RunnerShell({ data }: Props) {
       primaryHint     = canSubmit ? undefined : (submitGate?.hint ?? skipHint);
       onPrimary       = onSubmitAndFinish;
     } else {
-      primaryLabel    = 'Submit & continue →';
+      primaryLabel    = 'Submit & continue';
       primaryDisabled = !canSubmit || submitting;
       primaryHint     = canSubmit ? undefined : (submitGate?.hint ?? skipHint);
       onPrimary       = onSubmitAndAdvance;
