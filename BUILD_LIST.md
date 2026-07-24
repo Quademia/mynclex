@@ -89,15 +89,17 @@
 >    Study-timed now pauses on the engagement clock; Exam-timed keeps the wall
 >    clock. Proven live on two attempts of the *same* mode id (`TIMED_FREE_NAV`)
 >    that behaved differently by intent.
-> 8. **Resume is a three-way contradiction.** Parent §15 says "impossible for
->    any timed mode"; §6.1.2 says it rewrites to "STUDY intent only"; the code
->    (slice 4.5a) resumes **everything except CAT**, filtering `mode ≠ 'CAT'`
->    with no intent condition. Meanwhile the Builder tells EXAM students
->    "single sitting · cannot be resumed" — and an abandoned EXAM attempt
->    **does** reappear in the Resume banner. Which rule is right is a product
->    decision, not a tidy-up. **Still open** — and now more pointed: an
->    engagement (STUDY timed) attempt is genuinely resumable by design, so the
->    Builder's blanket "cannot be resumed" copy needs an intent split.
+> 8. ✅ **Resume contradiction — RESOLVED 2026-07-25 (`1a64969`).** The
+>    behaviour was never broken, the **copy** was: an Exam is resumable while
+>    its wall clock still runs (it finalises on open once drained), yet the
+>    Builder claimed "cannot be resumed" and the banner offered it anyway.
+>    Settled in favour of the code's coherent behaviour: **every non-CAT
+>    attempt is resumable; the only difference is whether the clock waited** —
+>    STUDY timed froze (engagement clock, same time left), EXAM timed kept
+>    draining. Fixed the Exam start-note ("the clock keeps running if you
+>    leave") on the real builder + public demo (CAT keeps "cannot be
+>    resumed"), corrected the stale resume-fetcher comment, and reconciled
+>    both plan docs (§15 + §6.1.2 → §6.1.3). No behaviour change, no migration.
 > 9. ✅ **`intent` now drives behaviour** — resolved by #6. `intent === 'STUDY'`
 >    (with `mode === 'TIMED_FREE_NAV'`) is what selects the engagement clock, so
 >    intent is no longer a display-only word.
