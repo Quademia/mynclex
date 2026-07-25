@@ -17,19 +17,23 @@ export const MIN_ITEMS = 85;
 export const MAX_ITEMS = 150;
 
 /**
- * 4 hours (§9.3). Real NCLEX allows 5; 4 is real enough without being punishing.
+ * 5 hours (§9.3, moved from 4 on 2026-07-25). Matches the real NCLEX clock —
+ * a ceiling only ever cuts off a slow candidate, so the longer limit is both
+ * kinder and more faithful (§9.2's "match real NCLEX exactly" applied to the
+ * time dimension).
  *
- * This is the CREATION default — it is what `nclex_create_cat_attempt` stamps
- * into the attempt's `duration_seconds`, and what the marketing/home surfaces
+ * This is the CREATION default — it is what `create_cat_attempt` stamps into
+ * the attempt's `duration_seconds`, and what the marketing/home surfaces
  * quote. It is NOT the runtime authority: `checkTermination` takes the limit
  * from the attempt row (see `TerminationInput.timeLimitSeconds`), so an exam
- * already in progress is judged against the limit it actually started under.
+ * already in progress is judged against the limit it actually started under
+ * (a CAT created under the old 4h keeps 4h).
  *
  * ⚠ Kept in step with C_DURATION_SECONDS in
- * `20260809120000_cat_slice3_create_attempt.sql` by the test in
+ * `20260816120000_cat_time_limit_5h.sql` by the test in
  * `termination.test.ts` — the SQL side cannot import this.
  */
-export const TIME_LIMIT_SECONDS = 4 * 60 * 60;
+export const TIME_LIMIT_SECONDS = 5 * 60 * 60;
 
 /** The precision floor: the estimate must be this sharp to stop early (§9.1). */
 export const SE_THRESHOLD = 0.4;

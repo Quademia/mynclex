@@ -149,19 +149,21 @@ describe('expireCat — it refuses to invent a verdict', () => {
     expect(db.writes).toHaveLength(0);
   });
 
-  it('honours the ROW’s limit, not the constant (§9.3 reopened)', async () => {
-    // An exam sold as 5 hours must not be cut off at 4 because the module
-    // constant still says 4 — the case that motivated taking the limit as
-    // input in the first place.
-    const fiveHours = 5 * 60 * 60;
-    const db = makeDb(rows(100), fiveHours);
+  it('honours the ROW’s limit, not the constant (§9.3)', async () => {
+    // §9.3 moved the constant to 5h (2026-07-25). A CAT started under the old
+    // 4h must still time out at 4h — the row's limit is the authority, not the
+    // module constant — the case that motivated taking the limit as input.
+    const fourHours = 4 * 60 * 60;
+    const db = makeDb(rows(100), fourHours);
 
+    // A second short of the ROW's own 4h → not yet timed out.
     await expect(
-      expireCat(db, { attemptId: 'a', elapsedSeconds: TIME_LIMIT_SECONDS }),
+      expireCat(db, { attemptId: 'a', elapsedSeconds: fourHours - 1 }),
     ).rejects.toThrow(/has not timed out/);
     expect(db.writes).toHaveLength(0);
 
-    const r = await expireCat(db, { attemptId: 'a', elapsedSeconds: fiveHours });
+    // At the row's 4h → verdict, even though the constant now reads 5h.
+    const r = await expireCat(db, { attemptId: 'a', elapsedSeconds: fourHours });
     expect(r.verdict).toBeTruthy();
   });
 

@@ -138,7 +138,7 @@ describe('checkTermination — maximum length (§9.4)', () => {
 });
 
 describe('checkTermination — time limit (§9.3)', () => {
-  it('stops at 4 hours, resolving by side when past the minimum', () => {
+  it('stops at the time limit, resolving by side when past the minimum', () => {
     expect(
       at({ theta: 0.4, se: 0.6, itemsAdministered: 100, elapsedSeconds: TIME_LIMIT_SECONDS })
     ).toEqual({ stop: true, reason: 'TIME_LIMIT_HIT', verdict: 'ABOVE_STANDARD' });
@@ -160,29 +160,30 @@ describe('checkTermination — time limit (§9.3)', () => {
 
 describe('the limit comes from the attempt row, not the constant (§9.3)', () => {
   // The whole point of taking timeLimitSeconds as input: an exam is judged
-  // against the limit IT started under. If §9.3 moves 4 hours to 5, an exam
-  // already in progress must keep its 4 — and a 5-hour exam must not be cut
-  // off at 4 just because the constant still says so.
-  const FIVE_HOURS = 5 * 60 * 60;
+  // against the limit IT started under. §9.3 moved 4 hours to 5 (2026-07-25),
+  // so a CAT started under the old 4h must KEEP 4h — it must not gain an hour
+  // just because the constant now reads 5 — and a full-limit exam must not be
+  // cut off early either.
+  const FOUR_HOURS = 4 * 60 * 60;
+
+  it('an exam started under the old 4h limit still times out at 4h', () => {
+    expect(
+      at({
+        theta: 0.4, se: 0.6, itemsAdministered: 100,
+        elapsedSeconds: FOUR_HOURS,
+        timeLimitSeconds: FOUR_HOURS,
+      })
+    ).toMatchObject({ stop: true, reason: 'TIME_LIMIT_HIT' });
+  });
 
   it('a 5-hour exam does NOT time out at 4 hours', () => {
     expect(
       at({
         theta: 0.4, se: 0.6, itemsAdministered: 100,
-        elapsedSeconds: TIME_LIMIT_SECONDS,
-        timeLimitSeconds: FIVE_HOURS,
+        elapsedSeconds: FOUR_HOURS,
+        timeLimitSeconds: TIME_LIMIT_SECONDS,
       })
     ).toEqual({ stop: false });
-  });
-
-  it('a 5-hour exam times out at 5 hours', () => {
-    expect(
-      at({
-        theta: 0.4, se: 0.6, itemsAdministered: 100,
-        elapsedSeconds: FIVE_HOURS,
-        timeLimitSeconds: FIVE_HOURS,
-      })
-    ).toMatchObject({ stop: true, reason: 'TIME_LIMIT_HIT' });
   });
 
   it('a shorter-limit exam times out earlier than the constant', () => {
@@ -206,7 +207,7 @@ describe('the TS and SQL copies of the creation default agree', () => {
     const { readFileSync } = await import('node:fs');
     const { join } = await import('node:path');
     const sql = readFileSync(
-      join(process.cwd(), 'db/migrations/20260809120000_cat_slice3_create_attempt.sql'),
+      join(process.cwd(), 'db/migrations/20260816120000_cat_time_limit_5h.sql'),
       'utf8',
     );
     const m = sql.match(/C_DURATION_SECONDS\s+CONSTANT\s+INTEGER\s*:=\s*([^;]+);/);
