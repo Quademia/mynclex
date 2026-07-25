@@ -120,14 +120,22 @@
 >
 > ### Bigger CAT work still open
 >
-> 10. **§16.6 — exam-mode display leaks.** Chiefly the `Difficulty · Medium`
->     chip, a live readout of the engine's opinion of the candidate mid-exam.
->     **Parked by Sam 2026-07-24** to ride with a wider runner pass. Sites
->     located: `runner-question-area.tsx:176`, `runner-topbar.tsx:95`,
->     `cjmm-strip.tsx`. Recommendation on record: hide the difficulty pill,
->     the case counter and the CJMM strip in exam mode; **keep** the subject
->     chip and the question grid (neither leaks the estimate, and the grid
->     can't navigate anyway).
+> 10. ✅ **§16.6 — exam-mode display leaks — BUILT 2026-07-25 (`7e845fb`).**
+>     During a live exam the runner no longer shows the difficulty pill (a
+>     live readout of the engine's opinion of the candidate), the subject chip
+>     (Sam chose to strip this too — "an exam is an exam"), the `Case N of M`
+>     counter, the `CJMM step` label, or the six-pill CJMM strip. Kept: the
+>     question-type pill + Trend badge (they describe the item, not the
+>     candidate), the case content panel, and the grid. One flag —
+>     `hideExamScaffold = intent === 'EXAM' && isLive` — so **review restores
+>     everything** for free. Applied to ALL exam modes, not just CAT.
+>     **Related, same session:** the **question grid is fully hidden in live
+>     Sequential + CAT** (`cb35dce`) where it can't navigate (clicks were
+>     already no-ops), and everywhere the grid *does* show it got a **topbar
+>     show/hide toggle** next to Mark, mirroring the clock's eye toggle; both
+>     toggles then got **real icons** (`163d6c4`) — a clock face and a grid,
+>     plain when shown / slashed when hidden. Also **the runner title is now
+>     intent-based** — "Study session" / "Exam session" (`b19aa00`).
 > 11. **`/help/cat` — and the route to it.** Grep returns **zero references
 >     anywhere in the app**, though §10.7.2 assigned the link to Slice 6a. A
 >     student meeting an adaptive exam has no explanation outside the
