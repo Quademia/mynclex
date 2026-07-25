@@ -142,6 +142,17 @@ export interface LiveData {
    *  router.push with no spinner. Same resolver feeds the results
    *  popup's Exit button. */
   exitHref: string;
+  /** Runner tutorial sandbox (docs/product-plan/runner-tutorial.md).
+   *  When true this is the no-writes teaching runner: every server action
+   *  is skipped and Submit scores locally against `sandboxKeys`. A real
+   *  attempt NEVER sets this — the whole feature creates no attempt row,
+   *  so there is nothing to write. Optional so real bundles omit it. */
+  sandbox?: true;
+  /** Sandbox only — the per-item answer keys the client-side scorer reads
+   *  on Submit, keyed by attempt_item_id. Mirrors exactly what
+   *  submitAnswerAction returns from the server, so `mergeSubmitResult` is
+   *  reused unchanged. Undefined for real attempts. */
+  sandboxKeys?: Record<string, PerItemUnseal>;
 }
 export interface ReviewData {
   mode:    'review';

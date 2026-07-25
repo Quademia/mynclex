@@ -46,6 +46,9 @@ import type {
 } from '@/lib/scoring';
 import type { SelectNContent, MatrixContent, MatrixMrContent, ClozeContent, DragClozeContent, DragOrderContent } from '@/lib/bank/types';
 import type { MatrixAnswer, MatrixMrAnswer, HighlightAnswer, ClozeAnswer, DragClozeAnswer, DragOrderAnswer, BowtieAnswer } from '@/lib/scoring';
+// Sandbox tutorial scores Submit locally with the SAME pure scorer the
+// server action uses — identical feedback, zero network. See onSubmit.
+import { scoreAttempt } from '@/lib/scoring';
 import {
   isMcqComplete,
   isSataComplete,
@@ -257,6 +260,11 @@ function RunnerShell({ data }: Props) {
   const durationSec = data.attempt.duration_seconds; // null = untimed
   const isTimed     = durationSec !== null;
   const isLive      = data.mode === 'live';
+  // Runner tutorial sandbox (docs/product-plan/runner-tutorial.md). The
+  // no-writes teaching runner: same shell, same components, but every
+  // server action is skipped and Submit scores locally against
+  // data.sandboxKeys. Gated so real attempts are byte-for-byte unchanged.
+  const isSandbox   = data.mode === 'live' && data.sandbox === true;
 
   // ── Exam-mode display leaks (bank-consumption-cat.html §16.6) ──────
   // During a LIVE exam, the runner must not reveal anything that (a) shows
@@ -285,13 +293,20 @@ function RunnerShell({ data }: Props) {
     onPersist:       recordEngagedTimeAction,
   });
 
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+  // Sandbox: freeze the clock at the start time so server and client render
+  // the same value (no hydration mismatch), and because an untimed teaching
+  // run shouldn't imply the student is being timed. Init to startedAtMs (a
+  // prop, identical on both sides) → elapsed 0 → a steady "0:00".
+  const [nowMs, setNowMs] = useState<number>(() =>
+    isSandbox && startedAtMs !== null ? startedAtMs : Date.now(),
+  );
   useEffect(() => {
     if (!isLive)              return;
+    if (isSandbox)            return;   // frozen clock — never tick in the tutorial
     if (startedAtMs === null) return;
     const t = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(t);
-  }, [isLive, startedAtMs]);
+  }, [isLive, isSandbox, startedAtMs]);
 
   // Stopwatch / countdown derivations. Engagement mode counts down from
   // ENGAGED time (frozen while away); every other timed mode from wall
@@ -331,7 +346,7 @@ function RunnerShell({ data }: Props) {
   // Flushes are fire-and-forget (additive RPC self-heals); flushActive()
   // is awaited by the finish handlers so the last segment lands before
   // the attempt goes terminal.
-  const timerEnabled = isLive && startedAtMs !== null;
+  const timerEnabled = isLive && startedAtMs !== null && !isSandbox;
   const { flushActive } = useQuestionTimer({
     activeItemId: data.items[current]?.attempt_item_id ?? null,
     enabled:      timerEnabled,
@@ -660,6 +675,8 @@ function RunnerShell({ data }: Props) {
       //     SUBMITTED row). The RPC enforces both rules; the client skip
       //     avoids the round-trip + console noise.
       if (data.mode === 'review') return;
+      // Sandbox writes nothing — there is no attempt row to save into.
+      if (isSandbox) return;
       if (answersByItem.has(currentItem.attempt_item_id)) return;
 
       const itemId = currentItem.attempt_item_id;
@@ -681,7 +698,7 @@ function RunnerShell({ data }: Props) {
 
       map.set(itemId, t);
     },
-    [currentItem, data.mode, answersByItem],
+    [currentItem, data.mode, answersByItem, isSandbox],
   );
 
   // Per-type submit gate — `canSubmit` controls the button, `submitValue`
@@ -694,6 +711,34 @@ function RunnerShell({ data }: Props) {
   const onSubmit = () => {
     if (!currentItem || !submitGate?.canSubmit || submitGate.submitValue === null) return;
     const submission = submitGate.submitValue;
+
+    // Sandbox: score locally against the baked-in key and reveal the same
+    // per-Q feedback the server would — no attempt row, no RPC, no write.
+    if (isSandbox) {
+      const k = data.sandboxKeys?.[currentItem.attempt_item_id];
+      if (!k) return;
+      const { score_awarded, is_correct } = scoreAttempt(
+        currentItem.question_type,
+        k.correct,
+        submission,
+      );
+      mergeSubmitResult(
+        {
+          attempt_item_id:              currentItem.attempt_item_id,
+          score_awarded,
+          is_correct,
+          marks_max:                    k.marksMax,
+          correct_answer_snapshot_json: k.correct,
+          rationale_snapshot:           k.rationale,
+          rationale_img_snapshot:       k.rationaleImg,
+        },
+        submission,
+        setClientAnswers,
+        setClientUnseal,
+      );
+      return;
+    }
+
     startSubmit(async () => {
       const r = await submitAnswerAction(currentItem.attempt_item_id, submission);
       if (!r.ok) { setError(r.error); return; }
@@ -702,6 +747,9 @@ function RunnerShell({ data }: Props) {
   };
 
   const onFinish = () => {
+    // Sandbox has no attempt to complete — Finish just leaves the tutorial.
+    // (The coach layer in Slice 2 will replace this with a proper ending.)
+    if (isSandbox) { router.push(data.exitHref); return; }
     startSubmit(async () => {
       await flushActive(); // bank the last segment before status flips
       const r = await completeAttemptAction(data.attempt.attempt_id);
