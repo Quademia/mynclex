@@ -149,6 +149,29 @@
 >     `20260814120000` — a no-op on prod data (no attempts, no tutor quizzes).
 > 15. **⚠ `PAYSTACK_SECRET_KEY`** (live key) still not on the prod Worker —
 >     launch-day only, not a release blocker.
+>
+> ### New feature slice — the calculator (app-wide)
+>
+> 16. **On-screen calculator — scheduled 2026-07-25, NOT built.** The runner
+>     needs a calculator: the real NCLEX gives candidates a basic on-screen one
+>     for dosage / med-math / fill-in numeric items. Decided to build it as a
+>     proper slice rather than a dead placeholder — a *disabled* calc sitting on
+>     a dosage question withholds a tool the student actually **needs** to
+>     answer (worse than the Mark placeholder, which is a mere convenience).
+>     **Settled shape (2026-07-25):**
+>     - **Basic 4-function only** — digits · `.` · `+ − × ÷` · `=` ·
+>       clear/backspace. NCLEX provides no scientific calculator.
+>     - **App-wide reusable widget, not runner-only** (Sam) — build it *once*
+>       as a cross-cutting UI component in the spirit of `lib/overlays/` /
+>       `lib/toast/` / `lib/hints/`, so any surface can mount it. Exact home
+>       folder to be decided at build time (ask before scaffolding, per the
+>       new-folder convention).
+>     - A **draggable pop-up panel** so it never covers the question; slots
+>       into the existing overlays pattern. **No data, no migration, no engine.**
+>     - **Available in every runner mode** (study + exam, live + review) — it's
+>       a real NCLEX tool, *not* a display leak, so it raises exam fidelity
+>       rather than compromising it (contrast §16.6).
+>     - Entry point: a **topbar toggle button** next to Mark / Grid.
 
 > **CAT — ✅ Slice 7 (the results page) BUILT + MERGED to `main` 2026-07-20
 > (NOT prod).** The surface a student lands on when a CAT ends, and re-opens
