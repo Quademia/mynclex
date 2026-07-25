@@ -67,6 +67,7 @@ import { ResultsPopup } from '@/lib/practice/runner/results-popup';
 import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
+import { Calculator } from '@/lib/calculator/calculator';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
 import { Preflight }          from './preflight';
 import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction, recordEngagedTimeAction } from './actions';
@@ -175,6 +176,9 @@ function RunnerShell({ data }: Props) {
     : navCurrent;
   const [filter, setFilter]     = useState<GridFilter>('all');
   const [gridOpen, setGridOpen] = useState(true);
+  // The on-screen calculator (BUILD_LIST #16) — a real NCLEX tool, so it is
+  // available in every mode; closed by default, toggled from the topbar.
+  const [calcOpen, setCalcOpen] = useState(false);
 
   // pendingAnswers seeds from any DRAFT rows already on the server. With
   // universal save-on-tap (slice 4.5a §9.1), every material answer change
@@ -1119,6 +1123,8 @@ function RunnerShell({ data }: Props) {
     <div className="rn">
       <ErrorToast error={error} onDismiss={() => setError(null)} />
 
+      <Calculator open={calcOpen} onClose={() => setCalcOpen(false)} />
+
       <RunnerTopbar
         sessionTitle={sessionTitle}
         modeLabel={modeLabel}
@@ -1133,6 +1139,7 @@ function RunnerShell({ data }: Props) {
             ? { open: gridOpen, onToggle: () => setGridOpen((o) => !o) }
             : null
         }
+        calcToggle={{ open: calcOpen, onToggle: () => setCalcOpen((o) => !o) }}
         onExit={
           // Live (mid-flight) → confirm first. Review → leave directly.
           // A CAT review came from its summary page (§14.3: review is a

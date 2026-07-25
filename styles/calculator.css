@@ -1,0 +1,168 @@
+/* mynclex/styles/calculator.css
+ *
+ * The app-wide on-screen calculator widget (BUILD_LIST slice #16). A
+ * draggable, standard (non-scientific) calculator modelled on the NCLEX /
+ * Pearson VUE on-screen calculator. Prefixed `.calc-*`; mounted by any
+ * surface that renders <Calculator> (the runner is the first). Uses the
+ * shared design tokens so it matches every other authenticated surface.
+ */
+
+.calc-panel {
+  position: fixed;
+  top: 76px;                 /* default anchor: just under the runner topbar */
+  right: 24px;
+  z-index: 50;               /* floats over content; below the mobile nav drawer */
+  width: 264px;
+  background: var(--white);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;        /* let the header own the drag gesture */
+}
+/* Once dragged, inline left/top drive position — clear the default right. */
+.calc-panel.calc-moved { right: auto; }
+
+/* ── Header / drag handle ─────────────────────────────────────────────── */
+.calc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 8px 13px;
+  background: var(--primary);
+  color: var(--white);
+  cursor: grab;
+}
+.calc-head:active { cursor: grabbing; }
+.calc-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.calc-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--white);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.calc-close:hover { background: rgba(255, 255, 255, 0.28); }
+
+/* ── Display ──────────────────────────────────────────────────────────── */
+.calc-display {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  min-height: 56px;
+  padding: 10px 14px;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+.calc-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  line-height: 1.1;
+}
+.calc-mem-flag {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ── Button rows ──────────────────────────────────────────────────────── */
+.calc-mem-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  padding: 8px 8px 0;
+}
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 8px;
+}
+
+.calc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+  font-variant-numeric: tabular-nums;
+}
+.calc-btn:hover { border-color: var(--border-strong); }
+.calc-btn:active { transform: translateY(1px); }
+.calc-btn-wide { grid-column: span 2; }
+
+/* Digit keys — plain white (the default above). Operators — accent tint. */
+.calc-btn-op {
+  color: var(--accent-dark);
+  border-color: #cfe3df;
+  background: #f2f8f7;
+  font-size: 18px;
+}
+.calc-btn-op:hover { background: #e6f1ef; border-color: var(--accent); }
+
+/* Function keys (memory row, %, CE, C, ⌫, ±, √, 1/x) — muted. */
+.calc-btn-fn {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+.calc-btn-fn:hover { background: #e2e6ec; color: var(--text); }
+
+/* Memory strip keys are shorter than the main pad. */
+.calc-mem-row .calc-btn {
+  min-height: 30px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+/* Equals — the one filled, primary-weight key. */
+.calc-btn-eq {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--white);
+  font-size: 18px;
+}
+.calc-btn-eq:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+
+/* ── Phone ────────────────────────────────────────────────────────────── */
+/* The panel is already narrow (264px < a 320px screen), so it fits without
+ * reflow; we only re-anchor it so it never opens hard against the edge. */
+@media (max-width: 768px) {
+  .calc-panel {
+    right: 12px;
+    top: 68px;
+    width: min(264px, calc(100vw - 24px));
+  }
+}

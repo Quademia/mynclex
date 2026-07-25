@@ -330,6 +330,30 @@
   background: var(--rn-pane-bg);
 }
 
+/* Calculator toggle — sits between Mark and Grid, same look. Always present
+ * (the calculator is a real NCLEX tool in every mode). Active state tints to
+ * the accent, distinct from the grid toggle's primary tint. */
+.rn-calc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rn-calc-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.rn-calc-btn.on {
+  color: var(--accent-dark);
+  border-color: var(--accent);
+  background: #f2f8f7;
+}
+
 /* ────────────────────────────────────────────────────────────
  *  Body — main + grid
  * ──────────────────────────────────────────────────────────── */

@@ -66,6 +66,10 @@ interface Props {
   // null in modes where the grid doesn't exist (live Sequential / CAT),
   // so the toggle comes and goes with the grid itself.
   gridToggle?: { open: boolean; onToggle: () => void } | null;
+  // Topbar toggle for the on-screen calculator. Always present — the
+  // calculator is a real NCLEX tool available in EVERY mode (study + exam,
+  // live + review), so unlike the grid it never comes and goes.
+  calcToggle: { open: boolean; onToggle: () => void };
 }
 
 export function RunnerTopbar({
@@ -80,6 +84,7 @@ export function RunnerTopbar({
   onExit,
   onPillClick,
   gridToggle,
+  calcToggle,
 }: Props) {
   return (
     <header className="rn-top">
@@ -149,6 +154,18 @@ export function RunnerTopbar({
         ⚑ {marked ? 'Marked' : 'Mark'}
       </button>
 
+      <button
+        type="button"
+        className={'rn-calc-btn' + (calcToggle.open ? ' on' : '')}
+        onClick={calcToggle.onToggle}
+        aria-pressed={calcToggle.open}
+        aria-label={calcToggle.open ? 'Hide calculator' : 'Show calculator'}
+        title={calcToggle.open ? 'Hide calculator' : 'Calculator'}
+      >
+        <CalcIcon />
+        <span className="rn-calc-btn-label">Calc</span>
+      </button>
+
       {gridToggle && (
         <button
           type="button"
@@ -163,6 +180,24 @@ export function RunnerTopbar({
         </button>
       )}
     </header>
+  );
+}
+
+// A compact calculator glyph for the topbar toggle — a rounded body, a
+// display strip, and a 3×… key grid, drawn in the same stroke style as the
+// grid/clock icons so the three topbar toggles read as one family.
+function CalcIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="1.5" width="10" height="13" rx="1.6" />
+      <rect x="5" y="3.5" width="6" height="2.5" rx="0.5" />
+      <line x1="5.5" y1="9" x2="5.5" y2="9" />
+      <line x1="8" y1="9" x2="8" y2="9" />
+      <line x1="10.5" y1="9" x2="10.5" y2="9" />
+      <line x1="5.5" y1="11.5" x2="5.5" y2="11.5" />
+      <line x1="8" y1="11.5" x2="8" y2="11.5" />
+      <line x1="10.5" y1="11.5" x2="10.5" y2="11.5" />
+    </svg>
   );
 }
 

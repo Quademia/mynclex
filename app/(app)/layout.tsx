@@ -63,6 +63,9 @@ import '@/styles/bank-list.css';
 // Loaded after nav.css so its ≤768px breakpoint rules win: the mobile
 // navigation chrome (drawer + bottom tabs + account sheet).
 import '@/styles/mobile-nav.css';
+// The app-wide on-screen calculator widget (`calc-*`), mounted by the
+// runner today and any surface that renders <Calculator> later.
+import '@/styles/calculator.css';
 
 export const dynamic = 'force-dynamic';
 
