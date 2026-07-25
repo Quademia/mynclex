@@ -35,6 +35,9 @@ export interface ClockProps {
 }
 
 interface Props {
+  // "Study session" / "Exam session" — the intent frame. Computed in
+  // runner.tsx (which owns the copy) so the topbar stays presentational.
+  sessionTitle: string;
   modeLabel:   string;
   current:     number;          // 1-indexed for display
   /**
@@ -61,6 +64,7 @@ interface Props {
 }
 
 export function RunnerTopbar({
+  sessionTitle,
   modeLabel,
   current,
   total,
@@ -84,7 +88,7 @@ export function RunnerTopbar({
       <div className="rn-top-divider" />
 
       <div className="rn-top-title">
-        <div className="name">Practice session</div>
+        <div className="name">{sessionTitle}</div>
         <div className="meta">
           <span>{modeLabel}</span>
           <span className="dot" />

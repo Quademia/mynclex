@@ -386,6 +386,10 @@ function RunnerShell({ data }: Props) {
   const currentItem = data.items[current];
   const modeLabel   = modeLabelFor(data.attempt.intent, data.attempt.mode);
   const modeMsg     = footerBrief(data.attempt.intent, data.attempt.mode, data.mode === 'review');
+  // Topbar title — the intent frame ("Study session" / "Exam session"),
+  // singular to match the mode-label cleanup that dropped "Exams". Applies
+  // in review too: a reviewed exam is still an exam session.
+  const sessionTitle = data.attempt.intent === 'EXAM' ? 'Exam session' : 'Study session';
 
   const archetype = archetypeFor(data.attempt.mode);
 
@@ -1106,6 +1110,7 @@ function RunnerShell({ data }: Props) {
       <ErrorToast error={error} onDismiss={() => setError(null)} />
 
       <RunnerTopbar
+        sessionTitle={sessionTitle}
         modeLabel={modeLabel}
         current={current + 1}
         total={displayTotal}
