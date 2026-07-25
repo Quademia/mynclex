@@ -178,9 +178,13 @@ export function Calculator({ open, onClose }: Props) {
         </button>
       </div>
 
-      <div className="calc-display" aria-live="polite">
+      <div className="calc-display">
         {state.memActive && <span className="calc-mem-flag" aria-hidden="true">M</span>}
-        <span className="calc-value">{state.display}</span>
+        {/* Running expression — the small line that shows the operation in
+            progress (e.g. "10 ×", then "10 × 2 ="). Non-breaking space keeps
+            the row height when empty so the display doesn't jump. */}
+        <div className="calc-expr" aria-hidden="true">{state.expr || ' '}</div>
+        <div className="calc-value" aria-live="polite">{state.display}</div>
       </div>
 
       <div className="calc-mem-row">
@@ -191,21 +195,51 @@ export function Calculator({ open, onClose }: Props) {
 
       <div className="calc-grid">
         {MAIN_KEYS.map((b) => (
-          <CalcButton key={b.key} btn={b} onPress={dispatch} />
+          <CalcButton
+            key={b.key}
+            btn={b}
+            onPress={dispatch}
+            // The pending operator stays lit until the next operand — a
+            // persistent "a multiply is armed" signal alongside the line.
+            armed={state.op !== null && b.key === state.op}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function CalcButton({ btn, onPress }: { btn: Btn; onPress: (k: CalcKey) => void }) {
+function CalcButton({
+  btn,
+  onPress,
+  armed = false,
+}: {
+  btn: Btn;
+  onPress: (k: CalcKey) => void;
+  armed?: boolean;
+}) {
+  // A brief press-flash confirms the tap registered — cleared after ~130ms.
+  const [flash, setFlash] = useState(false);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
+
+  function handleClick() {
+    onPress(btn.key);
+    setFlash(true);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlash(false), 130);
+  }
+
   return (
     <button
       type="button"
       className={
-        'calc-btn calc-btn-' + btn.variant + (btn.wide ? ' calc-btn-wide' : '')
+        'calc-btn calc-btn-' + btn.variant +
+        (btn.wide ? ' calc-btn-wide' : '') +
+        (armed ? ' calc-btn-armed' : '') +
+        (flash ? ' calc-btn-flash' : '')
       }
-      onClick={() => onPress(btn.key)}
+      onClick={handleClick}
       aria-label={btn.aria}
     >
       {btn.label}

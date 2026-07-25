@@ -161,6 +161,45 @@ describe('memory row', () => {
   });
 });
 
+describe('the running expression line', () => {
+  it('is empty until an operator is pressed', () => {
+    expect(run(['1', '0']).expr).toBe('');
+  });
+
+  it('shows "10 ×" the moment × is pressed, and holds it while typing 2', () => {
+    expect(run(['1', '0', 'mul']).expr).toBe('10 ×');
+    expect(run(['1', '0', 'mul', '2']).expr).toBe('10 ×');
+  });
+
+  it('freezes the full "10 × 2 =" after equals', () => {
+    expect(run(['1', '0', 'mul', '2', 'eq']).expr).toBe('10 × 2 =');
+  });
+
+  it('reflects the running left-to-right fold, not unapplied precedence', () => {
+    // 2 + 3 × 4 folds to (2+3)=5 first, so the line reads "5 ×" then "5 × 4 ="
+    expect(run(['2', 'add', '3', 'mul']).expr).toBe('5 ×');
+    expect(run(['2', 'add', '3', 'mul', '4', 'eq']).expr).toBe('5 × 4 =');
+  });
+
+  it('describes a unary √', () => {
+    expect(run(['1', '4', '4', 'sqrt']).expr).toBe('√(144)');
+  });
+
+  it('a fresh digit after "=" clears the frozen expression', () => {
+    const after = run(['1', '0', 'mul', '2', 'eq', '7']);
+    expect(after.expr).toBe('');
+    expect(after.display).toBe('7');
+  });
+
+  it('C wipes the expression', () => {
+    expect(run(['1', '0', 'mul', 'clear']).expr).toBe('');
+  });
+
+  it('an error wipes the expression', () => {
+    expect(run(['5', 'div', '0', 'eq']).expr).toBe('');
+  });
+});
+
 describe('formatNumber', () => {
   it('renders integers plainly', () => {
     expect(formatNumber(125)).toBe('125');

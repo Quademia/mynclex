@@ -31,6 +31,14 @@ export type CalcKey =
 export interface CalcState {
   /** The string currently on the display (always a valid render). */
   display: string;
+  /**
+   * The running expression shown on the small line above the display, so
+   * the user can see the operation in progress (e.g. "10 ×", then
+   * "10 × 2 ="). A basic calculator has no operator precedence — it folds
+   * left to right — so this reflects the running fold, never an unevaluated
+   * "2 + 3 × 4" that would imply precedence we don't apply.
+   */
+  expr: string;
   /** Stored left operand / running result; null when none is pending. */
   acc: number | null;
   /** Operator awaiting its right operand; null when none is pending. */
@@ -49,6 +57,7 @@ export interface CalcState {
 
 export const INITIAL_CALC: CalcState = {
   display: '0',
+  expr: '',
   acc: null,
   op: null,
   waiting: false,
@@ -61,6 +70,9 @@ export const INITIAL_CALC: CalcState = {
 // Longest digit run we let the user key in (guards a runaway entry; the
 // real display would just scroll otherwise).
 const MAX_ENTRY_LEN = 16;
+
+// Operator glyphs for the running-expression line (matches the button faces).
+const OP_SYMBOL: Record<CalcOp, string> = { add: '+', sub: '−', mul: '×', div: '÷' };
 
 // ── Number → display string ──────────────────────────────────────────────
 // Kills binary-float noise (0.1 + 0.2 → "0.3", not "0.30000000000000004")
@@ -85,6 +97,7 @@ function toError(s: CalcState, message = 'Error'): CalcState {
   return {
     ...s,
     display: message,
+    expr: '',
     acc: null,
     op: null,
     waiting: true,
@@ -107,7 +120,9 @@ function evaluate(a: number, b: number, op: CalcOp): number | null {
 function inputDigit(s: CalcState, d: string): CalcState {
   if (s.error) return s;
   if (s.waiting || s.justEq) {
-    return { ...s, display: d, waiting: false, justEq: false };
+    // A digit after "=" opens a fresh calculation, so clear the frozen
+    // expression; a digit while waiting for the 2nd operand keeps it.
+    return { ...s, display: d, waiting: false, justEq: false, expr: s.justEq ? '' : s.expr };
   }
   if (s.display === '0') return { ...s, display: d };
   if (s.display.replace('-', '').replace('.', '').length >= MAX_ENTRY_LEN) return s;
@@ -116,7 +131,9 @@ function inputDigit(s: CalcState, d: string): CalcState {
 
 function inputDot(s: CalcState): CalcState {
   if (s.error) return s;
-  if (s.waiting || s.justEq) return { ...s, display: '0.', waiting: false, justEq: false };
+  if (s.waiting || s.justEq) {
+    return { ...s, display: '0.', waiting: false, justEq: false, expr: s.justEq ? '' : s.expr };
+  }
   if (s.display.includes('.')) return s;
   return { ...s, display: s.display + '.' };
 }
@@ -129,13 +146,19 @@ function inputOp(s: CalcState, op: CalcOp): CalcState {
   if (s.op !== null && s.acc !== null && !s.waiting) {
     const r = evaluate(s.acc, cur, s.op);
     if (r === null) return toError(s);
-    return { ...s, display: formatNumber(r), acc: r, op, waiting: true, justEq: false };
+    return {
+      ...s, display: formatNumber(r), acc: r, op, waiting: true, justEq: false,
+      expr: formatNumber(r) + ' ' + OP_SYMBOL[op],
+    };
   }
   // Pressing another operator while already waiting just swaps the operator.
   if (s.waiting && s.acc !== null) {
-    return { ...s, op, justEq: false };
+    return { ...s, op, justEq: false, expr: formatNumber(s.acc) + ' ' + OP_SYMBOL[op] };
   }
-  return { ...s, acc: cur, op, waiting: true, justEq: false };
+  return {
+    ...s, acc: cur, op, waiting: true, justEq: false,
+    expr: formatNumber(cur) + ' ' + OP_SYMBOL[op],
+  };
 }
 
 function inputEquals(s: CalcState): CalcState {
@@ -144,7 +167,11 @@ function inputEquals(s: CalcState): CalcState {
   const cur = parseFloat(s.display);
   const r = evaluate(s.acc, cur, s.op);
   if (r === null) return toError(s);
-  return { ...s, display: formatNumber(r), acc: null, op: null, waiting: true, justEq: true };
+  // Freeze the full "left op right =" on the expression line, result below.
+  return {
+    ...s, display: formatNumber(r), acc: null, op: null, waiting: true, justEq: true,
+    expr: s.expr + ' ' + s.display + ' =',
+  };
 }
 
 function backspace(s: CalcState): CalcState {
@@ -167,7 +194,10 @@ function squareRoot(s: CalcState): CalcState {
   if (s.error) return s;
   const v = parseFloat(s.display);
   if (v < 0) return toError(s, 'Invalid input');
-  return { ...s, display: formatNumber(Math.sqrt(v)), waiting: true, justEq: true };
+  return {
+    ...s, display: formatNumber(Math.sqrt(v)), waiting: true, justEq: true,
+    expr: '√(' + formatNumber(v) + ')',
+  };
 }
 
 // Windows-standard percent: with an operation pending, "A + B %" means
@@ -184,7 +214,10 @@ function reciprocal(s: CalcState): CalcState {
   if (s.error) return s;
   const v = parseFloat(s.display);
   if (v === 0) return toError(s, 'Cannot divide by zero');
-  return { ...s, display: formatNumber(1 / v), waiting: true, justEq: true };
+  return {
+    ...s, display: formatNumber(1 / v), waiting: true, justEq: true,
+    expr: '1/(' + formatNumber(v) + ')',
+  };
 }
 
 function clearAll(s: CalcState): CalcState {
