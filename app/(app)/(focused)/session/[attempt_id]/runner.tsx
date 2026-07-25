@@ -254,6 +254,18 @@ function RunnerShell({ data }: Props) {
   const isTimed     = durationSec !== null;
   const isLive      = data.mode === 'live';
 
+  // ── Exam-mode display leaks (bank-consumption-cat.html §16.6) ──────
+  // During a LIVE exam, the runner must not reveal anything that (a) shows
+  // the engine's opinion of the candidate — chiefly the difficulty pill,
+  // which in a CAT is a live readout of the ability estimate — or (b)
+  // pre-announces the exam's structure / internal item scaffolding (case
+  // counter, CJMM step). Stripped for ALL exam-intent modes, not just CAT
+  // (Sam, 2026-07-25): "an exam is an exam." Also strips the subject chip.
+  // Study modes keep the scaffolding (it teaches), and it all comes back in
+  // REVIEW — which is why the flag is gated on `isLive`: a completed exam
+  // being reviewed is educational, not a live leak.
+  const hideExamScaffold = data.attempt.intent === 'EXAM' && isLive;
+
   // ── Engagement clock (BUILD_LIST #6) ──────────────────────────────
   // (STUDY, TIMED_FREE_NAV) counts ENGAGED time, not wall time: the
   // countdown freezes while the page is hidden and resumes on return,
@@ -961,7 +973,9 @@ function RunnerShell({ data }: Props) {
   // the grid column), so the question's internal layout is unchanged.
   const inCase  = Boolean(currentCaseId  && caseSnap);
   const inTrend = Boolean(currentTrendId && trendSnap);
-  const cjmmTopSlot = inCase && cjmmStep
+  // §16.6 — the CJMM step strip is teaching scaffolding; hidden during a
+  // live exam, restored in review (hideExamScaffold is false in review).
+  const cjmmTopSlot = inCase && cjmmStep && !hideExamScaffold
     ? <CjmmStrip current={cjmmStep} />
     : undefined;
 
@@ -981,6 +995,7 @@ function RunnerShell({ data }: Props) {
         onAnswerChange={onAnswerChange}
         topSlot={cjmmTopSlot}
         trendBadge={inTrend}
+        examLive={hideExamScaffold}
         resolveImageUrl={(id) =>
           getAttemptImageUrlAction(data.attempt.attempt_id, id)
         }
@@ -995,6 +1010,7 @@ function RunnerShell({ data }: Props) {
         unseal={unsealForCurrent}
         topSlot={cjmmTopSlot}
         trendBadge={inTrend}
+        examLive={hideExamScaffold}
         resolveImageUrl={(id) =>
           getAttemptImageUrlAction(data.attempt.attempt_id, id)
         }
@@ -1095,7 +1111,7 @@ function RunnerShell({ data }: Props) {
         total={displayTotal}
         marked={marked.has(currentItem?.attempt_item_id ?? '')}
         statusLabel={statusLabel}
-        caseMeta={caseMeta}
+        caseMeta={hideExamScaffold ? undefined : caseMeta}
         clock={clockProps}
         onExit={
           // Live (mid-flight) → confirm first. Review → leave directly.

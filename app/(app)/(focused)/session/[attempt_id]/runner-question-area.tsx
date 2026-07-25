@@ -137,6 +137,11 @@ interface CommonProps {
   // the case/trend panels get). Optional: without it an image node
   // renders nothing (pre-Slice-8 behaviour).
   resolveImageUrl?: BankImageResolver;
+  // §16.6 — during a LIVE exam, suppress the classification pills that
+  // leak the engine's opinion of the candidate / the item's difficulty:
+  // the subject chip and the "Difficulty · N" pill. Set by runner.tsx only
+  // for exam-intent live attempts; false in study and in all review.
+  examLive?: boolean;
 }
 
 type AnsweringProps = CommonProps & {
@@ -172,8 +177,8 @@ export function RunnerQuestionArea(props: Props) {
             Trend
           </span>
         )}
-        {subjectPill && <span className="rn-type-pill">{subjectPill}</span>}
-        {difficulty  && <span className="rn-type-pill">Difficulty · {difficulty}</span>}
+        {!props.examLive && subjectPill && <span className="rn-type-pill">{subjectPill}</span>}
+        {!props.examLive && difficulty  && <span className="rn-type-pill">Difficulty · {difficulty}</span>}
       </div>
 
       {/* HIGHLIGHT, CLOZE, and DRAG_DROP-SENTENCE render their own stem
