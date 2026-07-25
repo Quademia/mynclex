@@ -21,9 +21,17 @@ import type {
   AttemptHeader,
   SealedItem,
   PerItemUnseal,
+  CaseSnapshot,
+  TrendSnapshot,
   LiveData,
 } from '@/lib/practice/runner';
-import { TUTORIAL_QUESTIONS } from './questions';
+import {
+  TUTORIAL_QUESTIONS,
+  TUTORIAL_CASE,
+  TUTORIAL_CASE_QUESTIONS,
+  TUTORIAL_TREND,
+  TUTORIAL_TREND_QUESTIONS,
+} from './questions';
 
 // Synthetic identifiers — never touch the database, so they only need to
 // be internally stable for the length of one sandbox session.
@@ -43,7 +51,15 @@ export function buildSandboxData(): LiveData {
   const items: SealedItem[] = [];
   const sandboxKeys: Record<string, PerItemUnseal> = {};
 
-  TUTORIAL_QUESTIONS.forEach((q, i) => {
+  // Order: the 11 stand-alone types, then the case's 6 children (a
+  // contiguous block, as the runner expects), then the trend item.
+  const allQuestions = [
+    ...TUTORIAL_QUESTIONS,
+    ...TUTORIAL_CASE_QUESTIONS,
+    ...TUTORIAL_TREND_QUESTIONS,
+  ];
+
+  allQuestions.forEach((q, i) => {
     const marks = computeMarksFromKey(q.question_type, q.correct);
 
     items.push({
@@ -55,10 +71,10 @@ export function buildSandboxData(): LiveData {
       marks_snapshot:          marks,
       classification_snapshot: q.classification as unknown as Record<string, unknown>,
       content_snapshot_json:   q.content as unknown as Record<string, unknown>,
-      parent_case_id:          null,
-      case_position:           null,
-      cjmm_step:               null,
-      trend_id:                null,
+      parent_case_id:          q.parent_case_id ?? null,
+      case_position:           q.case_position ?? null,
+      cjmm_step:               q.cjmm_step ?? null,
+      trend_id:                q.trend_id ?? null,
       shuffle_seed:            null,   // no runtime shuffle in the tutorial
       option_order_json:       {},
     });
@@ -97,12 +113,30 @@ export function buildSandboxData(): LiveData {
     last_activity_at:         nowIso,
   };
 
+  const cases: CaseSnapshot[] = [
+    {
+      case_id:                   TUTORIAL_CASE.case_id,
+      title_snapshot:            TUTORIAL_CASE.title,
+      scenario_summary_snapshot: TUTORIAL_CASE.scenario,
+      tabs_snapshot_json:        TUTORIAL_CASE.tabs,
+    },
+  ];
+
+  const trends: TrendSnapshot[] = [
+    {
+      trend_id:           TUTORIAL_TREND.trend_id,
+      title_snapshot:     TUTORIAL_TREND.title,
+      scenario_snapshot:  TUTORIAL_TREND.scenario,
+      tabs_snapshot_json: TUTORIAL_TREND.tabs,
+    },
+  ];
+
   return {
     mode:         'live',
     attempt,
     items,
-    cases:        [],   // the case study is added in the second data pass
-    trends:       [],   // the trend is added in the second data pass
+    cases,
+    trends,
     answers:      [],
     seededUnseal: {},
     exitHref:     SANDBOX_EXIT_HREF,

@@ -24,7 +24,7 @@
 // trend are added in a second pass (their stimulus is deep rich-JSON,
 // validated on screen) — see sandbox-data.ts for how the bundle is built.
 
-import type { QuestionType } from '@/lib/bank/classifications';
+import type { QuestionType, CjmmStep } from '@/lib/bank/classifications';
 import type { BankItemContent, BankItemCorrect } from '@/lib/bank/types';
 
 // The classification block, matching nclex_attempt_items.classification_snapshot.
@@ -54,6 +54,33 @@ export interface TutorialQuestion {
   content:        BankItemContent;
   correct:        BankItemCorrect;
   rationale:      string | null;
+  // Case/trend linkage (optional — set only on case children + the trend
+  // item). The builder copies these onto the SealedItem so the runner shows
+  // the case panel / CJMM strip / trend panel exactly as it would for a real
+  // wrapped item.
+  parent_case_id?: string;
+  case_position?:  number;    // 1..6 within the case
+  cjmm_step?:      CjmmStep;   // the clinical-judgment step this child targets
+  trend_id?:       string;
+}
+
+// A case-study wrapper: the shared scenario + progressive-disclosure chart
+// tabs. Shape mirrors nclex_attempt_case_snapshots (validated against a real
+// row). `tabs` is the tabs_snapshot_json array the case panel reads.
+export interface TutorialCase {
+  case_id:  string;
+  title:    string;
+  scenario: string;
+  tabs:     unknown[];
+}
+
+// A trend dataset wrapper: scenario + a tab-based stimulus (no progressive
+// disclosure). Shape mirrors nclex_attempt_trend_snapshots.
+export interface TutorialTrend {
+  trend_id:  string;
+  title:     string;
+  scenario:  string;
+  tabs:      unknown[];
 }
 
 // Small helper to keep the classification blocks readable below.
@@ -513,3 +540,399 @@ export const TUTORIAL_QUESTIONS: TutorialQuestion[] = [
       'The sequence follows the resuscitation chain: safety and response, then call for help, then check breathing/pulse, then start compressions.',
   },
 ];
+
+// ════════════════════════════════════════════════════════════════
+// The case study + the trend (second data pass).
+// Shapes mirror real nclex_attempt_case_snapshots / _trend_snapshots
+// rows (validated against live dev data) so the case + trend panels
+// render unchanged.
+// ════════════════════════════════════════════════════════════════
+
+// Frozen timestamp for the snapshot tab metadata — a constant (not a
+// clock) so the data stays pure/deterministic. The value is cosmetic; the
+// panels don't display it.
+const TAB_TS = '2026-01-01T00:00:00.000Z';
+
+// Minimal Tiptap/ProseMirror doc for one paragraph — the v2 trend tab
+// bodies are rich docs. Keeps the trend entries readable below.
+function richPara(text: string) {
+  return {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        attrs: { textAlign: 'left' },
+        content: [{ text, type: 'text' }],
+      },
+    ],
+  };
+}
+
+export const TUTORIAL_CASE_ID = 'NCLEX_CS_TUTORIAL';
+
+// ── The case study wrapper — post-op sepsis, 6 CJMM children ──────
+export const TUTORIAL_CASE: TutorialCase = {
+  case_id:  TUTORIAL_CASE_ID,
+  title:    'Madam Efua Mensah, 68 — post-operative day 2',
+  scenario:
+    'Madam Efua Mensah is 68 and post-operative day 2 following an open bowel resection. Overnight she has become increasingly unwell — her temperature is climbing, her heart rate rising, her blood pressure drifting down, and the night nurse reports she is "not herself": drowsy and slow to answer. Her surgical wound is intact with a small amount of serous ooze.',
+  tabs: [
+    {
+      title:        'History & Physical',
+      tab_id:       'tab_tutcase_history',
+      case_id:      TUTORIAL_CASE_ID,
+      entries: {
+        v: 2,
+        entries: [
+          { id: 'e0', visibleFrom: 1, chips: ['Past medical'],      body: richPara('Type 2 diabetes (metformin) and hypertension. No known kidney disease.') },
+          { id: 'e1', visibleFrom: 1, chips: ['Past surgical'],     body: richPara('Open bowel resection 2 days ago for a benign obstruction. Uncomplicated intra-operatively.') },
+          { id: 'e2', visibleFrom: 1, chips: ['Allergies'],         body: richPara('Penicillin — rash.') },
+          { id: 'e3', visibleFrom: 2, chips: ['Medications'],       body: richPara('Metformin, amlodipine, PRN paracetamol, prophylactic subcutaneous heparin.') },
+          { id: 'e4', visibleFrom: 3, chips: ['Review of systems'], body: richPara('New confusion overnight, reduced oral intake, one episode of rigors. No chest pain.') },
+        ],
+      },
+      tab_key:      'history',
+      is_custom:    false,
+      created_at:   TAB_TS,
+      updated_at:   TAB_TS,
+      columns_def:  [],
+      custom_shape: null,
+      display_order: 1,
+    },
+    {
+      title:        'Vital Signs',
+      tab_id:       'tab_tutcase_vitals',
+      case_id:      TUTORIAL_CASE_ID,
+      entries: {
+        v: 2,
+        entries: [
+          { id: 'e0', visibleFrom: 1, chips: ['06:00'], body: richPara('T 38.9°C · HR 112 · BP 98/56 · RR 24 · SpO₂ 94% · Pain 4') },
+          { id: 'e1', visibleFrom: 1, chips: ['08:00'], body: richPara('T 39.2°C · HR 120 · BP 92/50 · RR 26 · SpO₂ 92% · Pain 5') },
+          { id: 'e2', visibleFrom: 3, chips: ['10:00'], body: richPara('T 38.6°C · HR 104 · BP 108/64 · RR 22 · SpO₂ 95% · Pain 3') },
+          { id: 'e3', visibleFrom: 5, chips: ['12:00'], body: richPara('T 37.8°C · HR 92 · BP 118/70 · RR 18 · SpO₂ 97% · Pain 2') },
+          { id: 'e4', visibleFrom: 6, chips: ['16:00'], body: richPara('T 37.2°C · HR 84 · BP 124/76 · RR 16 · SpO₂ 98% · Pain 1') },
+        ],
+      },
+      tab_key:      'vital_signs',
+      is_custom:    false,
+      created_at:   TAB_TS,
+      updated_at:   TAB_TS,
+      columns_def:  [],
+      custom_shape: null,
+      display_order: 2,
+    },
+  ],
+};
+
+export const TUTORIAL_CASE_QUESTIONS: TutorialQuestion[] = [
+  // 1 · Recognise cues (SATA)
+  {
+    key:            'case_recognise',
+    question_type:  'SATA',
+    parent_case_id: TUTORIAL_CASE_ID,
+    case_position:  1,
+    cjmm_step:      'Recognise cues',
+    stem:           'Reviewing the 06:00–08:00 data, which findings are of most concern?',
+    instruction:    'Select all that apply.',
+    classification: clsf({
+      difficulty:               'Medium',
+      nursing_subject:          'Medical-Surgical',
+      body_system:              'Multisystem',
+      client_needs_category:    'Physiological Integrity',
+      client_needs_subcategory: 'Physiological Adaptation',
+    }),
+    content: {
+      options: [
+        { id: 'A', text: 'Temperature 39.2°C' },
+        { id: 'B', text: 'Heart rate 120' },
+        { id: 'C', text: 'Blood pressure 92/50' },
+        { id: 'D', text: 'New confusion overnight' },
+        { id: 'E', text: 'Penicillin allergy' },
+        { id: 'F', text: 'Small serous wound ooze' },
+      ],
+    },
+    correct: {
+      answers: ['A', 'B', 'C', 'D'],
+      feedback: {
+        A: 'Correct. A high fever suggests an infective process.',
+        B: 'Correct. Tachycardia is part of the systemic response to sepsis.',
+        C: 'Correct. A falling blood pressure signals developing shock.',
+        D: 'Correct. New confusion is an early sign of poor perfusion in sepsis.',
+        E: 'The allergy matters for prescribing but is not a new concerning finding.',
+        F: 'A small amount of serous ooze from a 2-day-old wound is expected.',
+      },
+    },
+    rationale:
+      'Fever, tachycardia, hypotension and new confusion together are the recognisable cues of developing sepsis. The allergy and minor ooze are not the acute concern.',
+  },
+
+  // 2 · Analyse cues (MATRIX)
+  {
+    key:            'case_analyse',
+    question_type:  'MATRIX',
+    parent_case_id: TUTORIAL_CASE_ID,
+    case_position:  2,
+    cjmm_step:      'Analyse cues',
+    stem:           'For each finding, indicate whether it is consistent with sepsis or unrelated.',
+    instruction:    'Select one option in each row.',
+    classification: clsf({
+      difficulty:               'Medium',
+      nursing_subject:          'Medical-Surgical',
+      body_system:              'Multisystem',
+      client_needs_category:    'Physiological Integrity',
+      client_needs_subcategory: 'Physiological Adaptation',
+    }),
+    content: {
+      row_label: 'Finding',
+      rows: [
+        { id: 'r1', text: 'Temperature 39.2°C' },
+        { id: 'r2', text: 'Heart rate 120' },
+        { id: 'r3', text: 'Blood pressure 92/50' },
+        { id: 'r4', text: 'New confusion' },
+      ],
+      columns: [
+        { id: 'c1', text: 'Consistent with sepsis' },
+        { id: 'c2', text: 'Unrelated' },
+      ],
+    },
+    correct: {
+      cells: { r1: 'c1', r2: 'c1', r3: 'c1', r4: 'c1' },
+      feedback: {
+        r1: 'Fever reflects the infective/inflammatory response.',
+        r2: 'Tachycardia is a compensatory response to falling perfusion.',
+        r3: 'Hypotension marks progression toward septic shock.',
+        r4: 'Reduced cerebral perfusion produces new confusion.',
+      },
+    },
+    rationale:
+      'All four findings are consistent with sepsis — together they form the clinical picture, not four unrelated problems.',
+  },
+
+  // 3 · Prioritise (MCQ)
+  {
+    key:            'case_prioritise',
+    question_type:  'MCQ',
+    parent_case_id: TUTORIAL_CASE_ID,
+    case_position:  3,
+    cjmm_step:      'Prioritise',
+    stem:           'Which is the priority nursing action?',
+    instruction:    'Select the one best answer.',
+    classification: clsf({
+      difficulty:               'Medium',
+      nursing_subject:          'Medical-Surgical',
+      client_needs_category:    'Safe and Effective Care Environment',
+      client_needs_subcategory: 'Management of Care',
+    }),
+    content: {
+      options: [
+        { id: 'A', text: 'Escalate to the provider and initiate the sepsis protocol.' },
+        { id: 'B', text: 'Give PRN paracetamol and reassess in an hour.' },
+        { id: 'C', text: 'Document the findings and continue routine observations.' },
+        { id: 'D', text: 'Encourage oral fluids and sit the client upright.' },
+      ],
+    },
+    correct: {
+      answer: 'A',
+      feedback: {
+        A: 'Correct. Suspected sepsis is time-critical — escalate and start the protocol now.',
+        B: 'Treating only the fever delays the definitive response to sepsis.',
+        C: 'Documenting without escalating loses critical time.',
+        D: 'Oral fluids are inadequate for a client heading into septic shock.',
+      },
+    },
+    rationale:
+      'Sepsis is a time-critical emergency. The priority is to escalate and begin the sepsis protocol, not to treat a single symptom or simply document.',
+  },
+
+  // 4 · Generate solutions (SELECT_N)
+  {
+    key:            'case_generate',
+    question_type:  'SELECT_N',
+    parent_case_id: TUTORIAL_CASE_ID,
+    case_position:  4,
+    cjmm_step:      'Generate solutions',
+    stem:           'Which TWO interventions should the nurse anticipate first?',
+    instruction:    'Select exactly 2 options.',
+    classification: clsf({
+      difficulty:               'Hard',
+      nursing_subject:          'Medical-Surgical',
+      client_needs_category:    'Physiological Integrity',
+      client_needs_subcategory: 'Pharmacological and Parenteral Therapies',
+    }),
+    content: {
+      select_count: 2,
+      options: [
+        { id: 'A', text: 'Obtain blood cultures, then start IV broad-spectrum antibiotics.' },
+        { id: 'B', text: 'Begin an IV fluid bolus.' },
+        { id: 'C', text: 'Restrict IV fluids to avoid overload.' },
+        { id: 'D', text: 'Apply a cooling blanket as the first step.' },
+        { id: 'E', text: 'Withhold all analgesia.' },
+      ],
+    },
+    correct: {
+      answers: ['A', 'B'],
+      feedback: {
+        A: 'Correct. Cultures before antibiotics, then early antibiotics — core sepsis management.',
+        B: 'Correct. A fluid bolus supports the falling blood pressure.',
+        C: 'Fluid restriction is wrong here — the client needs volume.',
+        D: 'Cooling is not the priority intervention in sepsis.',
+        E: 'Analgesia is not withheld; it is simply not the priority.',
+      },
+    },
+    rationale:
+      'The first anticipated interventions are cultures-then-antibiotics and an IV fluid bolus. Restricting fluids or leading with cooling would be wrong.',
+  },
+
+  // 5 · Take action (DRAG_ORDER)
+  {
+    key:            'case_action',
+    question_type:  'DRAG_ORDER',
+    parent_case_id: TUTORIAL_CASE_ID,
+    case_position:  5,
+    cjmm_step:      'Take action',
+    stem:           'Place the first sepsis-bundle actions in the correct order.',
+    instruction:    'Drag each step into the correct order.',
+    classification: clsf({
+      difficulty:               'Hard',
+      nursing_subject:          'Medical-Surgical',
+      client_needs_category:    'Physiological Integrity',
+      client_needs_subcategory: 'Pharmacological and Parenteral Therapies',
+    }),
+    content: {
+      slots: [
+        { id: 's1', target_text: '1st' },
+        { id: 's2', target_text: '2nd' },
+        { id: 's3', target_text: '3rd' },
+        { id: 's4', target_text: '4th' },
+      ],
+      tokens: [
+        { id: 't1', text: 'Take blood cultures' },
+        { id: 't2', text: 'Start IV broad-spectrum antibiotics' },
+        { id: 't3', text: 'Give the IV fluid bolus' },
+        { id: 't4', text: 'Measure serum lactate and monitor urine output' },
+      ],
+    },
+    correct: {
+      slots: { s1: 't1', s2: 't2', s3: 't3', s4: 't4' },
+      feedback: {
+        t1: 'Cultures are taken before antibiotics so the sample is not contaminated.',
+        t2: 'Antibiotics follow immediately — do not delay them.',
+        t3: 'The fluid bolus supports perfusion.',
+        t4: 'Lactate and urine output track the response to treatment.',
+      },
+    },
+    rationale:
+      'Cultures first (before antibiotics), then antibiotics, then fluids, then measure lactate and monitor urine output — the sepsis-bundle sequence.',
+  },
+
+  // 6 · Evaluate outcomes (SATA)
+  {
+    key:            'case_evaluate',
+    question_type:  'SATA',
+    parent_case_id: TUTORIAL_CASE_ID,
+    case_position:  6,
+    cjmm_step:      'Evaluate outcomes',
+    stem:           'By 16:00, which findings show the treatment is working?',
+    instruction:    'Select all that apply.',
+    classification: clsf({
+      difficulty:               'Medium',
+      nursing_subject:          'Medical-Surgical',
+      body_system:              'Multisystem',
+      client_needs_category:    'Physiological Integrity',
+      client_needs_subcategory: 'Physiological Adaptation',
+    }),
+    content: {
+      options: [
+        { id: 'A', text: 'Heart rate down to 84' },
+        { id: 'B', text: 'Blood pressure up to 124/76' },
+        { id: 'C', text: 'Temperature down to 37.2°C' },
+        { id: 'D', text: 'Respiratory rate down to 16' },
+        { id: 'E', text: 'Increasing drowsiness' },
+        { id: 'F', text: 'Falling oxygen saturation' },
+      ],
+    },
+    correct: {
+      answers: ['A', 'B', 'C', 'D'],
+      feedback: {
+        A: 'Correct. A settling heart rate shows improving perfusion.',
+        B: 'Correct. The recovering blood pressure is a good sign.',
+        C: 'Correct. The falling temperature reflects a response to treatment.',
+        D: 'Correct. A normalising respiratory rate is reassuring.',
+        E: 'Increasing drowsiness would signal deterioration, not improvement.',
+        F: 'A falling SpO₂ would be a worsening sign.',
+      },
+    },
+    rationale:
+      'A settling heart rate, recovering blood pressure, falling temperature and normalising respiratory rate all show the sepsis treatment is working.',
+  },
+];
+
+export const TUTORIAL_TREND_ID = 'NCLEX_TRD_TUTORIAL';
+
+// ── The trend wrapper — deteriorating neuro status ────────────────
+export const TUTORIAL_TREND: TutorialTrend = {
+  trend_id:  TUTORIAL_TREND_ID,
+  title:     'Deteriorating neurological status after a head injury',
+  scenario:
+    'A 24-year-old is admitted to the observation unit after a fall from a ladder with a brief loss of consciousness. Hourly neurological checks are recorded in the nurses’ notes below.',
+  tabs: [
+    {
+      title:    'Nurses’ Notes',
+      tab_id:   'tab_tuttrend_notes',
+      trend_id: TUTORIAL_TREND_ID,
+      entries: {
+        v: 2,
+        entries: [
+          { id: 'e0', body: richPara('0800 — Alert and oriented ×3, GCS 15. Pupils equal, reactive, 3 mm. Denies headache. Moves all limbs.'), chips: ['0800'], visibleFrom: 1 },
+          { id: 'e1', body: richPara('1000 — Drowsy but rousable to voice, GCS 14. Reports mild headache 3/10. Pupils remain equal, 3 mm.'), chips: ['1000'], visibleFrom: 1 },
+          { id: 'e2', body: richPara('1200 — Harder to rouse, GCS 12. Headache now 6/10. Right pupil sluggish, 4 mm; left brisk, 3 mm. Vomited once. Provider notified.'), chips: ['1200'], visibleFrom: 1 },
+          { id: 'e3', body: richPara('1400 — Responds to painful stimuli only, GCS 9. Right pupil fixed and dilated, 5 mm. Respirations irregular. Rapid response called; STAT head CT ordered.'), chips: ['1400'], visibleFrom: 1 },
+        ],
+      },
+      tab_key:      'nurses_notes',
+      is_custom:    false,
+      created_at:   TAB_TS,
+      updated_at:   TAB_TS,
+      columns_def:  [],
+      custom_shape: null,
+      display_order: 0,
+    },
+  ],
+};
+
+export const TUTORIAL_TREND_QUESTIONS: TutorialQuestion[] = [
+  {
+    key:            'trend_neuro',
+    question_type:  'MCQ',
+    trend_id:       TUTORIAL_TREND_ID,
+    stem:           'Reviewing the trend of neurological findings, which is the priority action at 1400?',
+    instruction:    'Select the one best answer.',
+    classification: clsf({
+      difficulty:               'Hard',
+      nursing_subject:          'Medical-Surgical',
+      body_system:              'Neurological',
+      client_needs_category:    'Physiological Integrity',
+      client_needs_subcategory: 'Physiological Adaptation',
+    }),
+    content: {
+      options: [
+        { id: 'A', text: 'Activate the rapid response and prepare for urgent imaging.' },
+        { id: 'B', text: 'Reassess the client in one hour.' },
+        { id: 'C', text: 'Administer oral analgesia for the headache.' },
+        { id: 'D', text: 'Encourage the client to rest and dim the lights.' },
+      ],
+    },
+    correct: {
+      answer: 'A',
+      feedback: {
+        A: 'Correct. A falling GCS with a fixed, dilated pupil signals rising intracranial pressure — an emergency.',
+        B: 'Waiting an hour with this trajectory risks irreversible harm.',
+        C: 'Oral analgesia does nothing for rising intracranial pressure and delays escalation.',
+        D: 'Rest is not the answer to a rapidly deteriorating neurological picture.',
+      },
+    },
+    rationale:
+      'The trend — GCS 15 → 9, a right pupil becoming fixed and dilated, irregular respirations — shows rising intracranial pressure. The priority is to activate the rapid response and prepare for urgent imaging.',
+  },
+];
+
