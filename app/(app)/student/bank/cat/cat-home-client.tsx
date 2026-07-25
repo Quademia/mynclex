@@ -73,6 +73,8 @@ export function CatHomeClient({ view }: { view: CatHomeView }) {
           where you stand, not after a fixed number of questions.
         </p>
 
+        <a className="cat-hero-help" href="/help/cat">How CAT works →</a>
+
         <ul className="cat-facts">
           <li><strong>{shape.minItems}–{shape.maxItems}</strong><span>questions</span></li>
           <li><strong>Up to {shape.hours} hours</strong><span>one sitting</span></li>
@@ -212,6 +214,15 @@ export function CatHomeClient({ view }: { view: CatHomeView }) {
             </ul>
 
             {error && <p className="cat-preflight-error" role="alert">{error}</p>}
+
+            <a
+              className="cat-preflight-help"
+              href="/help/cat"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              How CAT works <span aria-hidden="true">↗</span>
+            </a>
 
             <div className="cat-preflight-actions">
               <button

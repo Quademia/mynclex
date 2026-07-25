@@ -31,12 +31,28 @@ function StateMark({ state }: { state: ReadinessSignal['state'] }) {
 function SignalCard({
   signal,
   visual,
+  helpHref,
 }: {
   signal: ReadinessSignal;
   visual: React.ReactNode;
+  // When set, a small "?" opens the topic's help article (new tab, so the
+  // dashboard isn't lost). Used for the CAT signal → /help/cat (cat.html §3.2).
+  helpHref?: string;
 }) {
   return (
     <div className={`bd-sig is-${signal.state}`}>
+      {helpHref && (
+        <a
+          className="bd-sig-help"
+          href={helpHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`How ${signal.label} works`}
+          title="How CAT works"
+        >
+          ?
+        </a>
+      )}
       <div className="bd-sig-visual">{visual}</div>
       <span className="bd-eyebrow">{signal.label}</span>
       {signal.value ? (
@@ -131,6 +147,7 @@ export function ReadinessPanel({ data }: { data: ReadinessPanelData }) {
 
         <SignalCard
           signal={cat}
+          helpHref="/help/cat"
           visual={
             trajectory.length > 0 ? (
               <MiniTrajectory points={trajectory} passed={catPassed} />

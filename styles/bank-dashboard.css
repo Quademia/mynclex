@@ -211,6 +211,7 @@
 }
 
 .bd-sig {
+  position: relative;
   flex: 1 1 160px;
   min-width: 0;
   display: flex;
@@ -225,6 +226,27 @@
 }
 
 /* Evidence, not a result — visually quieter than the three signals. */
+/* Small "?" on a signal card → its help article (CAT → /help/cat). */
+.bd-sig-help {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+}
+.bd-sig-help:hover { color: var(--accent); border-color: var(--accent); }
+
 .bd-sig.is-gate {
   background: var(--bg);
   border-color: var(--border);
