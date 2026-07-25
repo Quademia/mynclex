@@ -61,6 +61,11 @@ interface Props {
   // only in review; null in live (the pill just shows the clock).
   // When non-null the status pill becomes a button.
   onPillClick?: (() => void) | null;
+  // Topbar show/hide toggle for the question grid — mirrors the clock's
+  // eye toggle so both panels have an obvious, always-visible control.
+  // null in modes where the grid doesn't exist (live Sequential / CAT),
+  // so the toggle comes and goes with the grid itself.
+  gridToggle?: { open: boolean; onToggle: () => void } | null;
 }
 
 export function RunnerTopbar({
@@ -74,6 +79,7 @@ export function RunnerTopbar({
   clock,
   onExit,
   onPillClick,
+  gridToggle,
 }: Props) {
   return (
     <header className="rn-top">
@@ -142,7 +148,32 @@ export function RunnerTopbar({
       >
         ⚑ {marked ? 'Marked' : 'Mark'}
       </button>
+
+      {gridToggle && (
+        <button
+          type="button"
+          className={'rn-grid-toggle-btn' + (gridToggle.open ? ' on' : '')}
+          onClick={gridToggle.onToggle}
+          aria-pressed={gridToggle.open}
+          aria-label={gridToggle.open ? 'Hide question grid' : 'Show question grid'}
+          title={gridToggle.open ? 'Hide grid' : 'Show grid'}
+        >
+          <GridIcon />
+          <span className="rn-grid-toggle-label">Grid</span>
+        </button>
+      )}
     </header>
+  );
+}
+
+function GridIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+      <rect x="2" y="2" width="5" height="5" rx="1" />
+      <rect x="9" y="2" width="5" height="5" rx="1" />
+      <rect x="2" y="9" width="5" height="5" rx="1" />
+      <rect x="9" y="9" width="5" height="5" rx="1" />
+    </svg>
   );
 }
 

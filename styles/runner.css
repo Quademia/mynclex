@@ -307,6 +307,29 @@
   background: rgba(217, 119, 6, 0.08);
 }
 
+/* Grid show/hide toggle — sits after Mark, matches its look. Active state
+ * tints toward the grid panel it controls (rather than the mark orange). */
+.rn-grid-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rn-grid-toggle-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.rn-grid-toggle-btn.on {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--rn-pane-bg);
+}
+
 /* ────────────────────────────────────────────────────────────
  *  Body — main + grid
  * ──────────────────────────────────────────────────────────── */

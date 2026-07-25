@@ -393,6 +393,16 @@ function RunnerShell({ data }: Props) {
 
   const archetype = archetypeFor(data.attempt.mode);
 
+  // Question grid availability. In a LIVE Sequential exam or CAT the grid
+  // can't navigate — clicks are already a no-op (onPickGuarded), so it was
+  // tappable-looking dead furniture. Hide it entirely there; the question
+  // reclaims the space (.rn-main is flex:1, the grid a fixed sibling). The
+  // SEQUENTIAL archetype covers CAT too (it dispatches as SEQUENTIAL).
+  // Gated on isLive so REVIEW keeps the grid — in review you can navigate
+  // freely to inspect any answer. Also drives the topbar grid toggle:
+  // where there's no grid, there's no toggle.
+  const gridAvailable = !(archetype === 'SEQUENTIAL' && isLive);
+
   // NOTE: `isCat` and the derived `current` are declared with the state
   // block above — `current` is read at the question timer before this point.
   // For CAT, `total` is not a length: it is "how many have been served so
@@ -1118,6 +1128,11 @@ function RunnerShell({ data }: Props) {
         statusLabel={statusLabel}
         caseMeta={hideExamScaffold ? undefined : caseMeta}
         clock={clockProps}
+        gridToggle={
+          gridAvailable
+            ? { open: gridOpen, onToggle: () => setGridOpen((o) => !o) }
+            : null
+        }
         onExit={
           // Live (mid-flight) → confirm first. Review → leave directly.
           // A CAT review came from its summary page (§14.3: review is a
@@ -1154,7 +1169,7 @@ function RunnerShell({ data }: Props) {
           </div>
         </main>
 
-        {gridOpen ? (
+        {gridAvailable && (gridOpen ? (
           <RunnerGrid
             items={data.items}
             answers={answersByItem}
@@ -1173,7 +1188,7 @@ function RunnerShell({ data }: Props) {
             total={displayTotal}
             onExpand={() => setGridOpen(true)}
           />
-        )}
+        ))}
       </div>
 
       <RunnerFooter
