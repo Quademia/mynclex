@@ -160,26 +160,35 @@
 >
 > ### New feature slice — the calculator (app-wide)
 >
-> 16. **On-screen calculator — scheduled 2026-07-25, NOT built.** The runner
->     needs a calculator: the real NCLEX gives candidates a basic on-screen one
->     for dosage / med-math / fill-in numeric items. Decided to build it as a
->     proper slice rather than a dead placeholder — a *disabled* calc sitting on
->     a dosage question withholds a tool the student actually **needs** to
->     answer (worse than the Mark placeholder, which is a mere convenience).
->     **Settled shape (2026-07-25):**
->     - **Basic 4-function only** — digits · `.` · `+ − × ÷` · `=` ·
->       clear/backspace. NCLEX provides no scientific calculator.
->     - **App-wide reusable widget, not runner-only** (Sam) — build it *once*
->       as a cross-cutting UI component in the spirit of `lib/overlays/` /
->       `lib/toast/` / `lib/hints/`, so any surface can mount it. Exact home
->       folder to be decided at build time (ask before scaffolding, per the
->       new-folder convention).
->     - A **draggable pop-up panel** so it never covers the question; slots
->       into the existing overlays pattern. **No data, no migration, no engine.**
->     - **Available in every runner mode** (study + exam, live + review) — it's
->       a real NCLEX tool, *not* a display leak, so it raises exam fidelity
->       rather than compromising it (contrast §16.6).
->     - Entry point: a **topbar toggle button** next to Mark / Grid.
+> 16. ✅ **On-screen calculator — BUILT 2026-07-25** (`0048344` + `d577fd5`,
+>     on the session branch, **NOT `main`**; app-layer, **no migration**; tsc
+>     clean bar the 2 known `scoring-roundtrip` errors; eslint clean; vitest
+>     **+42** in `calculator-logic.test.ts`). Full design/rationale now lives
+>     in its own doc: **`docs/product-plan/calculator.md`**. What shipped:
+>     - **The full *standard* (non-scientific) set** — not the bare 4-function
+>       minimum. Digits · `.` · `+ − × ÷` · `=` · `C`/`CE`/`⌫` · `±` · `√` ·
+>       `%` · `1/x` · the five memory keys (`MC MR MS M+ M−`), mirroring the
+>       Pearson VUE / Windows-Standard layout the candidate actually sees.
+>       Basic-not-scientific is the *fidelity* call (matching the real screen),
+>       not a shortcut.
+>     - **App-wide reusable widget** in its own **`lib/calculator/`** (Sam's
+>       chosen home) — pure `calculator-logic.ts` reducer + `calculator.tsx`
+>       draggable panel, `styles/calculator.css` (`calc-*`), imported in the
+>       `(app)` layout so any surface can mount `<Calculator>`. Runner is the
+>       first (only current) consumer.
+>     - **A running expression line** above the big value (`10 ×` → frozen
+>       `10 × 2 =`) so the user sees the operation in progress — fixes the
+>       "one value at a time" confusion Sam flagged. Reflects the real
+>       left-to-right fold (no fake precedence). Plus the **pending operator
+>       stays lit (armed)** and a **press-flash** ring on each tap.
+>     - **Draggable pop-up** (header drag), **topbar Calc toggle** beside
+>       Mark / Grid (own glyph), **available in every mode** (study + exam,
+>       live + review) — a real NCLEX tool, not a §16.6 display leak.
+>     - **Keyboard entry** too (digits / `+ − * /` / Enter / Backspace /
+>       Esc), guarded so it never hijacks a Cloze fill-in.
+>     - **No data, no migration, no engine.** Verified live: `1000/8=125`,
+>       `0.1+0.2=0.3` (no float noise), `÷0`→Error (latched, `C` clears),
+>       memory store/recall with the `M` flag, drag keeps state, console clean.
 
 > **CAT — ✅ Slice 7 (the results page) BUILT + MERGED to `main` 2026-07-20
 > (NOT prod).** The surface a student lands on when a CAT ends, and re-opens

@@ -1367,6 +1367,7 @@ Runner mounts → reads from those 5 tables → renders Q1
 <ul>
   <li><code>bank-consumption.html</code> — parent plan; this doc's behaviour rules are scoped by §15 (Source/Mode/Session State) and feed §17 (Builder).</li>
   <li><code>bank-consumption-attempt-creation.html</code> — sibling sub-plan; runner reads from the snapshot tables it defines.</li>
+  <li><code>calculator.md</code> — the app-wide on-screen calculator (BUILD_LIST #16). Mounts in this runner's topbar beside Mark / Grid (its Calc toggle), available in every mode; a real NCLEX tool, not a §16.6-style display leak.</li>
   <li><code>bank.md</code> — authoring side: schema, JSONB shapes, scoring functions. Per-question-type rendering (§5) mirrors the authoring/preview surfaces.</li>
   <li><code>main.md</code> — overall MyNclex product plan.</li>
 </ul>
