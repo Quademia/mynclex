@@ -6,8 +6,9 @@ types and the tools — in a safe, unscored, unsaved space. Surfaced by the
 CAT work but **general to every mode**. Part of `mynclex/docs/product-plan/`.*
 
 Last updated: 2026-07-25 (design pass **complete** — decisions settled, the
-Claude Design walkthrough adopted as the blueprint, build slices detailed;
-**build not started**)
+Claude Design walkthrough **v2** adopted + saved in-repo
+(`design-handoff/runner-tutorial/`), build slices detailed; **build not
+started**)
 
 ---
 
@@ -73,9 +74,24 @@ them. Shape we're adopting:
   *do* it (mark the question, open the calculator, answer & submit) before
   continuing. Stronger than passive reading.
 - **"Nothing is recorded"** surfaced to the user (a topbar pill + a dedicated
-  step) — our sandbox-safety invariant made visible.
-- **Jump-to-section** — CD has now added it (v1, not deferred), so a returning
-  student can land straight on e.g. "bow-tie" instead of clicking through.
+  step) — our sandbox-safety invariant made visible; the pill stays up even
+  when coaching is hidden.
+- **User controls on the coach card (v2, adopted 2026-07-25):**
+  - **Hide coaching → Resume** — collapse the coach to a minimal strip so the
+    whole runner is free to explore, and resume the guided flow at any time.
+    This makes the tutorial *both* a guided tour and a free-explore sandbox,
+    which **dissolves the earlier linear-vs-explore question** — you get both.
+  - **End tutorial** — an explicit exit from the coaching, reachable anywhere
+    (incl. the hidden-coaching strip).
+  - **Jump-to-section** — a **hierarchical** dropdown (big sections + each of
+    the 11 question types as a sub-entry), so a returning student lands
+    straight on e.g. "bow-tie" in one click.
+
+Two build-time notes (not blockers): the runner's own "Exit" and the coach's
+"End tutorial" are **two exits** that must read coherently at build time; and
+**jump + gates coexist** by design (the linear path gates on doing the thing,
+but jump-to lets a returning user skip straight to a type — correct for a
+reference tool, not a bug to "fix").
 
 ## Settled decisions
 
@@ -142,9 +158,12 @@ The guided coaching on top of the sandbox. CD's blueprint specifies most of it.
 - **Gate logic** — for gated steps, Next stays disabled until the student
   does the thing; the runner already announces mark/answer/submit events, the
   coach listens.
-- **Flow controller** — current step, advance/rewind, switch the underlying
-  dummy question on `goto`, the **jump-to-section** index, and the "you're
-  ready — start your exam" ending.
+- **Flow controller + coach controls** — current step, advance/rewind, switch
+  the underlying dummy question on `goto`, the hierarchical **jump-to-section**
+  index, **hide/resume** (collapse to a strip → free-explore → resume), an
+  explicit **End tutorial**, and the "you're ready — start your exam" ending.
+  (All of these are coach-layer only — they don't touch Slice 1 or the safety
+  invariant.)
 
 ### Slice 3 — entry points + "done" memory
 
@@ -172,6 +191,8 @@ The guided coaching on top of the sandbox. CD's blueprint specifies most of it.
 - `bank-consumption-cat.html` — §3.2 the `/help/cat` explainer (the tutorial's
   text cousin); §9.3 the 5-hour limit this tutorial complements.
 - `calculator.md` — a tool the tutorial covers.
-- The **CD handoff** ("Tutorial Runner" prototype) — the adopted blueprint
-  (to be saved in-repo as a concept-not-source reference, pending go-ahead).
+- **`design-handoff/runner-tutorial/`** — the adopted CD blueprint (v2),
+  concept-not-source. `tutorial-runner.html` is the 32-step prototype (`STEPS`
+  / `SECTIONS` / `RECAP` arrays); `cd-sync-notes.md` maps each screen to the
+  real component it was built from; `README.md` explains the contract.
 - `main.md` — overall MyNclex product plan.
