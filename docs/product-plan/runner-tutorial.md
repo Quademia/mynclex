@@ -5,132 +5,173 @@ tutorial** that teaches students how to use the exam runner — the question
 types and the tools — in a safe, unscored, unsaved space. Surfaced by the
 CAT work but **general to every mode**. Part of `mynclex/docs/product-plan/`.*
 
-Last updated: 2026-07-25 (created — design thinking from the first discussion
-captured; **nothing built**; three decisions open — see *Open decisions*)
+Last updated: 2026-07-25 (design pass **complete** — decisions settled, the
+Claude Design walkthrough adopted as the blueprint, build slices detailed;
+**build not started**)
 
 ---
 
 ## Status
 
-**Design phase. Nothing built.** This doc records the thinking from the
-2026-07-25 discussion and the decisions still to settle before any code.
-The build is a **multi-slice feature**, not a quick add — see *Slice plan*.
+**Design pass complete. Build not started.** The three open decisions are
+settled (below), and Claude Design has delivered the full 32-step
+walkthrough (concept-not-source blueprint). This doc is now **build-ready** —
+the *Build plan* section is the work.
 
 ## Why
 
 On the real NCLEX, a tutorial runs *before* the exam so no candidate loses
 marks fumbling the interface — how SATA works, how to drop answers into a
 matrix, how drag-and-drop / cloze / bow-tie behave, how to use the
-calculator, the navigation and submit rules. Two forces make this worth
-building for us:
+calculator, the navigation and submit rules. Two forces make it worth
+building:
 
 - **The CAT trigger + the 5-hour honesty.** The real NCLEX's 5 hours
   *includes* its tutorial; ours (§9.3, moved to 5h on 2026-07-25) is 5 hours
-  of pure answering. An **optional, untimed tutorial offered before the exam**
-  closes that gap honestly — the exam clock still starts at zero when the
-  student begins, and we now mirror the real experience, not just the number.
-- **General value.** Our core audience (Ghanaian nurses migrating) meets NGN
-  item types for the first time here. The exam should test *nursing
-  judgement*, not "can you work the UI." This applies to **every** mode, not
-  just CAT — CAT is only what surfaced the need.
+  of pure answering. An **optional, untimed tutorial before the exam** closes
+  that gap honestly — the exam clock still starts at zero when the student
+  begins.
+- **General value.** Our core audience meets NGN item types for the first
+  time here. The exam should test *nursing judgement*, not "can you work the
+  UI." This applies to **every** mode — CAT is only what surfaced the need.
 
-## Governing principle — reuse the real runner, never a mock
+## The governing principle — one runner, never a copy
 
-The whole point of a tutorial is to teach the **exact** interface used on the
-day. So it must be driven by the **real runner's own components**, not a
-parallel look-alike. A tutorial that teaches an interface even slightly
-different from the real one is **worse than none** — it builds the wrong
-muscle memory and leaves two things to keep in sync forever. This rules out
-the tempting "just build a simple demo" path.
+The tutorial teaches the **exact** interface used on the day, so it must be
+the **real runner**, not a look-alike. The distinction that matters:
 
-Precedent that this shape works: the public pages already carry a **sample
-builder** (`app/(public)/bank-access/builder-demo.tsx`) and a **sample
-runner** (`app/(public)/readiness/runner-demo.tsx`). The tutorial is a more
-complete, *guided* version of that same idea.
+- ❌ **A side runner that's a *copy*** — a second runner built to resemble the
+  real one and kept in sync forever. This is the **mock we ruled out**: the
+  day the real runner changes, a copy teaches a lie. (CD's HTML file *is* such
+  a copy — but it is only a **blueprint**, never what we ship.)
+- ✅ **The real runner, in a practice mode, with the coach on top** — same
+  code, same components, same behaviour; we just feed it fake questions,
+  switch off the "save" wiring, and float the coach beside it.
 
-## Architecture — the "sandbox mode" (the engineering crux)
+> Analogy: not a replica car built to look like yours — *your actual car*, on
+> a private practice track, with an instructor in the passenger seat and the
+> odometer unplugged.
 
-The runner is built around a real **attempt**: it loads a student's questions
-from the database, saves every answer, and scores at the end. A sandbox has
-none of that. The real work is teaching the runner to run in a **sandbox
-mode**:
+The tutorial has its **own address** (a route like `/tutorial`), but that
+route **mounts the real runner's building blocks** — it does not re-create
+them. **There is only ever one runner.**
 
-- **Dummy questions, held in the app** — a small curated set (one per item
-  type) shipped with the tutorial, *not* drawn from the question bank.
-- **Every server action is a no-op** — submit, save-progress, complete,
-  expire all do nothing; answers reveal instantly with friendly "here's how
-  this works" feedback instead of being graded.
-- **Nothing is recorded** — no attempt row, no history, no effect on the
-  Readiness Signal.
+## The CD walkthrough (adopted 2026-07-25, concept-not-source)
 
-The runner's existing **review mode** (reveals answers without submitting) is
-a close cousin and a useful starting reference. The load-bearing safety
-requirement: the sandbox path must be **provably unable to write real data** —
-no accidental attempt rows, no score writes. This is the piece that is genuine
-engineering, not a quick add.
+Claude Design read the *real* runner components (per its sync notes:
+`runner-topbar/-footer/-grid/-question-area`, `lib/practice/runner/types/*`,
+the case/trend panels, `mode-brief.ts`) and built the walkthrough on top of
+them. Shape we're adopting:
 
-## The coach layer (the new UI to design)
+- **A 32-step linear walkthrough** grouped: chrome & tools (12) → every
+  question type (11) → case & trend (7) → close (2), each step carrying a
+  title, body, the **control it points at** (`target`), an optional **gate**
+  (a must-do before Next unlocks), and which dummy question to show (`goto`).
+- **Coach card anchored to each control** (Exit, calculator, answer area…),
+  dimming the rest — a moving coach-mark, not one static modal.
+- **Learn-by-doing gates** — several steps require the student to actually
+  *do* it (mark the question, open the calculator, answer & submit) before
+  continuing. Stronger than passive reading.
+- **"Nothing is recorded"** surfaced to the user (a topbar pill + a dedicated
+  step) — our sandbox-safety invariant made visible.
+- **Jump-to-section** — CD has now added it (v1, not deferred), so a returning
+  student can land straight on e.g. "bow-tie" instead of clicking through.
 
-Reusing the runner gives the *interactions* for free. What does not exist yet
-is the **guidance on top** — the thing that makes it a *tutorial* rather than
-just a practice question:
+## Settled decisions
 
-- a **stepped walkthrough** ("Step 3 of 9 — Select All That Apply: tap every
-  option that applies, then Submit");
-- **coach marks** pointing at the real controls ("this is the calculator",
-  "this is how you flag a question for review");
-- a **"you can't get it wrong here"** tone, and a clear **"you're ready —
-  start your exam"** at the end.
+1. **Coverage — FULL.** All 11 question types (MCQ, T/F, SATA, Select-N,
+   matrix, matrix-multi, highlight, cloze, drag-cloze, drag-order, bow-tie)
+   plus case study and trend. Meeting an untaught type in a real exam is the
+   exact failure the tutorial prevents.
+2. **Shape — linear walkthrough + jump-to-section.** Guided "Step N of 32" as
+   the default first-timer path, with a jump-to-any-section index for
+   returners (CD delivered it, so it's in v1).
+3. **Dummy content — CD's real clinical questions, kept as-is.** An earlier
+   musing to make them trivial/non-nursing was **reversed**: a nurse doing a
+   "primary-colours" question would feel patronised, and real content keeps it
+   feeling like the exam. (If any prove to demand real deliberation we can ease
+   them, but the set stands.)
+4. **Design route — done.** CD delivered the coach-layer UX.
+5. **Placement — authenticated focused route for v1.** The sandbox reuses the
+   real runner components (which assume a logged-in context), so v1 is an
+   authed, audience-neutral, distraction-free route. A public preview for
+   prospective buyers is a possible **v2**, not a v1 gate.
 
-This coach layer is the main **design** work and the bulk of the risk — it is
-a multi-screen guided experience and should go through a **Claude Design pass**
-before building (per the CD-prototype-then-implement rule for dense/guided UI).
+## Build plan — the slices
 
-## Content — what it teaches
+A **multi-session feature**. Build in order; each slice is testable and
+mergeable on its own.
 
-- **The question types.** The NGN set the runner renders: MCQ, SATA,
-  Select-N, matrix (single + multi-response), cloze, drag-cloze, drag-order,
-  highlight, bow-tie, true/false — plus how a **case study** and a **trend**
-  question are laid out. (Coverage scope is an open decision — see below.)
-- **The tools.** The **calculator** (see `calculator.md`), **mark-for-review**,
-  the **question grid**, **navigation** (Prev/Next, and the no-going-back rule
-  in sequential/CAT), **submit**, and the **timer**.
+### Slice 1 — the sandbox runner mode (the real engineering)
 
-## Flow & entry points
+Make the runner run with fake questions that save nothing. The load-bearing
+piece.
 
-- A **focused route** of its own (audience-neutral, distraction-free, like the
-  runner at `/session/[id]`), **untimed and unfailable**.
-- Offered as an **optional step before an exam** (CAT / pack / timed) — "New
-  here? Take the short walkthrough" — and **remembered**, so once done the
-  student gets a small link instead of a nag (needs a "tutorial completed"
-  flag; store the DATA even if the nag-logic is minimal — [[feedback_analytics_deferred_per_feature]]).
-- Reachable any time from **`/help`** and the **dashboard**.
+- **Dummy questions, held in the app code (NOT the bank).** ~19 dummy items —
+  one per type (+ the case's children and a trend) — shaped exactly like real
+  `nclex_attempt_items` so the runner renders them unchanged, kept in a
+  constant (e.g. `lib/practice/tutorial/questions.ts`). Held in code so they
+  **can never leak into the real bank or the CAT pool**, and are versioned
+  with the app.
+- **A third runner mode.** The runner today branches on `mode: 'live' |
+  'review'`; add a `tutorial`/`sandbox` mode. **Review mode is the template** —
+  it already reveals answers without saving; the sandbox is "review, but the
+  student answers fresh and still nothing saves."
+- **Every server action becomes a no-op.** `submitAnswer`, `saveProgress`,
+  `completeAttempt`, `expire`, the clocks — all stubbed / not called in
+  sandbox mode.
+- **Wiring choice (settle in this slice):** teach the *existing* runner shell
+  the new mode (one shell handles all three — preferred, guarantees zero
+  drift), **or** a thin tutorial host mounting the runner's real child
+  components. Either way it's the **same components**, never a reimplementation.
+- **The safety invariant — provably no writes.** The sandbox never creates a
+  real attempt, so there is nothing to write into; the stubs are belt-and-
+  braces. **Sign-off = after a full tutorial run, the DB has zero new records**
+  (no attempt, no answers, no score).
+- *Nothing user-facing yet* beyond a bare sandboxed runner for testing.
 
-## Open decisions (settle before building)
+### Slice 2 — the coach layer + flow
 
-1. **Coverage** — all ~11 NGN item types up front, or a **core set first**
-   (MCQ, SATA, matrix, cloze, drag-drop) with the rest added later?
-2. **Shape** — a strict **linear** "next, next, next" guided tour (what the
-   real NCLEX does), or a **free-explore** sandbox with optional coaching
-   (friendlier, but easier to get lost in)?
-3. **Design route** — brief **Claude Design** on the coach-layer UX first,
-   then build from the prototype? (Recommended.)
+The guided coaching on top of the sandbox. CD's blueprint specifies most of it.
 
-## Slice plan (proposed)
+- **Step data** — port CD's 32-step list (title, body, `target`, `gate`,
+  `goto`) into the app.
+- **Coach card** — a floating React component that positions itself next to
+  the `target` control, dims the rest (the spotlight/ring), and renders
+  title/body/Back/Next/Skip. Cross-viewport positioning is the fiddly UX bit.
+- **Gate logic** — for gated steps, Next stays disabled until the student
+  does the thing; the runner already announces mark/answer/submit events, the
+  coach listens.
+- **Flow controller** — current step, advance/rewind, switch the underlying
+  dummy question on `goto`, the **jump-to-section** index, and the "you're
+  ready — start your exam" ending.
 
-0. **Design pass** — settle the sandbox-mode approach, the content list + order,
-   the flow, and the coach-layer UX (Claude Design).
-1. **The sandbox runner mode** — the engine work: dummy questions, no-op
-   actions, provably no data writes. Nothing user-facing yet.
-2. **The coach layer + flow** — the stepped walkthrough over the sandbox.
-3. **Entry points + "done" memory** — the pre-exam offer, help/dashboard links,
-   don't-nag-again flag.
+### Slice 3 — entry points + "done" memory
+
+- **Doorways** — links from `/help` and the dashboard, plus an optional offer
+  before an exam (CAT / pack / timed preflight: "New here? Take the
+  walkthrough").
+- **"Done" memory** — one per-user flag (e.g. `tutorial_completed_at`) so the
+  pre-exam offer becomes a quiet link, not a nag. **This is the only thing in
+  the whole feature that writes to the database** — everything else writes
+  nothing.
+
+## Build-approach guardrails
+
+- **One runner only.** Reuse the real components; never a parallel copy.
+- **CD's HTML is the blueprint, not the source.** At build time, fidelity is
+  checked against the **live** React components, not CD's static reproduction
+  (same concept-not-source discipline as the bank/readiness CD work).
+- **The no-write invariant is load-bearing** and gets its own verification
+  (zero DB records after a full run) before Slice 1 is called done.
 
 ## Related docs
 
-- `bank-consumption-runner.html` — the runner this tutorial teaches (the
-  chrome, per-type rendering, navigation, grid, mark-for-review).
+- `bank-consumption-runner.html` — the runner this tutorial teaches (chrome,
+  per-type rendering, navigation, grid, mark-for-review).
 - `bank-consumption-cat.html` — §3.2 the `/help/cat` explainer (the tutorial's
   text cousin); §9.3 the 5-hour limit this tutorial complements.
-- `calculator.md` — one of the tools the tutorial covers.
+- `calculator.md` — a tool the tutorial covers.
+- The **CD handoff** ("Tutorial Runner" prototype) — the adopted blueprint
+  (to be saved in-repo as a concept-not-source reference, pending go-ahead).
 - `main.md` — overall MyNclex product plan.
