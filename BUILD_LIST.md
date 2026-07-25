@@ -136,19 +136,33 @@
 >     toggles then got **real icons** (`163d6c4`) — a clock face and a grid,
 >     plain when shown / slashed when hidden. Also **the runner title is now
 >     intent-based** — "Study session" / "Exam session" (`b19aa00`).
-> 11. **`/help/cat` — and the route to it.** Grep returns **zero references
->     anywhere in the app**, though §10.7.2 assigned the link to Slice 6a. A
->     student meeting an adaptive exam has no explanation outside the
->     preflight. Last real build item before Slice 10.
+> 11. ✅ **`/help/cat` — BUILT 2026-07-25 (on `main`).** Built as a whole
+>     public **Help section**, not just the one page: `/help` hub +
+>     `/help/cat` (§3.2's five sections) + `/help/readiness-packs` (a bonus
+>     Sam asked for), flat `/help/[slug]`, outside the auth boundary. Entry
+>     points wired from the CAT surfaces (home / result / preflight), the
+>     dashboard CAT + pack "?" signals, the pack surface, and a public-footer
+>     link. `styles/help.css`. ⚠ Deferred doc-catchup: mark this in BUILD_LIST's
+>     header + flip cat.html §3.2 status.
 > 12. **Slice 10 — weekly recalibration** (§5.3 / §17). The only substantial
 >     slice left. Priority raised: on the current three-rung difficulty ladder
 >     the exam can't visibly track a strong student and the readiness
 >     probability saturates near 100%.
-> 13. **Two reopened CAT decisions, noted not changed** — §9.3 the 4-hour
->     limit (real NCLEX gives 5; now a genuine one-constant change) and
->     §9.1.1 the passing standard (theta 0.0 was inherited from three
->     unrelated defaults, never chosen; ⚠ changing it re-interprets every CAT
->     already sat).
+> 13. **Two reopened CAT decisions** — §9.3 ✅ **DONE 2026-07-25: time limit
+>     4h → 5h** (on `main`; migration `20260816120000` redefines
+>     `create_cat_attempt` to stamp 5h; new CATs 5h, in-progress keep their
+>     limit; ⚠ cat.html's ~8 "4 hours" mentions not yet updated). §9.1.1 the
+>     passing standard **left at 0.0 on purpose** — moving it needs a
+>     standard-setting exercise (expert-judgement pass), not a guess, and is
+>     cheapest **pre-launch** (re-interprets every CAT once there are users);
+>     recorded for a later, deliberate decision.
+> 14. **NEW — the runner tutorial (sandbox). DESIGNED, not built.** A sandbox
+>     that teaches the exam runner (all types + tools), safe/unscored. Design
+>     pass complete: doc `docs/product-plan/runner-tutorial.md` (build-ready) +
+>     CD blueprint saved `design-handoff/runner-tutorial/`. Principle: **one
+>     runner in a sandbox mode + coach overlay, never a copy.** Build = 3
+>     slices (sandbox mode → coach layer → entry points), sign-off = zero DB
+>     writes. **Next session.**
 >
 > ### Operational
 >
