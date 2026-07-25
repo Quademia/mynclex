@@ -39,11 +39,25 @@
 >    label collides with MyNclex's real tutor role (a collision UWorld doesn't
 >    have and the §15.1 avoid-list didn't catch; candidate replacement "Learn").
 >    No code change — labels are display-only and already live.
-> 2. **The Builder's filter accordion on a phone.** 5 of the 9 axes default
->    open, so the Filters tab measures ~3,000px on a 375px screen. Making it
->    viewport-dependent isn't CSS (the open state is React state → needs
->    client detection, risks a hydration mismatch); closing them for everyone
->    changes desktop behaviour. **Agreed to judge on a real phone first.**
+> 2. ✅ **The Builder's filter accordion on a phone — reviewed 2026-07-25,
+>    closed.** Sam looked at it on a real phone and decided the accordion
+>    **stays as-is**: collapsing the default-open axes isn't a UX win, it just
+>    trades away discoverability + the live per-row counts to shorten a scroll
+>    that read fine in practice, and the current 5-open/4-closed split is
+>    already a considered "which axes are worth the scroll" call. The
+>    hydration-mismatch reasoning still stands as the record of why a naive
+>    "collapse on phone" isn't a CSS one-liner. **Related outcome of the same
+>    review:** the builder's crowded two-tab layout (the "Filters" tab stacked
+>    the Question-pool chips above the nine content axes) was **split into three
+>    tabs — Intent & Mode · Question pool · Content filters** so each pane has
+>    one job. Pure UI reshaping, no logic/state/payload change; the tab-key type
+>    went `'mode' | 'filters'` → `'mode' | 'pool' | 'content'`. Verified live
+>    (clean split, metas track state, console clean, desktop untouched, three
+>    even tab columns at 375px with zero horizontal overflow). On session branch
+>    `claude/work-session-bd5542`, **NOT yet on `main`** — awaiting Sam's test +
+>    merge approval. The axis-sub-panes idea (turn the 9 headings into a
+>    sub-tab strip) was considered and **rejected** — it duplicates what the
+>    accordion already does and hides the whole-filter-state-at-a-glance view.
 >
 > ### Small fixes — ✅ all cleared 2026-07-25 (see the note above)
 >
