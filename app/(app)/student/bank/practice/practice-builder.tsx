@@ -108,10 +108,12 @@ export function PracticeBuilder({
   const [mode,   setMode]   = useState<ModeId>('UNTIMED_LEARNING');
   const [count,  setCount]  = useState<number>(25);
 
-  // Tab strip — Intent+Mode vs Filters. Default tab is the higher-
-  // level decision (Intent+Mode) so the student doesn't fill out
-  // filters and then discover their mode (e.g. CAT) doesn't use them.
-  const [activeTab, setActiveTab] = useState<'mode' | 'filters'>(hasSeed ? 'filters' : 'mode');
+  // Tab strip — three steps: Intent+Mode · Question pool · Content
+  // filters. Default tab is the higher-level decision (Intent+Mode) so
+  // the student doesn't fill out filters and then discover their mode
+  // (e.g. CAT) doesn't use them. A deep-link that pre-seeds content
+  // filters lands on the content tab so the student sees what arrived.
+  const [activeTab, setActiveTab] = useState<'mode' | 'pool' | 'content'>(hasSeed ? 'content' : 'mode');
 
   // Entry-helper local state. Resumable can be cleared client-side
   // when the student clicks Start fresh (the discard RPC fires and we
@@ -356,9 +358,10 @@ export function PracticeBuilder({
     setIntent(rec.intent);
     setMode(rec.mode);
     setCount(rec.requested_count);
-    // Switch to the Filters tab so the student sees what was
-    // restored. They can tweak then Start, or Start straight away.
-    setActiveTab('filters');
+    // Switch to the Content filters tab so the student sees the bulk of
+    // what was restored (mode + pool are restored too, on their own
+    // tabs). They can tweak then Start, or Start straight away.
+    setActiveTab('content');
   };
 
   const onWeakSpots = () => {
@@ -422,8 +425,9 @@ export function PracticeBuilder({
           <RecentQuizzesRow recents={recents} onSelect={onRecentSelect} />
           <WeakSpotsButton onTrigger={onWeakSpots} pending={weakStarting} />
 
-          {/* Tab strip — switches between Intent & Mode and Filters.
-              The right-rail summary stays mounted across both tabs. */}
+          {/* Tab strip — three steps: Intent & Mode · Question pool ·
+              Content filters. The right-rail summary stays mounted across
+              all three tabs. */}
           <div className="bk-tabs" role="tablist">
             <button
               type="button"
@@ -440,19 +444,37 @@ export function PracticeBuilder({
             <button
               type="button"
               role="tab"
-              aria-selected={activeTab === 'filters'}
-              className={'bk-tab' + (activeTab === 'filters' ? ' on' : '')}
-              onClick={() => setActiveTab('filters')}
+              aria-selected={activeTab === 'pool'}
+              className={'bk-tab' + (activeTab === 'pool' ? ' on' : '')}
+              onClick={() => setActiveTab('pool')}
             >
-              Filters
+              Question pool
               <span className="bk-tab-meta">
-                {isCAT ? "doesn't apply in CAT" : (anyContentSelected || pools.size > 0 ? 'configured' : 'any')}
+                {isCAT
+                  ? "doesn't apply in CAT"
+                  : pools.size === 0
+                    ? 'none'
+                    : pools.size === 1
+                      ? (POOLS.find((p) => pools.has(p.id))?.label ?? '1 selected')
+                      : `${pools.size} selected`}
+              </span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'content'}
+              className={'bk-tab' + (activeTab === 'content' ? ' on' : '')}
+              onClick={() => setActiveTab('content')}
+            >
+              Content filters
+              <span className="bk-tab-meta">
+                {isCAT ? "doesn't apply in CAT" : (anyContentSelected ? 'configured' : 'any')}
               </span>
             </button>
           </div>
 
-          {/* ─── FILTERS TAB — Pool section ─── */}
-          {activeTab === 'filters' && (
+          {/* ─── QUESTION POOL TAB ─── */}
+          {activeTab === 'pool' && (
           <section className="bk-section">
             <div className="bk-section-head">
               <div>
@@ -505,8 +527,8 @@ export function PracticeBuilder({
           </section>
           )}
 
-          {/* ─── FILTERS TAB — Content filters section ─── */}
-          {activeTab === 'filters' && (
+          {/* ─── CONTENT FILTERS TAB ─── */}
+          {activeTab === 'content' && (
           <section className="bk-section">
             <div className="bk-section-head">
               <div>
