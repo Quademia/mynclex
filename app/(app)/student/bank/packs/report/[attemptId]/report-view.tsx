@@ -289,6 +289,7 @@ export default function ReadinessReportView({ report }: { report: ReadinessRepor
           {packTitle}
           {satDate && <> · {fmtDate(satDate)}</>}
         </div>
+        <a className="rs-rep-help" href="/help/readiness-packs">How packs work →</a>
       </header>
 
       <div className="rs-rep-shell">

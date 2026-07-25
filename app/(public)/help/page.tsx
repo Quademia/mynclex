@@ -45,6 +45,19 @@ export default function HelpIndexPage() {
             Read more <span aria-hidden="true">→</span>
           </Link>
         </article>
+
+        <article className="help-topic">
+          <h2>How Readiness Packs work</h2>
+          <p>
+            A Readiness Pack is an exam-style checkpoint — a fixed set of
+            questions you sit in one go to see where you stand, with a 21-day
+            window to sit it and review. The full guide explains the window,
+            why you get one attempt, and what your readiness band means.
+          </p>
+          <Link href="/help/readiness-packs" className="help-readmore">
+            Read more <span aria-hidden="true">→</span>
+          </Link>
+        </article>
       </div>
     </main>
   );

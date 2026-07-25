@@ -136,6 +136,7 @@ export function ReadinessPanel({ data }: { data: ReadinessPanelData }) {
 
         <SignalCard
           signal={pack}
+          helpHref="/help/readiness-packs"
           visual={
             peer && peer.unlocked ? (
               <MiniHistogram peer={peer} />
