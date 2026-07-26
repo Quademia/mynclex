@@ -65,7 +65,14 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  const needsAuth = AUTH_REQUIRED_PREFIXES.some((p) => path.startsWith(p));
+  // Segment-aware match, NOT a raw string prefix: the `/tutor` section is
+  // `/tutor` itself or `/tutor/...`, never `/tutorial` (a public route that
+  // merely starts with the same letters). Without the `p + '/'` guard the
+  // public /tutorial/exam walkthrough was swept into the tutor auth guard
+  // and bounced to /login.
+  const needsAuth = AUTH_REQUIRED_PREFIXES.some(
+    (p) => path === p || path.startsWith(p + '/')
+  );
   if (needsAuth && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
