@@ -20,7 +20,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { dismissPrompt } from '@/lib/practice/tutorial/completion';
 import { PROMPT_KEY_PRE_EXAM_OFFER } from '@/lib/practice/tutorial/keys';
@@ -39,6 +39,14 @@ interface Props {
 export function PreExamTutorialOffer({ returnTo, onProceed, onCancel }: Props) {
   const router = useRouter();
   const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  // Esc closes (the keyboard equivalent of the × / backdrop) — the standard
+  // modal escape, so the offer never feels like a forced choice.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onCancel]);
 
   // Only the checkbox suppresses the offer for good (completion never does).
   const remember = () => {
@@ -68,6 +76,21 @@ export function PreExamTutorialOffer({ returnTo, onProceed, onCancel }: Props) {
         aria-label="See the exam screen first?"
         aria-modal="true"
       >
+        <button
+          type="button"
+          className="pre-exam-offer-close"
+          aria-label="Close"
+          onClick={onCancel}
+        >
+          <svg
+            width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
         <p className="pre-exam-offer-title">New to the exam screen?</p>
         <p className="pre-exam-offer-hint">
           Take a quick walkthrough of the interface first — every question type

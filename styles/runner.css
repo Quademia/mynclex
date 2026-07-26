@@ -2784,6 +2784,7 @@
   z-index: 90;
 }
 .pre-exam-offer-card {
+  position: relative;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -2795,11 +2796,32 @@
   max-width: 440px;
   box-shadow: var(--shadow-lg);
 }
+.pre-exam-offer-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  opacity: 0.5;
+  cursor: pointer;
+}
+.pre-exam-offer-close:hover {
+  opacity: 0.9;
+  background: rgba(15, 23, 42, 0.06);
+}
 .pre-exam-offer-title {
   font-weight: 700;
   font-size: 16px;
   color: var(--text);
   margin: 0;
+  padding-right: 24px; /* clear the × */
 }
 .pre-exam-offer-hint {
   font-size: 14px;
