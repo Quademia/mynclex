@@ -167,13 +167,119 @@ The guided coaching on top of the sandbox. CD's blueprint specifies most of it.
 
 ### Slice 3 — entry points + "done" memory
 
-- **Doorways** — links from `/help` and the dashboard, plus an optional offer
-  before an exam (CAT / pack / timed preflight: "New here? Take the
-  walkthrough").
-- **"Done" memory** — one per-user flag (e.g. `tutorial_completed_at`) so the
-  pre-exam offer becomes a quiet link, not a nag. **This is the only thing in
-  the whole feature that writes to the database** — everything else writes
-  nothing.
+Design settled 2026-07-26 (discussion with Sam). This is the **only slice in
+the whole feature that writes to the database**; Slices 1–2 write nothing.
+
+#### The tutorial route becomes PUBLIC
+
+The `<Runner>` component needs no user — it renders purely from its `data`
+prop (no auth, no Supabase, no session). The tutorial is login-only today only
+because it sits under `(app)/`, whose layout redirects anonymous visitors. So
+"make it public" is a route + CSS-import change, **not** a runner rewrite.
+
+**Decision — make the tutorial publicly reachable**, as ONE route: signed-in
+students get the walkthrough *and* their done-flag write; logged-out visitors
+get the identical experience, unrecorded (no `user_id`, nothing to write, and
+nothing to suppress). Rationale: a public "taste of the exam interface" is the
+industry norm — **NCSBN's own** Candidate Tutorial / Sample Questions / Exam
+Preview are free and public, and UWorld's sample page is interactive with no
+signup. Our tutorial is a fixed dummy set that touches neither the real bank
+nor CAT, so public gives away *the demo everyone gives away*, not the product.
+It also removes the "logged-out `/help` link bounces to login" wrinkle. (A
+`(public)` sibling route or lifting the route out of the auth boundary — settle
+the exact mechanism at build; the invariant is one route serving both.)
+
+#### The "done" memory — `nclex_tutorial_completions`
+
+No user/profile table exists; the codebase's pattern for per-user state is a
+small dedicated table (`nclex_library_shelf_seen`, etc.). So a new
+**`nclex_tutorial_completions`**, designed to GROW:
+
+- Keyed **`(user_id, tutorial_key)`** — one row per user *per tutorial*, so a
+  second walkthrough later (`/tutorial/builder`, onboarding, …) is a new
+  `tutorial_key` value with **zero schema change**. `tutorial_key` for this one
+  is `'exam-runner'`.
+- Two distinct facts, both recorded:
+  - **`completed_at`** — did they finish the tutorial (reached the final coach
+    step). A record only; it drives no behaviour (see the popup rule below).
+  - **`dismissed_at`** — did they tick "Don't show again" on the pre-exam
+    popup. **This is the field that gates the popup.**
+- Keep it **tutorial-scoped**, not a generic "user milestones" junk-drawer.
+  Room to grow additively later (`last_step`, etc.) on the same table.
+
+This table exists **solely to power the pre-exam popup** — the other three
+doors are flag-independent.
+
+#### The four entry points
+
+1. **`/help` hub** — an always-on "Take the exam walkthrough" link on the
+   (now public) help hub, and inside `/help/cat` for context. No flag.
+2. **Student dashboard** — a **permanent** doorway in the "Where to next" rail
+   (`lib/home/student/bank/rail.tsx`, data-driven — one entry added). Evergreen
+   copy ("Exam walkthrough" / "Practice the interface anytime — nothing is
+   recorded") so it reads as a standing tool, not an unfinished task. A doorway,
+   **not** a banner. No flag. (Reaches the already-subscribed student — its job
+   is "you own the bank; learn the screen," not acquisition.)
+3. **Pre-exam popup** — the one flag-aware surface (detailed below).
+4. **Help in shared chrome** — a global **"Help"** link in the shared shell
+   (user menu / topbar) → the `/help` hub, reachable from every space (bank,
+   programme, cohort), filling the gap that the workspace has no help route
+   today. A Help *hub* link, **not** a tutorial-specific nav line (cleaner,
+   scales as help grows). Slightly bigger touch than a nav-config line (it's
+   chrome), still minor.
+
+#### The pre-exam popup — settled behaviour
+
+- **CAT is not special.** We chose to keep watching **free** for every mode
+  (the teaching walkthrough must never eat a student's real exam time — the
+  newcomer who most needs it is the one who'd lose 10–15 min of a 5-hour CAT).
+  So the offer, the free watch, and "clock starts at real questions" are
+  **uniform across all modes**.
+- **Where it fires:** the preflight is a real screen at the attempt's own
+  address (`app/(app)/(focused)/session/[attempt_id]/preflight.tsx`), shown
+  *after* the attempt is created. The popup fires when the student clicks
+  **Start on the preflight** — read preflight → Start → popup.
+- **When it shows:** every exam start, **unless `dismissed_at` is set** (the
+  "Don't show again" checkbox). It does **NOT** gate on `completed_at` — a
+  veteran keeps the standing courtesy until they switch it off themselves. Two
+  buttons: **Watch** / **Start exam**, plus the checkbox.
+- **No double-ask same-sitting:** if they just chose Watch on the way into
+  *this* exam, we don't re-pop the offer on the immediate bounce-back to the
+  preflight. Permanent suppression is still only the checkbox; this is a
+  this-run-only skip. Next exam, fresh offer (unless dismissed).
+- The checkbox writes `dismissed_at`; finishing the tutorial writes
+  `completed_at` (record only).
+
+#### The return-destination mechanism
+
+The sandbox bundle already carries a single `exitHref` that End / Exit / finish
+all route to (`buildSandboxData`, currently hardcoded to `/help`). Slice 3
+makes it dynamic:
+
+- Each door links with `/tutorial/exam?return=<internal-path>`; the page reads
+  `return`, and `buildSandboxData` uses it as `exitHref`.
+- **Guard (open-redirect):** honour only **internal** paths (leading single
+  `/`, no scheme, no `//`); anything else falls back to `/help`.
+- Standing doors return to their origin (`/help`, the dashboard, the hub).
+- **Pre-exam returns to the attempt's own preflight address**
+  (`/session/[attempt_id]`). Because the attempt already exists at a stable
+  URL, the round-trip is **lossless** — nothing the student configured is lost,
+  and it's uniform across modes. No stashing, no per-surface special-casing.
+
+#### Build-time verifications (not decisions — checks)
+
+- **CAT clock:** confirm the 5-hour clock starts at **preflight-Start** (after
+  any tutorial detour), not at attempt creation — else free-watching would leak
+  exam time, breaking the "watching is free" decision. Small fix if not.
+- Confirm every mode's pre-exam moment routes through the shared preflight (or
+  an equivalent stable per-attempt URL) so the popup + return hook lands
+  everywhere.
+
+#### Deferred within Slice 3 scope
+
+- **Tutorial preflight** (its own framing screen before the walkthrough) —
+  parked; see *Deferred ideas & follow-ups*.
+- **Drift-safety tripwire** — parked; see the same section. Not a Slice-3 gate.
 
 ## Build-approach guardrails
 
@@ -183,6 +289,93 @@ The guided coaching on top of the sandbox. CD's blueprint specifies most of it.
   (same concept-not-source discipline as the bank/readiness CD work).
 - **The no-write invariant is load-bearing** and gets its own verification
   (zero DB records after a full run) before Slice 1 is called done.
+
+## Deferred ideas & follow-ups
+
+Captured 2026-07-26 (discussion, not scheduled). Neither is a Slice-3 gate.
+
+### A tutorial preflight (deferred)
+
+Today `/tutorial/exam` drops the student straight into the runner + coach.
+Idea: front it with a short **tutorial preflight** — its own framing screen
+("This is the exam screen — nothing here is recorded") before entering, the
+same way a real sitting has a preflight. Purely additive, architecture-neutral
+(works with the current coach or any alternative). **Not now** — parked as a
+possible Slice-3-plus polish once the entry points land.
+
+### Drift-safety — keep the coach central, harden the anchor
+
+**The problem.** The coach (`lib/practice/tutorial/coach/steps.ts`) points at
+runner controls **by name** — each step's `target` matches a `data-coach="…"`
+marker on a real runner component. The two live apart, so a control that is
+renamed or removed leaves the step pointing at a ghost, and the coach **fails
+silently** (`coach.tsx` falls back to a centred card spotlighting nothing).
+There are two drift flavours: (a) a control renamed/deleted → **dangling
+pointer**; (b) a brand-new control nobody wrote a step for → **untaught**.
+(b) is unsolvable by any architecture — the machine can't know you *intended*
+to teach a new control; that's always human curation.
+
+**Considered and set aside — thread tutorial-awareness through every
+component.** Sam's alternative: drop the overlay; give every runner feature a
+tutorial prop so each renders its *own* coaching when in tutorial mode. This
+genuinely kills flavour-(a) drift (coaching lives *inside* the control, so
+deleting the control deletes its coaching — no pointer to dangle). But it was
+not adopted, for three reasons: **(1)** the tutorial is a *guided sequence*
+(31 ordered steps, gates, jump-to-section, hide/resume, End) — colocated
+per-control bubbles have nowhere to hold the order, so a central orchestrator
+(≈ the coach) re-emerges anyway, leaving you with *both*; **(2)** the whole
+teaching script stops being readable in one file — reviewing "what the
+tutorial says" would mean opening a dozen component files; **(3)** it couples
+teaching into the live exam path, widening the surface for the exam-mode
+display leaks the runner has repeatedly had. It also does **not** solve
+flavour (b). Net: it fixes (a) at a high structural cost, and (a) is fixable
+far more cheaply.
+
+**Recommended follow-up (cheap, keeps the tour in one file):**
+- **A dev-only tripwire** — a test that walks `COACH_STEPS` and asserts every
+  `target` resolves to a real `data-coach` marker and every `gotoKey` to a
+  real sandbox question. Turns silent drift into a loud test failure. ~30 lines.
+- **Optionally, a typed anchor contract** — replace the loose `data-coach`
+  *string* with a shared enum/registry both the component and the step import,
+  so a rename becomes a compile error, not a silent miss. This captures the
+  intuition behind the rearchitecture (the control declares its own tutorial
+  hook) *without* moving the curriculum into the components — which is also how
+  real onboarding libraries split it: element declares an anchor, a central
+  driver sequences.
+
+Neither is built. Schedule after the tutorial ships (post-Slice 3).
+
+### The sandbox is a reusable primitive — a public free-question sampler
+
+The engineering that makes the tutorial possible is **not** "a tutorial" — it
+is a **sandbox mode on the real runner** (`data.sandbox` flag + no-op'd writes
++ an in-memory bundle builder), i.e. *run the real exam engine over any set of
+questions, provably touching nothing*. The tutorial is its **first consumer**.
+Its natural **second consumer** is a **public free-question sampler** — the
+industry-standard "public taste of the interface" (NCSBN's own Candidate
+Tutorial/Sample Questions, UWorld's no-signup sample page): mount the same
+sandbox runner on a public route, feed it a handful of questions, let a
+logged-out visitor answer and read the rationale, save nothing. Most of the
+work already exists — it's a new *bundle source* + a public route, not a new
+engine.
+
+Two forks a future sampler slice must pick (named now so they don't ambush):
+- **Question sourcing.** The tutorial's dummies are hand-authored in app code
+  *precisely so they can't leak into the paid bank / CAT pool*. A sampler
+  forces a choice: (a) expose a **curated slice of real bank items** as a
+  deliberate giveaway (strongest demo, but it's paid content — needs an
+  explicit "these N are public" flag, never accidental), or (b) a **separate
+  purpose-built public pool** (clean separation, authoring cost).
+- **The zero-write rule cuts both ways for a funnel.** Writing nothing is a
+  pure win for the tutorial, but a marketing sampler that stores nothing also
+  *captures* nothing (no "7/10 — sign up for the rest", no even-anonymous
+  bounce count). If it becomes a conversion tool it likely wants a **thin,
+  privacy-safe capture** (an anonymous count, not stored answers) — a
+  deliberate, narrow exception to the invariant, not its abandonment. (Cf. the
+  standing rule: capture the data even when deferring the dashboard.)
+
+Not scheduled — a future v2+ idea; may also warrant a pointer from the
+bank/public-demo planning when it's picked up.
 
 ## Related docs
 
