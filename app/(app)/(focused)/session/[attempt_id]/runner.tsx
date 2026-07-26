@@ -116,6 +116,7 @@ export function Runner({ data }: Props) {
         attempt={data.attempt}
         itemCount={data.items.length}
         exitHref={data.exitHref}
+        offerDismissed={data.offerDismissed ?? false}
       />
     );
   }

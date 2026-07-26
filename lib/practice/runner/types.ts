@@ -142,6 +142,12 @@ export interface LiveData {
    *  router.push with no spinner. Same resolver feeds the results
    *  popup's Exit button. */
   exitHref: string;
+  /** Runner tutorial Slice 3c — has this student dismissed the pre-exam
+   *  walkthrough offer ("Don't show again")? Read server-side only for a
+   *  live, not-yet-started attempt (the preflight is the only place it's
+   *  used); false/omitted otherwise. Drives whether the offer popup shows
+   *  when Start is pressed. */
+  offerDismissed?: boolean;
   /** Runner tutorial sandbox (docs/product-plan/runner-tutorial.md).
    *  When true this is the no-writes teaching runner: every server action
    *  is skipped and Submit scores locally against `sandboxKeys`. A real

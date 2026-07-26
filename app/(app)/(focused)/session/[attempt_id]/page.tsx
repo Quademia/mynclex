@@ -31,6 +31,8 @@ import { Runner } from './runner';
 import { expireAttemptAction } from './actions';
 import { resolveAttemptExitHref } from '@/lib/practice/runner/resolve-exit-href';
 import { reviewWindowOpen } from '@/lib/payments/readiness-window';
+import { hasDismissedPrompt } from '@/lib/practice/tutorial/completion';
+import { PROMPT_KEY_PRE_EXAM_OFFER } from '@/lib/practice/tutorial/keys';
 
 export const dynamic = 'force-dynamic';
 
@@ -237,6 +239,14 @@ export default async function SessionPage({ params }: PageProps) {
     mode:                  attempt.mode,
   });
 
+  // Runner tutorial Slice 3c: the pre-exam walkthrough offer shows on the
+  // preflight (a live attempt that hasn't started). Read the dismissal flag
+  // only in that case — no query on review or already-running attempts.
+  const offerDismissed =
+    isLive && attempt.started_at === null
+      ? await hasDismissedPrompt(PROMPT_KEY_PRE_EXAM_OFFER)
+      : false;
+
   // Multi-line / concatenated select strings defeat supabase-js's row-
   // shape inference (returns GenericStringError[]); cast through unknown.
   const data: RunnerData = isLive
@@ -249,6 +259,7 @@ export default async function SessionPage({ params }: PageProps) {
         answers: (answers.data ?? []) as unknown as AnswerRow[],
         seededUnseal,
         exitHref,
+        offerDismissed,
       }
     : {
         mode:    'review',

@@ -2766,3 +2766,67 @@
   /* No spin — a static ring still reads as "working" without motion. */
   .rn-cat-tx-spinner { animation: none; border-top-color: var(--accent, #2d7d72); }
 }
+
+/* ─────────────────────────────────────────────────────
+ * Pre-exam tutorial offer (runner-tutorial Slice 3c)
+ * A calm, NEUTRAL modal offering the walkthrough before an exam Start —
+ * deliberately not the amber auth-discard/warning chrome. Shown over the
+ * session preflight and (3c-ii-b) the CAT preflight; z sits above both.
+ * ───────────────────────────────────────────────────── */
+.pre-exam-offer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 90;
+}
+.pre-exam-offer-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: var(--shadow-lg);
+}
+.pre-exam-offer-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+  margin: 0;
+}
+.pre-exam-offer-hint {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  opacity: 0.8;
+  margin: 0;
+}
+.pre-exam-offer-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.85;
+  cursor: pointer;
+  user-select: none;
+}
+.pre-exam-offer-check input {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+.pre-exam-offer-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}

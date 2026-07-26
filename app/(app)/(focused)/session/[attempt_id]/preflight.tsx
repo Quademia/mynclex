@@ -15,13 +15,14 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
 import { markStartedAction, startReadinessAttemptAction } from './actions';
 import type { AttemptHeader } from '@/lib/practice/runner';
 import { exitBackLabel } from '@/lib/practice/runner/resolve-exit-href';
 import { modeLabelFor } from '@/lib/practice/builder/filter-config';
 import { preflightBrief } from '@/lib/practice/runner/mode-brief';
+import { PreExamTutorialOffer } from '@/lib/overlays/practice/pre-exam-tutorial-offer';
 
 // Mode labels resolve through modeLabelFor(intent, mode) — see the note on
 // that helper. This file used to keep its own hardcoded map, which could not
@@ -39,6 +40,10 @@ interface Props {
   /** Slice 3a — source-aware destination resolved server-side. Same
    *  href used by the runner topbar's ← Exit and the results popup. */
   exitHref:  string;
+  /** Runner tutorial Slice 3c — has the student ticked "Don't show again"
+   *  on the pre-exam walkthrough offer? When false, pressing Start offers
+   *  the walkthrough first (unless they just watched it this sitting). */
+  offerDismissed: boolean;
 }
 
 function durationStr(seconds: number | null): string {
@@ -51,14 +56,22 @@ function durationStr(seconds: number | null): string {
   return `${mm}m`;
 }
 
-export function Preflight({ attempt, itemCount, exitHref }: Props) {
+export function Preflight({ attempt, itemCount, exitHref, offerDismissed }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError]     = useState<string | null>(null);
   const [pending, startTrans] = useTransition();
+  const [showOffer, setShowOffer] = useState(false);
 
   const isReadiness = attempt.source === 'READINESS_PACK';
 
-  const onStart = () => {
+  // Runner tutorial Slice 3c. `tut_watched=1` is set on the address the
+  // tutorial returns to, so we don't re-offer the walkthrough the instant
+  // the student lands back on this preflight from it (this-sitting only).
+  const justWatched = searchParams.get('tut_watched') === '1';
+  const tutorialReturnTo = `/session/${attempt.attempt_id}?tut_watched=1`;
+
+  const doStart = () => {
     startTrans(async () => {
       const r = isReadiness
         ? await startReadinessAttemptAction(attempt.attempt_id)
@@ -68,25 +81,45 @@ export function Preflight({ attempt, itemCount, exitHref }: Props) {
     });
   };
 
+  // Offer the walkthrough first, unless dismissed for good or just watched
+  // on the way in. Watching is FREE: doStart (which stamps started_at /
+  // spends the readiness credit) only runs on a real start.
+  const onStart = () => {
+    if (offerDismissed || justWatched) { doStart(); return; }
+    setShowOffer(true);
+  };
+
+  const offer = showOffer ? (
+    <PreExamTutorialOffer
+      returnTo={tutorialReturnTo}
+      onProceed={() => { setShowOffer(false); doStart(); }}
+      onCancel={() => setShowOffer(false)}
+    />
+  ) : null;
+
   const onBack = () => router.push(exitHref);
 
   // Readiness packs get a full-stop, one-shot preflight (§2 / §7) — the
   // heaviest of the three gates. Pressing Start here spends the credit.
   if (isReadiness) {
     return (
-      <ReadinessPreflight
-        itemCount={itemCount}
-        duration={durationStr(attempt.duration_seconds)}
-        pending={pending}
-        error={error}
-        onDismissError={() => setError(null)}
-        onStart={onStart}
-        onBack={onBack}
-      />
+      <>
+        <ReadinessPreflight
+          itemCount={itemCount}
+          duration={durationStr(attempt.duration_seconds)}
+          pending={pending}
+          error={error}
+          onDismissError={() => setError(null)}
+          onStart={onStart}
+          onBack={onBack}
+        />
+        {offer}
+      </>
     );
   }
 
   return (
+    <>
     <div className="rn-preflight">
       <ErrorToast error={error} onDismiss={() => setError(null)} />
 
@@ -131,6 +164,8 @@ export function Preflight({ attempt, itemCount, exitHref }: Props) {
         </div>
       </div>
     </div>
+    {offer}
+    </>
   );
 }
 
