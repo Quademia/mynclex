@@ -189,26 +189,54 @@ It also removes the "logged-out `/help` link bounces to login" wrinkle. (A
 `(public)` sibling route or lifting the route out of the auth boundary — settle
 the exact mechanism at build; the invariant is one route serving both.)
 
-#### The "done" memory — `nclex_tutorial_completions`
+#### The "done" memory — TWO tables
 
 No user/profile table exists; the codebase's pattern for per-user state is a
-small dedicated table (`nclex_library_shelf_seen`, etc.). So a new
-**`nclex_tutorial_completions`**, designed to GROW:
+small dedicated table (`nclex_library_shelf_seen`, etc.). We record **two
+distinct facts, and they belong in two tables** — because "did they finish the
+tutorial" is a fact about a *tutorial*, while "don't show this again" is a fact
+about a *popup*, not the tutorial. Bundling them onto one row assumes one
+tutorial = one popup = one dismissal, which breaks the moment the same offer
+appears in a second place, or a future tutorial has its own popup.
 
+**1. `nclex_tutorial_completions`** — tutorial progress.
 - Keyed **`(user_id, tutorial_key)`** — one row per user *per tutorial*, so a
   second walkthrough later (`/tutorial/builder`, onboarding, …) is a new
-  `tutorial_key` value with **zero schema change**. `tutorial_key` for this one
-  is `'exam-runner'`.
-- Two distinct facts, both recorded:
-  - **`completed_at`** — did they finish the tutorial (reached the final coach
-    step). A record only; it drives no behaviour (see the popup rule below).
-  - **`dismissed_at`** — did they tick "Don't show again" on the pre-exam
-    popup. **This is the field that gates the popup.**
-- Keep it **tutorial-scoped**, not a generic "user milestones" junk-drawer.
-  Room to grow additively later (`last_step`, etc.) on the same table.
+  `tutorial_key` value with **zero schema change**. `tutorial_key` here is
+  `'exam-runner'`.
+- **`completed_at`** — did they finish (reached the final coach step). A record
+  only; it drives **no** behaviour (see the popup rule). Room to grow
+  additively (`last_step`, …) on the same row.
 
-This table exists **solely to power the pre-exam popup** — the other three
-doors are flag-independent.
+**2. `nclex_dismissed_prompts`** — the "don't show me this again" list.
+- Keyed **`(user_id, prompt_key)`** — one row per user *per popup*.
+- **`dismissed_at`** — when they ticked "Don't show again". **This is what
+  gates the popup**, nothing on the completions table does.
+- `prompt_key` names the **offer**, not the physical spot — this one is
+  `'pre-exam-tutorial-offer'` — so dismissing it silences that offer *wherever*
+  it appears (what a user means by "stop offering me this"). Any future popup
+  (same tutorial elsewhere, a future tutorial's own, or any app "don't show
+  again") is just a new `prompt_key` — no schema change. This is a normalized
+  registry (one row per popup), **not** the wide junk-drawer row we avoid.
+
+#### What's recorded for an UNAUTHENTICATED user — nothing, by design
+
+The tutorial route is public, so a logged-out visitor can walk the whole thing.
+Both tables key on `user_id`, so there is nothing to write for someone without
+an account, and that is correct:
+- **Completion** simply **no-ops** without a user. The public page reads the
+  user *optionally* (present → completion write enabled; absent → not). Guarded
+  in layers, never by luck: the **client** only calls the write when a user is
+  known; the **server action** re-checks `getUser()` and no-ops if empty (the
+  authoritative guard); **RLS** keys the insert on `auth.uid()` so an anonymous
+  request cannot write a row (the backstop).
+- **Dismissal never arises** — the only dismissal surface is the pre-exam
+  popup, which lives behind an exam attempt (auth + bank access). A logged-out
+  visitor can't start an exam, so there is no popup to dismiss.
+- **No carry-over.** If an anonymous visitor later signs up they start fresh
+  (no completion, no dismissal) — correct, those facts are per-account. Anonymous
+  "how many tried it" counts, if ever wanted, are the separate thin-capture idea
+  in *Deferred ideas*, deliberately not these tables.
 
 #### The four entry points
 
@@ -247,8 +275,10 @@ doors are flag-independent.
   *this* exam, we don't re-pop the offer on the immediate bounce-back to the
   preflight. Permanent suppression is still only the checkbox; this is a
   this-run-only skip. Next exam, fresh offer (unless dismissed).
-- The checkbox writes `dismissed_at`; finishing the tutorial writes
-  `completed_at` (record only).
+- The checkbox writes a `nclex_dismissed_prompts` row (`prompt_key =
+  'pre-exam-tutorial-offer'`); finishing the tutorial writes
+  `nclex_tutorial_completions.completed_at` (record only). The popup reads the
+  dismissed-prompts list, never the completions table.
 
 #### The return-destination mechanism
 
@@ -274,6 +304,37 @@ makes it dynamic:
 - Confirm every mode's pre-exam moment routes through the shared preflight (or
   an equivalent stable per-attempt URL) so the popup + return hook lands
   everywhere.
+
+#### Build sub-slices — 3a / 3b / 3c
+
+Built in order; each is testable on its own.
+
+**3a — Foundation: the two tables + the flag helpers.** The isolated DB piece;
+everything else depends on it. Low-risk, additive.
+- **New** `db/migrations/<version>_tutorial_flags.sql` — `nclex_tutorial_completions`
+  and `nclex_dismissed_prompts` (both keyed on their pair) + RLS so a user only
+  reads/writes their own rows.
+- **New** `lib/practice/tutorial/completion.ts` — server helpers: mark a
+  tutorial completed; check + set a prompt dismissal. Each **no-ops without an
+  authenticated user** (see the unauthenticated rule above).
+- Apply to **dev**; verify the tables + RLS. Nothing user-facing yet.
+
+**3b — The tutorial's own behaviour: public route + return + completion write.**
+- Make `/tutorial/exam` **public** (settle the exact mechanism — `(public)`
+  sibling route vs lifting the auth boundary — at build; ensure the runner CSS
+  is imported by the public layout).
+- Read a guarded `?return=` and thread it into `buildSandboxData` as `exitHref`
+  (`sandbox-data.ts`); `/help` stays the default.
+- Write `completed_at` on reaching the final coach step (signed-in only).
+
+**3c — The four doors.**
+- `/help` hub + `/help/cat` links.
+- The permanent dashboard doorway (`lib/home/student/bank/` doorways data).
+- The global **Help** link in the shared chrome (user menu / topbar).
+- The pre-exam popup on `session/[attempt_id]/preflight.tsx` — reads the
+  dismissed-prompts list, Watch / Start + checkbox, no double-ask same-sitting,
+  returns to the preflight. Plus the build-time checks above (CAT clock; every
+  mode routes through the shared preflight).
 
 #### Deferred within Slice 3 scope
 
