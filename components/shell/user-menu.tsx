@@ -9,6 +9,7 @@
 
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 export function UserMenu({ name, email }: { name: string; email: string }) {
@@ -54,6 +55,18 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
             <div className="shell-dropdown-name">{name}</div>
             <div className="shell-dropdown-email">{email}</div>
           </div>
+          {/* Global Help entry (runner-tutorial Slice 3c) — the workspace's
+              route into the public Help hub, which houses the exam
+              walkthrough. Reachable from every authed space via the shared
+              topbar. */}
+          <Link
+            href="/help"
+            role="menuitem"
+            className="shell-dropdown-item"
+            onClick={() => setOpen(false)}
+          >
+            Help &amp; guides
+          </Link>
           <form method="POST" action="/logout" className="shell-dropdown-item-form">
             <button
               type="submit"

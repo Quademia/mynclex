@@ -53,6 +53,13 @@ const ICONS: Record<string, React.ReactNode> = {
       <line x1="21" y1="12" x2="9" y2="12" />
     </>
   ),
+  help: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </>
+  ),
   x: (
     <>
       <line x1="18" y1="6" x2="6" y2="18" />
@@ -173,6 +180,16 @@ export function AccountSheet({
               <span className="m-account-soon">soon</span>
             </div>
           )}
+
+          {/* Global Help entry (runner-tutorial Slice 3c) — the mobile
+              counterpart of the desktop user-menu Help link, into the public
+              Help hub (which houses the exam walkthrough). */}
+          <Link href="/help" className="m-account-row" onClick={onClose}>
+            <span className="m-account-ico">
+              <Svg name="help" />
+            </span>
+            <span className="m-account-label">Help &amp; guides</span>
+          </Link>
 
           {otherRoles.length > 0 && (
             <div className="m-account-switch">

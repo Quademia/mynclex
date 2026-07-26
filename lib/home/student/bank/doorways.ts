@@ -73,6 +73,18 @@ export function buildDoorways(c: DoorwayCounts): Doorway[] {
       tone: 'default',
     },
     {
+      // Permanent doorway to the exam walkthrough (runner-tutorial Slice 3c).
+      // Evergreen — no flag, no count: it's a standing tool, not a task to
+      // finish, so the sub is a static tagline rather than a figure. Returns
+      // to this dashboard when the student ends it.
+      key: 'tutorial',
+      icon: 'flag',
+      title: 'Exam walkthrough',
+      sub: 'Practice the interface — nothing recorded',
+      href: '/tutorial/exam?return=/student/bank/dashboard',
+      tone: 'default',
+    },
+    {
       key: 'journey',
       icon: 'map',
       title: 'Journey Tracker',

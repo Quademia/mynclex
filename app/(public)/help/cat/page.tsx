@@ -105,6 +105,14 @@ export default function CatHelpPage() {
           in practice.
         </p>
 
+        <p>
+          Never seen the exam screen? Take the{' '}
+          <Link href="/tutorial/exam?return=/help/cat">exam walkthrough</Link>{' '}
+          first — a hands-on tour of every question type and tool, recording
+          nothing. It costs no exam time, so meeting an adaptive sitting is the
+          only thing left to feel new.
+        </p>
+
         <div className="help-cta">
           <Link href="/help" className="help-readmore">
             <span aria-hidden="true">←</span> All guides

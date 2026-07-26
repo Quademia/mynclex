@@ -32,6 +32,19 @@ export default function HelpIndexPage() {
 
       <div className="help-topics">
         <article className="help-topic">
+          <h2>Take the exam walkthrough</h2>
+          <p>
+            A hands-on tour of the exam screen — every question type and every
+            on-screen tool, exactly as they appear in a real sitting. Nothing
+            is recorded: no attempt, no answers, no score. Work through it as
+            many times as you like before you sit anything for real.
+          </p>
+          <Link href="/tutorial/exam?return=/help" className="help-readmore">
+            Take the walkthrough <span aria-hidden="true">→</span>
+          </Link>
+        </article>
+
+        <article className="help-topic">
           <h2>How computer-adaptive testing (CAT) works</h2>
           <p>
             Our CAT mode mirrors the real NCLEX: it adapts to your ability,
