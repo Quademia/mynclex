@@ -156,7 +156,7 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-26 — <strong>Difficulty scale expanded 3 → 5 labels, and the student-facing band is now derived from the empirical number</strong> (§5.1 rewritten, new §5.5, §5.2 / §5.4 updated, §7.7 route 2 adopted). Settled with Sam in a design session: five bands (Very easy … Very hard, seeds −2 … +2) with cut-offs at ±0.5 / ±1.5; the shown difficulty derives from <code>difficulty_irt</code> once <code>difficulty_source = 'EMPIRICAL'</code>, with the curator label as seed only; expanding curator authoring to ±2 also widens the day-one CAT ladder (the §7.7 route-2 fix). <strong>Also settled — new §20: CAT gets a dedicated item pool</strong> (reserved stock, generalising the readiness mechanism), which commits us to the <code>pyirt</code> recalibration runtime and is sized to a 15-CAT non-overlapping floor (target 2,400 standalone / 60 cases / 60 trends). Recalibration scope is the <strong>whole bank</strong> (not CAT-only), which settles the runtime as the Python / <code>pyirt</code> joint fit (§5.3.5, §17.6, §20.3). <strong>Earlier — 2026-07-19: Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
+  Living planning document. Last updated: 2026-07-26 — <strong>Difficulty scale expanded 3 → 5 labels, and the student-facing band is now derived from the empirical number</strong> (§5.1 rewritten, new §5.5, §5.2 / §5.4 updated, §7.7 route 2 adopted). Settled with Sam in a design session: five bands (Very easy … Very hard, seeds −2 … +2) with cut-offs at ±0.5 / ±1.5; the shown difficulty derives from <code>difficulty_irt</code> once <code>difficulty_source = 'EMPIRICAL'</code>, with the curator label as seed only; expanding curator authoring to ±2 also widens the day-one CAT ladder (the §7.7 route-2 fix). <strong>Also settled — new §20: CAT gets a dedicated item pool</strong> (reserved stock via a "Reserve for CAT" editor tick + admin management page, generalising the readiness mechanism; §20.5), which commits us to the <code>pyirt</code> recalibration runtime and is sized to a 15-CAT non-overlapping floor (target 2,400 standalone / 60 cases / 60 trends). Recalibration scope is the <strong>whole bank</strong> (not CAT-only), which settles the runtime as the Python / <code>pyirt</code> joint fit (§5.3.5, §17.6, §20.3). <strong>Earlier — 2026-07-19: Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
   85 items, CONFIDENCE_REACHED, ABOVE_STANDARD, final theta 0.480 / SE 0.232 in 121 minutes; 3 cases at the
   scheduled 8/35/59, evidence weight 76.0 across 85 items, and near-perfect blueprint balance (22/21/21/21).
   <strong>It terminated by 0.025</strong> — one more wrong answer and the band would not have cleared — and
@@ -4373,15 +4373,48 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   <em>below</em> dev's counts and still clear the floor comfortably.
 </p>
 
-<h3>20.5 What this adds — a new slice, distinct from Slice 10</h3>
+<h3>20.5 Curator surfaces — the editor tick, the dropdown, the admin page <span class="status settled">settled 2026-07-26</span></h3>
+<p>
+  Reserving a question for the CAT pool is a <strong>visible curator action, not a hidden / code-only flag</strong>.
+  Three surfaces:
+</p>
+<ul>
+  <li><strong>A "Reserve for CAT" tick on the question editor.</strong> The curator marks a question as CAT-pool
+  stock while authoring it. This works cleanly because CAT reservation is <em>flat membership</em> — in the pool or
+  not, with no order and no sub-grouping (the exam is adaptive, so there is no "position"). A single tick expresses
+  the whole reservation.</li>
+  <li><strong>The five-option difficulty dropdown.</strong> The editor's difficulty selector gains the two new
+  labels (Very easy … Very hard, §5.1) — a UI change paired with the §5.2 <code>CHECK</code> widening.</li>
+  <li><strong>An admin CAT-pool management page</strong>, mirroring the readiness reserved-stock page: the overview /
+  bulk lens — pool count, how-far-to-target (§20.4), difficulty and blueprint gaps. The editor tick and the admin
+  page are <em>complementary</em>: the tick <em>sets</em> a question's reservation, the page <em>manages and
+  audits</em> the set; both read/write the same reservation.</li>
+</ul>
+<p>
+  <strong>Mutual exclusivity is enforced at the editor, not just at save.</strong> Because a question is reserved for
+  at most one purpose (<code>UNIQUE(item_id)</code>, §20.2), the editor shows current reservation state and prevents
+  ticking "Reserve for CAT" on a question already in a readiness pack (and vice versa) — a disabled control with an
+  explanation, not a failed save.
+</p>
+<p class="callout">
+  <strong>Readiness retrofit — deferred, and not symmetric.</strong> The intent is to eventually give readiness
+  reservation the same editor-tick treatment. Noted, but it is <em>harder</em> than CAT: a readiness question carries
+  a <strong>pack assignment</strong> (which pack) <em>and</em> a <strong>position</strong> (sit-order within the fixed
+  set), which a lone tick cannot express — it would need the tick plus pack / position controls, or a hybrid with the
+  existing pack picker. CAT's flat membership is what makes the pure tick work. Filed as "look into it later," not
+  part of this build.
+</p>
+
+<h3>20.6 What this adds — a new slice, distinct from Slice 10</h3>
 <p>
   This is a separate piece of build from Slice 10 (recalibration), though coupled to it through the
   <code>pyirt</code> commitment (§20.3). New work:
 </p>
 <ul>
-  <li>Generalise reserved stock to a <code>cat_pool</code> purpose (schema + admin surface).</li>
+  <li>Generalise reserved stock to a <code>cat_pool</code> purpose (schema).</li>
   <li>CAT selection draws only from <code>cat_pool</code>; readiness-reserved items excluded from CAT (closes the 452 leak); <code>cat_pool</code> excluded from practice.</li>
-  <li>Admin reserved-stock surface gains the <code>cat_pool</code> target and its own fill bookkeeping.</li>
+  <li>Curator editor: a "Reserve for CAT" tick with the mutual-exclusivity guard, and the five-option difficulty dropdown (§20.5).</li>
+  <li>A dedicated admin CAT-pool management page with reserved-stock bookkeeping (§20.5).</li>
 </ul>
 <p><strong>Status:</strong> design settled 2026-07-26; build not started. Sequence relative to Slice 10 is open.</p>
 
