@@ -22,6 +22,7 @@ import '@/styles/nav.css';
 import '@/styles/authoring.css';
 import '@/styles/builder.css';
 import '@/styles/runner.css';
+import '@/styles/tutorial.css';
 import '@/styles/history.css';
 import '@/styles/programmes.css';
 import '@/styles/cohorts.css';

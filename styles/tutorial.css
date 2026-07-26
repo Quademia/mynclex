@@ -1,0 +1,174 @@
+/* mynclex/styles/tutorial.css
+ *
+ * The runner-tutorial coach layer (docs/product-plan/runner-tutorial.md).
+ * A floating coach card that anchors beside a runner control and dims the
+ * rest. Sandbox-only — nothing here loads on a real attempt.
+ *
+ * `tc-` = tutorial coach.
+ */
+
+/* Root is inert to pointer events so the runner underneath stays fully
+ * interactive (the student can mark / open the calc / answer during a step).
+ * Only the card itself re-enables pointer events. */
+.tc-root {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+/* The dim wash over everything except the spotlit control. */
+.tc-dim {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.42);
+  pointer-events: none;
+  animation: tc-fade 160ms ease-out;
+}
+
+/* The spotlight ring around the current target control. */
+.tc-ring {
+  position: fixed;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 3px var(--accent),
+    0 0 0 9999px rgba(17, 24, 39, 0.42);
+  /* The 9999px spread paints the dim as this element's own shadow, so the
+   * ring's interior is the ONLY undimmed region — a true spotlight. The
+   * separate .tc-dim covers the first paint before the ring is measured. */
+  pointer-events: none;
+  transition: top 140ms ease, left 140ms ease, width 140ms ease, height 140ms ease;
+}
+
+/* When the ring is present it supplies the dim (via its big shadow); hide the
+ * flat wash so the two don't stack into a double-dark. Toggled by a class the
+ * component adds when a target exists. */
+.tc-root.has-target .tc-dim { display: none; }
+
+/* The coach card. */
+.tc-card {
+  position: fixed;
+  width: 340px;
+  max-width: calc(100vw - 16px);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  padding: 16px 18px 14px;
+  pointer-events: auto;
+  animation: tc-pop 160ms ease-out;
+  z-index: 42;
+}
+
+.tc-card.tc-centered {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.tc-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.tc-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--primary-light);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.tc-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tc-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.tc-body {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.tc-recap {
+  margin: 12px 0 4px;
+  padding-left: 0;
+  list-style: none;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.tc-recap li { margin: 4px 0; }
+.tc-recap b { color: var(--text); font-weight: 600; }
+
+.tc-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+.tc-btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.tc-btn.primary {
+  background: var(--accent);
+  color: #fff;
+}
+.tc-btn.primary:hover { background: var(--accent-dark); }
+.tc-btn.ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+.tc-btn.ghost:hover:not(:disabled) { background: #f9fafb; }
+.tc-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* Sandbox-only wrapper that gives the clock a measurable anchor box for the
+ * coach without changing how it sits in the topbar flex row. */
+.rn-clock-anchor {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The "Nothing is recorded" badge in the topbar (sandbox only). */
+.tc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  background: var(--primary-light);
+  border: 1px solid #bfe0da;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+@keyframes tc-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tc-pop  { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.tc-card.tc-centered { animation: none; }
+
+@media (max-width: 768px) {
+  .tc-card {
+    width: calc(100vw - 16px);
+    left: 8px !important;
+    right: 8px;
+  }
+}

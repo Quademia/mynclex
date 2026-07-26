@@ -53,7 +53,7 @@ export function RunnerFooter({
     : undefined;
 
   return (
-    <footer className="rn-foot">
+    <footer className="rn-foot" data-coach="footer">
       <div className="rn-foot-side">
         <button
           type="button"

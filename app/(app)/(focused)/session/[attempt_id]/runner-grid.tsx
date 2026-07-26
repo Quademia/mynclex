@@ -123,7 +123,7 @@ export function RunnerGrid({
   }
 
   return (
-    <aside className="rn-grid" aria-label="Question grid">
+    <aside className="rn-grid" aria-label="Question grid" data-coach="grid">
       <div className="rn-grid-head">
         <div className="rn-grid-title-row">
           <div className="rn-grid-title">Question grid</div>
@@ -138,7 +138,7 @@ export function RunnerGrid({
             </button>
           )}
         </div>
-        <div className="rn-grid-filters" role="tablist">
+        <div className="rn-grid-filters" role="tablist" data-coach="gridfilters">
           {(
             [
               { id: 'all',        label: 'All',    n: filterCounts.all,        show: true },
@@ -214,7 +214,7 @@ export function RunnerGrid({
         </div>
       </div>
 
-      <div className="rn-grid-legend" aria-hidden="true">
+      <div className="rn-grid-legend" aria-hidden="true" data-coach="legend">
         <div className="row"><span className="swatch" /> Unanswered</div>
         <div className="row"><span className="swatch f-answered" /> Answered</div>
         {revealCorrectness && (

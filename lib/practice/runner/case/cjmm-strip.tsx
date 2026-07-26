@@ -31,7 +31,7 @@ export function CjmmStrip({ current }: Props) {
   const currentIndex = current ? CJMM_STEPS.indexOf(current) : -1;
 
   return (
-    <div className="rn-cjmm-strip" aria-label="Clinical Judgment Measurement steps">
+    <div className="rn-cjmm-strip" aria-label="Clinical Judgment Measurement steps" data-coach="cjmm">
       {CJMM_STEPS.map((step, i) => {
         const cls =
           i < currentIndex ? 'rn-cjmm-step done' :

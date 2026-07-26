@@ -71,6 +71,7 @@ import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
 import { Calculator } from '@/lib/calculator/calculator';
+import { SandboxCoach } from '@/lib/practice/tutorial/coach/coach';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
 import { Preflight }          from './preflight';
 import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction, recordEngagedTimeAction } from './actions';
@@ -1173,6 +1174,17 @@ function RunnerShell({ data }: Props) {
 
       <Calculator open={calcOpen} onClose={() => setCalcOpen(false)} />
 
+      {isSandbox && (
+        <SandboxCoach
+          onGoto={(key) => {
+            const i = data.items.findIndex((it) => it.attempt_item_id === key);
+            if (i >= 0) setCurrent(i);
+          }}
+          setGridOpen={setGridOpen}
+          onEnd={() => router.push(data.exitHref)}
+        />
+      )}
+
       <RunnerTopbar
         sessionTitle={sessionTitle}
         modeLabel={modeLabel}
@@ -1188,6 +1200,7 @@ function RunnerShell({ data }: Props) {
             : null
         }
         calcToggle={{ open: calcOpen, onToggle: () => setCalcOpen((o) => !o) }}
+        sandbox={isSandbox}
         onExit={
           // Live (mid-flight) → confirm first. Review → leave directly.
           // A CAT review came from its summary page (§14.3: review is a

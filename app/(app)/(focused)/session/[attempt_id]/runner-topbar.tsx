@@ -70,6 +70,10 @@ interface Props {
   // calculator is a real NCLEX tool available in EVERY mode (study + exam,
   // live + review), so unlike the grid it never comes and goes.
   calcToggle: { open: boolean; onToggle: () => void };
+  // Runner tutorial (sandbox) only — render the "Nothing is recorded" badge
+  // and the data-coach anchor markers the coach overlay points at. Off (and
+  // absent) for every real attempt.
+  sandbox?:    boolean;
 }
 
 export function RunnerTopbar({
@@ -85,6 +89,7 @@ export function RunnerTopbar({
   onPillClick,
   gridToggle,
   calcToggle,
+  sandbox,
 }: Props) {
   return (
     <header className="rn-top">
@@ -92,13 +97,14 @@ export function RunnerTopbar({
         type="button"
         className="rn-top-exit"
         onClick={onExit}
+        data-coach={sandbox ? 'exit' : undefined}
       >
         ← Exit
       </button>
 
       <div className="rn-top-divider" />
 
-      <div className="rn-top-title">
+      <div className="rn-top-title" data-coach={sandbox ? 'title' : undefined}>
         <div className="name">{sessionTitle}</div>
         <div className="meta">
           <span>{modeLabel}</span>
@@ -115,9 +121,15 @@ export function RunnerTopbar({
         </div>
       </div>
 
+      {sandbox && (
+        <span className="tc-pill" data-coach="tutpill">
+          Tutorial · Nothing is recorded
+        </span>
+      )}
+
       <div className="rn-top-spacer" />
 
-      <div className="rn-counter">
+      <div className="rn-counter" data-coach={sandbox ? 'counter' : undefined}>
         Q <strong>{current}</strong>
         {total !== null && (
           <>
@@ -127,20 +139,27 @@ export function RunnerTopbar({
         )}
       </div>
 
-      {clock ? (
-        <ClockGroup clock={clock} />
-      ) : onPillClick ? (
-        <button
-          type="button"
-          className="rn-timer untimed rn-timer-btn"
-          onClick={onPillClick}
-          title="Show results"
-        >
-          {statusLabel}
-        </button>
-      ) : (
-        <div className="rn-timer untimed">{statusLabel}</div>
-      )}
+      {(() => {
+        const clockNode = clock ? (
+          <ClockGroup clock={clock} />
+        ) : onPillClick ? (
+          <button
+            type="button"
+            className="rn-timer untimed rn-timer-btn"
+            onClick={onPillClick}
+            title="Show results"
+          >
+            {statusLabel}
+          </button>
+        ) : (
+          <div className="rn-timer untimed">{statusLabel}</div>
+        );
+        // Sandbox wraps the clock in a measurable anchor for the coach; real
+        // attempts render it bare, so their topbar DOM is untouched.
+        return sandbox ? (
+          <span className="rn-clock-anchor" data-coach="clock">{clockNode}</span>
+        ) : clockNode;
+      })()}
 
       <button
         type="button"
@@ -158,6 +177,7 @@ export function RunnerTopbar({
         type="button"
         className={'rn-calc-btn' + (calcToggle.open ? ' on' : '')}
         onClick={calcToggle.onToggle}
+        data-coach={sandbox ? 'calc' : undefined}
         aria-pressed={calcToggle.open}
         aria-label={calcToggle.open ? 'Hide calculator' : 'Show calculator'}
         title={calcToggle.open ? 'Hide calculator' : 'Calculator'}

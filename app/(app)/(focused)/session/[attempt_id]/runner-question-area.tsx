@@ -165,7 +165,7 @@ export function RunnerQuestionArea(props: Props) {
   const difficulty  = cls.difficulty;
 
   return (
-    <div className="rn-q-wrap">
+    <div className="rn-q-wrap" data-coach="answerarea">
       {props.topSlot}
       <div className="rn-q-meta">
         <span className="rn-type-pill">
