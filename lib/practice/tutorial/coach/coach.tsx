@@ -30,9 +30,14 @@ interface Props {
   setGridOpen: (open: boolean) => void;
   /** Leave the tutorial (wired to the runner's exit). */
   onEnd:       () => void;
+  /** Live: is the calculator open? Satisfies a `calc` gate (Slice 2b). */
+  calcOpen:    boolean;
+  /** Live: has the CURRENT question been submitted? Satisfies a `submit`
+   *  gate. Resets to false whenever a goto switches to a fresh question. */
+  currentSubmitted: boolean;
 }
 
-export function SandboxCoach({ onGoto, setGridOpen, onEnd }: Props) {
+export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubmitted }: Props) {
   const [step, setStep] = useState(0);
   const ringRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -113,18 +118,35 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd }: Props) {
     };
   }, [place, step]);
 
+  // Gate (Slice 2b): a step can require the student to actually DO the thing
+  // before Next unlocks. Derived from live runner state — no latch needed:
+  // `currentSubmitted` stays true once answered (and resets on the next
+  // goto), and the calc gate is met while the calculator is open.
+  const gateSatisfied =
+    !s.gate || (s.gate === 'calc' ? calcOpen : currentSubmitted);
+
   const next = () => setStep((n) => Math.min(total - 1, n + 1));
   const back = () => setStep((n) => Math.max(0, n - 1));
 
   return (
-    <div
-      className={'tc-root' + (hasTarget ? ' has-target' : '')}
-      role="dialog"
-      aria-label="Tutorial coaching"
-    >
-      <div className="tc-dim" />
-      {hasTarget && <div ref={ringRef} className="tc-ring" />}
-      <div ref={cardRef} className={'tc-card' + (hasTarget ? '' : ' tc-centered')}>
+    // Two sibling layers with deliberately different z-indexes: the scrim
+    // (dim + ring) sits BELOW the calculator (z 50) so an opened calc shows
+    // bright, while the card sits ABOVE it so its Next button is never buried
+    // behind the calc during the calculator gate.
+    <>
+      <div
+        className={'tc-scrim' + (hasTarget ? ' has-target' : '')}
+        aria-hidden="true"
+      >
+        <div className="tc-dim" />
+        {hasTarget && <div ref={ringRef} className="tc-ring" />}
+      </div>
+      <div
+        ref={cardRef}
+        className={'tc-card' + (hasTarget ? '' : ' tc-centered')}
+        role="dialog"
+        aria-label="Tutorial coaching"
+      >
         <div className="tc-head">
           <span className="tc-tag">Tutorial</span>
           <span className="tc-count">Step {step + 1} of {total}</span>
@@ -138,6 +160,9 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd }: Props) {
             ))}
           </ul>
         )}
+        {s.gate && !gateSatisfied && s.gateMsg && (
+          <div className="tc-gate">{s.gateMsg}</div>
+        )}
         <div className="tc-actions">
           <button type="button" className="tc-btn ghost" onClick={back} disabled={step === 0}>
             ← Back
@@ -145,10 +170,17 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd }: Props) {
           {s.done ? (
             <button type="button" className="tc-btn primary" onClick={onEnd}>Finish</button>
           ) : (
-            <button type="button" className="tc-btn primary" onClick={next}>Next →</button>
+            <button
+              type="button"
+              className="tc-btn primary"
+              onClick={next}
+              disabled={!gateSatisfied}
+            >
+              Next →
+            </button>
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }

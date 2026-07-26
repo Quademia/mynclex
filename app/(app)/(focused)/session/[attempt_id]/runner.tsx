@@ -1182,6 +1182,10 @@ function RunnerShell({ data }: Props) {
           }}
           setGridOpen={setGridOpen}
           onEnd={() => router.push(data.exitHref)}
+          calcOpen={calcOpen}
+          currentSubmitted={
+            currentItem ? answersByItem.has(currentItem.attempt_item_id) : false
+          }
         />
       )}
 
