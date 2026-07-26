@@ -5,19 +5,27 @@ tutorial** that teaches students how to use the exam runner — the question
 types and the tools — in a safe, unscored, unsaved space. Surfaced by the
 CAT work but **general to every mode**. Part of `mynclex/docs/product-plan/`.*
 
-Last updated: 2026-07-25 (design pass **complete** — decisions settled, the
-Claude Design walkthrough **v2** adopted + saved in-repo
-(`design-handoff/runner-tutorial/`), build slices detailed; **build not
-started**)
+Last updated: 2026-07-26 (**arc complete** — Slices 1–3 all built; Slice 3
+built this session across 3a/3b/3c and verified live; the whole tutorial is
+functional)
 
 ---
 
 ## Status
 
-**Design pass complete. Build not started.** The three open decisions are
-settled (below), and Claude Design has delivered the full 32-step
-walkthrough (concept-not-source blueprint). This doc is now **build-ready** —
-the *Build plan* section is the work.
+**Built — the arc is complete (Slices 1–3).**
+
+- **Slices 1 + 2** (sandbox mode + the coach layer) — **built and on `main`**
+  (earlier 2026-07-26 sessions; app-layer, no migration).
+- **Slice 3** (entry points + the flag memory) — **built 2026-07-26**, on the
+  session branch `claude/work-session-4af632`, **awaiting Sam's test + merge to
+  `main`**. NOT on `prod`. One migration `20260817120000_tutorial_flags.sql`
+  (two per-user tables), applied to dev; app-layer otherwise.
+
+The whole feature now works end to end: a public sandbox runner + coach, four
+entry points, and the pre-exam offer. What each slice delivered is recorded in
+*Build plan* below (headers marked ✅). Remaining follow-ups (none blocking)
+live in *Deferred ideas & follow-ups*.
 
 ## Why
 
@@ -118,10 +126,13 @@ reference tool, not a bug to "fix").
 A **multi-session feature**. Build in order; each slice is testable and
 mergeable on its own.
 
-### Slice 1 — the sandbox runner mode (the real engineering)
+### Slice 1 — the sandbox runner mode (the real engineering) ✅ BUILT (on `main`)
 
 Make the runner run with fake questions that save nothing. The load-bearing
-piece.
+piece. **Delivered as a live `UNTIMED_LEARNING` + `sandbox` flag on the REAL
+`<Runner>` (not a third mode), fed an in-code no-writes bundle; Submit scores
+locally via the same pure `scoreAttempt`. Sign-off met: zero DB rows after a
+full run.**
 
 - **Dummy questions, held in the app code (NOT the bank).** ~19 dummy items —
   one per type (+ the case's children and a trend) — shaped exactly like real
@@ -146,9 +157,12 @@ piece.
   (no attempt, no answers, no score).
 - *Nothing user-facing yet* beyond a bare sandboxed runner for testing.
 
-### Slice 2 — the coach layer + flow
+### Slice 2 — the coach layer + flow ✅ BUILT (on `main`)
 
 The guided coaching on top of the sandbox. CD's blueprint specifies most of it.
+**Delivered as 31 steps (CD's 32 minus the disabled Mark button), rendering
+inside the runner and driving it; gates (open the calc / submit to unlock
+Next), hide→free-explore→resume, hierarchical jump-to-section, and End.**
 
 - **Step data** — port CD's 32-step list (title, body, `target`, `gate`,
   `goto`) into the app.
@@ -165,10 +179,31 @@ The guided coaching on top of the sandbox. CD's blueprint specifies most of it.
   (All of these are coach-layer only — they don't touch Slice 1 or the safety
   invariant.)
 
-### Slice 3 — entry points + "done" memory
+### Slice 3 — entry points + "done" memory ✅ BUILT (session branch, awaiting merge)
 
-Design settled 2026-07-26 (discussion with Sam). This is the **only slice in
-the whole feature that writes to the database**; Slices 1–2 write nothing.
+Design settled 2026-07-26 (discussion with Sam), then **built the same day**
+across 3a/3b/3c (see *Build sub-slices* below) and verified live. This is the
+**only slice in the whole feature that writes to the database**; Slices 1–2
+write nothing.
+
+> **As built (2026-07-26, branch `claude/work-session-4af632`, NOT on `main`):**
+> everything below shipped as designed, with these build-time confirmations and
+> small deltas worth noting:
+> - **There is no single shared preflight.** CAT has its OWN preflight modal on
+>   the CAT home; custom-built + readiness use the `/session` preflight. A CAT
+>   attempt is created already-started, so it never hits the `/session` gate.
+>   The offer is therefore wired into **two** hosts (`preflight.tsx` +
+>   `cat-home-client.tsx`), same shared `<PreExamTutorialOffer>`.
+> - **"Watching is free" holds on every surface** with no CAT-clock fix needed —
+>   the start action the popup defers is exactly what stamps the clock / creates
+>   the CAT attempt / spends the readiness credit.
+> - **This-sitting no-double-ask** uses a `tut_watched=1` marker on the return
+>   address (the session preflight reads it; the CAT home derives the modal's
+>   initial open state from it, reopening losslessly).
+> - **The offer got a visible × + Esc** (both → back to the preflight) after
+>   Sam flagged that backdrop-only close is undiscoverable.
+> - **Readiness** is wired through the shared `preflight.tsx` interception but
+>   was exercised via the custom-built variant, not a live paid pack.
 
 #### The tutorial route becomes PUBLIC
 
