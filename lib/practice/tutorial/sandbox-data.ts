@@ -37,15 +37,33 @@ import {
 // be internally stable for the length of one sandbox session.
 const SANDBOX_ATTEMPT_ID = 'tutorial-sandbox';
 
-// Where the topbar ← Exit and the Finish CTA send the student. The Help
-// hub is the tutorial's natural home (Slice 3 wires the doorways there).
-const SANDBOX_EXIT_HREF = '/help';
+// Where the topbar ← Exit and the Finish CTA send the student when no
+// (valid) return address is supplied. The Help hub is the tutorial's
+// natural home.
+const DEFAULT_EXIT_HREF = '/help';
+
+/**
+ * Sanitize the `?return=` address (Slice 3b). It arrives from the URL, so
+ * it is untrusted — honour ONLY an internal path (a single leading slash,
+ * no scheme, no protocol-relative `//`, no backslash tricks a browser
+ * might fold into `//`). Anything else falls back to the Help hub. This
+ * keeps End / Exit from becoming an open redirect to an external site.
+ */
+function safeInternalPath(raw: string | undefined): string {
+  if (!raw) return DEFAULT_EXIT_HREF;
+  if (raw.startsWith('/') && !raw.startsWith('//') && !raw.includes('\\')) {
+    return raw;
+  }
+  return DEFAULT_EXIT_HREF;
+}
 
 /**
  * Assemble a live-shaped, no-writes runner bundle for the sandbox.
  * Called from the /tutorial route (a server component) on each request.
+ * `returnTo` is the (untrusted) `?return=` address; End / Exit / Finish
+ * route there once sanitized, defaulting to the Help hub.
  */
-export function buildSandboxData(): LiveData {
+export function buildSandboxData(returnTo?: string): LiveData {
   const nowIso = new Date().toISOString();
 
   const items: SealedItem[] = [];
@@ -139,7 +157,7 @@ export function buildSandboxData(): LiveData {
     trends,
     answers:      [],
     seededUnseal: {},
-    exitHref:     SANDBOX_EXIT_HREF,
+    exitHref:     safeInternalPath(returnTo),
     sandbox:      true,
     sandboxKeys,
   };

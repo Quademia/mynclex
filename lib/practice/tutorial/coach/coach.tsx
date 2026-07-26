@@ -22,6 +22,8 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { COACH_STEPS, COACH_RECAP, COACH_SECTIONS } from './steps';
+import { markTutorialCompleted } from '@/lib/practice/tutorial/completion';
+import { TUTORIAL_KEY_EXAM_RUNNER } from '@/lib/practice/tutorial/keys';
 
 interface Props {
   /** Switch the runner to the question with this key. */
@@ -48,6 +50,18 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubm
   const s = COACH_STEPS[step];
   const total = COACH_STEPS.length;
   const hasTarget = !!s.target;
+
+  // Record completion when the walkthrough reaches its final step (Slice 3b).
+  // This is the tutorial's ONLY database write — and it no-ops server-side
+  // for a logged-out visitor. A ref keeps it to at most once per mount,
+  // however the student arrives at the done step (Next, or jump-to-section).
+  const completedRef = useRef(false);
+  useEffect(() => {
+    if (s.done && !completedRef.current) {
+      completedRef.current = true;
+      void markTutorialCompleted(TUTORIAL_KEY_EXAM_RUNNER);
+    }
+  }, [s.done]);
 
   // Apply the step's runner side effects: switch question, open the grid.
   useEffect(() => {
