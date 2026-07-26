@@ -14,10 +14,11 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { startCatAttemptAction } from '@/lib/practice/cat/start-action';
 import { isUnmeasured, UNMEASURED_SHORT_LABEL } from '@/lib/practice/cat/report-derive';
 import type { CatHomeView, CatHistoryEntry } from '@/lib/practice/cat/home-view';
+import { PreExamTutorialOffer } from '@/lib/overlays/practice/pre-exam-tutorial-offer';
 
 /**
  * The Result column.
@@ -45,9 +46,27 @@ function formatDate(iso: string | null): string {
   });
 }
 
-export function CatHomeClient({ view }: { view: CatHomeView }) {
+export function CatHomeClient({
+  view,
+  offerDismissed,
+}: {
+  view: CatHomeView;
+  /** Runner tutorial Slice 3c — has the student dismissed the pre-exam
+   *  walkthrough offer? When false, "Start my CAT" offers it first. */
+  offerDismissed: boolean;
+}) {
   const router = useRouter();
-  const [showPreflight, setShowPreflight] = useState(false);
+  const searchParams = useSearchParams();
+
+  // Runner tutorial Slice 3c. The tutorial returns here with tut_watched=1
+  // after the student took the walkthrough from the CAT preflight. Deriving
+  // the modal's initial open state from that (rather than a mount effect)
+  // reopens the preflight losslessly on return, and skips the offer this
+  // sitting — with no setState-in-effect.
+  const justWatched = searchParams.get('tut_watched') === '1';
+
+  const [showPreflight, setShowPreflight] = useState(justWatched);
+  const [showOffer, setShowOffer] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -60,6 +79,14 @@ export function CatHomeClient({ view }: { view: CatHomeView }) {
       if (!r.ok) { setError(r.error); return; }
       router.push(`/session/${r.attemptId}`);
     });
+  };
+
+  // Offer the walkthrough before starting, unless dismissed for good or
+  // just watched. Watching is FREE — onConfirm (which creates the attempt
+  // and spends it) only runs on a real start.
+  const onStartCat = () => {
+    if (offerDismissed || justWatched) { onConfirm(); return; }
+    setShowOffer(true);
   };
 
   return (
@@ -236,7 +263,7 @@ export function CatHomeClient({ view }: { view: CatHomeView }) {
               <button
                 type="button"
                 className="cat-btn cat-btn-danger"
-                onClick={onConfirm}
+                onClick={onStartCat}
                 disabled={pending}
               >
                 {pending ? 'Starting…' : 'Start my CAT'}
@@ -244,6 +271,14 @@ export function CatHomeClient({ view }: { view: CatHomeView }) {
             </div>
           </div>
         </div>
+      )}
+
+      {showOffer && (
+        <PreExamTutorialOffer
+          returnTo="/student/bank/cat?tut_watched=1"
+          onProceed={() => { setShowOffer(false); onConfirm(); }}
+          onCancel={() => setShowOffer(false)}
+        />
       )}
     </div>
   );
