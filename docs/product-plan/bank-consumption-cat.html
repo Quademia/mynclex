@@ -156,7 +156,7 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-26 — <strong>Difficulty scale expanded 3 → 5 labels, and the student-facing band is now derived from the empirical number</strong> (§5.1 rewritten, new §5.5, §5.2 / §5.4 updated, §7.7 route 2 adopted). Settled with Sam in a design session: five bands (Very easy … Very hard, seeds −2 … +2) with cut-offs at ±0.5 / ±1.5; the shown difficulty derives from <code>difficulty_irt</code> once <code>difficulty_source = 'EMPIRICAL'</code>, with the curator label as seed only; expanding curator authoring to ±2 also widens the day-one CAT ladder (the §7.7 route-2 fix). <strong>Also settled — new §20: CAT gets a dedicated item pool</strong> (reserved stock, generalising the readiness mechanism), which commits us to the <code>pyirt</code> recalibration runtime and is sized to a 15-CAT non-overlapping floor (target 2,400 standalone / 60 cases / 60 trends). <strong>Earlier — 2026-07-19: Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
+  Living planning document. Last updated: 2026-07-26 — <strong>Difficulty scale expanded 3 → 5 labels, and the student-facing band is now derived from the empirical number</strong> (§5.1 rewritten, new §5.5, §5.2 / §5.4 updated, §7.7 route 2 adopted). Settled with Sam in a design session: five bands (Very easy … Very hard, seeds −2 … +2) with cut-offs at ±0.5 / ±1.5; the shown difficulty derives from <code>difficulty_irt</code> once <code>difficulty_source = 'EMPIRICAL'</code>, with the curator label as seed only; expanding curator authoring to ±2 also widens the day-one CAT ladder (the §7.7 route-2 fix). <strong>Also settled — new §20: CAT gets a dedicated item pool</strong> (reserved stock, generalising the readiness mechanism), which commits us to the <code>pyirt</code> recalibration runtime and is sized to a 15-CAT non-overlapping floor (target 2,400 standalone / 60 cases / 60 trends). Recalibration scope is the <strong>whole bank</strong> (not CAT-only), which settles the runtime as the Python / <code>pyirt</code> joint fit (§5.3.5, §17.6, §20.3). <strong>Earlier — 2026-07-19: Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
   85 items, CONFIDENCE_REACHED, ABOVE_STANDARD, final theta 0.480 / SE 0.232 in 121 minutes; 3 cases at the
   scheduled 8/35/59, evidence weight 76.0 across 85 items, and near-perfect blueprint balance (22/21/21/21).
   <strong>It terminated by 0.025</strong> — one more wrong answer and the band would not have cleared — and
@@ -846,6 +846,27 @@
   <code>'CURATOR_LABEL'</code> to <code>'EMPIRICAL'</code>. The 70/30 blend still applies — the previous value
   is the curator-derived starting number, the new value is the first empirical estimate.
 </p>
+
+<h4>5.3.5 Scope — the whole bank, not CAT-only <span class="status settled">settled 2026-07-26</span></h4>
+<p>
+  Recalibration runs over the <strong>whole bank</strong>, not only the dedicated CAT pool (§20). The CAT engine
+  only <em>needs</em> empirical difficulty for its own pool, but calibrating everything buys three things: (1) an
+  audience-corrected <strong>"% of candidates who get this right"</strong> insight for every question — the raw rate
+  is confounded by <em>who</em> practised it, and IRT strips that out; (2) a coherent difficulty map for curation
+  across the whole bank, not just CAT; and (3) <strong>pool mobility</strong> — an item promoted from practice into
+  the CAT pool arrives <em>pre-calibrated</em>, with no 30-response cold start.
+</p>
+<p>Two caveats, recorded not blocking:</p>
+<ul>
+  <li><strong>Practice items are measured under practice conditions.</strong> They are answered only in practice
+  (untimed, lower-stakes), so their difficulty reflects "hard <em>in practice</em>" and reads slightly easier than
+  the exam-condition CAT pool on the same scale. Harmless — a student never sees a practice band and a CAT band side
+  by side — but curators should know the two contexts differ. The disjoint pools are linked onto one scale by the
+  <em>common students</em> who sit both (§17.6).</li>
+  <li><strong>Velocity is uneven.</strong> Practice items cross the 30-response threshold fast (practice is the main
+  activity); CAT-pool items slowly (few sittings). So the audience-corrected map fills in for practice first — CAT
+  difficulty leans on curator seeds plus the authored five-band spread (§20.4) for a while.</li>
+</ul>
 
 <h3>5.4 Confidence display</h3>
 <p>
@@ -3087,8 +3108,16 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 <p>
   What's locked here regardless of the runtime: the schedule (Sundays 02:00 UTC, per §5.3.2), the manual
   trigger pathway (admin button calls the same job logic with <code>job_trigger = 'MANUAL'</code>), the audit
-  table that gets written to regardless of where the job runs. The Python-vs-pg_cron choice is a Sam-and-Claude
-  -Desktop call when the build moves forward.
+  table that gets written to regardless of where the job runs.
+</p>
+<p class="callout">
+  <strong>Runtime settled 2026-07-26 — the Python / <code>pyirt</code> joint fit.</strong> The pg_cron
+  "simpler in-Postgres math" option is ruled out, because recalibration now runs over the <strong>whole bank</strong>
+  (§5.3.5), including practice items that carry <em>no</em> θ estimate. Estimating item difficulty without a known
+  ability requires a joint fit (item and person parameters together) over the full response matrix — and it must be
+  <strong>one fit over all responses</strong> so the common students who take both practice and CAT link the two
+  disjoint item pools (§20) onto a single scale. That is what <code>pyirt</code> (or equivalent) does and in-Postgres
+  math does not. The scheduled Cloudflare Worker → Python-service shape is therefore the chosen runtime.
 </p>
 
 
@@ -4299,6 +4328,13 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   practice items get honest, data-driven bands (§5.5 pays off). <strong>Dedicated pool + the simple runtime</strong>
   = §5.5 is neutered for practice items (they stay on curator seeds forever). So this decision <strong>commits the
   §17.6 fork to <code>pyirt</code></strong>.
+</p>
+<p class="callout">
+  <strong>Resolved 2026-07-26 — whole-bank recalibration chosen (§5.3.5).</strong> We calibrate the whole bank, not
+  just the CAT pool, so practice items <em>do</em> get empirical difficulty and §5.5 pays off on the surfaces
+  students actually see. This <strong>confirms the <code>pyirt</code> runtime</strong> (§17.6) — no longer a fork —
+  and carries the two caveats recorded in §5.3.5 (practice items measured under practice conditions; uneven
+  calibration velocity).
 </p>
 
 <h3>20.4 Pool sizing — the 15-CAT floor (not a cap)</h3>
