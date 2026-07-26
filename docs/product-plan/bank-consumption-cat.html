@@ -156,7 +156,7 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-26 — <strong>Difficulty scale expanded 3 → 5 labels, and the student-facing band is now derived from the empirical number</strong> (§5.1 rewritten, new §5.5, §5.2 / §5.4 updated, §7.7 route 2 adopted). Settled with Sam in a design session: five bands (Very easy … Very hard, seeds −2 … +2) with cut-offs at ±0.5 / ±1.5; the shown difficulty derives from <code>difficulty_irt</code> once <code>difficulty_source = 'EMPIRICAL'</code>, with the curator label as seed only; expanding curator authoring to ±2 also widens the day-one CAT ladder (the §7.7 route-2 fix). <strong>Also settled — new §20: CAT gets a dedicated item pool</strong> (reserved stock via a "Reserve for CAT" editor tick + admin management page, generalising the readiness mechanism; §20.5), which commits us to the <code>pyirt</code> recalibration runtime and is sized to a 15-CAT non-overlapping floor (target 2,400 standalone / 60 cases / 60 trends). Recalibration scope is the <strong>whole bank</strong> (not CAT-only), which settles the runtime as the Python / <code>pyirt</code> joint fit (§5.3.5, §17.6, §20.3). <strong>Earlier — 2026-07-19: Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
+  Living planning document. Last updated: 2026-07-26 — <strong>Difficulty scale expanded 3 → 5 labels, and the student-facing band is now derived from the empirical number</strong> (§5.1 rewritten, new §5.5, §5.2 / §5.4 updated, §7.7 route 2 adopted). Settled with Sam in a design session: five bands (Very easy … Very hard, seeds −2 … +2) with cut-offs at ±0.5 / ±1.5; the shown difficulty derives from <code>difficulty_irt</code> once <code>difficulty_source = 'EMPIRICAL'</code>, with the curator label as seed only; expanding curator authoring to ±2 also widens the day-one CAT ladder (the §7.7 route-2 fix). <strong>Also settled — new §20: CAT gets a dedicated item pool</strong> (reserved stock via a "Reserve for CAT" editor tick + admin management page, generalising the readiness mechanism; §20.5), which commits us to the <code>pyirt</code> recalibration runtime and is sized to a 15-CAT non-overlapping floor (target 2,400 standalone / 60 cases / 60 trends). Recalibration scope is the <strong>whole bank</strong> (not CAT-only), which settles the runtime as the Python / <code>pyirt</code> joint fit — a weekly <strong>GitHub Actions</strong> job, not a Cloudflare Worker (§5.3.5, §17.6, §20.3). Slice 10 is restructured into sub-slices <strong>10a</strong> (five bands) · <strong>10b</strong> (CAT pool) · <strong>10c</strong> (the job); case-child calibration resolved to full weight (§19.4). <strong>Earlier — 2026-07-19: Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
   85 items, CONFIDENCE_REACHED, ABOVE_STANDARD, final theta 0.480 / SE 0.232 in 121 minutes; 3 cases at the
   scheduled 8/35/59, evidence weight 76.0 across 85 items, and near-perfect blueprint balance (22/21/21/21).
   <strong>It terminated by 0.025</strong> — one more wrong answer and the band would not have cleared — and
@@ -3041,6 +3041,14 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   This means recalibration has all the inputs it needs without further schema work on the response-capture side.
   The job just queries existing tables.
 </p>
+<p class="callout">
+  <strong>Scope note (2026-07-26): the job reads <em>all</em> response sources, not only CAT.</strong> Per the
+  whole-bank decision (§5.3.5), the joint fit consumes practice responses and readiness-pack responses as well as
+  CAT responses. CAT responses carry an ability estimate (<code>cat_theta_before</code>); practice and pack responses
+  do not, but the joint fit estimates ability for those sitters from their full response vectors, and the common
+  students across sources link everything onto one scale (§17.6). The "response" is the same fraction
+  (<code>score_awarded / marks</code>) in every source.
+</p>
 
 <h3>17.2 Audit history of difficulty changes — one new table</h3>
 <p>
@@ -3102,8 +3110,9 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   Build-time decision. Two viable shapes:
 </p>
 <ul>
-  <li>A scheduled Cloudflare Worker (cron triggers) that calls a small Python service for the actual statistical fit using <code>pyirt</code> or similar.</li>
-  <li>A Supabase scheduled function (pg_cron) that uses simpler in-Postgres math.</li>
+  <li>A weekly scheduled <strong>GitHub Actions</strong> job running Python (<code>numpy</code> / <code>pyirt</code>), reading from and writing back to Supabase. <strong>(Chosen — see the callout.)</strong></li>
+  <li>A Supabase scheduled function (pg_cron) using simpler in-Postgres math.</li>
+  <li>(Earlier draft: a Cloudflare Worker calling a Python service — ruled out, Workers do not run scientific Python.)</li>
 </ul>
 <p>
   What's locked here regardless of the runtime: the schedule (Sundays 02:00 UTC, per §5.3.2), the manual
@@ -3117,7 +3126,11 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   ability requires a joint fit (item and person parameters together) over the full response matrix — and it must be
   <strong>one fit over all responses</strong> so the common students who take both practice and CAT link the two
   disjoint item pools (§20) onto a single scale. That is what <code>pyirt</code> (or equivalent) does and in-Postgres
-  math does not. The scheduled Cloudflare Worker → Python-service shape is therefore the chosen runtime.
+  math does not. <strong>The runner is a weekly scheduled GitHub Actions job</strong> — corrected 2026-07-26 (the
+  earlier "Cloudflare Worker → Python service" shape was wrong: Workers do not run scientific Python). GitHub Actions
+  already runs our deploy / migrate pipelines, executes any Python on a cron, and reads from / writes back to
+  Supabase — keeping the heavy weekly batch off the request path. (pg_cron can still fire the schedule if preferred,
+  but the compute lives in the Action.)
 </p>
 
 
@@ -3465,24 +3478,36 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Phase D — Calibration (trails; not needed to launch CAT).</strong></p>
 <ol start="10">
-  <li><strong>Slice 10 — Weekly recalibration job (§5.3 / §17).</strong> Turns curator-labelled difficulties into
-    empirical ones over time: 30-response threshold, 70/30 blend, writes <code>difficulty_irt</code> +
-    <code>difficulty_source</code> + the audit table, plus a manual trigger. A CAT runs fully without it — it only
-    sharpens difficulty as data accumulates.
-    <strong>⚠ Priority raised 2026-07-19 (§7.7).</strong> "Not needed to launch" is true of the <em>engine</em> but
-    not of the plan's <em>promises</em>: a live run showed that on the current three-rung ladder the exam cannot
-    visibly track a strong student, and the §9.5 readiness probability saturates at ~100% — the number §13 intends
-    to show students. Both need difficulty spread, which is what this slice produces.
-    <strong>Inputs:</strong> the per-item CAT columns (§12.7.4) — the snapshotted
-    <code>cat_item_difficulty</code>, the recorded <code>cat_weight</code>, and
-    <code>nclex_attempts.cat_engine_version</code>, which tells the job which update formula produced a given
-    response set (§12.7.12). Per §4.5's consistency requirement, the job must define a "response" the same way the
-    live engine does — the <em>fraction</em> <code>score_awarded / marks</code>, not a dichotomised right/wrong —
-    or difficulty values drift against a different definition than the engine scores against.
-    <strong>⬜ Open question for this slice:</strong> does a case child's response count <em>fully</em> when
-    calibrating that item's own difficulty? The §7.4 half-weight exists because six children share one scenario and
-    should not over-inform the <em>student's ability</em>. Whether the same discount applies to the <em>item's
-    difficulty</em> is a separate question, and §5 does not address it. Decide before the job first writes.</li>
+  <li><strong>Slice 10 — Difficulty recalibration + the CAT pool (§5 / §17 / §20).</strong> Turns curator-labelled
+    difficulties into empirical ones over time <em>and</em> gives CAT its own reserved pool.
+    <strong>⚠ Priority raised 2026-07-19 (§7.7)</strong> and <strong>substantially expanded 2026-07-26</strong> —
+    what was one job is now a three-sub-slice arc. "Not needed to launch" is true of the <em>engine</em> but not of
+    the plan's <em>promises</em>: on the three-rung ladder the exam cannot visibly track a strong student and the
+    §9.5 readiness probability saturates at ~100%; both need difficulty spread, which this arc produces.
+    <ol type="a">
+      <li><strong>10a — Five-band difficulty.</strong> Widen the <code>difficulty</code> <code>CHECK</code> to five
+        values and the seed mapping to −2 … +2 (§5.1 / §5.2); upgrade the curator editor to a five-option dropdown;
+        derive the student-facing band from <code>difficulty_irt</code> (§5.5); make the practice difficulty filter
+        five-way. Open at build: whether to also surface a read-only <em>measured</em> difficulty beside the editable
+        seed label.</li>
+      <li><strong>10b — CAT dedicated pool (§20).</strong> Generalise reserved stock to a <code>cat_pool</code>
+        purpose; a "Reserve for CAT" tick on the editor with the mutual-exclusivity guard (§20.5); an admin CAT-pool
+        management page showing coverage on <em>both</em> axes — difficulty <em>and</em> the 8 blueprint categories;
+        CAT selection draws only from <code>cat_pool</code>, and the leaks close (readiness-reserved out of CAT,
+        <code>cat_pool</code> out of practice).</li>
+      <li><strong>10c — The recalibration job (§5.3 / §17).</strong> The weekly <strong>GitHub Actions</strong>
+        Python / <code>pyirt</code> job (§17.6): a whole-bank joint fit over <em>all</em> response sources (§17.1),
+        30-response threshold, 70/30 blend, <code>difficulty_source</code> flip, audit-table writes (§17.2), plus a
+        manual trigger. Trails after launch — it needs accumulated data to chew on.</li>
+    </ol>
+    <strong>Response definition:</strong> per §4.5, the job must define a "response" the same way the live engine
+    does — the <em>fraction</em> <code>score_awarded / marks</code>, not a dichotomised right/wrong — across every
+    source, or difficulty drifts against a different definition than the engine scores against.
+    <strong>✅ Case-child weighting — resolved 2026-07-26:</strong> a case child calibrates its own difficulty at
+    <em>full</em> weight. The §7.4 half-weight is an <em>ability</em>-estimation formula (six children share a
+    scenario, so they should not over-inform θ); it does not apply to estimating an item's own difficulty, where each
+    response is a normal data point. Known simplification: the shared scenario makes the six children's responses
+    slightly correlated (a "testlet" effect), which we do not model in v1.</li>
 </ol>
 <p class="callout">
   <strong>Scope note.</strong> These ten slices cover the CAT <em>engine and its student-facing surfaces</em>. They
@@ -4384,7 +4409,8 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   not, with no order and no sub-grouping (the exam is adaptive, so there is no "position"). A single tick expresses
   the whole reservation.</li>
   <li><strong>The five-option difficulty dropdown.</strong> The editor's difficulty selector gains the two new
-  labels (Very easy … Very hard, §5.1) — a UI change paired with the §5.2 <code>CHECK</code> widening.</li>
+  labels (Very easy … Very hard, §5.1) — a UI change paired with the §5.2 <code>CHECK</code> widening. Open at build
+  (§19.4 Slice 10a): whether to also show a read-only <em>measured</em> difficulty beside the editable seed.</li>
   <li><strong>An admin CAT-pool management page</strong>, mirroring the readiness reserved-stock page: the overview /
   bulk lens — pool count, how-far-to-target (§20.4), difficulty and blueprint gaps. The editor tick and the admin
   page are <em>complementary</em>: the tick <em>sets</em> a question's reservation, the page <em>manages and
