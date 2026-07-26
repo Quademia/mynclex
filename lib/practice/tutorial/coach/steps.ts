@@ -95,6 +95,40 @@ export const COACH_STEPS: CoachStep[] = [
   { title: 'That is the whole exam interface', body: 'Nothing you did here was recorded. When you start a real sitting the tutorial badge disappears and everything else stays exactly as you have just seen it.', done: true },
 ];
 
+// Jump-to-section index (Slice 2c). `start` is the COACH_STEPS index the
+// section opens on. `sub: true` entries are the individual question types,
+// shown indented under "Question types" so a returning student can drop
+// straight onto the shape they came to practise. Indices are recomputed
+// against our 31-step array (CD's numbering shifted by the dropped Mark step).
+export interface CoachSection {
+  label: string;
+  start: number;
+  sub?:  boolean;
+}
+
+export const COACH_SECTIONS: CoachSection[] = [
+  { label: 'Welcome',                     start: 0 },
+  { label: 'The exam screen',             start: 1 },
+  { label: 'Calculator',                  start: 6 },
+  { label: 'Question grid',               start: 7 },
+  { label: 'The footer',                  start: 10 },
+  { label: 'Question types',              start: 11 },
+  { label: 'Multiple choice',             start: 11, sub: true },
+  { label: 'True / false',                start: 12, sub: true },
+  { label: 'Select all that apply',       start: 13, sub: true },
+  { label: 'Select N',                    start: 14, sub: true },
+  { label: 'Matrix',                      start: 15, sub: true },
+  { label: 'Matrix — multiple response',  start: 16, sub: true },
+  { label: 'Highlight',                   start: 17, sub: true },
+  { label: 'Cloze',                       start: 18, sub: true },
+  { label: 'Drag-and-drop cloze',         start: 19, sub: true },
+  { label: 'Drag to order',               start: 20, sub: true },
+  { label: 'Bow-tie',                     start: 21, sub: true },
+  { label: 'Case studies',                start: 22 },
+  { label: 'Trend items',                 start: 27 },
+  { label: 'Modes & finish',              start: 29 },
+];
+
 // Closing recap (shown on the final step). Static content lifted from the
 // CD blueprint's RECAP array, with the Mark row folded into the topbar line
 // unchanged (Mark is described but not gated).

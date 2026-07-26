@@ -21,7 +21,7 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { COACH_STEPS, COACH_RECAP } from './steps';
+import { COACH_STEPS, COACH_RECAP, COACH_SECTIONS } from './steps';
 
 interface Props {
   /** Switch the runner to the question with this key. */
@@ -39,6 +39,9 @@ interface Props {
 
 export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubmitted }: Props) {
   const [step, setStep] = useState(0);
+  // Slice 2c coach controls.
+  const [hidden, setHidden] = useState(false);   // coaching collapsed → free explore
+  const [jumpOpen, setJumpOpen] = useState(false); // section dropdown open
   const ringRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -116,7 +119,8 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubm
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', place, true);
     };
-  }, [place, step]);
+    // `hidden` is a dep so un-hiding re-measures + repositions the card/ring.
+  }, [place, step, hidden]);
 
   // Gate (Slice 2b): a step can require the student to actually DO the thing
   // before Next unlocks. Derived from live runner state — no latch needed:
@@ -127,6 +131,30 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubm
 
   const next = () => setStep((n) => Math.min(total - 1, n + 1));
   const back = () => setStep((n) => Math.max(0, n - 1));
+
+  // Coach controls (Slice 2c).
+  const hide = () => { setJumpOpen(false); setHidden(true); };
+  const resume = () => {
+    setHidden(false);
+    // Re-anchor the guided context: the student may have navigated elsewhere
+    // while free-exploring, so put them back on this step's question.
+    if (s.gotoKey) onGoto(s.gotoKey);
+    if (s.grid) setGridOpen(true);
+  };
+  const jumpTo = (start: number) => { setJumpOpen(false); setStep(start); };
+
+  // Hidden: coaching collapsed to a strip. No dim, no spotlight — the whole
+  // runner is free to explore. The "Nothing is recorded" badge stays up in
+  // the topbar regardless, so the sandbox-safety cue never disappears.
+  if (hidden) {
+    return (
+      <div className="tc-strip" role="dialog" aria-label="Tutorial coaching (hidden)">
+        <span className="tc-strip-label">Coaching hidden — explore freely.</span>
+        <button type="button" className="tc-btn primary" onClick={resume}>Resume</button>
+        <button type="button" className="tc-btn ghost" onClick={onEnd}>End tutorial</button>
+      </div>
+    );
+  }
 
   return (
     // Two sibling layers with deliberately different z-indexes: the scrim
@@ -150,7 +178,40 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubm
         <div className="tc-head">
           <span className="tc-tag">Tutorial</span>
           <span className="tc-count">Step {step + 1} of {total}</span>
+          <div className="tc-head-actions">
+            <button type="button" className="tc-mini" onClick={hide}>Hide</button>
+            <button type="button" className="tc-mini" onClick={onEnd}>End</button>
+          </div>
         </div>
+
+        <div className="tc-jump">
+          <button
+            type="button"
+            className="tc-jump-btn"
+            onClick={() => setJumpOpen((o) => !o)}
+            aria-expanded={jumpOpen}
+          >
+            <span>Jump to section</span>
+            <span className="tc-jump-caret" aria-hidden="true">{jumpOpen ? '▴' : '▾'}</span>
+          </button>
+          {jumpOpen && (
+            <ul className="tc-jump-menu" role="menu">
+              {COACH_SECTIONS.map((sec) => (
+                <li key={sec.label + sec.start}>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={'tc-jump-item' + (sec.sub ? ' sub' : '') + (step === sec.start ? ' on' : '')}
+                    onClick={() => jumpTo(sec.start)}
+                  >
+                    {sec.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div className="tc-title">{s.title}</div>
         <div className="tc-body">{s.body}</div>
         {s.done && (
