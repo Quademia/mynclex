@@ -156,7 +156,7 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-19 — <strong>Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
+  Living planning document. Last updated: 2026-07-26 — <strong>Difficulty scale expanded 3 → 5 labels, and the student-facing band is now derived from the empirical number</strong> (§5.1 rewritten, new §5.5, §5.2 / §5.4 updated, §7.7 route 2 adopted). Settled with Sam in a design session: five bands (Very easy … Very hard, seeds −2 … +2) with cut-offs at ±0.5 / ±1.5; the shown difficulty derives from <code>difficulty_irt</code> once <code>difficulty_source = 'EMPIRICAL'</code>, with the curator label as seed only; expanding curator authoring to ±2 also widens the day-one CAT ladder (the §7.7 route-2 fix). <strong>Also settled — new §20: CAT gets a dedicated item pool</strong> (reserved stock, generalising the readiness mechanism), which commits us to the <code>pyirt</code> recalibration runtime and is sized to a 15-CAT non-overlapping floor (target 2,400 standalone / 60 cases / 60 trends). <strong>Earlier — 2026-07-19: Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
   85 items, CONFIDENCE_REACHED, ABOVE_STANDARD, final theta 0.480 / SE 0.232 in 121 minutes; 3 cases at the
   scheduled 8/35/59, evidence weight 76.0 across 85 items, and near-perfect blueprint balance (22/21/21/21).
   <strong>It terminated by 0.025</strong> — one more wrong answer and the band would not have cleared — and
@@ -389,7 +389,7 @@
   (verdict copy, trajectory graph + per-item marker), §14 review (uses shared runner Review surface),
   §15 re-take rules, §16 runner UX (current-Q-only progress, no back nav, no live mark-for-review,
   abandoned on browser-close), §17 calibration capture (one new audit table). Remaining: §18
-  out-of-scope notes, §20 related docs.
+  out-of-scope notes, §21 related docs.
 </div>
 
 <h2>Why this doc exists</h2>
@@ -434,7 +434,8 @@
     <li><a href="#s17">Calibration data capture</a></li>
     <li><a href="#s18">Out of scope for v1 / deferred</a></li>
     <li><a href="#s19">Open decisions</a></li>
-    <li><a href="#s20">Related docs</a></li>
+    <li><a href="#s20">CAT item pool — dedicated reserved stock</a></li>
+    <li><a href="#s21">Related docs</a></li>
   </ol>
 </div>
 
@@ -711,31 +712,45 @@
 </p>
 
 <h3>5.1 Day-one mapping — curator label → numeric proxy</h3>
+<p class="callout">
+  <strong>Revised 2026-07-26 — three labels → five.</strong> The scale was originally three (Easy/Medium/Hard →
+  −1.0 / 0.0 / +1.0). It is now <strong>five</strong> — Very easy · Easy · Medium · Hard · Very hard, seeded at
+  −2.0 … +2.0. Two reasons, settled with Sam this session: (1) the student-facing difficulty band is now
+  <em>derived</em> from the empirical number (§5.5), and five bands distribute the "% an average candidate gets
+  right" far more evenly than three (three crammed 38% → 5% into a single "Hard"); (2) seeding the extremes at ±2
+  <strong>widens the day-one ladder to ±2 with no data required</strong> — the curator-authoring route §7.7 floated
+  for the "exam stops responding to a strong candidate" symptom. Existing items keep their labels and seeds
+  untouched (Easy = −1.0 is still a valid point on the five-seed scale).
+</p>
 <p>
-  Three numeric values on the IRT logit scale, where 0 = average ability:
+  Five numeric values on the IRT logit scale, where 0 = average ability:
 </p>
 <table>
   <thead>
     <tr><th>Curator label</th><th>Rasch difficulty</th><th>Plain-English meaning</th></tr>
   </thead>
   <tbody>
+    <tr><td>Very easy</td><td>−2.0</td><td>A 50/50 student gets this right ~88% of the time.</td></tr>
     <tr><td>Easy</td><td>−1.0</td><td>A 50/50 student gets this right ~73% of the time.</td></tr>
     <tr><td>Medium</td><td>0.0</td><td>A 50/50 student gets this right ~50% of the time.</td></tr>
     <tr><td>Hard</td><td>+1.0</td><td>A 50/50 student gets this right ~27% of the time.</td></tr>
+    <tr><td>Very hard</td><td>+2.0</td><td>A 50/50 student gets this right ~12% of the time.</td></tr>
   </tbody>
 </table>
 <p>
-  The middle three values on the standard IRT logit scale. Wide enough that the three labels are meaningfully
-  different (the engine picks differently for a Medium-leaning student vs a Hard-leaning student); tight enough
-  that no question is treated as extreme.
+  Five evenly-spaced values on the standard IRT logit scale (−2 … +2, one logit apart). Wide enough that the five
+  labels are meaningfully different to the engine's selection; the ±2 extremes sit where an average candidate
+  succeeds ~88% (Very easy) / ~12% (Very hard) of the time — clearly distinct without being implausibly extreme.
+  Beyond ±2 (±3 and out) is reserved for what empirical recalibration may later discover, not for curator seeding.
 </p>
 
 <h3>5.2 Where the numeric value lives — schema decision</h3>
 <p>
-  The existing <code>nclex_bank_items.difficulty</code> column is a TEXT column with a CHECK constraint that
-  restricts values to <code>'Easy'</code> / <code>'Medium'</code> / <code>'Hard'</code>. It cannot hold a number
-  like 0.34 — that would violate the constraint. So the numeric value the CAT engine reads must live in a
-  separate column.
+  The existing <code>nclex_bank_items.difficulty</code> column is a TEXT column with a CHECK constraint. As of
+  2026-07-26 it allows <strong>five</strong> values — <code>'Very easy'</code> / <code>'Easy'</code> /
+  <code>'Medium'</code> / <code>'Hard'</code> / <code>'Very hard'</code> (widened from three by the same migration
+  that adds the two new seeds; see §5.1). It cannot hold a number like 0.34 — that would violate the constraint.
+  So the numeric value the CAT engine reads must live in a separate column.
 </p>
 <p>
   <strong>Add a new column: <code>difficulty_irt</code> (NUMERIC).</strong> The text column stays exactly as it
@@ -770,7 +785,7 @@
   <strong>Rules of access:</strong>
 </p>
 <ul>
-  <li>Curator UI never touches <code>difficulty_irt</code>. The curator picks Easy / Medium / Hard; the system writes the corresponding number to <code>difficulty_irt</code> automatically on save.</li>
+  <li>Curator UI never touches <code>difficulty_irt</code>. The curator picks one of the five labels (Very easy … Very hard, §5.1); the system writes the corresponding number to <code>difficulty_irt</code> automatically on save.</li>
   <li>CAT engine never touches <code>difficulty</code>. It reads <code>difficulty_irt</code> only.</li>
   <li>Recalibration job writes only to <code>difficulty_irt</code> and <code>difficulty_source</code>. Never touches the curator's label.</li>
   <li>This preserves the curator's original judgement as a stable field. Once recalibration runs, we can still see <em>"this question was originally labelled Hard, but the data shows it's actually Medium-difficulty"</em> by comparing the two columns.</li>
@@ -836,7 +851,59 @@
 <p>
   Each item's <code>difficulty_source</code> column tells the curator dashboard whether the value is curator-
   derived or empirically calibrated. The dashboard can show: "X% of bank items are now empirically calibrated"
-  and per-item flags. <strong>Admin/curator-side only for v1; not surfaced student-facing.</strong>
+  and per-item flags. <strong>The calibration-confidence readout — how much of the bank is empirically
+  calibrated, plus the per-item CURATOR_LABEL vs EMPIRICAL flag — is admin/curator-side only for v1.</strong>
+  The difficulty <em>band</em> itself, however, <em>is</em> surfaced to students, derived from the number per §5.5.
+</p>
+
+
+<h3>5.5 Student-facing difficulty band — derived from <code>difficulty_irt</code> <span class="status settled">settled 2026-07-26</span></h3>
+<p>
+  <strong>The difficulty a student sees is derived from the empirical number, not the frozen curator label.</strong>
+  The curator's Very easy … Very hard choice is the <em>seed</em> only (§5.1). Recalibration moves
+  <code>difficulty_irt</code> but by rule never rewrites the curator's label (§5.2) — so without a derived band the
+  displayed label would drift out of step with the number the engine actually uses. The example that forced the
+  decision: two items both authored "Medium" (seed 0) that recalibrate to +2 and +3 would both keep reading
+  "Medium" to a student, while the engine treats them as hard. Deriving the shown band from the number keeps the
+  label honest and cuts drift. This interacts with the CAT item-pool decision — see §20.3.
+</p>
+<h4>5.5.1 The five bands and their cut-offs</h4>
+<p>
+  A band = whichever seed rung the item now sits closest to, so the cut-offs fall at the midpoints between the five
+  seeds (−2, −1, 0, +1, +2) — at <strong>±0.5 and ±1.5</strong>. The "% correct" column is for the reference
+  average candidate (θ = 0), via the Rasch success formula <code>P = 1 / (1 + e^(b − θ))</code> — the
+  human-readable gloss on the logit number (and the rigorous form of "what % of students get it right").
+</p>
+<table>
+  <thead>
+    <tr><th>Display band</th><th><code>difficulty_irt</code> range</th><th>Seed</th><th>Avg candidate (θ=0) gets it right</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Very easy</td><td><code>b ≤ −1.5</code></td><td>−2.0</td><td>~82% – 95%+</td></tr>
+    <tr><td>Easy</td><td><code>−1.5 &lt; b ≤ −0.5</code></td><td>−1.0</td><td>~62% – 82%</td></tr>
+    <tr><td>Medium</td><td><code>−0.5 &lt; b &lt; +0.5</code></td><td>0.0</td><td>~38% – 62%</td></tr>
+    <tr><td>Hard</td><td><code>+0.5 ≤ b &lt; +1.5</code></td><td>+1.0</td><td>~18% – 38%</td></tr>
+    <tr><td>Very hard</td><td><code>b ≥ +1.5</code></td><td>+2.0</td><td>≤ ~18% (down to ~5%)</td></tr>
+  </tbody>
+</table>
+<h4>5.5.2 When the derived band replaces the seed label</h4>
+<p>
+  The switch reuses <code>difficulty_source</code> (§5.2), so no new state is needed:
+</p>
+<ul>
+  <li>While <code>difficulty_source = 'CURATOR_LABEL'</code> (below the §5.3.1 threshold of responses) → show the curator's seed label. A brand-new item has no data to band from, so it shows what the curator typed.</li>
+  <li>Once <code>difficulty_source = 'EMPIRICAL'</code> → show the band derived from <code>difficulty_irt</code> via §5.5.1. The label changes at most once, when there is enough evidence — it does not twitch on three data points.</li>
+</ul>
+<h4>5.5.3 Scope — where the band shows, and where it does not</h4>
+<ul>
+  <li><strong>CAT sittings show no difficulty at all</strong> — the §16.6 exam-mode fix hides the difficulty pill, so a derived band never reaches a live adaptive exam. This is a practice/study + curator-surface concern only.</li>
+  <li><strong>The CAT engine is unaffected by the band count.</strong> It reads the raw <code>difficulty_irt</code> number for selection and never buckets — going 3 → 5 bands is purely a human-facing display change.</li>
+  <li><strong>Surfaces that become five-way:</strong> the curator authoring dropdown (§5.1), the student practice-builder difficulty filter, and any study-mode difficulty pill.</li>
+</ul>
+<p>
+  <strong>Coarse-display note.</strong> Five bands is deliberately still coarse — a +0.6 and a +1.4 item both read
+  "Hard". That is fine: the engine tells them apart by the raw number for selection; the band is only the human
+  gloss. A sixth band is a display nicety we can add later if wanted, not a v1 need.
 </p>
 
 
@@ -1384,6 +1451,15 @@ Sam's live run @ Q35     theta 1.65  SE 0.369   P(above)  99.999%</code></pre>
   data), or <strong>curator authoring beyond the range</strong> (immediate, needs no data, but requires either a
   finer authoring scale or letting <code>difficulty_irt</code> be set directly for outliers). The second is the
   faster of the two and does not touch the engine.
+</p>
+<p class="callout">
+  <strong>Adopted 2026-07-26 — the curator-authoring route (route 2).</strong> The curator scale was expanded from
+  three labels to <strong>five</strong> (Very easy … Very hard, seeds −2 … +2; §5.1), a "finer authoring scale"
+  exactly as this route described. It widens the day-one ladder to ±2 with no data required, so a curator can
+  author a genuine +2 "Very hard" item today. Recalibration (route 1) still runs on top to refine the numbers
+  empirically. This directly addresses consequence #1 (the exam serving a strong candidate items that are all too
+  easy); it <em>eases but does not fully remove</em> the §9.5 saturation of consequence #2, which still depends on
+  empirical spread accumulating.
 </p>
 <p>
   <strong>The honest caveat:</strong> even with a well-spread bank the strongest student always outruns the pool —
@@ -4157,7 +4233,124 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   tired, so the first real user-eyes pass is still outstanding.
 </p>
 
-<h2 id="s20">20. Related docs</h2>
+<h2 id="s20">20. CAT item pool — dedicated reserved stock <span class="status settled">settled 2026-07-26</span></h2>
+<p>
+  Where CAT draws its questions from. Today the selection query (§10.2, <code>cat_next_item</code>) reads the
+  <em>whole</em> published bank. This section settles that CAT will instead draw from a <strong>dedicated pool of
+  reserved questions that never appear in student practice</strong> — generalising the readiness-pack "reserved
+  stock" mechanism. Settled with Sam in the 2026-07-26 design session; build not started.
+</p>
+
+<h3>20.1 Why a dedicated pool — the exposure problem</h3>
+<p>
+  A CAT measures ability from responses. If a student has already <em>practised</em> a question, their response
+  reflects memory, not ability, and the estimate inflates. This threat is structurally high for us: the product
+  <em>is</em> a practice bank, and <strong>the students who sit CATs are the same students who practise most</strong>.
+</p>
+<p>Current state (found by reading the code, 2026-07-26):</p>
+<ul>
+  <li><code>cat_next_item</code> excludes items the student saw in <em>prior CATs</em> (<code>mode = 'CAT'</code>) but <strong>not</strong> items they met in practice / custom builds. So a practised question can be served in a CAT today.</li>
+  <li>Reserved (readiness-pack) questions are excluded from practice but <strong>not</strong> from CAT — on dev, <strong>452 of 500</strong> reserved items are currently CAT-eligible. A question earmarked for a paid pack can leak into a CAT.</li>
+</ul>
+<p>The shared-pool alternatives both fail for the CAT-taking population:</p>
+<ul>
+  <li><strong>Shared pool, no exclusion</strong> → contaminated (they have already seen the items).</li>
+  <li><strong>Shared pool, exclude practice-seen items per student</strong> → <em>degrades</em> the diligent student's CAT: someone who has practised 2,000 of 2,500 items has few unseen items left, badly spread across difficulty, so their measurement suffers precisely because they studied hard.</li>
+</ul>
+<p>
+  A dedicated pool is the only option that gives every student a clean, full-quality adaptive exam regardless of
+  practice history. <strong>Item security is deliberately a weak part of the argument</strong> — our CAT is
+  <em>formative</em> (a readiness signal, not the licensure exam), so gaming it is self-defeating; the case rests on
+  measurement quality, not on keeping the answer key off the street.
+</p>
+
+<h3>20.2 The mechanism — generalise "reserved stock"</h3>
+<p>
+  We do not build a new silo. Reservation already exists for readiness packs
+  (<code>nclex_readiness_pack_items</code>, <code>UNIQUE(item_id)</code>, excluded from practice). We generalise it
+  to carry a <strong>purpose</strong>: <code>readiness_pack</code> or <code>cat_pool</code>. Rules:
+</p>
+<ul>
+  <li>A question is reserved for <strong>at most one</strong> purpose (a pack question is not also a CAT question, and vice versa).</li>
+  <li>CAT selection (§10.2) draws <strong>only</strong> from <code>cat_pool</code> items — which also closes the 452-item leak, since readiness-reserved items are no longer CAT-eligible.</li>
+  <li>Both purposes stay hidden from student practice (the existing <code>_nclex_eligible_unit_pool</code> exclusion widens to cover both).</li>
+  <li>The admin "Reserved stock" surface (currently the readiness "how-far-to-500" lens) becomes multi-target — a readiness target and a CAT-pool target.</li>
+</ul>
+<p>
+  Exact storage shape (a second link table mirroring the readiness one, versus a single reservation table with a
+  <code>purpose</code> column) is a build-time call; the readiness link table is the precedent to follow. One
+  consequence worth noting: with a dedicated pool that students never practise, the per-student practice-seen
+  exclusion becomes unnecessary for CAT items — the pool makes practice→CAT exposure <em>structurally impossible</em>
+  rather than patched. The existing cross-CAT <code>mode = 'CAT'</code> exclusion still applies, so a student's
+  repeat CATs draw fresh items.
+</p>
+
+<h3>20.3 Coupling with §5 recalibration and §5.5 — commits us to the pyirt runtime</h3>
+<p>
+  A dedicated pool sharpens the §17.6 runtime fork into a <em>decision</em>, because of how it interacts with the
+  §5.5 student-facing difficulty band:
+</p>
+<ul>
+  <li>Dedicated CAT items get empirical difficulty from CAT sittings — but students <strong>never see</strong> those items' difficulty (it is hidden in exams, §16.6).</li>
+  <li>The items students <em>do</em> see difficulty for are <strong>practice items</strong>, and those only get empirically calibrated if recalibration reads <strong>practice responses</strong> — the <code>pyirt</code> joint fit, not the simple "θ-known-from-CAT" approach.</li>
+</ul>
+<p>
+  Therefore: <strong>dedicated pool + <code>pyirt</code> runtime</strong> = CAT gets a clean pool <em>and</em>
+  practice items get honest, data-driven bands (§5.5 pays off). <strong>Dedicated pool + the simple runtime</strong>
+  = §5.5 is neutered for practice items (they stay on curator seeds forever). So this decision <strong>commits the
+  §17.6 fork to <code>pyirt</code></strong>.
+</p>
+
+<h3>20.4 Pool sizing — the 15-CAT floor (not a cap)</h3>
+<p>
+  <strong>15 is a content-sizing floor, not a per-student limit.</strong> It is the least number of questions
+  needed so a student gets <strong>15 non-overlapping CATs of fresh questions</strong>. The CAT allowance is
+  unchanged — it stays unlimited where a subscription grants it (<code>cat_allowance = NULL</code>). Beyond the
+  fresh supply, attempts still work; items simply begin to repeat (graceful degradation). And because most CATs
+  terminate near the <strong>85-item minimum</strong> rather than the 150 maximum, real students reach well past 15
+  fresh sittings before any repeat — so 15-at-max-length is a conservative floor.
+</p>
+<p>Assumptions: a sitting is 85–150 items = mostly standalone + exactly 3 cases (~18 child items) + ~2 trends (~3 child items).</p>
+<table>
+  <thead>
+    <tr><th>Component</th><th>15-CAT floor (max length)</th><th>Prod target</th><th>Child questions</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Standalone</td><td>~1,935 (+headroom ≈ 2,400)</td><td><strong>2,400</strong></td><td>2,400</td></tr>
+    <tr><td>Case wrappers</td><td>45 (3 × 15)</td><td><strong>60</strong></td><td>~360 (≈6 each)</td></tr>
+    <tr><td>Trend wrappers</td><td>~30 (2 × 15)</td><td><strong>60</strong></td><td>~90 (≈1.5 each)</td></tr>
+    <tr><td colspan="3"><strong>Total CAT pool</strong></td><td><strong>≈ 2,850 questions</strong></td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>The one real content action is the five-band spread, not bulk volume.</strong> The 2,400 standalone must
+  span all five bands (−2 … +2). Today everything sits on three rungs (Easy 805 / Medium 1,297 / Hard 916 on dev),
+  so the <strong>Very-easy and Very-hard tails are empty</strong>. The gap is roughly <strong>~250 Very-easy + ~250
+  Very-hard</strong> items — filled either by curators <em>re-labelling</em> genuinely-extreme items out of the
+  existing Easy/Hard piles, or by authoring new tail items; the middle is already over-supplied. Cases and trends
+  should likewise carry a range of difficulty, not cluster at Medium.
+</p>
+<p>
+  <strong>Dev precedent:</strong> dev was seeded with 3,086 items (2,418 standalone / 92 cases / 80 trends)
+  <em>specifically to make CAT runnable</em> — so on dev the CAT pool is effectively the whole bank. Prod
+  designates an equivalent reserved set as <code>cat_pool</code>; the case (60) and trend (60) targets sit
+  <em>below</em> dev's counts and still clear the floor comfortably.
+</p>
+
+<h3>20.5 What this adds — a new slice, distinct from Slice 10</h3>
+<p>
+  This is a separate piece of build from Slice 10 (recalibration), though coupled to it through the
+  <code>pyirt</code> commitment (§20.3). New work:
+</p>
+<ul>
+  <li>Generalise reserved stock to a <code>cat_pool</code> purpose (schema + admin surface).</li>
+  <li>CAT selection draws only from <code>cat_pool</code>; readiness-reserved items excluded from CAT (closes the 452 leak); <code>cat_pool</code> excluded from practice.</li>
+  <li>Admin reserved-stock surface gains the <code>cat_pool</code> target and its own fill bookkeeping.</li>
+</ul>
+<p><strong>Status:</strong> design settled 2026-07-26; build not started. Sequence relative to Slice 10 is open.</p>
+
+
+<h2 id="s21">21. Related docs</h2>
 <ul>
   <li><code>bank-consumption.html</code> — parent plan; §16 is the original CAT scoping note this doc replaces.</li>
   <li><code>bank-consumption-attempt-creation.html</code> — sibling sub-plan; §13 names the two-RPC architecture this doc fleshes out.</li>
