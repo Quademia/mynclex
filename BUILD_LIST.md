@@ -144,10 +144,30 @@
 >     dashboard CAT + pack "?" signals, the pack surface, and a public-footer
 >     link. `styles/help.css`. ⚠ Deferred doc-catchup: mark this in BUILD_LIST's
 >     header + flip cat.html §3.2 status.
-> 12. **Slice 10 — weekly recalibration** (§5.3 / §17). The only substantial
->     slice left. Priority raised: on the current three-rung difficulty ladder
->     the exam can't visibly track a strong student and the readiness
->     probability saturates near 100%.
+> 12. **Slice 10 — recalibration + the CAT pool** (§5 / §17 / §20), split into
+>     **10a / 10b / 10c**.
+>     - ✅ **10a — five-band difficulty — BUILT + MERGED to `main` 2026-07-27**
+>       (commits `a516898` + `b909598`; migration `20260818120000`, dev-applied;
+>       NOT prod). Difficulty widened Easy/Medium/Hard → **Very easy … Very hard**
+>       (seeds −2 … +2) on both tables; `lib/bank/difficulty.ts` (label↔IRT map +
+>       `displayBand()`, 11 tests); save-path writes/re-seeds `difficulty_irt`
+>       (last-writer-wins + changed-only guard, proven on dev); student runner
+>       pill via `displayBand()` (empirical branch dormant until 10c feeds the
+>       attempt snapshot). **Plus the curator calibration readout** (the old
+>       "read-only measured difficulty", once slated for after 10a): the
+>       Classification tab now shows **Set difficulty** beside a read-only
+>       **Calibrated difficulty** box (`band (IRT)` + `CURATOR`/`EMPIRICAL` pill +
+>       `≠ label`), reading the *real* columns threaded through all 11
+>       row-mappers + editors, so it shows genuine empirical states now; 💡 bulb
+>       explainer. Verified live on 2,315 seeded empirical bank rows.
+>     - ⬜ **10b — CAT dedicated pool** (§20). Reserved `cat_pool` stock + "Reserve
+>       for CAT" editor tick + admin management page.
+>     - ⬜ **10c — the recalibration job** (§5.3 / §17). Weekly GitHub Actions
+>       `pyirt` whole-bank fit; flips items to `EMPIRICAL`; also the piece that
+>       lights up the student pill (snapshot plumbing) and needs accumulated data.
+>     Why it mattered: the old three-rung ladder couldn't track a strong student
+>     and the readiness probability saturated near 100%; the five bands fix the
+>     spread.
 > 13. **Two reopened CAT decisions** — §9.3 ✅ **DONE 2026-07-25: time limit
 >     4h → 5h** (on `main`; migration `20260816120000` redefines
 >     `create_cat_attempt` to stamp 5h; new CATs 5h, in-progress keep their

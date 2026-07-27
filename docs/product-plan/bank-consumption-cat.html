@@ -3509,12 +3509,18 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
         (−2 … +2) and <code>displayBand()</code> (§5.5 cut-offs), 11 unit tests. The save path
         (<code>save-question.ts</code>) writes <code>difficulty_irt</code> from the label on create and re-seeds it
         on a label <em>change</em> only (§5.2 last-writer-wins + changed-only guard) — proven end-to-end on dev. The
-        student pill routes through <code>displayBand()</code> so §5.5 is the single authority; the
-        <strong>empirical branch is dormant until 10c</strong> because it reads the frozen
+        student pill routes through <code>displayBand()</code> so §5.5 is the single authority; on the
+        <em>student</em> pill the <strong>empirical branch is dormant until 10c</strong> because it reads the frozen
         <code>classification_snapshot</code>, which the create-attempt RPCs do not yet populate with
         <code>difficulty_irt</code> / <code>difficulty_source</code> — that snapshot plumbing rides with 10c.
-        <strong>Deferred (Sam, do after 10a):</strong> the read-only <em>measured</em> difficulty beside the editable
-        seed label — only meaningful once 10c produces empirical values.</li>
+        <strong>✅ Also built 2026-07-27 — the curator calibration readout</strong> (was the "read-only measured
+        difficulty beside the editable seed", once slated for after 10a): the Classification tab now shows
+        <strong>Set difficulty</strong> (editable) beside a read-only <strong>Calibrated difficulty</strong> box —
+        <code>band (IRT)</code> + a <code>CURATOR</code>/<code>EMPIRICAL</code> pill + a <code>≠ label</code> flag when
+        the measured band disagrees. It reads the <em>real</em> <code>difficulty_irt</code> / <code>difficulty_source</code>
+        columns (threaded through all 11 row-mappers + editors), so it shows genuine empirical states <em>now</em> —
+        unlike the student pill it does <em>not</em> wait for 10c. A 💡 bulb
+        (<code>lib/hints/bank/difficulty-calibration-bulb.tsx</code>) explains both fields.</li>
       <li><strong>10b — CAT dedicated pool (§20).</strong> Generalise reserved stock to a <code>cat_pool</code>
         purpose; a "Reserve for CAT" tick on the editor with the mutual-exclusivity guard (§20.5); an admin CAT-pool
         management page showing coverage on <em>both</em> axes — difficulty <em>and</em> the 8 blueprint categories;
@@ -4434,8 +4440,9 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   not, with no order and no sub-grouping (the exam is adaptive, so there is no "position"). A single tick expresses
   the whole reservation.</li>
   <li><strong>The five-option difficulty dropdown.</strong> The editor's difficulty selector gains the two new
-  labels (Very easy … Very hard, §5.1) — a UI change paired with the §5.2 <code>CHECK</code> widening. Open at build
-  (§19.4 Slice 10a): whether to also show a read-only <em>measured</em> difficulty beside the editable seed.</li>
+  labels (Very easy … Very hard, §5.1) — a UI change paired with the §5.2 <code>CHECK</code> widening. <strong>✅ Built
+  2026-07-27</strong>, together with the read-only <em>measured</em> difficulty beside the editable seed (the
+  "Calibrated difficulty" readout — the earlier open question is resolved: yes, we show it; see §19.4 Slice 10a).</li>
   <li><strong>An admin CAT-pool management page</strong>, mirroring the readiness reserved-stock page: the overview /
   bulk lens — pool count, how-far-to-target (§20.4), difficulty and blueprint gaps. The editor tick and the admin
   page are <em>complementary</em>: the tick <em>sets</em> a question's reservation, the page <em>manages and
