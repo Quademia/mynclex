@@ -11,12 +11,17 @@
 // the persisted value here as a read-only readout (no editable input).
 
 import type { QuestionType } from '@/lib/bank/classifications';
+import { CAT_POOL_LABEL, CAT_POOL_HELP } from '@/lib/bank/atoms/cat-pool';
 
 export type HousekeepingMode = 'standalone' | 'wrapper-child';
 
 interface HousekeepingFieldsProps {
   mode: HousekeepingMode;
   questionType: QuestionType;
+  // §20 (Slice 10b1) — show the admin-only "Reserve for CAT" tick. True only
+  // on the admin bank surface; tutors never see it. Hidden in wrapper-child
+  // mode regardless (a case/trend child inherits its wrapper's flag).
+  canReserveCat?: boolean;
   defaults: {
     marks: number;
     question_ref: string;
@@ -25,10 +30,11 @@ interface HousekeepingFieldsProps {
     is_free_sample: boolean;
     is_builder_visible: boolean;
     shuffle_options: boolean;
+    cat_pool: boolean;
   };
 }
 
-export function HousekeepingFields({ mode, questionType, defaults }: HousekeepingFieldsProps) {
+export function HousekeepingFields({ mode, questionType, canReserveCat, defaults }: HousekeepingFieldsProps) {
   return (
     <>
       <div className="auth-grid-3">
@@ -104,6 +110,17 @@ export function HousekeepingFields({ mode, questionType, defaults }: Housekeepin
           />
           <span>Shuffle options when shown to students</span>
         </label>
+        {mode === 'standalone' && canReserveCat && (
+          <label className="auth-check">
+            <input
+              type="checkbox"
+              name="cat_pool"
+              defaultChecked={defaults.cat_pool}
+              value="on"
+            />
+            <span>{CAT_POOL_LABEL} <span className="auth-hint">— {CAT_POOL_HELP}</span></span>
+          </label>
+        )}
       </div>
     </>
   );

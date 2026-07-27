@@ -178,6 +178,11 @@ export async function saveTrendMetadataAction(
   const is_free_sample     = formData.get('is_free_sample') === 'on';
   const is_builder_visible = formData.get('is_builder_visible') === 'on';
 
+  // §20 (10b1) — the CAT-pool reservation is admin-only; never written on the
+  // tutor surface (the column stays dormant-false; the tutor UI hides the tick).
+  const catPoolPatch =
+    surface === 'admin' ? { cat_pool: formData.get('cat_pool') === 'on' } : {};
+
   // Wrapper tags — same comma-separated convention as the question
   // editors. A tag on the trend counts as a tag on every linked
   // question in the student builder (inheritance, migration
@@ -194,6 +199,7 @@ export async function saveTrendMetadataAction(
       is_published,
       is_free_sample,
       is_builder_visible,
+      ...catPoolPatch,
       updated_at: new Date().toISOString(),
     })
     .eq('trend_id', trend_id);

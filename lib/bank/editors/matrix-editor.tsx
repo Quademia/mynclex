@@ -699,6 +699,7 @@ export function MatrixEditorBody({
 
               <TabPanel id="housekeeping">
                 <HousekeepingFields
+                  canReserveCat={initial.surface === 'admin'}
                   mode={initial.mode}
                   questionType="MATRIX"
                   defaults={{
@@ -706,6 +707,7 @@ export function MatrixEditorBody({
                     question_ref: initial.question_ref,
                     batch_id: initial.batch_id,
                     is_published: initial.is_published,
+                    cat_pool: initial.cat_pool,
                     is_free_sample: initial.is_free_sample,
                     is_builder_visible: initial.is_builder_visible,
                     shuffle_options: initial.shuffle_options,

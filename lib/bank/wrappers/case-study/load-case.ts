@@ -96,7 +96,7 @@ function configFor(surface: Surface): SurfaceConfig {
 
 const CASE_COLUMNS =
   'case_id, title, scenario_summary, tags, ' +
-  'is_free_sample, is_builder_visible, is_published, ' +
+  'is_free_sample, is_builder_visible, is_published, cat_pool, ' +
   'created_at, updated_at';
 
 const TUTOR_CASE_COLUMNS = CASE_COLUMNS + ', tutor_id';

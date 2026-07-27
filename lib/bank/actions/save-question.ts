@@ -526,6 +526,13 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
   const cfg = surfaceConfig(surface);
   const existingItemId = String(formData.get('item_id') ?? '').trim();
 
+  // §20 (10b1) — the "Reserve for CAT" flag is admin-only. On the tutor
+  // surface we never write it (the column stays dormant-false; the tutor UI
+  // never renders the tick anyway). An absent checkbox is false, so an admin
+  // unticking clears the reservation.
+  const catPoolPatch =
+    surface === 'admin' ? { cat_pool: formData.get('cat_pool') === 'on' } : {};
+
   // ── UPDATE ─────────────────────────────────────────────────
   if (existingItemId) {
     const { data: existing, error: fetchErr } = await supabase
@@ -560,6 +567,7 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
       .update({
         ...parsed,
         ...difficultyPatch,
+        ...catPoolPatch,
         updated_at: new Date().toISOString(),
       })
       .eq('item_id', existingItemId);
@@ -605,6 +613,7 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
     item_id,
     ...parsed,
     difficulty_irt: seedIrtForLabel(parsed.difficulty),
+    ...catPoolPatch,
   };
   if (surface === 'tutor') {
     row.tutor_id = user.id;

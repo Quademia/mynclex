@@ -56,6 +56,9 @@ export interface CaseRow {
   is_builder_visible:        boolean;
   is_published:              boolean;
 
+  // §20 (10b1) — reserved as CAT-pool stock; children inherit this flag.
+  cat_pool:                  boolean;
+
   created_at:                string;
   updated_at:                string;
 }

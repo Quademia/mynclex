@@ -46,6 +46,8 @@ export interface TrendDatasetRow {
   is_published:       boolean;
   is_free_sample:     boolean;
   is_builder_visible: boolean;
+  // §20 (10b1) — reserved as CAT-pool stock; children inherit this flag.
+  cat_pool:           boolean;
   created_at:         string;
   updated_at:         string;
 }
