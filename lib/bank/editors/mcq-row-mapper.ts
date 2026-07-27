@@ -44,6 +44,8 @@ export interface McqEditorInitial {
   topic: string;
   subtopic: string;
   difficulty: string;
+  difficulty_irt: number | null;
+  difficulty_source: string;
   bloom_level: string;
   tags: string;
   is_published: boolean;
@@ -71,6 +73,8 @@ export interface McqDbRow {
   topic: string | null;
   subtopic: string | null;
   difficulty: string | null;
+  difficulty_irt: number | null;
+  difficulty_source: string | null;
   bloom_level: string | null;
   tags: string[] | null;
   is_published: boolean;
@@ -86,7 +90,7 @@ export interface McqDbRow {
 export const MCQ_ROW_COLUMNS =
   'item_id, question_type, stem, instruction, rationale, rationale_img, ' +
   'content, correct, client_needs_category, client_needs_subcategory, ' +
-  'nursing_subject, body_system, topic, subtopic, difficulty, bloom_level, ' +
+  'nursing_subject, body_system, topic, subtopic, difficulty, difficulty_irt, difficulty_source, bloom_level, ' +
   'tags, is_published, is_free_sample, is_builder_visible, marks, ' +
   'shuffle_options, question_ref, batch_id';
 
@@ -109,6 +113,8 @@ export function emptyMcqInitial(surface: 'admin' | 'tutor'): McqEditorInitial {
     topic: '',
     subtopic: '',
     difficulty: '',
+    difficulty_irt: null,
+    difficulty_source: 'CURATOR_LABEL',
     bloom_level: '',
     tags: '',
     is_published: false,
@@ -157,6 +163,8 @@ export function mcqRowToInitial(
     topic: row.topic ?? '',
     subtopic: row.subtopic ?? '',
     difficulty: row.difficulty ?? '',
+    difficulty_irt: row.difficulty_irt ?? null,
+    difficulty_source: row.difficulty_source ?? 'CURATOR_LABEL',
     bloom_level: row.bloom_level ?? '',
     tags: (row.tags ?? []).join(', '),
     is_published: row.is_published,

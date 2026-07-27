@@ -468,6 +468,8 @@ export function McqEditorBody({
                     topic: initial.topic,
                     subtopic: initial.subtopic,
                     difficulty: initial.difficulty,
+                    difficulty_irt: initial.difficulty_irt,
+                    difficulty_source: initial.difficulty_source,
                     bloom_level: initial.bloom_level,
                     tags: initial.tags,
                   }}

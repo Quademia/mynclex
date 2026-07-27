@@ -77,6 +77,8 @@ export interface DragClozeEditorInitial {
   topic: string;
   subtopic: string;
   difficulty: string;
+  difficulty_irt: number | null;
+  difficulty_source: string;
   bloom_level: string;
   tags: string;
   is_published: boolean;
@@ -150,6 +152,8 @@ export function emptyDragClozeInitial(
     topic: '',
     subtopic: '',
     difficulty: '',
+    difficulty_irt: null,
+    difficulty_source: 'CURATOR_LABEL',
     bloom_level: '',
     tags: '',
     is_published: false,
@@ -221,6 +225,8 @@ export function dragClozeRowToInitial(
     topic: row.topic ?? '',
     subtopic: row.subtopic ?? '',
     difficulty: row.difficulty ?? '',
+    difficulty_irt: row.difficulty_irt ?? null,
+    difficulty_source: row.difficulty_source ?? 'CURATOR_LABEL',
     bloom_level: row.bloom_level ?? '',
     tags: (row.tags ?? []).join(', '),
     is_published: row.is_published,

@@ -500,6 +500,83 @@
   }
 }
 
+/* Calibration readout — the system-managed difficulty (IRT + source) shown
+ * read-only beside the curator's "Set difficulty" dropdown. CAT Slice 10a. */
+.auth-calib-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.auth-calib-set {
+  width: 160px;
+  flex-shrink: 0;
+}
+.auth-calib-read {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+.auth-calib-sys {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+.auth-calib-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.auth-calib-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 38px;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-soft, #f9fafb);
+}
+.auth-calib-band {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.auth-calib-pill {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.auth-calib-pill.is-cur {
+  color: var(--accent);
+  background: var(--bg-soft, #edf6f5);
+}
+.auth-calib-pill.is-emp {
+  color: #166534;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.auth-calib-pill.is-diverge {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+.auth-calib-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+@media (max-width: 640px) {
+  .auth-calib-set {
+    width: 100%;
+  }
+}
+
 .auth-checks {
   display: flex;
   flex-direction: column;
