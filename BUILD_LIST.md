@@ -160,8 +160,21 @@
 >       `≠ label`), reading the *real* columns threaded through all 11
 >       row-mappers + editors, so it shows genuine empirical states now; 💡 bulb
 >       explainer. Verified live on 2,315 seeded empirical bank rows.
->     - ⬜ **10b — CAT dedicated pool** (§20). Reserved `cat_pool` stock + "Reserve
->       for CAT" editor tick + admin management page.
+>     - **10b — CAT dedicated pool** (§20), split into 10b1 / 10b2 / 10b3:
+>       - ✅ **10b1 — reservation flag + editor tick — BUILT 2026-07-28** (migration
+>         `20260819120000`, dev-applied; on the session branch — awaiting Sam's live
+>         test + merge, NOT `main`, NOT prod). Boolean `cat_pool` on all 6 tables
+>         (standalones + case/trend wrappers, admin + tutor mirrors); admin-only
+>         "Reserve for CAT" tick on 3 editor surfaces (question Housekeeping +
+>         case-wrapper + trend-wrapper), never on a child — reservation lives on the
+>         wrapper, children inherit. Admin-only at UI + save + inherited `BANK_CURATE`
+>         RLS (no new policy). Shared copy `lib/bank/atoms/cat-pool.ts`. ⚠ Diverged
+>         from §20.2: a boolean column, not a `UNIQUE` reservation table → the
+>         mutual-exclusivity guard is deferred to 10b3.
+>       - ⬜ **10b2 — admin CAT-pool management page** (coverage on difficulty + the 8
+>         blueprint categories, how-far-to-target, reserved-stock lens).
+>       - ⬜ **10b3 — CAT selection draws only from `cat_pool`** (children of reserved
+>         wrappers included via inheritance), leaks close, + the mutual-exclusivity guard.
 >     - ⬜ **10c — the recalibration job** (§5.3 / §17). Weekly GitHub Actions
 >       `pyirt` whole-bank fit; flips items to `EMPIRICAL`; also the piece that
 >       lights up the student pill (snapshot plumbing) and needs accumulated data.
