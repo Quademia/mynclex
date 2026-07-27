@@ -156,7 +156,7 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-26 — <strong>Difficulty scale expanded 3 → 5 labels, and the student-facing band is now derived from the empirical number</strong> (§5.1 rewritten, new §5.5, §5.2 / §5.4 updated, §7.7 route 2 adopted). Settled with Sam in a design session: five bands (Very easy … Very hard, seeds −2 … +2) with cut-offs at ±0.5 / ±1.5; the shown difficulty derives from <code>difficulty_irt</code> once <code>difficulty_source = 'EMPIRICAL'</code>, with the curator label as seed only; expanding curator authoring to ±2 also widens the day-one CAT ladder (the §7.7 route-2 fix). <strong>Also settled — new §20: CAT gets a dedicated item pool</strong> (reserved stock via a "Reserve for CAT" editor tick + admin management page, generalising the readiness mechanism; §20.5), which commits us to the <code>pyirt</code> recalibration runtime and is sized to a 15-CAT non-overlapping floor (target 2,400 standalone / 60 cases / 60 trends). Recalibration scope is the <strong>whole bank</strong> (not CAT-only), which settles the runtime as the Python / <code>pyirt</code> joint fit — a weekly <strong>GitHub Actions</strong> job, not a Cloudflare Worker (§5.3.5, §17.6, §20.3). Slice 10 is restructured into sub-slices <strong>10a</strong> (five bands) · <strong>10b</strong> (CAT pool) · <strong>10c</strong> (the job); case-child calibration resolved to full weight (§19.4). <strong>Earlier — 2026-07-19: Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
+  Living planning document. Last updated: 2026-07-27 — <strong>Slice 10a BUILT</strong> (five-band difficulty end to end: CHECK widened on both tables, <code>DIFFICULTY_LEVELS</code> → five, <code>lib/bank/difficulty.ts</code> = label↔seed map + <code>displayBand()</code>, save-path re-seed, student pill via <code>displayBand()</code>; migration <code>20260818120000</code>, dev-applied, NOT yet on <code>main</code>; §19.4 10a marked built). <strong>§5.2 overwrite rule revised — <em>last writer wins</em></strong>, replacing "empirical locks the field": a curator changing the label reclaims <code>difficulty_irt</code> back to the seed + <code>CURATOR_LABEL</code>, but only when the label actually changes (the changed-only guard); rationale + the dev proof recorded in §5.2. <em>Previously, 2026-07-26</em> — <strong>Difficulty scale expanded 3 → 5 labels, and the student-facing band is now derived from the empirical number</strong> (§5.1 rewritten, new §5.5, §5.2 / §5.4 updated, §7.7 route 2 adopted). Settled with Sam in a design session: five bands (Very easy … Very hard, seeds −2 … +2) with cut-offs at ±0.5 / ±1.5; the shown difficulty derives from <code>difficulty_irt</code> once <code>difficulty_source = 'EMPIRICAL'</code>, with the curator label as seed only; expanding curator authoring to ±2 also widens the day-one CAT ladder (the §7.7 route-2 fix). <strong>Also settled — new §20: CAT gets a dedicated item pool</strong> (reserved stock via a "Reserve for CAT" editor tick + admin management page, generalising the readiness mechanism; §20.5), which commits us to the <code>pyirt</code> recalibration runtime and is sized to a 15-CAT non-overlapping floor (target 2,400 standalone / 60 cases / 60 trends). Recalibration scope is the <strong>whole bank</strong> (not CAT-only), which settles the runtime as the Python / <code>pyirt</code> joint fit — a weekly <strong>GitHub Actions</strong> job, not a Cloudflare Worker (§5.3.5, §17.6, §20.3). Slice 10 is restructured into sub-slices <strong>10a</strong> (five bands) · <strong>10b</strong> (CAT pool) · <strong>10c</strong> (the job); case-child calibration resolved to full weight (§19.4). <strong>Earlier — 2026-07-19: Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
   85 items, CONFIDENCE_REACHED, ABOVE_STANDARD, final theta 0.480 / SE 0.232 in 121 minutes; 3 cases at the
   scheduled 8/35/59, evidence weight 76.0 across 85 items, and near-perfect blueprint balance (22/21/21/21).
   <strong>It terminated by 0.025</strong> — one more wrong answer and the band would not have cleared — and
@@ -744,7 +744,7 @@
   Beyond ±2 (±3 and out) is reserved for what empirical recalibration may later discover, not for curator seeding.
 </p>
 
-<h3>5.2 Where the numeric value lives — schema decision</h3>
+<h3>5.2 Where the numeric value lives — schema decision <span class="status settled">overwrite rule revised · 10a built 2026-07-27</span></h3>
 <p>
   The existing <code>nclex_bank_items.difficulty</code> column is a TEXT column with a CHECK constraint. As of
   2026-07-26 it allows <strong>five</strong> values — <code>'Very easy'</code> / <code>'Easy'</code> /
@@ -771,25 +771,40 @@
       <td><code>difficulty_irt</code> (new)</td>
       <td>NUMERIC</td>
       <td>The number the CAT engine reads for selection</td>
-      <td>Initialised from <code>difficulty</code> via the §5.1 mapping; updated by the recalibration job</td>
+      <td>Seeded from <code>difficulty</code> via the §5.1 mapping on save — and re-seeded whenever a curator <em>changes</em> the label; updated by the recalibration job (10c)</td>
     </tr>
     <tr>
       <td><code>difficulty_source</code> (new)</td>
       <td>TEXT</td>
       <td>Provenance flag for <code>difficulty_irt</code></td>
-      <td><code>'CURATOR_LABEL'</code> on insert; flipped to <code>'EMPIRICAL'</code> by the recalibration job once the threshold is crossed</td>
+      <td><code>'CURATOR_LABEL'</code> on insert and whenever a curator changes the label; flipped to <code>'EMPIRICAL'</code> by the recalibration job once the threshold is crossed</td>
     </tr>
   </tbody>
 </table>
 <p>
-  <strong>Rules of access:</strong>
+  <strong>Rules of access</strong> (overwrite rule revised 2026-07-27 — <em>last writer wins</em>, replacing the earlier "empirical locks the field"):
 </p>
 <ul>
-  <li>Curator UI never touches <code>difficulty_irt</code>. The curator picks one of the five labels (Very easy … Very hard, §5.1); the system writes the corresponding number to <code>difficulty_irt</code> automatically on save.</li>
+  <li>The curator UI never edits <code>difficulty_irt</code> as a number — but the curator's label <em>owns</em> it. On save, when the curator <strong>changes</strong> the difficulty label, the system writes the corresponding §5.1 seed to <code>difficulty_irt</code> and resets <code>difficulty_source</code> to <code>'CURATOR_LABEL'</code>. <strong>Last writer wins:</strong> a deliberate label change reclaims the number even from the recalibration job.</li>
+  <li><strong>The changed-only guard.</strong> The re-seed fires <em>only</em> when the submitted label differs from the stored one. An unrelated edit (fixing a typo in the stem) leaves <code>difficulty_irt</code> / <code>difficulty_source</code> untouched, so a routine save can never silently wipe a value the recalibration job has taken over.</li>
   <li>CAT engine never touches <code>difficulty</code>. It reads <code>difficulty_irt</code> only.</li>
-  <li>Recalibration job writes only to <code>difficulty_irt</code> and <code>difficulty_source</code>. Never touches the curator's label.</li>
-  <li>This preserves the curator's original judgement as a stable field. Once recalibration runs, we can still see <em>"this question was originally labelled Hard, but the data shows it's actually Medium-difficulty"</em> by comparing the two columns.</li>
+  <li>Recalibration job (10c) writes only to <code>difficulty_irt</code> and <code>difficulty_source</code>. Never touches the curator's label.</li>
+  <li>The two columns can still diverge for insight — <em>"labelled Hard, but the data shows it behaves Medium"</em> — until a curator next changes the label, at which point the number snaps to their new judgement. Because a data-rich item is re-calibrated weekly, a curator override is a <strong>nudge until the data catches up</strong>, not a permanent lock.</li>
 </ul>
+<p class="callout">
+  <strong>Why last-writer-wins, not empirical-locks (settled with Sam 2026-07-27).</strong> The earlier
+  rule had recalibration permanently own <code>difficulty_irt</code> once <code>EMPIRICAL</code>, with the
+  curator unable to overwrite it. Replaced, for two reasons. <strong>(1) Real cases need it:</strong> a
+  question whose wording was rewritten (its old responses no longer apply) or a calibration fitted to thin,
+  noisy data — the rigid lock can handle neither. <strong>(2) It self-corrects:</strong> the weekly job
+  re-calibrates any item with enough responses, so a curator override on a data-rich item is reclaimed by
+  data at the next run — human judgement fills the gap while data is thin, data wins once it is plentiful.
+  Trade-off recorded: a curator's number is the coarse §5.1 seed (Hard → +1.0), so an override discards a
+  precise empirical value like +1.34 — which the next run restores if the item still has evidence. The
+  changed-only guard stops an unrelated edit from triggering any of this. Proven end-to-end on dev against a
+  real tutor row (first-set writes all three; unrelated edit preserved a simulated <code>EMPIRICAL 0.75</code>;
+  a real label change overwrote it back to the seed + <code>CURATOR_LABEL</code>).
+</p>
 
 <h3>5.3 Empirical recalibration trigger</h3>
 <p>
@@ -878,7 +893,7 @@
 </p>
 
 
-<h3>5.5 Student-facing difficulty band — derived from <code>difficulty_irt</code> <span class="status settled">settled 2026-07-26</span></h3>
+<h3>5.5 Student-facing difficulty band — derived from <code>difficulty_irt</code> <span class="status settled">settled 2026-07-26 · <code>displayBand()</code> built 2026-07-27, empirical branch dormant until 10c feeds the number into the attempt snapshot</span></h3>
 <p>
   <strong>The difficulty a student sees is derived from the empirical number, not the frozen curator label.</strong>
   The curator's Very easy … Very hard choice is the <em>seed</em> only (§5.1). Recalibration moves
@@ -3485,11 +3500,21 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
     the plan's <em>promises</em>: on the three-rung ladder the exam cannot visibly track a strong student and the
     §9.5 readiness probability saturates at ~100%; both need difficulty spread, which this arc produces.
     <ol type="a">
-      <li><strong>10a — Five-band difficulty.</strong> Widen the <code>difficulty</code> <code>CHECK</code> to five
-        values and the seed mapping to −2 … +2 (§5.1 / §5.2); upgrade the curator editor to a five-option dropdown;
-        derive the student-facing band from <code>difficulty_irt</code> (§5.5); make the practice difficulty filter
-        five-way. Open at build: whether to also surface a read-only <em>measured</em> difficulty beside the editable
-        seed label.</li>
+      <li><strong>10a — Five-band difficulty. ✅ BUILT 2026-07-27</strong> (migration
+        <code>20260818120000_five_band_difficulty</code>, applied to dev; app-layer otherwise; NOT yet on
+        <code>main</code>). Widened the <code>difficulty</code> <code>CHECK</code> to five values on both
+        <code>nclex_bank_items</code> and <code>nclex_tutor_questions</code> (no backfill — existing rows keep their
+        labels + −1/0/+1 seeds); <code>DIFFICULTY_LEVELS</code> → five (cascades free to ~9 dropdowns/filters incl.
+        the curator editor and the practice filter); new <code>lib/bank/difficulty.ts</code> holds the label↔seed map
+        (−2 … +2) and <code>displayBand()</code> (§5.5 cut-offs), 11 unit tests. The save path
+        (<code>save-question.ts</code>) writes <code>difficulty_irt</code> from the label on create and re-seeds it
+        on a label <em>change</em> only (§5.2 last-writer-wins + changed-only guard) — proven end-to-end on dev. The
+        student pill routes through <code>displayBand()</code> so §5.5 is the single authority; the
+        <strong>empirical branch is dormant until 10c</strong> because it reads the frozen
+        <code>classification_snapshot</code>, which the create-attempt RPCs do not yet populate with
+        <code>difficulty_irt</code> / <code>difficulty_source</code> — that snapshot plumbing rides with 10c.
+        <strong>Deferred (Sam, do after 10a):</strong> the read-only <em>measured</em> difficulty beside the editable
+        seed label — only meaningful once 10c produces empirical values.</li>
       <li><strong>10b — CAT dedicated pool (§20).</strong> Generalise reserved stock to a <code>cat_pool</code>
         purpose; a "Reserve for CAT" tick on the editor with the mutual-exclusivity guard (§20.5); an admin CAT-pool
         management page showing coverage on <em>both</em> axes — difficulty <em>and</em> the 8 blueprint categories;

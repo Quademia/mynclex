@@ -41,6 +41,7 @@
 import type { SealedItem, UnsealedItem, AnswerRow, PerItemUnseal } from '@/lib/practice/runner';
 export type { PerItemUnseal };
 import type { QuestionType } from '@/lib/bank/classifications';
+import { displayBand } from '@/lib/bank/difficulty';
 import type {
   McqContent,
   McqCorrect,
@@ -119,6 +120,11 @@ interface Classification {
   nursing_subject?:          string;
   body_system?:              string;
   difficulty?:               string;
+  // §5.5 — the derived band uses these when the snapshot carries them.
+  // The create-attempt RPCs don't populate them yet (CAT Slice 10c), so
+  // today displayBand() falls back to the curator label above.
+  difficulty_irt?:           number | null;
+  difficulty_source?:        string | null;
 }
 
 interface CommonProps {
@@ -162,7 +168,14 @@ export function RunnerQuestionArea(props: Props) {
   const { item } = props;
   const cls = (item.classification_snapshot ?? {}) as Classification;
   const subjectPill = cls.nursing_subject || cls.body_system;
-  const difficulty  = cls.difficulty;
+  // §5.5 — show the curator label while CURATOR_LABEL, the band derived
+  // from difficulty_irt once EMPIRICAL. displayBand is the single authority
+  // so the shown difficulty never drifts from what the engine uses.
+  const difficulty  = displayBand({
+    label:  cls.difficulty,
+    irt:    cls.difficulty_irt,
+    source: cls.difficulty_source,
+  });
 
   return (
     <div className="rn-q-wrap" data-coach="answerarea">

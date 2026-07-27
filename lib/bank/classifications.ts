@@ -194,8 +194,16 @@ export const BODY_SYSTEMS = [
   'Multisystem',
 ] as const;
 
-// Schema CHECK constrains difficulty to these three.
-export const DIFFICULTY_LEVELS = ['Easy', 'Medium', 'Hard'] as const;
+// Schema CHECK constrains difficulty to these five (CAT Slice 10a, §5.1).
+// Order is easiest → hardest; the numeric seed each maps to (−2 … +2) lives
+// in ./difficulty.ts, the single source of truth for the label↔number map.
+export const DIFFICULTY_LEVELS = [
+  'Very easy',
+  'Easy',
+  'Medium',
+  'Hard',
+  'Very hard',
+] as const;
 
 export type Difficulty = (typeof DIFFICULTY_LEVELS)[number];
 

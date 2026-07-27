@@ -91,7 +91,7 @@ CREATE TABLE nclex_bank_items (
   body_system               TEXT,
   topic                     TEXT,
   subtopic                  TEXT,
-  difficulty                TEXT CHECK (difficulty IN ('Easy','Medium','Hard')),
+  difficulty                TEXT CHECK (difficulty IN ('Very easy','Easy','Medium','Hard','Very hard')),
   bloom_level               TEXT,
   tags                      TEXT[] NOT NULL DEFAULT '{}',
 
@@ -242,7 +242,7 @@ CREATE TABLE nclex_tutor_questions (
   body_system               TEXT,
   topic                     TEXT,
   subtopic                  TEXT,
-  difficulty                TEXT CHECK (difficulty IN ('Easy','Medium','Hard')),
+  difficulty                TEXT CHECK (difficulty IN ('Very easy','Easy','Medium','Hard','Very hard')),
   bloom_level               TEXT,
   tags                      TEXT[] NOT NULL DEFAULT '{}',
 

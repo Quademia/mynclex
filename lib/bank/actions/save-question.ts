@@ -29,6 +29,7 @@ import {
   TUTOR_ITEM_ID_PREFIX,
   type QuestionType,
 } from '@/lib/bank/classifications';
+import { seedIrtForLabel } from '@/lib/bank/difficulty';
 import type {
   BankItemContent,
   BankItemCorrect,
@@ -529,7 +530,7 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
   if (existingItemId) {
     const { data: existing, error: fetchErr } = await supabase
       .from(cfg.table)
-      .select('question_type')
+      .select('question_type, difficulty')
       .eq('item_id', existingItemId)
       .maybeSingle();
 
@@ -540,10 +541,25 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
       return { ok: false, error: 'Question type cannot be changed after creation.' };
     }
 
+    // §5.2 — re-seed the numeric difficulty ONLY when the curator actually
+    // changed the label. Last writer wins: a curator changing the label
+    // reclaims the number as curator-owned (source → CURATOR_LABEL). An
+    // unrelated edit (fixing a typo) must NOT wipe a number the
+    // recalibration job may have taken over — so we leave difficulty_irt /
+    // difficulty_source untouched when the label is unchanged.
+    const difficultyChanged = existing.difficulty !== parsed.difficulty;
+    const difficultyPatch = difficultyChanged
+      ? {
+          difficulty_irt: seedIrtForLabel(parsed.difficulty),
+          difficulty_source: 'CURATOR_LABEL',
+        }
+      : {};
+
     const { error } = await supabase
       .from(cfg.table)
       .update({
         ...parsed,
+        ...difficultyPatch,
         updated_at: new Date().toISOString(),
       })
       .eq('item_id', existingItemId);
@@ -583,7 +599,13 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
   // survives later edits.
   const parentNoteId = String(formData.get('parent_note_id') ?? '').trim();
 
-  const row: Record<string, unknown> = { item_id, ...parsed };
+  // §5.2 — seed the numeric difficulty from the curator's label on create.
+  // difficulty_source defaults to 'CURATOR_LABEL' at the column level.
+  const row: Record<string, unknown> = {
+    item_id,
+    ...parsed,
+    difficulty_irt: seedIrtForLabel(parsed.difficulty),
+  };
   if (surface === 'tutor') {
     row.tutor_id = user.id;
   }
