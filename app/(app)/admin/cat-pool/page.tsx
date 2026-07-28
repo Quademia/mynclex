@@ -19,7 +19,8 @@
 
 import Link from 'next/link';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
-import { loadPoolSnapshot } from '@/lib/bank/cat-pool/queries';
+import { loadPoolSnapshot, loadReserveCandidates } from '@/lib/bank/cat-pool/queries';
+import { ReserveDrawer } from '@/lib/bank/cat-pool/reserve-drawer';
 import {
   buildStatCards,
   buildSpreadRows,
@@ -66,8 +67,15 @@ export default async function CatPoolPage({
 }) {
   const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
 
-  const view = parseStockView(await searchParams);
-  const { counts, items, wrapperTitles } = await loadPoolSnapshot(supabase);
+  const params = await searchParams;
+  const view = parseStockView(params);
+  // The candidate set is large, so it is only read when the drawer is open.
+  const drawerOpen = (Array.isArray(params.reserve) ? params.reserve[0] : params.reserve) === '1';
+
+  const [{ counts, items, wrapperTitles }, candidates] = await Promise.all([
+    loadPoolSnapshot(supabase),
+    drawerOpen ? loadReserveCandidates(supabase) : Promise.resolve(null),
+  ]);
 
   const statCards = buildStatCards(counts);
   const setSpread = buildSpreadRows(counts, 'set');
@@ -114,15 +122,14 @@ export default async function CatPoolPage({
               <Link href="/admin/bank/all" className="cp-btn cp-btn--ghost">
                 Question bank →
               </Link>
-              {/* The drawer is 10b2-d; until then reserving is the editor tick. */}
-              <button
-                type="button"
+              <Link
+                href={`${buildStockUrl('/admin/cat-pool', view)}${
+                  buildStockUrl('/admin/cat-pool', view).includes('?') ? '&' : '?'
+                }reserve=1`}
                 className="cp-btn cp-btn--primary"
-                disabled
-                title="The reserve drawer lands in the next sub-slice — until then, use the Reserve for CAT tick in the question editor."
               >
                 Reserve questions
-              </button>
+              </Link>
             </div>
           </header>
 
@@ -184,6 +191,15 @@ export default async function CatPoolPage({
       )}
 
       {view.lens === 'audit' && <AuditLens counts={audit} view={view} />}
+
+      {drawerOpen && candidates && (
+        <ReserveDrawer
+          questions={candidates.questions}
+          cases={candidates.cases}
+          trends={candidates.trends}
+          closeHref={buildStockUrl('/admin/cat-pool', view)}
+        />
+      )}
     </div>
   );
 }

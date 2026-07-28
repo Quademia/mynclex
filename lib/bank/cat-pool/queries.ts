@@ -16,6 +16,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { bandForIrt } from '@/lib/bank/difficulty';
 import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import type { PoolCounts } from './coverage';
+import type { CandidateQuestion, CandidateWrapper } from './candidates';
 
 /** One reserved question, flattened across the three sources. */
 export type PoolItemRow = {
@@ -162,6 +163,148 @@ export async function loadPoolSnapshot(supabase: SupabaseClient): Promise<PoolSn
     trendWrapperIds,
     wrapperTitles,
     counts: aggregate(items, caseWrapperIds.length, trendWrapperIds.length),
+  };
+}
+
+// ── the reserve drawer's candidate stock (10b2-d) ────────────────────
+
+/** Stems are previews here, not content — truncated to keep the payload sane. */
+const STEM_PREVIEW = 180;
+
+const preview = (raw: string | null): string => {
+  const flat = richTextToPlain(raw).replace(/\s+/g, ' ').trim();
+  return flat.length > STEM_PREVIEW ? `${flat.slice(0, STEM_PREVIEW)}…` : flat;
+};
+
+export type ReserveCandidates = {
+  questions: CandidateQuestion[];
+  cases: CandidateWrapper[];
+  trends: CandidateWrapper[];
+};
+
+/**
+ * Everything that could be reserved: published, practice-eligible, not
+ * already in the pool.
+ *
+ * The whole candidate set is loaded rather than a page of it, because the
+ * drawer filters across six facets client-side — filtering a server-side page
+ * would silently search only that page, which is the exact dishonesty the
+ * stock pane's "N of M" counter exists to avoid. Stems are truncated to a
+ * preview to keep that affordable, and this only runs when the drawer is open.
+ */
+export async function loadReserveCandidates(
+  supabase: SupabaseClient,
+): Promise<ReserveCandidates> {
+  const [items, cases, trends, readiness] = await Promise.all([
+    supabase
+      .from('nclex_bank_items')
+      .select(
+        'item_id, question_type, stem, difficulty, client_needs_subcategory, body_system, nursing_subject, bloom_level',
+      )
+      .eq('is_published', true)
+      .eq('cat_pool', false)
+      .is('parent_case_id', null)
+      .is('trend_id', null),
+    supabase.from('nclex_case_studies').select('case_id, title').eq('cat_pool', false).eq('is_published', true),
+    supabase.from('nclex_trend_datasets').select('trend_id, title').eq('cat_pool', false).eq('is_published', true),
+    supabase.from('nclex_readiness_pack_items').select('item_id'),
+  ]);
+
+  const readinessIds = new Set(
+    (readiness.data ?? []).map((r) => (r as { item_id: string }).item_id),
+  );
+
+  type RawCandidate = {
+    item_id: string;
+    question_type: string;
+    stem: string | null;
+    difficulty: string | null;
+    client_needs_subcategory: string | null;
+    body_system: string | null;
+    nursing_subject: string | null;
+    bloom_level: string | null;
+  };
+
+  const questions: CandidateQuestion[] = ((items.data ?? []) as unknown as RawCandidate[]).map(
+    (r) => ({
+      itemId: r.item_id,
+      questionType: r.question_type,
+      stem: preview(r.stem),
+      difficulty: r.difficulty,
+      subcategory: r.client_needs_subcategory,
+      bodySystem: r.body_system,
+      nursingSubject: r.nursing_subject,
+      bloomLevel: r.bloom_level,
+      readinessTagged: readinessIds.has(r.item_id),
+    }),
+  );
+
+  // A wrapper's children decide its preview line and whether it is blocked —
+  // reservation is on the wrapper, so one readiness-tagged child blocks it all.
+  const caseIds = (cases.data ?? []).map((r) => r.case_id as string);
+  const trendIds = (trends.data ?? []).map((r) => r.trend_id as string);
+
+  const [caseKids, trendKids] = await Promise.all([
+    caseIds.length
+      ? supabase
+          .from('nclex_bank_items')
+          .select('item_id, parent_case_id, difficulty')
+          .in('parent_case_id', caseIds)
+          .eq('is_published', true)
+      : Promise.resolve({ data: [] as unknown[] }),
+    trendIds.length
+      ? supabase
+          .from('nclex_bank_items')
+          .select('item_id, trend_id, difficulty')
+          .in('trend_id', trendIds)
+          .eq('is_published', true)
+      : Promise.resolve({ data: [] as unknown[] }),
+  ]);
+
+  type Kid = { item_id: string; parent_case_id?: string; trend_id?: string; difficulty: string | null };
+
+  const rollUp = (kids: Kid[], keyOf: (k: Kid) => string | undefined) => {
+    const map = new Map<string, { n: number; bands: Set<string>; blocked: boolean }>();
+    for (const k of kids) {
+      const key = keyOf(k);
+      if (!key) continue;
+      const e = map.get(key) ?? { n: 0, bands: new Set<string>(), blocked: false };
+      e.n++;
+      if (k.difficulty) e.bands.add(k.difficulty);
+      if (readinessIds.has(k.item_id)) e.blocked = true;
+      map.set(key, e);
+    }
+    return map;
+  };
+
+  const caseRoll = rollUp((caseKids.data ?? []) as unknown as Kid[], (k) => k.parent_case_id);
+  const trendRoll = rollUp((trendKids.data ?? []) as unknown as Kid[], (k) => k.trend_id);
+
+  const toWrapper = (
+    id: string,
+    title: string,
+    kind: 'case' | 'trend',
+    roll: Map<string, { n: number; bands: Set<string>; blocked: boolean }>,
+  ): CandidateWrapper => {
+    const e = roll.get(id);
+    return {
+      wrapperId: id,
+      kind,
+      title: title ?? '',
+      childCount: e?.n ?? 0,
+      bands: [...(e?.bands ?? [])],
+      readinessTagged: e?.blocked ?? false,
+    };
+  };
+
+  return {
+    questions,
+    cases: (cases.data ?? []).map((r) =>
+      toWrapper(r.case_id as string, r.title as string, 'case', caseRoll),
+    ),
+    trends: (trends.data ?? []).map((r) =>
+      toWrapper(r.trend_id as string, r.title as string, 'trend', trendRoll),
+    ),
   };
 }
 

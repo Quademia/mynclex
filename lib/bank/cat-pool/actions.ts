@@ -76,6 +76,84 @@ export async function releaseFromCatPool(
   return { ok: true, released: trimmed };
 }
 
+export type ReserveResult =
+  | { ok: true; reserved: number; skipped: number }
+  | { ok: false; error: string };
+
+/**
+ * Add a selection to the CAT pool (Slice 10b2-d).
+ *
+ * The mutual-exclusivity guard (§20.5) is re-checked HERE, not just in the
+ * drawer that greys the row out: 10b1 stored reservation as a boolean rather
+ * than the UNIQUE table §20.2 planned, so there is no constraint to catch a
+ * stale page or a crafted request. Readiness-tagged ids are dropped and
+ * reported as skipped rather than failing the whole batch.
+ */
+export async function reserveToCatPool(
+  targets: { kind: ReleaseTarget; id: string }[],
+): Promise<ReserveResult> {
+  if (!Array.isArray(targets) || targets.length === 0) {
+    return { ok: false, error: 'Nothing selected.' };
+  }
+
+  const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
+
+  const byKind = new Map<ReleaseTarget, string[]>();
+  for (const t of targets) {
+    if (!TABLE[t.kind]) continue;
+    const id = t.id.trim();
+    if (!id) continue;
+    byKind.set(t.kind, [...(byKind.get(t.kind) ?? []), id]);
+  }
+
+  // One question serves one purpose. Check the live link table rather than
+  // trusting what the drawer displayed.
+  const itemIds = byKind.get('item') ?? [];
+  let skipped = 0;
+  if (itemIds.length) {
+    const { data: clash } = await supabase
+      .from('nclex_readiness_pack_items')
+      .select('item_id')
+      .in('item_id', itemIds);
+    const blocked = new Set((clash ?? []).map((r) => (r as { item_id: string }).item_id));
+    if (blocked.size) {
+      skipped += blocked.size;
+      byKind.set('item', itemIds.filter((id) => !blocked.has(id)));
+    }
+  }
+
+  let reserved = 0;
+  for (const [kind, ids] of byKind) {
+    if (!ids.length) continue;
+    const spec = TABLE[kind];
+    const { data, error } = await supabase
+      .from(spec.table)
+      .update({ cat_pool: true })
+      .in(spec.idColumn, ids)
+      .eq('cat_pool', false)
+      .select(spec.idColumn);
+
+    if (error) {
+      return { ok: false, error: `Could not reserve. ${error.message}` };
+    }
+    reserved += data?.length ?? 0;
+    skipped += ids.length - (data?.length ?? 0);
+  }
+
+  if (reserved === 0) {
+    return {
+      ok: false,
+      error:
+        skipped > 0
+          ? 'Nothing was reserved — those questions are already reserved, or belong to a readiness pack.'
+          : 'Nothing was reserved.',
+    };
+  }
+
+  revalidatePath('/admin/cat-pool');
+  return { ok: true, reserved, skipped };
+}
+
 export type BulkReleaseResult =
   | { ok: true; released: number; failed: number }
   | { ok: false; error: string };
