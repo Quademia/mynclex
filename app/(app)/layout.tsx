@@ -61,6 +61,9 @@ import '@/styles/products.css';
 // Bank). Namespaced `bl-*`; tops the old list rules during the staged
 // per-surface migration. See styles/bank-list.css.
 import '@/styles/bank-list.css';
+// Admin CAT-pool page (slice 10b2) — page-scoped .cp-*, no overlap with the
+// bank list above.
+import '@/styles/cat-pool.css';
 // Loaded after nav.css so its ≤768px breakpoint rules win: the mobile
 // navigation chrome (drawer + bottom tabs + account sheet).
 import '@/styles/mobile-nav.css';

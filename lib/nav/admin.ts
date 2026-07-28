@@ -38,6 +38,7 @@ export const ADMIN_NAV: NavItem[] = [
       { key: 'bank-all',    label: 'All questions', icon: 'book', href: '/admin/bank/all',    permission: 'BANK_CURATE' },
       { key: 'bank-cases',  label: 'Case Studies',  icon: 'book', href: '/admin/bank/cases',  permission: 'BANK_CURATE' },
       { key: 'bank-trends', label: 'Trend datasets', icon: 'book', href: '/admin/bank/trends', permission: 'BANK_CURATE' },
+      { key: 'bank-cat-pool', label: 'CAT pool', icon: 'target', href: '/admin/bank/cat-pool', permission: 'BANK_CURATE' },
     ],
   },
   { key: 'packs',         label: 'Readiness Packs',     icon: 'target',   href: '/admin/packs',         permission: 'BANK_CURATE' },

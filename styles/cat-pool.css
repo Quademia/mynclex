@@ -1,0 +1,261 @@
+/* mynclex/styles/cat-pool.css
+ *
+ * Admin CAT-pool page (Slice 10b2). Page-scoped under .cp-* so nothing here
+ * can reach the shared bank list or dashboards.
+ *
+ * Colours come from tokens.css where a token exists; the meter tints are
+ * local because they encode a judgement (in range / thin / measured) that no
+ * existing token names.
+ */
+
+.cp-page {
+  padding: 24px 22px 48px;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── header ─────────────────────────────────────────────────── */
+
+.cp-header { display: flex; flex-direction: column; gap: 10px; }
+
+.cp-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted, #6b7280);
+}
+.cp-crumbs a { color: var(--brand, #2d7d72); text-decoration: none; }
+.cp-crumbs a:hover { text-decoration: underline; }
+
+.cp-header-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.cp-header-main h1 {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+.cp-lede {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted, #6b7280);
+  max-width: 680px;
+}
+.cp-header-actions { display: flex; gap: 9px; flex-shrink: 0; }
+
+.cp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.cp-btn--ghost {
+  border: 1px solid var(--border, #cbd5e1);
+  background: var(--surface, #fff);
+  color: var(--text, #111827);
+}
+.cp-btn--ghost:hover { background: #f3f4f6; text-decoration: none; }
+
+/* The "not yet enforced" note. Deliberately plain rather than an alarm —
+   it describes an expected build order, not a fault. */
+.cp-pending {
+  margin: 2px 0 0;
+  padding: 9px 12px;
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid #9ca3af;
+  border-radius: 6px;
+  background: #f9fafb;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted, #6b7280);
+}
+.cp-pending strong { color: var(--text, #111827); }
+
+/* ── stat cards ─────────────────────────────────────────────── */
+
+.cp-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.cp-stat {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-radius: 8px;
+  padding: 15px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cp-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+}
+.cp-stat-value { display: flex; align-items: baseline; gap: 6px; }
+.cp-stat-num {
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text, #111827);
+}
+.cp-stat-target { font-size: 12.5px; color: #9ca3af; }
+.cp-stat-note { font-size: 11.5px; color: var(--muted, #6b7280); }
+
+.cp-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: #eef0f3;
+  overflow: hidden;
+}
+.cp-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brand, #2d7d72);
+}
+.cp-bar-fill.is-met { background: #1e3a5f; }
+
+/* ── cards + meters ─────────────────────────────────────────── */
+
+.cp-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.cp-row > .cp-card { flex: 1 1 440px; min-width: min(440px, 100%); }
+
+.cp-card {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cp-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cp-card-head h3 { margin: 0; font-size: 13px; font-weight: 700; }
+.cp-card-head-right { display: flex; align-items: center; gap: 10px; }
+.cp-subhead { font-size: 11px; color: var(--muted, #6b7280); }
+
+.cp-toggle {
+  display: flex;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.cp-toggle button {
+  padding: 4px 11px;
+  border: none;
+  background: var(--surface, #fff);
+  color: var(--muted, #6b7280);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cp-toggle button.is-on { background: var(--brand, #2d7d72); color: #fff; }
+.cp-toggle button:not(.is-on):hover { background: #f3f4f6; }
+
+.cp-meter-list { display: flex; flex-direction: column; gap: 9px; }
+
+.cp-meter { display: grid; gap: 10px; align-items: center; }
+.cp-meter--spread { grid-template-columns: 82px 1fr 128px; }
+.cp-meter--bp { grid-template-columns: 104px 1fr 92px; }
+
+.cp-meter-label {
+  font-size: 11.5px;
+  color: var(--text, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cp-meter-value {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #235f56;
+  text-align: right;
+}
+.cp-meter-value.is-thin { color: #b45309; }
+.cp-meter-gap { font-weight: 400; color: #9ca3af; }
+
+.cp-track {
+  position: relative;
+  height: 9px;
+  background: #eef0f3;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.cp-track-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 999px;
+  background: var(--brand, #2d7d72);
+}
+.cp-track-fill.is-thin { background: #d97706; }
+.cp-track-fill.is-calibrated { background: #1e3a5f; }
+/* The shaded published-range band sits UNDER the fill. */
+.cp-track-band { position: absolute; top: 0; bottom: 0; background: #e5e7eb; }
+.cp-track-marker {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: #cbd5e1;
+}
+
+.cp-note { margin: 2px 0 0; font-size: 11px; line-height: 1.5; color: #9ca3af; }
+
+/* ── wrapper supply ─────────────────────────────────────────── */
+
+.cp-supply { display: flex; flex-direction: column; gap: 9px; }
+.cp-supply-row { display: flex; align-items: center; gap: 9px; }
+.cp-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.cp-dot.is-ok { background: var(--brand, #2d7d72); }
+.cp-dot.is-warn { background: #d97706; }
+.cp-supply-label { flex: 1; font-size: 12.5px; color: var(--text, #111827); }
+.cp-supply-value { font-size: 12.5px; font-weight: 600; }
+.cp-supply-guide {
+  font-size: 11px;
+  color: #9ca3af;
+  width: 190px;
+  text-align: right;
+}
+
+/* ── mobile (CLAUDE.md UI #3 — admin must stay navigable) ───── */
+
+@media (max-width: 768px) {
+  .cp-page { padding: 16px 14px 40px; }
+  .cp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cp-header-main h1 { font-size: 21px; }
+  .cp-meter--spread { grid-template-columns: 68px 1fr 96px; }
+  .cp-meter--bp { grid-template-columns: 84px 1fr 78px; }
+  .cp-supply-row { flex-wrap: wrap; }
+  .cp-supply-guide { width: auto; flex-basis: 100%; text-align: left; }
+}
