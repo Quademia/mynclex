@@ -196,7 +196,7 @@ export default async function CatPoolPage({
         <ReserveDrawer
           questions={candidates.questions}
           cases={candidates.cases}
-          trends={candidates.trends}
+          trendQuestions={candidates.trendQuestions}
           closeHref={buildStockUrl('/admin/cat-pool', view)}
         />
       )}

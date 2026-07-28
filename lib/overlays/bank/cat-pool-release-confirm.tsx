@@ -34,10 +34,10 @@ export function CatPoolReleaseConfirm({
   onConfirm,
 }: {
   id?: string;
-  kind?: 'item' | 'case' | 'trend';
-  /** Wrapper title, for the two wrapper kinds. */
+  kind?: 'item' | 'case';
+  /** Case title. */
   title?: string | null;
-  /** Child questions that come out with a wrapper. Ignored for a standalone. */
+  /** Questions that come out with a case. Ignored for an individual row. */
   childCount?: number;
   /** Present for a multi-select release; `id`/`kind` are then ignored. */
   bulk?: BulkSummary;
@@ -51,7 +51,7 @@ export function CatPoolReleaseConfirm({
 
   const isWrapper = kind !== 'item';
   const n = childCount ?? 0;
-  const noun = kind === 'case' ? 'case study' : kind === 'trend' ? 'trend dataset' : 'question';
+  const noun = kind === 'case' ? 'case study' : 'question';
 
   return (
     <div
@@ -133,10 +133,12 @@ function BulkBody({
 }) {
   const parts: string[] = [];
   if (bulk.standalone) {
-    parts.push(`${bulk.standalone} standalone question${bulk.standalone === 1 ? '' : 's'}`);
+    // "individual" rather than "standalone" — trend questions are counted here
+    // too, and they are trend-linked, not standalone.
+    parts.push(`${bulk.standalone} individual question${bulk.standalone === 1 ? '' : 's'}`);
   }
   if (bulk.wrappers) {
-    parts.push(`${bulk.wrappers} wrapper${bulk.wrappers === 1 ? '' : 's'}`);
+    parts.push(`${bulk.wrappers} case${bulk.wrappers === 1 ? '' : 's'}`);
   }
   const selectionText = parts.join(' and ');
   const sweptIn = bulk.questionsAffected - bulk.standalone;
@@ -164,7 +166,7 @@ function BulkBody({
           {bulk.wrappers > 0 && (
             <>
               {' '}
-              Because reservation lives on the wrapper, that takes{' '}
+              Because a case is reserved as a whole, that takes{' '}
               <strong>
                 {sweptIn} child question{sweptIn === 1 ? '' : 's'}
               </strong>{' '}

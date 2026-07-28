@@ -17,12 +17,13 @@ export const STOCK_PAGE_SIZE = 50;
  * stop a sitting; each makes it slightly worse, which is why they are surfaced
  * as row badges and counted in the Audit pane rather than blocking anything.
  */
-export type StockWarning = 'builder' | 'readiness' | 'draft';
+export type StockWarning = 'builder' | 'readiness' | 'draft' | 'unplaceable';
 
 export const WARNING_LABEL: Record<StockWarning, string> = {
   builder: 'visible in builder',
   readiness: 'readiness-tagged',
   draft: 'draft',
+  unplaceable: 'unplaceable',
 };
 
 export const WARNING_TITLE: Record<StockWarning, string> = {
@@ -31,6 +32,8 @@ export const WARNING_TITLE: Record<StockWarning, string> = {
   readiness:
     'Also reserved for a readiness pack. A question can only honestly serve one purpose.',
   draft: 'Not published — CAT will not serve it, but it still counts against the target.',
+  unplaceable:
+    'No difficulty band or no Client Needs subcategory, so the selector cannot place it. For a case child this makes the WHOLE case unpickable.',
 };
 
 /**
@@ -40,12 +43,20 @@ export const WARNING_TITLE: Record<StockWarning, string> = {
  * cleared builder visibility on reservation, and selection does not yet honour
  * `cat_pool` at all. That is the expected state before the selection slice,
  * not a fault in the data.
+ *
+ * `unplaceable` can only ever fire on a CASE CHILD. A directly-reserved row —
+ * standalone or trend — is held to the placeability CHECK in the database, so
+ * it cannot carry the flag without a band and a subcategory. Case children are
+ * exempt from that constraint (their flag is derived from the wrapper, and
+ * enforcing it there would lock a curator out of saving the fix), which is
+ * exactly why the condition is surfaced here instead.
  */
 export function warningsFor(row: PoolItemRow): StockWarning[] {
   const out: StockWarning[] = [];
   if (row.isBuilderVisible) out.push('builder');
   if (row.readinessTagged) out.push('readiness');
   if (!row.isPublished) out.push('draft');
+  if (!row.difficulty || !row.subcategory) out.push('unplaceable');
   return out;
 }
 
@@ -76,7 +87,7 @@ export type StockView = {
 const LENSES: LensKey[] = ['coverage', 'stock', 'audit'];
 const SOURCES: SourceFilter[] = ['all', 'standalone', 'case', 'trend'];
 
-const WARNINGS: StockWarning[] = ['builder', 'readiness', 'draft'];
+const WARNINGS: StockWarning[] = ['builder', 'readiness', 'draft', 'unplaceable'];
 
 export const DEFAULT_VIEW: StockView = {
   lens: 'coverage',
@@ -188,36 +199,48 @@ export function filterStock(rows: StockRow[], view: StockView): StockRow[] {
  * looking at a few hundred rows belonging to a few dozen wrappers, and the
  * wrapper structure is the thing they came to see. So group then, and only
  * then (Sam's call).
+ *
+ * Grouping trend rows by dataset is a DISPLAY choice, not a reservation one:
+ * it is how a curator sees scenario variety at a glance. The group header
+ * carries no release action for trends, because each question in it was
+ * reserved separately and comes out separately.
  */
 export function shouldGroup(view: StockView): boolean {
   return view.source === 'case' || view.source === 'trend';
 }
 
 /**
- * What a row's release button does. An inherited row cannot be released on its
- * own — reservation lives on the wrapper (10b1) — so its button releases the
- * WRAPPER and says so.
+ * What a row's release button does — which is decided by whether the row was
+ * reserved on its own or through a wrapper.
+ *
+ * A CASE CHILD cannot be released alone: the case is the selection unit, so
+ * its button releases the whole case and says so. A STANDALONE or TREND
+ * question was ticked on its own row and comes out the same way — a dataset is
+ * not a reservation unit, so there is no "release the trend" to offer.
  */
 export function releaseTargetFor(row: StockRow): {
-  kind: 'item' | 'case' | 'trend';
+  kind: 'item' | 'case';
   id: string;
   label: string;
   title: string;
 } {
-  if (row.source === 'standalone') {
+  if (row.source === 'case') {
     return {
-      kind: 'item',
-      id: row.itemId,
-      label: 'Release',
-      title: 'Take this question out of the CAT pool and return it to practice.',
+      kind: 'case',
+      id: row.wrapperId ?? row.itemId,
+      label: 'Release case',
+      title:
+        'This question is reserved through its case, so releasing it releases the whole case and every question in it.',
     };
   }
   return {
-    kind: row.source,
-    id: row.wrapperId ?? row.itemId,
-    label: 'Release wrapper',
+    kind: 'item',
+    id: row.itemId,
+    label: 'Release',
     title:
-      'This question is reserved through its wrapper, so releasing it releases the whole wrapper and every child with it.',
+      row.source === 'trend'
+        ? 'Take this question out of the CAT pool. Other questions on the same dataset are unaffected — each is reserved on its own.'
+        : 'Take this question out of the CAT pool and return it to practice.',
   };
 }
 
@@ -238,7 +261,13 @@ export type AuditCounts = Record<StockWarning, number> & { anyWarning: number };
  * the length of the list the button opens.
  */
 export function auditCounts(rows: StockRow[]): AuditCounts {
-  const out: AuditCounts = { builder: 0, readiness: 0, draft: 0, anyWarning: 0 };
+  const out: AuditCounts = {
+    builder: 0,
+    readiness: 0,
+    draft: 0,
+    unplaceable: 0,
+    anyWarning: 0,
+  };
   for (const r of rows) {
     if (r.warnings.length) out.anyWarning++;
     for (const w of r.warnings) out[w]++;
@@ -259,7 +288,7 @@ export function selectionKey(row: StockRow): string {
 }
 
 export type SelectionSummary = {
-  targets: { kind: 'item' | 'case' | 'trend'; id: string }[];
+  targets: { kind: 'item' | 'case'; id: string }[];
   standalone: number;
   wrappers: number;
   /** Every question that leaves the pool, including children swept in. */

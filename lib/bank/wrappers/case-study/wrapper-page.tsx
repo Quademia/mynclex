@@ -18,7 +18,8 @@
 'use client';
 
 import { useState, useMemo, useTransition, type MouseEvent } from 'react';
-import { CAT_POOL_LABEL, CAT_POOL_HELP } from '@/lib/bank/atoms/cat-pool';
+import { CAT_POOL_LABEL, CAT_POOL_HELP_CASE } from '@/lib/bank/atoms/cat-pool';
+import { CaseChildScope } from '@/lib/bank/atoms/housekeeping-fields';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
@@ -1111,7 +1112,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
                   <VisibilityRow label="Free sample" help="Available without subscription." on={isFreeSample} onChange={setIsFreeSample} />
                   <VisibilityRow label="Visible in builder" help="Show in tutor programme builders." on={isBuilderVisible} onChange={setIsBuilderVisible} />
                   {surface === 'admin' && (
-                    <VisibilityRow label={CAT_POOL_LABEL} help={CAT_POOL_HELP} on={catPool} onChange={setCatPool} />
+                    <VisibilityRow label={CAT_POOL_LABEL} help={CAT_POOL_HELP_CASE} on={catPool} onChange={setCatPool} />
                   )}
                 </div>
               </div>
@@ -1369,21 +1370,39 @@ function ActiveChartTabEditor({
 // button (which submits the body's form via form= attribute).
 // ───────────────────────────────────────────────────────────
 
-function ActiveQuestionEditorBody({
-  editor,
-  error,
-  pending,
-  onSubmit,
-  onDirty,
-  onErrorDismiss,
-}: {
+type QuestionEditorBodyProps = {
   editor:         SlotEditorInitial;
   error:          string | null;
   pending:        boolean;
   onSubmit:       (formData: FormData) => void;
   onDirty:        () => void;
   onErrorDismiss: () => void;
-}) {
+};
+
+/**
+ * Everything mounted here is a CASE CHILD, so it is wrapped in the scope that
+ * tells the shared Housekeeping panel so. The reservation for CAT belongs to
+ * the case wrapper — a database trigger keeps the children in step — so the
+ * child editor must not offer a "Reserve for CAT" tick of its own. It did
+ * until 2026-07-28: the guard tested `mode === 'wrapper-child'`, a mode
+ * nothing has set since the 2026-05-01 retrofit, so it never hid anything.
+ */
+function ActiveQuestionEditorBody(props: QuestionEditorBodyProps) {
+  return (
+    <CaseChildScope>
+      <QuestionEditorSwitch {...props} />
+    </CaseChildScope>
+  );
+}
+
+function QuestionEditorSwitch({
+  editor,
+  error,
+  pending,
+  onSubmit,
+  onDirty,
+  onErrorDismiss,
+}: QuestionEditorBodyProps) {
   switch (editor.kind) {
     case 'MCQ':
       return <McqEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;

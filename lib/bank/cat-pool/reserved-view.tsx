@@ -8,6 +8,12 @@
 // only once the curator narrows to case or trend, where the wrapper structure
 // is the thing they came to see (Sam's call).
 //
+// The two groupings mean different things, and the headers say so. A CASE
+// group is a reservation: the header is the unit, and releasing it takes every
+// row under it. A TREND group is only a display grouping — each question was
+// reserved on its own row and comes out on its own — so its header carries no
+// release action, just the scenario it belongs to.
+//
 // Filters and the page size live in the URL, matching the bank lists — so a
 // Load more is a soft navigation, and the pane survives a refresh. Changing a
 // filter resets the limit, otherwise narrowing the set would keep refetching a
@@ -213,8 +219,8 @@ export function ReservedStockView({
           </span>
         </div>
         <p className="cp-note">
-          Every question CAT can draw — reserved directly, or inherited from a reserved case or
-          trend wrapper. Releasing a wrapper releases its children with it.
+          Every question CAT can draw — reserved on its own row, or inherited from a reserved
+          case. Releasing a case releases its questions with it; every other row releases alone.
         </p>
       </div>
 
@@ -298,7 +304,10 @@ export function ReservedStockView({
                     {g.title ? <span className="cp-group-title">{g.title}</span> : null}
                   </div>
                   <span className="cp-group-meta">
-                    {g.rows.length} shown · reserved as a whole
+                    {g.rows.length} shown ·{' '}
+                    {g.source === 'case'
+                      ? 'reserved as a whole'
+                      : 'each reserved on its own'}
                   </span>
                 </div>
               )}

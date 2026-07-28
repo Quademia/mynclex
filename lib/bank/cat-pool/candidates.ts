@@ -18,10 +18,16 @@ import {
   BLOOM_LEVELS,
 } from '@/lib/bank/classifications';
 
-/** Which stock the drawer is showing. */
+/**
+ * Which stock the drawer is showing.
+ *
+ * Two of the three tabs list QUESTIONS ticked one at a time — free standalone
+ * rows, and trend questions. Only `cases` lists a wrapper reserved whole,
+ * because a case is the one thing the exam draws as a block.
+ */
 export type CandidateTab = 'questions' | 'cases' | 'trends';
 
-/** A standalone question that could be reserved. */
+/** A question that could be reserved on its own row. */
 export type CandidateQuestion = {
   itemId: string;
   questionType: string;
@@ -33,12 +39,15 @@ export type CandidateQuestion = {
   bloomLevel: string | null;
   /** Already reserved for a readiness pack — offered but not selectable. */
   readinessTagged: boolean;
+  /** Set on trend questions; context for the row, never a reservation unit. */
+  trendId: string | null;
+  trendTitle: string | null;
 };
 
-/** A case or trend wrapper that could be reserved whole. */
+/** A case wrapper that could be reserved whole. */
 export type CandidateWrapper = {
   wrapperId: string;
-  kind: 'case' | 'trend';
+  kind: 'case';
   title: string;
   /** Published children — what actually joins the pool. */
   childCount: number;
@@ -46,6 +55,12 @@ export type CandidateWrapper = {
   bands: string[];
   /** Any child is readiness-tagged, so the wrapper cannot be reserved. */
   readinessTagged: boolean;
+  /**
+   * Published children with no difficulty band. CAT will not schedule a case
+   * block unless every child carries an IRT number, so one unbanded child
+   * makes the whole case unpickable — reserving it would add nothing.
+   */
+  unplaceableChildren: number;
 };
 
 // ── the mutual-exclusivity guard (§20.5) ─────────────────────────────
@@ -66,6 +81,27 @@ export function isBlocked(c: { readinessTagged: boolean }): boolean {
 export const BLOCKED_BADGE = 'In a readiness pack';
 export const BLOCKED_NOTE =
   'Readiness-reserved — release it from its pack first. A question can only serve one purpose.';
+
+/**
+ * A case is additionally blocked when a child cannot be placed. This is not a
+ * mutual-exclusivity rule but a "reserving this achieves nothing" one, so it
+ * carries its own badge and reason rather than reusing the readiness copy.
+ */
+export function caseBlockReason(c: CandidateWrapper): string | null {
+  if (c.readinessTagged) return BLOCKED_NOTE;
+  if (c.unplaceableChildren > 0) {
+    return `${c.unplaceableChildren} question${c.unplaceableChildren === 1 ? '' : 's'} in this case ${
+      c.unplaceableChildren === 1 ? 'has' : 'have'
+    } no difficulty band, so CAT can never schedule it. Set the band first.`;
+  }
+  return null;
+}
+
+export const UNPLACEABLE_BADGE = 'Incomplete';
+
+export function isCaseBlocked(c: CandidateWrapper): boolean {
+  return c.readinessTagged || c.unplaceableChildren > 0;
+}
 
 // ── facets ───────────────────────────────────────────────────────────
 
@@ -160,13 +196,32 @@ export function filterQuestions(
 }
 
 /**
- * Wrappers carry no classification of their own, so only the text search
- * applies — the facets describe questions, and a wrapper is reserved whole.
+ * Cases carry no classification of their own, so only the text search applies
+ * — the facets describe questions, and a case is reserved whole.
  */
 export function filterWrappers(rows: CandidateWrapper[], search: string): CandidateWrapper[] {
   const term = search.trim().toLowerCase();
   if (!term) return rows;
   return rows.filter((w) => `${w.wrapperId} ${w.title}`.toLowerCase().includes(term));
+}
+
+/**
+ * Trend questions get the full facet treatment like any other question, plus
+ * their dataset id and title in the search text — a curator hunting "the
+ * sepsis chart" is searching for the scenario, not for one question on it.
+ */
+export function filterTrendQuestions(
+  rows: CandidateQuestion[],
+  facets: Facets,
+  search: string,
+): CandidateQuestion[] {
+  const term = search.trim().toLowerCase();
+  return filterQuestions(rows, facets, '').filter((q) => {
+    if (!term) return true;
+    return `${q.itemId} ${q.stem} ${q.trendId ?? ''} ${q.trendTitle ?? ''}`
+      .toLowerCase()
+      .includes(term);
+  });
 }
 
 // ── selection ────────────────────────────────────────────────────────

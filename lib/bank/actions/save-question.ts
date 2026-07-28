@@ -526,10 +526,18 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
   const cfg = surfaceConfig(surface);
   const existingItemId = String(formData.get('item_id') ?? '').trim();
 
-  // §20 (10b1) — the "Reserve for CAT" flag is admin-only. On the tutor
-  // surface we never write it (the column stays dormant-false; the tutor UI
-  // never renders the tick anyway). An absent checkbox is false, so an admin
-  // unticking clears the reservation.
+  // §20 — the "Reserve for CAT" flag is admin-only. On the tutor surface we
+  // never write it (the column stays dormant-false; the tutor UI never renders
+  // the tick anyway). An absent checkbox is false, so an admin unticking
+  // clears the reservation.
+  //
+  // Trend-linked questions carry it exactly like standalone ones: a dataset is
+  // not a reservation unit, so each trend question is ticked on its own row.
+  //
+  // For a CASE CHILD this write is a no-op whatever it says: the editor hides
+  // the tick (so the value here is always false), and the database's inherit
+  // trigger overwrites `cat_pool` from the parent case on every save that
+  // touches `parent_case_id`. The wrapper is the only authority.
   const catPoolPatch =
     surface === 'admin' ? { cat_pool: formData.get('cat_pool') === 'on' } : {};
 

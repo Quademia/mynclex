@@ -8,28 +8,30 @@
 // target. Re-reserving is a single tick, which is why the confirmation is a
 // plain one rather than a typed gate.
 //
-// Reservation lives on the WRAPPER for cases and trends (10b1), so releasing a
-// wrapper is one UPDATE that takes every child out with it — the caller is
-// responsible for saying so before it happens.
+// TWO reservation units, not three (migration 20260822120000):
+//   • a CASE, written on the wrapper — a database trigger cascades the flag to
+//     its children, so one UPDATE here takes the whole block in or out;
+//   • a QUESTION, written on its own row — standalone and trend-linked alike.
+// A trend dataset is not a unit at all: the exam picks trend questions
+// individually, so they are reserved individually.
 //
 // The TS gate mirrors RLS: cat_pool is writable only under BANK_CURATE on the
 // admin surface, so a tutor curator reaching this action is refused twice.
-// Audit capture is automatic — the Slice-① triggers on all three tables log
-// the UPDATE without anything here.
+// Audit capture is automatic — the Slice-① triggers on both tables log the
+// UPDATE without anything here.
 
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { requireAdminPermission, PERM_BANK_CURATE } from '@/lib/access';
 
-export type ReleaseTarget = 'item' | 'case' | 'trend';
+export type ReleaseTarget = 'item' | 'case';
 
 export type ReleaseResult = { ok: true; released: string } | { ok: false; error: string };
 
 const TABLE: Record<ReleaseTarget, { table: string; idColumn: string; noun: string }> = {
   item: { table: 'nclex_bank_items', idColumn: 'item_id', noun: 'question' },
   case: { table: 'nclex_case_studies', idColumn: 'case_id', noun: 'case study' },
-  trend: { table: 'nclex_trend_datasets', idColumn: 'trend_id', noun: 'trend dataset' },
 };
 
 /**
@@ -122,6 +124,36 @@ export async function reserveToCatPool(
     }
   }
 
+  // A case whose children cannot all be placed is a case CAT will never
+  // schedule, so reserving it adds nothing to the pool while adding six
+  // questions to the target. The database no longer refuses this — the
+  // placeability CHECK exempts case children on purpose, because the cascade
+  // trigger would otherwise make an unplaceable child unsaveable — so the
+  // gate lives here, where it can say what is wrong.
+  const caseIds = byKind.get('case') ?? [];
+  if (caseIds.length) {
+    const { data: kids } = await supabase
+      .from('nclex_bank_items')
+      .select('parent_case_id, difficulty, client_needs_subcategory')
+      .in('parent_case_id', caseIds)
+      .eq('is_published', true);
+
+    const incomplete = new Set(
+      (kids ?? [])
+        .filter(
+          (k) =>
+            !(k as { difficulty: string | null }).difficulty ||
+            !(k as { client_needs_subcategory: string | null }).client_needs_subcategory,
+        )
+        .map((k) => (k as { parent_case_id: string }).parent_case_id),
+    );
+
+    if (incomplete.size) {
+      skipped += incomplete.size;
+      byKind.set('case', caseIds.filter((id) => !incomplete.has(id)));
+    }
+  }
+
   let reserved = 0;
   for (const [kind, ids] of byKind) {
     if (!ids.length) continue;
@@ -145,7 +177,7 @@ export async function reserveToCatPool(
       ok: false,
       error:
         skipped > 0
-          ? 'Nothing was reserved — those questions are already reserved, or belong to a readiness pack.'
+          ? 'Nothing was reserved — those are already reserved, belong to a readiness pack, or are cases with a question missing its difficulty band.'
           : 'Nothing was reserved.',
     };
   }

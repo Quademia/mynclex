@@ -2,15 +2,20 @@
 //
 // Reads the reserved CAT pool for the admin management page (§20.4 / §20.5).
 //
-// The pool is three things at once, and every count on the page has to agree
-// about that:
+// The pool is three slices, and every count on the page has to agree:
 //   • standalone questions carrying `cat_pool` on their own row;
-//   • case wrappers carrying it, whose children inherit it;
-//   • trend wrappers carrying it, whose children inherit it.
+//   • case wrappers carrying it, whose children carry a copy of it;
+//   • trend-linked questions carrying it on their own row.
 //
-// Reservation lives on the WRAPPER, never on a child (10b1) — so children are
-// found by joining back to a reserved wrapper, exactly as readiness does. A
-// child row's own `cat_pool` value is meaningless and is never read.
+// A CASE is a selection unit, so its reservation lives on the wrapper and the
+// children hold a materialised copy the database keeps in step (migration
+// 20260822120000). The wrapper stays authoritative — release it and the
+// children follow — but every read here can use the item's own column.
+//
+// A TREND DATASET is NOT a selection unit anywhere in the product: trend
+// questions are picked individually, one per dataset per exam. So they are
+// reserved individually too, and the dataset survives here only as the thing
+// we count DISTINCT to measure scenario variety.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { bandForIrt } from '@/lib/bank/difficulty';
@@ -82,87 +87,84 @@ const toRow = (
 export type PoolSnapshot = {
   items: PoolItemRow[];
   counts: PoolCounts;
-  /** Reserved wrappers, for the supply rows and the stock lens grouping. */
+  /** Reserved case wrappers, for the supply rows and the stock lens grouping. */
   caseWrapperIds: string[];
-  trendWrapperIds: string[];
   /** Wrapper id → title, for the stock pane's group headers. */
   wrapperTitles: Record<string, string>;
 };
 
 /**
- * Load the whole reserved pool. Four round-trips: the two wrapper tables, the
- * standalone rows, and the children of every reserved wrapper.
+ * Load the whole reserved pool.
  *
- * The pool is bounded by design — the target is 2,400 standalone plus ~120
- * wrappers — so it is read whole and aggregated in memory rather than pushed
- * into eight separate `count` queries that could disagree with each other.
+ * Every reserved question now carries `cat_pool` on its own row — case
+ * children included, via the cascade trigger — so this is ONE read of
+ * `nclex_bank_items` rather than a standalone read plus a child read per
+ * wrapper table. The wrapper tables are still read, for their titles and for
+ * the reserved-case count the Coverage lens shows.
+ *
+ * The pool is bounded by design (the target is ~2,880 questions) so it is read
+ * whole and aggregated in memory rather than pushed into separate `count`
+ * queries that could disagree with each other.
  */
 export async function loadPoolSnapshot(supabase: SupabaseClient): Promise<PoolSnapshot> {
-  const [caseWrappers, trendWrappers] = await Promise.all([
+  const [reserved, caseWrappers, readiness] = await Promise.all([
+    supabase.from('nclex_bank_items').select(ITEM_COLUMNS).eq('cat_pool', true),
     supabase.from('nclex_case_studies').select('case_id, title').eq('cat_pool', true),
-    supabase.from('nclex_trend_datasets').select('trend_id, title').eq('cat_pool', true),
+    // Readiness membership is a link table, not a column — an item is
+    // readiness-reserved if it appears here at all (§20.5 mutual exclusivity).
+    supabase.from('nclex_readiness_pack_items').select('item_id'),
   ]);
 
   const caseWrapperIds = (caseWrappers.data ?? []).map((r) => r.case_id as string);
-  const trendWrapperIds = (trendWrappers.data ?? []).map((r) => r.trend_id as string);
 
   const wrapperTitles: Record<string, string> = {};
   for (const r of caseWrappers.data ?? []) {
     wrapperTitles[r.case_id as string] = (r.title as string) ?? '';
   }
-  for (const r of trendWrappers.data ?? []) {
-    wrapperTitles[r.trend_id as string] = (r.title as string) ?? '';
-  }
-
-  // Standalone: flagged on its own row AND not part of a wrapper. The second
-  // half matters — a child row could carry a stale flag from before 10b1 fixed
-  // reservation to the wrapper, and counting it here would double it.
-  const standaloneQuery = supabase
-    .from('nclex_bank_items')
-    .select(ITEM_COLUMNS)
-    .eq('cat_pool', true)
-    .is('parent_case_id', null)
-    .is('trend_id', null);
-
-  const caseChildQuery = caseWrapperIds.length
-    ? supabase.from('nclex_bank_items').select(ITEM_COLUMNS).in('parent_case_id', caseWrapperIds)
-    : null;
-
-  const trendChildQuery = trendWrapperIds.length
-    ? supabase.from('nclex_bank_items').select(ITEM_COLUMNS).in('trend_id', trendWrapperIds)
-    : null;
-
-  // Readiness membership is a link table, not a column — an item is
-  // readiness-reserved if it appears here at all (§20.5 mutual exclusivity).
-  const readinessQuery = supabase.from('nclex_readiness_pack_items').select('item_id');
-
-  const [standalone, caseChildren, trendChildren, readiness] = await Promise.all([
-    standaloneQuery,
-    caseChildQuery,
-    trendChildQuery,
-    readinessQuery,
-  ]);
 
   const readinessIds = new Set(
     (readiness.data ?? []).map((r) => (r as { item_id: string }).item_id),
   );
 
+  // Trend titles come from the datasets the reserved questions actually point
+  // at, not from a reserved-dataset list — there is no such thing any more.
+  const trendIds = [
+    ...new Set(
+      ((reserved.data ?? []) as unknown as RawItem[])
+        .map((r) => r.trend_id)
+        .filter((id): id is string => !!id),
+    ),
+  ];
+  if (trendIds.length) {
+    const { data: datasets } = await supabase
+      .from('nclex_trend_datasets')
+      .select('trend_id, title')
+      .in('trend_id', trendIds);
+    for (const r of datasets ?? []) {
+      wrapperTitles[r.trend_id as string] = (r.title as string) ?? '';
+    }
+  }
+
   // The column list is a string, so the client cannot infer the row shape and
   // widens it to its error union — hence the cast through `unknown`.
-  const rows = (data: unknown): RawItem[] => (data ?? []) as unknown as RawItem[];
+  const rows = ((reserved.data ?? []) as unknown as RawItem[]);
 
-  const items: PoolItemRow[] = [
-    ...rows(standalone.data).map((r) => toRow(r, 'standalone', null, readinessIds)),
-    ...rows(caseChildren?.data).map((r) => toRow(r, 'case', r.parent_case_id, readinessIds)),
-    ...rows(trendChildren?.data).map((r) => toRow(r, 'trend', r.trend_id, readinessIds)),
-  ];
+  // A row's slice is decided by its own links, in this order: a case child is
+  // a case child even if it also carries a trend_id (it cannot, but the order
+  // makes the precedence explicit rather than incidental).
+  const items: PoolItemRow[] = rows.map((r) =>
+    r.parent_case_id
+      ? toRow(r, 'case', r.parent_case_id, readinessIds)
+      : r.trend_id
+        ? toRow(r, 'trend', r.trend_id, readinessIds)
+        : toRow(r, 'standalone', null, readinessIds),
+  );
 
   return {
     items,
     caseWrapperIds,
-    trendWrapperIds,
     wrapperTitles,
-    counts: aggregate(items, caseWrapperIds.length, trendWrapperIds.length),
+    counts: aggregate(items, caseWrapperIds.length),
   };
 }
 
@@ -177,9 +179,15 @@ const preview = (raw: string | null): string => {
 };
 
 export type ReserveCandidates = {
+  /** Free standalone questions — no case, no dataset. */
   questions: CandidateQuestion[];
+  /** Free case wrappers, reserved whole. */
   cases: CandidateWrapper[];
-  trends: CandidateWrapper[];
+  /**
+   * Free TREND QUESTIONS, not datasets. Each is ticked on its own, exactly
+   * like a standalone; the dataset shows on the row only as context.
+   */
+  trendQuestions: CandidateQuestion[];
 };
 
 /**
@@ -195,18 +203,23 @@ export type ReserveCandidates = {
 export async function loadReserveCandidates(
   supabase: SupabaseClient,
 ): Promise<ReserveCandidates> {
-  const [items, cases, trends, readiness] = await Promise.all([
+  // One read covers both question tabs: free standalone rows and free trend
+  // questions differ only by whether `trend_id` is set, and both are ticked
+  // individually. The placeability CHECK binds on both, so rows missing a
+  // difficulty band or a subcategory are excluded here rather than offered and
+  // then rejected on save.
+  const [items, cases, readiness] = await Promise.all([
     supabase
       .from('nclex_bank_items')
       .select(
-        'item_id, question_type, stem, difficulty, client_needs_subcategory, body_system, nursing_subject, bloom_level',
+        'item_id, question_type, stem, difficulty, client_needs_subcategory, body_system, nursing_subject, bloom_level, trend_id',
       )
       .eq('is_published', true)
       .eq('cat_pool', false)
       .is('parent_case_id', null)
-      .is('trend_id', null),
+      .not('difficulty', 'is', null)
+      .not('client_needs_subcategory', 'is', null),
     supabase.from('nclex_case_studies').select('case_id, title').eq('cat_pool', false).eq('is_published', true),
-    supabase.from('nclex_trend_datasets').select('trend_id, title').eq('cat_pool', false).eq('is_published', true),
     supabase.from('nclex_readiness_pack_items').select('item_id'),
   ]);
 
@@ -223,88 +236,89 @@ export async function loadReserveCandidates(
     body_system: string | null;
     nursing_subject: string | null;
     bloom_level: string | null;
+    trend_id: string | null;
   };
 
-  const questions: CandidateQuestion[] = ((items.data ?? []) as unknown as RawCandidate[]).map(
-    (r) => ({
-      itemId: r.item_id,
-      questionType: r.question_type,
-      stem: preview(r.stem),
-      difficulty: r.difficulty,
-      subcategory: r.client_needs_subcategory,
-      bodySystem: r.body_system,
-      nursingSubject: r.nursing_subject,
-      bloomLevel: r.bloom_level,
-      readinessTagged: readinessIds.has(r.item_id),
-    }),
-  );
+  const raw = (items.data ?? []) as unknown as RawCandidate[];
 
-  // A wrapper's children decide its preview line and whether it is blocked —
+  // Dataset titles, so a trend question can say which scenario it belongs to.
+  const trendIds = [...new Set(raw.map((r) => r.trend_id).filter((id): id is string => !!id))];
+  const trendTitles: Record<string, string> = {};
+  if (trendIds.length) {
+    const { data: datasets } = await supabase
+      .from('nclex_trend_datasets')
+      .select('trend_id, title')
+      .in('trend_id', trendIds);
+    for (const d of datasets ?? []) {
+      trendTitles[d.trend_id as string] = (d.title as string) ?? '';
+    }
+  }
+
+  const toCandidate = (r: RawCandidate): CandidateQuestion => ({
+    itemId: r.item_id,
+    questionType: r.question_type,
+    stem: preview(r.stem),
+    difficulty: r.difficulty,
+    subcategory: r.client_needs_subcategory,
+    bodySystem: r.body_system,
+    nursingSubject: r.nursing_subject,
+    bloomLevel: r.bloom_level,
+    readinessTagged: readinessIds.has(r.item_id),
+    trendId: r.trend_id,
+    trendTitle: r.trend_id ? (trendTitles[r.trend_id] ?? null) : null,
+  });
+
+  // A case's children decide its preview line and whether it is blocked —
   // reservation is on the wrapper, so one readiness-tagged child blocks it all.
   const caseIds = (cases.data ?? []).map((r) => r.case_id as string);
-  const trendIds = (trends.data ?? []).map((r) => r.trend_id as string);
 
-  const [caseKids, trendKids] = await Promise.all([
-    caseIds.length
-      ? supabase
-          .from('nclex_bank_items')
-          .select('item_id, parent_case_id, difficulty')
-          .in('parent_case_id', caseIds)
-          .eq('is_published', true)
-      : Promise.resolve({ data: [] as unknown[] }),
-    trendIds.length
-      ? supabase
-          .from('nclex_bank_items')
-          .select('item_id, trend_id, difficulty')
-          .in('trend_id', trendIds)
-          .eq('is_published', true)
-      : Promise.resolve({ data: [] as unknown[] }),
-  ]);
+  const caseKids = caseIds.length
+    ? await supabase
+        .from('nclex_bank_items')
+        .select('item_id, parent_case_id, difficulty')
+        .in('parent_case_id', caseIds)
+        .eq('is_published', true)
+    : { data: [] as unknown[] };
 
-  type Kid = { item_id: string; parent_case_id?: string; trend_id?: string; difficulty: string | null };
+  type Kid = { item_id: string; parent_case_id?: string; difficulty: string | null };
 
-  const rollUp = (kids: Kid[], keyOf: (k: Kid) => string | undefined) => {
-    const map = new Map<string, { n: number; bands: Set<string>; blocked: boolean }>();
-    for (const k of kids) {
-      const key = keyOf(k);
-      if (!key) continue;
-      const e = map.get(key) ?? { n: 0, bands: new Set<string>(), blocked: false };
-      e.n++;
-      if (k.difficulty) e.bands.add(k.difficulty);
-      if (readinessIds.has(k.item_id)) e.blocked = true;
-      map.set(key, e);
-    }
-    return map;
-  };
-
-  const caseRoll = rollUp((caseKids.data ?? []) as unknown as Kid[], (k) => k.parent_case_id);
-  const trendRoll = rollUp((trendKids.data ?? []) as unknown as Kid[], (k) => k.trend_id);
-
-  const toWrapper = (
-    id: string,
-    title: string,
-    kind: 'case' | 'trend',
-    roll: Map<string, { n: number; bands: Set<string>; blocked: boolean }>,
-  ): CandidateWrapper => {
-    const e = roll.get(id);
-    return {
-      wrapperId: id,
-      kind,
-      title: title ?? '',
-      childCount: e?.n ?? 0,
-      bands: [...(e?.bands ?? [])],
-      readinessTagged: e?.blocked ?? false,
+  const caseRoll = new Map<
+    string,
+    { n: number; bands: Set<string>; blocked: boolean; unplaceable: number }
+  >();
+  for (const k of (caseKids.data ?? []) as unknown as Kid[]) {
+    if (!k.parent_case_id) continue;
+    const e = caseRoll.get(k.parent_case_id) ?? {
+      n: 0,
+      bands: new Set<string>(),
+      blocked: false,
+      unplaceable: 0,
     };
-  };
+    e.n++;
+    if (k.difficulty) e.bands.add(k.difficulty);
+    // A child with no band leaves the whole case unpickable — CAT requires an
+    // IRT number on all six before it will schedule the block.
+    else e.unplaceable++;
+    if (readinessIds.has(k.item_id)) e.blocked = true;
+    caseRoll.set(k.parent_case_id, e);
+  }
 
   return {
-    questions,
-    cases: (cases.data ?? []).map((r) =>
-      toWrapper(r.case_id as string, r.title as string, 'case', caseRoll),
-    ),
-    trends: (trends.data ?? []).map((r) =>
-      toWrapper(r.trend_id as string, r.title as string, 'trend', trendRoll),
-    ),
+    questions: raw.filter((r) => !r.trend_id).map(toCandidate),
+    trendQuestions: raw.filter((r) => !!r.trend_id).map(toCandidate),
+    cases: (cases.data ?? []).map((r) => {
+      const id = r.case_id as string;
+      const e = caseRoll.get(id);
+      return {
+        wrapperId: id,
+        kind: 'case' as const,
+        title: (r.title as string) ?? '',
+        childCount: e?.n ?? 0,
+        bands: [...(e?.bands ?? [])],
+        readinessTagged: e?.blocked ?? false,
+        unplaceableChildren: e?.unplaceable ?? 0,
+      };
+    }),
   };
 }
 
@@ -313,23 +327,25 @@ export async function loadReserveCandidates(
  * aggregation can be exercised directly — it is the step where a miscount
  * would silently misreport the pool.
  */
-export function aggregate(
-  items: PoolItemRow[],
-  caseWrapperCount: number,
-  trendWrapperCount: number,
-): PoolCounts {
+export function aggregate(items: PoolItemRow[], caseWrapperCount: number): PoolCounts {
   const bySetBand: Record<string, number> = {};
   const byCalibratedBand: Record<string, number> = {};
   const bySubcategory: Record<string, number> = {};
 
   let standalone = 0;
   let caseChildren = 0;
-  let trendChildren = 0;
+  let trendQuestions = 0;
+  // Counted DISTINCT: the trend target is a variety goal, so ten reserved
+  // questions from one dataset are one scenario, not ten.
+  const datasets = new Set<string>();
 
   for (const it of items) {
     if (it.source === 'standalone') standalone++;
     else if (it.source === 'case') caseChildren++;
-    else trendChildren++;
+    else {
+      trendQuestions++;
+      if (it.wrapperId) datasets.add(it.wrapperId);
+    }
 
     if (it.difficulty) {
       bySetBand[it.difficulty] = (bySetBand[it.difficulty] ?? 0) + 1;
@@ -350,9 +366,9 @@ export function aggregate(
   return {
     standalone,
     cases: caseWrapperCount,
-    trends: trendWrapperCount,
     caseChildren,
-    trendChildren,
+    trendQuestions,
+    trendDatasets: datasets.size,
     bySetBand,
     byCalibratedBand,
     bySubcategory,

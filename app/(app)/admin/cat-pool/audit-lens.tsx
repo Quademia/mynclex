@@ -1,6 +1,6 @@
 // mynclex/app/(app)/admin/cat-pool/audit-lens.tsx
 //
-// The Audit lens (Slice 10b2-c). Three ways a reserved set quietly degrades.
+// The Audit lens (Slice 10b2-c). Four ways a reserved set quietly degrades.
 //
 // None of them block a sitting, which is exactly why they get their own lens
 // rather than a red badge on a row: a curator would learn to ignore a badge
@@ -43,6 +43,14 @@ const CARDS: Card[] = [
       'These are readiness-tagged as well as CAT-reserved. A question can only honestly serve one — a pack sitting or an adaptive exam — because whichever comes second is measuring a question the student has already answered. Release one side.',
   },
   {
+    key: 'unplaceable',
+    icon: '?',
+    tone: 'danger',
+    title: 'Reserved but impossible to place',
+    body:
+      'These carry no difficulty band, or no Client Needs subcategory, so the selector has nowhere to put them — it cannot judge who should see them or which part of the blueprint they fill. Every one of these is a case question: a directly-reserved question is held to the rule by the database, but a case child inherits its reservation from the wrapper, and one unplaceable child stops CAT scheduling the WHOLE case.',
+  },
+  {
     key: 'draft',
     icon: '·',
     tone: 'muted',
@@ -56,7 +64,7 @@ export function AuditLens({ counts, view }: { counts: AuditCounts; view: StockVi
   return (
     <>
       <p className="cp-lede">
-        Three things can go wrong with a reserved set. None of them block a sitting — they quietly
+        Four things can go wrong with a reserved set. None of them block a sitting — they quietly
         degrade it, so they get their own lens rather than a badge on a row.
       </p>
 

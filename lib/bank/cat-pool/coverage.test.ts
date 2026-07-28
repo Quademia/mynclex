@@ -12,9 +12,9 @@ import { POOL_TARGETS, WHOLE_POOL_TARGET } from './constants';
 const empty: PoolCounts = {
   standalone: 0,
   cases: 0,
-  trends: 0,
   caseChildren: 0,
-  trendChildren: 0,
+  trendQuestions: 0,
+  trendDatasets: 0,
   bySetBand: {},
   byCalibratedBand: {},
   bySubcategory: {},
@@ -23,10 +23,19 @@ const empty: PoolCounts = {
 const counts = (over: Partial<PoolCounts> = {}): PoolCounts => ({ ...empty, ...over });
 
 describe('totalPoolQuestions', () => {
-  it('counts standalone plus inherited children, not wrappers', () => {
+  it('adds the three disjoint slices, and counts no wrapper as a question', () => {
     expect(totalPoolQuestions(counts({
-      standalone: 2393, cases: 60, trends: 60, caseChildren: 354, trendChildren: 87,
-    }))).toBe(2393 + 354 + 87);
+      standalone: 2393, cases: 60, caseChildren: 354, trendQuestions: 86, trendDatasets: 59,
+    }))).toBe(2393 + 354 + 86);
+  });
+
+  it('does not count trend DATASETS as stock — they are a variety measure', () => {
+    // Same 86 questions whether they span 1 dataset or 59: the pool is the
+    // questions. Only the Coverage tile cares how many scenarios they cover.
+    const wide = totalPoolQuestions(counts({ trendQuestions: 86, trendDatasets: 59 }));
+    const narrow = totalPoolQuestions(counts({ trendQuestions: 86, trendDatasets: 1 }));
+    expect(wide).toBe(narrow);
+    expect(wide).toBe(86);
   });
 });
 
@@ -48,10 +57,29 @@ describe('buildStatCards', () => {
   it('marks a wrapper target met even though its note carries the child count', () => {
     // The wrapper cards spend their note on inherited children — the more
     // useful fact — so `met` is what the view tints from, not the note text.
-    const cards = buildStatCards(counts({ cases: 60, trends: 72, trendChildren: 91 }));
+    const cards = buildStatCards(counts({ cases: 60, trendDatasets: 72, trendQuestions: 91 }));
     expect(cards[1].met).toBe(true);
     expect(cards[2].met).toBe(true);
-    expect(cards[2].note).toBe('91 child questions inherited');
+  });
+
+  it('counts DATASETS on the trend tile and QUESTIONS in its note', () => {
+    // The tile is a variety measure: 86 questions spanning 59 scenarios reads
+    // 59 / 60, not 86 / 60.
+    const cards = buildStatCards(counts({ trendQuestions: 86, trendDatasets: 59 }));
+    expect(cards[2].label).toBe('Trend datasets');
+    expect(cards[2].value).toBe(59);
+    expect(cards[2].target).toBe(POOL_TARGETS.trendDatasets);
+    expect(cards[2].met).toBe(false);
+    expect(cards[2].note).toBe('86 trend questions reserved');
+  });
+
+  it('says "reserved" for trends and "inherited" for cases — the words are the point', () => {
+    // Nothing inherits anything on a trend: each question was ticked on its
+    // own row. Only a case child gets its flag from a wrapper.
+    const cards = buildStatCards(counts({ caseChildren: 354, trendQuestions: 86, trendDatasets: 59 }));
+    expect(cards[1].note).toContain('inherited');
+    expect(cards[2].note).toContain('reserved');
+    expect(cards[2].note).not.toContain('inherited');
   });
 
   it('never lets a bar exceed 100% when a target is overshot', () => {
@@ -79,14 +107,26 @@ describe('buildSpreadRows', () => {
   });
 
   it('flags a band far below an even fifth as thin', () => {
-    // An even fifth of 2,400 is 480. 30 is far below it.
-    const rows = buildSpreadRows(counts({ bySetBand: { Easy: 30, Medium: 480 } }), 'set');
+    // An even fifth of the 2,880 whole-pool target is 576.
+    const even = WHOLE_POOL_TARGET / 5;
+    const rows = buildSpreadRows(counts({ bySetBand: { Easy: 30, Medium: even } }), 'set');
     const easy = rows.find((r) => r.band === 'Easy')!;
     const medium = rows.find((r) => r.band === 'Medium')!;
     expect(easy.thin).toBe(true);
-    expect(easy.gapLabel).toBe('· 450 short');
+    expect(easy.gapLabel).toBe(`· ${even - 30} short`);
     expect(medium.thin).toBe(false);
     expect(medium.gapLabel).toBe('· in range');
+  });
+
+  it('measures against the WHOLE pool target, not the standalone one', () => {
+    // Regression: the reference used to be a fifth of the standalone target
+    // (480) while the bars counted every reserved question — case children and
+    // trend questions included — so the marker sat too low and every band read
+    // healthier than it was. A band of exactly 480 is genuinely 96 short.
+    const rows = buildSpreadRows(counts({ bySetBand: { Medium: POOL_TARGETS.standalone / 5 } }), 'set');
+    const medium = rows.find((r) => r.band === 'Medium')!;
+    expect(medium.thin).toBe(true);
+    expect(medium.gapLabel).toBe('· 96 short');
   });
 
   it('calls a band well above the reference "over"', () => {
@@ -158,24 +198,37 @@ describe('buildBlueprintRows', () => {
 });
 
 describe('buildSupplyRows', () => {
-  it('expresses wrapper stock as sittings covered', () => {
-    const rows = buildSupplyRows(counts({ cases: 60, trends: 60 }));
+  it('expresses CASE stock as sittings covered', () => {
+    const rows = buildSupplyRows(counts({ cases: 60 }));
     expect(rows[0].guide).toBe('3 per sitting → covers 20');
-    expect(rows[1].guide).toBe('2 per sitting → covers 30');
-  });
-
-  it('warns while a wrapper target is unmet', () => {
-    const rows = buildSupplyRows(counts({ cases: 12, trends: 60 }));
-    expect(rows[0].tone).toBe('warn');
-    expect(rows[1].tone).toBe('ok');
   });
 
   it('rounds sittings DOWN — a partial sitting is not a sitting', () => {
     expect(buildSupplyRows(counts({ cases: 8 }))[0].guide).toBe('3 per sitting → covers 2');
   });
 
-  it('totals inherited children across both wrapper kinds', () => {
-    const rows = buildSupplyRows(counts({ caseChildren: 354, trendChildren: 87 }));
-    expect(rows[2].value).toBe('441');
+  it('warns while the case target is unmet', () => {
+    expect(buildSupplyRows(counts({ cases: 12 }))[0].tone).toBe('warn');
+    expect(buildSupplyRows(counts({ cases: 60 }))[0].tone).toBe('ok');
+  });
+
+  it('reports case children on their own row, without folding trends in', () => {
+    const rows = buildSupplyRows(counts({ caseChildren: 354, trendQuestions: 86 }));
+    expect(rows[1].value).toBe('354');
+  });
+
+  it('expresses TREND stock as variety, never as sittings covered', () => {
+    // A dataset is not drawn as a unit, so "covers N sittings" would be a
+    // category error here — the useful facts are the spread and its depth.
+    const rows = buildSupplyRows(counts({ trendQuestions: 86, trendDatasets: 59 }));
+    expect(rows[2].label).toBe('Trend datasets represented');
+    expect(rows[2].value).toBe('59 / 60');
+    expect(rows[2].guide).toBe('86 questions · 1.5 per dataset');
+    expect(rows[2].guide).not.toContain('sitting');
+  });
+
+  it('does not divide by zero when no trend question is reserved', () => {
+    const rows = buildSupplyRows(empty);
+    expect(rows[2].guide).toBe('0 questions · 0 per dataset');
   });
 });

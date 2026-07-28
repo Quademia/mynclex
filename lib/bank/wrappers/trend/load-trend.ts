@@ -96,7 +96,7 @@ function configFor(surface: Surface): SurfaceConfig {
 
 const DATASET_COLUMNS =
   'trend_id, title, scenario, tags, ' +
-  'is_published, is_free_sample, is_builder_visible, cat_pool, ' +
+  'is_published, is_free_sample, is_builder_visible, ' +
   'created_at, updated_at';
 
 const TUTOR_DATASET_COLUMNS = DATASET_COLUMNS + ', tutor_id';

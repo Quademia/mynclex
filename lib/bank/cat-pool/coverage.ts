@@ -23,21 +23,31 @@ import {
   BLUEPRINT_AXIS_MAX,
 } from './constants';
 
+// `POOL_TARGETS.standalone` is still read by the stat cards above; the spread
+// deliberately uses WHOLE_POOL_TARGET instead. Kept as one import to make the
+// difference between the two references explicit at the call sites.
+
 /** Which difficulty number the spread is read from. §5.5. */
 export type SpreadMode = 'set' | 'calibrated';
 
 /** Raw counts the page needs, as read from the database. */
 export type PoolCounts = {
-  /** Reserved standalone questions (flagged directly on the row). */
+  /** Reserved standalone questions — flagged on the row, no case, no trend. */
   standalone: number;
   /** Reserved case wrappers. */
   cases: number;
-  /** Reserved trend wrappers. */
-  trends: number;
   /** Child questions inherited from reserved case wrappers — a real count. */
   caseChildren: number;
-  /** Child questions inherited from reserved trend wrappers — a real count. */
-  trendChildren: number;
+  /**
+   * Reserved trend-linked questions. Each carries its own flag: a dataset is
+   * not a selection unit, so there is nothing to inherit from.
+   */
+  trendQuestions: number;
+  /**
+   * How many distinct datasets those questions span — the variety measure the
+   * trend target is set against, not a count of anything reserved.
+   */
+  trendDatasets: number;
   /** Questions per band, by the curator's set label. */
   bySetBand: Record<string, number>;
   /** Questions per band, derived from difficulty_irt where source = EMPIRICAL. */
@@ -99,9 +109,12 @@ const clampPct = (n: number): number => Math.max(0, Math.min(100, n));
 const pctOf = (value: number, target: number): number =>
   target <= 0 ? 0 : clampPct((value / target) * 100);
 
-/** Total questions CAT could draw: reserved standalone + inherited children. */
+/**
+ * Total questions CAT could draw. The three slices are disjoint, so they add:
+ * a question is standalone, or a case child, or trend-linked.
+ */
 export function totalPoolQuestions(c: PoolCounts): number {
-  return c.standalone + c.caseChildren + c.trendChildren;
+  return c.standalone + c.caseChildren + c.trendQuestions;
 }
 
 /** The four headline cards: three slices plus the whole pool. */
@@ -131,13 +144,15 @@ export function buildStatCards(c: PoolCounts): StatCard[] {
       met: c.cases >= POOL_TARGETS.cases,
     },
     {
-      key: 'trends',
-      label: 'Trend wrappers',
-      value: c.trends,
-      target: POOL_TARGETS.trends,
-      barPct: pctOf(c.trends, POOL_TARGETS.trends),
-      note: `${c.trendChildren.toLocaleString()} child questions inherited`,
-      met: c.trends >= POOL_TARGETS.trends,
+      key: 'trendDatasets',
+      label: 'Trend datasets',
+      value: c.trendDatasets,
+      target: POOL_TARGETS.trendDatasets,
+      barPct: pctOf(c.trendDatasets, POOL_TARGETS.trendDatasets),
+      // "reserved", never "inherited" — each of these questions was ticked on
+      // its own row. The tile above it counts the scenarios they span.
+      note: `${c.trendQuestions.toLocaleString()} trend questions reserved`,
+      met: c.trendDatasets >= POOL_TARGETS.trendDatasets,
     },
     {
       key: 'whole',
@@ -152,10 +167,16 @@ export function buildStatCards(c: PoolCounts): StatCard[] {
 }
 
 /**
- * The five difficulty bars. The marker shows where an even fifth of the
- * standalone target would fall — a reference, not a rule: CAT needs stock at
- * every band, and a band far below the marker is the one that will run out
- * first for students who settle there.
+ * The five difficulty bars. The marker shows where an even fifth of the pool
+ * target would fall — a reference, not a rule: CAT needs stock at every band,
+ * and a band far below the marker is the one that will run out first for
+ * students who settle there.
+ *
+ * The reference is a fifth of the WHOLE-pool target, because the bars count
+ * every reserved question — standalone, case children and trend questions
+ * alike. Measuring them against a fifth of the standalone target alone (as
+ * this did until 2026-07-28) set the marker too low and made every band read
+ * healthier than it was.
  */
 export function buildSpreadRows(c: PoolCounts, mode: SpreadMode): SpreadRow[] {
   const isCalibrated = mode === 'calibrated';
@@ -163,7 +184,7 @@ export function buildSpreadRows(c: PoolCounts, mode: SpreadMode): SpreadRow[] {
   const counts = DIFFICULTY_LEVELS.map((band) => source[band] ?? 0);
   const measured = counts.reduce((a, b) => a + b, 0);
 
-  const evenShare = POOL_TARGETS.standalone / DIFFICULTY_LEVELS.length;
+  const evenShare = WHOLE_POOL_TARGET / DIFFICULTY_LEVELS.length;
   const thinThreshold = isCalibrated ? THIN_THRESHOLD_CALIBRATED : THIN_THRESHOLD_SET;
   // In the calibrated view only a subset carries a number, so measuring "short"
   // against the full target would call every band thin. Scale the reference to
@@ -228,16 +249,21 @@ export function buildBlueprintRows(c: PoolCounts): BlueprintRow[] {
 }
 
 /**
- * Wrapper supply, expressed as sittings rather than counts — the number a
- * curator can act on is "how many exams can this cover", not "how many cases
- * are ticked".
+ * Case supply expressed as sittings, trend supply as variety.
+ *
+ * For cases the number a curator can act on is "how many exams can this
+ * cover", because a case is drawn whole and costs three slots of a sitting.
+ * Trend questions are drawn individually, so "covers N sittings" would be a
+ * category error there — what matters instead is how many distinct scenarios
+ * the reserved questions span, and how thickly each one is covered.
  */
 export function buildSupplyRows(c: PoolCounts): SupplyRow[] {
   const sittings = (reserved: number, perSitting: number) =>
     perSitting <= 0 ? 0 : Math.floor(reserved / perSitting);
 
   const caseSittings = sittings(c.cases, PER_SITTING.cases);
-  const trendSittings = sittings(c.trends, PER_SITTING.trends);
+  const perDataset =
+    c.trendDatasets === 0 ? 0 : Math.round((c.trendQuestions / c.trendDatasets) * 10) / 10;
 
   return [
     {
@@ -248,18 +274,18 @@ export function buildSupplyRows(c: PoolCounts): SupplyRow[] {
       tone: c.cases >= POOL_TARGETS.cases ? 'ok' : 'warn',
     },
     {
-      key: 'trends',
-      label: 'Trend wrappers reserved',
-      value: `${c.trends} / ${POOL_TARGETS.trends}`,
-      guide: `${PER_SITTING.trends} per sitting → covers ${trendSittings}`,
-      tone: c.trends >= POOL_TARGETS.trends ? 'ok' : 'warn',
-    },
-    {
-      key: 'children',
+      key: 'caseChildren',
       label: 'Child questions inherited',
-      value: (c.caseChildren + c.trendChildren).toLocaleString(),
+      value: c.caseChildren.toLocaleString(),
       guide: 'reserved with their wrapper',
       tone: 'ok',
+    },
+    {
+      key: 'trends',
+      label: 'Trend datasets represented',
+      value: `${c.trendDatasets} / ${POOL_TARGETS.trendDatasets}`,
+      guide: `${c.trendQuestions.toLocaleString()} questions · ${perDataset} per dataset`,
+      tone: c.trendDatasets >= POOL_TARGETS.trendDatasets ? 'ok' : 'warn',
     },
   ];
 }

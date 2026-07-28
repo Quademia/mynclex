@@ -4,6 +4,13 @@
 // pool. Right-hand slide-over: three tabs of candidate stock, six facets, and
 // a commit.
 //
+// TWO of the three tabs list QUESTIONS ticked one at a time — free standalone
+// rows, and trend questions. Only "Cases" lists something reserved whole,
+// because a case is the one thing the exam draws as a block. A trend dataset
+// is not a reservation unit at all (the exam picks trend questions
+// individually, one per dataset per sitting), so its questions are offered the
+// same way any other question is, with the dataset shown only as context.
+//
 // Opened via ?reserve=1 rather than client state, so the candidate set is
 // only loaded when it is wanted, and Back closes it.
 //
@@ -28,13 +35,17 @@ import {
   hasAnyFacet,
   toggleFacet,
   filterQuestions,
+  filterTrendQuestions,
   filterWrappers,
   selectableIds,
   allSelected,
   commitLabel,
   isBlocked,
+  isCaseBlocked,
+  caseBlockReason,
   BLOCKED_BADGE,
   BLOCKED_NOTE,
+  UNPLACEABLE_BADGE,
   type CandidateTab,
   type CandidateQuestion,
   type CandidateWrapper,
@@ -48,12 +59,12 @@ const RENDER_CAP = 100;
 export function ReserveDrawer({
   questions,
   cases,
-  trends,
+  trendQuestions,
   closeHref,
 }: {
   questions: CandidateQuestion[];
   cases: CandidateWrapper[];
-  trends: CandidateWrapper[];
+  trendQuestions: CandidateQuestion[];
   closeHref: string;
 }) {
   const router = useRouter();
@@ -74,18 +85,25 @@ export function ReserveDrawer({
     () => filterQuestions(questions, facets, search),
     [questions, facets, search],
   );
+  const filteredTrendQ = useMemo(
+    () => filterTrendQuestions(trendQuestions, facets, search),
+    [trendQuestions, facets, search],
+  );
   const filteredCases = useMemo(() => filterWrappers(cases, search), [cases, search]);
-  const filteredTrends = useMemo(() => filterWrappers(trends, search), [trends, search]);
 
-  const wrappers = tab === 'cases' ? filteredCases : filteredTrends;
-  const isQuestions = tab === 'questions';
-  const matches = isQuestions ? filteredQ.length : wrappers.length;
-  const drawnQ = filteredQ.slice(0, RENDER_CAP);
-  const drawnW = wrappers.slice(0, RENDER_CAP);
+  // Both question tabs behave identically — the only difference is which list
+  // they draw from and whether a dataset chip shows on the row.
+  const isCases = tab === 'cases';
+  const isQuestions = !isCases;
+  const rows = tab === 'trends' ? filteredTrendQ : filteredQ;
 
-  const visibleSelectable = isQuestions
-    ? selectableIds(drawnQ)
-    : drawnW.filter((x) => !isBlocked(x)).map((x) => x.wrapperId);
+  const matches = isCases ? filteredCases.length : rows.length;
+  const drawnQ = rows.slice(0, RENDER_CAP);
+  const drawnW = filteredCases.slice(0, RENDER_CAP);
+
+  const visibleSelectable = isCases
+    ? drawnW.filter((x) => !isCaseBlocked(x)).map((x) => x.wrapperId)
+    : selectableIds(drawnQ);
   const everySelected = allSelected(visibleSelectable, picked);
 
   const toggleOne = (id: string) =>
@@ -105,12 +123,13 @@ export function ReserveDrawer({
     });
 
   const commit = () => {
-    // Every picked id resolved back to its kind, so a wrapper is written to
-    // its own table rather than being guessed at from the id prefix.
+    // Every picked id resolved back to its kind, so a case is written to its
+    // own table rather than being guessed at from the id prefix. Trend
+    // questions are plain items — there is no trend target any more.
     const targets = [
       ...questions.filter((x) => picked.has(x.itemId)).map((x) => ({ kind: 'item' as const, id: x.itemId })),
+      ...trendQuestions.filter((x) => picked.has(x.itemId)).map((x) => ({ kind: 'item' as const, id: x.itemId })),
       ...cases.filter((x) => picked.has(x.wrapperId)).map((x) => ({ kind: 'case' as const, id: x.wrapperId })),
-      ...trends.filter((x) => picked.has(x.wrapperId)).map((x) => ({ kind: 'trend' as const, id: x.wrapperId })),
     ];
 
     startTransition(async () => {
@@ -154,16 +173,16 @@ export function ReserveDrawer({
           <div className="cp-drawer-tabs">
             <button
               type="button"
-              className={isQuestions ? 'is-on' : ''}
+              className={tab === 'questions' ? 'is-on' : ''}
               onClick={() => setTab('questions')}
             >
-              Questions <span>{questions.length.toLocaleString()}</span>
+              Standalone <span>{questions.length.toLocaleString()}</span>
             </button>
-            <button type="button" className={tab === 'cases' ? 'is-on' : ''} onClick={() => setTab('cases')}>
+            <button type="button" className={isCases ? 'is-on' : ''} onClick={() => setTab('cases')}>
               Cases <span>{cases.length}</span>
             </button>
             <button type="button" className={tab === 'trends' ? 'is-on' : ''} onClick={() => setTab('trends')}>
-              Trends <span>{trends.length}</span>
+              Trend questions <span>{trendQuestions.length.toLocaleString()}</span>
             </button>
           </div>
         </div>
@@ -174,7 +193,13 @@ export function ReserveDrawer({
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={isQuestions ? 'Search stem or ID…' : 'Search wrapper ID or title…'}
+              placeholder={
+                tab === 'cases'
+                  ? 'Search case ID or title…'
+                  : tab === 'trends'
+                    ? 'Search stem, ID or dataset…'
+                    : 'Search stem or ID…'
+              }
               aria-label="Search candidates"
             />
             {isQuestions && (
@@ -253,6 +278,14 @@ export function ReserveDrawer({
             <p className="cp-empty">Nothing matches these filters.</p>
           ) : isQuestions ? (
             <>
+              {tab === 'trends' && (
+                <p className="cp-note">
+                  Trend questions are reserved one at a time, like any other question — a dataset
+                  is not a unit the exam draws. Reserving one leaves the others on the same chart
+                  in student practice.
+                </p>
+              )}
+
               <label className="cp-selectall">
                 <input type="checkbox" checked={everySelected} onChange={toggleAll} />
                 <span>Select all shown</span>
@@ -279,6 +312,11 @@ export function ReserveDrawer({
                         <span className="cp-type">{q.questionType}</span>
                         {q.difficulty && <span className="cp-diff">{q.difficulty}</span>}
                         {q.subcategory && <span className="cp-subcat">{q.subcategory}</span>}
+                        {q.trendId && (
+                          <span className="cp-chip is-trend" title={q.trendTitle ?? q.trendId}>
+                            {q.trendId}
+                          </span>
+                        )}
                         {blocked && <span className="cp-warn is-readiness">{BLOCKED_BADGE}</span>}
                       </div>
                       <div className="cp-row-stem">{q.stem || <em>No stem text</em>}</div>
@@ -291,11 +329,12 @@ export function ReserveDrawer({
           ) : (
             <>
               <p className="cp-note">
-                A wrapper is reserved whole — every published child question joins the pool with
-                it. Never reserve children individually.
+                A case is reserved whole — every published question in it joins the pool, and the
+                database keeps them in step. There is no per-question tick inside a case.
               </p>
               {drawnW.map((w) => {
-                const blocked = isBlocked(w);
+                const blocked = isCaseBlocked(w);
+                const reason = caseBlockReason(w);
                 return (
                   <label key={w.wrapperId} className={`cp-cand${blocked ? ' is-blocked' : ''}`}>
                     <input
@@ -306,16 +345,21 @@ export function ReserveDrawer({
                     />
                     <div className="cp-cand-body">
                       <div className="cp-row-top">
-                        <span className={`cp-chip is-${w.kind}`}>{w.kind === 'case' ? 'Case' : 'Trend'}</span>
+                        <span className="cp-chip is-case">Case</span>
                         <code className="cp-row-id">{w.wrapperId}</code>
-                        {blocked && <span className="cp-warn is-readiness">{BLOCKED_BADGE}</span>}
+                        {w.readinessTagged && (
+                          <span className="cp-warn is-readiness">{BLOCKED_BADGE}</span>
+                        )}
+                        {!w.readinessTagged && w.unplaceableChildren > 0 && (
+                          <span className="cp-warn is-draft">{UNPLACEABLE_BADGE}</span>
+                        )}
                       </div>
                       <div className="cp-cand-title">{w.title || <em>Untitled</em>}</div>
                       <div className="cp-row-stem">
                         {w.childCount} published question{w.childCount === 1 ? '' : 's'}
                         {w.bands.length ? ` · ${w.bands.join(', ')}` : ' · no difficulty set'}
                       </div>
-                      {blocked && <div className="cp-cand-blocked">{BLOCKED_NOTE}</div>}
+                      {reason && <div className="cp-cand-blocked">{reason}</div>}
                     </div>
                   </label>
                 );
@@ -326,8 +370,8 @@ export function ReserveDrawer({
 
         <div className="cp-drawer-foot">
           <p>
-            Reserving writes the CAT-pool flag on the row: standalone questions on their own,
-            cases and trends on the wrapper — children inherit.
+            Reserving writes the CAT-pool flag: questions on their own row — standalone and
+            trend-linked alike — and cases on the wrapper, which carries its questions with it.
           </p>
           {picked.size > 0 && (
             <button type="button" className="cp-link-btn" onClick={() => setPicked(new Set())}>

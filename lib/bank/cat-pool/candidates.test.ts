@@ -7,10 +7,13 @@ import {
   toggleFacet,
   facetSummary,
   filterQuestions,
+  filterTrendQuestions,
   filterWrappers,
   selectableIds,
   allSelected,
   commitLabel,
+  isCaseBlocked,
+  caseBlockReason,
   EMPTY_FACETS,
   FACET_DEFS,
   type CandidateQuestion,
@@ -28,6 +31,8 @@ const q = (over: Partial<CandidateQuestion> = {}): CandidateQuestion => ({
   nursingSubject: 'Medical-Surgical',
   bloomLevel: 'Apply',
   readinessTagged: false,
+  trendId: null,
+  trendTitle: null,
   ...over,
 });
 
@@ -38,6 +43,7 @@ const w = (over: Partial<CandidateWrapper> = {}): CandidateWrapper => ({
   childCount: 6,
   bands: ['Medium', 'Hard'],
   readinessTagged: false,
+  unplaceableChildren: 0,
   ...over,
 });
 
@@ -134,15 +140,66 @@ describe('filterQuestions', () => {
 });
 
 describe('filterWrappers', () => {
-  const rows = [w({ wrapperId: 'CS_1', title: 'Sepsis case' }), w({ wrapperId: 'TR_1', kind: 'trend', title: 'Insulin chart' })];
+  const rows = [
+    w({ wrapperId: 'CS_1', title: 'Sepsis case' }),
+    w({ wrapperId: 'CS_2', title: 'Insulin titration' }),
+  ];
 
   it('searches id and title', () => {
     expect(filterWrappers(rows, 'sepsis').map((r) => r.wrapperId)).toEqual(['CS_1']);
-    expect(filterWrappers(rows, 'TR_').map((r) => r.wrapperId)).toEqual(['TR_1']);
+    expect(filterWrappers(rows, 'CS_2').map((r) => r.wrapperId)).toEqual(['CS_2']);
   });
 
   it('returns everything for an empty search', () => {
     expect(filterWrappers(rows, '  ')).toHaveLength(2);
+  });
+});
+
+describe('filterTrendQuestions', () => {
+  const rows = [
+    q({ itemId: 'T1', stem: 'Which change requires escalation?', trendId: 'NCLEX_TRD_00018', trendTitle: 'Four-day sepsis chart', difficulty: 'Hard' }),
+    q({ itemId: 'T2', stem: 'Complete the insulin adjustment.', trendId: 'NCLEX_TRD_00027', trendTitle: 'Insulin titration', difficulty: 'Medium' }),
+  ];
+
+  it('searches the DATASET as well as the question — a curator hunts the scenario', () => {
+    expect(filterTrendQuestions(rows, EMPTY_FACETS, 'sepsis chart').map((r) => r.itemId)).toEqual(['T1']);
+    expect(filterTrendQuestions(rows, EMPTY_FACETS, 'TRD_00027').map((r) => r.itemId)).toEqual(['T2']);
+  });
+
+  it('applies the same facets any other question gets', () => {
+    // A trend question is an ordinary question at selection time, so it is
+    // filterable on every axis rather than by text alone.
+    expect(filterTrendQuestions(rows, facets({ diff: ['Hard'] }), '').map((r) => r.itemId)).toEqual(['T1']);
+  });
+
+  it('combines a facet and a dataset search', () => {
+    expect(filterTrendQuestions(rows, facets({ diff: ['Hard'] }), 'insulin')).toHaveLength(0);
+  });
+});
+
+describe('caseBlockReason — a case that cannot be placed', () => {
+  it('blocks a case whose child has no difficulty band', () => {
+    const c = w({ unplaceableChildren: 1 });
+    expect(isCaseBlocked(c)).toBe(true);
+    expect(caseBlockReason(c)).toContain('no difficulty band');
+    expect(caseBlockReason(c)).toContain('1 question');
+  });
+
+  it('pluralises the count', () => {
+    expect(caseBlockReason(w({ unplaceableChildren: 6 }))).toContain('6 questions');
+  });
+
+  it('lets a complete, untagged case through', () => {
+    const c = w();
+    expect(isCaseBlocked(c)).toBe(false);
+    expect(caseBlockReason(c)).toBeNull();
+  });
+
+  it('reports readiness first when a case is both', () => {
+    // Mutual exclusivity is the harder rule — releasing the pack is the fix,
+    // and setting a difficulty band would not unblock it.
+    const c = w({ readinessTagged: true, unplaceableChildren: 2 });
+    expect(caseBlockReason(c)).not.toContain('difficulty band');
   });
 });
 

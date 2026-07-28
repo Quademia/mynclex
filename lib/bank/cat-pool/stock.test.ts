@@ -223,15 +223,32 @@ describe('auditCounts', () => {
       {},
     );
     expect(auditCounts(rows)).toEqual({
-      builder: 2, draft: 1, readiness: 1,
+      builder: 2, draft: 1, readiness: 1, unplaceable: 0,
       anyWarning: 3,   // A4 is clean
     });
   });
 
   it('is all zeroes for a clean pool', () => {
     expect(auditCounts(toStockRows([item()], {}))).toEqual({
-      builder: 0, readiness: 0, draft: 0, anyWarning: 0,
+      builder: 0, readiness: 0, draft: 0, unplaceable: 0, anyWarning: 0,
     });
+  });
+
+  it('counts an unplaceable row — the condition the DB check no longer catches', () => {
+    // A case child is exempt from the placeability constraint on purpose (the
+    // cascade trigger would otherwise make an unplaceable child unsaveable),
+    // so this lens is where it has to become visible.
+    const rows = toStockRows(
+      [
+        item({ itemId: 'B1', source: 'case', wrapperId: 'CS_1', difficulty: null }),
+        item({ itemId: 'B2', source: 'case', wrapperId: 'CS_1', subcategory: null }),
+        item({ itemId: 'B3', source: 'case', wrapperId: 'CS_1' }),
+      ],
+      {},
+    );
+    const counts = auditCounts(rows);
+    expect(counts.unplaceable).toBe(2);
+    expect(counts.anyWarning).toBe(2);
   });
 
   it('agrees with the list its card links to', () => {
@@ -271,11 +288,25 @@ describe('releaseTargetFor', () => {
     expect(t).toMatchObject({ kind: 'item', id: 'A1', label: 'Release' });
   });
 
-  it('releases the WRAPPER for an inherited row, and says so', () => {
+  it('releases the CASE for one of its children, and says so', () => {
     const t = releaseTargetFor(rows[1]);
     expect(t.kind).toBe('case');
     expect(t.id).toBe('CS_1');           // not B1
-    expect(t.label).toBe('Release wrapper');
+    expect(t.label).toBe('Release case');
+  });
+
+  it('releases a TREND question on its own — a dataset is not a unit', () => {
+    // The whole point of the regrain: reserving and releasing happen per
+    // question, so releasing one leaves its siblings on the same chart alone.
+    const trend = toStockRows(
+      [item({ itemId: 'C1', source: 'trend', wrapperId: 'TR_1' })],
+      { TR_1: 'Insulin chart' },
+    )[0];
+    const t = releaseTargetFor(trend);
+    expect(t.kind).toBe('item');
+    expect(t.id).toBe('C1');             // not TR_1
+    expect(t.label).toBe('Release');
+    expect(t.title).toContain('unaffected');
   });
 });
 
@@ -306,12 +337,31 @@ describe('summariseSelection', () => {
     expect(s.questionsAffected).toBe(3);
   });
 
-  it('mixes standalone and wrapper targets', () => {
-    const s = summariseSelection(rows, new Set(['item:A1', 'case:CS_1', 'trend:TR_1']));
-    expect(s.standalone).toBe(1);
-    expect(s.wrappers).toBe(2);
-    expect(s.questionsAffected).toBe(1 + 3 + 1);
+  it('mixes standalone, trend and case targets', () => {
+    // A trend row selects ITSELF (`item:C1`), not its dataset — so this is
+    // two individual questions plus one case, not three wrappers.
+    const s = summariseSelection(rows, new Set(['item:A1', 'item:C1', 'case:CS_1']));
+    expect(s.standalone).toBe(2);
+    expect(s.wrappers).toBe(1);
+    expect(s.questionsAffected).toBe(1 + 1 + 3);
     expect(s.targets).toHaveLength(3);
+  });
+
+  it('never collapses trend questions onto their dataset', () => {
+    // Two questions on one chart are two separate releases.
+    const sameChart = toStockRows(
+      [
+        item({ itemId: 'C1', source: 'trend', wrapperId: 'TR_1' }),
+        item({ itemId: 'C2', source: 'trend', wrapperId: 'TR_1' }),
+      ],
+      { TR_1: 'Insulin chart' },
+    );
+    const s = summariseSelection(sameChart, new Set(['item:C1', 'item:C2']));
+    expect(s.targets).toEqual([
+      { kind: 'item', id: 'C1' },
+      { kind: 'item', id: 'C2' },
+    ]);
+    expect(s.wrappers).toBe(0);
   });
 
   it('is empty for an empty selection', () => {

@@ -33,7 +33,6 @@ import {
   upsertTabAction,
   deleteTabAction,
 } from './actions';
-import { CAT_POOL_LABEL, CAT_POOL_HELP } from '@/lib/bank/atoms/cat-pool';
 import { TrendTabRail } from './tab-rail';
 import { DeleteTrendConfirm } from './delete-trend-confirm';
 import { PublishNeedsDatasetNotice } from './publish-needs-dataset-notice';
@@ -223,7 +222,6 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   const [isBuilderVisible, setIsBuilderVisible] = useState(datasetRow.is_builder_visible);
   // §20 (10b1) — reserve the whole trend as CAT-pool stock; children inherit.
   // Admin-only (surface === 'admin').
-  const [catPool, setCatPool] = useState(datasetRow.cat_pool);
   // Wrapper tags — held as the raw comma-separated input text; parsed to
   // an array at compare time so cosmetic spacing isn't "dirty".
   const [tagsText, setTagsText] = useState((datasetRow.tags ?? []).join(', '));
@@ -361,12 +359,11 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     if (isPublished       !== datasetRow.is_published)       return true;
     if (isFreeSample      !== datasetRow.is_free_sample)     return true;
     if (isBuilderVisible  !== datasetRow.is_builder_visible) return true;
-    if (catPool           !== datasetRow.cat_pool)          return true;
     if (parseTagsText(tagsText).join(' ') !== (datasetRow.tags ?? []).join(' ')) return true;
     return false;
   }, [
     title, scenario, initialScenarioSerialized,
-    isPublished, isFreeSample, isBuilderVisible, catPool, tagsText,
+    isPublished, isFreeSample, isBuilderVisible, tagsText,
     datasetRow,
   ]);
 
@@ -393,7 +390,6 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
     if (isPublished)      fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
-    if (catPool)          fd.set('cat_pool', 'on');
     return fd;
   }
 
@@ -854,15 +850,12 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
                     isPublished={isPublished}
                     isFreeSample={isFreeSample}
                     isBuilderVisible={isBuilderVisible}
-                    catPool={catPool}
-                    canReserveCat={surface === 'admin'}
                     onTitleChange={setTitle}
                     onScenarioChange={setScenario}
                     onTagsTextChange={setTagsText}
                     onIsPublishedChange={setIsPublished}
                     onIsFreeSampleChange={setIsFreeSample}
                     onIsBuilderVisibleChange={setIsBuilderVisible}
-                    onCatPoolChange={setCatPool}
                   />
                 ) : (
                   <div className="cs-chart-layout">
@@ -1132,15 +1125,12 @@ function DatasetView({
   isPublished,
   isFreeSample,
   isBuilderVisible,
-  catPool,
-  canReserveCat,
   onTitleChange,
   onScenarioChange,
   onTagsTextChange,
   onIsPublishedChange,
   onIsFreeSampleChange,
   onIsBuilderVisibleChange,
-  onCatPoolChange,
 }: {
   title:                    string;
   scenario:                 RichDoc;
@@ -1148,15 +1138,12 @@ function DatasetView({
   isPublished:              boolean;
   isFreeSample:             boolean;
   isBuilderVisible:         boolean;
-  catPool:                  boolean;
-  canReserveCat:            boolean;
   onTitleChange:            (next: string) => void;
   onScenarioChange:         (next: RichDoc) => void;
   onTagsTextChange:         (next: string) => void;
   onIsPublishedChange:      (next: boolean) => void;
   onIsFreeSampleChange:     (next: boolean) => void;
   onIsBuilderVisibleChange: (next: boolean) => void;
-  onCatPoolChange:          (next: boolean) => void;
 }) {
   return (
     <div className="auth-tr-dataset-view">
@@ -1218,14 +1205,15 @@ function DatasetView({
             onChange={onIsBuilderVisibleChange}
             hint="No effect on trends — each question sets its own builder visibility."
           />
-          {canReserveCat && (
-            <VisibilityFlag
-              label={CAT_POOL_LABEL}
-              on={catPool}
-              onChange={onCatPoolChange}
-              hint={CAT_POOL_HELP}
-            />
-          )}
+          {/*
+            No "Reserve for CAT" tick here, and deliberately so. A dataset is
+            not a selection unit anywhere in the product — the exam picks trend
+            questions individually, one per dataset per sitting — so reserving
+            the dataset would reserve something nothing ever draws. Each
+            question carries its own tick, exactly as the builder-visibility
+            hint above already describes for that flag.
+            (Migration 20260822120000.)
+          */}
         </div>
       </section>
     </div>
