@@ -317,40 +317,31 @@
 
 /* ── audit lens ─────────────────────────────────────────────── */
 
-.cp-audit {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 12px;
-}
+/* Full-width cards in a vertical stack, each laid out horizontally: a round
+   icon, then the content column. Three cards side by side would squeeze the
+   body copy into a narrow column and put the counts out of vertical alignment
+   with each other, which is what makes a stack scan. */
+.cp-audit { display: flex; flex-direction: column; gap: 16px; }
+
 .cp-auditcard {
   background: var(--surface, #fff);
   border: 1px solid var(--border-soft, #e5e7eb);
-  border-left: 3px solid #9ca3af;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   padding: 16px 18px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  gap: 16px;
   align-items: flex-start;
 }
-.cp-auditcard.is-warn { border-left-color: #d97706; }
-.cp-auditcard.is-danger { border-left-color: #dc2626; }
-.cp-auditcard.is-muted { border-left-color: #9ca3af; }
-/* A cleared condition loses its colour — nothing to act on. */
-.cp-auditcard.is-clean { border-left-color: #2d7d72; }
-
-.cp-auditcard-head { display: flex; align-items: flex-start; gap: 11px; }
-.cp-auditcard-head h3 { margin: 0; font-size: 13px; font-weight: 700; }
 
 .cp-auditicon {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   flex: none;
   background: #eef0f3;
@@ -360,12 +351,27 @@
 .cp-auditcard.is-danger .cp-auditicon { background: #fef2f2; color: #dc2626; }
 .cp-auditcard.is-clean .cp-auditicon { background: #edf6f5; color: #235f56; }
 
-.cp-auditcount {
-  margin: 3px 0 0;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text, #111827);
+.cp-auditcard-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
+
+/* Title and count share a baseline row, so the number reads as part of the
+   heading rather than as a separate fact under it. */
+.cp-auditcard-title {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.cp-auditcard-title h3 { margin: 0; font-size: 14px; font-weight: 700; }
+
+.cp-auditcount { font-size: 12px; font-weight: 600; color: #b45309; }
+.cp-auditcard.is-danger .cp-auditcount { color: #dc2626; }
+.cp-auditcard.is-muted .cp-auditcount { color: #6b7280; }
 .cp-auditcard.is-clean .cp-auditcount { color: #235f56; }
 
 .cp-auditbody {
@@ -373,16 +379,34 @@
   font-size: 12.5px;
   line-height: 1.55;
   color: var(--muted, #6b7280);
+  max-width: 660px;
 }
+
+.cp-auditactions { display: flex; gap: 9px; margin-top: 4px; }
+.cp-auditbtn {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border, #cbd5e1);
+  background: var(--surface, #fff);
+  color: var(--text, #111827);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.cp-auditbtn:hover { background: #eef0f3; text-decoration: none; }
 /* The "expected for now" note — quieter than the body it qualifies. */
 .cp-auditaside {
-  margin: 0;
+  margin: 2px 0 0;
   padding: 8px 10px;
   border-radius: 6px;
   background: #f9fafb;
   font-size: 11.5px;
   line-height: 1.5;
   color: #9ca3af;
+  max-width: 660px;
 }
 
 /* ── reserved stock pane ────────────────────────────────────── */

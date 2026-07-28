@@ -67,41 +67,44 @@ export function AuditLens({ counts, view }: { counts: AuditCounts; view: StockVi
 
           return (
             <section key={c.key} className={`cp-auditcard is-${c.tone}${clean ? ' is-clean' : ''}`}>
-              <div className="cp-auditcard-head">
-                <span className="cp-auditicon" aria-hidden="true">
-                  {clean ? '✓' : c.icon}
-                </span>
-                <div>
+              <span className="cp-auditicon" aria-hidden="true">
+                {clean ? '✓' : c.icon}
+              </span>
+
+              <div className="cp-auditcard-body">
+                <div className="cp-auditcard-title">
                   <h3>{c.title}</h3>
-                  <p className="cp-auditcount">
+                  <span className="cp-auditcount">
                     {clean ? 'Nothing to fix' : `${n.toLocaleString()} question${n === 1 ? '' : 's'}`}
-                  </p>
+                  </span>
                 </div>
+
+                <p className="cp-auditbody">{c.body}</p>
+
+                {c.aside && !clean && <p className="cp-auditaside">{c.aside}</p>}
+
+                {!clean && (
+                  <div className="cp-auditactions">
+                    <Link
+                      className="cp-auditbtn"
+                      href={buildStockUrl('/admin/cat-pool', {
+                        ...view,
+                        lens: 'stock',
+                        // The card's own condition, so each button lands on its
+                        // own subset rather than a generic "has a warning" list.
+                        warnType: c.key,
+                        warnOnly: false,
+                        source: 'all',
+                        difficulty: 'all',
+                        q: '',
+                        limit: 50,
+                      })}
+                    >
+                      Review these rows
+                    </Link>
+                  </div>
+                )}
               </div>
-
-              <p className="cp-auditbody">{c.body}</p>
-
-              {c.aside && !clean && <p className="cp-auditaside">{c.aside}</p>}
-
-              {!clean && (
-                <Link
-                  className="cp-btn cp-btn--ghost"
-                  href={buildStockUrl('/admin/cat-pool', {
-                    ...view,
-                    lens: 'stock',
-                    // The card's own condition, so each button lands on its own
-                    // subset rather than a generic "has a warning" list.
-                    warnType: c.key,
-                    warnOnly: false,
-                    source: 'all',
-                    difficulty: 'all',
-                    q: '',
-                    limit: 50,
-                  })}
-                >
-                  Review these rows →
-                </Link>
-              )}
             </section>
           );
         })}
