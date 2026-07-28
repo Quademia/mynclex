@@ -171,8 +171,28 @@
 >         RLS (no new policy). Shared copy `lib/bank/atoms/cat-pool.ts`. ⚠ Diverged
 >         from §20.2: a boolean column, not a `UNIQUE` reservation table → the
 >         mutual-exclusivity guard is deferred to 10b3.
->       - ⬜ **10b2 — admin CAT-pool management page** (coverage on difficulty + the 8
->         blueprint categories, how-far-to-target, reserved-stock lens).
+>       - ✅ **10b2 — admin CAT-pool management page — BUILT 2026-07-28** (all four
+>         sub-slices, from the v1 Claude Design prototype; on `main`, no migration).
+>         **`/admin/cat-pool`, top-level beside Readiness Packs** — the Bank group's
+>         children all *author* content; this *allocates* already-authored stock,
+>         exactly as packs does. One route, three panes via `?lens=` (in the URL, not
+>         `useState`, because Load-more is a soft navigation), all reading one
+>         snapshot. **Coverage** (targets, five-band spread with Set⟷Calibrated,
+>         blueprint vs NCLEX ranges, wrapper supply as sittings covered) ·
+>         **Reserved stock** (flat list, 50-at-a-time Load more, honest "N of M";
+>         grouped only when filtered to case/trend; release always confirms; bulk
+>         release collapses a wrapper's children to one target) · **Audit** (three
+>         cards, each deep-linking to its own subset) · **Reserve drawer**
+>         (`?reserve=1`; published practice-eligible stock only; the **§20.5
+>         mutual-exclusivity guard** enforced in the UI *and* re-checked server-side,
+>         since 10b1's boolean leaves no constraint).
+>         ⚠ **NOT visually verified** — behind an admin login; Sam tests next session.
+>         ⚠ **Dev coverage numbers are inflated:** 1,811 of 2,393 reserved standalones
+>         are `DEV_CAT_POOL` filler, so "how far to target" reads ~2,393/2,400 when the
+>         genuine reservation is **582**. Prod is unaffected. Don't "fix" the design for it.
+>         ⚠ Left out on purpose: the audit's **"Hide all N"** button (it would clear
+>         builder visibility on 2,825 questions in one click — that is 10b3's call).
+>         ⚠ The reserve drawer takes **~6s** to open on dev's ~1,700-row free pool.
 >       - ⬜ **10b3 — CAT selection draws only from `cat_pool`** (children of reserved
 >         wrappers included via inheritance), leaks close, + the mutual-exclusivity guard.
 >     - ⬜ **10c — the recalibration job** (§5.3 / §17). Weekly GitHub Actions
