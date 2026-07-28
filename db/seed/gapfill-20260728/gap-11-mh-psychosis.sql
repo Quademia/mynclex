@@ -13,7 +13,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_550001', 'MCQ',
  'During an evening shift on a mental health unit, a client points at a dressing gown hanging on the back of the door and says that a man is standing in the corner watching her. When the nurse switches on the light, the client looks again and says it is only her dressing gown. Which term describes what the client experienced?',
@@ -22,7 +22,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"C","feedback":{"A":"Incorrect. A delusion is a fixed false belief that persists despite contrary evidence, whereas this client accepted the correction at once.","B":"Incorrect. A hallucination occurs with no external stimulus, but a real dressing gown was hanging on the door.","C":"Correct. An illusion is a misinterpretation of a real external stimulus and resolves when the stimulus is made clear.","D":"Incorrect. Confabulation is the filling of a memory gap with invented detail, not the misreading of an object that is present."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Altered perception', 'Illusion', 'Very easy', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550002', 'MCQ',
  'A client with schizophrenia tells the nurse during a morning ward round that the government has placed his name on a secret list and that the staff have been paid to report on him. He has held this belief for several months and it does not change when he is shown his admission paperwork. Which term best describes this finding?',
@@ -31,7 +31,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. The theme is of being watched, listed and plotted against, which is the persecutory subtype of delusion.","B":"Incorrect. Nothing in the report describes a sensory experience such as hearing a voice; this is a belief, not a perception.","C":"Incorrect. An illusion is a misperception of a real object, and there is no misread stimulus here.","D":"Incorrect. A grandiose delusion involves inflated worth, power or identity, not the belief that one is being persecuted."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Delusions', 'Persecutory delusion', 'Easy', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550003', 'MCQ',
  'An older client on a surgical ward becomes frightened during the night and tells the nurse that the intravenous pole beside the bed is a person holding a knife. The pole is casting a long shadow across the wall. Which action by the nurse is BEST?',
@@ -40,7 +40,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. An illusion is a misread real stimulus, so altering the lighting and identifying the object with the client corrects the perception at source.","B":"Incorrect. Bald contradiction argues with a frightened client and does nothing about the shadow that is producing the fear.","C":"Incorrect. Sedation is not the first response to a correctable environmental misperception and increases the risk of falls and delirium.","D":"Incorrect. Leaving the room dark preserves the very stimulus that is being misinterpreted and abandons a frightened client."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Altered perception', 'Nursing response to an illusion', 'Medium', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550004', 'MCQ',
  'A client admitted with acute mania tells the nurse that he owns the hospital, that the consultant reports to him, and that he is leaving now to address the board of directors. Which response by the nurse is most therapeutic?',
@@ -49,7 +49,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Flat contradiction with no acknowledgement of the feeling invites an argument and a power struggle with a manic client.","B":"Correct. It acknowledges the feeling, states the nurse view of reality once without debate, and sets a clear limit.","C":"Incorrect. Demanding proof engages with the delusion on its own terms and tends to strengthen it.","D":"Incorrect. Exploring the content in detail rehearses and reinforces the delusional belief rather than easing the distress behind it."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Delusions', 'Grandiose delusion', 'Medium', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550005', 'MCQ',
  'A client with schizophrenia is sitting rigidly in the day room, appears to be listening to something the nurse cannot hear, and says that the voices are back and are very loud today. Which action should the nurse take FIRST?',
@@ -58,7 +58,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. The content of the voice determines whether it is a command to harm, so this assessment must come before any intervention.","B":"Incorrect. Denying the experience is not reassuring to the client and gathers no information about risk.","C":"Incorrect. Raising the observation level is likely to be needed, but the level chosen depends on what the voices are saying.","D":"Incorrect. Medication may help, but giving it before assessing the content leaves the immediate risk unknown."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Mental Health', 'Psychiatric/Mental Health',
  'Hallucinations', 'Command hallucinations', 'Hard', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550006', 'MCQ',
  'A client with schizophrenia has refused all meals for two days, saying that the staff are putting poison in the food. The client is alert, oriented and medically stable. Which response by the nurse is most appropriate?',
@@ -67,7 +67,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. It names the feeling, presents reality once without argument, and offers a practical alternative the client can accept.","B":"Incorrect. Marshalling evidence turns the exchange into a debate the nurse cannot win and tends to harden the belief.","C":"Incorrect. Asking who is responsible explores and elaborates the delusion instead of addressing the fear behind it.","D":"Incorrect. Using a procedure as a threat is coercive, damages trust and is not a therapeutic response to a delusion."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Therapeutic response to psychosis', 'Psychosis in a functional disorder', 'Medium', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550007', 'MCQ',
  'A client with moderate Alzheimer disease on a care-of-the-older-person ward tells the nurse every afternoon that the staff are stealing her clothes and putting poison in her tea. She becomes tearful each time she is told that this is not happening. Which response by the nurse is most appropriate?',
@@ -76,7 +76,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Acknowledging the feeling and redirecting to a familiar activity works with a client who cannot retain a correction.","B":"Incorrect. Repeated reality presentation is not retained in dementia and simply repeats the distress of being contradicted.","C":"Incorrect. Defending the staff argues with the accusation and misses the fear and loss of control underneath it.","D":"Incorrect. Investigating the accusation as fact elaborates the false belief and delays the comfort the client needs."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Therapeutic response to psychosis', 'Psychosis in dementia', 'Hard', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550008', 'MCQ',
  'A client is two days after a hip hemiarthroplasty and has become acutely confused overnight, having been fully oriented on admission. She grips the arm of the nurse and says that the staff have put poison in the drip and that insects are crawling over the bed. Her temperature is 38.4 °C and her urine is cloudy and offensive. Which response by the nurse is most appropriate?',
@@ -85,7 +85,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. It reassures about safety, explains that the state is temporary, and acts on the likely urinary cause of the delirium.","B":"Incorrect. Flat contradiction offers no reassurance and does nothing about the infection driving the confusion.","C":"Incorrect. Redirection is the approach for dementia; in delirium the priority is reassurance plus treatment of the reversible cause.","D":"Incorrect. Sedating first can worsen and prolong delirium and delays identification of the underlying infection."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Therapeutic response to psychosis', 'Psychosis in delirium', 'Hard', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550009', 'MCQ',
  'A client with advanced dementia puts on her coat at four o''clock every afternoon and tells the healthcare assistant that she must go home because her mother is waiting to give her tea. The mother of the client died forty years ago. The healthcare assistant asks the nurse what she should say. Which instruction by the nurse is most appropriate?',
@@ -94,7 +94,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. It joins the feeling the client is expressing and redirects to a present-day activity linked to what she is seeking.","B":"Incorrect. The client cannot retain the information, so the bereavement is experienced afresh each time she is told.","C":"Incorrect. Inventing a message is a deliberate untruth that unravels when another member of staff answers differently.","D":"Incorrect. Removing the coat without acknowledgement is dismissive and is likely to provoke distress and resistance."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Therapeutic response to psychosis', 'Reality orientation versus redirection', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550010', 'MCQ',
  'A healthcare assistant reports that an 82-year-old client admitted three days ago for rehabilitation has become confused since the night shift, is pulling at the bedding and did not recognise her daughter this morning. The client was fully oriented on admission. Which action is the PRIORITY for the nurse?',
@@ -103,13 +103,13 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Acute confusion in an older client signals delirium, and the priority is to find the reversible physical cause.","B":"Incorrect. Dementia develops over months to years; labelling a sudden change as dementia misses a treatable illness.","C":"Incorrect. Isolation in an unfamiliar side room often worsens delirium and does not address the cause.","D":"Incorrect. Familiar company is helpful support but does not identify or treat the underlying physical problem."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Mental Health', 'Psychiatric/Mental Health',
  'Delirium', 'Reversible causes', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_550011', 'MCQ',
  'A client admitted with bipolar disorder in a manic phase says rapidly: I need my shoes, shoes are for walking, walking to the shop, the shop sells bread, bread and butter, my brother is butter fingers at football. Each idea is loosely connected to the one before it. Which term describes this speech pattern?',
@@ -118,7 +118,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Rapid speech in which each idea is linked to the last by a loose but traceable association is flight of ideas.","B":"Incorrect. Word salad is a jumble of words with no grammatical or logical connection at all.","C":"Incorrect. A neologism is a word invented by the client that has meaning only to him.","D":"Incorrect. Thought blocking is a sudden stop in mid-sentence with the thought lost, which is the opposite of this pressured flow."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Disordered thought and speech', 'Flight of ideas', 'Very easy', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550012', 'MCQ',
  'The brother of a client with schizophrenia tells the community nurse that the client sits in one chair all day, says almost nothing and has stopped washing, and that he is simply lazy and needs to be pushed harder. Which response by the nurse is most appropriate?',
@@ -127,7 +127,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. It renames the behaviour accurately as negative symptoms and gives a realistic expectation of how change happens.","B":"Incorrect. A full timetable imposed on a client with avolition sets him up to fail and increases conflict at home.","C":"Incorrect. Negative symptoms overlap with depression but jumping to a medication change bypasses assessment by the team.","D":"Incorrect. This is false reassurance and a guarantee of an outcome the nurse cannot promise."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Schizophrenia', 'Negative symptoms', 'Hard', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550013', 'MCQ',
  'On the day of discharge a client hands the nurse a wrapped box of chocolates and a card, saying that the nurse has been very kind to her. Which response by the nurse is most appropriate?',
@@ -136,7 +136,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. It acknowledges the feeling behind the gift, declines it clearly, and redirects to something the team can accept.","B":"Incorrect. Needing to hide a gift from colleagues is a sign that the professional boundary is being crossed.","C":"Incorrect. A blunt refusal maintains the boundary but rejects the gratitude the client is trying to express.","D":"Incorrect. Making an exception is still acceptance and sets a precedent that erodes the boundary."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Professional boundaries', 'Gifts', 'Very easy', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550014', 'MCQ',
  'A client being treated for depression says to the nurse: My husband drinks every night and I cannot cope any more. Do you think I should leave him? Which response by the nurse is most therapeutic?',
@@ -145,7 +145,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. It turns the question back to the client and invites her to explore the decision, keeping her talking.","B":"Incorrect. Giving advice removes the decision from the client and makes the nurse responsible for the outcome.","C":"Incorrect. Referring the client elsewhere ends a conversation she is ready to have now; keeping her talking is preferable.","D":"Incorrect. A why question demands justification and typically produces defensiveness rather than reflection."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Therapeutic communication', 'Giving advice', 'Medium', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550015', 'MCQ',
  'A client whose mother died last week says quietly to the nurse: I keep setting a place for her at the table. Which response by the nurse best demonstrates empathy?',
@@ -154,7 +154,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. It names the feeling the client is expressing and invites her to say more, which is empathy.","B":"Incorrect. This is sympathy combined with self-disclosure and moves the focus from the client to the nurse.","C":"Incorrect. Telling the client not to dwell on the loss minimises it and offers false reassurance.","D":"Incorrect. Looking for a positive in a bereavement minimises the loss and tends to close the conversation."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Therapeutic communication', 'Empathy versus sympathy', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_550016', 'MCQ',
  'A client admitted eight days ago with severe depression and thoughts of ending his life has been withdrawn and has spent most of the time in bed. This morning he is washed and dressed, has eaten a full breakfast, is smiling, and has given his favourite watch to another client. Which action is the PRIORITY for the nurse?',
@@ -163,7 +163,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Returning energy plus giving away a valued possession suggests a decision has been made, so observation and direct questioning come first.","B":"Incorrect. Documenting the change as improvement misreads a recognised warning sign and leaves the client unprotected.","C":"Incorrect. Retrieving the watch deals with the object rather than the intent it may signal.","D":"Incorrect. Reducing observation during the period of returning energy removes protection at the point of highest risk."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Mental Health', 'Psychiatric/Mental Health',
  'Suicide risk', 'Period of improving energy', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_550017', 'SATA',
  'The nurse reviews statements recorded from several clients on a mental health unit. Which statements describe a hallucination? Select all that apply.',
@@ -172,7 +172,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","C","F"],"feedback":{"A":"Correct. Hearing a voice when no one is present is an auditory hallucination, the commonest modality.","B":"Incorrect. This is a somatic delusion, a fixed false belief about the body rather than a sensory perception.","C":"Correct. Feeling insects on or under the skin with no stimulus present is a tactile hallucination.","D":"Incorrect. This is an idea of reference, a referential delusion in which neutral events are believed to carry personal messages.","E":"Incorrect. A coat mistaken for a person is an illusion, because a real object was misinterpreted and the perception corrected.","F":"Correct. Smelling something that is not there and that others cannot detect is an olfactory hallucination."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Altered perception', 'Hallucination versus delusion versus illusion', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_550018', 'SATA',
  'A client with schizophrenia tells the nurse that a voice is instructing him to hurt the client in the next bed. Which nursing actions are appropriate? Select all that apply.',
@@ -181,7 +181,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Intent to act is the single most important piece of information and must be asked about directly.","B":"Correct. A command to harm another person is escalated to the team immediately so that risk can be managed collectively.","C":"Correct. Increased observation is the standard protective response to a command hallucination directed at another person.","D":"Incorrect. Denying the experience is not reassuring, damages trust and does nothing to reduce the risk.","E":"Correct. Separating the person named and removing potential weapons reduces opportunity while the risk is assessed.","F":"Incorrect. Leaving the client unobserved removes supervision at the point of greatest risk and often intensifies the voices."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Mental Health', 'Psychiatric/Mental Health',
  'Hallucinations', 'Risk to others from command hallucinations', 'Hard', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_550019', 'SATA',
  'An older client is admitted from home with confusion, and the family are unsure how long it has been present. Which findings suggest delirium rather than dementia? Select all that apply.',
@@ -190,7 +190,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","E"],"feedback":{"A":"Correct. Onset over hours to days is the hallmark of delirium; dementia develops over months to years.","B":"Correct. Fluctuating, impaired attention is the defining cognitive feature of delirium.","C":"Incorrect. A slow decline over years describes dementia rather than an acute confusional state.","D":"Correct. Visual hallucinations are far more common in delirium than in the early stages of dementia.","E":"Correct. Reversal of the sleep-wake cycle with night-time worsening is characteristic of delirium.","F":"Incorrect. Consciousness is clouded and fluctuates in delirium; preserved alertness points towards dementia."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Delirium versus dementia', 'Distinguishing features', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_550020', 'SATA',
  'A client on a surgical ward develops acute confusion on the second postoperative day. Which reversible causes should the nurse screen for? Select all that apply.',
@@ -199,13 +199,13 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Urinary infection is the single commonest reversible trigger of delirium in older inpatients.","B":"Correct. Sodium disturbance is a frequent and readily correctable cause of acute confusion.","C":"Correct. Hypoxia impairs cerebral function quickly and is reversed by oxygen and treatment of the cause.","D":"Correct. A full bladder and unrelieved pain are common, easily missed and immediately treatable causes.","E":"Incorrect. Long-standing hearing loss increases vulnerability to delirium but is not a reversible cause of this episode.","F":"Incorrect. Family history relates to dementia risk and cannot be treated to reverse acute confusion.","G":"Incorrect. Advanced age is a risk factor for delirium, not a cause that can be corrected."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Mental Health', 'Psychiatric/Mental Health',
  'Delirium', 'Screening for underlying causes', 'Easy', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_SATA_550021', 'SATA',
  'A nurse is reviewing recorded interactions with a student nurse on a mental health placement. Which nurse responses should be identified as non-therapeutic? Select all that apply.',
@@ -214,7 +214,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. This guarantees an outcome the nurse cannot control and is false reassurance.","B":"Correct. A why question asks the client to justify herself and typically produces defensiveness rather than reflection.","C":"Correct. Giving advice transfers the decision from the client to the nurse and undermines autonomy.","D":"Correct. Idiom and figurative language are avoided with a client who thinks concretely and may take the phrase literally.","E":"Incorrect. This is restating followed by an open invitation and is therapeutic.","F":"Incorrect. Offering self communicates worth and availability without demanding anything, and is therapeutic.","G":"Incorrect. Purposeful silence gives the client time to think and is a recognised therapeutic technique."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Therapeutic communication', 'Non-therapeutic responses', 'Easy', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_550022', 'SATA',
  'A newly qualified nurse asks what is meant by milieu therapy on an inpatient mental health unit. Which features should the nurse include in the explanation? Select all that apply.',
@@ -223,7 +223,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Using the environment deliberately as a therapeutic agent is the defining idea of milieu therapy.","B":"Correct. Consistent limits applied by every member of staff are what make the environment predictable and safe.","C":"Correct. Community meetings give clients a share in the running of the unit and a place to practise social skills.","D":"Incorrect. Keeping clients apart removes the peer interaction that milieu therapy depends on.","E":"Correct. A predictable daily structure reduces anxiety and supports the return of normal functioning.","F":"Incorrect. Excluding clients from decisions removes the shared responsibility that defines a therapeutic milieu."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Mental Health', 'Psychiatric/Mental Health',
  'Milieu therapy', 'Features of a therapeutic environment', 'Medium', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_550023', 'SATA',
  'The nurse observes a client in the day room shortly after a visitor has left. Which findings are early warning signs that the client may become aggressive? Select all that apply.',
@@ -232,7 +232,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Motor restlessness such as rapid pacing is one of the earliest signs of rising arousal.","B":"Correct. Increased muscle tension in the hands and jaw signals that arousal is building towards action.","C":"Correct. A rising rate and volume of speech commonly precedes verbal and then physical aggression.","D":"Incorrect. Quiet, settled activity is not a warning sign of impending aggression.","E":"Correct. Prolonged, fixed staring at another person is a recognised precursor to assault.","F":"Incorrect. Accepting an ordinary offer indicates engagement rather than escalation.","G":"Incorrect. A routine question about visiting is normal social behaviour, not a warning sign."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Mental Health', 'Psychiatric/Mental Health',
  'Aggression', 'Warning signs of escalation', 'Easy', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_550024', 'SATA',
  'A client is admitted to a mental health unit following an attempt to end his life. Which nursing actions promote environmental safety? Select all that apply.',
@@ -241,7 +241,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Removing means while involving the client maintains safety and preserves dignity.","B":"Correct. Removing ligature anchor points addresses the commonest method of inpatient suicide.","C":"Correct. Observation only protects if it is unbroken, including during periods of privacy where it is prescribed.","D":"Incorrect. An isolated room away from the nurse station reduces observation and increases risk.","E":"Incorrect. A no-harm agreement is not a safety intervention and must never be used to justify reducing observation.","F":"Incorrect. Unchecked items are a common route by which means of harm reach the unit."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Mental Health', 'Psychiatric/Mental Health',
  'Suicide risk', 'Environmental safety', 'Very easy', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_550025', 'SATA',
  'A client becomes physically aggressive towards staff and, after verbal de-escalation and offers of medication have failed, is placed in seclusion. Which nursing actions are required? Select all that apply.',
@@ -250,7 +250,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Evidence that less restrictive alternatives were tried and failed is a legal requirement for the intervention.","B":"Correct. Continuous observation with recorded assessment protects the client from physical harm during seclusion.","C":"Correct. Basic needs continue to be met throughout; seclusion does not suspend the duty of care.","D":"Correct. Seclusion requires authorisation by a prescriber within the timeframe set by policy.","E":"Incorrect. Seclusion ends as soon as the client is safe; continuing it for unit convenience is punitive and unlawful.","F":"Incorrect. Requiring an apology makes the intervention a punishment; explanation and debriefing are part of care.","G":"Incorrect. Seclusion is a last resort, never a first response to raised voices or minor disturbance."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Mental Health', 'Psychiatric/Mental Health',
  'Seclusion and restraint', 'Least restrictive alternative', 'Hard', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_550026', 'SELECT_N',
  'A client on a mental health unit tells the nurse that he can hear two voices arguing about him and that they are getting louder. Which 3 nurse responses are appropriate?',
@@ -259,7 +259,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. It is honest about the nurse experience while accepting that the distress is real.","B":"Correct. Establishing the content is essential to judging risk, particularly for commands to harm.","C":"Correct. Offering presence and reassurance of safety reduces fear without validating the hallucination.","D":"Incorrect. Dismissing the experience as imaginary is not reassuring and damages trust.","E":"Incorrect. Speaking to the voices as if they were people validates the hallucination as real.","F":"Incorrect. A client experiencing loud hallucinations cannot simply ignore them, and the advice sounds dismissive."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Hallucinations', 'Responding to a client who is hallucinating', 'Medium', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_550027', 'SELECT_N',
  'During an assessment in the community, a client discloses that he has been thinking about ending his life. Which 3 questions best assess the lethality of the plan?',
@@ -268,7 +268,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. The method chosen is a direct measure of lethality and of how far planning has progressed.","B":"Correct. Access to the means is the strongest single predictor of whether a plan can be acted on.","C":"Correct. A specific time and place indicate a plan that is close to being carried out.","D":"Incorrect. Appealing to guilt about family increases shame and gives no information about lethality.","E":"Incorrect. Understanding the origins matters for longer-term care but does not measure current danger.","F":"Incorrect. Extracting a promise is not an assessment and offers no protection in itself."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Suicide risk', 'Lethality assessment', 'Medium', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_550028', 'SELECT_N',
  'A nurse is beginning a therapeutic relationship with a newly admitted client on a mental health unit. Which 3 tasks belong to the orientation phase?',
@@ -277,7 +277,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Agreeing the contract for the relationship is a defining task of the orientation phase.","B":"Correct. The client must know from the outset what will be shared with the team and why.","C":"Correct. Establishing trust and clarifying roles is the central work of orientation.","D":"Incorrect. Active problem work and skills practice belong to the working phase.","E":"Incorrect. Reviewing gains and preparing for the ending belong to the termination phase.","F":"Incorrect. Sharing personal contact details is a boundary violation regardless of phase."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Nurse-client relationship', 'Orientation phase', 'Medium', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MAT_550029', 'MATRIX',
  'The nurse is documenting the perceptual disturbances reported by clients on a mental health unit. For each client report, select the modality of hallucination it describes.',
@@ -286,7 +286,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c3","r4":"c4","r5":"c5"},"feedback":{}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Hallucinations', 'Modalities', 'Medium', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select one column for each row.', 5, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MAT_550030', 'MATRIX',
  'A nurse is teaching student nurses about schizophrenia. For each finding, select whether it is a positive symptom or a negative symptom.',
@@ -295,13 +295,13 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c1","r4":"c2","r5":"c1","r6":"c2"},"feedback":{}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Schizophrenia', 'Positive versus negative symptoms', 'Easy', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MAT_550031', 'MATRIX',
  'A ward manager is reviewing situations that arose on a mental health unit during clinical supervision. For each situation, select the term that best describes it.',
@@ -310,7 +310,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c3","r4":"c4","r5":"c1"},"feedback":{}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Nurse-client relationship', 'Transference and countertransference', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select one column for each row.', 5, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MMR_550032', 'MATRIX_MR',
  'A nurse is assessing an older client whose family report a change in thinking and behaviour. For each feature, select every condition it is consistent with. Each feature has at least one condition.',
@@ -319,7 +319,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1"],"r2":["c1"],"r3":["c2"],"r4":["c3"],"r5":["c3"],"r6":["c1","c3"],"r7":["c2","c3"]},"feedback":{}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Delirium versus dementia versus depression', 'Feature attribution', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply for each row.', 9, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MMR_550033', 'MATRIX_MR',
  'The nurse is handing over observations made on an acute mental health unit. For each observation, select every category that applies. Each observation has at least one category.',
@@ -328,7 +328,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1","c3"],"r2":["c2","c3"],"r3":["c1","c3"],"r4":["c1","c3"],"r5":["c2","c3"],"r6":["c1"]},"feedback":{}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Mental Health', 'Psychiatric/Mental Health',
  'Risk assessment', 'Risk to self and risk to others', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply for each row.', 11, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_CLZ_550034', 'CLOZE',
  'During a night shift a client points to a curtain moving in the draught and says that a person is hiding behind it. When the nurse draws the curtain back and switches on the light, the client agrees that it is only the curtain. This experience is an example of {1}, and the most appropriate nursing action is to {2}.',
@@ -337,7 +337,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c3","b2":"c1"},"feedback":{}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Mental Health', 'Psychiatric/Mental Health',
  'Altered perception', 'Recognising and managing an illusion', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_TF_550035', 'TF',
  'A no-harm agreement signed by a client who is at risk of suicide removes the need to maintain the prescribed level of observation. Is this statement true or false?',
@@ -346,4 +346,4 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. A signed agreement has no protective effect and must never be used to justify reducing observation.","B":"Correct. No-harm agreements are unproven, carry no legal weight, and do not replace observation, removal of means or ongoing assessment."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Mental Health', 'Psychiatric/Mental Health',
  'Suicide risk', 'No-harm agreements', 'Very easy', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');

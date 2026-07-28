@@ -31,6 +31,39 @@ DELETE FROM nclex_bank_items WHERE batch_id = 'gapfill-20260728';
 All items are `cat_pool = FALSE` — this run grows the **free practice
 pool**, it does not touch the 2,400-item CAT reservation.
 
+## ⚠ Correction — 2026-07-28 (later)
+
+Two defects were found in this batch after it loaded, and fixed in both the
+database and the files above.
+
+**1. `marks` was a flat `1` on every row.** For MCQ and TF that is right; for
+the 313 multi-mark items it is not. `marks` must equal the item's **maximum
+partial-credit score** (SATA = number of correct options, MATRIX = number of
+rows, MATRIX_MR = total correct cells, and so on) because
+`nclex_submit_answer` snapshots it and then raises
+`score_awarded out of range [0, marks]`. A student answering a 4-correct SATA
+and getting 2 right scored 2 against a ceiling of 1 — **the question could not
+be submitted at all.** Note the failure was *score-dependent*: anyone scoring
+0 or 1 submitted normally, so it only broke for students doing well, which is
+the hardest kind of fault to notice in casual testing. Corrected on all 313;
+`marks` now ranges 1–13. No student had touched these items, so there was no
+attempt data to repair.
+
+**2. `instruction` was absent on all 622 rows** — the column was not in the
+INSERT list at all. It now carries the action cue on the 313 multi-select
+items (phrasing taken from the bank's dominant existing wording per type).
+MCQ and TF are deliberately left without one: their stem asks a single direct
+question, and the rest of the bank leaves them blank too.
+
+**`validate.py` did not catch either**, because it never checked `marks` and
+did not know about `instruction`. Both checks have been added — that gap is
+the reason 312 unusable items reached the database in the first place.
+
+⚠ **The `ON CONFLICT (item_id) DO NOTHING` clause described in the session log
+is not actually present in any of these files.** Re-running a file will fail
+on the primary key rather than no-op. Worth adding before the next run relies
+on the documented behaviour.
+
 `shuffle_options` is deliberately omitted from the INSERT column list so
 every row takes the column default (`TRUE`). The runner
 (`lib/practice/runner/option-order.ts`) therefore permutes MCQ / SATA /
@@ -42,13 +75,17 @@ authored letter order is never what a student sees.
 `validate.py <dir>` parses the SQL without executing it and checks
 everything the database enforces plus what it does not:
 
-- 22 fields per row, quoting balanced, apostrophes doubled
+- 23 fields per row, quoting balanced, apostrophes doubled
 - `content` / `correct` parse as JSON
 - every `correct` id resolves to an id in that item's own `content`
 - feedback covers every option; MATRIX rows single-valued, MATRIX_MR ≥1
 - `select_count` matches the answer count; CLOZE markers match blanks
 - closed vocabularies, valid category→subcategory pairs, `cat_pool FALSE`
 - item ids unique across the whole run
+- **`marks` equals the item's max partial-credit score** (mirrors
+  `computeMarksFromKey` in `lib/scoring/dispatch.ts`)
+- **`instruction` present on every type whose cue is load-bearing**
+  (everything except MCQ / TF)
 
 `qa_report.py <dir>` adds cross-batch checks no single authoring agent can
 do for itself: answer-key positional bias, SATA answer-count spread, and

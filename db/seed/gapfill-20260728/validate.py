@@ -25,7 +25,37 @@ PAIRS = {
 COLS = ['item_id','question_type','stem','rationale','content','correct',
         'client_needs_category','client_needs_subcategory','nursing_subject','body_system',
         'topic','subtopic','difficulty','difficulty_source','bloom_level','tags',
-        'marks','is_published','is_builder_visible','is_free_sample','cat_pool','batch_id']
+        'instruction','marks','is_published','is_builder_visible','is_free_sample',
+        'cat_pool','batch_id']
+
+# Types whose `instruction` carries a load-bearing action cue (how many to
+# pick / how to interact). MCQ and TF are excluded on purpose: their stem
+# asks a single direct question.
+CUE_TYPES = {'SATA','SELECT_N','MATRIX','MATRIX_MR','CLOZE','DRAG_CLOZE','DRAG_ORDER','HIGHLIGHT','BOWTIE'}
+
+
+def expected_marks(qt, correct):
+    """Max partial-credit score for an item — mirrors computeMarksFromKey()
+    in lib/scoring/dispatch.ts. `marks` MUST equal this: the submit RPC
+    raises 'score_awarded out of range [0, marks]' otherwise, which makes
+    the question impossible to submit for any student who scores above it."""
+    if qt in ('MCQ', 'TF'):
+        return 1
+    if qt == 'BOWTIE':
+        return 5
+    if qt in ('SATA', 'SELECT_N'):
+        return len(correct.get('answers', []))
+    if qt == 'HIGHLIGHT':
+        return len(correct.get('correct_ids', []))
+    if qt == 'MATRIX':
+        return len(correct.get('cells', {}))
+    if qt == 'MATRIX_MR':
+        return sum(len(v) for v in correct.get('cells', {}).values())
+    if qt == 'CLOZE':
+        return len(correct.get('answers', {}))
+    if qt in ('DRAG_CLOZE', 'DRAG_ORDER'):
+        return len(correct.get('slots', {}))
+    return None
 
 
 def value_sections(sql):
@@ -120,6 +150,24 @@ def check_item(row, errs, ctx):
     except Exception as e:
         errs.append(f'{iid}: JSON parse failure: {e}')
         return d
+
+    # marks must equal the item's max partial-credit score. Unchecked in the
+    # original run, which is how 312 items loaded with a flat marks=1 and
+    # would have failed to submit for any student scoring above 1.
+    want = expected_marks(qt, correct)
+    if want is not None:
+        try:
+            got = int(d['marks'])
+        except (TypeError, ValueError):
+            got = None
+        if got != want:
+            errs.append(f'{iid}: marks={d["marks"]!r} but the answer key gives {want} '
+                        f'- submit fails with "score_awarded out of range [0, {d["marks"]}]"')
+
+    instr = '' if d['instruction'] == 'NULL' else (d['instruction'] or '').strip()
+    if qt in CUE_TYPES and not instr:
+        errs.append(f'{iid}: {qt} needs an instruction - the action cue '
+                    f'(how many to pick / how to interact)')
 
     if qt in ('MCQ', 'TF'):
         ids = {o['id'] for o in content.get('options', [])}

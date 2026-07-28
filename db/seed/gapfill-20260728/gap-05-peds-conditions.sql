@@ -20,7 +20,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 
 ('NCLEX_SELN_521001', 'SELECT_N',
@@ -30,7 +30,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Obstruction to right ventricular outflow is the defect that drives the right-to-left shunt.","B":"Correct. The septal defect provides the route for deoxygenated blood to enter the systemic circulation.","C":"Correct. The aorta sits over the septal defect and receives blood from both ventricles.","D":"Correct. The right ventricle hypertrophies because it pumps against the pulmonary obstruction.","E":"Incorrect. A patent ductus arteriosus is a separate defect, although it may coexist and temporarily improve pulmonary blood flow.","F":"Incorrect. Coarctation is a narrowing of the aortic arch and is not part of this tetrad."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Cardiovascular', 'Tetralogy of Fallot', 'Structural components',
- 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', 'Select 4.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521002', 'MCQ',
@@ -40,7 +40,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. The spell is a shunting event, not a febrile one, and paracetamol does nothing for the hypoxaemia.","B":"Correct. Knee-chest positioning increases systemic vascular resistance and reduces the right-to-left shunt within seconds.","C":"Incorrect. Diagnostics delay treatment of an evolving hypoxic episode.","D":"Incorrect. Feeding increases oxygen demand and commonly triggers or prolongs a spell."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Cardiovascular', 'Tetralogy of Fallot', 'Hypercyanotic spell',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521003', 'MCQ',
@@ -50,7 +50,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Prostaglandin E1 keeps the ductus arteriosus patent so the two parallel circulations can mix.","B":"Incorrect. Indomethacin closes the ductus, which would be fatal in this defect.","C":"Incorrect. Propranolol is used to reduce infundibular spasm in tetralogy of Fallot, not to create mixing.","D":"Incorrect. A diuretic treats fluid overload and does nothing for a mixing problem."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation',
  'Pediatrics', 'Cardiovascular', 'Transposition of the great arteries', 'Maintaining ductal patency',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_TF_521004', 'TF',
@@ -60,7 +60,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. The two circuits are parallel, so a mixing point is what keeps the newborn alive until surgery.","B":"Incorrect. The description is accurate; parallel circulations with no mixing are incompatible with life."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation',
  'Pediatrics', 'Cardiovascular', 'Transposition of the great arteries', 'Parallel circulations',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_521005', 'SATA',
@@ -70,7 +70,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Pulmonary overcirculation produces persistent tachypnoea and increased work of breathing.","B":"Correct. Turbulent flow through the septal defect and the single valve generates a loud murmur.","C":"Correct. Feeding is the hardest work an infant does, so heart failure shows first as sweating and early exhaustion.","D":"Incorrect. Failure to thrive with weight faltering, not accelerated gain, is the expected pattern.","E":"Correct. Systemic venous congestion enlarges the liver, an early sign of right-sided failure in infants.","F":"Incorrect. Mixing of systemic and pulmonary blood in a single trunk produces mild desaturation, not high-normal saturations."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation',
  'Pediatrics', 'Cardiovascular', 'Truncus arteriosus', 'Pulmonary overcirculation',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521006', 'MCQ',
@@ -80,7 +80,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Excess pulmonary blood flow means the heart has little reserve, so the work of feeding causes tachypnoea and diaphoresis.","B":"Incorrect. The lungs are structurally normal; the problem is the volume of blood being delivered to them.","C":"Incorrect. That describes coarctation or aortic stenosis, not a single common arterial trunk.","D":"Incorrect. Dismissing the feeding difficulty misses the earliest and most reliable sign of heart failure in infants."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation',
  'Pediatrics', 'Cardiovascular', 'Truncus arteriosus', 'Parent explanation',
- 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_521007', 'MATRIX',
@@ -90,7 +90,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c1","r4":"c2","r5":"c1","r6":"c1","r7":"c2","r8":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Cardiovascular', 'Congenital heart defects', 'Cyanotic versus acyanotic',
- 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 'Select one column for each row.', 8, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521008', 'MCQ',
@@ -100,7 +100,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. An arm-to-leg pressure gradient with weak femoral pulses is the classic sign of aortic narrowing.","B":"Incorrect. Equal bounding pulses argue against an obstruction between the arms and the legs.","C":"Incorrect. Fixed severe desaturation points to a cyanotic mixing lesion such as transposition.","D":"Incorrect. A continuous machinery murmur is characteristic of a patent ductus arteriosus."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Cardiovascular', 'Coarctation of the aorta', 'Four-limb blood pressure',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521009', 'MCQ',
@@ -110,7 +110,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Prostaglandin inhibition reduces renal perfusion, so oliguria and a rising creatinine are the key warning signs.","B":"Incorrect. Calcium disturbance is not a recognised effect of ibuprofen therapy for a patent ductus.","C":"Incorrect. Reflex depression is monitored during magnesium sulfate therapy, not prostaglandin inhibitors.","D":"Incorrect. Pupillary changes relate to neurological injury and are not a marker of this drug effect."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Cardiovascular', 'Patent ductus arteriosus', 'Ibuprofen for ductal closure',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_521010', 'SATA',
@@ -120,7 +120,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Prolonged feeds ending in exhaustion are a cardinal sign of limited cardiac reserve.","B":"Correct. Sweating during feeds reflects the sympathetic response to the increased work of the heart.","C":"Correct. Weight faltering across centiles is failure to thrive and is often the presenting sign of a significant defect.","D":"Correct. A resting respiratory rate of 68 in a 3-month-old is tachypnoea caused by pulmonary overcirculation.","E":"Incorrect. A settled 5-hour sleep is a normal finding at 3 months and is reassuring.","F":"Incorrect. Six wet nappies a day indicates adequate hydration and renal perfusion."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Pediatrics', 'Cardiovascular', 'Ventricular septal defect', 'Feeding difficulty and failure to thrive',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 -- ── Block 2 (521011-521020) — heart, then respiratory ───────────────
@@ -128,7 +128,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 
 ('NCLEX_MCQ_521011', 'MCQ',
@@ -138,7 +138,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Echocardiography images structure and flow, which is what a murmur requires the team to check.","B":"Incorrect. That describes an electrocardiogram, which assesses rhythm rather than anatomy.","C":"Incorrect. Endocarditis is rare in a well 2-month-old; the concern is a structural defect.","D":"Incorrect. Overstating the immediacy raises alarm and may not reflect the findings."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Pediatrics', 'Cardiovascular', 'Heart murmur in infancy', 'Purpose of echocardiography',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_CLZ_521012', 'CLOZE',
@@ -148,7 +148,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c3","b2":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Cardiovascular', 'Digoxin in infants', 'Apical rate before dosing',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521013', 'MCQ',
@@ -158,7 +158,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Contact precautions with single-room care or cohorting interrupt the hand and surface route that spreads this virus.","B":"Incorrect. Negative pressure rooms are reserved for airborne pathogens such as tuberculosis, measles and varicella.","C":"Incorrect. Nosocomial spread of this virus is well documented and can be severe in other infants.","D":"Incorrect. Protective isolation shields an immunocompromised child from others; here the aim is the reverse."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Respiratory', 'Bronchiolitis', 'Transmission-based precautions',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_521014', 'SATA',
@@ -168,7 +168,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","F"],"feedback":{"A":"Correct. Infants breathe mainly through the nose, so clearing secretions before a feed makes feeding possible.","B":"Correct. Smaller frequent feeds reduce the work of feeding in a tachypnoeic infant.","C":"Correct. Elevating the head improves diaphragmatic excursion and eases the work of breathing.","D":"Incorrect. Bronchiolitis is viral, so antibiotics add risk without benefit unless a bacterial infection is proven.","E":"Incorrect. Routine chest physiotherapy is not recommended and can distress an already tiring infant.","F":"Correct. Parental presence reduces crying, which lowers oxygen demand and helps the infant settle.","G":"Incorrect. Tachypnoea increases insensible losses, so the risk is dehydration rather than fluid overload."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Pediatrics', 'Respiratory', 'Bronchiolitis', 'Supportive nursing care',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_521015', 'MATRIX',
@@ -178,7 +178,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c1","r4":"c2","r5":"c2","r6":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Respiratory', 'Stridor in children', 'Croup versus epiglottitis',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521016', 'MCQ',
@@ -188,7 +188,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Instrumenting the throat can trigger laryngospasm and complete airway obstruction, so this must be questioned.","B":"Incorrect. Keeping the child calm and upright maintains the airway and should not be questioned.","C":"Incorrect. Having airway equipment immediately available is essential preparation.","D":"Incorrect. Intravenous antibiotics after cultures are the definitive treatment once the airway is safe."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Pediatrics', 'Respiratory', 'Epiglottitis', 'Prescription to question',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521017', 'MCQ',
@@ -198,7 +198,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Bronchodilator first opens the airways for the steroid, and rinsing after the steroid prevents oral thrush.","B":"Incorrect. The corticosteroid is preventive and has no immediate bronchodilator effect.","C":"Incorrect. The preventer must be taken regularly even when the child is symptom free.","D":"Incorrect. Thrush is a corticosteroid effect, so it is the beclometasone that requires mouth rinsing."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Respiratory', 'Paediatric asthma', 'Inhaler sequence and technique',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_521018', 'SATA',
@@ -208,7 +208,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","F"],"feedback":{"A":"Correct. Enzymes must accompany food to allow fat and protein absorption.","B":"Correct. Energy requirements are high because of malabsorption and increased work of breathing.","C":"Correct. Clearance before meals prevents vomiting of a recently eaten meal.","D":"Incorrect. Sweat sodium losses are high, so extra salt is needed rather than restriction.","E":"Incorrect. Adequate fluid keeps secretions less viscous; restriction makes clearance harder.","F":"Correct. Steatorrhoea indicates that the enzyme dose is inadequate and needs review."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Respiratory', 'Cystic fibrosis', 'Home care teaching',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_DO_521019', 'DRAG_ORDER',
@@ -218,7 +218,7 @@ INSERT INTO nclex_bank_items (
  '{"slots":{"s1":"t1","s2":"t2","s3":"t3","s4":"t4"}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Respiratory', 'Foreign body aspiration', 'Choking infant sequence',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Place the options in the correct order.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_521020', 'SELECT_N',
@@ -228,7 +228,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Repeated swallowing is the classic covert sign that blood is trickling down the pharynx.","B":"Correct. Restlessness with tachycardia signals early hypovolaemia before blood pressure falls.","C":"Correct. Bright red vomit indicates fresh active bleeding and demands immediate action.","D":"Incorrect. Throat pain is expected after tonsillectomy and is managed with regular analgesia.","E":"Incorrect. Small amounts of old dark blood-tinged mucus are an expected postoperative finding.","F":"Incorrect. Red fluids are avoided anyway because they mask blood; refusal is not a bleeding sign."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Respiratory', 'Tonsillectomy', 'Postoperative haemorrhage',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 -- ── Block 3 (521021-521030) — gastrointestinal, then neurological ───
@@ -236,7 +236,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 
 ('NCLEX_SATA_521021', 'SATA',
@@ -246,7 +246,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. The obstruction lies proximal to the bile duct opening, so the vomit is milk only.","B":"Correct. The hypertrophied pylorus is palpable as an olive-shaped mass, best felt after a feed.","C":"Correct. The infant is genuinely hungry because no feed is being absorbed.","D":"Incorrect. Bile-stained vomit indicates obstruction below the ampulla, such as malrotation or atresia.","E":"Incorrect. Redcurrant-jelly stool is characteristic of intussusception."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Gastrointestinal', 'Pyloric stenosis', 'Presenting findings',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521022', 'MCQ',
@@ -256,7 +256,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A normal stool suggests spontaneous reduction and must be reported before the procedure goes ahead.","B":"Incorrect. Documenting without reporting allows an invasive procedure that may no longer be indicated.","C":"Incorrect. The infant remains nil by mouth until the provider confirms the situation.","D":"Incorrect. A rectal tube is not indicated and risks perforating already compromised bowel."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Pediatrics', 'Gastrointestinal', 'Intussusception', 'Evaluating spontaneous reduction',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521023', 'MCQ',
@@ -266,7 +266,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Sudden pain relief with rigidity, fever and tachycardia indicates perforation and peritonitis.","B":"Incorrect. Oral intake and delay are unsafe when emergency surgery is likely.","C":"Incorrect. Heat increases blood flow and inflammation and can worsen perforation.","D":"Incorrect. This misreads peritonitis as wind and wastes critical time."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Gastrointestinal', 'Appendicitis', 'Recognising perforation',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_521024', 'SELECT_N',
@@ -276,7 +276,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Loss of periorbital fluid and absent tears reflect a substantial deficit.","B":"Correct. Very slow skin recoil indicates markedly reduced interstitial fluid.","C":"Correct. Prolonged refill with cool mottled skin shows that perfusion is now compromised.","D":"Incorrect. Moist membranes suggest that hydration is at worst mild.","E":"Incorrect. Acute weight loss is the most sensitive measure; unchanged weight argues against severe dehydration.","F":"Incorrect. Two mL per kilogram per hour is a normal output and indicates adequate renal perfusion."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Gastrointestinal', 'Dehydration in children', 'Severity assessment',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_521025', 'MATRIX',
@@ -286,7 +286,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c2","r2":"c1","r3":"c2","r4":"c1","r5":"c2","r6":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Pediatrics', 'Gastrointestinal', 'Coeliac disease', 'Gluten-free diet',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521026', 'MCQ',
@@ -296,7 +296,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Delayed meconium with distension and bilious vomiting is a classic presentation that must be investigated.","B":"Incorrect. Stimulating an obstructed bowel risks perforation and delays diagnosis.","C":"Incorrect. Failure to pass meconium beyond 24 to 48 hours is abnormal and not reassured away.","D":"Incorrect. Increasing feeds adds to distension in an obstructed newborn."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Pediatrics', 'Gastrointestinal', 'Hirschsprung disease', 'Delayed passage of meconium',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_521027', 'SATA',
@@ -306,7 +306,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. An upright position uses gravity to reduce nasal regurgitation and aspiration.","B":"Correct. The infant cannot create suction, so milk must be delivered by a squeezable bottle or specialised teat.","C":"Correct. Large volumes of air are swallowed, so frequent burping prevents distension and vomiting.","D":"Incorrect. Lying flat after a feed increases the risk of regurgitation and aspiration.","E":"Incorrect. Thickening is used for reflux and would make an already difficult feed harder."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Pediatrics', 'Gastrointestinal', 'Cleft lip and palate', 'Feeding technique',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_521028', 'SATA',
@@ -316,7 +316,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","F"],"feedback":{"A":"Correct. Side-lying allows secretions to drain and protects the airway.","B":"Correct. Duration determines whether the seizure is simple or requires emergency treatment.","C":"Incorrect. Placing anything in the mouth risks broken teeth, injury and obstruction.","D":"Correct. Loosening clothing around the neck eases breathing during the event.","E":"Incorrect. Restraining the limbs can cause fractures and does not shorten the convulsion.","F":"Correct. A convulsion beyond 5 minutes may progress to status epilepticus and needs emergency care."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Neurological', 'Febrile convulsion', 'Parental first aid and seizure care',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521029', 'MCQ',
@@ -326,7 +326,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Droplet precautions start on suspicion and continue for the first 24 hours of effective antibiotics.","B":"Incorrect. Bacterial meningitis spreads by droplets, not on air currents, so a negative pressure room is not required.","C":"Incorrect. Standard precautions alone leave staff and contacts exposed to droplet spread.","D":"Incorrect. Contact precautions address surface and hand spread and do not match this route of transmission."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Neurological', 'Bacterial meningitis', 'Transmission-based precautions',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_521030', 'SELECT_N',
@@ -336,7 +336,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. The open fontanelle bulges as intracranial pressure rises, making it a key infant sign.","B":"Correct. A high-pitched shrill cry is a recognised sign of cerebral irritation in infants.","C":"Correct. Non-specific poor feeding and unstable temperature are often the only early features.","D":"Incorrect. Kernig and Brudzinski signs are unreliable in infants and usually absent.","E":"Incorrect. Neck stiffness typically appears only in older children and adults.","F":"Incorrect. A 6-week-old cannot report photophobia, so it cannot be a presenting complaint."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Neurological', 'Meningitis in infancy', 'Age-specific presentation',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 -- ── Block 4 (521031-521040) — neuro, musculoskeletal, genitourinary ─
@@ -344,7 +344,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 
 ('NCLEX_MCQ_521031', 'MCQ',
@@ -354,7 +354,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Vomiting with a declining conscious level indicates rising intracranial pressure from shunt malfunction.","B":"Incorrect. This temperature is within normal limits and needs monitoring only.","C":"Incorrect. Anticipatory distress about needles is age-appropriate behaviour.","D":"Incorrect. A stable head circumference is a reassuring finding in a shunted child."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Neurological', 'Hydrocephalus', 'Shunt malfunction',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_521032', 'SATA',
@@ -364,7 +364,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Prone positioning keeps pressure off the sac and reduces the risk of rupture.","B":"Correct. A moist sterile dressing prevents the sac drying, cracking and becoming infected.","C":"Correct. Early and consistent latex avoidance prevents the sensitisation these children are prone to.","D":"Correct. Hydrocephalus commonly develops, and daily measurement detects it early.","E":"Incorrect. A nappy over the sac applies pressure and risks faecal contamination.","F":"Incorrect. Supine positioning places direct pressure on the sac and must be avoided before closure."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Neurological', 'Spina bifida', 'Preoperative care of the sac',
- 'Very hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_521033', 'SATA',
@@ -374,7 +374,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","F"],"feedback":{"A":"Correct. A falling level of consciousness is the most important sign of rising intracranial pressure.","B":"Correct. Repeated vomiting after a head injury suggests an intracranial complication.","C":"Correct. A post-traumatic seizure requires immediate reassessment.","D":"Incorrect. A resolving bruise is an expected part of recovery.","E":"Incorrect. A mild headache that responds to simple analgesia is common after a minor head injury.","F":"Correct. Clear drainage may be cerebrospinal fluid, indicating a base of skull fracture."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Neurological', 'Head injury in children', 'Discharge advice',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521034', 'MCQ',
@@ -384,7 +384,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Positioning and feeding a stable child a prescribed diet is a routine delegable task.","B":"Incorrect. Assessment of swallowing requires nursing judgement and cannot be delegated.","C":"Incorrect. Changing the plan of care is a nursing and dietetic decision.","D":"Incorrect. Client and family teaching is a registered nurse responsibility."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Pediatrics', 'Neurological', 'Cerebral palsy', 'Delegation to assistive personnel',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521035', 'MCQ',
@@ -394,7 +394,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Continuous prescribed wear, daily skin checks and a vest under the straps are the core of harness care.","B":"Incorrect. Removing the harness interrupts the sustained positioning that allows the acetabulum to develop.","C":"Incorrect. Lotions macerate the skin and increase the risk of breakdown under the straps.","D":"Incorrect. Only the clinician adjusts the straps; incorrect positioning can cause avascular necrosis of the femoral head."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Musculoskeletal', 'Developmental dysplasia of the hip', 'Pavlik harness care',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_521036', 'MATRIX',
@@ -404,7 +404,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c1","r4":"c2","r5":"c1","r6":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Musculoskeletal', 'Cast care', 'Neurovascular observation',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521037', 'MCQ',
@@ -414,7 +414,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Holding the weights is a temporary measure that does not restore the line of pull.","B":"Correct. Repositioning the child restores free-hanging weights, and the limb is then reassessed.","C":"Incorrect. Traction is not removed by the nurse, as this loses alignment and causes pain and spasm.","D":"Incorrect. A pillow under the limb alters the line of pull and defeats the traction."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Pediatrics', 'Musculoskeletal', 'Traction', 'Maintaining the line of pull',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_521038', 'SATA',
@@ -424,7 +424,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. The effect depends almost entirely on hours of wear during the growth period.","B":"Correct. A cotton layer reduces friction and absorbs perspiration under the brace.","C":"Correct. Twice-daily inspection detects pressure damage before skin breakdown occurs.","D":"Incorrect. Intermittent removal reduces wear time below the level at which bracing works.","E":"Incorrect. Bracing halts progression of the curve rather than correcting it."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Musculoskeletal', 'Idiopathic scoliosis', 'Brace teaching',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521039', 'MCQ',
@@ -434,7 +434,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Preventing palpation protects the tumour capsule and prevents seeding of malignant cells.","B":"Incorrect. Deep palpation is exactly what must be avoided; girth is measured without pressing.","C":"Incorrect. Asking the parent to palpate again repeats the very risk being avoided.","D":"Incorrect. Prone positioning presses the abdomen against the mattress and adds pressure to the tumour."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Genitourinary', 'Wilms tumour', 'Do not palpate the abdomen',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MMR_521040', 'MATRIX_MR',
@@ -444,7 +444,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1"],"r2":["c1","c2"],"r3":["c2"],"r4":["c2"],"r5":["c1"],"r6":["c2"]},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Genitourinary', 'Paediatric renal disease', 'Nephrotic syndrome versus glomerulonephritis',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 7, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 -- ── Block 5 (521041-521050) — renal, haematology, endocrine, infection
@@ -452,7 +452,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 
 ('NCLEX_SATA_521041', 'SATA',
@@ -462,7 +462,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Daily weight is the most sensitive indicator of fluid retention or loss.","B":"Correct. Hypertension is the complication that can progress to encephalopathy and must be tracked.","C":"Correct. Volume and colour together show whether the glomerular inflammation is settling.","D":"Incorrect. Fluids are restricted, not encouraged, while output is reduced.","E":"Correct. Restricting sodium limits further water retention and helps control blood pressure.","F":"Incorrect. Potassium may rise when output falls, so high-potassium foods are avoided."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Pediatrics', 'Genitourinary', 'Acute glomerulonephritis', 'Acute phase monitoring',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521042', 'MCQ',
@@ -472,7 +472,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. The foreskin is often used as graft tissue, so circumcision is deferred until after surgical planning.","B":"Incorrect. Circumcision may remove tissue the surgeon needs and is therefore avoided.","C":"Incorrect. Repair is usually undertaken between 6 and 12 months, before body image and toilet training are affected.","D":"Incorrect. The newborn voids normally through the misplaced opening and does not need a catheter."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Genitourinary', 'Hypospadias', 'Deferring circumcision',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521043', 'MCQ',
@@ -482,7 +482,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Hydration reduces blood viscosity and opioid analgesia treats genuinely severe ischaemic pain.","B":"Incorrect. Cold causes vasoconstriction, which increases sickling and worsens the crisis.","C":"Incorrect. Vigorous exercise raises oxygen demand and aggravates the crisis; gentle movement is allowed as pain permits.","D":"Incorrect. Restricting fluids concentrates the blood and promotes further sickling."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Pediatrics', 'Hematologic', 'Sickle cell disease', 'Vaso-occlusive crisis management',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_521044', 'SATA',
@@ -492,7 +492,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Aspirin and ibuprofen impair platelet function and add to the bleeding risk.","B":"Correct. A soft brush prevents gum trauma, which is a common source of prolonged bleeding.","C":"Correct. Activity is encouraged for joint and muscle health, but contact sports are avoided.","D":"Correct. Pressure, cold and elevation limit bleeding until factor replacement is given.","E":"Incorrect. Subcutaneous administration with pressure afterwards is preferred to reduce deep muscle bleeding.","F":"Incorrect. Massage of a bleeding joint increases bleeding and pain; the joint is rested and elevated."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Hematologic', 'Haemophilia', 'Home safety teaching',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521045', 'MCQ',
@@ -502,7 +502,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Between meals with vitamin C maximises absorption, and a dropper protects the teeth from staining.","B":"Incorrect. Milk binds iron and markedly reduces absorption.","C":"Incorrect. Black stools are an expected effect of oral iron and are not a reason to stop treatment.","D":"Incorrect. Tannins in tea bind iron and reduce absorption considerably."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Hematologic', 'Iron deficiency anaemia', 'Oral iron administration',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_521046', 'SELECT_N',
@@ -512,7 +512,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Reducing exposure to other people is the core of protective isolation.","B":"Correct. Rectal measurement can breach fragile mucosa and introduce bacteraemia.","C":"Correct. Flowers, plants and raw produce carry bacteria and fungal spores.","D":"Incorrect. Group play exposes a severely neutropenic child to other children and their infections.","E":"Incorrect. Live vaccines are contraindicated during immunosuppression.","F":"Incorrect. Scented products irritate and dry the skin, which is an important barrier to infection."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Hematologic', 'Neutropenia in childhood leukaemia', 'Protective measures',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_CLZ_521047', 'CLOZE',
@@ -522,7 +522,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c1","b2":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Endocrine', 'Type 1 diabetes in adolescence', 'Treating hypoglycaemia',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521048', 'MCQ',
@@ -532,7 +532,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Consistent daily dosing in a small volume of liquid, continued lifelong, is what protects brain development.","B":"Incorrect. Soya binds levothyroxine and significantly reduces absorption, and a full bottle may not be finished.","C":"Incorrect. Normal growth reflects successful treatment; stopping causes hypothyroidism to return.","D":"Incorrect. Doubling a dose risks thyrotoxic effects such as tachycardia and irritability."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Endocrine', 'Congenital hypothyroidism', 'Levothyroxine administration',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MMR_521049', 'MATRIX_MR',
@@ -542,7 +542,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1","c3"],"r2":["c1"],"r3":["c2"],"r4":["c2"],"r5":["c2"]},"feedback":{}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Immune', 'Communicable childhood illness', 'Transmission-based precautions',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_521050', 'MCQ',
@@ -552,5 +552,5 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Aspirin during varicella or influenza is linked with Reye syndrome, so exposure must prompt urgent review.","B":"Incorrect. Low-dose aspirin is continued daily for its antiplatelet effect, not used as an antipyretic.","C":"Incorrect. Live vaccines are deferred for about 11 months after immunoglobulin because passive antibody blocks the response.","D":"Incorrect. Aspirin continues until coronary artery imaging confirms that no aneurysm has formed."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Cardiovascular', 'Kawasaki disease', 'Aspirin therapy and Reye syndrome',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');

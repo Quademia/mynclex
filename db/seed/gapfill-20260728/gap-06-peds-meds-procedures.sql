@@ -7,7 +7,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_522001', 'MCQ',
  'A 4-year-old weighing 33 lb is prescribed amoxicillin 40 mg/kg/day, to be given in three equally divided doses. How many milligrams should the nurse give for each dose?',
@@ -16,7 +16,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. 150 mg results from using a total of 30 mg/kg/day rather than the prescribed 40 mg/kg/day.","B":"Correct. 33 lb is 15 kg, 15 kg multiplied by 40 mg is 600 mg per day, and 600 mg divided into three doses is 200 mg.","C":"Incorrect. 300 mg divides the daily total into two doses rather than the three that were prescribed.","D":"Incorrect. 600 mg is the total for 24 hours, not a single dose."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Not applicable', 'Weight-based dosing', 'Milligram per kilogram calculation',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522002', 'MCQ',
@@ -26,7 +26,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. 5 mL delivers only 250 mg, which is less than prescribed.","B":"Correct. 400 divided by 250, multiplied by 5 mL, gives 8 mL.","C":"Incorrect. 10 mL delivers 500 mg, which is an overdose.","D":"Incorrect. 12.5 mL delivers 625 mg and reverses the calculation."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Not applicable', 'Oral suspension dosing', 'Volume calculation',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522003', 'MCQ',
@@ -36,7 +36,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"C","feedback":{"A":"Incorrect. 240 mg is the lowest dose in the safe range, not the maximum.","B":"Incorrect. 300 mg sits inside the range but is not its upper limit.","C":"Correct. 24 kg multiplied by 15 mg/kg gives a maximum single dose of 360 mg.","D":"Incorrect. 480 mg uses 20 mg/kg, which is above the stated range."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Not applicable', 'Safe dose range', 'Upper limit check',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522004', 'MCQ',
@@ -46,7 +46,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"C","feedback":{"A":"Incorrect. A dose above the published maximum is unsafe however small the excess appears.","B":"Incorrect. Altering a prescribed dose is prescribing, which is outside the scope of the nurse.","C":"Correct. The dose exceeds the safe range, so it is withheld and the prescriber is contacted for a new prescription.","D":"Incorrect. A second check confirms the arithmetic but does not make an unsafe prescription safe to give."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Pediatrics', 'Not applicable', 'Safe dose range', 'Action on an unsafe prescription',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522005', 'MCQ',
@@ -56,7 +56,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"C","feedback":{"A":"Incorrect. 25 mL/hour would take two hours to deliver the 50 mL.","B":"Incorrect. 50 mL/hour delivers the volume over a full hour, twice the prescribed time.","C":"Correct. 50 mL over 30 minutes is equivalent to 100 mL in one hour.","D":"Incorrect. 150 mL/hour would deliver the dose in 20 minutes, faster than prescribed."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Not applicable', 'Intravenous medication in children', 'Infusion rate calculation',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_CLZ_522006', 'CLOZE',
@@ -66,7 +66,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c2","b2":"c3"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Not applicable', 'Weight conversion', 'Pounds to kilograms',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_522007', 'SATA',
@@ -76,7 +76,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. A weight measured during this admission is the only reliable basis for a weight-based dose in a growing child.","B":"Correct. Checking against the formulary safe range catches a prescribing error before the dose reaches the child.","C":"Correct. An independent double check by a second registered nurse detects arithmetic errors that a shared calculation would repeat.","D":"Incorrect. A recalled or historical weight may be months out of date and is not an acceptable basis for dosing.","E":"Correct. Two identifiers confirm that the calculated dose is given to the child it was calculated for.","F":"Incorrect. Rounding for convenience can change a paediatric dose by a clinically significant percentage."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Not applicable', 'Paediatric medication safety', 'Pre-administration checks',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522008', 'MCQ',
@@ -86,7 +86,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. About 0.5 mL is the maximum a single intramuscular site will take in an infant of this age.","B":"Incorrect. 1 mL is the approximate limit for a toddler, not for a 4-month-old.","C":"Incorrect. 1.5 mL exceeds the capacity of infant muscle and would need to be divided between sites.","D":"Incorrect. 2 mL is an adolescent or adult volume and would cause pain and tissue damage in an infant."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Musculoskeletal', 'Intramuscular injection in children', 'Maximum volume by age',
- 'Easy', 'CURATOR_LABEL', 'Remember', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Remember', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_522009', 'MATRIX',
@@ -96,7 +96,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c3","r4":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Musculoskeletal', 'Intramuscular injection in children', 'Site selection by age',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select one column for each row.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522010', 'MCQ',
@@ -106,14 +106,14 @@ INSERT INTO nclex_bank_items (
  '{"answer":"C","feedback":{"A":"Incorrect. A 13 mm 27 gauge needle is a subcutaneous or intradermal size and will not reach muscle.","B":"Incorrect. 16 mm is too short to deposit the dose reliably into the vastus lateralis of a 12-month-old.","C":"Correct. A 25 mm needle of 22 to 25 gauge reaches the muscle without risking bone contact.","D":"Incorrect. A 38 mm needle is an adult length and risks striking the femur."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Musculoskeletal', 'Intramuscular injection in children', 'Needle selection',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_TF_522011', 'TF',
  'The nurse plans to use the dorsogluteal site for an intramuscular injection in a 2-year-old. This is correct practice.',
@@ -122,7 +122,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. The gluteal muscle of a 2-year-old is underdeveloped and the site carries a genuine risk of sciatic nerve injury.","B":"Correct. The dorsogluteal site is avoided in children; the vastus lateralis or ventrogluteal site should be used."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Musculoskeletal', 'Intramuscular injection in children', 'Sites to avoid',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522012', 'MCQ',
@@ -132,7 +132,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. If the infant does not finish the bottle, part of the dose is lost and the amount given is unknown.","B":"Correct. Small amounts placed along the side of the tongue use the natural swallow and reduce gagging and aspiration risk.","C":"Incorrect. Occluding the nose forces swallowing and is both frightening and a direct aspiration risk.","D":"Incorrect. A 5-month-old cannot control liquid from a cup and most of the dose would be lost."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Pediatrics', 'Gastrointestinal', 'Oral medication in infants', 'Administration technique',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522013', 'MCQ',
@@ -142,7 +142,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. A calm administration does not offset teaching a preschooler that tablets are safe to eat.","B":"Correct. Naming the risk and the reason corrects the practice and protects the child at home.","C":"Incorrect. Calling medication vitamins is the same deception and carries the same poisoning risk.","D":"Incorrect. Escalating without explaining leaves the student unaware of why the practice is unsafe."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Not applicable', 'Medication language with children', 'Accidental poisoning risk',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522014', 'MCQ',
@@ -152,7 +152,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. A large volume risks an incomplete dose and can make the child refuse milk in future.","B":"Correct. A small amount of a non-essential food carries the whole dose and protects staple foods from a bitter association.","C":"Incorrect. Mixing into a bedtime feed risks both an incomplete dose and refusal of the feed itself.","D":"Incorrect. The contents and compatibility of a home-prepared tea are unknown, and the volume is too large."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Gastrointestinal', 'Oral medication in toddlers', 'Mixing with food',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_522015', 'SATA',
@@ -162,7 +162,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","C","D","F"],"feedback":{"A":"Correct. A limited choice returns control to a child whose developmental task is autonomy, without negotiating whether the dose is given.","B":"Incorrect. Calling medicine a treat teaches a preschooler that tablets and syrups are safe to take unsupervised.","C":"Correct. Taking part in the task converts a procedure done to the child into one done with the child.","D":"Correct. A single short concrete sentence is what a 3-year-old can process; long explanations increase anxiety.","E":"Incorrect. Force risks aspiration and injury and destroys cooperation for every subsequent dose.","F":"Correct. If refusal persists the dose is withheld, documented and reported so an alternative route or formulation can be considered, rather than forced."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity',
  'Pediatrics', 'Not applicable', 'Medication refusal in preschoolers', 'Developmental approaches',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_522016', 'SELECT_N',
@@ -172,7 +172,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","C","E"],"feedback":{"A":"Correct. Crushing removes the coating that protects the drug from acid or the stomach from the drug.","B":"Incorrect. A plain paracetamol tablet has no release-controlling feature and may be crushed.","C":"Correct. Crushing a modified-release tablet delivers a whole day of drug at once, risking toxicity.","D":"Incorrect. A dispersible tablet is designed to be broken up in water.","E":"Correct. Crushing and swallowing a sublingual tablet sends it through first-pass metabolism and destroys its effect.","F":"Incorrect. A scored plain tablet is intended to be divided and may also be crushed if needed."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Not applicable', 'Altering medication formulations', 'Preparations that must not be crushed',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522017', 'MCQ',
@@ -182,7 +182,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"C","feedback":{"A":"Incorrect. 1000 mL covers only the first 10 kg and omits the second band.","B":"Incorrect. 1250 mL uses 25 mL/kg for the second band rather than 50 mL/kg.","C":"Correct. 1000 mL for the first 10 kg plus 500 mL for the next 10 kg gives 1500 mL in 24 hours.","D":"Incorrect. 2000 mL applies 100 mL/kg to the whole weight and exceeds the maintenance requirement."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Multisystem', 'Paediatric maintenance fluids', 'Daily volume calculation',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_522018', 'MATRIX',
@@ -192,7 +192,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c2","r4":"c1","r5":"c2","r6":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Multisystem', 'Intravenous fluid therapy in children', 'Recognising fluid overload',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522019', 'MCQ',
@@ -202,7 +202,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. A burette does not warm fluid; a dedicated fluid warmer is used when warming is needed.","B":"Correct. Only the small volume in the chamber can run through, which caps the harm from any single failure.","C":"Incorrect. The rate is still calculated and programmed into the pump.","D":"Incorrect. A burette is used to dilute medication into a measured volume, not to avoid dilution."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Multisystem', 'Paediatric infusion equipment', 'Burette rationale',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_522020', 'SATA',
@@ -212,14 +212,14 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","C","E","F"],"feedback":{"A":"Correct. Very small volumes given continuously are absorbed and do not distend the stomach enough to provoke vomiting.","B":"Incorrect. Fruit juice is high in sugar and low in sodium, which draws water into the gut and worsens the diarrhoea.","C":"Correct. Milk feeds and especially breast milk are continued, because early feeding shortens the illness.","D":"Incorrect. Prolonged starvation delays gut recovery and causes weight loss in a small child.","E":"Correct. Anuria for eight hours indicates significant dehydration and needs prompt review.","F":"Correct. Too little water makes the solution hypertonic, which can cause hypernatraemia."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Pediatrics', 'Gastrointestinal', 'Oral rehydration in children', 'Parent teaching',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_522021', 'MCQ',
  'A 9-month-old admitted with dehydration has received oral rehydration solution and intravenous fluids for 12 hours. Which finding is the BEST indicator that rehydration has been effective?',
@@ -228,7 +228,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Tolerating the fluid shows the route is usable but says nothing about how much deficit has been replaced.","B":"Correct. A 400 g gain over 12 hours represents about 400 mL of fluid replaced and is the most objective measure available.","C":"Incorrect. A level fontanelle is supportive but is a subjective assessment that changes late and varies between examiners.","D":"Incorrect. Improved behaviour is reassuring but is influenced by rest, comfort and parental presence."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Genitourinary', 'Dehydration in children', 'Evaluating rehydration',
- 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522022', 'MCQ',
@@ -238,7 +238,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Stopping the ongoing cause is the first step; the line is kept patent for treatment that may follow.","B":"Incorrect. The weight confirms the diagnosis but does nothing to halt fluid still entering the circulation.","C":"Incorrect. The prescriber must be contacted, but not before the infusion causing the harm has been reduced.","D":"Incorrect. Positioning and oxygen improve the symptoms while the cause continues unchecked."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Cardiovascular', 'Fluid overload in children', 'First action',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_522023', 'SATA',
@@ -248,7 +248,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","C","E"],"feedback":{"A":"Correct. Anaphylaxis to a previous dose is an absolute contraindication to further doses of that vaccine.","B":"Incorrect. Minor illness with low-grade fever is a false contraindication and the vaccine is given.","C":"Correct. A live vaccine can cause disseminated infection in a significantly immunosuppressed child.","D":"Incorrect. Antibiotics do not interfere with the immune response to vaccines.","E":"Correct. Encephalopathy within 7 days of a pertussis-containing vaccine contraindicates further pertussis-containing doses.","F":"Incorrect. Breastfeeding is not a contraindication for either the mother or the infant."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Immune', 'Immunisation', 'True and false contraindications',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522024', 'MCQ',
@@ -258,7 +258,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Coercion is neither accurate nor effective and usually ends the conversation permanently.","B":"Correct. Eliciting the specific concern allows a targeted response and keeps the parent engaged.","C":"Incorrect. Dismissing the source without addressing the concern tends to entrench the decision.","D":"Incorrect. Documentation is necessary but closing the conversation forfeits the chance to inform the decision."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity',
  'Pediatrics', 'Immune', 'Immunisation', 'Parental refusal',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_522025', 'SELECT_N',
@@ -268,7 +268,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D"],"feedback":{"A":"Correct. The vastus lateralis is the site of choice for intramuscular vaccines in an infant.","B":"Correct. A gap of at least 2.5 cm allows local reactions to be attributed to the right vaccine.","C":"Incorrect. Vaccines are never mixed in one syringe unless the manufacturer supplies them combined.","D":"Correct. Recording name, batch and site for each injection is required for traceability if a reaction occurs.","E":"Incorrect. Vigorous massage increases local reaction and is not recommended after vaccination.","F":"Incorrect. Splitting the visit delays protection and increases the chance of a missed appointment, with no safety benefit."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Immune', 'Immunisation administration', 'Multiple vaccines at one visit',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_CLZ_522026', 'CLOZE',
@@ -278,7 +278,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c3","b2":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Immune', 'Immunisation', 'Spacing rules',
- 'Very hard', 'CURATOR_LABEL', 'Remember', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Remember', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522027', 'MCQ',
@@ -288,7 +288,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. A lapsed schedule is resumed, not restarted; the earlier dose still counts.","B":"Correct. The series continues from where it stopped, with the remaining doses at the recommended intervals.","C":"Incorrect. Routine catch-up does not require antibody testing before further doses.","D":"Incorrect. Catch-up immunisation is offered well beyond this age."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Immune', 'Immunisation', 'Catch-up schedule',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_522028', 'SELECT_N',
@@ -298,7 +298,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D"],"feedback":{"A":"Correct. A rising heart rate is the earliest and most consistent compensatory response in a deteriorating child.","B":"Correct. Tachypnoea reflects both respiratory compromise and the effort to correct a metabolic acidosis.","C":"Incorrect. This blood pressure is within normal limits for a 2-year-old; hypotension is a very late sign.","D":"Correct. Mottling and prolonged capillary refill show that blood is being shunted away from the skin.","E":"Incorrect. A vigorous cry to a painful stimulus indicates a responsive child with an intact airway.","F":"Incorrect. 37.4 °C is within normal limits and does not require escalation on its own."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Multisystem', 'Paediatric deterioration', 'Compensation and early recognition',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_522029', 'SELECT_N',
@@ -308,7 +308,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. The tape converts measured length into an estimated weight without any calculation.","B":"Correct. Equipment sizes and energy settings are read from the same colour band as the drug doses.","C":"Correct. A spoken second check catches decimal-point errors, which are the classic paediatric emergency mistake.","D":"Incorrect. Paediatric doses are not fractions of adult doses and this method has no pharmacological basis.","E":"Incorrect. Recalled weights are often inaccurate, and converting from pounds adds a further error step.","F":"Incorrect. Resuscitation drugs are never delayed while a child is weighed."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Pediatrics', 'Multisystem', 'Paediatric resuscitation', 'Weight estimation and equipment sizing',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522030', 'MCQ',
@@ -318,14 +318,14 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. 0.015 mg is a tenfold underdose and the deltoid absorbs more slowly in shock.","B":"Correct. 15 kg multiplied by 0.01 mg is 0.15 mg, given into the well-perfused vastus lateralis.","C":"Incorrect. 0.5 mg is the standard adult dose and more than three times what this child needs.","D":"Incorrect. 1.5 mg is a tenfold overdose and the ventrogluteal site is not used for emergency adrenaline."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Immune', 'Anaphylaxis in children', 'Adrenaline dose and site',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_522031', 'MCQ',
  'A parent telephones to say that a 6-year-old with chickenpox has been given aspirin for fever. Which action should the nurse take?',
@@ -334,7 +334,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Aspirin is avoided as an antipyretic in children because of the association with Reye syndrome.","B":"Correct. The drug is stopped, the reason is explained, and the parent is given the specific signs that require urgent review.","C":"Incorrect. The risk relates to exposure rather than dose size, so a smaller dose is not safer.","D":"Incorrect. Food protects the stomach but does nothing about the encephalopathy risk."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Neurological', 'Aspirin in children', 'Reye syndrome',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522032', 'MCQ',
@@ -344,7 +344,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. The height of the fever does not change the renal risk of a non-steroidal drug in a dehydrated child.","B":"Correct. The drug is withheld, the poor urine output is escalated, and paracetamol provides antipyresis without the renal effect.","C":"Incorrect. Milk addresses gastric irritation, not the reduction in renal perfusion.","D":"Incorrect. Halving the dose still inhibits prostaglandins and is also an unauthorised change to the prescription."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Genitourinary', 'Ibuprofen in children', 'Withholding in dehydration',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_522033', 'SATA',
@@ -354,7 +354,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","D","F"],"feedback":{"A":"Correct, this needs teaching. Most cold and flu remedies contain paracetamol, so the total daily intake can double without the parent realising.","B":"Incorrect, this is safe practice. The supplied syringe measures the dose accurately, unlike a household spoon.","C":"Incorrect, this is safe practice. Four-hourly dosing to a maximum of four doses in 24 hours is within the recommended limit.","D":"Correct, this needs teaching. Shortening the interval to two hours risks exceeding the maximum daily dose.","E":"Incorrect, this is safe practice. Out-of-reach storage with a child-resistant cap reduces the risk of accidental ingestion.","F":"Correct, this needs teaching. Dosing by apparent size rather than actual weight or age band leads to overdose."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Gastrointestinal', 'Paracetamol safety in children', 'Combination products and maximum dose',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_522034', 'SATA',
@@ -364,7 +364,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","C","D","F"],"feedback":{"A":"Correct. Insensible losses rise with fever, and small frequent drinks are better tolerated than large ones.","B":"Incorrect. Cold sponging causes shivering and peripheral vasoconstriction, which raise the core temperature.","C":"Correct. A single light layer allows heat loss without causing shivering.","D":"Correct. Antipyretics are given for the comfort of the child rather than to normalise a number.","E":"Incorrect. Waking a settled child to medicate disturbs rest without benefit.","F":"Correct. Floppiness, a non-blanching rash and refusal to drink are red flags that need urgent assessment."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Multisystem', 'Fever management in children', 'Parent teaching',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522035', 'MCQ',
@@ -374,7 +374,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Refrigeration does not make an interrupted course or a saved antibiotic safe or effective.","B":"Correct. Completing the course clears the organism, and leftover antibiotics are discarded rather than stored.","C":"Incorrect. Spreading out the doses drops the drug level below the therapeutic range and promotes resistance.","D":"Incorrect. This accepts the interrupted course and makes relapse with a less susceptible organism likely."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Immune', 'Antibiotics in children', 'Completing the course',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_522036', 'MATRIX',
@@ -384,7 +384,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c1","r3":"c2","r4":"c2","r5":"c1","r6":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Immune', 'Antibiotic suspensions', 'Reconstitution and storage',
- 'Medium', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Evaluate', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522037', 'MCQ',
@@ -394,7 +394,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Removing the exposure comes first, and the prescriber can then change the antibiotic and record the allergy.","B":"Incorrect. An emollient soothes the skin while the drug that may be causing the reaction continues.","C":"Incorrect. An antihistamine may be given, but continuing the penicillin risks progression to anaphylaxis.","D":"Incorrect. Waiting 24 hours means at least two further doses of a drug the child may be allergic to."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Immune', 'Antibiotic hypersensitivity', 'First action on a drug rash',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522038', 'MCQ',
@@ -404,7 +404,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Abrupt withdrawal after weeks of therapy can precipitate acute adrenal insufficiency.","B":"Correct. A planned taper gives the suppressed adrenal axis time to resume cortisol production.","C":"Incorrect. During infection the corticosteroid dose is usually increased, never stopped.","D":"Incorrect. Starting and stopping repeatedly destabilises both the disease and the adrenal axis."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Endocrine', 'Corticosteroids in children', 'Never stopping abruptly',
- 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_522039', 'SATA',
@@ -414,7 +414,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","E"],"feedback":{"A":"Correct. Growth suppression is a specific paediatric effect, so height is monitored alongside weight.","B":"Correct. An immunosuppressed child exposed to varicella or measles may need post-exposure prophylaxis.","C":"Incorrect. During illness the dose is increased, not stopped, to cover the extra cortisol demand.","D":"Correct. Morning dosing follows the natural cortisol peak, and food reduces gastric irritation.","E":"Correct. Corticosteroids blunt the inflammatory response, so infection can present with few signs.","F":"Incorrect. Corticosteroids cause sodium and water retention, so added salt would worsen oedema and blood pressure."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Endocrine', 'Corticosteroids in children', 'Long-term therapy teaching',
- 'Very hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522040', 'MCQ',
@@ -424,14 +424,14 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Omitting insulin during illness is the leading cause of diabetic ketoacidosis in children.","B":"Correct. Insulin continues, monitoring intensifies, and carbohydrate is replaced in fluid form.","C":"Incorrect. Halving the dose without glucose and ketone data risks ketosis, as requirements usually rise in illness.","D":"Incorrect. Insulin is not delayed pending transfer; review is arranged if ketones rise or vomiting continues."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pediatrics', 'Endocrine', 'Insulin in children', 'Sick-day rules',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_SATA_522041', 'SATA',
  'A 15-year-old with type 1 diabetes has joined the school football team. Which advice should the nurse give? Select all that apply.',
@@ -440,7 +440,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","E"],"feedback":{"A":"Correct. Monitoring around exercise shows how this particular adolescent responds and guides adjustment.","B":"Correct. Fast-acting carbohydrate must be immediately available, and someone present needs to know where it is.","C":"Incorrect. Exercise already increases insulin sensitivity, so extra insulin would provoke hypoglycaemia.","D":"Correct. Additional carbohydrate before exercise offsets the increased glucose uptake by working muscle.","E":"Correct. Muscle glycogen replenishment continues for hours, causing delayed and overnight hypoglycaemia.","F":"Incorrect. Insulin is given every day, and avoiding exercise removes a major benefit to glycaemic control and health."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Endocrine', 'Diabetes in adolescents', 'Exercise and hypoglycaemia',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MMR_522042', 'MATRIX_MR',
@@ -450,7 +450,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1","c2","c3"],"r2":["c2","c3"],"r3":["c2","c3"],"r4":["c3"],"r5":["c3"]},"feedback":{}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pediatrics', 'Endocrine', 'Diabetes self-management by age', 'Developmental readiness',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 9, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_DO_522043', 'DRAG_ORDER',
@@ -460,7 +460,7 @@ INSERT INTO nclex_bank_items (
  '{"slots":{"s1":"t2","s2":"t4","s3":"t6","s4":"t1","s5":"t3"}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Neurological', 'Lumbar puncture in infants', 'Nursing sequence and positioning',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Place the options in the correct order.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_522044', 'SATA',
@@ -470,7 +470,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Topical anaesthetic reduces the pain of the needle and is one of the few measures with strong evidence behind it.","B":"Correct. A short explanation close to the event matches the attention span of a preschooler and limits anticipatory fear.","C":"Correct. An upright comfort hold on the lap of a parent is less distressing and safer than lying the child flat and restraining them.","D":"Incorrect. A false promise destroys trust and makes every subsequent procedure harder.","E":"Correct. Blowing bubbles is an active distraction that also slows and deepens breathing.","F":"Incorrect. Painful procedures are done in a treatment room so the bed remains a safe space."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Pediatrics', 'Not applicable', 'Procedural comfort in children', 'Distraction and positioning',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_522045', 'SATA',
@@ -480,7 +480,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","F"],"feedback":{"A":"Correct. This measurement is more accurate in children than the older method ending at the xiphisternum.","B":"Correct. An aspirate pH of 5.5 or below is the recommended first-line confirmation of gastric placement.","C":"Incorrect. The air insufflation test cannot distinguish stomach from lung and is no longer accepted.","D":"Correct. Recording the external length allows any nurse to detect later migration of the tube.","E":"Incorrect. Nothing is instilled until placement has been confirmed, since a misplaced tube may be in the lung.","F":"Correct. Persistent coughing or cyanosis suggests airway placement and the tube is withdrawn immediately."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Gastrointestinal', 'Nasogastric tube in children', 'Measurement and placement checks',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522046', 'MCQ',
@@ -490,7 +490,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Nappy material contaminates the specimen and absorbs the components being tested.","B":"Correct. Cleaning the skin and collecting directly into a sterile container gives a culture result that can be acted on.","C":"Incorrect. Cotton wool introduces contaminants and cannot provide a specimen suitable for culture.","D":"Incorrect. Bath water is not sterile and the sample would be uninterpretable."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pediatrics', 'Genitourinary', 'Urine specimen collection in children', 'Non-toilet-trained child',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_522047', 'SATA',
@@ -500,7 +500,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Covering the site removes the visual cue and makes the cannula harder to grasp.","B":"Correct. A parent providing comfort and distraction is the most effective and least restrictive measure available.","C":"Correct. An activity that occupies the hands redirects the behaviour rather than suppressing it.","D":"Incorrect. Routine or precautionary restraint is never acceptable; restraint is a last resort, time limited and documented.","E":"Correct. If the cannula is no longer needed, removing it resolves the problem entirely.","F":"Incorrect. Sedation for the convenience of staff is a form of chemical restraint and is not appropriate here."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pediatrics', 'Not applicable', 'Restraint in children', 'Least restrictive alternatives',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_522048', 'MATRIX',
@@ -510,7 +510,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c3","r4":"c1","r5":"c3"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Pediatrics', 'Neurological', 'Paediatric pain assessment', 'Matching the tool to the child',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select one column for each row.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MMR_522049', 'MATRIX_MR',
@@ -520,7 +520,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1","c2","c3"],"r2":["c1"],"r3":["c1"],"r4":["c1","c3"],"r5":["c1","c2","c3"],"r6":["c1","c2","c3"]},"feedback":{}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Pediatrics', 'Not applicable', 'Delegation in paediatric care', 'Registered nurse, assistive personnel and parent',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 13, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_522050', 'MCQ',
@@ -530,5 +530,5 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. The parent has documented competence in this task and should be supported to troubleshoot it, with review kept in reserve.","B":"Correct. The simple and common causes are checked first, with escalation if they do not resolve the problem.","C":"Incorrect. Firm pressure can rupture the tube or dislodge it from the stoma.","D":"Incorrect. A tube-dependent 2-year-old who misses a feed is at risk of dehydration and hypoglycaemia."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Pediatrics', 'Gastrointestinal', 'Home care after discharge', 'Parent competence and support',
- 'Very hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');

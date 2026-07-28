@@ -8,7 +8,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_511001', 'MCQ',
  'A client at 39 weeks gestation telephones the antenatal clinic. Which finding reported by the client indicates TRUE labour?',
@@ -17,7 +17,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"C","feedback":{"A":"Incorrect. Contractions that ease with rest or a position change are typical of false labour.","B":"Incorrect. Discomfort confined to the lower abdomen and groin is characteristic of false labour; true labour pain usually starts in the back and sweeps forwards.","C":"Correct. A pattern that increases in strength, duration and frequency despite rest is the hallmark of true labour.","D":"Incorrect. Lightening occurs days to weeks before labour and does not mean labour has begun."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Maternity', 'Reproductive', 'True and false labour', 'Distinguishing features',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511002', 'MCQ',
@@ -27,7 +27,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Membranes can rupture hours or days before labour begins, and many clients labour with intact membranes.","B":"Correct. Documented cervical change over time is the defining criterion for the onset of labour.","C":"Incorrect. A bloody show signals cervical ripening and may precede labour by several days.","D":"Incorrect. Regular contractions can occur in false labour without producing any cervical change."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Onset of labour', 'Most valid sign',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_TF_511003', 'TF',
@@ -37,7 +37,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Weakening with activity points away from true labour, not towards it.","B":"Correct. True labour contractions continue or strengthen with walking, whereas false labour contractions typically ease with activity or rest."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Maternity', 'Reproductive', 'True and false labour', 'Effect of activity',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_511004', 'MATRIX',
@@ -47,7 +47,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c2","r2":"c1","r3":"c2","r4":"c1","r5":"c2","r6":"c1"},"feedback":{}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Maternity', 'Reproductive', 'True and false labour', 'Sorting findings',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_CLZ_511005', 'CLOZE',
@@ -57,7 +57,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c1","b2":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Cervical assessment', 'Effacement and station',
- 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511006', 'MCQ',
@@ -67,7 +67,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. A floating presenting part is recorded as a negative station such as -3.","B":"Correct. Station 0 places the presenting part at the ischial spines, which defines engagement.","C":"Incorrect. Visibility at the perineum corresponds to station +4 or crowning.","D":"Incorrect. Station describes descent, not dilation; the two are assessed and documented separately."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Fetal station', 'Engagement',
- 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511007', 'MCQ',
@@ -77,7 +77,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. This client is in the early active phase with the presenting part still high, so she is not the most urgent.","B":"Correct. A multipara at 9 cm and station +3 with an urge to push may give birth within minutes and must be assessed immediately.","C":"Incorrect. Irregular contractions with no cervical change suggest false labour, which is not urgent.","D":"Incorrect. A bloody show is a normal prelabour finding that needs no immediate intervention."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Maternity', 'Reproductive', 'Triage in labour', 'Prioritising clients',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_511008', 'SELECT_N',
@@ -87,7 +87,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D"],"feedback":{"A":"Correct. A hard, round, movable mass in the fundus is the fetal head, which places the fetus in a breech presentation.","B":"Correct. Term breech presentation is usually managed by planned caesarean birth or an attempted external cephalic version.","C":"Incorrect. In a vertex presentation the hard round head is felt over the symphysis pubis, not in the fundus.","D":"Correct. A breech presenting part does not seal the pelvic inlet, so the cord can prolapse when the membranes rupture.","E":"Incorrect. An unexpected presentation at 38 weeks requires confirmation and a documented plan for birth.","F":"Incorrect. Hearing the fetal heart above the umbilicus is consistent with breech and is not an error to correct."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Maternity', 'Reproductive', 'Fetal presentation', 'Breech presentation',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_511009', 'MATRIX',
@@ -97,7 +97,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c1","r4":"c2","r5":"c2","r6":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Fetal lie and presentation', 'Implications for mode of birth',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_511010', 'MATRIX',
@@ -107,14 +107,14 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c3","r4":"c1","r5":"c3","r6":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'First stage of labour', 'Phases and contraction patterns',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_511011', 'MCQ',
  'A client is admitted in the latent phase of the first stage of labour: 2 cm dilated, contracting every 15 minutes, talking easily between contractions. Which nursing action is most appropriate at this point?',
@@ -123,7 +123,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Ambulation, hydration and teaching suit the latent phase, when the client can still absorb information and conserve energy.","B":"Incorrect. Pushing before full dilation causes cervical oedema and trauma.","C":"Incorrect. Routine confinement to bed in early labour slows progress; intermittent monitoring is appropriate for a low-risk client.","D":"Incorrect. Regional analgesia sited in the latent phase can slow labour, and this client is coping well."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Maternity', 'Reproductive', 'First stage of labour', 'Latent phase nursing care',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511012', 'MCQ',
@@ -133,7 +133,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Staying present with calm, accepting support meets the psychosocial need of a client in transition, whose behaviour is an expected response to intense labour.","B":"Incorrect. Asking a client in transition to control herself is shaming and ignores the physiological basis of the behaviour.","C":"Incorrect. Leaving abandons a client at the most demanding point of labour, and she has already asked the nurse to stay.","D":"Incorrect. The partner also needs support at this point; charting is not a priority over presence."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity',
  'Maternity', 'Reproductive', 'First stage of labour', 'Transition phase support',
- 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511013', 'MCQ',
@@ -143,7 +143,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Pushing further reduces placental perfusion, so fetal heart rate assessment after each contraction is the priority in the second stage.","B":"Incorrect. Rest between contractions is encouraged, but it is a comfort measure rather than the priority.","C":"Incorrect. Dilation is already complete; repeating cervical examinations adds no information and raises infection risk.","D":"Incorrect. Fundal massage belongs after the placenta is delivered, in the fourth stage."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Second stage of labour', 'Nursing priority',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_511014', 'SATA',
@@ -153,7 +153,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","F"],"feedback":{"A":"Correct. The gush of dark blood is the retroplacental clot escaping as the placenta shears away.","B":"Correct. Visible lengthening of the cord shows the placenta has descended into the lower segment.","C":"Correct. The uterus rises and becomes globular and firm as it empties of the placenta.","D":"Incorrect. Cramping continues in the third stage because the uterus keeps contracting to expel the placenta.","E":"Incorrect. A boggy fundus that cannot be located suggests atony or uterine inversion, not normal separation.","F":"Correct. The placenta in the lower segment produces a renewed urge to bear down."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Third stage of labour', 'Signs of placental separation',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_511015', 'SATA',
@@ -163,7 +163,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D","F"],"feedback":{"A":"Correct. A firm, midline fundus at or below the umbilicus shows the uterus is controlling bleeding.","B":"Correct. Lochia that soaks a pad in under an hour or contains large clots signals haemorrhage.","C":"Correct. Rising pulse and falling blood pressure are early signs of concealed blood loss.","D":"Correct. A full bladder pushes the uterus up and to the side and prevents effective contraction.","E":"Incorrect. Cervical dilation is no longer assessed once the birth is complete.","F":"Correct. A tense, discoloured, exquisitely painful perineum indicates a haematoma."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Maternity', 'Reproductive', 'Fourth stage of labour', 'Recovery assessments',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511016', 'MCQ',
@@ -173,7 +173,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Regular painful contractions mark the beginning of the first stage.","B":"Correct. Full dilation ends the first stage and begins the second.","C":"Incorrect. Birth of the baby ends the second stage and begins the third.","D":"Incorrect. Delivery of the placenta ends the third stage and begins the fourth."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Maternity', 'Reproductive', 'Stages of labour', 'Boundaries of each stage',
- 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511017', 'MCQ',
@@ -183,7 +183,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Beginning-to-beginning is 4 minutes, so the frequency is every 4 minutes.","B":"Incorrect. Fifty seconds is the duration of each contraction, not the frequency.","C":"Incorrect. This subtracts the duration from the interval, which is not how frequency is measured.","D":"Incorrect. Eight minutes spans two intervals rather than one."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Contraction assessment', 'Measuring frequency',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_CLZ_511018', 'CLOZE',
@@ -193,7 +193,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c1","b2":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Contraction assessment', 'Duration and intensity by palpation',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511019', 'MCQ',
@@ -203,7 +203,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Removing the drug that is causing the excessive contractions is the first step, and it acts within minutes.","B":"Incorrect. Left lateral positioning is part of the response but comes after the oxytocin is stopped.","C":"Incorrect. Oxygen is given as part of the bundle but does not address the cause.","D":"Incorrect. The obstetrician must be told, but the nurse acts to remove the cause before making the call."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Maternity', 'Reproductive', 'Uterine hyperstimulation', 'First action',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511020', 'MCQ',
@@ -213,14 +213,14 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Exhaustion is a genuine consequence but is not immediately life-threatening to the fetus.","B":"Correct. Without an adequate resting interval the placenta cannot be reperfused, so the fetus becomes hypoxic and acidotic.","C":"Incorrect. A precipitous birth is possible but is a lesser concern than fetal oxygenation.","D":"Incorrect. Fluid overload relates to prolonged high-dose oxytocin over hours, not to the contraction pattern itself."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Uterine hyperstimulation', 'Priority concern',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_SATA_511021', 'SATA',
  'A client receiving oxytocin develops uterine tetany with late decelerations. Which nursing actions are indicated? Select all that apply.',
@@ -229,7 +229,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D","E"],"feedback":{"A":"Correct. Stopping the drug removes the stimulus driving the excessive contractions.","B":"Correct. Side-lying relieves compression of the inferior vena cava and improves uterine blood flow.","C":"Correct. A fluid bolus raises circulating volume and therefore placental perfusion.","D":"Correct. Supplemental oxygen increases the amount available to cross to the fetus.","E":"Correct. Terbutaline is a tocolytic that relaxes the myometrium when stopping the infusion is not enough.","F":"Incorrect. Increasing oxytocin would worsen the tetany and deepen the fetal compromise."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Maternity', 'Reproductive', 'Uterine tetany', 'Nursing interventions',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_511022', 'SELECT_N',
@@ -239,7 +239,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. A duration beyond 90 seconds leaves too little time for placental reperfusion.","B":"Correct. Contractions closer together than every 2 minutes abolish the resting interval.","C":"Correct. Recurrent late decelerations with minimal variability indicate uteroplacental insufficiency and fetal compromise.","D":"Incorrect. This is the intended contraction pattern for an augmented labour.","E":"Incorrect. Increasing pain is expected as labour becomes effective and is managed with analgesia and support.","F":"Incorrect. A baseline of 145 beats per minute is within the normal range of 110 to 160."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Maternity', 'Reproductive', 'Oxytocin infusion', 'Criteria for discontinuing',
- 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511023', 'MCQ',
@@ -249,7 +249,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"C","feedback":{"A":"Incorrect. Ninety-five beats per minute is bradycardia and requires intervention.","B":"Incorrect. This is just below the lower limit of 110 beats per minute.","C":"Correct. One hundred and forty beats per minute sits comfortably within the 110 to 160 range.","D":"Incorrect. One hundred and seventy-five beats per minute is tachycardia and must be investigated."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Fetal heart rate monitoring', 'Baseline rate',
- 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511024', 'MCQ',
@@ -259,7 +259,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Fluctuations of 6 to 25 beats per minute define moderate variability, the most reassuring sign on a tracing.","B":"Incorrect. Minimal variability means fluctuations of 5 beats per minute or fewer.","C":"Incorrect. Marked variability exceeds 25 beats per minute.","D":"Incorrect. This is a normal, reassuring tracing that requires no intervention."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Fetal heart rate monitoring', 'Variability',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_511025', 'SATA',
@@ -269,7 +269,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D","F"],"feedback":{"A":"Correct. Fetal sleep cycles of 20 to 40 minutes reduce variability and are benign.","B":"Correct. Opioids cross the placenta and depress the fetal central nervous system.","C":"Correct. Magnesium sulfate is a central nervous system depressant for the fetus as well as the mother.","D":"Correct. Hypoxia and acidosis blunt autonomic control and reduce variability.","E":"Incorrect. Left lateral positioning improves uteroplacental perfusion and would tend to improve variability.","F":"Correct. The autonomic nervous system is immature before about 32 weeks, so variability is naturally lower."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Fetal heart rate monitoring', 'Minimal variability',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511026', 'MCQ',
@@ -279,7 +279,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Early decelerations mirror the contraction, reflect head compression and need only continued observation.","B":"Incorrect. That response is reserved for late decelerations or other non-reassuring patterns.","C":"Incorrect. A vaginal examination for cord prolapse follows abrupt variable decelerations, not mirrored early ones.","D":"Incorrect. Early decelerations are benign and are not an indication for caesarean birth."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Fetal heart rate decelerations', 'Early decelerations',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511027', 'MCQ',
@@ -289,7 +289,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Repositioning takes seconds, needs no prescription and immediately relieves compression of the great vessels.","B":"Incorrect. A fluid bolus is part of the bundle but takes longer to take effect than repositioning.","C":"Incorrect. Oxygen is given next, but it cannot help if the uterus is still compressing the vena cava.","D":"Incorrect. The obstetrician is notified after the nurse has begun intrauterine resuscitation."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Fetal heart rate decelerations', 'Late decelerations first action',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511028', 'MCQ',
@@ -299,7 +299,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Late decelerations reflect uteroplacental insufficiency, so restoring placental blood flow and oxygen delivery is the priority goal.","B":"Incorrect. Cord compression produces variable decelerations, not late decelerations.","C":"Incorrect. Explanation and reassurance matter, but they do not address fetal oxygenation.","D":"Incorrect. Expediting birth may become necessary, but it is a consequence of failed resuscitation, not the immediate goal."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Maternity', 'Reproductive', 'Fetal heart rate decelerations', 'Late decelerations priority goal',
- 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511029', 'MCQ',
@@ -309,7 +309,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Head compression produces early decelerations that mirror the contraction.","B":"Correct. Abrupt variable decelerations reflect cord compression, and repositioning is the first corrective measure.","C":"Incorrect. Uteroplacental insufficiency produces late decelerations, and caesarean birth is not the first response.","D":"Incorrect. A sleep cycle reduces variability; it does not cause abrupt decelerations."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Fetal heart rate decelerations', 'Variable decelerations',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MMR_511030', 'MATRIX_MR',
@@ -319,14 +319,14 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1"],"r2":["c2","c3"],"r3":["c2"],"r4":["c1"]},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Fetal heart rate monitoring', 'Pattern-specific actions',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_SATA_511031', 'SATA',
  'A client with an oxytocin infusion develops a prolonged fetal heart rate deceleration lasting more than 2 minutes. Which actions make up the intrauterine resuscitation bundle? Select all that apply.',
@@ -335,7 +335,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D","E"],"feedback":{"A":"Correct. Oxytocin is stopped first because it is the reversible cause of reduced placental perfusion.","B":"Correct. Side-lying relieves aortocaval compression and improves uterine blood flow.","C":"Correct. A fluid bolus expands circulating volume and raises placental perfusion pressure.","D":"Correct. Supplemental oxygen increases the oxygen available to cross the placenta.","E":"Correct. The obstetrician must be informed so a decision about expediting birth can be made.","F":"Incorrect. The supine position compresses the vena cava and worsens the deceleration."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Maternity', 'Reproductive', 'Intrauterine resuscitation', 'Bundle of actions',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511032', 'MCQ',
@@ -345,7 +345,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Manually elevating the presenting part is the only action that immediately relieves the compression causing the bradycardia.","B":"Incorrect. Handling or replacing the cord causes vasospasm and worsens fetal hypoxia.","C":"Incorrect. Knee-chest positioning helps and is done immediately afterwards, but manual elevation acts first and most directly.","D":"Incorrect. Help is summoned while the nurse holds the presenting part up, not instead of doing so."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Prolapsed umbilical cord', 'First action',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_511033', 'SATA',
@@ -355,7 +355,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. These positions use gravity to shift the presenting part away from the pelvic inlet.","B":"Correct. Maternal oxygen maximises the oxygen carried in whatever cord flow remains.","C":"Correct. Keeping the cord warm and moist prevents drying and vasospasm.","D":"Incorrect. Replacing the cord causes vasospasm and delays definitive management.","E":"Correct. Immediate caesarean birth is the definitive treatment unless vaginal birth is imminent.","F":"Incorrect. The hand stays in place until the baby is delivered, however uncomfortable that is for the nurse."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Maternity', 'Reproductive', 'Prolapsed umbilical cord', 'Ongoing management',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511034', 'MCQ',
@@ -365,7 +365,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Sacral counter-pressure opposes the fetal occiput directly, and the hands-and-knees position relieves pressure and encourages rotation.","B":"Incorrect. Lying supine increases sacral pressure and risks supine hypotension.","C":"Incorrect. Pushing before full dilation causes cervical oedema and does not relieve back pain.","D":"Incorrect. The pain source is the sacrum, and abdominal cold will not reach it."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Maternity', 'Reproductive', 'Occiput posterior position', 'Back labour comfort measures',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511035', 'MCQ',
@@ -375,7 +375,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. The McRoberts manoeuvre rotates the symphysis pubis and frees the impacted shoulder in most cases.","B":"Incorrect. Fundal pressure drives the shoulder harder against the symphysis and risks uterine rupture.","C":"Incorrect. Harder pushing against a fixed obstruction increases fetal injury without freeing the shoulder.","D":"Incorrect. The head is already born, so caesarean birth is not the immediate answer."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Maternity', 'Reproductive', 'Shoulder dystocia', 'First manoeuvre',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_511036', 'SATA',
@@ -385,7 +385,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","C","E"],"feedback":{"A":"Correct. Fundal pressure wedges the shoulder more firmly behind the symphysis and can rupture the uterus.","B":"Incorrect. Suprapubic pressure is a recommended manoeuvre that pushes the shoulder into an oblique position.","C":"Correct. Pushing against a fixed obstruction increases fetal injury and delays effective manoeuvres.","D":"Incorrect. This is the McRoberts manoeuvre and is the recommended first step.","E":"Correct. Forceful traction on the head is the classic cause of brachial plexus injury.","F":"Incorrect. Shoulder dystocia is an emergency requiring extra hands immediately."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Shoulder dystocia', 'Contraindicated actions',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_511037', 'SATA',
@@ -395,7 +395,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D","F"],"feedback":{"A":"Correct. A sudden tearing pain at the peak of a contraction is the classic presenting symptom.","B":"Correct. Contractions stop because the myometrium can no longer generate coordinated pressure.","C":"Correct. The presenting part rises because the fetus is no longer being held down in the pelvis.","D":"Correct. Bleeding is largely concealed, so shock appears before visible blood loss.","E":"Incorrect. This describes a normally contracted uterus after birth and is unrelated to rupture during labour.","F":"Correct. Easily palpable fetal parts suggest the fetus has moved outside the uterus."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Uterine rupture', 'Recognition',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511038', 'MCQ',
@@ -405,7 +405,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Survival of mother and fetus depends on immediate surgical delivery and repair with simultaneous volume replacement.","B":"Incorrect. A catheter is inserted as part of theatre preparation but is not what saves the client.","C":"Incorrect. Analgesia does not address catastrophic haemorrhage and may mask deterioration.","D":"Incorrect. Repositioning and waiting delays surgery in a rapidly fatal emergency."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Maternity', 'Reproductive', 'Uterine rupture', 'Priority action',
- 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511039', 'MCQ',
@@ -415,7 +415,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Amniotic fluid embolism causes cardiorespiratory collapse, so summoning help and supporting oxygenation come before everything else.","B":"Incorrect. Clotting studies are needed but must not delay resuscitation.","C":"Incorrect. Increasing oxytocin in a collapsing client is unsafe and does not treat the embolism.","D":"Incorrect. Repositioning and waiting are inadequate for a client in cardiovascular collapse."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Maternity', 'Multisystem', 'Amniotic fluid embolism', 'Recognition and first action',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511040', 'MCQ',
@@ -425,14 +425,14 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Side-lying lifts the uterus off the inferior vena cava and restores venous return and blood pressure.","B":"Incorrect. Sitting upright does not relieve compression of the vena cava by the uterus.","C":"Incorrect. The nausea is a symptom of hypotension and settles once the position is corrected.","D":"Incorrect. Remaining supine allows the compression, and therefore the hypotension, to continue."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort',
  'Maternity', 'Multisystem', 'Supine hypotensive syndrome', 'Positioning',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MMR_511041', 'MATRIX_MR',
  'A client has been labouring for 20 hours with ruptured membranes. For each finding, select all of the statements that apply. Each finding has at least one.',
@@ -441,7 +441,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1","c2"],"r2":["c1","c2"],"r3":["c3"],"r4":["c1","c2"],"r5":["c1","c2"]},"feedback":{}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Maternity', 'Multisystem', 'Chorioamnionitis', 'Recognition in labour',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 9, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_511042', 'SATA',
@@ -451,7 +451,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","E"],"feedback":{"A":"Correct. Blood behind the placenta irritates the myometrium and produces a rigid, tender uterus.","B":"Correct. Blood that has been in contact with the decidua before escaping appears dark red.","C":"Incorrect. Painless bright red bleeding is the classic description of placenta praevia, not abruption.","D":"Correct. A rising fundal height reflects blood collecting behind the placenta.","E":"Correct. Loss of placental surface area produces uteroplacental insufficiency and late decelerations.","F":"Incorrect. A soft uterus with a reassuring tracing argues against abruption."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Placental abruption', 'Recognition during labour',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_511043', 'SATA',
@@ -461,7 +461,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Every vaginal examination carries vaginal organisms towards the uterine cavity.","B":"Correct. Regular temperature measurement is the earliest routine screen for chorioamnionitis.","C":"Correct. Cloudy, green or foul-smelling fluid signals infection or meconium.","D":"Correct. Fetal tachycardia frequently appears before the mother becomes febrile.","E":"Incorrect. Hourly examinations markedly increase infection risk and are unnecessary in a client not yet contracting.","F":"Incorrect. Nothing is inserted into the vagina; a pack would trap organisms against the cervix."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Maternity', 'Reproductive', 'Premature rupture of membranes', 'Nursing care',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_511044', 'SELECT_N',
@@ -471,7 +471,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Regular tightenings before 37 weeks may be preterm labour and require assessment.","B":"Correct. Constant low backache with pelvic pressure is a recognised warning sign of preterm labour.","C":"Correct. A sudden increase in watery discharge may be ruptured membranes.","D":"Incorrect. This is reassuring fetal activity.","E":"Incorrect. Dependent oedema that resolves overnight is a normal third-trimester finding.","F":"Incorrect. Irregular tightenings that stop with rest are Braxton Hicks contractions."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Preterm labour', 'Warning signs',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511045', 'MCQ',
@@ -481,7 +481,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Betamethasone stimulates fetal surfactant production and reduces respiratory distress syndrome.","B":"Incorrect. Stopping contractions is the role of a tocolytic, not a corticosteroid.","C":"Incorrect. Infection is prevented with antibiotics, not corticosteroids.","D":"Incorrect. Betamethasone has no analgesic effect."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Maternity', 'Reproductive', 'Betamethasone', 'Purpose in preterm labour',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511046', 'MCQ',
@@ -491,7 +491,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Reflecting the feeling and inviting elaboration acknowledges the emotion and opens the conversation.","B":"Incorrect. This offers false reassurance and dismisses the feeling rather than exploring it.","C":"Incorrect. Telling a distressed client not to be upset is dismissive and blocks communication.","D":"Incorrect. This question implies that the client did cause the preterm labour and reinforces the guilt."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity',
  'Maternity', 'Reproductive', 'Preterm labour', 'Therapeutic communication',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511047', 'MCQ',
@@ -501,7 +501,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. The peak fetal drug level would coincide with birth, producing a sedated newborn with depressed respirations.","B":"Incorrect. Full dilation is the point at which systemic opioids become least safe for the newborn.","C":"Incorrect. Pain relief is offered, but the timing must protect the newborn; other options remain available.","D":"Incorrect. Opioids cross the placenta readily, which is precisely the problem."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Maternity', 'Reproductive', 'Systemic opioid analgesia', 'Timing relative to birth',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_511048', 'SATA',
@@ -511,7 +511,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. A fluid preload fills the vascular space that sympathetic blockade is about to dilate.","B":"Correct. Baseline observations give the reference point for detecting hypotension afterwards.","C":"Correct. Sensation of a full bladder is lost after the block, so the bladder is emptied first.","D":"Correct. Consent and a platelet count are required before regional anaesthesia is undertaken.","E":"Incorrect. The client sits or lies on her side for insertion; supine positioning risks aortocaval compression.","F":"Incorrect. Eight hours of fasting is neither required nor safe for a labouring client."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Maternity', 'Reproductive', 'Epidural analgesia', 'Preparation before siting',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511049', 'MCQ',
@@ -521,7 +521,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Repositioning and a fluid bolus can be started immediately and directly reverse the cause of the hypotension.","B":"Incorrect. Ephedrine is given if position and fluid do not restore the blood pressure.","C":"Incorrect. Oxygen supports the fetus but does nothing for maternal blood pressure.","D":"Incorrect. The anaesthetist is informed after the nurse has begun the immediate corrective measures."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Maternity', 'Multisystem', 'Epidural analgesia', 'Hypotension first action',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_511050', 'MATRIX',
@@ -531,14 +531,14 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c1","r4":"c2","r5":"c2","r6":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Maternity', 'Reproductive', 'Epidural analgesia', 'Ongoing monitoring',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_DO_511051', 'DRAG_ORDER',
  'A baby has just been born in a birthing room. Place the immediate care activities in the order in which the nurse should carry them out. One option will not be used.',
@@ -547,7 +547,7 @@ INSERT INTO nclex_bank_items (
  '{"slots":{"s1":"t2","s2":"t1","s3":"t4","s4":"t3","s5":"t5"}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Maternity', 'Reproductive', 'Immediate care at birth', 'Order of activities',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Place the options in the correct order.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_511052', 'MCQ',
@@ -557,7 +557,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A two-vessel cord is abnormal and is associated with renal and cardiac anomalies that require further assessment.","B":"Incorrect. Only two vessels were counted, so this documentation would be inaccurate.","C":"Incorrect. Three vessels, not two, are normal in a term newborn.","D":"Incorrect. Reclamping does not change the number of vessels and is unnecessary."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Reproductive', 'Umbilical cord', 'Three-vessel cord',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_511053', 'SATA',
@@ -567,7 +567,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","F"],"feedback":{"A":"Correct. A missing cotyledon means placental tissue has been retained, which prevents the uterus contracting and causes haemorrhage.","B":"Correct. Ragged incomplete membranes suggest retained fragments and infection risk.","C":"Incorrect. Two arteries and one vein is the normal three-vessel cord.","D":"Correct. A foul odour suggests intra-amniotic infection and requires investigation.","E":"Incorrect. A dark red lobed maternal surface is the expected appearance.","F":"Correct. An adherent clot with a crater beneath it is evidence of placental abruption."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Maternity', 'Reproductive', 'Placental inspection', 'Findings to report',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_511054', 'SELECT_N',
@@ -577,7 +577,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. A placenta covering the os obstructs birth and bleeds heavily as the cervix dilates.","B":"Correct. A shoulder presentation cannot be delivered vaginally.","C":"Correct. With the cervix only 4 cm dilated, the cord will be compressed long before vaginal birth is possible.","D":"Incorrect. Occiput posterior labours are slower and more painful but usually deliver vaginally.","E":"Incorrect. Early decelerations reflect head compression and are benign.","F":"Incorrect. A second stage of 45 minutes is well within normal limits for a first labour."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care',
  'Maternity', 'Reproductive', 'Caesarean birth', 'Indications',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_511055', 'SATA',
@@ -587,5 +587,5 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D","E"],"feedback":{"A":"Correct. A block that rises too high impairs the respiratory muscles, so ventilation is monitored closely.","B":"Correct. Uterine atony and haemorrhage remain a risk after caesarean as after vaginal birth.","C":"Correct. Lochia and the dressing together reveal both uterine and surgical bleeding.","D":"Correct. Sensation and movement must return before the client can safely mobilise.","E":"Correct. Urine output reflects perfusion and detects bladder injury after abdominal surgery.","F":"Incorrect. The client cannot mobilise safely until the block has worn off and stability is confirmed."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Maternity', 'Multisystem', 'Caesarean birth', 'Immediate postoperative priorities',
- 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 'Select all that apply.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');

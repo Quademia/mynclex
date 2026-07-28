@@ -8,7 +8,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_540001', 'MCQ',
  'A client who has taken lithium carbonate for two years attends the community mental health clinic reporting three days of vomiting and diarrhoea. The nurse notes a new coarse hand tremor and slurred speech. The serum lithium level is 1.9 mEq/L. Which action should the nurse take?',
@@ -16,7 +16,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Administer the next scheduled dose and encourage extra oral fluids"},{"id":"B","text":"Withhold the dose, notify the prescriber and keep the client under observation"},{"id":"C","text":"Reassure the client that a coarse tremor is an expected side effect of lithium"},{"id":"D","text":"Advise the client to restrict sodium intake until the tremor settles"}]}'::jsonb,
  '{"answer":"B","feedback":{"A":"Incorrect. Giving a further dose when the level is already 1.9 mEq/L with neurological signs will deepen the toxicity.","B":"Correct. A level above 1.5 mEq/L with coarse tremor and slurred speech is toxicity, which requires the dose to be held and the prescriber informed.","C":"Incorrect. A fine tremor is an expected side effect; a coarse tremor is a warning sign of toxicity.","D":"Incorrect. Restricting sodium increases lithium reabsorption and would raise the level further."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Pharmacology', 'Psychiatric/Mental Health',
- 'Lithium', 'Therapeutic and toxic serum levels', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Lithium', 'Therapeutic and toxic serum levels', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540002', 'MCQ',
@@ -25,7 +25,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Give the dose and recount the apical pulse in one hour"},{"id":"B","text":"Withhold the digoxin and notify the prescriber"},{"id":"C","text":"Recheck the apical pulse in 15 minutes before deciding"},{"id":"D","text":"Give the dose, because a slow pulse is an expected effect of digoxin"}]}'::jsonb,
  '{"answer":"B","feedback":{"A":"Incorrect. Once the dose is given the bradycardia can only worsen; the reassessment happens after the decision to hold.","B":"Correct. An apical rate below 60 beats per minute is the hold parameter, so the dose is withheld and the prescriber informed.","C":"Incorrect. Delaying the decision does not change the current rate and leaves the client without a plan.","D":"Incorrect. Digoxin does slow the rate, but 52 beats per minute crosses the safety threshold and is not simply accepted."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Cardiovascular',
- 'Digoxin', 'Apical pulse and hold parameter', 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Digoxin', 'Apical pulse and hold parameter', 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540003', 'MCQ',
@@ -34,7 +34,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Serum potassium 2.8 mEq/L"},{"id":"B","text":"Serum sodium 138 mEq/L"},{"id":"C","text":"Haemoglobin 12.6 g/dL"},{"id":"D","text":"Serum magnesium 2.0 mEq/L"}]}'::jsonb,
  '{"answer":"A","feedback":{"A":"Correct. Hypokalaemia increases digoxin binding at the cardiac cell membrane and can cause toxicity even at a normal serum digoxin level.","B":"Incorrect. A sodium of 138 mEq/L is within normal limits and does not alter digoxin safety.","C":"Incorrect. A haemoglobin of 12.6 g/dL is within normal limits and is not the priority report here.","D":"Incorrect. A magnesium of 2.0 mEq/L is normal; it is a low magnesium that would add to the risk."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Pharmacology', 'Cardiovascular',
- 'Digoxin', 'Hypokalaemia and toxicity risk', 'Easy', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Digoxin', 'Hypokalaemia and toxicity risk', 'Easy', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540004', 'MCQ',
@@ -43,7 +43,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Withhold the next phenytoin dose and notify the prescriber"},{"id":"B","text":"Encourage the client to walk in the corridor to improve balance"},{"id":"C","text":"Document the findings as expected side effects of phenytoin"},{"id":"D","text":"Give the dose with a full glass of milk to reduce gastric irritation"}]}'::jsonb,
  '{"answer":"A","feedback":{"A":"Correct. A level of 26 mcg/mL with nystagmus, ataxia and slurred speech is toxicity, so the dose is held and the prescriber informed.","B":"Incorrect. Walking an ataxic client without support risks a fall and does not address the raised level.","C":"Incorrect. Nystagmus and ataxia are toxic effects, not expected side effects to be simply recorded.","D":"Incorrect. Managing gastric irritation is irrelevant when the level is already above the therapeutic range."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Pharmacology', 'Neurological',
- 'Phenytoin', 'Serum level interpretation', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Phenytoin', 'Serum level interpretation', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540005', 'MCQ',
@@ -52,7 +52,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Stop the aminophylline infusion"},{"id":"B","text":"Notify the prescriber and await instructions"},{"id":"C","text":"Administer the prescribed antiemetic for the nausea"},{"id":"D","text":"Halve the infusion rate and continue the infusion"}]}'::jsonb,
  '{"answer":"A","feedback":{"A":"Correct. Stopping the infusion halts further drug entering the circulation and is the first action before escalating.","B":"Incorrect. Notification is essential but comes second; the infusion continues to raise the level while the nurse waits.","C":"Incorrect. Treating the nausea masks a sign of toxicity and leaves the cause running.","D":"Incorrect. A reduced rate still delivers drug to a client whose level is already above the therapeutic range."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Respiratory',
- 'Theophylline and aminophylline', 'Toxicity and immediate action', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Theophylline and aminophylline', 'Toxicity and immediate action', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540006', 'MCQ',
@@ -61,7 +61,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Immediately before the next scheduled dose"},{"id":"B","text":"Thirty minutes after the infusion has finished"},{"id":"C","text":"Midway between two doses"},{"id":"D","text":"At any convenient time during the shift"}]}'::jsonb,
  '{"answer":"A","feedback":{"A":"Correct. The trough is the lowest level in the interval and is drawn immediately before the next dose is due.","B":"Incorrect. That timing describes a peak level, not a trough.","C":"Incorrect. A mid-interval sample is neither a peak nor a trough and cannot be interpreted against the reference range.","D":"Incorrect. Untimed samples make the result meaningless, which defeats the purpose of monitoring a narrow therapeutic index drug."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Immune',
- 'Peak and trough sampling', 'Trough timing', 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Peak and trough sampling', 'Trough timing', 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540007', 'MCQ',
@@ -70,7 +70,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Continue at the same rate, since the reaction is harmless"},{"id":"B","text":"Stop the infusion and, once the symptoms settle, resume it over at least 60 minutes as prescribed"},{"id":"C","text":"Record a vancomycin allergy in the notes and withhold all future doses"},{"id":"D","text":"Administer intramuscular adrenaline immediately"}]}'::jsonb,
  '{"answer":"B","feedback":{"A":"Incorrect. Continuing at the same rate prolongs the histamine release and can lead to hypotension.","B":"Correct. The reaction is rate-related histamine release, so pausing and then infusing more slowly resolves it without losing the antibiotic.","C":"Incorrect. Labelling a rate-related reaction as an allergy wrongly removes a needed antibiotic from future options.","D":"Incorrect. Adrenaline is reserved for anaphylaxis, which involves airway swelling, wheeze or hypotension; none are present here."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Immune',
- 'Vancomycin', 'Infusion reaction versus allergy', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Vancomycin', 'Infusion reaction versus allergy', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540008', 'MCQ',
@@ -79,7 +79,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Withhold the next dose and notify the prescriber"},{"id":"B","text":"Give the dose and encourage an increased oral fluid intake"},{"id":"C","text":"Request a trough level after the next three doses have been given"},{"id":"D","text":"Document the results as an expected response to gentamicin"}]}'::jsonb,
  '{"answer":"A","feedback":{"A":"Correct. A creatinine rise with oliguria signals aminoglycoside nephrotoxicity, so the dose is held and the prescriber informed.","B":"Incorrect. Fluids alone do not clear an accumulating nephrotoxic drug and the dose would deepen the injury.","C":"Incorrect. Waiting for three more doses exposes the client to further harm before anyone acts.","D":"Incorrect. Nephrotoxicity is an adverse toxic effect, not an expected response to be recorded and ignored."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Pharmacology', 'Genitourinary',
- 'Aminoglycosides', 'Nephrotoxicity monitoring', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Aminoglycosides', 'Nephrotoxicity monitoring', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540009', 'MCQ',
@@ -88,7 +88,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Oral neomycin is poorly absorbed from the gut, so it acts locally to reduce the ammonia-producing bacteria in the bowel"},{"id":"B","text":"Oral neomycin is absorbed better than the intravenous form and reaches the liver more quickly"},{"id":"C","text":"Oral neomycin is given to treat an infection of the liver tissue itself"},{"id":"D","text":"Oral neomycin protects the kidneys from the effects of a raised ammonia level"}]}'::jsonb,
  '{"answer":"A","feedback":{"A":"Correct. Poor gastrointestinal absorption keeps the drug in the bowel lumen, where it suppresses the ammonia-producing flora.","B":"Incorrect. Aminoglycosides are very poorly absorbed orally, which is why systemic infection requires the parenteral route.","C":"Incorrect. Hepatic encephalopathy is not a liver infection; the target is the gut flora that generate ammonia.","D":"Incorrect. Neomycin is itself nephrotoxic when absorbed; it does not protect the kidney."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Gastrointestinal',
- 'Aminoglycosides', 'Oral route for a local gut effect', 'Very hard', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Aminoglycosides', 'Oral route for a local gut effect', 'Very hard', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540010', 'MCQ',
@@ -97,14 +97,14 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"11 mL per hour"},{"id":"B","text":"22 mL per hour"},{"id":"C","text":"44 mL per hour"},{"id":"D","text":"55 mL per hour"}]}'::jsonb,
  '{"answer":"B","feedback":{"A":"Incorrect. 11 mL per hour would deliver only 550 units per hour, half the prescribed dose.","B":"Correct. The bag contains 50 units per mL, and 1,100 divided by 50 gives 22 mL per hour.","C":"Incorrect. 44 mL per hour would deliver 2,200 units per hour, double the prescription.","D":"Incorrect. 55 mL per hour would deliver 2,750 units per hour, a dangerous overdose."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Hematologic',
- 'Heparin', 'Infusion rate calculation', 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Heparin', 'Infusion rate calculation', 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_540011', 'MCQ',
  'A client weighing 80 kg is prescribed an intravenous heparin bolus of 60 units/kg before a heparin infusion is started. The vial available contains 1,000 units/mL. How many mL should the nurse draw up? Round to one decimal place.',
@@ -112,7 +112,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"0.48 mL"},{"id":"B","text":"4.8 mL"},{"id":"C","text":"8.4 mL"},{"id":"D","text":"48 mL"}]}'::jsonb,
  '{"answer":"B","feedback":{"A":"Incorrect. 0.48 mL is one tenth of the dose and reflects a misplaced decimal point.","B":"Correct. 60 units multiplied by 80 kg is 4,800 units, and 4,800 divided by 1,000 units per mL is 4.8 mL.","C":"Incorrect. 8.4 mL reverses the digits of the correct answer and would deliver 8,400 units.","D":"Incorrect. 48 mL is ten times the required dose and would deliver 48,000 units."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Hematologic',
- 'Heparin', 'Weight-based bolus calculation', 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Heparin', 'Weight-based bolus calculation', 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540012', 'MCQ',
@@ -121,7 +121,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Withhold the warfarin and notify the prescriber"},{"id":"B","text":"Give the usual dose, since there is no bleeding"},{"id":"C","text":"Administer protamine sulfate"},{"id":"D","text":"Advise the client to eat extra green leafy vegetables to bring the INR down today"}]}'::jsonb,
  '{"answer":"A","feedback":{"A":"Correct. An INR of 6.8 is far above target, so the dose is withheld and the prescriber informed for a decision on vitamin K and rechecking.","B":"Incorrect. The absence of bleeding does not make the result safe; the client is at high risk of a bleed.","C":"Incorrect. Protamine sulfate reverses heparin; warfarin is reversed with vitamin K.","D":"Incorrect. Dietary vitamin K is kept steady rather than used as an emergency correction, and it will not act quickly enough."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Pharmacology', 'Hematologic',
- 'Warfarin', 'INR interpretation', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Warfarin', 'INR interpretation', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540013', 'MCQ',
@@ -130,7 +130,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"1.5 mL"},{"id":"B","text":"2.5 mL"},{"id":"C","text":"3.5 mL"},{"id":"D","text":"0.25 mL"}]}'::jsonb,
  '{"answer":"B","feedback":{"A":"Incorrect. 1.5 mL would deliver 0.075 mg, less than prescribed.","B":"Correct. 0.125 mg divided by 0.05 mg/mL equals 2.5 mL.","C":"Incorrect. 3.5 mL would deliver 0.175 mg, more than prescribed.","D":"Incorrect. 0.25 mL reflects a misplaced decimal and would deliver only 0.0125 mg."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Cardiovascular',
- 'Digoxin', 'Oral dose calculation', 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Digoxin', 'Oral dose calculation', 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540014', 'MCQ',
@@ -139,7 +139,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"0830 to 0930"},{"id":"B","text":"1030 to 1230"},{"id":"C","text":"1330 to 1930"},{"id":"D","text":"2130 to 0730 the following morning"}]}'::jsonb,
  '{"answer":"C","feedback":{"A":"Incorrect. That period is around the onset of action, when the glucose-lowering effect is only beginning.","B":"Incorrect. That window fits a regular insulin peak of 2 to 4 hours, not NPH.","C":"Correct. Adding the 6 to 12 hour peak to a 0730 dose gives 1330 to 1930.","D":"Incorrect. That period falls in the tail of the duration, where the effect is waning rather than peaking."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Endocrine',
- 'Insulin', 'Peak action and hypoglycaemia timing', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Insulin', 'Peak action and hypoglycaemia timing', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540015', 'MCQ',
@@ -148,7 +148,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Administer it slowly over five minutes while watching the monitor"},{"id":"B","text":"Withhold the drug and contact the prescriber to clarify the prescription"},{"id":"C","text":"Ask a second nurse to give it so that the check is shared"},{"id":"D","text":"Dilute it in 10 mL of sodium chloride and give it over 10 minutes"}]}'::jsonb,
  '{"answer":"B","feedback":{"A":"Incorrect. Slowing a push does not make it safe; potassium chloride is never pushed intravenously.","B":"Correct. The nurse withholds an unsafe prescription and contacts the prescriber for clarification.","C":"Incorrect. Sharing an unsafe act does not make it safe, and both nurses would be accountable.","D":"Incorrect. Bolus dilution is still a push; potassium requires a large diluent volume through a rate-controlled pump."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Pharmacology', 'Cardiovascular',
- 'Potassium chloride', 'Verifying a questionable prescription', 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Potassium chloride', 'Verifying a questionable prescription', 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540016', 'MCQ',
@@ -157,7 +157,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"62.5 mL per hour, delivering 10 mEq per hour, which is at the usual maximum"},{"id":"B","text":"62.5 mL per hour, delivering 20 mEq per hour, which exceeds the usual maximum"},{"id":"C","text":"125 mL per hour, delivering 10 mEq per hour, which is within the usual maximum"},{"id":"D","text":"41.7 mL per hour, delivering 6.7 mEq per hour, which is within the usual maximum"}]}'::jsonb,
  '{"answer":"A","feedback":{"A":"Correct. 250 divided by 4 is 62.5 mL per hour, and 40 mEq divided by 4 hours is 10 mEq per hour, at the usual peripheral ceiling.","B":"Incorrect. The volume rate is right but 40 mEq over 4 hours is 10 mEq per hour, not 20.","C":"Incorrect. 125 mL per hour would empty the bag in 2 hours and deliver 20 mEq per hour.","D":"Incorrect. 41.7 mL per hour corresponds to a 6-hour infusion, not the 4 hours prescribed."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Cardiovascular',
- 'Potassium chloride', 'Infusion rate calculation', 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Potassium chloride', 'Infusion rate calculation', 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540017', 'MCQ',
@@ -166,7 +166,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Intravenous calcium gluconate"},{"id":"B","text":"Intravenous insulin with dextrose"},{"id":"C","text":"Oral sodium polystyrene sulfonate"},{"id":"D","text":"Nebulised salbutamol"}]}'::jsonb,
  '{"answer":"A","feedback":{"A":"Correct. Calcium gluconate stabilises the myocardium within minutes and protects against a lethal dysrhythmia while the potassium is shifted and removed.","B":"Incorrect. Insulin with dextrose is essential but takes 15 to 30 minutes to shift potassium and does not protect the heart immediately.","C":"Incorrect. A binding resin removes potassium through the gut over hours and is the slowest of the options.","D":"Incorrect. Nebulised salbutamol shifts potassium intracellularly but is an adjunct, not the immediate cardiac protection."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Cardiovascular',
- 'Hyperkalaemia', 'Emergency treatment sequence', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hyperkalaemia', 'Emergency treatment sequence', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540018', 'MCQ',
@@ -175,7 +175,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Digoxin immune Fab"},{"id":"B","text":"A further loading dose of digoxin"},{"id":"C","text":"Protamine sulfate"},{"id":"D","text":"Flumazenil"}]}'::jsonb,
  '{"answer":"A","feedback":{"A":"Correct. Digoxin immune Fab binds digoxin and is indicated for a toxic level with a life-threatening dysrhythmia or hyperkalaemia.","B":"Incorrect. More digoxin would deepen the block and the hyperkalaemia.","C":"Incorrect. Protamine sulfate reverses heparin and has no effect on digoxin.","D":"Incorrect. Flumazenil reverses benzodiazepines and has no effect on digoxin."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Cardiovascular',
- 'Digoxin immune Fab', 'Indication for the antidote', 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Digoxin immune Fab', 'Indication for the antidote', 'Medium', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_540019', 'MCQ',
@@ -184,7 +184,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"3.4 mL"},{"id":"B","text":"8.5 mL"},{"id":"C","text":"13.6 mL"},{"id":"D","text":"17 mL"}]}'::jsonb,
  '{"answer":"B","feedback":{"A":"Incorrect. 3.4 mL delivers 136 mg, well under the prescribed dose.","B":"Correct. 5 mg/kg for 68 kg is 340 mg, and 340 divided by 40 mg/mL is 8.5 mL.","C":"Incorrect. 13.6 mL delivers 544 mg and reflects dividing by the wrong strength.","D":"Incorrect. 17 mL delivers 680 mg, double the prescribed dose."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Immune',
- 'Aminoglycosides', 'Weight-based dose calculation', 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Aminoglycosides', 'Weight-based dose calculation', 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_540020', 'SATA',
@@ -193,14 +193,14 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"A new coarse hand tremor"},{"id":"B","text":"Persistent vomiting and diarrhoea"},{"id":"C","text":"A fine hand tremor present since the drug was first started"},{"id":"D","text":"Slurred speech"},{"id":"E","text":"Increased thirst and urination present for several months"},{"id":"F","text":"A new unsteady gait"},{"id":"G","text":"A metallic taste noticed during the first week of treatment"}]}'::jsonb,
  '{"answers":["A","B","D","F"],"feedback":{"A":"Correct. A coarse tremor is a hallmark of a rising lithium level, unlike the fine tremor of ordinary therapy.","B":"Correct. Vomiting and diarrhoea are both toxic effects and a cause of further sodium and water loss that raises the level.","C":"Incorrect. A long-standing fine tremor is a recognised side effect that is monitored rather than escalated.","D":"Correct. Slurred speech is a neurological toxic effect requiring the dose to be withheld.","E":"Incorrect. Polyuria and thirst are common side effects of lithium and, when stable, do not indicate toxicity.","F":"Correct. New ataxia indicates central nervous system toxicity and needs urgent review.","G":"Incorrect. A transient metallic taste early in treatment is a benign side effect."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Pharmacology', 'Psychiatric/Mental Health',
- 'Lithium', 'Side effect versus toxic effect', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Lithium', 'Side effect versus toxic effect', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_SATA_540021', 'SATA',
  'A healthcare assistant reports several observations about an older adult who takes digoxin. Which findings should the nurse recognise as early manifestations of digoxin toxicity? Select all that apply.',
@@ -208,7 +208,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Anorexia and nausea"},{"id":"B","text":"Yellow-green halos around lights"},{"id":"C","text":"An increase in urine output"},{"id":"D","text":"New onset confusion"},{"id":"E","text":"A blood pressure of 128/78 mmHg"},{"id":"F","text":"Blurred vision"}]}'::jsonb,
  '{"answers":["A","B","D","F"],"feedback":{"A":"Correct. Loss of appetite and nausea are typically the earliest features of digoxin toxicity.","B":"Correct. Yellow-green halos are a classic visual disturbance of digoxin excess.","C":"Incorrect. A rise in urine output reflects an improving cardiac output, which is a therapeutic response.","D":"Correct. New confusion is a frequent presentation of digoxin toxicity in older adults.","E":"Incorrect. That blood pressure is within normal limits and is not a toxicity sign.","F":"Correct. Blurred vision is part of the visual disturbance seen with a raised digoxin level."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Pharmacology', 'Cardiovascular',
- 'Digoxin', 'Early toxicity manifestations', 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Digoxin', 'Early toxicity manifestations', 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_540022', 'SATA',
@@ -217,7 +217,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Ringing in the ears"},{"id":"B","text":"New unsteadiness when standing with the eyes closed"},{"id":"C","text":"A urine output of 15 mL per hour"},{"id":"D","text":"A serum creatinine that has risen from 0.9 to 1.9 mg/dL"},{"id":"E","text":"A temperature that has fallen from 39.1 to 37.2 degrees C"},{"id":"F","text":"Two loose stools on the first day of therapy"}]}'::jsonb,
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Tinnitus is an early warning of cochlear damage, which may become permanent if the drug continues.","B":"Correct. Vestibular toxicity produces unsteadiness and dizziness and is reported promptly.","C":"Correct. Oliguria of 15 mL per hour suggests developing nephrotoxicity.","D":"Correct. A doubling of the creatinine indicates falling clearance and drug accumulation.","E":"Incorrect. A settling temperature is evidence that the antibiotic is working.","F":"Incorrect. Transient loose stools are a minor side effect rather than a dose-limiting toxicity."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Pharmacology', 'Sensory',
- 'Aminoglycosides', 'Ototoxicity monitoring', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Aminoglycosides', 'Ototoxicity monitoring', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_540023', 'SATA',
@@ -226,7 +226,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Have a second nurse independently verify the drug, the concentration, the pump rate and the client identity"},{"id":"B","text":"Program the infusion using the drug library and dose-limit settings on the smart pump"},{"id":"C","text":"Accept the calculation already worked out by the second nurse rather than repeating it independently"},{"id":"D","text":"Check the prescription against the client identity band using two identifiers"},{"id":"E","text":"Override a smart pump dose-limit alert to save time when the ward is busy"},{"id":"F","text":"Store the heparin vials beside the insulin vials so that both are easy to find"}]}'::jsonb,
  '{"answers":["A","B","D"],"feedback":{"A":"Correct. An independent double check of drug, concentration, rate and client is the core defence for high-alert infusions.","B":"Correct. The drug library and soft or hard dose limits catch programming errors before they reach the client.","C":"Incorrect. Confirming another calculation rather than repeating it independently defeats the purpose of the check.","D":"Correct. Two identifiers verify the right client, one of the rights of administration.","E":"Incorrect. A dose-limit alert is investigated, not overridden for convenience.","F":"Incorrect. Heparin and insulin are a classic look-alike pairing and are deliberately stored apart."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Pharmacology', 'Not applicable',
- 'High-alert medications', 'Independent double checks', 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'High-alert medications', 'Independent double checks', 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_540024', 'SATA',
@@ -235,7 +235,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Always dilute the potassium and give it by infusion pump, never by intravenous push"},{"id":"B","text":"Keep the peripheral concentration at or below 40 mEq per litre where possible"},{"id":"C","text":"Assess the infusion site for pain, redness and swelling during the infusion"},{"id":"D","text":"Give a rapid bolus if the serum potassium is below 2.5 mEq/L"},{"id":"E","text":"Add the potassium to a bag that is already hanging and invert it afterwards"},{"id":"F","text":"Monitor the urine output and the cardiac rhythm during the infusion"}]}'::jsonb,
  '{"answers":["A","B","C","F"],"feedback":{"A":"Correct. Undiluted or pushed potassium causes fatal asystole, so a pump-controlled dilute infusion is mandatory.","B":"Correct. Higher peripheral concentrations cause severe vein pain and phlebitis and need central access.","C":"Correct. Potassium is a vesicant and extravasation causes tissue damage.","D":"Incorrect. A severe deficit is corrected by a controlled infusion, never by a bolus.","E":"Incorrect. Additives placed in a hanging bag layer at the bottom and are delivered as a concentrated bolus.","F":"Correct. Urine output reflects the ability to excrete potassium and the rhythm reveals early cardiac effects."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Cardiovascular',
- 'Potassium chloride', 'Intravenous administration safety', 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Potassium chloride', 'Intravenous administration safety', 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_540025', 'SATA',
@@ -244,7 +244,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Regular soluble insulin is the only insulin that may be given intravenously"},{"id":"B","text":"Insulin glargine has no pronounced peak, which makes it a safer bedtime option"},{"id":"C","text":"Rapid-acting insulin aspart is given 5 to 15 minutes before a meal"},{"id":"D","text":"NPH insulin has no peak and gives a flat effect for 24 hours"},{"id":"E","text":"Insulin glargine may be drawn into the same syringe as regular insulin"},{"id":"F","text":"A long-acting insulin is used to cover the glucose rise after a meal"}]}'::jsonb,
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Only regular soluble insulin is licensed for intravenous use, which is why it is used in diabetic ketoacidosis.","B":"Correct. A peakless profile reduces the risk of nocturnal hypoglycaemia compared with a bedtime NPH dose.","C":"Correct. The rapid onset means it is timed immediately before eating.","D":"Incorrect. NPH peaks at 6 to 12 hours and lasts 14 to 24 hours; it is not peakless.","E":"Incorrect. Glargine is never mixed with another insulin in the same syringe.","F":"Incorrect. Mealtime coverage is the role of a rapid-acting or regular insulin, not a basal preparation."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Endocrine',
- 'Insulin', 'Onset, peak and duration', 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Insulin', 'Onset, peak and duration', 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_540026', 'SATA',
@@ -253,7 +253,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"I do not need routine INR blood tests while I take this medicine"},{"id":"B","text":"I should tell any dentist or surgeon that I take an anticoagulant"},{"id":"C","text":"I should not stop this medicine suddenly without speaking to my prescriber"},{"id":"D","text":"I can take ibuprofen freely for my knee pain"},{"id":"E","text":"Vitamin K will reverse this medicine if I have a bleed"},{"id":"F","text":"If I miss a dose I should take two doses at the next scheduled time"}]}'::jsonb,
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Direct oral anticoagulants have a predictable effect and do not require routine INR monitoring.","B":"Correct. Any procedure carrying a bleeding risk needs the anticoagulant to be known and planned around.","C":"Correct. Protection is lost rapidly after stopping, so the drug is never discontinued without advice.","D":"Incorrect. Non-steroidal anti-inflammatory drugs add an antiplatelet effect and gastric irritation, raising bleeding risk substantially.","E":"Incorrect. Vitamin K reverses warfarin; direct oral anticoagulants have their own specific reversal agents.","F":"Incorrect. Doubling up doubles the bleeding risk; missed-dose advice depends on how close the next dose is."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Hematologic',
- 'Direct oral anticoagulants', 'Client teaching', 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Direct oral anticoagulants', 'Client teaching', 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_540027', 'SATA',
@@ -262,7 +262,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Give the injection into the fatty tissue of the abdomen, at least 5 cm away from the umbilicus"},{"id":"B","text":"Do not expel the air bubble from the prefilled syringe"},{"id":"C","text":"Do not rub the site after the injection"},{"id":"D","text":"Aspirate before injecting to check for a blood return"},{"id":"E","text":"Arrange a daily aPTT to titrate the dose"},{"id":"F","text":"Massage the site afterwards to aid absorption"}]}'::jsonb,
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. The abdominal fat pad away from the umbilicus gives reliable absorption and fewer complications.","B":"Correct. The bubble is intentional and ensures the full dose is delivered.","C":"Correct. Rubbing increases local bruising and haematoma formation.","D":"Incorrect. Aspiration is not performed for subcutaneous heparin and increases the risk of a haematoma.","E":"Incorrect. Low molecular weight heparin has a predictable response and does not need routine aPTT titration.","F":"Incorrect. Massaging is the opposite of correct technique and worsens bruising."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Hematologic',
- 'Low molecular weight heparin', 'Administration technique', 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Low molecular weight heparin', 'Administration technique', 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_540028', 'SELECT_N',
@@ -271,7 +271,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Warfarin takes several days to lower the clotting factors already circulating, so it gives no immediate protection"},{"id":"B","text":"Heparin acts within minutes and covers the client until warfarin becomes effective"},{"id":"C","text":"The heparin is usually stopped once the INR has stayed in the target range for about 24 to 48 hours"},{"id":"D","text":"Warfarin works immediately and the heparin is given only to prevent bleeding"},{"id":"E","text":"The two are combined because heparin raises the INR permanently"},{"id":"F","text":"The overlap is needed because warfarin cannot be absorbed unless heparin is present"}],"select_count":3}'::jsonb,
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Existing clotting factors must decay before warfarin protects, which takes three to five days.","B":"Correct. Heparin gives the immediate anticoagulation that warfarin cannot.","C":"Correct. A sustained therapeutic INR is the signal that heparin can safely be withdrawn.","D":"Incorrect. Warfarin is slow in onset, and heparin is an anticoagulant, not a bleeding preventive.","E":"Incorrect. Heparin can transiently affect the INR but does not raise it permanently, and that is not the reason for the overlap.","F":"Incorrect. Warfarin absorption is independent of heparin."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Hematologic',
- 'Anticoagulant overlap', 'Heparin to warfarin transition', 'Very hard', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Anticoagulant overlap', 'Heparin to warfarin transition', 'Very hard', 'CURATOR_LABEL', 'Understand', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_540029', 'SELECT_N',
@@ -280,7 +280,7 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Lithium"},{"id":"B","text":"Digoxin"},{"id":"C","text":"Vancomycin"},{"id":"D","text":"Paracetamol taken at the prescribed dose"},{"id":"E","text":"Omeprazole"},{"id":"F","text":"Senna"}],"select_count":3}'::jsonb,
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Lithium is therapeutic at 0.6 to 1.2 mEq/L and toxic above 2.0 mEq/L, a very narrow margin.","B":"Correct. Digoxin is therapeutic at 0.5 to 2 ng/mL with toxicity just above.","C":"Correct. Vancomycin trough levels guide dosing and predict kidney injury.","D":"Incorrect. Paracetamol levels are measured after overdose, not routinely during normal dosing.","E":"Incorrect. Omeprazole has a wide margin of safety and is not level-monitored.","F":"Incorrect. Senna is titrated against bowel response, not serum concentration."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Multisystem',
- 'Therapeutic drug monitoring', 'Narrow therapeutic index', 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Therapeutic drug monitoring', 'Narrow therapeutic index', 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_540030', 'SELECT_N',
@@ -289,14 +289,14 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"Contact the prescriber and ask for the prescription to be confirmed and written in full"},{"id":"B","text":"Read back the drug name, dose, route and frequency and ask the prescriber to spell the drug name"},{"id":"C","text":"Withhold the medicine until the prescription has been clarified"},{"id":"D","text":"Give hydroxyzine, because the indication fits that drug better"},{"id":"E","text":"Ask a colleague which of the two is usually prescribed on this ward and follow that"},{"id":"F","text":"Give hydralazine exactly as spoken and monitor the blood pressure closely"}],"select_count":3}'::jsonb,
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. A written, confirmed prescription resolves the ambiguity and creates an accountable record.","B":"Correct. Read-back with spelling is the standard safeguard against look-alike and sound-alike errors.","C":"Correct. A medicine that may be the wrong drug is not given until the doubt is settled.","D":"Incorrect. Substituting a drug on the basis of a guess is prescribing, which is outside the nursing role here.","E":"Incorrect. Ward custom is not a substitute for a clarified prescription.","F":"Incorrect. Giving an antihypertensive to a client who may need an anxiolytic risks serious hypotension."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Pharmacology', 'Not applicable',
- 'Look-alike and sound-alike medicines', 'Verifying a questionable prescription', 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Look-alike and sound-alike medicines', 'Verifying a questionable prescription', 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MAT_540031', 'MATRIX',
  'For each finding below, indicate whether it is a side effect that the nurse monitors and teaches about while the medicine continues, or a toxic effect for which the nurse withholds the drug and notifies the prescriber.',
@@ -304,7 +304,7 @@ INSERT INTO nclex_bank_items (
  '{"rows":[{"id":"r1","text":"Gingival hyperplasia in a client who has taken phenytoin for two years"},{"id":"r2","text":"Horizontal nystagmus and an unsteady gait in a client taking phenytoin"},{"id":"r3","text":"Increased thirst and urine output in a client on stable lithium therapy"},{"id":"r4","text":"Vomiting with a new coarse tremor in a client taking lithium"},{"id":"r5","text":"Nausea with yellow-green halos around lights in a client taking digoxin"},{"id":"r6","text":"A small bruise at the site of a subcutaneous enoxaparin injection"}],"columns":[{"id":"c1","text":"Side effect - monitor and teach, continue the drug"},{"id":"c2","text":"Toxic effect - withhold the drug and notify the prescriber"}],"row_label":"Finding"}'::jsonb,
  '{"cells":{"r1":"c1","r2":"c2","r3":"c1","r4":"c2","r5":"c2","r6":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Multisystem',
- 'Side effect versus toxic effect', 'Nursing response', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Side effect versus toxic effect', 'Nursing response', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_540032', 'MATRIX',
@@ -313,7 +313,7 @@ INSERT INTO nclex_bank_items (
  '{"rows":[{"id":"r1","text":"Insulin aspart (rapid-acting)"},{"id":"r2","text":"Regular (soluble) insulin"},{"id":"r3","text":"NPH (isophane) insulin"},{"id":"r4","text":"Insulin glargine (long-acting)"}],"columns":[{"id":"c1","text":"Peaks 1 to 3 hours after the dose"},{"id":"c2","text":"Peaks 2 to 4 hours after the dose"},{"id":"c3","text":"Peaks 6 to 12 hours after the dose"},{"id":"c4","text":"No pronounced peak"}],"row_label":"Insulin"}'::jsonb,
  '{"cells":{"r1":"c1","r2":"c2","r3":"c3","r4":"c4"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Endocrine',
- 'Insulin', 'Peak action times', 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Insulin', 'Peak action times', 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select one column for each row.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_540033', 'MATRIX',
@@ -322,7 +322,7 @@ INSERT INTO nclex_bank_items (
  '{"rows":[{"id":"r1","text":"Lithium 1.8 mEq/L"},{"id":"r2","text":"Digoxin 1.4 ng/mL"},{"id":"r3","text":"Phenytoin 24 mcg/mL"},{"id":"r4","text":"Theophylline 14 mcg/mL"},{"id":"r5","text":"Lithium 0.9 mEq/L"},{"id":"r6","text":"Digoxin 3.2 ng/mL"}],"columns":[{"id":"c1","text":"Within the therapeutic range"},{"id":"c2","text":"Above the therapeutic range"}],"row_label":"Serum level"}'::jsonb,
  '{"cells":{"r1":"c2","r2":"c1","r3":"c2","r4":"c1","r5":"c1","r6":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Pharmacology', 'Multisystem',
- 'Therapeutic ranges', 'Serum level interpretation', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Therapeutic ranges', 'Serum level interpretation', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_540034', 'MATRIX',
@@ -331,7 +331,7 @@ INSERT INTO nclex_bank_items (
  '{"rows":[{"id":"r1","text":"Urticaria, wheeze and lip swelling within minutes of intravenous co-amoxiclav"},{"id":"r2","text":"Nausea and stomach discomfort after oral erythromycin"},{"id":"r3","text":"Drowsiness after the first dose of chlorphenamine"},{"id":"r4","text":"Sudden hypotension and stridor after an intravenous contrast injection"},{"id":"r5","text":"Loose stools during a course of oral amoxicillin"}],"columns":[{"id":"c1","text":"True allergic reaction"},{"id":"c2","text":"Intolerance or expected effect"}],"row_label":"Client report"}'::jsonb,
  '{"cells":{"r1":"c1","r2":"c2","r3":"c2","r4":"c1","r5":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Immune',
- 'Adverse drug reactions', 'Allergy versus intolerance', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Adverse drug reactions', 'Allergy versus intolerance', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MMR_540035', 'MATRIX_MR',
@@ -340,7 +340,7 @@ INSERT INTO nclex_bank_items (
  '{"rows":[{"id":"r1","text":"Intravenous gentamicin"},{"id":"r2","text":"Oral warfarin"},{"id":"r3","text":"Unfractionated heparin infusion"},{"id":"r4","text":"Oral lithium carbonate"}],"columns":[{"id":"c1","text":"Serum drug level"},{"id":"c2","text":"Renal function (serum creatinine)"},{"id":"c3","text":"Coagulation test (INR or aPTT)"}],"row_label":"Medication"}'::jsonb,
  '{"cells":{"r1":["c1","c2"],"r2":["c3"],"r3":["c3"],"r4":["c1","c2"]},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Pharmacology', 'Multisystem',
- 'Therapeutic drug monitoring', 'Monitoring parameters', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Therapeutic drug monitoring', 'Monitoring parameters', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MMR_540036', 'MATRIX_MR',
@@ -349,7 +349,7 @@ INSERT INTO nclex_bank_items (
  '{"rows":[{"id":"r1","text":"Digoxin is due; the apical pulse is 48 beats per minute"},{"id":"r2","text":"Warfarin is due; the INR is 2.4 and there is no bleeding"},{"id":"r3","text":"Lithium is due; the level is 2.1 mEq/L and the client has vomited twice"},{"id":"r4","text":"Enoxaparin is due; the platelet count has fallen from 240 to 70 x 10^9/L"},{"id":"r5","text":"Vancomycin is due; the trough level is 12 mcg/mL and renal function is stable"}],"columns":[{"id":"c1","text":"Withhold the dose"},{"id":"c2","text":"Notify the prescriber"},{"id":"c3","text":"Administer as prescribed"}],"row_label":"Situation"}'::jsonb,
  '{"cells":{"r1":["c1","c2"],"r2":["c3"],"r3":["c1","c2"],"r4":["c1","c2"],"r5":["c3"]},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Multisystem',
- 'High-alert medication decisions', 'Withhold, escalate or administer', 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'High-alert medication decisions', 'Withhold, escalate or administer', 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 'Select all that apply for each row.', 8, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_CLZ_540037', 'CLOZE',
@@ -358,7 +358,7 @@ INSERT INTO nclex_bank_items (
  '{"blanks":[{"id":"b1","choices":[{"id":"c1","text":"protamine sulfate"},{"id":"c2","text":"vitamin K"},{"id":"c3","text":"calcium gluconate"}]},{"id":"b2","choices":[{"id":"c1","text":"flumazenil"},{"id":"c2","text":"naloxone"},{"id":"c3","text":"acetylcysteine"}]},{"id":"b3","choices":[{"id":"c1","text":"acetylcysteine"},{"id":"c2","text":"naloxone"},{"id":"c3","text":"digoxin immune Fab"}]},{"id":"b4","choices":[{"id":"c1","text":"glucagon"},{"id":"c2","text":"flumazenil"},{"id":"c3","text":"protamine sulfate"}]},{"id":"b5","choices":[{"id":"c1","text":"glucagon"},{"id":"c2","text":"vitamin K"},{"id":"c3","text":"flumazenil"}]}]}'::jsonb,
  '{"answers":{"b1":"c1","b2":"c2","b3":"c1","b4":"c2","b5":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Multisystem',
- 'Antidotes and reversal agents', 'Drug and antidote pairings', 'Easy', 'CURATOR_LABEL', 'Remember', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Antidotes and reversal agents', 'Drug and antidote pairings', 'Easy', 'CURATOR_LABEL', 'Remember', '{}', 'Complete the sentence by choosing from each drop-down.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_CLZ_540038', 'CLOZE',
@@ -367,7 +367,7 @@ INSERT INTO nclex_bank_items (
  '{"blanks":[{"id":"b1","choices":[{"id":"c1","text":"withhold the dose"},{"id":"c2","text":"administer the dose as prescribed"},{"id":"c3","text":"give oral vitamin K"}]},{"id":"b2","choices":[{"id":"c1","text":"continue the same dose"},{"id":"c2","text":"withhold one or more doses and recheck the INR"},{"id":"c3","text":"give protamine sulfate"}]},{"id":"b3","choices":[{"id":"c1","text":"intravenous protamine sulfate"},{"id":"c2","text":"oral vitamin K"},{"id":"c3","text":"a double dose of warfarin"}]},{"id":"b4","choices":[{"id":"c1","text":"prothrombin complex concentrate"},{"id":"c2","text":"oral iron"},{"id":"c3","text":"a further dose of warfarin"}]}]}'::jsonb,
  '{"answers":{"b1":"c2","b2":"c2","b3":"c2","b4":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Pharmacology', 'Hematologic',
- 'Warfarin', 'Graded response to a rising INR', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Warfarin', 'Graded response to a rising INR', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Complete the sentence by choosing from each drop-down.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_DO_540039', 'DRAG_ORDER',
@@ -376,7 +376,7 @@ INSERT INTO nclex_bank_items (
  '{"slots":[{"id":"s1","target_text":"1st"},{"id":"s2","target_text":"2nd"},{"id":"s3","target_text":"3rd"},{"id":"s4","target_text":"4th"}],"tokens":[{"id":"t1","text":"Inject air equal to the NPH dose into the NPH vial without touching the solution"},{"id":"t2","text":"Inject air equal to the regular insulin dose into the regular insulin vial"},{"id":"t3","text":"Withdraw the prescribed dose of regular (clear) insulin"},{"id":"t4","text":"Withdraw the prescribed dose of NPH (cloudy) insulin"},{"id":"t5","text":"Shake both vials vigorously until fully mixed"}]}'::jsonb,
  '{"slots":{"s1":"t1","s2":"t2","s3":"t3","s4":"t4"}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Endocrine',
- 'Insulin', 'Mixing two insulins in one syringe', 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Insulin', 'Mixing two insulins in one syringe', 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Place the options in the correct order.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_TF_540040', 'TF',
@@ -385,5 +385,5 @@ INSERT INTO nclex_bank_items (
  '{"options":[{"id":"A","text":"True"},{"id":"B","text":"False"}]}'::jsonb,
  '{"answer":"A","feedback":{"A":"Correct. Stopping the infusion removes the trigger and is the immediate first action, alongside calling for help and preparing intramuscular adrenaline.","B":"Incorrect. Leaving the infusion running while other treatment is arranged allows more allergen to enter the circulation and deepens the reaction."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Pharmacology', 'Immune',
- 'Anaphylaxis', 'Immediate management', 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Anaphylaxis', 'Immediate management', 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');

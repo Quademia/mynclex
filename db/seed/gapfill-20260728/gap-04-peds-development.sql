@@ -9,7 +9,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_520001', 'MCQ',
  'A nurse is preparing an 18-month-old toddler for insertion of an intravenous cannula on the paediatric ward. Which approach should the nurse use?',
@@ -18,7 +18,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. A sensorimotor child cannot hold a future event in mind, so a two-day lead time produces anxiety without understanding.","B":"Correct. For a sensorimotor child the teaching goes to the parents beforehand, and the child is prepared during the procedure with present-tense commentary and comfort.","C":"Incorrect. Drawing requires symbolic representation, which does not emerge until the preoperational stage.","D":"Incorrect. Saying nothing ignores both the need for parental preparation and the toddler need for present-tense reassurance during the procedure."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Not applicable',
  'Cognitive development and procedure preparation', 'Sensorimotor stage',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520002', 'MCQ',
  'A 4-year-old is scheduled for a tonsillectomy at 08:00 tomorrow. The mother asks the nurse when she should tell the child about the operation. Which reply is BEST?',
@@ -27,7 +27,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. A long lead time gives a preoperational child many hours to imagine frightening things without the reasoning needed to correct them.","B":"Correct. Preschoolers are prepared shortly before the event in simple future-tense words, so anxiety is not prolonged.","C":"Incorrect. When nothing is said the preschooler constructs an explanation, and that explanation is very often that the operation is a punishment.","D":"Incorrect. Preparation in the anaesthetic room leaves no time for questions, choices or therapeutic play."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Not applicable',
  'Cognitive development and procedure preparation', 'Preoperational stage',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520003', 'MCQ',
  'A 9-year-old is admitted for a lumbar puncture that is planned for two days from now. Which preparation is most appropriate for a child of this age?',
@@ -36,7 +36,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Explaining after sedation denies the school-age child the rehearsal and sense of control that reduce distress.","B":"Correct. Concrete operational children learn from a step-by-step sequence, real equipment and a demonstration given one to two days ahead.","C":"Incorrect. A school-age child uses the waiting time to prepare, so a same-morning explanation shortens rather than protects.","D":"Incorrect. Delegating the whole explanation to the parents leaves accuracy to chance and omits the equipment and demonstration this age needs."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Not applicable',
  'Cognitive development and procedure preparation', 'Concrete operational stage',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_520004', 'SATA',
  'A 15-year-old girl is admitted for an appendicectomy later today. Which nursing actions are appropriate when preparing this client for surgery? Select all that apply.',
@@ -45,7 +45,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Formal operational thinking allows an adolescent to follow an adult-level explanation including rationale and risk.","B":"Correct. Private time supports developing autonomy and allows questions that would not be asked in front of parents.","C":"Correct. Body image and peer and school life are central adolescent concerns and should be raised rather than avoided.","D":"Incorrect. Very short notice is a technique for preschoolers, not for adolescents, who use reasoning time to prepare.","E":"Correct. Sharing real decisions supports identity formation and increases cooperation with care.","F":"Incorrect. Doll demonstration suits preschool and school-age children and is likely to feel belittling to a 15-year-old."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Not applicable',
  'Cognitive development and procedure preparation', 'Formal operational stage',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_520005', 'SATA',
  'A 5-year-old is due for a painful burn dressing change. Which nursing actions use therapeutic play appropriately for a child of this age? Select all that apply.',
@@ -54,7 +54,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","F"],"feedback":{"A":"Correct. Rehearsing on a teddy lets the preschooler master the sequence before it is done to the body.","B":"Correct. Handling real equipment in a safe form reduces the strangeness of the procedure and gives the child some control.","C":"Incorrect. Promising no pain is dishonest and destroys the trust needed for every later procedure.","D":"Correct. A limited but genuine choice restores control without changing the fact that the dressing must be changed.","E":"Incorrect. Linking treatment to the behaviour of the child reinforces the preschool belief that pain is punishment.","F":"Correct. Post-procedural play lets a preschooler work through what happened by repeating it on their own terms."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Integumentary',
  'Therapeutic play', 'Preparation for a painful procedure',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520006', 'MCQ',
  'A 3-year-old receiving an intramuscular injection cries and says, I am getting this because I was naughty. Which response by the nurse is BEST?',
@@ -63,7 +63,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. The magical-thinking misconception is corrected directly and the injection is reframed simply as medicine that helps.","B":"Incorrect. Linking behaviour to treatment confirms the punishment belief and increases guilt.","C":"Incorrect. A physiological explanation is beyond preoperational reasoning and does not address the fear being expressed.","D":"Incorrect. Shaming the child for crying adds to distress and teaches the child to hide fear rather than express it."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Not applicable',
  'Magical thinking in the preschooler', 'Illness perceived as punishment',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MAT_520007', 'MATRIX',
  'A nurse is planning how to prepare four children for scheduled procedures. For each client, select the preparation approach that matches the developmental stage.',
@@ -72,7 +72,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c3","r4":"c4"},"feedback":{}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Not applicable',
  'Cognitive development and procedure preparation', 'Matching timing to developmental stage',
- 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 'Select one column for each row.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_CLZ_520008', 'CLOZE',
  'A nurse is preparing a 4-year-old for a scheduled procedure. The nurse should begin the explanation {1} and should describe what will happen using {2}. Select the option that completes each sentence.',
@@ -81,7 +81,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c2","b2":"c1"},"feedback":{}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Not applicable',
  'Cognitive development and procedure preparation', 'Preoperational teaching method',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520009', 'MCQ',
  'An 8-year-old with newly diagnosed type 1 diabetes mellitus has learned to draw up and give the insulin injection correctly. The mother asks whether the child can now manage the diabetes independently. Which reply by the nurse is most accurate?',
@@ -90,7 +90,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Mastery of a skill does not bring the abstract judgement needed to adjust doses or interpret readings.","B":"Correct. School-age children can perform the technique reliably, while dose decisions and result interpretation still need an adult until abstract reasoning matures.","C":"Incorrect. Withholding a skill the child has already mastered removes control and damages self-esteem during the industry stage.","D":"Incorrect. Independence is built gradually through childhood rather than deferred wholesale to adulthood."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Endocrine',
  'Self-care readiness in childhood', 'Performing a skill versus managing a condition',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520010', 'MCQ',
  'A 2-year-old admitted three days ago cried and clung to the mother on admission but now lies quietly, does not play, and does not look up when the mother enters the cubicle. A student nurse comments that the toddler has settled in well. Which interpretation by the nurse is correct?',
@@ -99,13 +99,13 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Quietness and withdrawal in a hospitalised toddler signal deepening distress, not adaptation.","B":"Correct. Withdrawal, apathy and loss of interest in the parent are the hallmarks of the despair phase and call for more parental presence and continuity of caregiver.","C":"Incorrect. Attachment to staff would show as engagement and preference, not as stillness and no response to the mother.","D":"Incorrect. This is a recognised and reversible response to separation rather than a psychiatric disorder."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Not applicable',
  'Separation anxiety in the hospitalised toddler', 'Despair phase',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_520011', 'MCQ',
  'A 4-year-old who has been dry at night for a year has wet the bed on each of the three nights since admission. The father is embarrassed and scolds the child in front of the nurse. Which response by the nurse is BEST?',
@@ -114,7 +114,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Regression is an expected, temporary response to hospitalisation, and removing the shaming is the key nursing action.","B":"Incorrect. Severe fluid restriction risks dehydration in a young child and does not address the cause of the regression.","C":"Incorrect. Catheterisation is invasive, introduces infection risk and would further reduce the sense of control this child has already lost.","D":"Incorrect. There is no bladder pathology here, so medication would treat a problem that does not exist."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Not applicable',
  'Response of the child to hospitalisation', 'Regression',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_520012', 'SATA',
  'A nurse is planning care for a hospitalised 4-year-old. Which actions support the psychosocial task of initiative described by Erikson? Select all that apply.',
@@ -123,7 +123,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","F"],"feedback":{"A":"Correct. Genuine choices within safe limits let the preschooler take initiative without the plan of care changing.","B":"Correct. Starting and completing a project is exactly the sense of purpose this stage is built on.","C":"Incorrect. Doing everything for the child removes the chance to initiate and encourages passivity and guilt.","D":"Correct. Praising a small contribution to care reinforces initiative and cooperation.","E":"Incorrect. Treating questions as a nuisance is the classic route to the guilt side of this stage.","F":"Correct. A safe, active job gives the child a real part in what is happening."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Not applicable',
  'Psychosocial development', 'Initiative versus guilt',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_520013', 'SATA',
  'A 9-year-old will remain in hospital for approximately six weeks. Which nursing actions best support the psychosocial development of a school-age child during a long admission? Select all that apply.',
@@ -132,7 +132,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Keeping up with schoolwork protects both competence and the return to school after discharge.","B":"Correct. A project carried through to completion is exactly how a school-age child builds a sense of industry.","C":"Correct. Peer contact matters increasingly at this age and reduces the isolation of a long admission.","D":"Incorrect. A single room without a clinical indication cuts the child off from the ward peer group during a six-week stay.","E":"Correct. A concrete record of completed tasks gives the child a visible measure of achievement and some control.","F":"Incorrect. Taking over self-care removes opportunities for mastery and fosters a sense of inferiority."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Not applicable',
  'Psychosocial development', 'Industry versus inferiority in a long admission',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_520014', 'SATA',
  'The mother of a hospitalised 20-month-old must leave the ward for several hours to collect her other children. Which nursing actions reduce the distress of the separation? Select all that apply.',
@@ -141,7 +141,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. An honest goodbye linked to a concrete return point builds trust; disappearing without warning increases vigilance and fear.","B":"Correct. A transitional object carrying the parent scent and presence comforts a toddler in her absence.","C":"Correct. One consistent nurse gives the toddler a substitute familiar figure rather than a stream of strangers.","D":"Incorrect. This makes the toddler feel responsible for the absence of the parent and adds guilt to the distress.","E":"Correct. A recorded voice or photograph keeps the parent present in a form the toddler can hold on to.","F":"Incorrect. A rotation of unfamiliar faces increases stranger anxiety instead of substituting for the parent."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Not applicable',
  'Separation anxiety in the hospitalised toddler', 'Supporting the child when the parent leaves',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520015', 'MCQ',
  'Which toy is most appropriate for the nurse to provide for a hospitalised 8-month-old infant?',
@@ -150,7 +150,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A large, soft, washable toy that makes a sound suits sensorimotor mouthing exploration and carries no choking risk.","B":"Incorrect. Small interlocking bricks are a classic choking hazard for a child who explores by mouth.","C":"Incorrect. A twelve-piece jigsaw needs fine motor and problem-solving skills well beyond 8 months, and the pieces are small enough to swallow.","D":"Incorrect. Balloons, inflated or burst, mould to the airway and are among the most dangerous choking objects in childhood."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Not applicable',
  'Age-appropriate toy selection', 'Choking risk in infancy',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_520016', 'SATA',
  'A 3-year-old is nursed in a cot and is receiving oxygen by head box. Which items should the nurse remove from the cot area? Select all that apply.',
@@ -159,7 +159,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Battery and electrical toys can spark at the contacts and must be kept out of an oxygen-enriched area.","B":"Correct. Metal toys can strike against the cot and produce a spark.","C":"Correct. Wool generates static charge and is replaced with cotton bedding where oxygen is in use.","D":"Incorrect. A washable cloth doll produces no spark or static and is safe to leave with the child.","E":"Correct. Alcohol-based hand rub is flammable and must not be left inside an oxygen-enriched area.","F":"Incorrect. Plastic stacking cups are safe, washable and developmentally appropriate for a 3-year-old."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Respiratory',
  'Age-appropriate toy selection', 'Toy safety where oxygen is in use',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520017', 'MCQ',
  'A 5-year-old receiving chemotherapy has a neutrophil count of 0.4 x 10^9/L. The grandmother arrives with a large second-hand plush teddy bear for the child. Which action by the nurse is most appropriate?',
@@ -168,7 +168,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. A second-hand porous toy is a fomite reservoir and the comfort it gives does not outweigh the infection risk at a neutrophil count of 0.4 x 10^9/L.","B":"Correct. Hard, non-porous toys can be cleaned and disinfected between uses and give the same play value without acting as a reservoir.","C":"Incorrect. Autoclaving uses steam under pressure and would destroy a plush toy.","D":"Incorrect. A sealed, untouchable toy gives no play or comfort value while still occupying the bed space."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Immune',
  'Age-appropriate toy selection', 'Toys as fomites for the immunosuppressed child',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520018', 'MCQ',
  'Two 2-year-olds are in the ward playroom. Each is building with a separate set of blocks beside the other, with occasional glances but no shared activity. The mother of one child tells the nurse she is worried that her child is antisocial. Which response by the nurse is BEST?',
@@ -177,7 +177,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Parallel play, side by side rather than together, is the normal form of play at 2 years of age.","B":"Incorrect. Referral for expected developmental behaviour causes unnecessary alarm and uses resources without benefit.","C":"Incorrect. Forcing shared play before the skill has developed produces conflict, not social development.","D":"Incorrect. Attributing normal parallel play to hospital stress misinforms the mother and leaves her belief that something is wrong intact."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Not applicable',
  'Development of play', 'Parallel play in toddlerhood',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MAT_520019', 'MATRIX',
  'A nurse observes children at play in different areas of a paediatric department. For each observation, select the type of play being demonstrated.',
@@ -186,7 +186,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c3","r4":"c4"},"feedback":{}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Not applicable',
  'Development of play', 'Solitary, parallel, associative and cooperative play',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select one column for each row.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MMR_520020', 'MATRIX_MR',
  'A nurse reviews toys brought onto the paediatric ward by visitors. For each toy, select every hazard that applies. Each toy has at least one hazard.',
@@ -195,13 +195,13 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1"],"r2":["c1","c2"],"r3":["c1","c3"],"r4":["c1"]},"feedback":{}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Multisystem',
  'Age-appropriate toy selection', 'Screening toys for combined hazards',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 6, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_520021', 'MCQ',
  'At a routine community clinic visit a 15-month-old pulls to stand and cruises confidently around the furniture but does not yet walk without support. All other developmental findings are appropriate for the age. Which action should the nurse take?',
@@ -210,7 +210,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Walking appears anywhere from 12 to 18 months, and a cruising 15-month-old with otherwise normal development needs time and a planned review.","B":"Incorrect. Immediate referral for a child within the normal range causes needless alarm and consumes specialist capacity.","C":"Incorrect. Baby walkers cause falls and scald injuries and do not accelerate independent walking.","D":"Incorrect. Labelling a child within the normal range as delayed is inaccurate and distressing to the parents."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Musculoskeletal',
  'Developmental milestones', 'Range of normal for independent walking',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520022', 'MCQ',
  'A nurse assesses a 24-month-old at a health surveillance check. Which language finding is expected at this age?',
@@ -219,7 +219,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A vocabulary of about 50 words, two-word phrases and roughly half of speech intelligible to a parent are the expected findings at 24 months.","B":"Incorrect. Absence of two-word combinations at 24 months is a red flag requiring hearing assessment and speech referral.","C":"Incorrect. Sentences of five to six words appear in the preschool years, not at 2 years.","D":"Incorrect. Babbling without recognisable words at 24 months is a significant delay needing prompt assessment."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Neurological',
  'Developmental milestones', 'Expected language at 24 months',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_520023', 'SELECT_N',
  'A nurse reviews a 9-month-old infant at a developmental check. Which 3 findings should the nurse report for further assessment?',
@@ -228,7 +228,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D"],"feedback":{"A":"Correct. Sitting unsupported is established by 8 to 9 months, so its absence needs assessment.","B":"Correct. Consonant babbling should be well established by 9 months, and its absence requires hearing testing.","C":"Incorrect. Cruising appears between 9 and 12 months, so not doing it at 9 months is within the normal range.","D":"Correct. The Moro reflex should have disappeared by 4 to 6 months, and persistence suggests a neurological problem.","E":"Incorrect. The mature pincer grasp emerges between 9 and 12 months and is still developing at this age.","F":"Incorrect. Clear single words typically appear around 12 months, so their absence at 9 months is expected."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Neurological',
  'Developmental milestones', 'Distinguishing a red flag from a normal variation',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_CLZ_520024', 'CLOZE',
  'A nurse teaches a parent group about gross motor development. A healthy infant is expected to sit without support by about {1}, and the nurse should refer any child who is still not walking independently by {2}. Select the option that completes each sentence.',
@@ -237,7 +237,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c2","b2":"c2"},"feedback":{}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Musculoskeletal',
  'Developmental milestones', 'Usual age and referral threshold',
- 'Easy', 'CURATOR_LABEL', 'Remember', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Remember', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520025', 'MCQ',
  'During a home visit the nurse watches a mother change the nappy of her 4-month-old on a high bed while turning away to reach for wipes on a chair. Which teaching point is most important?',
@@ -246,7 +246,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Rolling begins at around 4 months, so an infant left unattended on a raised surface can fall within seconds.","B":"Incorrect. Changing on the floor is a reasonable option, but the reason given here is the comfort of the mother rather than the fall risk to the infant.","C":"Incorrect. Wipe temperature is a comfort issue and does not address the immediate danger of a fall.","D":"Incorrect. Nappy type is unrelated to the safety problem being observed."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Musculoskeletal',
  'Injury prevention by developmental stage', 'Falls once rolling begins',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520026', 'MCQ',
  'A 3-year-old who has been taking prednisolone 2 mg/kg/day for the past eight weeks attends the clinic for the scheduled varicella vaccine. Which action should the nurse take?',
@@ -255,7 +255,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. A live attenuated vaccine given during significant immunosuppression can cause the disease it is intended to prevent.","B":"Correct. Prednisolone at 2 mg/kg/day for 14 days or more is immunosuppressive, so live vaccines are deferred until about a month after the course ends.","C":"Incorrect. Vaccine doses are fixed and are never reduced; a half dose would give unreliable protection and would not remove the risk.","D":"Incorrect. An antihistamine does nothing to prevent replication of a live vaccine organism in an immunosuppressed child."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Immune',
  'Childhood immunisation', 'Contraindications to live vaccines',
- 'Very hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_TF_520027', 'TF',
  'A 12-month-old attends the clinic for routine immunisation with a runny nose and a temperature of 37.6 degrees C, and is feeding and playing normally. The nurse should give the scheduled vaccines today. True or False?',
@@ -264,7 +264,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A mild illness with a low-grade fever is not a contraindication, and deferring the dose only prolongs the period without protection.","B":"Incorrect. Only a moderate to severe acute illness warrants postponement; treating minor coryza as a contraindication is a leading cause of missed immunisations."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Immune',
  'Childhood immunisation', 'False contraindications',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_520028', 'SATA',
  'A mother tells the nurse she has read that vaccines overload the immune system of a baby, and she is unsure whether to continue with the next doses. Which nursing responses are appropriate? Select all that apply.',
@@ -273,7 +273,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","E"],"feedback":{"A":"Correct. Finding out what has actually been read allows the nurse to address the specific concern rather than a general one.","B":"Correct. Naming the protective motive behind the question keeps the parent engaged rather than defensive.","C":"Incorrect. Threatening a parent ends the conversation and makes a future return less likely.","D":"Correct. A concrete, plain-language comparison directly answers the overload belief being described.","E":"Correct. Credible written material plus a further appointment gives the parent time to consider without closing the door.","F":"Incorrect. Recording a refusal after one conversation forecloses a decision the mother has not yet made."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Immune',
  'Childhood immunisation', 'Responding to parental hesitancy',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520029', 'MCQ',
  'After teaching about care at home following routine immunisation, which statement by the parent of a 6-month-old indicates a need for further teaching?',
@@ -282,7 +282,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Paracetamol is an appropriate antipyretic and analgesic after immunisation, so this statement needs no correction.","B":"Correct. Aspirin is avoided in children because of the risk of Reye syndrome, so this statement shows the teaching has not been understood.","C":"Incorrect. A small local red lump lasting a few days is an expected reaction and the parent has understood correctly.","D":"Incorrect. Recognising the features of an anaphylactic reaction and returning immediately is exactly what should be taught."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Immune',
  'Childhood immunisation', 'Evaluating post-immunisation teaching',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520030', 'MCQ',
  'A nurse records the following observations on a 6-month-old admitted with poor feeding: temperature 37.2 degrees C, heart rate 130 beats per minute, respiratory rate 68 breaths per minute, oxygen saturation 96 percent on air. Which finding should the nurse report?',
@@ -291,13 +291,13 @@ INSERT INTO nclex_bank_items (
  '{"answer":"C","feedback":{"A":"Incorrect. 37.2 degrees C is within the normal range and requires no report.","B":"Incorrect. A heart rate of 130 beats per minute sits inside the expected 100 to 160 range for a 6-month-old.","C":"Correct. 68 breaths per minute exceeds the expected 25 to 55 range at this age and is an early sign of compromise.","D":"Incorrect. An oxygen saturation of 96 percent on air is acceptable and falls late in respiratory deterioration in infants."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Respiratory',
  'Paediatric vital sign ranges', 'Recognising tachypnoea in infancy',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MMR_520031', 'MATRIX_MR',
  'A nurse reviews the recorded observations of five children on a paediatric ward. For each child, select every statement that applies to the recorded values.',
@@ -306,7 +306,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c3"],"r2":["c1"],"r3":["c2"],"r4":["c1"],"r5":["c1","c2"]},"feedback":{}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Multisystem',
  'Paediatric vital sign ranges', 'Interpreting values against age',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 6, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520032', 'MCQ',
  'A nurse beginning a shift on a paediatric ward receives handover on four children. Which child should the nurse assess FIRST?',
@@ -315,7 +315,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. A febrile child who is drinking and playing is compensating well and can safely wait.","B":"Correct. Marked tachypnoea with grunting in a 3-month-old indicates failing respiratory compensation and takes priority over every other client here.","C":"Incorrect. A single post-anaesthetic vomit is common and needs assessment, but not before a threatened airway.","D":"Incorrect. Moderate pain deserves prompt attention but does not outrank an infant in respiratory distress."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Pediatrics', 'Respiratory',
  'Prioritisation in paediatric nursing', 'Sequencing assessment after handover',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MAT_520033', 'MATRIX',
  'A nurse advises parents about child car restraints at a community clinic. For each child, select the restraint that is currently appropriate.',
@@ -324,7 +324,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c3","r4":"c4"},"feedback":{}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Not applicable',
  'Injury prevention by developmental stage', 'Car restraint selection',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 'Select one column for each row.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_520034', 'SATA',
  'Which instructions should the nurse give the parents of a healthy newborn about safe sleep? Select all that apply.',
@@ -333,7 +333,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Supine sleep for every sleep is the single most effective measure against sudden unexpected death in infancy.","B":"Correct. A firm flat surface with nothing loose in the cot prevents the airway being covered or the infant becoming wedged.","C":"Correct. Room sharing without bed sharing for the first six months is associated with a lower risk.","D":"Incorrect. Side lying is unstable and lets the infant roll prone, and wedging devices are themselves a suffocation hazard.","E":"Correct. Overheating raises the risk, so a moderate room temperature and light bedding are advised.","F":"Incorrect. Sleeping with an infant on a sofa or armchair carries a markedly increased risk of wedging and suffocation."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Respiratory',
  'Safe sleep for infants', 'Reducing sudden unexpected death in infancy',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_520035', 'SELECT_N',
  'During a home visit the nurse inspects the cot of a 5-month-old. Which 3 findings require intervention?',
@@ -342,7 +342,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Slats more than about 6 cm apart allow the body to slip through and the head to become trapped, so the cot must be replaced.","B":"Correct. Cot bumpers can cover the face and their ties present a strangulation risk, so they are removed.","C":"Correct. A soft pillow is a suffocation hazard for an infant who cannot reliably lift or turn the head.","D":"Incorrect. A snugly fitting mattress is exactly what is wanted, because gaps at the sides trap limbs and heads.","E":"Incorrect. Raised and locked cot sides are correct practice and prevent falls.","F":"Incorrect. A firm flat mattress with a fitted sheet and nothing else is the recommended sleep surface."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Not applicable',
  'Cot and sleep environment safety', 'Identifying unsafe cot features',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520036', 'MCQ',
  'A mother telephones the community nurse to say her 2-year-old swallowed an unknown amount of a household drain cleaner about five minutes ago. The child is alert and crying. Which instruction should the nurse give FIRST?',
@@ -351,7 +351,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"C","feedback":{"A":"Incorrect. Routine dilution is not advised ahead of specialist guidance and delays the call that determines treatment.","B":"Incorrect. Induced vomiting brings the caustic back through the oesophagus, doubling the burn and risking aspiration.","C":"Correct. Contacting the poison centre with the container available identifies the product and concentration, which drives every subsequent decision.","D":"Incorrect. Waiting for symptoms after a caustic ingestion wastes the window in which treatment is most effective."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Gastrointestinal',
  'Childhood poisoning', 'First action after a caustic ingestion',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_520037', 'SELECT_N',
  'A nurse visits the home of an 8-month-old who has just begun to crawl. Which 3 findings should the nurse discuss with the parents as immediate hazards?',
@@ -360,7 +360,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D"],"feedback":{"A":"Correct. An infant can drown in a few centimetres of water, and a bucket is at exactly crawling height.","B":"Correct. A hanging tablecloth is a handhold that brings scalding liquid down onto a child who is pulling to stand.","C":"Incorrect. Stair gates at both the top and the bottom are the correct control for a newly mobile infant.","D":"Correct. Floor-level cleaning products are within reach from the day crawling begins and must be moved and locked.","E":"Incorrect. Working smoke alarms on each floor are a protective measure and require no action.","F":"Incorrect. Keeping the cot clear of blind cords removes a strangulation risk and is correct practice."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Not applicable',
  'Injury prevention by developmental stage', 'Home hazards for the newly mobile infant',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_520038', 'SATA',
  'A nurse teaches the parents of a 2-year-old about preventing burns, scalds and drowning at home. Which instructions should the nurse include? Select all that apply.',
@@ -369,7 +369,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","E"],"feedback":{"A":"Correct. Limiting hot water at the thermostat and testing before immersion prevent tap water scalds, which are among the most severe burns in small children.","B":"Correct. Handles turned inwards cannot be grabbed by a toddler who is reaching upwards.","C":"Incorrect. Holding a child while drinking something hot is a leading cause of scalds and should be avoided entirely.","D":"Correct. Locking away ignition sources removes the means rather than relying on the toddler to obey a rule.","E":"Correct. A toddler can drown in a few centimetres of water, so standing water is emptied and the toilet lid kept closed.","F":"Incorrect. A 5-year-old cannot supervise, and water safety for a toddler requires an adult within arm reach at all times."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Integumentary',
  'Injury prevention by developmental stage', 'Burns, scalds and drowning in the toddler',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520039', 'MCQ',
  'A nurse is about to take a 4-year-old to theatre. Which statement to the child uses the most appropriate language for this age?',
@@ -378,7 +378,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Short concrete words that describe both the medicine and the waking up are literal, honest and reassuring for a preschooler.","B":"Incorrect. Put to sleep is what a preschooler associates with a pet that never came home, and the phrase regularly causes real terror.","C":"Incorrect. Medical terminology is meaningless to a preschooler and increases rather than reduces uncertainty.","D":"Incorrect. Nothing to worry about dismisses the fear without giving the child any concrete information to hold on to."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Pediatrics', 'Not applicable',
  'Communicating with children', 'Concrete literal language for the preschooler',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_520040', 'SATA',
  'A nurse carries out a home safety review for a family with a 4-year-old. Which findings should the nurse address with the parents? Select all that apply.',
@@ -387,13 +387,13 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. A loaded, unlocked firearm within reach of a preschooler is the highest-risk finding in this home and must be addressed immediately.","B":"Correct. Ammunition is stored locked and separate from the firearm, so a single opened box does not give access to a working weapon.","C":"Correct. Furniture under a fully opening upstairs window gives a preschooler the height needed to fall from it.","D":"Incorrect. Restrictors limiting the opening are the recommended control and need no change.","E":"Correct. Instruction alone does not stop a curious preschooler, so this belief must be corrected and physical storage arranged.","F":"Incorrect. Blind cords secured high on a cleat remove a strangulation risk and are correct practice."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Not applicable',
  'Injury prevention by developmental stage', 'Firearm storage and window falls',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_DO_520041', 'DRAG_ORDER',
  'A 10-month-old feeding in a highchair suddenly becomes silent, cannot cry or cough, and is turning blue. Place the nursing actions in the order in which they should be carried out.',
@@ -402,7 +402,7 @@ INSERT INTO nclex_bank_items (
  '{"slots":{"s1":"t1","s2":"t2","s3":"t3","s4":"t4"}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Respiratory',
  'Choking in the infant', 'Sequence of relief for complete obstruction',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 'Place the options in the correct order.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_520042', 'SELECT_N',
  'A nurse teaches the mother of a 6-month-old about starting solid food. Which 3 statements by the mother indicate correct understanding?',
@@ -411,7 +411,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","C","E"],"feedback":{"A":"Correct. Single foods spaced several days apart allow any allergy or intolerance to be traced to one specific food.","B":"Incorrect. Cereal in the bottle bypasses spoon feeding and is associated with overfeeding and choking.","C":"Correct. Iron stores from birth are depleted by around 6 months, so iron-rich first foods are recommended.","D":"Incorrect. Cow milk is not the main drink before 12 months because it is low in iron and may irritate the gut.","E":"Correct. Upright supported sitting with a spoon is the safe feeding position and develops the skill the infant needs.","F":"Incorrect. Salt is not added to infant food, because immature kidneys cannot handle the sodium load."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Pediatrics', 'Gastrointestinal',
  'Infant and child nutrition', 'Introducing solid food',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_520043', 'SELECT_N',
  'A nurse advises the parent of an 18-month-old about suitable finger foods. Which 3 foods should the nurse advise the parent to avoid?',
@@ -420,7 +420,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","C","E"],"feedback":{"A":"Correct. A whole grape is smooth, round and exactly the size of the toddler airway; grapes should be quartered lengthways.","B":"Incorrect. Soft banana slices squash easily and are a safe finger food at this age.","C":"Correct. Popcorn cannot be chewed adequately with erupting molars and is readily aspirated.","D":"Incorrect. Carrot cooked until it can be squashed between finger and thumb is safe; only raw hard carrot is a hazard.","E":"Correct. Whole nuts are hard, cannot be ground by an 18-month-old and are a leading cause of fatal aspiration.","F":"Incorrect. Ripe avocado is soft and easily managed, making it a suitable finger food."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Pediatrics', 'Gastrointestinal',
  'Infant and child nutrition', 'Safe finger foods for the toddler',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520044', 'MCQ',
  'The mother of a 3-year-old says her child eats almost nothing at some meals, refuses foods that were enjoyed last week, and is no longer gaining weight as quickly as before. The child is active and is tracking along the expected growth centile. Which response by the nurse is BEST?',
@@ -429,7 +429,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Slower growth after infancy produces an expected fall in appetite, and small unpressured portions are the appropriate response when growth is tracking normally.","B":"Incorrect. Supplements are unnecessary when the child is growing normally and tend to reduce appetite for ordinary food further.","C":"Incorrect. Coercion at the table turns eating into a power struggle and entrenches food refusal in a preschooler.","D":"Incorrect. Failure to thrive means faltering growth, which is not present in a child tracking along the expected centile."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Pediatrics', 'Gastrointestinal',
  'Infant and child nutrition', 'Physiological anorexia of the preschool years',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_520045', 'SATA',
  'A nurse counsels a 14-year-old girl about nutrition during the adolescent growth spurt. Which teaching points are appropriate? Select all that apply.',
@@ -438,7 +438,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","F"],"feedback":{"A":"Correct. Expanding blood volume and muscle mass raise iron needs, and menstrual losses raise them further.","B":"Correct. Most peak bone mass is accrued by the end of adolescence, so intake now affects fracture risk for life.","C":"Incorrect. Skipping meals during the fastest growth phase since infancy compromises intake of iron, calcium and energy.","D":"Correct. Carbonated sugary drinks replace milk in the diet and add a direct dental caries risk.","E":"Incorrect. Energy requirements rise, not fall, during the adolescent growth spurt.","F":"Correct. Vitamin C converts non-haem iron to a more absorbable form and substantially increases uptake."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Pediatrics', 'Multisystem',
  'Adolescent health promotion', 'Nutrition during the growth spurt',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520046', 'MCQ',
  'A 16-year-old attending a clinic appointment on her own asks the nurse whether what she says will be reported to her parents. Which reply is most appropriate?',
@@ -447,7 +447,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"C","feedback":{"A":"Incorrect. A blanket statement that everything goes to the parents is inaccurate and ends any chance of honest disclosure.","B":"Incorrect. Absolute confidentiality cannot be promised, and breaking such a promise later destroys the relationship entirely.","C":"Correct. Stating the limits at the outset, tied to serious risk of harm, lets the adolescent make an informed choice about what to disclose.","D":"Incorrect. Leaving the decision unstated and taken later gives the adolescent no basis on which to decide what to say."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Pediatrics', 'Not applicable',
  'Adolescent health promotion', 'Confidentiality and its limits',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MAT_520047', 'MATRIX',
  'A nurse in an adolescent clinic receives four disclosures. For each disclosure, select whether it can be handled within the consultation or must be escalated beyond it.',
@@ -456,7 +456,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c1","r4":"c2"},"feedback":{}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Pediatrics', 'Psychiatric/Mental Health',
  'Adolescent health promotion', 'Deciding when a disclosure must be escalated',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_520048', 'MCQ',
  'A 15-year-old girl is admitted for observation on day one after an appendicectomy. Four beds are available on the paediatric ward. Which room assignment is most appropriate?',
@@ -465,9 +465,9 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A peer of similar age with a comparable surgical experience poses no infection risk and meets the adolescent need for peer company.","B":"Incorrect. Chickenpox is highly contagious and requires airborne and contact precautions, so this client cannot share a room.","C":"Incorrect. A preschool roommate is developmentally isolating for an adolescent, whose peer group is central at this stage.","D":"Incorrect. A neutropenic client needs protective isolation, and a fresh post-operative wound in the same room adds avoidable risk."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Pediatrics', 'Immune',
  'Adolescent health promotion', 'Room assignment and peer group',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
-('NCLEX_MCQ_520049', 'MCQ', 'A 5-month-old infant is seen at a routine child health clinic. The nurse notes bruises over both shins and one bruise over the left cheek. The parent explains that the infant is very active and bruises easily while kicking and rolling in the cot. Which action by the nurse is the PRIORITY?', 'Bruising is uncommon in an infant who cannot yet move independently. Rolling and kicking do not generate the force needed to bruise, so the parent explanation does not account for the findings. Bruising in a pre-mobile infant, and facial bruising in particular, is a recognised marker of inflicted injury and requires safeguarding referral rather than reassurance, advice or watchful waiting. Acting on the developmental implausibility is what protects the infant.', '{"options": [{"id": "A", "text": "Recognise that bruising is not expected in an infant who is not yet independently mobile, and refer under the safeguarding policy"}, {"id": "B", "text": "Reassure the parent that bruising becomes common once an infant starts to roll and kick"}, {"id": "C", "text": "Advise the parent to pad the sides of the cot to prevent further bruising"}, {"id": "D", "text": "Document the bruises and review the infant at the next scheduled appointment"}]}'::jsonb, '{"answer": "A", "feedback": {"A": "Correct. Bruising in an infant who is not yet independently mobile is a recognised marker of inflicted injury and warrants safeguarding referral.", "B": "Incorrect. Rolling and kicking do not generate enough force to bruise, so this reassurance normalises a red-flag finding.", "C": "Incorrect. Padding the cot accepts the account at face value and leaves the infant unprotected.", "D": "Incorrect. Documenting without referring delays protection until the next appointment."}}'::jsonb, 'Safe and Effective Care Environment', 'Management of Care', 'Pediatrics', 'Integumentary', 'Safeguarding children', 'Bruising in the pre-mobile infant', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+('NCLEX_MCQ_520049', 'MCQ', 'A 5-month-old infant is seen at a routine child health clinic. The nurse notes bruises over both shins and one bruise over the left cheek. The parent explains that the infant is very active and bruises easily while kicking and rolling in the cot. Which action by the nurse is the PRIORITY?', 'Bruising is uncommon in an infant who cannot yet move independently. Rolling and kicking do not generate the force needed to bruise, so the parent explanation does not account for the findings. Bruising in a pre-mobile infant, and facial bruising in particular, is a recognised marker of inflicted injury and requires safeguarding referral rather than reassurance, advice or watchful waiting. Acting on the developmental implausibility is what protects the infant.', '{"options": [{"id": "A", "text": "Recognise that bruising is not expected in an infant who is not yet independently mobile, and refer under the safeguarding policy"}, {"id": "B", "text": "Reassure the parent that bruising becomes common once an infant starts to roll and kick"}, {"id": "C", "text": "Advise the parent to pad the sides of the cot to prevent further bruising"}, {"id": "D", "text": "Document the bruises and review the infant at the next scheduled appointment"}]}'::jsonb, '{"answer": "A", "feedback": {"A": "Correct. Bruising in an infant who is not yet independently mobile is a recognised marker of inflicted injury and warrants safeguarding referral.", "B": "Incorrect. Rolling and kicking do not generate enough force to bruise, so this reassurance normalises a red-flag finding.", "C": "Incorrect. Padding the cot accepts the account at face value and leaves the infant unprotected.", "D": "Incorrect. Documenting without referring delays protection until the next appointment."}}'::jsonb, 'Safe and Effective Care Environment', 'Management of Care', 'Pediatrics', 'Integumentary', 'Safeguarding children', 'Bruising in the pre-mobile infant', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_520050', 'SATA',
  'A nurse assesses a 3-year-old brought to the emergency department after a fall. Which findings should increase the concern of the nurse about possible physical abuse? Select all that apply.',
@@ -476,4 +476,4 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","C","D","F"],"feedback":{"A":"Correct. Multiple bruises of clearly different ages in one protected area suggest repeated injury rather than a single fall.","B":"Incorrect. Bruised shins are the ordinary result of an active preschooler running and falling.","C":"Correct. A small circular burn with sharply defined edges carries the pattern of a cigarette burn and must be investigated.","D":"Correct. An unexplained delay in seeking care for a painful injury is a recognised warning feature.","E":"Incorrect. A consistent account from both parents supports the history rather than raising concern.","F":"Correct. The ear and the inner thigh are protected sites that are not injured in ordinary falls."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Pediatrics', 'Integumentary',
  'Safeguarding children', 'Injury patterns inconsistent with the history',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');

@@ -9,7 +9,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_560001', 'MCQ',
  'A client scheduled for a lumbar laminectomy asks the nurse what the operation will actually do. Which explanation is correct?',
@@ -18,7 +18,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Removing the lamina decompresses the nerve root, which is the whole purpose of the operation.","B":"Incorrect. A laminectomy does not repair the spinal cord; damaged cord tissue cannot be grafted back.","C":"Incorrect. That describes a spinal fusion, which is an additional procedure sometimes performed with a laminectomy.","D":"Incorrect. Rod insertion is used for scoliosis correction, not for nerve root decompression."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Medical-Surgical', 'Musculoskeletal',
  'Laminectomy', 'Purpose of surgery',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_560002', 'SELECT_N',
  'A client attends the outpatient clinic with a suspected herniated lumbar disc. Which 3 findings would the nurse expect if a nerve root is being compressed?',
@@ -27,7 +27,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Radiating pain along the nerve pathway is the classic first sign of root compression.","B":"Correct. Paraesthesia in the dermatome supplied by the compressed root is expected.","C":"Correct. Motor weakness in the muscles supplied by that root confirms the compression.","D":"Incorrect. Pulses are unaffected by nerve root compression; a bounding pulse is a vascular finding.","E":"Incorrect. Widespread warmth and redness suggest infection or inflammation, not root compression."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Neurological',
  'Lumbar disc herniation', 'Nerve root compression',
- 'Easy', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560003', 'MCQ',
  'A client returns to the ward after a cervical laminectomy. Which assessment is the PRIORITY during the first hours after surgery?',
@@ -36,7 +36,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Swelling at the cervical level threatens the airway and diaphragmatic function, which makes breathing the priority.","B":"Incorrect. Urinary retention is the concern after lumbar surgery, not after cervical surgery.","C":"Incorrect. A paralytic ileus is more likely after thoracic surgery and is not the first-hour priority here.","D":"Incorrect. Checking the drain is part of routine care but does not outrank airway and breathing."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Medical-Surgical', 'Musculoskeletal',
  'Cervical laminectomy', 'Post-operative priority',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560004', 'MCQ',
  'Eight hours after a lumbar laminectomy a client has not passed urine and reports lower abdominal fullness. Which action should the nurse take FIRST?',
@@ -45,7 +45,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Confirming that the bladder is distended is the assessment step that must come before any intervention.","B":"Incorrect. Catheterisation may follow, but it is invasive and should not precede assessment.","C":"Incorrect. Adding fluid to an already distended bladder worsens the problem.","D":"Incorrect. Walking unaided so soon after lumbar surgery is unsafe, and it does not address the retention."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Medical-Surgical', 'Genitourinary',
  'Lumbar laminectomy', 'Urinary retention',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_560005', 'SATA',
  'A nurse and a healthcare assistant are turning a client on the first day after a laminectomy. Which actions show correct log-rolling technique? Select all that apply.',
@@ -54,7 +54,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. A flat bed keeps the spine neutral during the turn.","B":"Correct. Moving the body as one unit is the defining feature of log rolling.","C":"Correct. A pillow between the knees keeps the hips aligned and prevents the spine twisting.","D":"Correct. A draw sheet and two staff members allow the whole body to move together.","E":"Incorrect. Pulling on a side rail twists the spine and must be avoided.","F":"Incorrect. Turning the shoulders ahead of the hips is exactly the twisting movement log rolling prevents."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Medical-Surgical', 'Musculoskeletal',
  'Laminectomy', 'Log rolling',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560006', 'MCQ',
  'A newly qualified nurse reads the post-operative instructions written for a client who had a lumbar laminectomy this morning. Which instruction should the nurse QUESTION?',
@@ -63,7 +63,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Prolonged sitting places the greatest load on the lumbar spine and is restricted after this surgery.","B":"Incorrect. Walking is encouraged and does not need to be questioned.","C":"Incorrect. Lying flat keeps the spine neutral and is appropriate.","D":"Incorrect. Log rolling is the correct way to get out of bed after spinal surgery."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Medical-Surgical', 'Musculoskeletal',
  'Laminectomy', 'Post-operative activity',
- 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MAT_560007', 'MATRIX',
  'A nurse is preparing discharge teaching for a client who had a laminectomy. For each instruction, indicate whether it is a restriction that lifts once healing is complete or a habit the client should keep for life.',
@@ -72,7 +72,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c1","r4":"c2","r5":"c2"},"feedback":{}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Medical-Surgical', 'Musculoskeletal',
  'Laminectomy', 'Discharge restrictions',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select one column for each row.', 5, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_560008', 'SATA',
  'A client has had a spinal fusion using a bone graft taken from the iliac crest. Which statements about the donor site are accurate? Select all that apply.',
@@ -81,7 +81,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Harvesting bone from the iliac crest commonly produces more pain than the spinal wound itself.","B":"Correct. The cancellous bone surface at the donor site oozes, so more drainage is expected there.","C":"Correct. It is a separate surgical wound and is assessed and dressed in its own right.","D":"Incorrect. Bone taken from the same client cannot be rejected; rejection is a risk only with donated bone.","E":"Incorrect. Donor site pain is expected and says nothing about whether the fusion has taken."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Medical-Surgical', 'Musculoskeletal',
  'Spinal fusion', 'Bone graft donor site',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_TF_560009', 'TF',
  'When a spinal fusion is performed using bone harvested from the iliac crest of the client being operated on, the body may reject the graft.',
@@ -90,7 +90,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"B","feedback":{"A":"Incorrect. Bone from the same client is recognised as self and cannot be rejected.","B":"Correct. Rejection is a risk only with donated bone from a bone bank, not with the client own bone."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Medical-Surgical', 'Musculoskeletal',
  'Spinal fusion', 'Bone graft rejection',
- 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_CLZ_560010', 'CLOZE',
  'Three clients return to the ward after a laminectomy performed at different levels of the spine. For the client operated on at the cervical level the nurse watches most closely for {1}. For the client operated on at the thoracic level the nurse watches most closely for {2}. For the client operated on at the lumbar level the nurse watches most closely for {3}.',
@@ -99,13 +99,13 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c1","b2":"c2","b3":"c3"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Neurological',
  'Laminectomy', 'Level-specific complications',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Complete the sentence by choosing from each drop-down.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_560011', 'MCQ',
  'A 54-year-old client tells the practice nurse that a burning pain rises behind the breastbone within an hour of the evening meal, and that it is worst after going to bed. Which condition do these findings suggest?',
@@ -114,7 +114,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Burning retrosternal pain after meals that is worse lying down is the classic reflux pattern of a hiatal hernia.","B":"Incorrect. Dumping syndrome follows gastric surgery and produces sweating, palpitations and cramping, not retrosternal burning.","C":"Incorrect. A perforated ulcer causes sudden severe pain with a rigid abdomen, not a nightly burning sensation.","D":"Incorrect. Cholecystitis causes right upper quadrant pain radiating to the shoulder, typically after fatty food."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Medical-Surgical', 'Gastrointestinal',
  'Hiatal hernia', 'Recognising the pattern',
- 'Very easy', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_560012', 'SATA',
  'A client who had a partial gastrectomy three weeks ago reports feeling unwell about 20 minutes after eating. Which findings would support a diagnosis of dumping syndrome? Select all that apply.',
@@ -123,7 +123,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Fluid shifting into the bowel reduces circulating volume and causes dizziness.","B":"Correct. Tachycardia is part of the vasomotor response to the sudden fluid shift.","C":"Correct. Sweating and pallor are classic vasomotor features of early dumping.","D":"Correct. The rapid osmotic load into the jejunum produces cramping and urgent diarrhoea.","E":"Incorrect. Retrosternal burning relieved by sitting upright describes reflux from a hiatal hernia.","F":"Incorrect. Dumping symptoms are episodic and meal-related, not a gradual dehydration picture over days."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Gastrointestinal',
  'Dumping syndrome', 'Recognising the pattern',
- 'Easy', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MMR_560013', 'MATRIX_MR',
  'A nurse teaches two clients on the same ward: one has a hiatal hernia and one has dumping syndrome after gastric surgery. For each instruction, indicate which client it applies to. An instruction may apply to both.',
@@ -132,7 +132,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c2"],"r2":["c1"],"r3":["c1","c2"],"r4":["c2"],"r5":["c1"],"r6":["c2"]},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Medical-Surgical', 'Gastrointestinal',
  'Hiatal hernia and dumping syndrome', 'Distinguishing the management',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 7, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_560014', 'SATA',
  'A nurse is teaching a client who has developed dumping syndrome after gastric surgery. Which dietary instructions should be included? Select all that apply.',
@@ -141,7 +141,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Smaller volumes reduce the osmotic load delivered to the jejunum at any one time.","B":"Correct. Separating fluids from food slows gastric emptying.","C":"Correct. Protein and fat leave the stomach more slowly than simple carbohydrate.","D":"Correct. Lying down after eating uses gravity to delay emptying and reduces the vasomotor response.","E":"Incorrect. Simple sugars draw fluid into the bowel and are the main trigger of an attack.","F":"Incorrect. Sitting upright is the advice for reflux from a hiatal hernia; it worsens dumping."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Medical-Surgical', 'Gastrointestinal',
  'Dumping syndrome', 'Dietary management',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_560015', 'SATA',
  'A client with a hiatal hernia asks the community nurse what can be done at home to reduce the symptoms. Which measures should the nurse suggest? Select all that apply.',
@@ -150,7 +150,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Raising the head of the bed keeps gastric contents below the diaphragm overnight.","B":"Correct. An empty stomach at bedtime removes the material that would otherwise reflux.","C":"Correct. Tight clothing raises intra-abdominal pressure and pushes contents upward.","D":"Correct. Smoking reduces lower oesophageal sphincter tone and worsens reflux.","E":"Incorrect. Lying down after eating is the advice for dumping syndrome and makes reflux worse.","F":"Incorrect. A large volume at bedtime distends the stomach at exactly the wrong time."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Medical-Surgical', 'Gastrointestinal',
  'Hiatal hernia', 'Lifestyle teaching',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560016', 'MCQ',
  'A client who has dumping syndrome after gastric surgery describes the new eating routine at a follow-up appointment. Which statement indicates that further teaching is needed?',
@@ -159,7 +159,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Fluid with a meal, and a sugary fluid in particular, is the strongest trigger of an attack and shows the teaching has not been understood.","B":"Incorrect. Lying down after eating slows gastric emptying and is correct advice.","C":"Incorrect. Small frequent meals reduce the load delivered to the bowel and are correct.","D":"Incorrect. Increasing protein slows emptying and is exactly what is recommended."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Medical-Surgical', 'Gastrointestinal',
  'Dumping syndrome', 'Evaluating teaching',
- 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560017', 'MCQ',
  'Two hours after breakfast a client who had a gastrectomy six weeks ago becomes shaky, sweaty, anxious and intensely hungry. Which explanation should the nurse give?',
@@ -168,7 +168,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Late dumping is a reactive hypoglycaemia occurring one and a half to three hours after a meal.","B":"Incorrect. The fluid shift explains early dumping within 30 minutes of eating, not symptoms at two hours.","C":"Incorrect. Reflux produces burning pain, not shakiness, sweating and hunger.","D":"Incorrect. Delayed emptying would not produce this cluster, and the problem after gastrectomy is emptying that is too fast."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Medical-Surgical', 'Gastrointestinal',
  'Dumping syndrome', 'Late dumping and hypoglycaemia',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560018', 'MCQ',
  'A client with a haemopneumothorax has two chest tubes in place, one sited near the apex of the lung and one sited at the base. Which statement by the nurse correctly describes their purpose?',
@@ -177,7 +177,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Air rises to the apex and fluid settles at the base, so each tube is placed where its target collects.","B":"Incorrect. This reverses the placement; blood settles at the base, not the apex.","C":"Incorrect. Chest tubes are not inserted as spares; each has a specific target.","D":"Incorrect. Chest tubes drain the pleural space; they are not a medication route in this situation."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Respiratory',
  'Chest drainage', 'Apical and basilar placement',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MAT_560019', 'MATRIX',
  'A nurse checks the chest drainage unit of a client who has a pneumothorax and is receiving suction. For each finding, indicate whether it is expected or unexpected.',
@@ -186,7 +186,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c1","r3":"c2","r4":"c1","r5":"c2","r6":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Respiratory',
  'Chest drainage', 'Expected and abnormal bubbling',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560020', 'MCQ',
  'While a client with a chest tube is being repositioned, the tubing separates from the drainage unit and the water seal is broken. Which action should the nurse take FIRST?',
@@ -195,13 +195,13 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Occluding the tube immediately stops atmospheric air travelling back into the pleural space while the system is restored.","B":"Incorrect. The surgeon must be informed, but not before the open pathway into the chest is closed.","C":"Incorrect. Fetching equipment leaves the tube open in the meantime.","D":"Incorrect. Oxygen and positioning help the client breathe but do nothing about the open system."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Respiratory',
  'Chest drainage', 'Broken water seal',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_560021', 'MCQ',
  'A chest tube has become disconnected from its drainage unit and a colleague has gone to fetch a replacement unit. Which action is the BEST way for the nurse to protect the client while waiting?',
@@ -210,7 +210,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A temporary water seal lets trapped air escape while preventing atmospheric air from entering.","B":"Incorrect. Sustained clamping traps escaping air and risks a tension pneumothorax.","C":"Incorrect. Gauze is porous, so air still passes in both directions.","D":"Incorrect. Height does not stop air entering an open tube, and it does not restore a seal."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Respiratory',
  'Chest drainage', 'Restoring the water seal',
- 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560022', 'MCQ',
  'A confused client pulls a chest tube completely out of the chest wall. Which action should the nurse take immediately?',
@@ -219,7 +219,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Taping three sides creates a one-way valve that lets air out but not in, and the nurse then stays with the client and summons help.","B":"Incorrect. A fully sealed dressing traps escaping air and can produce a tension pneumothorax.","C":"Incorrect. Reinserting a contaminated tube is outside the nursing role and introduces infection.","D":"Incorrect. A bare gloved hand is neither sterile nor an effective one-way seal."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Medical-Surgical', 'Respiratory',
  'Chest drainage', 'Accidental tube removal',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_560023', 'SATA',
  'A visitor knocks over the chest drainage unit of a client who is sitting in a chair. The unit is intact and the tubing is still connected. Which actions should the nurse take? Select all that apply.',
@@ -228,7 +228,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","F"],"feedback":{"A":"Correct. Standing the unit upright restores the water seal and the correct suction level.","B":"Correct. Water may have spilled between chambers, so the seal volume is verified and corrected.","C":"Correct. The client is assessed for any respiratory change resulting from the interruption.","D":"Incorrect. Prolonged clamping traps air in the pleural space and risks a tension pneumothorax.","E":"Incorrect. An intact, connected system does not need replacing simply because it was tipped over.","F":"Correct. The event and the response are recorded and the client continues to be observed."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Medical-Surgical', 'Respiratory',
  'Chest drainage', 'Unit knocked over',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_560024', 'SELECT_N',
  'A student nurse asks when a chest tube may be clamped. Which 3 situations should the nurse identify as acceptable reasons to clamp briefly, for no longer than about 15 seconds?',
@@ -237,7 +237,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. A momentary clamp prevents air entry during the seconds the system is open for a unit change.","B":"Correct. Brief sequential clamping identifies whether the leak is in the client or in the system.","C":"Correct. A prescribed clamping trial checks tolerance before removal.","D":"Incorrect. The unit travels with the client below chest level; clamping to walk is unnecessary and dangerous.","E":"Incorrect. The drainage system remains connected and upright during transfer; it is never clamped for the journey.","F":"Incorrect. Pain is treated with analgesia; clamping does nothing for it and adds serious risk."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Medical-Surgical', 'Respiratory',
  'Chest drainage', 'Clamping limits',
- 'Hard', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Understand', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_560025', 'SATA',
  'A client returns to the ward after a right pneumonectomy. Which statements about the care of this client are correct? Select all that apply.',
@@ -246,7 +246,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Suction would drag the mediastinum toward the empty space, so it is not applied after a pneumonectomy.","B":"Correct. Serous fluid gradually fills the space over weeks, which is the expected course.","C":"Correct. Lying on the operative side or the back leaves the remaining lung free to expand.","D":"Correct. Tracheal deviation signals a mediastinal shift and is an emergency.","E":"Incorrect. There is no lung on that side to clear, and vigorous physiotherapy over a fresh thoracotomy is inappropriate.","F":"Incorrect. The remaining lung does not cross the midline to fill the space; the space fills with fluid over time."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Respiratory',
  'Pneumonectomy', 'Post-operative drainage differences',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_560026', 'SATA',
  'The high-pressure alarm sounds on the ventilator of a client in the intensive care unit. Which causes should the nurse consider? Select all that apply.',
@@ -255,7 +255,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. A kinked circuit raises the resistance the ventilator must overcome.","B":"Correct. Pooled condensation obstructs gas flow and triggers the high-pressure alarm.","C":"Correct. Secretions narrow the airway and increase peak pressure.","D":"Correct. Biting occludes the tube and is a common cause in a waking client.","E":"Incorrect. A deflated cuff lets gas escape around the tube, which lowers pressure and triggers the low-pressure alarm.","F":"Incorrect. A disconnection is a leak and sets off the low-pressure alarm."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Respiratory',
  'Mechanical ventilation', 'High-pressure alarm causes',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_DO_560027', 'DRAG_ORDER',
  'The high-pressure alarm sounds on a ventilated client who is otherwise stable. Place the nurse actions in the order in which they should be carried out.',
@@ -264,7 +264,7 @@ INSERT INTO nclex_bank_items (
  '{"slots":{"s1":"t1","s2":"t2","s3":"t3","s4":"t4"}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Respiratory',
  'Mechanical ventilation', 'Working through a high-pressure alarm',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Place the options in the correct order.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560028', 'MCQ',
  'The low-pressure alarm sounds on the ventilator of a client in the intensive care unit. Which action should the nurse take FIRST?',
@@ -273,7 +273,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A low-pressure alarm signals a leak or disconnection, and tracing the circuit finds it fastest.","B":"Incorrect. Secretions raise pressure and trigger the high-pressure alarm, not the low-pressure one.","C":"Incorrect. Increasing the tidal volume masks the alarm without correcting the leak.","D":"Incorrect. Referral wastes time during an alarm the nurse can resolve directly."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Respiratory',
  'Mechanical ventilation', 'Low-pressure alarm',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560029', 'MCQ',
  'The low-pressure alarm continues to sound, the nurse can find no disconnection, and the oxygen saturation has fallen to 86% with visible respiratory distress. Which action is BEST?',
@@ -282,7 +282,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. When the ventilator cannot be trusted to deliver the breath, manual ventilation guarantees oxygenation.","B":"Incorrect. Silencing an alarm on a hypoxic client and continuing to search delays effective ventilation.","C":"Incorrect. Overinflating the cuff risks tracheal mucosal damage and may not be the fault at all.","D":"Incorrect. Raising the oxygen concentration on a machine that is not delivering the volume achieves nothing."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Respiratory',
  'Mechanical ventilation', 'Unresolved low-pressure alarm',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560030', 'MCQ',
  'A ventilated client is being considered for weaning. The arterial blood gas taken on 40% oxygen shows pH 7.36, PaCO2 42 mmHg, PaO2 88 mmHg and HCO3 24 mEq/L. How should the nurse interpret this result?',
@@ -291,13 +291,13 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Every value is normal on 40% oxygen, which is consistent with readiness for a weaning trial.","B":"Incorrect. Respiratory acidosis would show a pH below 7.35 with a PaCO2 above 45 mmHg; neither is present.","C":"Incorrect. Metabolic alkalosis would show a raised pH with a raised bicarbonate; both are normal here.","D":"Incorrect. A PaO2 of 88 mmHg is normal and needs no increase in oxygen."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Respiratory',
  'Mechanical ventilation', 'Arterial blood gases and weaning',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_SELN_560031', 'SELECT_N',
  'The intensive care team is reviewing a ventilated client for a weaning trial. Which 3 findings indicate that the client is ready to begin?',
@@ -306,7 +306,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. The client must be alert enough to cooperate and to protect the airway once the tube is removed.","B":"Correct. Adequate spontaneous effort shows the respiratory drive needed to take over from the machine.","C":"Correct. Weaning increases the work of breathing, which an unstable circulation cannot support.","D":"Incorrect. Fever and purulent secretions signal an active chest infection, which increases oxygen demand and delays weaning.","E":"Incorrect. Significant anaemia reduces oxygen carriage and makes a successful trial less likely."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Medical-Surgical', 'Respiratory',
  'Mechanical ventilation', 'Readiness to wean',
- 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_560032', 'SATA',
  'A nurse is fitting axillary crutches for a client before discharge. Which observations show that the crutches are correctly fitted and being used correctly? Select all that apply.',
@@ -315,7 +315,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. That gap keeps the pad clear of the axilla when the client stands upright.","B":"Correct. About 30 degrees of elbow flexion allows the arms to extend and lift the body weight.","C":"Correct. Hand weight-bearing is the defining principle of safe axillary crutch use.","D":"Correct. This tripod position gives a stable base before each step.","E":"Incorrect. Pressure in the axilla compresses nerves and vessels and causes crutch palsy.","F":"Incorrect. Resting on the pads is the same harmful pressure, simply held for longer."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Medical-Surgical', 'Musculoskeletal',
  'Crutch walking', 'Measuring and fitting',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560033', 'MCQ',
  'A client who has been using axillary crutches for two weeks reports numbness and tingling in both hands and a grip that has become weak. How should the nurse interpret this finding?',
@@ -324,7 +324,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Pressure on the brachial plexus in the axilla causes crutch palsy, with numbness, tingling and weak grip.","B":"Incorrect. Crutches that are too short cause stooping and back strain rather than nerve symptoms in the hands.","C":"Incorrect. Nerve compression symptoms are never dismissed as normal; unaddressed, the damage can become lasting.","D":"Incorrect. A venous thrombosis causes unilateral swelling, warmth and pain, not bilateral numbness and weakness."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Medical-Surgical', 'Neurological',
  'Crutch walking', 'Crutch palsy',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560034', 'MCQ',
  'A 22-year-old client has a fractured right ankle in a cast and is not permitted to place any weight on the right leg. The left leg is strong and unaffected. Which crutch gait should the nurse teach?',
@@ -333,7 +333,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. One affected leg and one strong leg calls for an odd-numbered gait, and the three-point gait keeps all weight off the right ankle.","B":"Incorrect. The four-point gait requires weight-bearing on both legs, which is not permitted here.","C":"Incorrect. The two-point gait also requires partial weight-bearing on both legs.","D":"Incorrect. The swing-through gait is for a client who cannot bear weight on either leg."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Medical-Surgical', 'Musculoskeletal',
  'Crutch walking', 'Matching gait to weakness',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_CLZ_560035', 'CLOZE',
  'A physiotherapist and nurse plan crutch teaching for two clients. A client with weakness in both legs from a neurological condition, who can still bear some weight on each leg, is taught a {1}. A client with paraplegia who can bear no weight on either leg is taught a {2}.',
@@ -342,7 +342,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c1","b2":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Medical-Surgical', 'Musculoskeletal',
  'Crutch walking', 'Even-numbered and swing gaits',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MMR_560036', 'MATRIX_MR',
  'A nurse revises mobility aids with a group of students. For each teaching point, indicate which device or devices it applies to. A teaching point may apply to more than one device.',
@@ -351,7 +351,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1"],"r2":["c2"],"r3":["c1","c3"],"r4":["c3"],"r5":["c1","c2","c3"]},"feedback":{}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Medical-Surgical', 'Musculoskeletal',
  'Assistive devices', 'Canes, crutches and walking frames',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply for each row.', 8, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560037', 'MCQ',
  'A client with a healing left leg fracture is practising stairs with crutches. Which statement shows that the teaching has been understood?',
@@ -360,7 +360,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Up with the stronger leg and down with the weaker leg and the crutches is the safe sequence.","B":"Incorrect. This reverses the rule and puts the weak leg in the position that must lift the whole body weight.","C":"Incorrect. Leading with the crutches going up leaves the client unsupported on the higher step.","D":"Incorrect. Taking two steps with one foot before moving the crutches leaves the client without a stable base."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Medical-Surgical', 'Musculoskeletal',
  'Crutch walking', 'Stairs',
- 'Very easy', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_560038', 'SATA',
  'A nurse visits an older client at home to teach the use of a standard walking frame. Which instructions should be given? Select all that apply.',
@@ -369,7 +369,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. A frame tilted on two legs offers no support and is a common cause of falls.","B":"Correct. Stepping into the frame keeps the client inside the base of support.","C":"Correct. Rugs and flexes catch the frame legs and are removed before the client mobilises.","D":"Correct. Secure footwear is part of safe mobilising with any aid.","E":"Incorrect. A bag hung on the frame shifts the centre of gravity and makes it tip forward.","F":"Incorrect. Walking frames are never used on stairs; a different plan is needed for a client with stairs at home."}}'::jsonb,
  'Safe and Effective Care Environment', 'Safety and Infection Control', 'Medical-Surgical', 'Musculoskeletal',
  'Walking frame', 'Safe use at home',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_560039', 'SATA',
  'A client has had continuous nasogastric suction for three days after abdominal surgery. Which findings would the nurse expect? Select all that apply.',
@@ -378,7 +378,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Loss of gastric acid raises the pH into alkalosis.","B":"Correct. Bicarbonate rises relative to the remaining hydrogen ions.","C":"Correct. Potassium is lost in the aspirate and also shifts into the cells during alkalosis.","D":"Correct. Slow shallow breathing retains carbon dioxide as respiratory compensation for the alkalosis.","E":"Incorrect. Kussmaul respirations blow off carbon dioxide to compensate for metabolic acidosis, which is the opposite disturbance.","F":"Incorrect. A low bicarbonate belongs to metabolic acidosis, not to acid loss from suction."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Gastrointestinal',
  'Acid-base balance', 'Metabolic alkalosis from acid loss',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560040', 'MCQ',
  'A woman in the first stage of labour is breathing rapidly and deeply between contractions and now reports tingling around the mouth and in the fingers with light-headedness. Which action should the nurse take?',
@@ -387,13 +387,13 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Slowing the rate and rebreathing exhaled carbon dioxide corrects the respiratory alkalosis directly.","B":"Incorrect. The problem is too little carbon dioxide, not too little oxygen, so extra oxygen does not help.","C":"Incorrect. More rapid breathing removes still more carbon dioxide and worsens the alkalosis.","D":"Incorrect. Lying flat on the back in labour compresses the vena cava and does not address the breathing pattern."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Respiratory',
  'Acid-base balance', 'Respiratory alkalosis from hyperventilation',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_560041', 'MCQ',
  'A client using morphine by patient-controlled analgesia has a respiratory rate of 8 breaths per minute and is difficult to rouse. The arterial blood gas shows pH 7.26, PaCO2 62 mmHg and HCO3 25 mEq/L. Which interpretation and action are correct?',
@@ -402,7 +402,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A low pH with a raised PaCO2 and normal bicarbonate is uncompensated respiratory acidosis from opioid-induced hypoventilation.","B":"Incorrect. Metabolic acidosis would show a low bicarbonate; the bicarbonate here is normal.","C":"Incorrect. Alkalosis would raise the pH above 7.45; this pH is low.","D":"Incorrect. Waiting four hours with a respiratory rate of 8 breaths per minute leaves a deteriorating client untreated."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Medical-Surgical', 'Respiratory',
  'Acid-base balance', 'Respiratory acidosis from hypoventilation',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MAT_560042', 'MATRIX',
  'A nurse is teaching acid-base balance to a group of students using clients on the ward. For each client, indicate the acid-base disturbance that would be expected.',
@@ -411,7 +411,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c3","r2":"c4","r3":"c1","r4":"c2","r5":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Multisystem',
  'Acid-base balance', 'Matching cause to disturbance',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 5, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560043', 'MCQ',
  'A client is admitted with severe metabolic acidosis. Which serum potassium result should the nurse expect, and for what reason?',
@@ -420,7 +420,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. The hydrogen and potassium exchange across the cell membrane raises the serum potassium in acidosis.","B":"Incorrect. That shift describes alkalosis, in which the serum potassium falls.","C":"Incorrect. Serum potassium moves predictably with pH, which is why it is checked in every acid-base disturbance.","D":"Incorrect. The kidneys retain hydrogen and excrete potassium in alkalosis, not in acidosis."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Multisystem',
  'Acid-base balance', 'Potassium and pH',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560044', 'MCQ',
  'A client returns to the ward two hours after a thyroidectomy. Which assessment is the PRIORITY at this stage?',
@@ -429,7 +429,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Airway obstruction from oedema or a haematoma is the immediate threat in the first hours after surgery.","B":"Incorrect. Hypocalcaemia from parathyroid injury usually appears 24 to 72 hours after surgery, not at two hours.","C":"Incorrect. Wound infection is a later complication and is not the priority now.","D":"Incorrect. Thyroid function results guide replacement therapy over weeks and have no bearing on the immediate airway risk."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Endocrine',
  'Thyroidectomy', 'Early post-operative priority',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MAT_560045', 'MATRIX',
  'A nurse is caring for several clients on the second day after thyroid surgery. For each finding, indicate whether it is expected at this stage or must be reported immediately.',
@@ -438,7 +438,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c1","r4":"c2","r5":"c2","r6":"c1"},"feedback":{}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Medical-Surgical', 'Endocrine',
  'Thyroidectomy', 'Expected findings and red flags',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_560046', 'SATA',
  'Thirty-six hours after a total thyroidectomy the nurse suspects hypocalcaemia. Which findings would support this? Select all that apply.',
@@ -447,7 +447,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Perioral and fingertip tingling is the earliest sign of falling calcium.","B":"Correct. That is the Chvostek sign, a bedside indicator of neuromuscular irritability.","C":"Correct. That is the Trousseau sign, carpal spasm provoked by the inflated cuff.","D":"Correct. Muscle cramping reflects the same hyperexcitability and can progress to tetany.","E":"Incorrect. Hypertension with flushing is not a feature of hypocalcaemia.","F":"Incorrect. Reflexes become brisk in hypocalcaemia; absent reflexes suggest a high calcium or magnesium level instead."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Endocrine',
  'Thyroidectomy', 'Hypocalcaemic tetany',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_560047', 'SELECT_N',
  'A client who had a subtotal thyroidectomy eight hours ago becomes acutely unwell. Which 3 findings would indicate thyroid storm?',
@@ -456,7 +456,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Hyperpyrexia is a defining feature of thyroid storm.","B":"Correct. Extreme tachycardia, often with atrial fibrillation, reflects the cardiac effect of the hormone surge.","C":"Correct. Agitation, tremor and confusion reflect central nervous system overstimulation.","D":"Incorrect. Bradycardia and cold skin suggest the opposite state, hypothyroidism or myxoedema.","E":"Incorrect. A positive Trousseau sign indicates hypocalcaemia from parathyroid injury, a different complication.","F":"Incorrect. A hoarse voice and mild pain on swallowing are expected after thyroid surgery and say nothing about a hormone surge."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Medical-Surgical', 'Endocrine',
  'Thyroid storm', 'Recognition after surgery',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560048', 'MCQ',
  'A client with hyperthyroidism asks why the antithyroid medicine and the iodine preparation must be continued right up to the day of the thyroidectomy when other medicines are being stopped. Which response by the nurse is correct?',
@@ -465,7 +465,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Achieving a euthyroid state and shrinking the vascular gland are the two reasons these medicines continue up to surgery.","B":"Incorrect. The parathyroid glands are protected by surgical technique, not by antithyroid medicines.","C":"Incorrect. Laryngeal oedema is managed post-operatively; these medicines have no such effect.","D":"Incorrect. Thyroid medicines do not control blood glucose."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Medical-Surgical', 'Endocrine',
  'Thyroidectomy', 'Preoperative euthyroid state',
- 'Very hard', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Very hard', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560049', 'MCQ',
  'A client with Addison disease is admitted after two days of vomiting and diarrhoea. The blood pressure is 78/48 mmHg, the pulse is 122 beats per minute and the client is drowsy. Which action is the PRIORITY?',
@@ -474,7 +474,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Circulatory collapse in an addisonian crisis is reversed only by intravenous fluid and intravenous steroid replacement.","B":"Incorrect. A vomiting, drowsy client cannot absorb oral fluid, and the volume deficit is far beyond what sips could correct.","C":"Incorrect. Monitoring is important but does nothing for a client who is shocked now.","D":"Incorrect. Reducing stimulation is supportive care and does not treat the crisis."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Medical-Surgical', 'Endocrine',
  'Adrenal insufficiency', 'Addisonian crisis',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_560050', 'SELECT_N',
  'A client is going home on lifelong hydrocortisone replacement for adrenal insufficiency. Which 3 instructions are essential?',
@@ -483,13 +483,13 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Abrupt withdrawal leaves the client with no circulating cortisol and precipitates a crisis.","B":"Correct. The body cannot mount its own stress response, so the dose must be raised for the client.","C":"Correct. Identification allows emergency hydrocortisone to be given when the client cannot explain the condition.","D":"Incorrect. The dose is not reduced for rest days; the requirement is constant and rises with stress.","E":"Incorrect. Replacement mimics the natural rhythm, with the larger part taken in the morning.","F":"Incorrect. Stopping the medicine for any reason without advice risks an addisonian crisis."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Medical-Surgical', 'Endocrine',
  'Corticosteroid replacement', 'Sick-day rules',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MMR_560051', 'MATRIX_MR',
  'A nurse teaches students about the two ends of the adrenal spectrum. For each feature, indicate whether it belongs to adrenal insufficiency, to cortisol excess, or to both.',
@@ -498,7 +498,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1"],"r2":["c2"],"r3":["c1","c2"],"r4":["c1"],"r5":["c1"],"r6":["c2"]},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Medical-Surgical', 'Endocrine',
  'Adrenal disorders', 'Insufficiency and cortisol excess',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 7, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_560052', 'MCQ',
  'A client who has taken long-term corticosteroids for an autoimmune condition has developed a rounded face, central weight gain and increased facial hair, and tells the nurse: I cannot bear to look in the mirror or to see my friends any more. Which response by the nurse is most appropriate?',
@@ -507,4 +507,4 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. An open invitation to talk acknowledges the distress and allows the nurse to understand what matters most to this client.","B":"Incorrect. Telling the client to be grateful dismisses a genuine loss and shuts the conversation down.","C":"Incorrect. This is both discouraging and inaccurate, as many changes ease when the dose can be reduced.","D":"Incorrect. False reassurance denies the reality of visible changes and blocks further discussion."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Medical-Surgical', 'Endocrine',
  'Corticosteroid therapy', 'Body image and altered appearance',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');

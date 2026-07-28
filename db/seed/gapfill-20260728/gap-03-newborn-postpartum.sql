@@ -10,7 +10,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_512001', 'MCQ',
  'A mother points to tiny white pinpoint papules across the nose and chin of her 2-day-old newborn and says she plans to squeeze them out at home. Which response by the nurse is most appropriate?',
@@ -19,7 +19,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Milia are a benign, self-limiting variation that needs no treatment beyond routine washing with plain water.","B":"Incorrect. Squeezing breaks the skin and risks introducing infection and scarring.","C":"Incorrect. There is no infection to treat, and ointment blocks the glands further.","D":"Incorrect. Medicated soap dries and irritates newborn skin without affecting milia."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Integumentary',
  'Newborn skin variations', 'Milia',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512002', 'MCQ',
@@ -29,7 +29,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Epstein pearls are a normal variation that resolves spontaneously in the first weeks of life.","B":"Incorrect. Thrush appears as white plaques on the tongue and buccal mucosa that leave a raw base when scraped, not as firm midline cysts.","C":"Incorrect. Epstein pearls sit on an intact palate and are unrelated to clefting, which is found on inspection and palpation of the palate.","D":"Incorrect. Milk curds wipe away easily; Epstein pearls are firm and fixed."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Integumentary',
  'Newborn skin variations', 'Epstein pearls',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_512003', 'SATA',
@@ -39,7 +39,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D","F"],"feedback":{"A":"Correct. A precise baseline description at birth is the record that distinguishes this from later bruising.","B":"Correct. Parents need to know the marks are benign and will fade, so they are not alarmed.","C":"Incorrect. The finding is a normal pigmentary variation, not an injury, and referring it wrongly distresses the family.","D":"Correct. Handover to the community team carries the baseline description forward.","E":"Incorrect. There is no treatment; the pigment lies deep in the dermis and heat does nothing.","F":"Correct. Documenting it in the discharge summary protects the family from a later false safeguarding allegation."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Maternity', 'Integumentary',
  'Newborn skin variations', 'Congenital dermal melanocytosis',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512004', 'MCQ',
@@ -49,7 +49,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Erythema toxicum is a benign, self-limiting newborn rash in a well, afebrile newborn.","B":"Incorrect. Staphylococcal lesions are pustular and the newborn would show signs of sepsis such as fever, poor feeding or lethargy.","C":"Incorrect. Miliaria appears in skin folds and covered areas as tiny clear or red vesicles, not as macules with central papules.","D":"Incorrect. Newborns are rarely sensitised to detergent this early, and the pattern described is typical of erythema toxicum."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Integumentary',
  'Newborn skin variations', 'Erythema toxicum neonatorum',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512005', 'MCQ',
@@ -59,7 +59,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Blanching plus fading identifies a stork bite; non-blanching and permanent identifies a port-wine stain.","B":"Incorrect. A port-wine stain does not fade and persists without treatment.","C":"Incorrect. This reverses the two lesions, and bruising resolves through green and yellow colour change within days.","D":"Incorrect. Neither lesion has any relationship to the bilirubin level."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Integumentary',
  'Newborn skin variations', 'Telangiectatic nevus and port-wine stain',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_512006', 'SATA',
@@ -69,7 +69,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. A port-wine stain persists for life and tends to darken and thicken with age.","B":"Correct. Failure to blanch is what distinguishes it from a telangiectatic nevus.","C":"Correct. Involvement of the ophthalmic trigeminal distribution warrants review for glaucoma and for Sturge-Weber syndrome.","D":"Correct. It is a capillary malformation of unknown cause and no maternal behaviour produces it.","E":"Incorrect. Fading over the first years describes a telangiectatic nevus, not a port-wine stain.","F":"Incorrect. No topical measure alters the lesion; pulsed dye laser therapy is the treatment offered later."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Integumentary',
  'Newborn skin variations', 'Port-wine stain',
- 'Hard', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_512007', 'SATA',
@@ -79,7 +79,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","F"],"feedback":{"A":"Correct. Bathing before the temperature is stable risks cold stress.","B":"Correct. Vernix protects and hydrates the skin and is absorbed without help.","C":"Correct. A warm environment and prompt drying limit evaporative heat loss.","D":"Incorrect. Lanugo is a normal finding and rubbing it damages the skin barrier.","E":"Incorrect. Brushing the scalp abrades fragile skin and offers no benefit.","F":"Correct. Naming lanugo and explaining its natural history reassures the mother."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Maternity', 'Integumentary',
  'Newborn skin care', 'Vernix caseosa and lanugo',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_512008', 'MATRIX',
@@ -89,7 +89,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c1","r3":"c1","r4":"c2","r5":"c2","r6":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Maternity', 'Integumentary',
  'Newborn skin variations', 'Expected versus significant findings',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_512009', 'MATRIX',
@@ -99,7 +99,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c1","r4":"c2","r5":"c1","r6":"c2"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Maternity', 'Multisystem',
  'Newborn head assessment', 'Caput succedaneum versus cephalohaematoma',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512010', 'MCQ',
@@ -109,14 +109,14 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Resorption of the trapped blood raises the bilirubin load, so serial levels guide phototherapy decisions.","B":"Incorrect. Head circumference is recorded, but a localised subperiosteal bleed does not reflect brain growth over 3 days.","C":"Incorrect. Four-limb blood pressure screens for coarctation, which is unrelated to a scalp swelling.","D":"Incorrect. Hydration is monitored through weight and nappy counts, and specific gravity is not the priority here."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Hematologic',
  'Newborn head assessment', 'Cephalohaematoma and jaundice risk',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_CLZ_512011', 'CLOZE',
  'At 1 minute of age a newborn has a heart rate of 130 beats per minute, a slow weak cry with irregular respirations, some flexion of the limbs, a grimace in response to suction, and a pink body with blue hands and feet. Complete the sentences. The total Apgar score is {1}, and the nurse should {2}.',
@@ -125,7 +125,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c2","b2":"c1"},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Multisystem',
  'Apgar scoring', 'Scoring and required response',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_512012', 'MATRIX',
@@ -135,7 +135,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c1","r3":"c1","r4":"c2","r5":"c2","r6":"c2"},"feedback":{}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Multisystem',
  'Newborn vital signs', 'Expected ranges',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512013', 'MCQ',
@@ -145,7 +145,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Removing the source of evaporative heat loss and starting skin-to-skin rewarming is the immediate action.","B":"Incorrect. Glucose is checked, but measuring it does nothing to stop the ongoing heat loss.","C":"Incorrect. The nurse can correct simple environmental cold stress independently before escalating.","D":"Incorrect. Waiting an hour with the newborn still in damp clothing allows the temperature to fall further."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Maternity', 'Multisystem',
  'Newborn thermoregulation', 'Cold stress first action',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512014', 'MCQ',
@@ -155,7 +155,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Brown fat metabolism rapidly depletes limited glycogen stores, so hypoglycaemia is the immediate threat.","B":"Incorrect. Sodium is not appreciably altered by a short period of cold stress.","C":"Incorrect. A white cell count is relevant if sepsis is suspected, but it does not guide immediate management of cold stress.","D":"Incorrect. Calcium can fall in a stressed newborn, but it is not the first or the most dangerous derangement here."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Multisystem',
  'Newborn thermoregulation', 'Consequences of cold stress',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512015', 'MCQ',
@@ -165,7 +165,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A newborn with a strong suck is corrected by feeding, with a repeat level to confirm the response.","B":"Incorrect. Intravenous dextrose is used when the newborn cannot feed or does not respond, not as the first measure here.","C":"Incorrect. Swaddling treats jitteriness from over-stimulation, not documented hypoglycaemia, and a 2-hour delay is unsafe.","D":"Incorrect. Monitoring must continue until levels are stable, because rebound hypoglycaemia is common in these newborns."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Multisystem',
  'Newborn hypoglycaemia', 'Infant of a diabetic mother',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MMR_512016', 'MATRIX_MR',
@@ -175,7 +175,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1"],"r2":["c2"],"r3":["c3"],"r4":["c1","c2","c3"],"r5":["c3"],"r6":["c1","c2"]},"feedback":{}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Multisystem',
  'Newborn transition', 'Overlapping signs of instability',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 9, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512017', 'MCQ',
@@ -185,7 +185,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Jaundice within the first 24 hours is pathological until proved otherwise and needs a measured level.","B":"Incorrect. Physiological jaundice appears after 24 hours, typically peaking on days 3 to 5.","C":"Incorrect. Breast milk jaundice appears later, and stopping breastfeeding is not the response to early jaundice.","D":"Incorrect. Deferring assessment risks a rapidly rising bilirubin from haemolysis going undetected."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Hematologic',
  'Newborn jaundice', 'Physiological versus pathological',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_512018', 'SATA',
@@ -195,7 +195,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Eye shields protect the retina from the intensity of the light.","B":"Correct. The response to phototherapy depends on the area of skin exposed.","C":"Correct. Radiant heat and increased insensible loss make both hyperthermia and instability possible.","D":"Incorrect. Lotions and oils absorb the light energy and can cause skin burns.","E":"Correct. Frequent feeds replace increased stool and insensible water loss and speed bilirubin excretion.","F":"Incorrect. The newborn is repositioned regularly so all skin surfaces receive the light."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Maternity', 'Hematologic',
  'Newborn jaundice', 'Phototherapy care',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512019', 'MCQ',
@@ -205,7 +205,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Opisthotonos with a bilirubin at this level is acute bilirubin encephalopathy and demands immediate exchange transfusion.","B":"Incorrect. Waiting an hour allows further bilirubin staining of the brain, and prone positioning is unsafe.","C":"Incorrect. Feeding helps mild jaundice but cannot lower a bilirubin of this magnitude, and the newborn is refusing feeds.","D":"Incorrect. A pillow is an airway and suffocation hazard, and repositioning does not treat the underlying cause."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Maternity', 'Hematologic',
  'Kernicterus', 'Acute bilirubin encephalopathy',
- 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_512020', 'SELECT_N',
@@ -215,14 +215,14 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","D"],"feedback":{"A":"Correct. A shrill high-pitched cry is a classic early sign of bilirubin encephalopathy.","B":"Correct. Opisthotonos indicates bilirubin staining of the basal ganglia and is an emergency.","C":"Incorrect. Frequent yellow seedy stools show that bilirubin is being excreted, which is desirable.","D":"Correct. Lethargy with a poor suck is an early neurological sign that is easily dismissed as sleepiness.","E":"Incorrect. Fading jaundice suggests the bilirubin level is falling.","F":"Incorrect. A symmetrical brisk Moro is a normal neurological finding."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Maternity', 'Hematologic',
  'Kernicterus', 'Recognition of neurological signs',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MMR_512021', 'MATRIX_MR',
  'A nurse is teaching student nurses about newborn reflexes. For each reflex, select every statement that applies. Each reflex has at least one statement.',
@@ -231,7 +231,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":["c1","c2"],"r2":["c1","c2"],"r3":["c1","c3"],"r4":["c1","c2"],"r5":["c3"]},"feedback":{}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Multisystem',
  'Newborn reflexes', 'Presence and expected disappearance',
- 'Very hard', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply for each row.', 9, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_512022', 'SATA',
@@ -241,7 +241,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Air exposure and dryness speed separation and reduce infection risk.","B":"Correct. Folding the nappy down keeps urine off the stump.","C":"Correct. These are the signs of omphalitis, which needs urgent treatment in a newborn.","D":"Incorrect. Pulling on the stump causes bleeding and pain; it separates on its own.","E":"Correct. Sponge baths avoid submerging and softening the stump before it separates.","F":"Incorrect. Covering the stump keeps it moist and delays separation."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Integumentary',
  'Newborn cord care', 'Parent teaching',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_512023', 'SATA',
@@ -251,7 +251,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Petroleum jelly stops the healing glans from adhering to the nappy, but it is omitted with a plastic ring device.","B":"Correct. Failure to void may indicate oedema or obstruction of the urethral meatus.","C":"Correct. The yellow-white film is granulation tissue and part of normal healing.","D":"Incorrect. Removing granulation tissue causes bleeding and delays healing.","E":"Correct. More than a few spots of blood needs pressure and medical review.","F":"Incorrect. Tub bathing is avoided until the site has healed; the area is cleaned by squeezing warm water over it."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Maternity', 'Reproductive',
  'Newborn circumcision', 'Postprocedure care',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512024', 'MCQ',
@@ -261,7 +261,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A single 1 mg intramuscular dose into the vastus lateralis is the standard prophylaxis.","B":"Incorrect. The dorsogluteal site is not used in newborns because the gluteal muscle is undeveloped and the sciatic nerve is close.","C":"Incorrect. The intramuscular route is required for reliable absorption and sustained protection.","D":"Incorrect. Feeding is unrelated; the dose is given within the first hours regardless of feeding."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Maternity', 'Hematologic',
  'Newborn prophylaxis', 'Vitamin K administration',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512025', 'MCQ',
@@ -271,7 +271,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A delay of up to an hour supports bonding without losing the protective effect.","B":"Incorrect. Immediate administration is not required and needlessly interrupts the first skin-to-skin period.","C":"Incorrect. Flushing removes the ointment before it has had contact time and defeats the prophylaxis.","D":"Incorrect. Prophylaxis is a legal or policy requirement in most settings and prevents blinding infection."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Maternity', 'Multisystem',
  'Newborn prophylaxis', 'Eye ointment administration',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_512026', 'SELECT_N',
@@ -281,7 +281,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Several conditions are only detectable once feeding has loaded the metabolic pathway.","B":"Correct. Warming increases blood flow so a free-flowing drop forms without squeezing.","C":"Correct. The lateral heel avoids the calcaneus and the risk of osteomyelitis.","D":"Incorrect. The central heel overlies the calcaneus and must be avoided.","E":"Incorrect. Layering drops gives an invalid sample; each circle is filled with a single drop that soaks through.","F":"Incorrect. A sample this early gives false negative results for several of the conditions screened."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Multisystem',
  'Newborn screening', 'Blood spot collection',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_512027', 'SATA',
@@ -291,7 +291,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","F"],"feedback":{"A":"Correct. Six or more wet nappies by day 5 shows adequate intake.","B":"Correct. Yellow seedy stools show that the newborn is receiving milk beyond the initial colostrum.","C":"Correct. Audible swallowing is direct evidence of milk transfer.","D":"Incorrect. A nipple-tip latch is shallow, damages the nipple and transfers little milk.","E":"Incorrect. Pain throughout the feed indicates poor attachment and needs the latch to be corrected.","F":"Correct. Frequent feeding at this stage both meets need and drives milk supply."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Multisystem',
  'Newborn feeding', 'Breastfeeding adequacy',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_512028', 'SELECT_N',
@@ -301,7 +301,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Formula is not sterile, so clean hands and sterilised equipment are essential.","B":"Correct. Using the correct scoop levelled off gives the intended concentration.","C":"Correct. Milk left after a feed is contaminated with saliva and must be discarded.","D":"Incorrect. Over-dilution under-feeds the newborn and risks water intoxication and hyponatraemic seizures.","E":"Incorrect. Microwaving heats unevenly and creates hot spots that scald the mouth.","F":"Incorrect. Made-up formula standing at room temperature allows rapid bacterial growth."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Multisystem',
  'Newborn feeding', 'Formula preparation',
- 'Easy', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512029', 'MCQ',
@@ -311,7 +311,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Airway and oxygenation come first, and the newborn is not left alone while help is summoned.","B":"Incorrect. Feeding a newborn with this work of breathing risks aspiration and delays treatment.","C":"Incorrect. Cultures are likely to be needed, but they must not delay respiratory support.","D":"Incorrect. Gastric aspiration does not relieve the respiratory distress and delays definitive care."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Multisystem',
  'Newborn respiratory distress', 'Immediate management',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512030', 'MCQ',
@@ -321,14 +321,14 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Grunting with tachypnoea is increased work of breathing and is the only finding that threatens oxygenation.","B":"Incorrect. These are congenital dermal melanocytosis, a normal pigmentary variation that needs documentation, not urgent review.","C":"Incorrect. This describes erythema toxicum, a benign self-limiting newborn rash.","D":"Incorrect. This is a cephalohaematoma, which needs bilirubin monitoring over days rather than immediate assessment."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Maternity', 'Multisystem',
  'Newborn prioritisation', 'Assessing which newborn first',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_DO_512031', 'DRAG_ORDER',
  'A nurse is carrying out a systematic postpartum assessment on a client 8 hours after a vaginal birth. Place the assessments in the order in which the nurse should perform them. One option will not be used.',
@@ -337,7 +337,7 @@ INSERT INTO nclex_bank_items (
  '{"slots":{"s1":"t1","s2":"t2","s3":"t3","s4":"t4","s5":"t5","s6":"t6"}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Maternity', 'Reproductive',
  'Postpartum assessment', 'BUBBLE-HE sequence',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Place the options in the correct order.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512032', 'MCQ',
@@ -347,7 +347,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A full bladder displaces the uterus and makes both the height and the tone unreliable.","B":"Incorrect. Analgesia may be appropriate but it does not affect the accuracy of the assessment.","C":"Incorrect. The fundus is palpated with the client supine, not in a lateral position.","D":"Incorrect. This is the correct position for the assessment, but the bladder is emptied before positioning."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Maternity', 'Reproductive',
  'Postpartum assessment', 'Fundal palpation technique',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_512033', 'SELECT_N',
@@ -357,7 +357,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. The fundus is expected at or just above the umbilicus, firm and midline, in the first 12 hours.","B":"Correct. Moderate lochia rubra with a few small clots is expected on day 1.","C":"Correct. A temperature up to 38 °C in the first 24 hours reflects dehydration and the effort of labour.","D":"Incorrect. A boggy displaced fundus suggests a full bladder with uterine atony and requires action.","E":"Incorrect. Saturating a pad within 20 minutes is excessive bleeding and must be escalated.","F":"Incorrect. Unilateral calf enlargement suggests deep vein thrombosis."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Reproductive',
  'Postpartum assessment', 'Expected findings on day 1',
- 'Easy', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_CLZ_512034', 'CLOZE',
@@ -367,7 +367,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":{"b1":"c2","b2":"c2"},"feedback":{}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Reproductive',
  'Uterine involution', 'Fundal descent and lochia progression',
- 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512035', 'MCQ',
@@ -377,7 +377,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A boggy midline fundus is atony, and massage restores tone immediately without waiting for a prescription.","B":"Incorrect. Catheterisation is the action for a fundus displaced by a full bladder; this fundus is midline.","C":"Incorrect. Oxytocin is likely to follow, but massage is the immediate independent nursing action.","D":"Incorrect. The team is notified if the fundus does not firm with massage, but massage is not delayed for the call."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Maternity', 'Reproductive',
  'Postpartum fundal assessment', 'Boggy fundus in the midline',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512036', 'MCQ',
@@ -387,7 +387,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. A displaced fundus with a distended bladder is corrected by emptying the bladder so the uterus can contract.","B":"Incorrect. Massage gives only a temporary response while the bladder continues to displace the uterus.","C":"Incorrect. More fluid worsens the distension, and a 2-hour delay allows continued blood loss.","D":"Incorrect. Trendelenburg positioning does not empty the bladder and is not indicated for a stable client."}}'::jsonb,
  'Physiological Integrity', 'Physiological Adaptation', 'Maternity', 'Reproductive',
  'Postpartum fundal assessment', 'Boggy fundus displaced by a full bladder',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_TF_512037', 'TF',
@@ -397,7 +397,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Pink to brown loss on day 6 is lochia serosa and follows the expected progression.","B":"Incorrect. Lochia serosa is expected from about day 4 to day 10, so no follow-up is required for this change alone."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Reproductive',
  'Lochia', 'Expected progression',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512038', 'MCQ',
@@ -407,7 +407,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Heavy bright red bleeding with a firm fundus indicates trauma that needs visualisation and repair.","B":"Incorrect. Massaging an already firm uterus achieves nothing and causes unnecessary pain.","C":"Incorrect. The fundus is firm and correctly positioned, so bladder distension is not the cause, and a 30-minute delay is unsafe.","D":"Incorrect. A cold pack reduces oedema and pain but does not control bleeding from a laceration."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Reproductive',
  'Postpartum haemorrhage', 'Bleeding with a firm fundus',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_512039', 'SATA',
@@ -417,7 +417,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. A long augmented labour leaves the myometrium exhausted and prone to atony.","B":"Correct. A macrosomic newborn over-distends the uterus, impairing contraction after birth.","C":"Correct. Repeated pregnancies reduce the contractile efficiency of the uterine muscle.","D":"Correct. The uterus cannot contract down evenly around retained tissue, so bleeding continues.","E":"Incorrect. An average birth weight at term does not over-distend the uterus.","F":"Incorrect. Suckling releases endogenous oxytocin, which promotes contraction and reduces bleeding."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Reproductive',
  'Postpartum haemorrhage', 'Risk factor recognition',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_512040', 'SELECT_N',
@@ -427,14 +427,14 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C"],"feedback":{"A":"Correct. Tachycardia is the earliest compensatory response to falling circulating volume.","B":"Correct. Peripheral vasoconstriction shunts blood centrally and produces cool, clammy, pale skin.","C":"Correct. Restlessness reflects reduced cerebral perfusion and often precedes any fall in blood pressure.","D":"Incorrect. An output above 30 mL an hour indicates that renal perfusion is still adequate.","E":"Incorrect. Blood pressure falls, not rises, in hypovolaemia, and any fall is a late sign.","F":"Incorrect. Warm flushed skin with a bounding pulse is the opposite of the hypovolaemic picture."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Multisystem',
  'Postpartum haemorrhage', 'Recognising hypovolaemic shock',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_512041', 'MCQ',
  'A nurse is assessing a client on the third postpartum day for deep vein thrombosis. Which assessment gives the most reliable information?',
@@ -443,7 +443,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Serial bilateral measurement from a fixed marked point objectively detects unilateral swelling and can be repeated identically each day.","B":"Incorrect. Homans sign is insensitive and non-specific, and forced dorsiflexion is no longer recommended.","C":"Incorrect. Pedal pulses assess arterial flow and remain present in venous thrombosis.","D":"Incorrect. Exertion is not a diagnostic test and provokes pain in many other conditions."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Multisystem',
  'Postpartum thrombophlebitis', 'Calf circumference assessment',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512042', 'MCQ',
@@ -453,7 +453,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Massage risks embolising the clot, so the nurse stops it at once, teaches the reason and escalates the findings.","B":"Incorrect. Any pressure over a suspected thrombus can dislodge it; lighter pressure is not safer.","C":"Incorrect. Applying a cold pack afterwards does not undo the risk taken during the massage.","D":"Incorrect. Mobilising the limb after manipulation compounds the risk of pulmonary embolism."}}'::jsonb,
  'Safe and Effective Care Environment', 'Management of Care', 'Maternity', 'Multisystem',
  'Postpartum thrombophlebitis', 'Supervising unsafe practice',
- 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_512043', 'SATA',
@@ -463,7 +463,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Cultures taken before antibiotics still identify the organism and guide treatment.","B":"Correct. An upright position lets gravity drain infected lochia instead of allowing it to pool.","C":"Correct. Fever and infection increase fluid requirements and support the response to treatment.","D":"Incorrect. Lying flat encourages pooling of lochia, and early mobilisation reduces thrombosis risk.","E":"Correct. Hand hygiene limits transmission to the newborn and to other clients.","F":"Incorrect. Breastfeeding usually continues, and antibiotics are chosen to be compatible with it."}}'::jsonb,
  'Physiological Integrity', 'Reduction of Risk Potential', 'Maternity', 'Reproductive',
  'Postpartum infection', 'Endometritis management',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_512044', 'SATA',
@@ -473,7 +473,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","E"],"feedback":{"A":"Correct. Emptying the breast relieves the milk stasis that underlies mastitis, and the milk is safe for the newborn.","B":"Correct. Warmth before a feed encourages let-down and helps the breast drain.","C":"Correct. Stopping the antibiotic early leads to relapse and abscess formation.","D":"Incorrect. Stopping feeds worsens stasis and increases the risk of an abscess.","E":"Correct. Rest, extra fluids and analgesia support recovery from a systemic infection.","F":"Incorrect. Tight binding increases stasis and pain in a breastfeeding client."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Reproductive',
  'Mastitis', 'Client teaching',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_512045', 'SATA',
@@ -483,7 +483,7 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","F"],"feedback":{"A":"Correct. Firm support reduces movement, discomfort and stimulation.","B":"Correct. Cold reduces blood flow and swelling and eases the pain.","C":"Correct. Engorgement is genuinely painful and analgesia is appropriate.","D":"Incorrect. Expressing signals the breast to make more milk and prolongs the engorgement.","E":"Incorrect. Warm water triggers let-down and increases milk production.","F":"Correct. Avoiding all nipple stimulation allows lactation to suppress."}}'::jsonb,
  'Physiological Integrity', 'Basic Care and Comfort', 'Maternity', 'Reproductive',
  'Breast engorgement', 'Lactation suppression',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_512046', 'MATRIX',
@@ -493,7 +493,7 @@ INSERT INTO nclex_bank_items (
  '{"cells":{"r1":"c1","r2":"c2","r3":"c3","r4":"c1","r5":"c3","r6":"c2"},"feedback":{}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Maternity', 'Multisystem',
  'Postpartum mood disorders', 'Blues, depression and psychosis',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512047', 'MCQ',
@@ -503,7 +503,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Delusional beliefs about the baby are a psychiatric emergency, and protecting the infant while arranging urgent review is the priority.","B":"Incorrect. Delusions are never part of postpartum blues, and false reassurance delays lifesaving treatment.","C":"Incorrect. Sleep may be needed but leaving the situation until morning leaves the baby at risk.","D":"Incorrect. Discharging a client with active delusions about her baby removes supervision at the point of greatest danger."}}'::jsonb,
  'Psychosocial Integrity', 'Psychosocial Integrity', 'Maternity', 'Multisystem',
  'Postpartum psychosis', 'Immediate safety response',
- 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512048', 'MCQ',
@@ -513,7 +513,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. The mother receives the dose within 72 hours to prevent sensitisation against a future Rh-positive fetus.","B":"Incorrect. The preparation is given to the mother; giving it to the newborn would destroy the newborn own red cells.","C":"Incorrect. A negative indirect Coombs test means she is not yet sensitised, which is precisely why the dose will work.","D":"Incorrect. Future intentions can change, and sensitisation once established is permanent."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Maternity', 'Hematologic',
  'Rh incompatibility', 'Postpartum Rho(D) immune globulin',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_512049', 'MCQ',
@@ -523,7 +523,7 @@ INSERT INTO nclex_bank_items (
  '{"answer":"A","feedback":{"A":"Correct. Progestogen-only methods do not reduce milk supply and are preferred while lactation is being established.","B":"Incorrect. Oestrogen can reduce milk volume, particularly in the early weeks.","C":"Incorrect. Lactational amenorrhoea is only reliable under strict conditions that few clients meet.","D":"Incorrect. Ovulation can occur before the first period returns, so waiting risks an unplanned pregnancy."}}'::jsonb,
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies', 'Maternity', 'Reproductive',
  'Postpartum contraception', 'Method choice while breastfeeding',
- 'Hard', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_512050', 'SATA',
@@ -533,5 +533,5 @@ INSERT INTO nclex_bank_items (
  '{"answers":["A","B","C","D"],"feedback":{"A":"Correct. Fever after the first 24 hours suggests puerperal infection and needs review.","B":"Correct. This defines excessive bleeding and may indicate late postpartum haemorrhage.","C":"Correct. Unilateral calf pain or swelling suggests deep vein thrombosis in a hypercoagulable client.","D":"Correct. Thoughts of self-harm or of harming the baby require urgent mental health assessment.","E":"Incorrect. This is lochia serosa and is the expected progression.","F":"Incorrect. Tiredness in the early weeks is expected and does not need to be reported."}}'::jsonb,
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance', 'Maternity', 'Reproductive',
  'Postpartum discharge teaching', 'Warning signs to report',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');

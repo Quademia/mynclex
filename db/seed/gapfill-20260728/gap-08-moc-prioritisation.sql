@@ -15,7 +15,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_531001', 'MCQ',
  'A nurse arrives on a medical ward and receives handover on four clients. Which client should the nurse assess FIRST?',
@@ -25,7 +25,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Acute beats chronic',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531002', 'MCQ',
@@ -36,7 +36,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Fresh post-operative client',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_531003', 'MATRIX',
@@ -47,7 +47,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Stable and unstable markers',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531004', 'MCQ',
@@ -58,7 +58,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Medical-Surgical', 'Multisystem',
  'Haemorrhage recognition', 'Concealed bleeding',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531005', 'SATA',
@@ -69,7 +69,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Always unstable states',
- 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531006', 'MCQ',
@@ -80,7 +80,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Hypoglycaemia as an always-unstable state',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531007', 'MCQ',
@@ -91,7 +91,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Medical-Surgical', 'Multisystem',
  'Deterioration and escalation', 'In-hospital cardiac arrest',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531008', 'MCQ',
@@ -102,7 +102,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Organ hierarchy tie-breaker',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531009', 'MCQ',
@@ -113,7 +113,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'The modifying phrase decides',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531010', 'MCQ',
@@ -124,14 +124,14 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Age and sex as distractors',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_SATA_531011', 'SATA',
  'Which descriptions identify a client the nurse may regard as stable? Select all that apply.',
@@ -141,7 +141,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Recognising the stable client',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531012', 'MCQ',
@@ -152,7 +152,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Deciding who can wait',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531013', 'SATA',
@@ -163,7 +163,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Handover', 'Prioritising the handover report',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531014', 'SATA',
@@ -174,7 +174,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Assignment', 'Registered nurse only responsibilities',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531015', 'SATA',
@@ -185,7 +185,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Supervision', 'When to intervene',
- 'Medium', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Evaluate', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_DO_531016', 'DRAG_ORDER',
@@ -196,7 +196,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Order of assessment after handover',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Place the options in the correct order.', 4, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531017', 'MCQ',
@@ -207,7 +207,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Answering call bells',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531018', 'MCQ',
@@ -218,7 +218,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Telephone triage', 'Prioritising messages',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531019', 'MCQ',
@@ -229,7 +229,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Medical-Surgical', 'Multisystem',
  'Prescription review', 'Questioning an unsafe prescription',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531020', 'SATA',
@@ -240,14 +240,14 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Medical-Surgical', 'Multisystem',
  'Prescription review', 'Clarifying before administration',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MAT_531021', 'MATRIX',
  'A nurse is performing START triage at the scene of a multiple casualty incident. Assign the correct tag to each adult casualty.',
@@ -257,7 +257,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Leadership and Management', 'Multisystem',
  'Disaster triage', 'START tag categories',
- 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531022', 'MCQ',
@@ -268,7 +268,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Leadership and Management', 'Multisystem',
  'Disaster triage', 'Reversal of ordinary priority',
- 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531023', 'SATA',
@@ -279,7 +279,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Disaster triage', 'Red tag criteria',
- 'Easy', 'CURATOR_LABEL', 'Remember', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Remember', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531024', 'SATA',
@@ -290,7 +290,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Leadership and Management', 'Multisystem',
  'Disaster triage', 'Contrast with ward priority',
- 'Hard', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531025', 'SATA',
@@ -301,7 +301,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Disaster triage', 'Green tag and the walking wounded',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531026', 'MCQ',
@@ -312,7 +312,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Medical-Surgical', 'Multisystem',
  'Deterioration and escalation', 'Rapid response activation',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531027', 'SATA',
@@ -323,7 +323,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Deterioration and escalation', 'Escalation triggers',
- 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531028', 'MCQ',
@@ -334,7 +334,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Deterioration and escalation', 'Choosing the correct team',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531029', 'SATA',
@@ -345,7 +345,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Ordering frameworks', 'Maslow hierarchy',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531030', 'MCQ',
@@ -356,14 +356,14 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Ordering frameworks', 'Airway breathing circulation',
- 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_531031', 'MCQ',
  'A nurse reviews four clients, all of whom have a patent airway, unlaboured breathing and a strong regular pulse. Which client should the nurse assess FIRST?',
@@ -373,7 +373,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Ordering frameworks', 'When ABC does not discriminate',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531032', 'MCQ',
@@ -384,7 +384,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Ordering frameworks', 'Nursing process ordering',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531033', 'MCQ',
@@ -395,7 +395,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Time management', 'Two clients at once',
- 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531034', 'SATA',
@@ -406,7 +406,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Time management', 'Start of shift planning',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531035', 'SATA',
@@ -417,7 +417,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Time management', 'Workload exceeding capacity',
- 'Medium', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Evaluate', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SATA_531036', 'SATA',
@@ -428,7 +428,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Delegation', 'Unlicensed assistive personnel',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select all that apply.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531037', 'MCQ',
@@ -439,7 +439,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Medical-Surgical', 'Multisystem',
  'Chest drainage', 'First action after disconnection',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531038', 'MCQ',
@@ -450,7 +450,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Medical-Surgical', 'Multisystem',
  'Chest drainage', 'Best action after disconnection',
- 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531039', 'MCQ',
@@ -461,7 +461,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Medical-Surgical', 'Multisystem',
  'Post-operative haemorrhage', 'First action',
- 'Medium', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531040', 'MCQ',
@@ -472,14 +472,14 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Medical-Surgical', 'Multisystem',
  'Post-operative haemorrhage', 'Priority of ongoing care',
- 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_531041', 'MCQ',
  'A healthcare assistant reports that a client has been found sitting on the floor beside the bed. Which action should the nurse take FIRST?',
@@ -489,7 +489,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Leadership and Management', 'Multisystem',
  'Falls', 'Immediate response to a fall',
- 'Easy', 'CURATOR_LABEL', 'Apply', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Apply', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MCQ_531042', 'MCQ',
@@ -500,7 +500,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Leadership and Management', 'Multisystem',
  'Falls', 'Preventing recurrence',
- 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Hard', 'CURATOR_LABEL', 'Evaluate', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_531043', 'SELECT_N',
@@ -511,7 +511,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Identifying unstable clients',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_531044', 'SELECT_N',
@@ -522,7 +522,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Medical-Surgical', 'Multisystem',
  'Post-operative assessment', 'Findings requiring escalation',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_531045', 'SELECT_N',
@@ -533,7 +533,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Discharge readiness',
- 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Evaluate', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_531046', 'SELECT_N',
@@ -544,7 +544,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Emergency triage', 'In-hospital triage priorities',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_SELN_531047', 'SELECT_N',
@@ -555,7 +555,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Medical-Surgical', 'Multisystem',
  'Deterioration and escalation', 'Sepsis red flags',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_531048', 'MATRIX',
@@ -566,7 +566,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Deterioration and escalation', 'Escalate or monitor',
- 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Medium', 'CURATOR_LABEL', 'Analyze', '{}', 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MAT_531049', 'MATRIX',
@@ -577,7 +577,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Medical-Surgical', 'Multisystem',
  'Post-anaesthetic recovery', 'Expected and unexpected findings',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Select one column for each row.', 5, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MMR_531050', 'MATRIX_MR',
@@ -588,14 +588,14 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Speed of response and escalation',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 8, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MMR_531051', 'MATRIX_MR',
  'A nurse assesses five deteriorating clients. For each client, select every category of problem that the findings demonstrate. More than one category may apply.',
@@ -605,7 +605,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Ordering frameworks', 'Applying ABC to deterioration',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 8, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_MMR_531052', 'MATRIX_MR',
@@ -616,7 +616,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Delegation', 'Scope of practice across the team',
- 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}', 'Select all that apply for each row.', 12, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_CLZ_531053', 'CLOZE',
@@ -627,7 +627,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Prioritisation', 'Anaesthesia and the 12 hour window',
- 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Easy', 'CURATOR_LABEL', 'Understand', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_CLZ_531054', 'CLOZE',
@@ -638,7 +638,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Disaster triage', 'Tag colours',
- 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Remember', '{}', 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728'),
 
 ('NCLEX_TF_531055', 'TF',
@@ -649,5 +649,5 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Leadership and Management', 'Multisystem',
  'Disaster triage', 'Contrast with in-hospital arrest',
- 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', 1, TRUE, TRUE, FALSE, FALSE,
+ 'Very easy', 'CURATOR_LABEL', 'Understand', '{}', NULL, 1, TRUE, TRUE, FALSE, FALSE,
  'gapfill-20260728');

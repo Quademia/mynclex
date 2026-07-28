@@ -9,7 +9,7 @@ INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_541001', 'MCQ',
  'A 24-year-old client on an acute mental health ward has received haloperidol for four days. The nurse finds the client with generalised muscle rigidity, a temperature of 39.4 °C, heavy diaphoresis, and a blood pressure that has swung between 92/50 and 164/96 mmHg over the past hour. Which action should the nurse take FIRST?',
@@ -19,7 +19,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Neuroleptic malignant syndrome', 'First action', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541002', 'MCQ',
  'Two clients on a rehabilitation unit are receiving antipsychotic medicines. Both report muscle stiffness and tremor, and both appear distressed and unable to settle. Which assessment BEST distinguishes neuroleptic malignant syndrome from extrapyramidal side effects?',
@@ -29,7 +29,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Neuroleptic malignant syndrome', 'Discriminating assessment', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MAT_541003', 'MATRIX',
  'A nurse reviews findings in clients receiving antipsychotic medicines. Indicate whether each finding points to neuroleptic malignant syndrome or to an extrapyramidal side effect.',
@@ -39,7 +39,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Neuroleptic malignant syndrome', 'Distinguishing from extrapyramidal effects', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select one column for each row.', 7, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541004', 'MCQ',
  'Two hours after a first intramuscular dose of haloperidol in the emergency department, a 19-year-old client has a rigidly twisted neck and both eyes are rolled upward and fixed. The airway is patent and the temperature is 36.8 °C. Which action should the nurse take FIRST?',
@@ -49,7 +49,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Extrapyramidal side effects', 'Acute dystonia management', 'Medium', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541005', 'MCQ',
  'At a depot clinic review, a client who has taken an antipsychotic for six years shows repetitive lip smacking, tongue protrusion and chewing movements. The movements stop during sleep and the client is unaware of them. Which statement about this finding is correct?',
@@ -59,7 +59,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Extrapyramidal side effects', 'Tardive dyskinesia', 'Easy', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MAT_541006', 'MATRIX',
  'A nurse teaches student nurses about the movement effects of antipsychotic medicines. Match each description with the extrapyramidal effect it describes.',
@@ -69,7 +69,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Extrapyramidal side effects', 'Recognition by type', 'Very hard', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select one column for each row.', 6, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_541007', 'SATA',
  'A community nurse is teaching a client who has just started chlorpromazine. Which instructions should the nurse include? Select all that apply.',
@@ -79,7 +79,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'First-generation antipsychotics', 'Client teaching', 'Very easy', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541008', 'MCQ',
  'A client who has taken chlorpromazine for three weeks telephones the clinic reporting a sore throat, a temperature of 38.6 °C and mouth ulcers that began yesterday. Which action should the nurse take?',
@@ -89,7 +89,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pharmacology', 'Psychiatric/Mental Health',
  'First-generation antipsychotics', 'Agranulocytosis', 'Easy', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541009', 'MCQ',
  'A client stabilised on clozapine has a routine absolute neutrophil count of 1.2 x 10^9/L, down from 3.4 x 10^9/L the previous week. The client feels well and asks for the evening dose. Which action is the PRIORITY?',
@@ -99,7 +99,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Clozapine', 'Neutrophil monitoring', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_541010', 'SATA',
  'A nurse is preparing a client for discharge on clozapine, started after two other antipsychotics failed. Which points should the nurse include in the teaching? Select all that apply.',
@@ -109,13 +109,13 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Clozapine', 'Discharge teaching', 'Easy', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_541011', 'MCQ',
  'A newly qualified nurse is transcribing a prescription that reads clozapine 0.5 mg at night for a client admitted with panic attacks and no psychotic illness. Which action should the nurse take?',
@@ -125,7 +125,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Clozapine', 'Look-alike sound-alike medicines', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_541012', 'SELECT_N',
  'A client with schizophrenia is starting olanzapine. Which 3 parameters should the nurse plan to record at baseline and monitor at regular intervals?',
@@ -135,7 +135,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Second-generation antipsychotics', 'Metabolic monitoring', 'Very easy', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541013', 'MCQ',
  'A client is to receive a first dose of ziprasidone. Which finding should the nurse report to the prescriber before the medicine is given?',
@@ -145,7 +145,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Second-generation antipsychotics', 'QT prolongation', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541014', 'MCQ',
  'A client who has been admitted three times in two years after stopping oral antipsychotics asks the nurse why the team is now suggesting a monthly injection. Which response by the nurse is BEST?',
@@ -155,7 +155,7 @@ INSERT INTO nclex_bank_items (
  'Psychosocial Integrity', 'Psychosocial Integrity',
  'Mental Health', 'Psychiatric/Mental Health',
  'Long-acting depot antipsychotics', 'Adherence', 'Medium', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541015', 'MCQ',
  'A client on lithium for bipolar disorder attends the outpatient clinic after two days of vomiting. The client has a coarse hand tremor and an unsteady, wide-based walk. The lithium level drawn this morning is 1.8 mEq/L. Which action should the nurse take FIRST?',
@@ -165,7 +165,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Lithium', 'Toxicity recognition', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_541016', 'SATA',
  'A nurse is teaching a client who has just been started on lithium. Which instructions should the nurse include? Select all that apply.',
@@ -175,7 +175,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Lithium', 'Initiation teaching', 'Easy', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541017', 'MCQ',
  'A client whose bipolar disorder has been stable on lithium for four years is seen in the general practice clinic with newly diagnosed hypertension. Which new prescription should the nurse question with the prescriber?',
@@ -185,7 +185,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Lithium', 'Interacting prescriptions', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_CLZ_541018', 'CLOZE',
  'A client who takes lithium spends the day loading goods outdoors in hot weather, sweats heavily and drinks very little. The nurse understands that this loss of sodium and fluid will cause the lithium level to {1}, so the nurse should {2}.',
@@ -195,7 +195,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Lithium', 'Sodium and fluid balance', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_TF_541019', 'TF',
  'A serum lithium level for routine monitoring should be drawn approximately 12 hours after the last dose.',
@@ -205,7 +205,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Lithium', 'Timing of serum levels', 'Very easy', 'CURATOR_LABEL', 'Remember', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_541020', 'SATA',
  'A client is starting phenelzine. Which foods and drinks should the nurse teach the client to avoid? Select all that apply.',
@@ -215,13 +215,13 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Monoamine oxidase inhibitors', 'Tyramine-containing foods', 'Medium', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Select all that apply.', 5, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_541021', 'MCQ',
  'Two hours after eating at a restaurant, a client who takes phenelzine develops a severe pounding headache at the back of the head, neck stiffness, palpitations and a blood pressure of 210/118 mmHg. Which action should the nurse take FIRST?',
@@ -231,7 +231,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Monoamine oxidase inhibitors', 'Hypertensive crisis', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541022', 'MCQ',
  'A client has been taking fluoxetine for depression, and the prescriber now plans to switch treatment to phenelzine. The client asks the nurse when the new medicine will start. Which response by the nurse is correct?',
@@ -241,7 +241,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Monoamine oxidase inhibitors', 'Washout when switching antidepressants', 'Hard', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_541023', 'SELECT_N',
  'A client taking tranylcypromine asks the nurse about remedies that can be bought without a prescription. Which 3 should the nurse tell the client to avoid?',
@@ -251,7 +251,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Monoamine oxidase inhibitors', 'Interacting medicines', 'Medium', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541024', 'MCQ',
  'Five days after starting sertraline, a client tells the community nurse, "This tablet is useless. I feel no different at all, so I may as well stop." Which response by the nurse is BEST?',
@@ -261,7 +261,7 @@ INSERT INTO nclex_bank_items (
  'Psychosocial Integrity', 'Psychosocial Integrity',
  'Mental Health', 'Psychiatric/Mental Health',
  'Selective serotonin reuptake inhibitors', 'Delayed therapeutic effect', 'Very easy', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541025', 'MCQ',
  'A 16-year-old client with moderate depression is started on fluoxetine and is reviewed weekly in the adolescent clinic. Which nursing action is the PRIORITY during the first weeks of treatment?',
@@ -271,7 +271,7 @@ INSERT INTO nclex_bank_items (
  'Psychosocial Integrity', 'Psychosocial Integrity',
  'Mental Health', 'Psychiatric/Mental Health',
  'Selective serotonin reuptake inhibitors', 'Suicide risk on initiation', 'Medium', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541026', 'MCQ',
  'During a review appointment a client taking paroxetine says quietly that the medicine has taken away all sexual interest, and that he has therefore not taken it for the past week and has told no one. Which response by the nurse is BEST?',
@@ -281,7 +281,7 @@ INSERT INTO nclex_bank_items (
  'Psychosocial Integrity', 'Psychosocial Integrity',
  'Mental Health', 'Psychiatric/Mental Health',
  'Selective serotonin reuptake inhibitors', 'Side effects and adherence', 'Medium', 'CURATOR_LABEL', 'Evaluate', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_CLZ_541027', 'CLOZE',
  'A nurse teaches a client starting an SSRI that the full antidepressant effect usually appears after {1} of regular dosing, and that stopping the medicine abruptly can cause {2}.',
@@ -291,7 +291,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Selective serotonin reuptake inhibitors', 'Onset and discontinuation syndrome', 'Very easy', 'CURATOR_LABEL', 'Remember', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Complete the sentence by choosing from each drop-down.', 2, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_541028', 'SATA',
  'A client has taken sertraline daily for a year. Which additions to the regimen would increase the risk of serotonin syndrome? Select all that apply.',
@@ -301,7 +301,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Serotonin syndrome', 'Precipitating agents', 'Medium', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541029', 'MCQ',
  'Six hours after a first dose of tramadol prescribed for back pain, a client who takes venlafaxine becomes agitated and drenched in sweat, with brisk reflexes, sustained ankle clonus, tremor and a temperature of 38.5 °C. Which action should the nurse take FIRST?',
@@ -311,7 +311,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Serotonin syndrome', 'Recognition and first action', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MMR_541030', 'MATRIX_MR',
  'A nurse compares serotonin syndrome with neuroleptic malignant syndrome for a teaching session. Indicate which condition each feature belongs to. Some features apply to both.',
@@ -321,13 +321,13 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Serotonin syndrome', 'Comparison with neuroleptic malignant syndrome', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Select all that apply for each row.', 8, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
 
 INSERT INTO nclex_bank_items (
   item_id, question_type, stem, rationale, content, correct,
   client_needs_category, client_needs_subcategory, nursing_subject, body_system,
   topic, subtopic, difficulty, difficulty_source, bloom_level, tags,
-  marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
+  instruction, marks, is_published, is_builder_visible, is_free_sample, cat_pool, batch_id
 ) VALUES
 ('NCLEX_MCQ_541031', 'MCQ',
  'A community nurse visits a client who lives alone, has depression with active thoughts of suicide, and has just been prescribed amitriptyline. A three-month supply has been dispensed. Which action is the PRIORITY?',
@@ -337,7 +337,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Mental Health', 'Psychiatric/Mental Health',
  'Tricyclic antidepressants', 'Overdose risk and means restriction', 'Hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_541032', 'SATA',
  'A 70-year-old client is starting amitriptyline for neuropathic pain and low mood. Which measures should the nurse include in the plan of care? Select all that apply.',
@@ -347,7 +347,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Basic Care and Comfort',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Tricyclic antidepressants', 'Anticholinergic effects', 'Easy', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541033', 'MCQ',
  'A client with severe generalised anxiety is prescribed sertraline daily together with a two-week course of lorazepam. The client asks the nurse why two different medicines are needed. Which explanation by the nurse is correct?',
@@ -357,7 +357,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Benzodiazepines', 'Short-term use with an antidepressant', 'Medium', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_541034', 'SATA',
  'A nurse is teaching a client and family about benzodiazepine therapy that has been prescribed for four weeks. Which statements should the nurse include? Select all that apply.',
@@ -367,7 +367,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Benzodiazepines', 'Dependence and withdrawal teaching', 'Easy', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MMR_541035', 'MATRIX_MR',
  'A nurse reviews monitoring for two clients with bipolar disorder, one taking valproate and one taking carbamazepine. Indicate which medicine each monitoring point applies to. Some apply to both.',
@@ -377,7 +377,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Reduction of Risk Potential',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Mood stabilisers other than lithium', 'Valproate and carbamazepine monitoring', 'Very hard', 'CURATOR_LABEL', 'Analyze', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply for each row.', 8, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_541036', 'SELECT_N',
  'A 9-year-old child is starting methylphenidate for attention deficit hyperactivity disorder. Which 3 parameters should the school nurse monitor at each review?',
@@ -387,7 +387,7 @@ INSERT INTO nclex_bank_items (
  'Health Promotion and Maintenance', 'Health Promotion and Maintenance',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Stimulants for attention deficit hyperactivity disorder', 'Monitoring in children', 'Very easy', 'CURATOR_LABEL', 'Understand', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_541037', 'SATA',
  'A client who has agreed to start disulfiram asks the nurse where alcohol might be hidden in everyday products. Which items should the nurse tell the client to check the label of and avoid? Select all that apply.',
@@ -397,7 +397,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Safety and Infection Control',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Medicines for alcohol dependence', 'Disulfiram teaching', 'Easy', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SELN_541038', 'SELECT_N',
  'A client is entering a methadone maintenance programme for opioid dependence. Which 3 statements by the client indicate correct understanding?',
@@ -407,7 +407,7 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Medicines for opioid dependence', 'Methadone maintenance teaching', 'Medium', 'CURATOR_LABEL', 'Evaluate', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ 'Select 3.', 3, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_MCQ_541039', 'MCQ',
  'A client with schizophrenia who has capacity and is being treated informally refuses the evening antipsychotic dose. A healthcare assistant suggests crushing the tablet into the evening porridge so that the client does not notice. Which action should the nurse take?',
@@ -417,7 +417,7 @@ INSERT INTO nclex_bank_items (
  'Safe and Effective Care Environment', 'Management of Care',
  'Mental Health', 'Psychiatric/Mental Health',
  'Medication refusal and capacity', 'Covert administration', 'Medium', 'CURATOR_LABEL', 'Evaluate', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
+ NULL, 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728'),
 
 ('NCLEX_SATA_541040', 'SATA',
  'Three days after an increase in the risperidone dose, a client paces the corridor continuously, rocks while seated and says the legs will simply not keep still. Which nursing actions are appropriate? Select all that apply.',
@@ -427,4 +427,4 @@ INSERT INTO nclex_bank_items (
  'Physiological Integrity', 'Pharmacological and Parenteral Therapies',
  'Pharmacology', 'Psychiatric/Mental Health',
  'Extrapyramidal side effects', 'Akathisia management', 'Easy', 'CURATOR_LABEL', 'Apply', '{}',
- 1, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
+ 'Select all that apply.', 4, TRUE, TRUE, FALSE, FALSE, 'gapfill-20260728');
