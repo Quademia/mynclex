@@ -109,7 +109,7 @@ Classification labels have split into near-duplicates. This corrupts
 both gap analysis and CAT blueprint selection, and it will get worse
 with 600 more items.
 
-**Resolved** by `db/migrations/20260818120000_bank_taxonomy_normalisation.sql`.
+**Resolved** by `db/migrations/20260820120000_bank_taxonomy_normalisation.sql`.
 
 The canonical vocabularies are `NURSING_SUBJECTS` and `BODY_SYSTEMS` in
 `lib/bank/classifications.ts` — that file is the source of truth, and it
@@ -141,26 +141,41 @@ is distinct from NULL meaning "unclassified".
 CHECK constraints now close both vocabularies, so a future bulk insert
 fails loudly instead of drifting silently. NULLs remain permitted.
 
-### Still open — 28 unclassified items, and a CAT-pool problem
+### A CAT-pool problem — ⚠ superseded by §10, read that instead
+
+> **Correction (2026-07-28, during reconciliation).** The reading below was
+> wrong on two counts and is kept only so the mistake is traceable. **§10 is
+> the accurate account.**
+>
+> 1. **"28 are editor fixtures" — no, 7 are.** The `SAMTEST` rows were judged
+>    to be fixtures because their stems "carry raw Tiptap JSON". That is not
+>    corruption, it is **our own storage format**: every item authored through
+>    the rich-content editor stores its stem as a `{"type":"doc",…}` document.
+>    Read correctly, those rows are well-formed questions (heart failure,
+>    sepsis, DKA, stroke) that merely lacked a subcategory, and the `91xxx`
+>    block is real content tagged `for_prod`. They were completed, not evicted.
+> 2. **"Nothing has been deleted or unpublished" — since actioned.** The 7
+>    genuinely broken rows were unpublished and cleared from the pool (not
+>    deleted, so they remain recoverable), and the 54 real ones were completed.
+>    Verified in dev: the reserved pool is 2,393, all published, all placeable.
 
 25 of the 53 NULL-subcategory items were genuine questions and have been
-backfilled. The remaining **28 are early editor test fixtures**, not NCLEX
-content — stems such as "The human body is a deligate…", "Haett block", and
-a handful of `SAMTEST` rows carrying raw Tiptap JSON.
+backfilled. The remainder were initially read as early editor test fixtures —
+stems such as "The human body is a deligate…", "Haett block", and a handful of
+`SAMTEST` rows.
 
-The problem is not that they are unclassified. It is that **48 of the
-original 53 were `is_published = true` AND ticked `cat_pool`** — so
-placeholder fixtures are sitting inside the 2,400-item reserved pool and can
-be served during a CAT attempt. Nothing has been deleted or unpublished:
-that is Sam's call. Recommended: unpublish the fixtures and clear their
-`cat_pool` tick, then re-check the reserved pool count.
+The problem was not that they were unclassified. It was that **48 of the
+original 53 were `is_published = true` AND ticked `cat_pool`** — so rows that
+could not be served were sitting inside the reserved pool. That part of the
+finding was real and is what §10 acted on.
 
-### Also noted — a pending inconsistency, not drift
+### Also noted — a pending inconsistency, now closed
 
-`DIFFICULTY_LEVELS` in `classifications.ts` is still `['Easy','Medium','Hard']`
-while the database already holds 560 items banded `Very easy` / `Very hard`.
-That is Slice 10a's 5-band work not yet reflected in the TS constant — left
-alone deliberately, since 10a is the slice that closes it.
+`DIFFICULTY_LEVELS` in `classifications.ts` read `['Easy','Medium','Hard']`
+while the database already held 560 items banded `Very easy` / `Very hard`.
+Left alone deliberately here, since **Slice 10a** was the slice that closed
+it — and it has: 10a shipped the five bands end to end (`a516898`), so the
+constant now carries all five and the inconsistency is gone.
 
 ---
 
@@ -276,7 +291,7 @@ its blueprint ceiling.
 
 ## 8. Sequencing
 
-1. ~~Normalise the taxonomy (§4)~~ — done, `20260818120000`.
+1. ~~Normalise the taxonomy (§4)~~ — done, `20260820120000`.
 2. ~~Backfill the NULL `client_needs_subcategory` values~~ — 25 done; 28
    remain and are editor fixtures, not questions (see §4).
 3. ~~Commission the 622 items against §7~~ — done, `db/seed/gapfill-20260728/`.
@@ -393,7 +408,7 @@ is why every one of them was fixed rather than evicted.
 
 ### The durable fix
 
-`20260819120000_cat_pool_requires_placement_metadata.sql` adds:
+`20260821120000_cat_pool_requires_placement_metadata.sql` adds:
 
 ```sql
 CHECK (NOT cat_pool OR (difficulty IS NOT NULL
@@ -408,4 +423,11 @@ Verified by attempting a violation — rejected with `23514`.
 The pool now reads **2,393, not 2,400**, and was not topped back up. Restoring
 the count would mean demoting seven real items out of the free practice pool
 to satisfy a figure that is three-quarters synthetic. The genuine reservation
-gets built in Slice 10a; that is the point to size it properly.
+gets sized on the **admin CAT-pool page (Slice 10b2)**, which is the surface
+that shows coverage against the difficulty bands and the blueprint; that is
+the point to size it properly.
+
+> ⓘ *This section originally named "Slice 10a" as the sizing point. It was
+> written on a branch that forked before 10a landed. **10a is the five-band
+> difficulty work and is built** — pool sizing belongs to 10b2 (the admin
+> management page) and 10b3 (selection draws only from the pool).*

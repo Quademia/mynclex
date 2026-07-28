@@ -21,9 +21,14 @@
 -- Note the pool now stands at 2,393 rather than 2,400. Topping it back up is
 -- deliberately NOT done here: 1,811 of the pool is `DEV_CAT_POOL` synthetic
 -- scaffolding that never ships, so the dev figure is not a real editorial
--- reservation. The genuine 2,400 gets built in Slice 10a; restoring the count
--- now would only have meant demoting seven real items out of the free
--- practice pool to satisfy a number that is mostly test data.
+-- reservation. The genuine 2,400 gets sized on the admin CAT-pool page in
+-- Slice 10b2; restoring the count now would only have meant demoting seven
+-- real items out of the free practice pool to satisfy a number that is mostly
+-- test data.
+--
+-- (This header originally said "Slice 10a". It was written on a branch that
+-- forked before 10a landed — 10a is the five-band difficulty work and is
+-- built; pool sizing is 10b2/10b3.)
 
 ALTER TABLE nclex_bank_items
   ADD CONSTRAINT nclex_bank_items_cat_pool_placeable_check
