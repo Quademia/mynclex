@@ -276,7 +276,136 @@ its blueprint ceiling.
 
 ## 8. Sequencing
 
-1. Normalise the taxonomy (§4) — migration + constraint.
-2. Backfill the 53 NULL `client_needs_subcategory` values.
-3. Commission the 622 items against §7, using the §6 angles.
-4. Re-run this analysis and confirm every cell lands in range.
+1. ~~Normalise the taxonomy (§4)~~ — done, `20260818120000`.
+2. ~~Backfill the NULL `client_needs_subcategory` values~~ — 25 done; 28
+   remain and are editor fixtures, not questions (see §4).
+3. ~~Commission the 622 items against §7~~ — done, `db/seed/gapfill-20260728/`.
+4. ~~Re-run this analysis~~ — done, §9.
+
+---
+
+## 9. Result (2026-07-28, after the run)
+
+**622 items loaded**, all `cat_pool = FALSE`, no NULLs in any classification
+column, one `difficulty_source` value throughout (`CURATOR_LABEL`).
+
+Standalone bank: **2,978 → 3,600**. Free practice pool: **578 → 1,207**
+non-reserved, of which **1,192 are published** and therefore actually
+servable. (The gap is 15 unpublished rows — 8 pre-existing, plus the 7
+fixtures parked in §10. The headline "1,200" quoted mid-run counted every
+non-reserved standalone row regardless of publish state; 1,192 is the honest
+usable figure.)
+
+### The blueprint closed
+
+| Subcategory | Before | After | Test plan | |
+|---|---|---|---|---|
+| Pharmacological and Parenteral | 16.1% | 16.2% | 13–19% | ✅ |
+| Management of Care | **14.2%** | **16.0%** | 15–21% | ✅ was under floor |
+| Physiological Adaptation | **18.0%** | **15.6%** | 11–17% | ✅ was over ceiling |
+| Reduction of Risk Potential | 13.2% | 14.3% | 9–15% | ✅ |
+| Safety and Infection Control | 13.2% | 12.8% | 10–16% | ✅ |
+| Health Promotion and Maintenance | 8.7% | 9.2% | 6–12% | ✅ |
+| Psychosocial Integrity | 7.9% | 8.5% | 6–12% | ✅ |
+| Basic Care and Comfort | 7.0% | 6.7% | 6–12% | ✅ |
+
+**All eight cells are now inside their test-plan ranges.** Physiological
+Adaptation fell back under its ceiling without a single item being deleted —
+the run simply grew everything around it, which is why the constraint in §7
+was "author elsewhere" rather than "remove".
+
+### Specialty mix
+
+| Subject | Before | After |
+|---|---|---|
+| Maternity | 3.7% (110) | **7.5% (271)** |
+| Pediatrics | 3.7% (110) | **7.0% (253)** |
+| Leadership and Management | 13.5% | 13.9% |
+| Mental Health | 8.1% | 8.8% |
+| Medical-Surgical | 33.4% | 30.4% |
+
+Maternity and paediatrics roughly doubled and are no longer skewed to health
+promotion — the run added intrapartum emergencies, neonatal assessment,
+congenital heart defects and weight-based dosing, all of which were close to
+absent.
+
+### Zero-coverage topics closed
+
+Every topic listed in §5 now has items: kernicterus 2, caput vs
+cephalohaematoma 3, dermal melanocytosis 2, erythema toxicum 2,
+betamethasone 1, surfactant 1, methylergonovine 1, illusion 4, hiatal hernia
+3, laminectomy 7, transposition 2, truncus 2, and the four Piaget stages 6
+(as *cognitive development and procedure preparation* — the items teach the
+stage without naming the theorist, which is how the exam frames it).
+
+### Notes for the next run
+
+- **Answer-key position was deliberately not rebalanced.** The batch keys
+  A-heavy, but `shuffle_options` defaults `TRUE` and
+  `lib/practice/runner/option-order.ts` permutes MCQ / SATA / SELECT_N per
+  attempt and relabels badges positionally. Students never see the authored
+  order, so rewriting it would have been churn — and risky on the dosage
+  items, where numeric options are conventionally ascending.
+- **Cross-file duplication is the failure mode to guard.** Thirteen agents
+  each deduplicated within their own batch and all reported clean; the only
+  real collision was *between* batches (two independent takes on the same
+  infant-fracture safeguarding scenario). Run `qa_report.py` across the whole
+  set before loading, not just per file.
+- **Make bulk loads idempotent from the start.** This run was interrupted by a
+  session limit at 310/622, and partly-loaded multi-row statements could not
+  simply be re-run. Appending `ON CONFLICT (item_id) DO NOTHING` made every
+  file safely repeatable and turned resumption into a no-op.
+
+---
+
+## 10. CAT-pool triage (2026-07-28, settled)
+
+The reserved pool held **2,400 items, 61 of which the CAT selector could
+never serve** — 49 with no `difficulty` band (§5 needs it to place the item on
+the ability ladder), 27 with no `client_needs_subcategory` (§8 needs it to
+hold the content blueprint), 15 with neither. All 61 were real authored
+content; the synthetic `DEV_CAT_POOL` filler scored zero unplaceable.
+
+**Context that reframes the size of this.** 1,811 of the 2,400 is
+`DEV_CAT_POOL` — dev-only scaffolding with a delete-me line in its own seed
+header, which never ships. The dev reservation is therefore ~589 real items
+plus test filler, not a genuine editorial 2,400.
+
+### What was done
+
+| | Items | Action |
+|---|---|---|
+| Not NCLEX questions | 7 | cleared from the pool, unpublished, not deleted |
+| Missing subcategory only | 12 | subcategory assigned from content |
+| Missing difficulty only | 33 | band judged from the item |
+| Missing both | 9 | both assigned |
+
+The 7 removed were anatomy/biology drafts and garbled fixtures ("The human
+body is a deligate…", "Haett block…", "Which of the following lists is cell
+growth?"). They are unpublished rather than deleted, so nothing is
+unrecoverable.
+
+An earlier reading of this file called the `SAMTEST` rows fixtures. **That was
+wrong** — they are well-formed questions (heart failure, sepsis, DKA, stroke)
+that merely lacked a subcategory, and they were completed, not removed. The
+`91xxx` block likewise turned out to be real content tagged `for_prod`, which
+is why every one of them was fixed rather than evicted.
+
+### The durable fix
+
+`20260819120000_cat_pool_requires_placement_metadata.sql` adds:
+
+```sql
+CHECK (NOT cat_pool OR (difficulty IS NOT NULL
+                        AND client_needs_subcategory IS NOT NULL))
+```
+
+Nothing can now enter the reserved pool unable to be selected from it.
+Verified by attempting a violation — rejected with `23514`.
+
+### Deliberately not done
+
+The pool now reads **2,393, not 2,400**, and was not topped back up. Restoring
+the count would mean demoting seven real items out of the free practice pool
+to satisfy a figure that is three-quarters synthetic. The genuine reservation
+gets built in Slice 10a; that is the point to size it properly.
