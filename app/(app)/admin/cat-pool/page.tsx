@@ -1,8 +1,12 @@
-// mynclex/app/(app)/admin/bank/cat-pool/page.tsx
+// mynclex/app/(app)/admin/cat-pool/page.tsx
 //
 // Admin CAT-pool management page — Slice 10b2 (bank-consumption-cat.html
 // §20.4 / §20.5). The reserved stock CAT draws from, and how far it is from
 // carrying a full set of adaptive exams.
+//
+// Top-level, not a child of /admin/bank — this is ALLOCATION, not authoring.
+// It mirrors Readiness Packs (/admin/packs + lib/bank/packs/), the other
+// surface that carves reserved stock out of the bank for one delivery mode.
 //
 // This slice ships the Coverage lens. The Reserved-stock and Audit lenses,
 // and the reserve drawer, land in 10b2-b / 10b2-c / 10b2-d.
@@ -43,7 +47,7 @@ export default async function CatPoolPage() {
     <div className="cp-page">
       <header className="cp-header">
         <div className="cp-crumbs">
-          <Link href="/admin/bank/all">Admin bank</Link>
+          <Link href="/admin/dashboard">Admin</Link>
           <span aria-hidden="true">›</span>
           <span>CAT pool</span>
         </div>

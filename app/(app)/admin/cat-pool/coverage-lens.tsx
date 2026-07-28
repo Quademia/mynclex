@@ -1,6 +1,6 @@
 'use client';
 
-// mynclex/app/(app)/admin/bank/cat-pool/coverage-lens.tsx
+// mynclex/app/(app)/admin/cat-pool/coverage-lens.tsx
 //
 // The Coverage lens. Client-side only because of the Set ⟷ Calibrated toggle —
 // both spreads are computed on the server and handed over, so switching is a
