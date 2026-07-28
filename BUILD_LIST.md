@@ -178,6 +178,52 @@
 >     - ⬜ **10c — the recalibration job** (§5.3 / §17). Weekly GitHub Actions
 >       `pyirt` whole-bank fit; flips items to `EMPIRICAL`; also the piece that
 >       lights up the student pill (snapshot plumbing) and needs accumulated data.
+>
+> 15. ✅ **NEW — the bank coverage gap-fill + the marks defect under it. DONE
+>     2026-07-28 (later), on `main`.** A cloud session measured the standalone
+>     bank against the NCLEX-RN test plan and the Klimek lectures, then authored
+>     **622 items** to close what it found; reconciled onto `main` this session
+>     along with a journey-tracker docs branch.
+>     - **The analysis** (`docs/product-plan/bank-coverage-gap-analysis.md`): 6 of
+>       8 client-needs cells already in range, Management of Care under its floor
+>       and Physiological Adaptation over its ceiling; the bigger gap was
+>       specialty mix — **Maternity and Pediatrics 3.7% each**, both skewed to
+>       health promotion — plus **12 Klimek topics at zero coverage**. All eight
+>       cells now in range; standalone 2,978 → 3,600; free pool 578 → **1,192
+>       servable**. §6 holds **15 "Klimek angles"** as a commissioning brief for
+>       the next authoring run — captured, not built.
+>     - **Taxonomy normalised** (mig `20260820120000`) — 19 drifted labels folded
+>       into the canonical vocabularies, both closed by CHECK constraints.
+>     - **CAT pool made selectable** (mig `20260821120000`) — 61 reserved items
+>       could never be served (no difficulty band or no subcategory); 54
+>       completed, 7 non-questions unpublished, CHECK added so nothing
+>       unplaceable can enter the pool again.
+>     - **⭐ The marks defect** — **312 of the 622** had `marks = 1` when it must
+>       equal the item's max partial-credit score, so `nclex_submit_answer`
+>       raised `score_awarded out of range` and the questions **could not be
+>       submitted**. Score-dependent, so invisible to anyone scoring 0–1. Fixed
+>       from each item's own answer key; whole bank now at zero mismatches.
+>       `instruction` also filled on the 313 multi-select items, and
+>       **`validate.py` hardened** — it had never checked `marks`, which is why
+>       they loaded.
+>     ⚠ **Open:** the 622 items are **unreviewed by a human** — `cat_pool = FALSE`
+>     and no `for_prod` tag, so they cannot reach a student on prod; shipping
+>     them is a separate decision. Also open: the **1,307 pre-existing**
+>     multi-select items with no `instruction`; `validate.py` is **untested** (no
+>     Python interpreter available); and the seed files carry **no `ON CONFLICT`**
+>     clause despite the log claiming one, so a re-run fails on the primary key.
+>
+> 16. ✅ **Option shuffle — CLOSED, nothing to do.** A 2026-07-28 audit appeared
+>     to find 240 published CLOZE/DRAG_ORDER items whose answer could be got
+>     without reading. **Retracted:** the runtime shuffle already covers
+>     cloze/bowtie/both drag types and has been **on prod since 2026-07-17**
+>     (slices 3a/3b). ⚠ Do **not** read `SHUFFLE_OPTION_TYPES` in
+>     `lib/practice/runner/option-order.ts` as the runner's coverage — it is the
+>     **embed player's** set; the runner's is the DB trigger
+>     `_nclex_attempt_item_shuffle`. The authored data does cluster the answer
+>     first (73.9% of MCQ keys are "A"), which is a storage artifact the shuffle
+>     neutralises by design. MATRIX is excluded deliberately and measures near
+>     chance (51% naive vs 44.9% guessing).
 >     Why it mattered: the old three-rung ladder couldn't track a strong student
 >     and the readiness probability saturated near 100%; the five bands fix the
 >     spread.
