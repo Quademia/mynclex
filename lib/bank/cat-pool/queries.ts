@@ -14,6 +14,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { bandForIrt } from '@/lib/bank/difficulty';
+import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import type { PoolCounts } from './coverage';
 
 /** One reserved question, flattened across the three sources. */
@@ -23,23 +24,28 @@ export type PoolItemRow = {
   source: 'standalone' | 'case' | 'trend';
   /** Wrapper id for inherited rows, else null. */
   wrapperId: string | null;
+  /** Plain-text stem, for the row preview and the search box. */
+  stem: string;
   difficulty: string | null;
   difficultyIrt: number | null;
   difficultySource: string | null;
   subcategory: string | null;
   isPublished: boolean;
   isBuilderVisible: boolean;
+  /** Also a member of a readiness pack — one question, two purposes (§20.5). */
+  readinessTagged: boolean;
 };
 
 // The columns every read below shares. Kept in one place so the three queries
 // cannot drift into selecting different shapes.
 const ITEM_COLUMNS =
-  'item_id, question_type, difficulty, difficulty_irt, difficulty_source, ' +
+  'item_id, question_type, stem, difficulty, difficulty_irt, difficulty_source, ' +
   'client_needs_subcategory, is_published, is_builder_visible, parent_case_id, trend_id';
 
 type RawItem = {
   item_id: string;
   question_type: string;
+  stem: string | null;
   difficulty: string | null;
   difficulty_irt: number | null;
   difficulty_source: string | null;
@@ -54,17 +60,22 @@ const toRow = (
   r: RawItem,
   source: PoolItemRow['source'],
   wrapperId: string | null,
+  readiness: Set<string>,
 ): PoolItemRow => ({
   itemId: r.item_id,
   questionType: r.question_type,
   source,
   wrapperId,
+  // Stems authored through the rich editor are stored as a Tiptap document,
+  // so flatten once here — the preview and the search box then agree.
+  stem: richTextToPlain(r.stem),
   difficulty: r.difficulty,
   difficultyIrt: r.difficulty_irt,
   difficultySource: r.difficulty_source,
   subcategory: r.client_needs_subcategory,
   isPublished: r.is_published,
   isBuilderVisible: r.is_builder_visible,
+  readinessTagged: readiness.has(r.item_id),
 });
 
 export type PoolSnapshot = {
@@ -73,6 +84,8 @@ export type PoolSnapshot = {
   /** Reserved wrappers, for the supply rows and the stock lens grouping. */
   caseWrapperIds: string[];
   trendWrapperIds: string[];
+  /** Wrapper id → title, for the stock pane's group headers. */
+  wrapperTitles: Record<string, string>;
 };
 
 /**
@@ -85,12 +98,20 @@ export type PoolSnapshot = {
  */
 export async function loadPoolSnapshot(supabase: SupabaseClient): Promise<PoolSnapshot> {
   const [caseWrappers, trendWrappers] = await Promise.all([
-    supabase.from('nclex_case_studies').select('case_id').eq('cat_pool', true),
-    supabase.from('nclex_trend_datasets').select('trend_id').eq('cat_pool', true),
+    supabase.from('nclex_case_studies').select('case_id, title').eq('cat_pool', true),
+    supabase.from('nclex_trend_datasets').select('trend_id, title').eq('cat_pool', true),
   ]);
 
   const caseWrapperIds = (caseWrappers.data ?? []).map((r) => r.case_id as string);
   const trendWrapperIds = (trendWrappers.data ?? []).map((r) => r.trend_id as string);
+
+  const wrapperTitles: Record<string, string> = {};
+  for (const r of caseWrappers.data ?? []) {
+    wrapperTitles[r.case_id as string] = (r.title as string) ?? '';
+  }
+  for (const r of trendWrappers.data ?? []) {
+    wrapperTitles[r.trend_id as string] = (r.title as string) ?? '';
+  }
 
   // Standalone: flagged on its own row AND not part of a wrapper. The second
   // half matters — a child row could carry a stale flag from before 10b1 fixed
@@ -110,26 +131,36 @@ export async function loadPoolSnapshot(supabase: SupabaseClient): Promise<PoolSn
     ? supabase.from('nclex_bank_items').select(ITEM_COLUMNS).in('trend_id', trendWrapperIds)
     : null;
 
-  const [standalone, caseChildren, trendChildren] = await Promise.all([
+  // Readiness membership is a link table, not a column — an item is
+  // readiness-reserved if it appears here at all (§20.5 mutual exclusivity).
+  const readinessQuery = supabase.from('nclex_readiness_pack_items').select('item_id');
+
+  const [standalone, caseChildren, trendChildren, readiness] = await Promise.all([
     standaloneQuery,
     caseChildQuery,
     trendChildQuery,
+    readinessQuery,
   ]);
+
+  const readinessIds = new Set(
+    (readiness.data ?? []).map((r) => (r as { item_id: string }).item_id),
+  );
 
   // The column list is a string, so the client cannot infer the row shape and
   // widens it to its error union — hence the cast through `unknown`.
   const rows = (data: unknown): RawItem[] => (data ?? []) as unknown as RawItem[];
 
   const items: PoolItemRow[] = [
-    ...rows(standalone.data).map((r) => toRow(r, 'standalone', null)),
-    ...rows(caseChildren?.data).map((r) => toRow(r, 'case', r.parent_case_id)),
-    ...rows(trendChildren?.data).map((r) => toRow(r, 'trend', r.trend_id)),
+    ...rows(standalone.data).map((r) => toRow(r, 'standalone', null, readinessIds)),
+    ...rows(caseChildren?.data).map((r) => toRow(r, 'case', r.parent_case_id, readinessIds)),
+    ...rows(trendChildren?.data).map((r) => toRow(r, 'trend', r.trend_id, readinessIds)),
   ];
 
   return {
     items,
     caseWrapperIds,
     trendWrapperIds,
+    wrapperTitles,
     counts: aggregate(items, caseWrapperIds.length, trendWrapperIds.length),
   };
 }
