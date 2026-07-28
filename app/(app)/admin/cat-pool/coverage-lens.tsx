@@ -101,7 +101,7 @@ export function CoverageLens({
 
           <p className="cp-note">
             {mode === 'set'
-              ? 'The marker is an even fifth of the standalone target. A band well short of it runs out first for students who settle there.'
+              ? 'The marker is an even fifth of the whole-pool target — the bars count every reserved question, case and trend included. A band well short of it runs out first for students who settle there.'
               : 'Bands derived from the measured difficulty, for the items recalibration has actually scored. Everything else is still a curator seed.'}
           </p>
         </section>
@@ -143,7 +143,7 @@ export function CoverageLens({
       <section className="cp-card">
         <div className="cp-card-head">
           <h3>Wrapper supply</h3>
-          <span className="cp-subhead">children inherit their wrapper&rsquo;s reservation</span>
+          <span className="cp-subhead">a case reserves as one unit; a trend question does not</span>
         </div>
         <div className="cp-supply">
           {supplyRows.map((w) => (
@@ -156,8 +156,10 @@ export function CoverageLens({
           ))}
         </div>
         <p className="cp-note">
-          A sitting takes 3 cases and about 2 trends. Reserving a wrapper reserves every child
-          question with it — never tick children individually.
+          A sitting takes 3 cases and about 2 trend questions. Reserving a case reserves every
+          question in it — never tick those individually. Trend questions are the opposite: each
+          is reserved on its own, and the dataset count above is a measure of how many different
+          scenarios the pool draws on.
         </p>
       </section>
     </>

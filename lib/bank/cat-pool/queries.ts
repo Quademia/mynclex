@@ -84,6 +84,46 @@ const toRow = (
   readinessTagged: readiness.has(r.item_id),
 });
 
+// ── reading more than a thousand rows ────────────────────────────────
+//
+// PostgREST caps a select at 1,000 rows, and does it SILENTLY — no error, no
+// flag, just a short array. Every number on this page is aggregated in memory
+// from rows read here, so a truncated read does not fail: it quietly reports a
+// smaller pool. That is exactly what happened when the Coverage lens was first
+// looked at — a 2,833-question pool read as "1,000 / 2,880", and each slice
+// was a fraction of its real size.
+//
+// Both reads below exceed the cap (the reserved pool, and the free candidate
+// stock behind the drawer), so both page explicitly. The `.order()` matters:
+// without a stable sort, two pages can overlap or skip rows.
+
+const PAGE_ROWS = 1000;
+
+// A runaway guard. 60 pages is 60,000 rows — far past anything this bank will
+// hold — so hitting it means a query that never shortens, not a big pool.
+const MAX_PAGES = 60;
+
+type PagedResult = { data: unknown; error: unknown };
+
+async function fetchAllRows<T>(
+  page: (from: number, to: number) => PromiseLike<PagedResult>,
+): Promise<T[]> {
+  const out: T[] = [];
+
+  for (let i = 0; i < MAX_PAGES; i++) {
+    const from = i * PAGE_ROWS;
+    const { data, error } = await page(from, from + PAGE_ROWS - 1);
+    if (error) break;
+
+    const rows = (data ?? []) as unknown as T[];
+    out.push(...rows);
+    // A short page is the last page.
+    if (rows.length < PAGE_ROWS) break;
+  }
+
+  return out;
+}
+
 export type PoolSnapshot = {
   items: PoolItemRow[];
   counts: PoolCounts;
@@ -104,15 +144,25 @@ export type PoolSnapshot = {
  *
  * The pool is bounded by design (the target is ~2,880 questions) so it is read
  * whole and aggregated in memory rather than pushed into separate `count`
- * queries that could disagree with each other.
+ * queries that could disagree with each other — but "whole" means paging past
+ * the 1,000-row cap, not trusting one select to return everything.
  */
 export async function loadPoolSnapshot(supabase: SupabaseClient): Promise<PoolSnapshot> {
-  const [reserved, caseWrappers, readiness] = await Promise.all([
-    supabase.from('nclex_bank_items').select(ITEM_COLUMNS).eq('cat_pool', true),
+  const [reservedRows, caseWrappers, readinessRows] = await Promise.all([
+    fetchAllRows<RawItem>((from, to) =>
+      supabase
+        .from('nclex_bank_items')
+        .select(ITEM_COLUMNS)
+        .eq('cat_pool', true)
+        .order('item_id')
+        .range(from, to),
+    ),
     supabase.from('nclex_case_studies').select('case_id, title').eq('cat_pool', true),
     // Readiness membership is a link table, not a column — an item is
     // readiness-reserved if it appears here at all (§20.5 mutual exclusivity).
-    supabase.from('nclex_readiness_pack_items').select('item_id'),
+    fetchAllRows<{ item_id: string }>((from, to) =>
+      supabase.from('nclex_readiness_pack_items').select('item_id').order('item_id').range(from, to),
+    ),
   ]);
 
   const caseWrapperIds = (caseWrappers.data ?? []).map((r) => r.case_id as string);
@@ -122,18 +172,12 @@ export async function loadPoolSnapshot(supabase: SupabaseClient): Promise<PoolSn
     wrapperTitles[r.case_id as string] = (r.title as string) ?? '';
   }
 
-  const readinessIds = new Set(
-    (readiness.data ?? []).map((r) => (r as { item_id: string }).item_id),
-  );
+  const readinessIds = new Set(readinessRows.map((r) => r.item_id));
 
   // Trend titles come from the datasets the reserved questions actually point
   // at, not from a reserved-dataset list — there is no such thing any more.
   const trendIds = [
-    ...new Set(
-      ((reserved.data ?? []) as unknown as RawItem[])
-        .map((r) => r.trend_id)
-        .filter((id): id is string => !!id),
-    ),
+    ...new Set(reservedRows.map((r) => r.trend_id).filter((id): id is string => !!id)),
   ];
   if (trendIds.length) {
     const { data: datasets } = await supabase
@@ -145,9 +189,7 @@ export async function loadPoolSnapshot(supabase: SupabaseClient): Promise<PoolSn
     }
   }
 
-  // The column list is a string, so the client cannot infer the row shape and
-  // widens it to its error union — hence the cast through `unknown`.
-  const rows = ((reserved.data ?? []) as unknown as RawItem[]);
+  const rows = reservedRows;
 
   // A row's slice is decided by its own links, in this order: a case child is
   // a case child even if it also carries a trend_id (it cannot, but the order
@@ -208,25 +250,6 @@ export async function loadReserveCandidates(
   // individually. The placeability CHECK binds on both, so rows missing a
   // difficulty band or a subcategory are excluded here rather than offered and
   // then rejected on save.
-  const [items, cases, readiness] = await Promise.all([
-    supabase
-      .from('nclex_bank_items')
-      .select(
-        'item_id, question_type, stem, difficulty, client_needs_subcategory, body_system, nursing_subject, bloom_level, trend_id',
-      )
-      .eq('is_published', true)
-      .eq('cat_pool', false)
-      .is('parent_case_id', null)
-      .not('difficulty', 'is', null)
-      .not('client_needs_subcategory', 'is', null),
-    supabase.from('nclex_case_studies').select('case_id, title').eq('cat_pool', false).eq('is_published', true),
-    supabase.from('nclex_readiness_pack_items').select('item_id'),
-  ]);
-
-  const readinessIds = new Set(
-    (readiness.data ?? []).map((r) => (r as { item_id: string }).item_id),
-  );
-
   type RawCandidate = {
     item_id: string;
     question_type: string;
@@ -239,7 +262,32 @@ export async function loadReserveCandidates(
     trend_id: string | null;
   };
 
-  const raw = (items.data ?? []) as unknown as RawCandidate[];
+  const [raw, cases, readinessRows] = await Promise.all([
+    fetchAllRows<RawCandidate>((from, to) =>
+      supabase
+        .from('nclex_bank_items')
+        .select(
+          'item_id, question_type, stem, difficulty, client_needs_subcategory, body_system, nursing_subject, bloom_level, trend_id',
+        )
+        .eq('is_published', true)
+        .eq('cat_pool', false)
+        .is('parent_case_id', null)
+        .not('difficulty', 'is', null)
+        .not('client_needs_subcategory', 'is', null)
+        .order('item_id')
+        .range(from, to),
+    ),
+    supabase
+      .from('nclex_case_studies')
+      .select('case_id, title')
+      .eq('cat_pool', false)
+      .eq('is_published', true),
+    fetchAllRows<{ item_id: string }>((from, to) =>
+      supabase.from('nclex_readiness_pack_items').select('item_id').order('item_id').range(from, to),
+    ),
+  ]);
+
+  const readinessIds = new Set(readinessRows.map((r) => r.item_id));
 
   // Dataset titles, so a trend question can say which scenario it belongs to.
   const trendIds = [...new Set(raw.map((r) => r.trend_id).filter((id): id is string => !!id))];
@@ -272,21 +320,28 @@ export async function loadReserveCandidates(
   // reservation is on the wrapper, so one readiness-tagged child blocks it all.
   const caseIds = (cases.data ?? []).map((r) => r.case_id as string);
 
-  const caseKids = caseIds.length
-    ? await supabase
-        .from('nclex_bank_items')
-        .select('item_id, parent_case_id, difficulty')
-        .in('parent_case_id', caseIds)
-        .eq('is_published', true)
-    : { data: [] as unknown[] };
-
   type Kid = { item_id: string; parent_case_id?: string; difficulty: string | null };
+
+  // Six children per case, so this passes 1,000 rows at ~167 free cases —
+  // reachable, and it would silently under-report the later cases' child
+  // counts rather than fail. Paged for the same reason as the reads above.
+  const caseKids = caseIds.length
+    ? await fetchAllRows<Kid>((from, to) =>
+        supabase
+          .from('nclex_bank_items')
+          .select('item_id, parent_case_id, difficulty')
+          .in('parent_case_id', caseIds)
+          .eq('is_published', true)
+          .order('item_id')
+          .range(from, to),
+      )
+    : [];
 
   const caseRoll = new Map<
     string,
     { n: number; bands: Set<string>; blocked: boolean; unplaceable: number }
   >();
-  for (const k of (caseKids.data ?? []) as unknown as Kid[]) {
+  for (const k of caseKids) {
     if (!k.parent_case_id) continue;
     const e = caseRoll.get(k.parent_case_id) ?? {
       n: 0,
