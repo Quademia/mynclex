@@ -8,6 +8,9 @@ import {
   filterStock,
   groupStock,
   pageStock,
+  shouldGroup,
+  releaseTargetFor,
+  summariseSelection,
   DEFAULT_VIEW,
   STOCK_PAGE_SIZE,
   type StockView,
@@ -168,6 +171,81 @@ describe('groupStock', () => {
   it('omits the standalone group entirely when there are none', () => {
     const rows = toStockRows([item({ itemId: 'B1', source: 'case', wrapperId: 'CS_1' })], { CS_1: 'x' });
     expect(groupStock(rows).every((g) => g.wrapperId !== null)).toBe(true);
+  });
+});
+
+describe('shouldGroup', () => {
+  it('is flat for a mixed list', () => {
+    expect(shouldGroup(DEFAULT_VIEW)).toBe(false);
+    expect(shouldGroup(view({ source: 'standalone' }))).toBe(false);
+  });
+
+  it('groups once narrowed to a single wrapper kind', () => {
+    expect(shouldGroup(view({ source: 'case' }))).toBe(true);
+    expect(shouldGroup(view({ source: 'trend' }))).toBe(true);
+  });
+});
+
+describe('releaseTargetFor', () => {
+  const rows = toStockRows(
+    [
+      item({ itemId: 'A1' }),
+      item({ itemId: 'B1', source: 'case', wrapperId: 'CS_1' }),
+    ],
+    { CS_1: 'Sepsis case' },
+  );
+
+  it('releases a standalone row on its own', () => {
+    const t = releaseTargetFor(rows[0]);
+    expect(t).toMatchObject({ kind: 'item', id: 'A1', label: 'Release' });
+  });
+
+  it('releases the WRAPPER for an inherited row, and says so', () => {
+    const t = releaseTargetFor(rows[1]);
+    expect(t.kind).toBe('case');
+    expect(t.id).toBe('CS_1');           // not B1
+    expect(t.label).toBe('Release wrapper');
+  });
+});
+
+describe('summariseSelection', () => {
+  const rows = toStockRows(
+    [
+      item({ itemId: 'A1' }),
+      item({ itemId: 'A2' }),
+      item({ itemId: 'B1', source: 'case', wrapperId: 'CS_1' }),
+      item({ itemId: 'B2', source: 'case', wrapperId: 'CS_1' }),
+      item({ itemId: 'B3', source: 'case', wrapperId: 'CS_1' }),
+      item({ itemId: 'C1', source: 'trend', wrapperId: 'TR_1' }),
+    ],
+    { CS_1: 'Sepsis case', TR_1: 'Insulin chart' },
+  );
+
+  it('collapses every child of a wrapper to ONE release target', () => {
+    const keys = new Set(['case:CS_1']);
+    const s = summariseSelection(rows, keys);
+    expect(s.targets).toEqual([{ kind: 'case', id: 'CS_1' }]);
+    expect(s.wrappers).toBe(1);
+    expect(s.standalone).toBe(0);
+  });
+
+  it('counts every question swept in, not just the ticked row', () => {
+    // Selecting one case row takes all three of its children out.
+    const s = summariseSelection(rows, new Set(['case:CS_1']));
+    expect(s.questionsAffected).toBe(3);
+  });
+
+  it('mixes standalone and wrapper targets', () => {
+    const s = summariseSelection(rows, new Set(['item:A1', 'case:CS_1', 'trend:TR_1']));
+    expect(s.standalone).toBe(1);
+    expect(s.wrappers).toBe(2);
+    expect(s.questionsAffected).toBe(1 + 3 + 1);
+    expect(s.targets).toHaveLength(3);
+  });
+
+  it('is empty for an empty selection', () => {
+    const s = summariseSelection(rows, new Set());
+    expect(s).toEqual({ targets: [], standalone: 0, wrappers: 0, questionsAffected: 0 });
   });
 });
 

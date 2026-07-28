@@ -145,7 +145,11 @@ export function toStockRows(
   }));
 }
 
-/** Apply every filter in the view. Search matches item id or stem, case-insensitively. */
+/**
+ * Apply every filter in the view. Search covers item id, stem, and the
+ * wrapper (id and title) — a curator looking for "the sepsis case" is
+ * searching for the wrapper, not for any one of its six children.
+ */
 export function filterStock(rows: StockRow[], view: StockView): StockRow[] {
   const term = view.q.trim().toLowerCase();
 
@@ -154,11 +158,112 @@ export function filterStock(rows: StockRow[], view: StockView): StockRow[] {
     if (view.difficulty !== 'all' && r.difficulty !== view.difficulty) return false;
     if (view.warnOnly && r.warnings.length === 0) return false;
     if (term) {
-      const hay = `${r.itemId} ${r.stem ?? ''}`.toLowerCase();
+      const hay = `${r.itemId} ${r.stem ?? ''} ${r.wrapperId ?? ''} ${r.wrapperTitle ?? ''}`.toLowerCase();
       if (!hay.includes(term)) return false;
     }
     return true;
   });
+}
+
+/**
+ * The list is FLAT by default — one row per question, wrapper shown as a chip
+ * — because that is what scans at a few thousand rows and what a search
+ * returns.
+ *
+ * Once the curator has narrowed to a single wrapper kind, though, they are
+ * looking at a few hundred rows belonging to a few dozen wrappers, and the
+ * wrapper structure is the thing they came to see. So group then, and only
+ * then (Sam's call).
+ */
+export function shouldGroup(view: StockView): boolean {
+  return view.source === 'case' || view.source === 'trend';
+}
+
+/**
+ * What a row's release button does. An inherited row cannot be released on its
+ * own — reservation lives on the wrapper (10b1) — so its button releases the
+ * WRAPPER and says so.
+ */
+export function releaseTargetFor(row: StockRow): {
+  kind: 'item' | 'case' | 'trend';
+  id: string;
+  label: string;
+  title: string;
+} {
+  if (row.source === 'standalone') {
+    return {
+      kind: 'item',
+      id: row.itemId,
+      label: 'Release',
+      title: 'Take this question out of the CAT pool and return it to practice.',
+    };
+  }
+  return {
+    kind: row.source,
+    id: row.wrapperId ?? row.itemId,
+    label: 'Release wrapper',
+    title:
+      'This question is reserved through its wrapper, so releasing it releases the whole wrapper and every child with it.',
+  };
+}
+
+/** "142 shown of 2,834 reserved · target 2,880". */
+export function poolHeadCount(shown: number, reserved: number, target: number): string {
+  return `${shown.toLocaleString()} shown of ${reserved.toLocaleString()} reserved · target ${target.toLocaleString()}`;
+}
+
+// ── selection + bulk release ─────────────────────────────────────────
+
+/**
+ * The key a row selects. Ticking an inherited row selects its WRAPPER, so
+ * ticking all six children of a case yields one target, not six — which is
+ * also the only shape the release can take.
+ */
+export function selectionKey(row: StockRow): string {
+  const t = releaseTargetFor(row);
+  return `${t.kind}:${t.id}`;
+}
+
+export type SelectionSummary = {
+  targets: { kind: 'item' | 'case' | 'trend'; id: string }[];
+  standalone: number;
+  wrappers: number;
+  /** Every question that leaves the pool, including children swept in. */
+  questionsAffected: number;
+};
+
+/**
+ * What a bulk release would actually do.
+ *
+ * `questionsAffected` counts children of a selected wrapper even when those
+ * children are not themselves ticked — and even when the current filter hides
+ * them. A curator who selects one case row while filtered to "Hard" is
+ * releasing all six of its children, not the one they can see, and the confirm
+ * has to say the true number.
+ */
+export function summariseSelection(
+  allRows: StockRow[],
+  keys: Set<string>,
+): SelectionSummary {
+  const targets: SelectionSummary['targets'] = [];
+  const seen = new Set<string>();
+  let standalone = 0;
+  let wrappers = 0;
+
+  for (const row of allRows) {
+    const key = selectionKey(row);
+    if (!keys.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    const t = releaseTargetFor(row);
+    targets.push({ kind: t.kind, id: t.id });
+    if (t.kind === 'item') standalone++;
+    else wrappers++;
+  }
+
+  // Count against the FULL row set, not the filtered one.
+  const questionsAffected = allRows.filter((r) => keys.has(selectionKey(r))).length;
+
+  return { targets, standalone, wrappers, questionsAffected };
 }
 
 export type StockGroup = {

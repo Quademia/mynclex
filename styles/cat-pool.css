@@ -19,20 +19,51 @@
 
 /* ── header ─────────────────────────────────────────────────── */
 
-.cp-header { display: flex; flex-direction: column; gap: 10px; }
+/* Sticky area head — stays put while a 2,800-row list scrolls under it, so
+   the lens pills and the reserve action are always reachable. */
+.cp-areahead {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--surface, #fff);
+  border-bottom: 1px solid var(--border-soft, #e5e7eb);
+  margin: -24px -22px 4px;
+  padding: 14px 22px 0;
+}
+.cp-areahead-inner { max-width: 1180px; margin: 0 auto; }
 
 .cp-crumbs {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
   color: var(--muted, #6b7280);
+  margin-bottom: 9px;
 }
-.cp-crumbs a { color: var(--brand, #2d7d72); text-decoration: none; }
-.cp-crumbs a:hover { text-decoration: underline; }
+.cp-crumb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  background: #edf6f5;
+  color: #1e3a5f;
+  text-decoration: none;
+}
+.cp-crumb-chip:hover { text-decoration: none; background: #ddeeeb; }
+.cp-crumb-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
 
 .cp-header-main {
   display: flex;
@@ -73,6 +104,15 @@
   color: var(--text, #111827);
 }
 .cp-btn--ghost:hover { background: #f3f4f6; text-decoration: none; }
+.cp-btn--primary {
+  border: 1px solid var(--brand, #2d7d72);
+  background: var(--brand, #2d7d72);
+  color: #fff;
+  padding: 9px 18px;
+  border-radius: 8px;
+}
+.cp-btn--primary:hover:not(:disabled) { background: #235f56; border-color: #235f56; }
+.cp-btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* The "not yet enforced" note. Deliberately plain rather than an alarm —
    it describes an expected build order, not a fault. */
@@ -111,15 +151,10 @@
   border-color: var(--brand, #2d7d72);
   color: #fff;
 }
-.cp-pill-n {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: #eef0f3;
-  color: #6b7280;
-}
-.cp-pill.is-on .cp-pill-n { background: rgba(255, 255, 255, 0.22); color: #fff; }
+/* A light sub-label beside the word, not a filled badge — the count is
+   supporting information, not a notification. */
+.cp-pill-n { font-weight: 500; font-size: 11.5px; color: #9ca3af; }
+.cp-pill.is-on .cp-pill-n { color: rgba(255, 255, 255, 0.75); }
 
 /* ── stat cards ─────────────────────────────────────────────── */
 
@@ -171,8 +206,8 @@
 
 /* ── cards + meters ─────────────────────────────────────────── */
 
-.cp-row { display: flex; flex-wrap: wrap; gap: 12px; }
-.cp-row > .cp-card { flex: 1 1 440px; min-width: min(440px, 100%); }
+.cp-cardrow { display: flex; flex-wrap: wrap; gap: 12px; }
+.cp-cardrow > .cp-card { flex: 1 1 440px; min-width: min(440px, 100%); }
 
 .cp-card {
   background: var(--surface, #fff);
@@ -283,6 +318,8 @@
 /* ── reserved stock pane ────────────────────────────────────── */
 
 .cp-stock { display: flex; flex-direction: column; gap: 12px; }
+.cp-stock-head { display: flex; flex-direction: column; gap: 6px; }
+.cp-stock-head .cp-note { margin: 0; max-width: 720px; }
 
 .cp-filters {
   display: flex;
@@ -355,19 +392,77 @@
   background: #edf6f5;
   color: #235f56;
 }
+.cp-chip.is-case { background: #edf6f5; color: #235f56; }
 .cp-chip.is-trend { background: #fef3c7; color: #92400e; }
+.cp-chip.is-standalone { background: #eef0f3; color: #4b5563; }
 
-.cp-rows { list-style: none; margin: 0; padding: 0; }
+.cp-rows { margin: 0; padding: 0; }
+.cp-rows--flat {
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface, #fff);
+}
 .cp-row {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   padding: 10px 14px;
   border-bottom: 1px solid #f1f3f5;
 }
 .cp-row:last-child { border-bottom: none; }
+.cp-row:hover { background: #fcfcfd; }
+.cp-row-check { margin-top: 3px; flex: none; }
 .cp-row-main { min-width: 0; flex: 1; }
+
+/* Publish state as a dot — present on every row, so its absence of colour
+   reads as "draft" without needing a badge. */
+.cp-pubdot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  flex: none;
+  cursor: help;
+}
+.cp-pubdot.is-live { background: #2d7d72; }
+
+.cp-wrapref,
+.cp-subcat {
+  font-size: 10.5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.cp-wrapref { cursor: help; }
+
+.cp-release {
+  flex: none;
+  border: 1px solid var(--border, #cbd5e1);
+  background: var(--surface, #fff);
+  color: var(--text, #111827);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cp-release:hover { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
+
+/* Selection bar — appears only when something is ticked. */
+.cp-selbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-radius: 8px;
+  background: #f9fafb;
+}
+.cp-selbar p { margin: 0; flex: 1; font-size: 11.5px; color: var(--muted, #6b7280); }
 .cp-row-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cp-row-id { font-size: 11.5px; color: var(--muted, #6b7280); }
 .cp-type,

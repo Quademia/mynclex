@@ -48,7 +48,7 @@ export function CoverageLens({
         ))}
       </div>
 
-      <div className="cp-row">
+      <div className="cp-cardrow">
         <section className="cp-card">
           <div className="cp-card-head">
             <h3>Difficulty spread</h3>

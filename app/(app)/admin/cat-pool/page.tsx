@@ -34,10 +34,12 @@ import {
   filterStock,
   groupStock,
   pageStock,
+  shouldGroup,
   type LensKey,
 } from '@/lib/bank/cat-pool/stock';
 import { ReservedStockView } from '@/lib/bank/cat-pool/reserved-view';
-import { SITTINGS_FLOOR } from '@/lib/bank/cat-pool/constants';
+import { SITTINGS_FLOOR, WHOLE_POOL_TARGET } from '@/lib/bank/cat-pool/constants';
+import { totalPoolQuestions } from '@/lib/bank/cat-pool/coverage';
 import { CoverageLens } from './coverage-lens';
 
 export const dynamic = 'force-dynamic';
@@ -47,6 +49,13 @@ const PILLS: { key: LensKey; label: string }[] = [
   { key: 'stock', label: 'Reserved stock' },
   { key: 'audit', label: 'Audit' },
 ];
+
+/** The h1 names the lens you are in, as the prototype does. */
+const HEAD_TITLE: Record<LensKey, string> = {
+  coverage: 'CAT pool',
+  stock: 'Reserved stock',
+  audit: 'Pool audit',
+};
 
 export default async function CatPoolPage({
   searchParams,
@@ -71,73 +80,101 @@ export default async function CatPoolPage({
   const allRows = toStockRows(items, wrapperTitles);
   const filtered = filterStock(allRows, view);
   const page = pageStock(filtered, view);
-  const groups = groupStock(page.rows);
+  const grouped = shouldGroup(view);
+  const groups = grouped ? groupStock(page.rows) : [];
+
+  const poolTotal = totalPoolQuestions(counts);
+  // The Audit pill carries the number of rows needing attention, so the count
+  // is visible without opening the lens.
+  const auditCount = allRows.filter((r) => r.warnings.length > 0).length;
 
   return (
     <div className="cp-page">
-      <header className="cp-header">
-        <div className="cp-crumbs">
-          <Link href="/admin/dashboard">Admin</Link>
-          <span aria-hidden="true">›</span>
-          <span>CAT pool</span>
+      <div className="cp-areahead">
+        <div className="cp-areahead-inner">
+          <header className="cp-header-main">
+            <div>
+              <div className="cp-crumbs">
+                <Link href="/admin/bank/all" className="cp-crumb-chip">
+                  <span className="cp-crumb-dot" aria-hidden="true" />
+                  Admin bank
+                </Link>
+                CAT pool
+              </div>
+              <h1>{HEAD_TITLE[view.lens]}</h1>
+            </div>
+
+            <div className="cp-header-actions">
+              <Link href="/admin/dashboard" className="cp-btn cp-btn--ghost">
+                ← Admin
+              </Link>
+              <Link href="/admin/bank/all" className="cp-btn cp-btn--ghost">
+                Question bank →
+              </Link>
+              {/* The drawer is 10b2-d; until then reserving is the editor tick. */}
+              <button
+                type="button"
+                className="cp-btn cp-btn--primary"
+                disabled
+                title="The reserve drawer lands in the next sub-slice — until then, use the Reserve for CAT tick in the question editor."
+              >
+                Reserve questions
+              </button>
+            </div>
+          </header>
+
+          <nav className="cp-pills" aria-label="CAT pool lenses">
+            {PILLS.map((p) => (
+              <Link
+                key={p.key}
+                href={buildStockUrl('/admin/cat-pool', resetLimit({ ...view, lens: p.key }))}
+                className={`cp-pill${view.lens === p.key ? ' is-on' : ''}`}
+                aria-current={view.lens === p.key ? 'page' : undefined}
+              >
+                {p.label}
+                {p.key === 'stock' && <span className="cp-pill-n">{poolTotal.toLocaleString()}</span>}
+                {p.key === 'audit' && <span className="cp-pill-n">{auditCount.toLocaleString()}</span>}
+              </Link>
+            ))}
+          </nav>
         </div>
+      </div>
 
-        <div className="cp-header-main">
-          <div>
-            <h1>CAT pool</h1>
-            <p className="cp-lede">
-              Questions reserved for the adaptive exam. The pool has to carry its own spread of
-              difficulty and blueprint coverage, because a CAT draws its whole sitting from here.
-              Targets below are the {SITTINGS_FLOOR}-CAT floor: guidance, never a gate.
-            </p>
-          </div>
-          <div className="cp-header-actions">
-            <Link href="/admin/bank/all" className="cp-btn cp-btn--ghost">
-              Question bank →
-            </Link>
-          </div>
-        </div>
-
-        <p className="cp-pending">
-          <strong>Not yet enforced.</strong> Reserving writes the flag and this page reads it, but
-          selection does not use it yet — CAT still draws from the whole bank, and reserved
-          questions still appear in student practice. That lands with the selection slice.
-        </p>
-
-        <nav className="cp-pills" aria-label="CAT pool views">
-          {PILLS.map((p) => (
-            <Link
-              key={p.key}
-              href={buildStockUrl('/admin/cat-pool', resetLimit({ ...view, lens: p.key }))}
-              className={`cp-pill${view.lens === p.key ? ' is-on' : ''}`}
-              aria-current={view.lens === p.key ? 'page' : undefined}
-            >
-              {p.label}
-              {p.key === 'stock' && (
-                <span className="cp-pill-n">{counts.standalone + counts.caseChildren + counts.trendChildren}</span>
-              )}
-            </Link>
-          ))}
-        </nav>
-      </header>
+      <p className="cp-pending">
+        <strong>Not yet enforced.</strong> Reserving writes the flag and this page reads it, but
+        selection does not use it yet — CAT still draws from the whole bank, and reserved
+        questions still appear in student practice. That lands with the selection slice.
+      </p>
 
       {view.lens === 'coverage' && (
-        <CoverageLens
-          statCards={statCards}
-          setSpread={setSpread}
-          calibratedSpread={calibratedSpread}
-          blueprintRows={blueprintRows}
-          supplyRows={supplyRows}
-          calibratedCount={calibratedCount}
-        />
+        <>
+          <p className="cp-lede">
+            Questions reserved for the adaptive exam. The pool has to carry its own spread of
+            difficulty and blueprint coverage, because a CAT draws its whole sitting from here.
+            Targets below are the {SITTINGS_FLOOR}-CAT floor: guidance, never a gate.
+          </p>
+          <CoverageLens
+            statCards={statCards}
+            setSpread={setSpread}
+            calibratedSpread={calibratedSpread}
+            blueprintRows={blueprintRows}
+            supplyRows={supplyRows}
+            calibratedCount={calibratedCount}
+          />
+        </>
       )}
 
       {view.lens === 'stock' && (
         <ReservedStockView
           groups={groups}
+          rows={page.rows}
+          grouped={grouped}
+          allRows={allRows}
           view={view}
           total={page.total}
           shown={page.rows.length}
+          reserved={poolTotal}
+          target={WHOLE_POOL_TARGET}
           hasMore={page.hasMore}
           remaining={page.remaining}
         />

@@ -75,3 +75,62 @@ export async function releaseFromCatPool(
   revalidatePath('/admin/cat-pool');
   return { ok: true, released: trimmed };
 }
+
+export type BulkReleaseResult =
+  | { ok: true; released: number; failed: number }
+  | { ok: false; error: string };
+
+/**
+ * Release a selected set in one go.
+ *
+ * Grouped per table so this is three UPDATEs rather than one per row — a
+ * curator can select a few hundred. Partial success is reported honestly
+ * rather than rolled back: each row is independent, and a release that did
+ * happen should not be undone because a sibling failed.
+ */
+export async function releaseManyFromCatPool(
+  targets: { kind: ReleaseTarget; id: string }[],
+): Promise<BulkReleaseResult> {
+  if (!Array.isArray(targets) || targets.length === 0) {
+    return { ok: false, error: 'Nothing selected.' };
+  }
+
+  const { supabase } = await requireAdminPermission(PERM_BANK_CURATE);
+
+  const byKind = new Map<ReleaseTarget, string[]>();
+  for (const t of targets) {
+    if (!TABLE[t.kind]) continue;
+    const id = t.id.trim();
+    if (!id) continue;
+    const list = byKind.get(t.kind) ?? [];
+    list.push(id);
+    byKind.set(t.kind, list);
+  }
+
+  let released = 0;
+  let failed = 0;
+
+  for (const [kind, ids] of byKind) {
+    const spec = TABLE[kind];
+    const { data, error } = await supabase
+      .from(spec.table)
+      .update({ cat_pool: false })
+      .in(spec.idColumn, ids)
+      .eq('cat_pool', true)
+      .select(spec.idColumn);
+
+    if (error) {
+      failed += ids.length;
+      continue;
+    }
+    released += data?.length ?? 0;
+    failed += ids.length - (data?.length ?? 0);
+  }
+
+  revalidatePath('/admin/cat-pool');
+
+  if (released === 0) {
+    return { ok: false, error: 'Nothing was released — reload to see the current pool.' };
+  }
+  return { ok: true, released, failed };
+}
