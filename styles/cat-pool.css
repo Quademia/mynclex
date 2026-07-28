@@ -315,6 +315,76 @@
   text-align: right;
 }
 
+/* ── audit lens ─────────────────────────────────────────────── */
+
+.cp-audit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+}
+.cp-auditcard {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-left: 3px solid #9ca3af;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+.cp-auditcard.is-warn { border-left-color: #d97706; }
+.cp-auditcard.is-danger { border-left-color: #dc2626; }
+.cp-auditcard.is-muted { border-left-color: #9ca3af; }
+/* A cleared condition loses its colour — nothing to act on. */
+.cp-auditcard.is-clean { border-left-color: #2d7d72; }
+
+.cp-auditcard-head { display: flex; align-items: flex-start; gap: 11px; }
+.cp-auditcard-head h3 { margin: 0; font-size: 13px; font-weight: 700; }
+
+.cp-auditicon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex: none;
+  background: #eef0f3;
+  color: #6b7280;
+}
+.cp-auditcard.is-warn .cp-auditicon { background: #fef3c7; color: #92400e; }
+.cp-auditcard.is-danger .cp-auditicon { background: #fef2f2; color: #dc2626; }
+.cp-auditcard.is-clean .cp-auditicon { background: #edf6f5; color: #235f56; }
+
+.cp-auditcount {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text, #111827);
+}
+.cp-auditcard.is-clean .cp-auditcount { color: #235f56; }
+
+.cp-auditbody {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--muted, #6b7280);
+}
+/* The "expected for now" note — quieter than the body it qualifies. */
+.cp-auditaside {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #f9fafb;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #9ca3af;
+}
+
 /* ── reserved stock pane ────────────────────────────────────── */
 
 .cp-stock { display: flex; flex-direction: column; gap: 12px; }

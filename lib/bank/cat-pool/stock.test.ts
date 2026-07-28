@@ -11,6 +11,7 @@ import {
   shouldGroup,
   releaseTargetFor,
   summariseSelection,
+  auditCounts,
   DEFAULT_VIEW,
   STOCK_PAGE_SIZE,
   type StockView,
@@ -64,9 +65,12 @@ describe('parseStockView', () => {
   });
 
   it('reads every field', () => {
-    const v = parseStockView({ lens: 'stock', src: 'case', diff: 'Hard', warn: '1', q: ' sepsis ', limit: '150' });
+    const v = parseStockView({
+      lens: 'stock', src: 'case', diff: 'Hard', warn: '1', wtype: 'draft', q: ' sepsis ', limit: '150',
+    });
     expect(v).toEqual({
-      lens: 'stock', source: 'case', difficulty: 'Hard', warnOnly: true, q: 'sepsis', limit: 150,
+      lens: 'stock', source: 'case', difficulty: 'Hard',
+      warnOnly: true, warnType: 'draft', q: 'sepsis', limit: 150,
     });
   });
 
@@ -171,6 +175,73 @@ describe('groupStock', () => {
   it('omits the standalone group entirely when there are none', () => {
     const rows = toStockRows([item({ itemId: 'B1', source: 'case', wrapperId: 'CS_1' })], { CS_1: 'x' });
     expect(groupStock(rows).every((g) => g.wrapperId !== null)).toBe(true);
+  });
+});
+
+describe('warnType — the audit deep-links', () => {
+  const rows = toStockRows(
+    [
+      item({ itemId: 'A1', isBuilderVisible: true }),
+      item({ itemId: 'A2', isPublished: false }),
+      item({ itemId: 'A3', readinessTagged: true }),
+      item({ itemId: 'A4' }),
+    ],
+    {},
+  );
+
+  it('narrows to one condition rather than "any warning"', () => {
+    expect(filterStock(rows, view({ warnType: 'builder' })).map((r) => r.itemId)).toEqual(['A1']);
+    expect(filterStock(rows, view({ warnType: 'draft' })).map((r) => r.itemId)).toEqual(['A2']);
+    expect(filterStock(rows, view({ warnType: 'readiness' })).map((r) => r.itemId)).toEqual(['A3']);
+  });
+
+  it('wins over the generic checkbox', () => {
+    const got = filterStock(rows, view({ warnOnly: true, warnType: 'draft' }));
+    expect(got.map((r) => r.itemId)).toEqual(['A2']);
+  });
+
+  it('round-trips through the URL', () => {
+    const v = view({ lens: 'stock', warnType: 'readiness' });
+    const params = Object.fromEntries(new URL(buildStockUrl('/x', v), 'http://h').searchParams);
+    expect(parseStockView(params).warnType).toBe('readiness');
+  });
+
+  it('ignores an unknown condition', () => {
+    expect(parseStockView({ wtype: 'sideways' }).warnType).toBeNull();
+  });
+});
+
+describe('auditCounts', () => {
+  it('counts each condition, and rows carrying any', () => {
+    const rows = toStockRows(
+      [
+        item({ itemId: 'A1', isBuilderVisible: true }),
+        item({ itemId: 'A2', isBuilderVisible: true, isPublished: false }),
+        item({ itemId: 'A3', readinessTagged: true }),
+        item({ itemId: 'A4' }),
+      ],
+      {},
+    );
+    expect(auditCounts(rows)).toEqual({
+      builder: 2, draft: 1, readiness: 1,
+      anyWarning: 3,   // A4 is clean
+    });
+  });
+
+  it('is all zeroes for a clean pool', () => {
+    expect(auditCounts(toStockRows([item()], {}))).toEqual({
+      builder: 0, readiness: 0, draft: 0, anyWarning: 0,
+    });
+  });
+
+  it('agrees with the list its card links to', () => {
+    const rows = toStockRows(
+      Array.from({ length: 7 }, (_, i) => item({ itemId: `Q${i}`, isBuilderVisible: i < 5 })),
+      {},
+    );
+    const counts = auditCounts(rows);
+    const listed = filterStock(rows, view({ warnType: 'builder' }));
+    expect(listed).toHaveLength(counts.builder);
   });
 });
 

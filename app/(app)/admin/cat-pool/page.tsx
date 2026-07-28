@@ -35,9 +35,11 @@ import {
   groupStock,
   pageStock,
   shouldGroup,
+  auditCounts,
   type LensKey,
 } from '@/lib/bank/cat-pool/stock';
 import { ReservedStockView } from '@/lib/bank/cat-pool/reserved-view';
+import { AuditLens } from './audit-lens';
 import { SITTINGS_FLOOR, WHOLE_POOL_TARGET } from '@/lib/bank/cat-pool/constants';
 import { totalPoolQuestions } from '@/lib/bank/cat-pool/coverage';
 import { CoverageLens } from './coverage-lens';
@@ -84,9 +86,10 @@ export default async function CatPoolPage({
   const groups = grouped ? groupStock(page.rows) : [];
 
   const poolTotal = totalPoolQuestions(counts);
-  // The Audit pill carries the number of rows needing attention, so the count
-  // is visible without opening the lens.
-  const auditCount = allRows.filter((r) => r.warnings.length > 0).length;
+  // Counted across the WHOLE pool, not the filtered page — the audit describes
+  // the reserved set, not whatever the curator is currently looking at.
+  const audit = auditCounts(allRows);
+  const auditCount = audit.anyWarning;
 
   return (
     <div className="cp-page">
@@ -180,11 +183,7 @@ export default async function CatPoolPage({
         />
       )}
 
-      {view.lens === 'audit' && (
-        <section className="cp-card">
-          <p className="cp-note">The Audit lens lands in the next sub-slice.</p>
-        </section>
-      )}
+      {view.lens === 'audit' && <AuditLens counts={audit} view={view} />}
     </div>
   );
 }

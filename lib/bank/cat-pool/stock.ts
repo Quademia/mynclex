@@ -59,8 +59,14 @@ export type StockView = {
   source: SourceFilter;
   /** A difficulty band label, or 'all'. */
   difficulty: string;
-  /** Show only rows carrying at least one warning. */
+  /** Show only rows carrying at least one warning (the checkbox). */
   warnOnly: boolean;
+  /**
+   * Narrow to ONE warning condition. Set by the audit cards, which each need
+   * their own subset — sending all three to a generic "has a warning" view
+   * would land a curator on 2,800 rows regardless of which card they clicked.
+   */
+  warnType: StockWarning | null;
   /** Free text over item id and stem. */
   q: string;
   /** How many rows to draw; grows by STOCK_PAGE_SIZE via Load more. */
@@ -70,11 +76,14 @@ export type StockView = {
 const LENSES: LensKey[] = ['coverage', 'stock', 'audit'];
 const SOURCES: SourceFilter[] = ['all', 'standalone', 'case', 'trend'];
 
+const WARNINGS: StockWarning[] = ['builder', 'readiness', 'draft'];
+
 export const DEFAULT_VIEW: StockView = {
   lens: 'coverage',
   source: 'all',
   difficulty: 'all',
   warnOnly: false,
+  warnType: null,
   q: '',
   limit: STOCK_PAGE_SIZE,
 };
@@ -89,6 +98,7 @@ const one = (v: string | string[] | undefined): string =>
 export function parseStockView(params: Record<string, string | string[] | undefined>): StockView {
   const lens = one(params.lens) as LensKey;
   const source = one(params.src) as SourceFilter;
+  const warnType = one(params.wtype) as StockWarning;
   const rawLimit = Number.parseInt(one(params.limit), 10);
 
   return {
@@ -96,6 +106,7 @@ export function parseStockView(params: Record<string, string | string[] | undefi
     source: SOURCES.includes(source) ? source : DEFAULT_VIEW.source,
     difficulty: one(params.diff) || DEFAULT_VIEW.difficulty,
     warnOnly: one(params.warn) === '1',
+    warnType: WARNINGS.includes(warnType) ? warnType : null,
     q: one(params.q).trim(),
     limit: Number.isFinite(rawLimit)
       ? Math.max(STOCK_PAGE_SIZE, rawLimit)
@@ -110,6 +121,7 @@ export function buildStockUrl(base: string, view: StockView): string {
   if (view.source !== DEFAULT_VIEW.source) p.set('src', view.source);
   if (view.difficulty !== DEFAULT_VIEW.difficulty) p.set('diff', view.difficulty);
   if (view.warnOnly) p.set('warn', '1');
+  if (view.warnType) p.set('wtype', view.warnType);
   if (view.q) p.set('q', view.q);
   if (view.limit !== DEFAULT_VIEW.limit) p.set('limit', String(view.limit));
   const qs = p.toString();
@@ -156,7 +168,9 @@ export function filterStock(rows: StockRow[], view: StockView): StockRow[] {
   return rows.filter((r) => {
     if (view.source !== 'all' && r.source !== view.source) return false;
     if (view.difficulty !== 'all' && r.difficulty !== view.difficulty) return false;
-    if (view.warnOnly && r.warnings.length === 0) return false;
+    // A specific condition wins over the generic checkbox.
+    if (view.warnType && !r.warnings.includes(view.warnType)) return false;
+    if (!view.warnType && view.warnOnly && r.warnings.length === 0) return false;
     if (term) {
       const hay = `${r.itemId} ${r.stem ?? ''} ${r.wrapperId ?? ''} ${r.wrapperTitle ?? ''}`.toLowerCase();
       if (!hay.includes(term)) return false;
@@ -210,6 +224,26 @@ export function releaseTargetFor(row: StockRow): {
 /** "142 shown of 2,834 reserved · target 2,880". */
 export function poolHeadCount(shown: number, reserved: number, target: number): string {
   return `${shown.toLocaleString()} shown of ${reserved.toLocaleString()} reserved · target ${target.toLocaleString()}`;
+}
+
+// ── audit ────────────────────────────────────────────────────────────
+
+export type AuditCounts = Record<StockWarning, number> & { anyWarning: number };
+
+/**
+ * How many reserved questions each condition affects.
+ *
+ * Counted from the same rows the stock pane lists, so a card and the list it
+ * links to can never disagree — the "142 questions" on the card is literally
+ * the length of the list the button opens.
+ */
+export function auditCounts(rows: StockRow[]): AuditCounts {
+  const out: AuditCounts = { builder: 0, readiness: 0, draft: 0, anyWarning: 0 };
+  for (const r of rows) {
+    if (r.warnings.length) out.anyWarning++;
+    for (const w of r.warnings) out[w]++;
+  }
+  return out;
 }
 
 // ── selection + bulk release ─────────────────────────────────────────
