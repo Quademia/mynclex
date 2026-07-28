@@ -156,12 +156,40 @@ const SEED_IRT = {
   'Very easy': -2, Easy: -1, Medium: 0, Hard: 1, 'Very hard': 2,
 };
 
+// ── reveal coverage ──────────────────────────────────────────────────
+// An unfolding case earns its format by releasing NEW chart data as the
+// client deteriorates. If every tab has said all it is going to say by
+// question 4, the last questions are just prose comprehension — the
+// chart stops participating. This walks the built tabs and reports the
+// questions at which something new appears.
+function revealCoverage(tabs) {
+  const steps = new Set();
+  for (const t of tabs) {
+    const e = t.entries;
+    if (e.entries) for (const row of e.entries) steps.add(row.visibleFrom);
+    if (e.tables) for (const tbl of e.tables) for (const r of tbl.rows) steps.add(r.visibleFrom);
+  }
+  return [...steps].sort((a, b) => a - b);
+}
+
 // ── emitters ─────────────────────────────────────────────────────────
 // spec: { caseId, title, scenario, tabs: [{key,title,shape,entries}], questions: [6] }
 function emitCase(spec) {
   const { caseId, title, scenario, tabs, questions } = spec;
   if (questions.length !== 6) throw new Error(`${caseId}: expected 6 child questions, got ${questions.length}`);
   assertAscii(caseId, title + ' ' + scenario);
+
+  // Warn (do not block) when the unfolding stops early. Snapshot-style
+  // wrappers legitimately reveal everything at 1; a 6-step case should not.
+  const cover = revealCoverage(tabs);
+  const last = Math.max(...cover);
+  if (last < 6) {
+    process.stderr.write(
+      `WARNING ${caseId}: chart data stops revealing at question ${last}. `
+      + `Reveal steps present: [${cover.join(', ')}]. Question${last + 1 === 6 ? ' 6 introduces' : `s ${last + 1}-6 introduce`} `
+      + `no new chart data. Add later entries/rows (visibleFrom up to 6) so the case keeps unfolding.\n`
+    );
+  }
 
   const out = [];
   out.push(`-- ${caseId} — ${title}`);
