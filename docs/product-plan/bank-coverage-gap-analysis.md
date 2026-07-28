@@ -109,19 +109,58 @@ Classification labels have split into near-duplicates. This corrupts
 both gap analysis and CAT blueprint selection, and it will get worse
 with 600 more items.
 
-| Canonical | Drifted variants |
+**Resolved** by `db/migrations/20260818120000_bank_taxonomy_normalisation.sql`.
+
+The canonical vocabularies are `NURSING_SUBJECTS` and `BODY_SYSTEMS` in
+`lib/bank/classifications.ts` — that file is the source of truth, and it
+settles two calls this analysis initially got wrong: the canonical renal
+label is **`Genitourinary`** (not `Renal/Genitourinary`, which is itself
+drift), and **`Critical Care` is not a subject at all** — those items are
+medical-surgical.
+
+Counting the whole table rather than the standalone slice, the drift was
+wider than first measured: 7 stray `nursing_subject` values and 12 stray
+`body_system` values.
+
+| Canonical | Folded in |
 |---|---|
-| Maternity | `Maternal-Newborn` (13) |
+| Medical-Surgical | `Medical-Surgical Nursing` (30), `Critical Care` (39), `Critical Care Nursing` (6), `Adult Health - Cardiovascular` (6) |
+| Maternity | `Maternal-Newborn` (29), `Maternal Newborn Nursing` (2) |
 | Pediatrics | `Pediatric` (7) |
-| Gastrointestinal | `GI` (103) vs `Gastrointestinal` (95) |
-| Renal/Genitourinary | `Genitourinary` (40), `Renal` (29) |
+| Gastrointestinal | `GI` (103) |
+| Genitourinary | `Renal/Genitourinary` (102), `Renal` (43), `Renal/Urinary` (2) |
+| Neurological | `Neurologic` (6), `Neuro` (3) |
+| Psychiatric/Mental Health | `Psychiatric` (6), `Neuropsychiatric` (6) |
+| Reproductive | `Reproductive/Obstetric` (2) |
+| Multisystem | `Cardiovascular/Immune` (2) — both sepsis items |
 
-Plus NULLs: 59 `nursing_subject`, 57 `body_system`, 69 `topic`, 53
-`client_needs_subcategory`.
+`Not applicable` is kept as a legitimate `body_system`: it means
+"deliberately not system-specific" (leadership, ethics, delegation), which
+is distinct from NULL meaning "unclassified".
 
-Recommended: a one-off normalising migration before the authoring run,
-and a CHECK constraint or lookup table so new items can't reintroduce
-the drift.
+CHECK constraints now close both vocabularies, so a future bulk insert
+fails loudly instead of drifting silently. NULLs remain permitted.
+
+### Still open — 28 unclassified items, and a CAT-pool problem
+
+25 of the 53 NULL-subcategory items were genuine questions and have been
+backfilled. The remaining **28 are early editor test fixtures**, not NCLEX
+content — stems such as "The human body is a deligate…", "Haett block", and
+a handful of `SAMTEST` rows carrying raw Tiptap JSON.
+
+The problem is not that they are unclassified. It is that **48 of the
+original 53 were `is_published = true` AND ticked `cat_pool`** — so
+placeholder fixtures are sitting inside the 2,400-item reserved pool and can
+be served during a CAT attempt. Nothing has been deleted or unpublished:
+that is Sam's call. Recommended: unpublish the fixtures and clear their
+`cat_pool` tick, then re-check the reserved pool count.
+
+### Also noted — a pending inconsistency, not drift
+
+`DIFFICULTY_LEVELS` in `classifications.ts` is still `['Easy','Medium','Hard']`
+while the database already holds 560 items banded `Very easy` / `Very hard`.
+That is Slice 10a's 5-band work not yet reflected in the TS constant — left
+alone deliberately, since 10a is the slice that closes it.
 
 ---
 
