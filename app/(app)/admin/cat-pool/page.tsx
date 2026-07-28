@@ -151,9 +151,9 @@ export default async function CatPoolPage({
       </div>
 
       <p className="cp-pending">
-        <strong>Not yet enforced.</strong> Reserving writes the flag and this page reads it, but
-        selection does not use it yet — CAT still draws from the whole bank, and reserved
-        questions still appear in student practice. That lands with the selection slice.
+        <strong>Enforced.</strong> CAT draws only from this pool, and reserved questions have left
+        student practice — reserving is now a real change to what students can reach, not just a
+        label. Releasing puts a question straight back.
       </p>
 
       {view.lens === 'coverage' && (

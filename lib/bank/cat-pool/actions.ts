@@ -158,9 +158,20 @@ export async function reserveToCatPool(
   for (const [kind, ids] of byKind) {
     if (!ids.length) continue;
     const spec = TABLE[kind];
+
+    // Reserving also clears the practice-side flags (10b3). `cat_pool` in
+    // `_nclex_eligible_unit_pool` is what actually keeps the row out of
+    // practice; this is the second layer, so a query that forgets the pool
+    // predicate still cannot serve reserved stock. `is_free_sample` goes
+    // because a free sample is public shop window and a reserved question
+    // must not be met before the exam — the two cannot both be true.
     const { data, error } = await supabase
       .from(spec.table)
-      .update({ cat_pool: true })
+      .update(
+        kind === 'item'
+          ? { cat_pool: true, is_builder_visible: false, is_free_sample: false }
+          : { cat_pool: true, is_builder_visible: false },
+      )
       .in(spec.idColumn, ids)
       .eq('cat_pool', false)
       .select(spec.idColumn);

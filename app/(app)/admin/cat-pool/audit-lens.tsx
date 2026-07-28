@@ -28,11 +28,11 @@ const CARDS: Card[] = [
     key: 'builder',
     icon: '⚠',
     tone: 'warn',
-    title: 'Still visible in the student builder',
+    title: 'Still flagged visible in the student builder',
     body:
-      'Reserved stock is meant to be unseen before the exam. These rows carry the CAT flag but are still offered in the practice builder, so a student can meet them first — and a remembered question measures memory, not ability, which inflates the estimate.',
+      'Reserving clears the builder-visible flag as a second layer of protection, so this should be empty. These rows carry the CAT flag but still say they are practice stock — which means something set the flag back after reservation.',
     aside:
-      'Expected for now: nothing clears builder visibility on reservation yet, and selection does not honour the flag at all. Both land with the selection slice, which is what will empty this card.',
+      'Not a live leak: selection excludes reserved stock by the CAT flag itself, so nothing here is reachable in practice today. It is a drift detector — the belt, not the braces.',
   },
   {
     key: 'readiness',

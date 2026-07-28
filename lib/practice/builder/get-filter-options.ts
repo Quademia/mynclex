@@ -43,16 +43,22 @@ export async function getFilterOptions(): Promise<FilterOptions> {
     { data: caseRows },
     { data: trendRows },
   ] = await Promise.all([
+    // `cat_pool` excluded to match `_nclex_eligible_unit_pool` (10b3). These
+    // build the Builder's filter chips, so a reserved question left in here
+    // would advertise an axis the pool can no longer serve — the student
+    // picks the tag and gets "0 questions match".
     supabase
       .from('nclex_bank_items')
       .select('tags, topic, subtopic')
       .eq('is_published', true)
-      .eq('is_builder_visible', true),
+      .eq('is_builder_visible', true)
+      .eq('cat_pool', false),
     supabase
       .from('nclex_case_studies')
       .select('tags')
       .eq('is_published', true)
-      .eq('is_builder_visible', true),
+      .eq('is_builder_visible', true)
+      .eq('cat_pool', false),
     supabase
       .from('nclex_trend_datasets')
       .select('tags')
