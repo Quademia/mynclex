@@ -156,7 +156,22 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-28 — <strong>Slice 10b1 BUILT</strong> (the CAT-pool reservation
+  Living planning document. Last updated: 2026-07-29 — <strong>Slice 10b2 BUILT, then the reservation REGRAINED</strong>
+  (new §20.2.1; §20.4, §20.5, §20.6 rewritten; migration <code>20260822120000</code>, dev-applied). The admin
+  CAT-pool page shipped at <code>/admin/cat-pool</code> — three lenses off one snapshot plus a reserve drawer, with
+  the §20.5 mutual-exclusivity guard built in both halves rather than deferred. Then <strong>two reservation units,
+  not three:</strong> reading the selection code showed a <strong>trend dataset is not a selection unit anywhere</strong>
+  (<code>_nclex_eligible_unit_pool</code> emits only <code>QUESTION</code> and <code>CASE</code>; trend questions are
+  picked individually, one per dataset per exam), so reserving a dataset reserved something nothing draws — the column
+  is dropped from <code>nclex_trend_datasets</code> and each trend question carries its own flag. A <strong>case</strong>
+  stays a wrapper reservation, but its children now hold a <strong>trigger-maintained copy</strong> of the flag, so
+  <code>cat_pool</code> means one thing on every row and 10b3 can test one boolean instead of remembering a join. The
+  dataset survives only as a <strong>variety measure</strong> (distinct datasets represented / 60 — an editorial goal,
+  not a supply floor). <strong>Three defects fixed:</strong> the "never tick a child" rule had never been enforced (it
+  tested a housekeeping mode retired in May, so the tick showed on case children and wrote a flag the page ignored);
+  the difficulty-spread marker was measured against the standalone target while the bars counted the whole pool; and
+  <strong>every Coverage number was truncated by PostgREST's silent 1,000-row cap</strong> — a 2,833-question pool read
+  as "1,000 / 2,880", caught only when a human first opened the page. <em>Previously, 2026-07-28</em> — <strong>Slice 10b1 BUILT</strong> (the CAT-pool reservation
   flag + the admin-only "Reserve for CAT" editor tick): a boolean <code>cat_pool</code> on six tables (standalones +
   case / trend wrappers, admin + tutor mirrors); the tick on three editor surfaces, never on a child (reservation
   lives on the wrapper, children inherit); admin-only at UI + save + inherited RLS; migration
@@ -3550,13 +3565,28 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
             as row columns, and readiness reservation is itself a row-level <em>tag</em> (not a table), so a column is
             the consistent, simplest shape. Consequence: the §20.5 <strong>mutual-exclusivity guard</strong> (can't be
             both CAT- and readiness-reserved) is <strong>deferred</strong> — with a boolean + a readiness tag it
-            becomes a cross-check, not a <code>UNIQUE</code> constraint.</li>
-          <li><strong>10b2 — the admin CAT-pool management page</strong> (§20.4 / §20.5): coverage on both axes
-            (difficulty + the 8 blueprint categories), how-far-to-target, the reserved-stock lens.</li>
-          <li><strong>10b3 — CAT selection draws only from <code>cat_pool</code></strong> (children of reserved
-            wrappers included, via the readiness-style inheritance query — reserved wrapper → its children by
-            <code>parent_case_id</code> / <code>trend_id</code>); the leaks close (readiness-reserved out of CAT,
-            <code>cat_pool</code> out of practice); plus the §20.5 mutual-exclusivity guard.</li>
+            becomes a cross-check, not a <code>UNIQUE</code> constraint. <em>(Guard subsequently built in 10b2.)</em>
+            <br /><strong>⚠ Superseded on two points by the 2026-07-28 regrain</strong> (§20.2.1): the trend-wrapper
+            columns are <strong>dropped</strong> (four tables carry <code>cat_pool</code>, not six) and the tick sits
+            on <strong>two</strong> editor surfaces, not three. Its "children inherit" is now literal — the children
+            hold a trigger-maintained copy of the flag.</li>
+          <li><strong>10b2 — the admin CAT-pool management page. ✅ BUILT 2026-07-28</strong> (§20.4 / §20.5), on
+            <code>main</code>, no migration of its own. <code>/admin/cat-pool</code>, top-level beside Readiness
+            Packs; one route, three lenses via <code>?lens=</code> off a single snapshot — <strong>Coverage</strong>
+            (four targets, five-band spread with Set ⟷ Calibrated, blueprint vs NCLEX ranges, wrapper supply),
+            <strong>Reserved stock</strong> (paged, filterable, release per question or per case) and
+            <strong>Audit</strong> (four degradation conditions, each deep-linking to its subset) — plus the
+            <strong>reserve drawer</strong> (<code>?reserve=1</code>) carrying the §20.5 mutual-exclusivity guard in
+            the UI <em>and</em> re-checked server-side. Followed by the <strong>regrain</strong> (§20.2.1, migration
+            <code>20260822120000</code>): trends reserved per question, cases cascading by trigger, the dead
+            child-guard fixed, and the silent 1,000-row read cap paged past.</li>
+          <li><strong>10b3 — CAT selection draws only from <code>cat_pool</code></strong>; the leaks close
+            (readiness-reserved out of CAT, <code>cat_pool</code> out of practice). <strong>Simpler than first
+            planned:</strong> the regrain means every reserved question carries the flag on its own row, so both the
+            selection query and the practice exclusion test one boolean on <code>nclex_bank_items</code> instead of
+            joining back to wrapper tables — except the case-scheduling path, which still reads
+            <code>nclex_case_studies.cat_pool</code> because a case is drawn as a wrapper. The mutual-exclusivity
+            guard is already done (10b2), so this slice is selection and leak-closing only.</li>
         </ol></li>
       <li><strong>10c — The recalibration job (§5.3 / §17).</strong> The weekly <strong>GitHub Actions</strong>
         Python / <code>pyirt</code> job (§17.6): a whole-bank joint fit over <em>all</em> response sources (§17.1),
@@ -4350,12 +4380,30 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   tired, so the first real user-eyes pass is still outstanding.
 </p>
 
-<h2 id="s20">20. CAT item pool — dedicated reserved stock <span class="status settled">settled 2026-07-26</span></h2>
+<h2 id="s20">20. CAT item pool — dedicated reserved stock <span class="status settled">settled 2026-07-26 · regrained 2026-07-28</span></h2>
 <p>
   Where CAT draws its questions from. Today the selection query (§10.2, <code>cat_next_item</code>) reads the
   <em>whole</em> published bank. This section settles that CAT will instead draw from a <strong>dedicated pool of
   reserved questions that never appear in student practice</strong> — generalising the readiness-pack "reserved
-  stock" mechanism. Settled with Sam in the 2026-07-26 design session; build not started.
+  stock" mechanism. Settled with Sam in the 2026-07-26 design session.
+</p>
+<p class="callout">
+  <strong>⚠ Regrained 2026-07-28 — there are TWO reservation units, not three.</strong> The original design assumed
+  reservation sat on a standalone question, a case wrapper, <em>or</em> a trend wrapper, with children inheriting.
+  Reading the selection code disproved the third: <strong>a trend dataset is not a selection unit anywhere in the
+  product.</strong> <code>_nclex_eligible_unit_pool</code> emits exactly two unit types, <code>QUESTION</code> and
+  <code>CASE</code>; trend-linked questions travel in the standalone branch on their own row, and
+  <code>cat_next_item</code> picks them individually too, capped at one per dataset per exam. Reserving a dataset
+  therefore reserved something nothing ever draws.
+</p>
+<p class="callout">
+  So <code>cat_pool</code> was <strong>dropped from <code>nclex_trend_datasets</code></strong> (+ the tutor mirror)
+  and each trend question now carries its own flag, exactly like a standalone. A <strong>case</strong> stays a
+  wrapper-level reservation — it <em>is</em> a selection unit — but its children now hold a materialised copy of the
+  flag, maintained by database trigger. The dataset survives in the design only as a <strong>variety measure</strong>:
+  the admin page counts how many <em>distinct</em> datasets the reserved trend questions span. Migration
+  <code>20260822120000</code>. Sections 20.2, 20.4, 20.5 and 20.6 below are updated to match; the reasoning in 20.1
+  and 20.3 is unaffected.
 </p>
 
 <h3>20.1 Why a dedicated pool — the exposure problem</h3>
@@ -4402,6 +4450,38 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   repeat CATs draw fresh items.
 </p>
 
+<h4>20.2.1 As built — a boolean column, two reservation units <span class="status settled">2026-07-28</span></h4>
+<p>
+  The <code>UNIQUE</code> reservation table above was <strong>not</strong> what shipped. 10b1 backed reservation with
+  a plain boolean <code>cat_pool</code> column (rationale in the §19.4 10b1 entry: CAT reservation is flat
+  membership, so a table was over-engineering). 10b2 then regrained <em>which rows carry it</em>:
+</p>
+<ul>
+  <li><strong>A QUESTION</strong> — <code>cat_pool</code> on its own <code>nclex_bank_items</code> row. This covers
+  standalone questions <em>and</em> trend-linked ones: both are picked individually by every selection path, so both
+  are reserved individually. A trend dataset is not a unit and no longer carries the column.</li>
+  <li><strong>A CASE</strong> — <code>cat_pool</code> on <code>nclex_case_studies</code>. The wrapper is the selection
+  unit and stays authoritative; its children carry a copy so that <code>cat_pool = TRUE</code> means one thing on
+  every row and selection can read one column instead of joining back to a wrapper.</li>
+</ul>
+<p>
+  <strong>The cascade is a database trigger, not app code</strong> (<code>nclex_cat_pool_cascade_case</code> +
+  <code>nclex_cat_pool_inherit_case</code>). Reserve or release a case and its children follow; attach a child and it
+  inherits; detach and it clears. Two reasons it belongs in the database rather than a Server Action: a forgotten
+  join in one practice-side query is exactly how reserved stock leaks back into practice, and a cascade living in one
+  save path is a cascade a second save path will eventually forget. Detach-clear is load-bearing in its own right —
+  without it a detached child becomes a reserved standalone nobody ticked, vanishing from practice with no visible
+  cause.
+</p>
+<p>
+  <strong>Consequence for the placeability CHECK</strong> (<code>20260821120000</code>, which requires a reserved item
+  to carry a difficulty band and a subcategory): it now binds on <em>individually-reserved</em> rows only. It had to.
+  The inherit trigger re-asserts the wrapper's value on every save of a child, so an unplaceable child under a
+  reserved case could never be saved again — including the save that would add the missing band, locking the curator
+  out of the exact fix the constraint was demanding. Case completeness is instead gated on the <strong>case</strong>
+  in the reserve action, and surfaced as an "unplaceable" card on the admin page's Audit lens (§20.5).
+</p>
+
 <h3>20.3 Coupling with §5 recalibration and §5.5 — commits us to the pyirt runtime</h3>
 <p>
   A dedicated pool sharpens the §17.6 runtime fork into a <em>decision</em>, because of how it interacts with the
@@ -4442,10 +4522,23 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   <tbody>
     <tr><td>Standalone</td><td>~1,935 (+headroom ≈ 2,400)</td><td><strong>2,400</strong></td><td>2,400</td></tr>
     <tr><td>Case wrappers</td><td>45 (3 × 15)</td><td><strong>60</strong></td><td>~360 (≈6 each)</td></tr>
-    <tr><td>Trend wrappers</td><td>~30 (2 × 15)</td><td><strong>60</strong></td><td>~90 (≈1.5 each)</td></tr>
-    <tr><td colspan="3"><strong>Total CAT pool</strong></td><td><strong>≈ 2,850 questions</strong></td></tr>
+    <tr><td>Trend datasets <em>(variety, see below)</em></td><td>~30 (2 × 15)</td><td><strong>60</strong></td><td>~120 (≈2 each)</td></tr>
+    <tr><td colspan="3"><strong>Total CAT pool</strong></td><td><strong>2,880 questions</strong></td></tr>
   </tbody>
 </table>
+<p class="callout">
+  <strong>⚠ The trend target is a different KIND of number from the other two (2026-07-28).</strong> 2,400 and
+  60-cases fall out of the arithmetic above: a sitting consumes standalone items and exactly 3 cases, so fifteen
+  non-overlapping sittings need that much stock. <strong>Sixty <em>datasets</em> does not follow that way.</strong>
+  CAT caps trend questions at one per dataset <em>per exam</em>, not globally, so fifteen sittings could in principle
+  be served by far fewer scenarios reused across students.
+</p>
+<p class="callout">
+  It is kept at 60 as an <strong>editorial variety goal</strong> — the pool should not lean on a handful of charts —
+  and the admin page measures it as such: the tile reads <em>distinct datasets represented / 60</em>, with the
+  reserved trend-question count in its note. Supply is the 120-odd <em>questions</em>; 60 is the spread they should
+  cover. Sam's call, and worth labelling honestly rather than implying it derives from the floor.
+</p>
 <p>
   <strong>The one real content action is the five-band spread, not bulk volume.</strong> The 2,400 standalone must
   span all five bands (−2 … +2). Today everything sits on three rungs (Easy 805 / Medium 1,297 / Hard 916 on dev),
@@ -4470,27 +4563,61 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   <li><strong>A "Reserve for CAT" tick on the question editor. ✅ BUILT 2026-07-28 (10b1).</strong> The curator marks
   a question as CAT-pool stock while authoring it. This works cleanly because CAT reservation is <em>flat
   membership</em> — in the pool or not, with no order and no sub-grouping (the exam is adaptive, so there is no
-  "position"). A single tick expresses the whole reservation. <strong>As built:</strong> the tick is admin-only and
-  appears on <em>three</em> surfaces — the standalone question editor (Housekeeping tab), the case-wrapper editor and
-  the trend-wrapper editor — never on a case / trend child (children inherit their wrapper's <code>cat_pool</code>).
-  Backed by a boolean <code>cat_pool</code> column, not the §20.2 <code>UNIQUE</code> reservation table (see the 10b1
-  entry in §19.4 for the divergence + rationale).</li>
+  "position"). A single tick expresses the whole reservation. <strong>As built (regrained 2026-07-28):</strong> the
+  tick is admin-only and appears on <em>two</em> surfaces — the <strong>question editor</strong> (Housekeeping tab,
+  which covers standalone <em>and</em> trend-linked questions alike) and the <strong>case-wrapper editor</strong>.
+  It is never shown on a case child: that reservation belongs to the wrapper and the database keeps the child in
+  step, so a tick there would be a control that does nothing. The trend-wrapper tick was removed outright — a
+  dataset is not a reservation unit. Backed by a boolean <code>cat_pool</code> column, not the §20.2
+  <code>UNIQUE</code> reservation table (see §20.2.1 and the 10b1 entry in §19.4).
+  <br />
+  <strong>⚠ Defect found and fixed 2026-07-28:</strong> the "never on a child" rule had never actually been enforced.
+  The guard tested <code>mode === 'wrapper-child'</code>, a housekeeping mode nothing has set since the 2026-05-01
+  case retrofit moved children onto the default <code>'standalone'</code> — so the condition silently passed for
+  everything and the tick <em>was</em> shown on case children, writing a flag the admin page then ignored. Replaced
+  with a React context the case wrapper page provides (<code>CaseChildScope</code>), since the eleven row mappers do
+  not read <code>parent_case_id</code>. Treat <code>HousekeepingMode</code> as unusable for "is this a wrapper
+  child" tests.</li>
   <li><strong>The five-option difficulty dropdown.</strong> The editor's difficulty selector gains the two new
   labels (Very easy … Very hard, §5.1) — a UI change paired with the §5.2 <code>CHECK</code> widening. <strong>✅ Built
   2026-07-27</strong>, together with the read-only <em>measured</em> difficulty beside the editable seed (the
   "Calibrated difficulty" readout — the earlier open question is resolved: yes, we show it; see §19.4 Slice 10a).</li>
-  <li><strong>An admin CAT-pool management page</strong>, mirroring the readiness reserved-stock page: the overview /
-  bulk lens — pool count, how-far-to-target (§20.4), difficulty and blueprint gaps. The editor tick and the admin
-  page are <em>complementary</em>: the tick <em>sets</em> a question's reservation, the page <em>manages and
-  audits</em> the set; both read/write the same reservation.</li>
+  <li><strong>An admin CAT-pool management page. ✅ BUILT 2026-07-28 (10b2)</strong> — <code>/admin/cat-pool</code>,
+  top-level beside Readiness Packs (both <em>allocate</em> already-authored stock; the Bank group's children all
+  <em>author</em> it). One route, three lenses via <code>?lens=</code>, all reading one snapshot:
+  <strong>Coverage</strong> (the four targets, the five-band spread with a Set ⟷ Calibrated toggle, blueprint vs
+  NCLEX ranges, wrapper supply), <strong>Reserved stock</strong> (the whole pool, filterable, released per question
+  or per case), and <strong>Audit</strong> (see below). Plus a <strong>reserve drawer</strong> (<code>?reserve=1</code>)
+  whose three tabs are Standalone · Cases · Trend questions — two of the three list questions ticked one at a time.
+  The editor tick and the admin page are <em>complementary</em>: the tick <em>sets</em> a reservation, the page
+  <em>manages and audits</em> the set; both read and write the same column.</li>
 </ul>
 <p>
   <strong>Mutual exclusivity is enforced at the editor, not just at save.</strong> Because a question is reserved for
-  at most one purpose (<code>UNIQUE(item_id)</code>, §20.2), the editor shows current reservation state and prevents
-  ticking "Reserve for CAT" on a question already in a readiness pack (and vice versa) — a disabled control with an
-  explanation, not a failed save. <strong>⚠ NOT built in 10b1 — deferred.</strong> 10b1 backed reservation with a
-  boolean <code>cat_pool</code> column rather than the §20.2 <code>UNIQUE</code> table, so this guard becomes a
-  cross-check (is the item readiness-tagged?) rather than a constraint; it lands with 10b3.
+  at most one purpose, the surface shows current reservation state and prevents reserving a question already in a
+  readiness pack (and vice versa) — a disabled control with an explanation, not a failed save.
+  <strong>✅ Built in 10b2</strong>, in both halves: the reserve drawer greys a readiness-tagged row out with its
+  reason, <em>and</em> the Server Action re-checks the live link table before writing, because 10b1's boolean leaves
+  no constraint to catch a stale page or a crafted request. Blocked ids are skipped and reported, not failed as a
+  batch. (A case is blocked if <em>any</em> child is readiness-tagged — the wrapper is the unit.)
+</p>
+<p>
+  <strong>The Audit lens — four conditions that degrade a pool without blocking a sitting.</strong> Each is counted
+  from the same rows the stock pane lists, and deep-links to its own subset:
+  <em>still visible in the student builder</em> (expected until 10b3) · <em>reserved for two purposes at once</em> ·
+  <em>reserved but impossible to place</em> · <em>reserved but still draft</em>. The third is the compensating
+  control for narrowing the placeability CHECK (§20.2.1): a case child with no difficulty band cannot be refused by
+  the database any more, and one such child stops CAT scheduling the <em>whole</em> case, so it has to be visible
+  somewhere a curator can act on it.
+</p>
+<p class="callout">
+  <strong>⚠ Read-path gotcha worth remembering.</strong> Every number on this page is aggregated in memory from rows
+  it reads, and PostgREST caps a select at <strong>1,000 rows silently</strong> — no error, just a short array. The
+  Coverage lens therefore reported a 2,833-question pool as "1,000 / 2,880", with a plausible-looking spread and
+  blueprint built from whatever the first thousand rows were. It survived three rounds of tsc / vitest / SQL checks
+  because none of those go through the client's row limit; it was caught the first time a human opened the page.
+  Both unbounded reads now page explicitly, ordered by <code>item_id</code>. Any future surface that aggregates the
+  pool in memory must do the same.
 </p>
 <p class="callout">
   <strong>Readiness retrofit — deferred, and not symmetric.</strong> The intent is to eventually give readiness
@@ -4507,12 +4634,25 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   <code>pyirt</code> commitment (§20.3). New work:
 </p>
 <ul>
-  <li>Generalise reserved stock to a <code>cat_pool</code> purpose (schema).</li>
-  <li>CAT selection draws only from <code>cat_pool</code>; readiness-reserved items excluded from CAT (closes the 452 leak); <code>cat_pool</code> excluded from practice.</li>
-  <li>Curator editor: a "Reserve for CAT" tick with the mutual-exclusivity guard, and the five-option difficulty dropdown (§20.5).</li>
-  <li>A dedicated admin CAT-pool management page with reserved-stock bookkeeping (§20.5).</li>
+  <li>✅ <strong>Reserved stock as a <code>cat_pool</code> flag</strong> (schema) — 10b1, migration
+  <code>20260819120000</code>; regrained to two reservation units by <code>20260822120000</code> (§20.2.1).</li>
+  <li>⬜ <strong>CAT selection draws only from <code>cat_pool</code></strong>; readiness-reserved items excluded from
+  CAT (closes the 452 leak); <code>cat_pool</code> excluded from practice. <strong>This is 10b3 and is the only
+  part still unbuilt</strong> — until it lands, the flag is written and read but honoured by nothing, which the
+  page says plainly at the top of every lens.</li>
+  <li>✅ <strong>Curator editor: the "Reserve for CAT" tick</strong> (10b1, corrected 10b2) <strong>with the
+  mutual-exclusivity guard</strong> (10b2), and the five-option difficulty dropdown (10a, §20.5).</li>
+  <li>✅ <strong>The admin CAT-pool management page</strong> with reserved-stock bookkeeping — 10b2, three lenses
+  plus the reserve drawer (§20.5).</li>
 </ul>
-<p><strong>Status:</strong> design settled 2026-07-26; build not started. Sequence relative to Slice 10 is open.</p>
+<p>
+  <strong>Status:</strong> design settled 2026-07-26, regrained 2026-07-28. <strong>10b1 and 10b2 are built and
+  verified live on dev</strong>; <strong>10b3 (selection + closing the leaks both ways) is the remaining work.</strong>
+  Note that 10b3 is now materially simpler than first planned: because a case child carries its wrapper's flag,
+  both the CAT selection query and the practice exclusion can test one boolean on <code>nclex_bank_items</code>
+  rather than joining back to two wrapper tables — with the one exception that a case is <em>scheduled</em> from
+  <code>nclex_case_studies</code>, so that path still reads the wrapper's own flag.
+</p>
 
 
 <h2 id="s21">21. Related docs</h2>
