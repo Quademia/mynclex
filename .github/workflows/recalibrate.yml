@@ -1,0 +1,96 @@
+# Weekly empirical difficulty recalibration — CAT Slice 10c.
+#
+# Measures every bank question's difficulty from how students actually
+# answered it, and writes the result back. See
+# docs/product-plan/bank-consumption-cat.html §5.3 and §17.6.
+#
+# WHY THIS RUNS HERE AND NOT IN THE DATABASE
+# The other scheduled job in this product — the nightly enrolment sweep — is
+# a pg_cron function inside Supabase, and that is the right shape for it: it
+# applies rules, each row decided on its own. Recalibration solves for
+# unknowns instead. A question's difficulty depends on the ability of whoever
+# answered it, and their ability depends on the difficulty of what they
+# faced, so both are estimated together over the full response matrix,
+# iteratively. Postgres could do the arithmetic; the reasons not to are that
+# 17.6% of our answers carry partial credit, that the estimator's bugs would
+# be silent rather than loud, and that the iteration should not compete for
+# CPU with the instance serving students.
+#
+# THE SWITCH IS NOT HERE
+# The schedule always fires. Whether the job does anything is decided by
+# `cat_recalibration_enabled` in nclex_config, flipped from /admin/config —
+# same pattern as the enrolment sweep, so stopping it is an admin action
+# rather than a code change and a deploy.
+
+name: Recalibrate difficulty
+
+on:
+  # §5.3.2 — Sundays 02:00 UTC, the low-traffic window. Weekly rather than
+  # nightly because early on an item might gather 3–5 answers a day, so
+  # nightly would mostly recompute nothing.
+  schedule:
+    - cron: '0 2 * * 0'
+
+  # Running it by hand: for testing, and for the day a run needs repeating.
+  # Defaults to dev so an absent-minded click cannot rewrite prod difficulty.
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Which database to recalibrate
+        type: choice
+        options:
+          - dev
+          - prod
+        default: dev
+
+concurrency:
+  # Two runs writing difficulty at once would each measure against a bank the
+  # other is changing underneath it.
+  group: recalibrate-${{ github.event.inputs.environment || 'prod' }}
+  cancel-in-progress: false
+
+jobs:
+  recalibrate:
+    name: Fit and apply
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      # Only what the job actually imports (@supabase/supabase-js). The app's
+      # build toolchain is not needed to run a script.
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Run the recalibration
+        env:
+          CALIBRATION_RUN: '1'
+          # A scheduled run is CRON; a hand-started one is MANUAL. The
+          # distinction is stored on every history row (§5.3.2), so "why did
+          # this item move on a Tuesday" has an answer.
+          CALIBRATION_TRIGGER: ${{ github.event_name == 'workflow_dispatch' && 'MANUAL' || 'CRON' }}
+          # Ties every row of one run together, and back to this run's log.
+          CALIBRATION_RUN_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
+          # The scheduled run targets prod. A manual run targets whichever
+          # environment was chosen, defaulting to dev.
+          SUPABASE_URL: >-
+            ${{ (github.event.inputs.environment == 'dev')
+                && secrets.SUPABASE_URL_DEV
+                || secrets.SUPABASE_URL_PROD }}
+          SUPABASE_SERVICE_ROLE_KEY: >-
+            ${{ (github.event.inputs.environment == 'dev')
+                && secrets.SUPABASE_SERVICE_ROLE_KEY_DEV
+                || secrets.SUPABASE_SERVICE_ROLE_KEY_PROD }}
+        # npx fetches tsx on demand rather than adding it to package.json —
+        # `npm install` on the development machine has a documented habit of
+        # breaking the dev server's CSS, and a script runner is no reason to
+        # touch node_modules there.
+        run: npx --yes tsx lib/calibration/job.ts

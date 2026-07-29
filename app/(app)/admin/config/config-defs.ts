@@ -39,6 +39,16 @@ export const CONFIG_DEFS: ConfigDef[] = [
       'This stops the nightly job that pauses overdue students and expires ended enrolments/subscriptions. Live access checks still apply, but stored statuses (and the tutor roster) will stop updating until you turn it back on.',
   },
   {
+    key: 'cat_recalibration_enabled',
+    label: 'Weekly difficulty recalibration',
+    description:
+      'Measures every question’s difficulty from how students actually answered it, each Sunday at 02:00 UTC. A question needs 30 answers before its difficulty can move, so this does nothing until the bank has been used.',
+    type: 'boolean',
+    defaultValue: 'true',
+    confirmOff:
+      'This stops the weekly job that keeps question difficulty in step with real student performance. Nothing breaks — every question keeps the difficulty it last had — but the adaptive exam will go on matching students against increasingly out-of-date numbers until you turn it back on.',
+  },
+  {
     key: 'bank_optin_discount',
     label: 'Bank opt-in discount',
     description:
