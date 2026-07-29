@@ -156,7 +156,44 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-29 — <strong>Slice 10b3 BUILT: the reservation is now ENFORCED</strong>
+  Living planning document. Last updated: 2026-07-29 — <strong>Slice 10c BUILT: difficulty stops being an opinion</strong>
+  (<code>lib/calibration/</code>, migration <code>20260825120000</code>, <code>.github/workflows/recalibrate.yml</code>;
+  dev-applied and merged to <code>main</code>). The weekly joint fit measures every question's difficulty from how
+  students actually answered it — whole bank, per §5.3.5 — with the 30-response threshold, the 70/30 blend and the
+  one-way source flip intact. <strong>The person half is not a copy of the live estimator, it IS
+  <code>estimateAbility</code></strong> from <code>lib/cat</code>: §4.5 requires recalibration to read a response
+  exactly as the engine does, and sharing the implementation makes drift impossible rather than merely forbidden. It
+  also anchors calibrated difficulty to the same scale as the passing standard. Only the item half is new.
+  <strong>⚠ §17.6's stated reason for running outside the database is overstated and is corrected here:</strong> it
+  claims in-Postgres maths "does not" do a joint fit. It can — the calculation is a loop of weighted sums. The real
+  reasons are that <strong>17.6% of our answers carry partial credit</strong> (a SQL version would have to flatten
+  them to right/wrong, systematically making every multi-select look harder than it is), that an estimator's bugs are
+  silent rather than loud, and that the iteration should not compete for CPU with the instance serving students.
+  <strong>The runtime is TypeScript, not the Python/<code>pyirt</code> §17.6 named</strong> — there is no Python on the
+  development machine, and session branches never reach the remote, so a Python job could not have been executed even
+  once before merging; an unrunnable estimator loses on the very axis (correctness) that sent the job out of the
+  database. <strong>⚠ The audit table was NOT created — it has existed since Slice 1</strong>
+  (§12.7.5) and arriving with §17.2's column list nearly produced a second one; §12.7 is canonical, so this adapts to
+  it and adds only <code>raw_empirical_value</code> (the blend can hide a wild measurement behind a mild-looking move)
+  plus <code>job_trigger</code> / <code>job_triggered_by</code>. Writes go through <strong>one RPC, one
+  transaction</strong> — the client cannot span statements, so a loop could stop between changing a difficulty and
+  recording why. The off-switch is <code>cat_recalibration_enabled</code> in <code>nclex_config</code>, on
+  <code>/admin/config</code> beside the nightly enrolment sweep, shipped ON because the job is self-gating.
+  <strong>Proven</strong> by recovering chosen difficulties from a simulated cohort (150 students, 40 questions, every
+  seed deliberately wrong at 0 → mean error 0.25, ordering &gt;95% correct), by a live GitHub Actions run against dev
+  reproducing the local numbers exactly (678 responses, 551 items, nothing over threshold, nothing written), by the
+  off-switch live, and by the write path under a rollback. <strong>⚠ The maths has never met real data</strong> — the
+  best-covered question in the bank has 4 answers and needs 30 — so 10c is built, verified, and correctly doing
+  nothing until students arrive. Still open: the manual trigger button, the history readout, the snapshot plumbing that
+  lights the student pill (six attempt-creation RPCs), and misfit warnings.
+  <strong>Also this session — the CAT pool's membership test was measuring the wrong column</strong> (migration
+  <code>20260824120000</code>): CAT selects on <code>difficulty_irt</code>, but the placeability CHECK, the reserve
+  drawer, the audit lens and the reserve action all screened on <code>difficulty</code>, the curator's word. The
+  622-item gap-fill run had set bands with no numbers, so <strong>633 items carried a word and no number</strong>, 622
+  of them offerable as CAT stock the engine could never serve and 11 already sitting in the pool counted and dead.
+  Fixed by making the number impossible to omit — a trigger seeds it on any write — rather than by tightening the four
+  tests that missed it. CAT also now honours a trend dataset's publish state, which practice always has.
+  <em>Earlier the same day</em> — <strong>Slice 10b3 BUILT: the reservation is now ENFORCED</strong>
   (new §20.7; migration <code>20260823120000</code>, dev-applied). Practice stops serving reserved stock via one
   predicate in <code>_nclex_eligible_unit_pool</code> — the single gateway, so the count / breakdown / create RPCs
   follow for free — and CAT draws only from the pool. <strong>CAT stopped requiring <code>is_builder_visible</code></strong>,
@@ -164,7 +201,7 @@
   between the case pick and the standalone picks. Reserving now clears the practice-side flags as a second layer,
   and mutual exclusivity binds from the readiness side too. Dev: practice 3,245 → 807 units and 61 → 24 cases, both
   leak checks zero. §20 is complete; <strong>10c (the recalibration job) is what remains of Slice 10.</strong>
-  <em>Earlier the same day</em> — <strong>Slice 10b2 BUILT, then the reservation REGRAINED</strong>
+  <em>And before that</em> — <strong>Slice 10b2 BUILT, then the reservation REGRAINED</strong>
   (new §20.2.1; §20.4, §20.5, §20.6 rewritten; migration <code>20260822120000</code>, dev-applied). The admin
   CAT-pool page shipped at <code>/admin/cat-pool</code> — three lenses off one snapshot plus a reserve drawer, with
   the §20.5 mutual-exclusivity guard built in both halves rather than deferred. Then <strong>two reservation units,
@@ -3097,6 +3134,21 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 </p>
 
 <h3>17.2 Audit history of difficulty changes — one new table</h3>
+
+<p class="callout">
+  <strong>⚠ The column names below are the SKETCH, not the table. The table already exists</strong> —
+  <code>nclex_bank_item_calibration_history</code> was built in <strong>Slice 1</strong>
+  (<code>20260808120000</code>, §12.7.5) and sat empty until 10c filled it. §12.7 is canonical on audit-table column
+  names where it diverges from here (§12.7.5 note), so the built names win:
+  <code>bank_item_id</code> · <code>previous_difficulty_irt</code> · <code>new_difficulty_irt</code> ·
+  <code>responses_used</code> · <code>recalibrated_at</code> · <code>recalibration_job_run_id</code>.
+  Building 10c from this list alone nearly produced a <em>second</em> table. What §17.2 asked for and §12.7.5 did not
+  build was added in <code>20260825120000</code>: <code>raw_empirical_value</code>, <code>job_trigger</code> and
+  <code>job_triggered_by</code>. One thing was deliberately NOT changed — <code>new_source</code> still accepts
+  <code>CURATOR_LABEL</code>, though §5.2 says recalibration never writes back to it. The rule is enforced in
+  <code>lib/calibration/rules.ts</code> and tested; narrowing a CHECK that §12.7.5 chose was not that slice's call.
+</p>
+
 <p>
   Per §5.3, recalibration overwrites <code>nclex_bank_items.difficulty_irt</code> with the 70/30 blended value
   on every weekly run. To preserve history of how each item's difficulty has evolved, we add a single new
@@ -3123,6 +3175,16 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 </table>
 
 <h3>17.3 No separate job-run table</h3>
+
+<p class="callout">
+  <strong>⚠ Where this reasoning stops (noted at build time, 2026-07-29).</strong> "Group the rows sharing a
+  <code>calibrated_at</code>" reconstructs a run that <em>changed something</em>. It reconstructs nothing from a run
+  that changed nothing — and that is <strong>every run until real students arrive</strong>, since an item needs 30
+  answers and the best-covered question in the bank has 4. Those runs write zero rows and leave no trace in our data
+  at all, so "did it run, was it healthy" is answerable only from the GitHub Actions run log. Accepted rather than
+  solved; if it ever needs solving the answer is a run-log table, not a change row that says nothing changed.
+</p>
+
 <p>
   An earlier draft proposed a separate <code>nclex_calibration_job_runs</code> table to record each weekly job
   execution (start/end time, items processed, error count). Rejected: the per-run summary can be derived from
@@ -3177,6 +3239,50 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   already runs our deploy / migrate pipelines, executes any Python on a cron, and reads from / writes back to
   Supabase — keeping the heavy weekly batch off the request path. (pg_cron can still fire the schedule if preferred,
   but the compute lives in the Action.)
+</p>
+<p class="callout">
+  <strong>⚠ Corrected at build time, 2026-07-29 — the paragraph above is right about WHERE and wrong about WHY,
+  and the language is TypeScript, not Python.</strong>
+</p>
+<p>
+  <strong>The reason given does not hold.</strong> "In-Postgres math does not do a joint fit" is overstated: the
+  calculation is a loop of weighted sums, Postgres loops and sums, and at our scale it would be fast. Someone could
+  have written this as a SQL function. The honest trade was never <em>can it</em> — it was <em>do we want to own a
+  statistical estimator ourselves</em>.
+</p>
+<p>
+  <strong>Three reasons that do hold</strong>, and they are what the decision now rests on:
+</p>
+<ul>
+  <li><strong>Partial credit.</strong> 17.6% of every answer recorded so far is part-right. The simple model that is
+    easy to hand-write in SQL accepts only right or wrong, so a SQL version would have to flatten a 3-of-5 to a
+    failure — discarding real information on nearly one answer in five and systematically making every SATA, matrix,
+    bow-tie and cloze read harder than it is. Our bank is full of them. This is the reason that actually decides it.</li>
+  <li><strong>The failure mode is silent.</strong> An estimator's bugs do not crash; they produce plausible wrong
+    numbers. An easy question marked hard gets fed to strong candidates and nothing anywhere looks broken.</li>
+  <li><strong>CPU.</strong> Dozens of passes over the full answer table, inside the database serving students. Free
+    today; the one cost that grows exactly as the product succeeds.</li>
+</ul>
+<p>
+  <strong>Why TypeScript rather than the Python / <code>pyirt</code> named above.</strong> Two facts settled it, both
+  discovered at build time. There is <strong>no Python interpreter on the development machine</strong> — which is also
+  why <code>validate.py</code> shipped untested — and <strong>session branches never reach the remote</strong>, so a
+  GitHub Action could not have run one either without merging first. A Python job would have been written blind,
+  merged unexecuted, and first run in anger. That loses on <em>correctness</em>, which is the whole reason the job
+  left the database. In TypeScript the estimator is testable in vitest beside the other 600 tests, and the job itself
+  was run end to end against dev before it was merged. The cost is that the maths is ours rather than a library's —
+  paid down by proving it recovers difficulties we chose from a simulated cohort, which is the same proof a library
+  would have had to pass. <code>pyirt</code> was also a weak choice on its own terms: an old, lightly-maintained
+  package named a year before it would be used.
+</p>
+<p>
+  <strong>What was actually built</strong> (2026-07-29): <code>lib/calibration/fit.ts</code> (the item half plus the
+  loop; the person half is <code>estimateAbility</code> from <code>lib/cat</code>, shared not copied, per §4.5) ·
+  <code>lib/calibration/rules.ts</code> (§5.3.1 threshold, §5.3.3 blend, §5.2 one-way source flip) ·
+  <code>lib/calibration/job.ts</code> (the entry point) · <code>nclex_apply_calibration</code>, which applies a whole
+  run in one transaction so a difficulty and the history row explaining it cannot come apart ·
+  <code>.github/workflows/recalibrate.yml</code> (Sundays 02:00 UTC + a manual run with a dev/prod choice) ·
+  <code>cat_recalibration_enabled</code> on <code>/admin/config</code>.
 </p>
 
 

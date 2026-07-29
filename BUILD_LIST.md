@@ -211,9 +211,63 @@
 >         The two big CAT functions were deployed by **transforming the live definitions under
 >         assertions**, then the migration file proven **byte-identical by md5** — not retyped.
 >         ⚠ **A live CAT sitting has not been played end to end.** Full write-up: cat.html §20.7.
->     - ⬜ **10c — the recalibration job** (§5.3 / §17). Weekly GitHub Actions
->       `pyirt` whole-bank fit; flips items to `EMPIRICAL`; also the piece that
->       lights up the student pill (snapshot plumbing) and needs accumulated data.
+>     - ✅ **10c — the recalibration job — BUILT 2026-07-29, on `main`** (new
+>       `lib/calibration/`, migration `20260825120000` dev-applied,
+>       `.github/workflows/recalibrate.yml`). The weekly joint fit measures every
+>       question's difficulty from how students actually answered it — **whole bank**
+>       (§5.3.5) — keeping the 30-answer threshold, the 70/30 blend and the one-way
+>       source flip. **The person half is not a copy of the live estimator, it IS
+>       `estimateAbility` from `lib/cat`** — §4.5 demands recalibration read a response
+>       exactly as the engine does, and sharing the code makes drift impossible rather
+>       than forbidden; it also puts calibrated difficulty on the same scale as the
+>       passing standard. Only the item half is new.
+>       ⚠ **§17.6's stated reason was wrong and is corrected in the doc:** Postgres
+>       *can* do a joint fit. What actually decides it is that **17.6% of our answers
+>       carry partial credit**, which a SQL version would have to flatten to
+>       right/wrong — making every SATA/matrix/bow-tie read harder than it is.
+>       ⚠ **TypeScript, not the Python/`pyirt` the doc named:** there is no Python on
+>       the machine and session branches never reach the remote, so a Python job could
+>       not have been run even once before merging — and an unrunnable estimator loses
+>       on correctness, the very reason the job left the database.
+>       ⚠ **The audit table was NOT created** — it has existed since Slice 1 (§12.7.5)
+>       and building from §17.2's column list nearly produced a second one; this added
+>       `raw_empirical_value` + `job_trigger` + `job_triggered_by` to what was there.
+>       Writes go through **one RPC, one transaction**, so a difficulty and the history
+>       row explaining it cannot come apart. Off-switch `cat_recalibration_enabled` on
+>       `/admin/config` beside the nightly sweep, **shipped ON** (self-gating).
+>       **Proven:** recovers chosen difficulties from a simulated cohort (mean error
+>       0.25, ordering >95% correct); a **live GitHub Actions run against dev**
+>       reproduced the local numbers exactly (678 responses, 551 items, nothing over
+>       threshold, nothing written); off-switch verified live; the write path verified
+>       under a rollback. vitest 566 → 606.
+>       ⚠ **The maths has never met real data** — the best-covered question has 4
+>       answers and needs 30. Built, verified, and correctly doing nothing until
+>       students arrive. ⚠ The Sunday 02:00 UTC schedule targets **prod** and is live
+>       from now, not from launch.
+>       ⬜ **Follow-ons deliberately not built:** the admin "recalibrate now" button ·
+>       the history readout · **the snapshot plumbing that lights the student
+>       difficulty pill** (two values into six attempt-creation RPCs) · **misfit
+>       warnings** (flagging a question strong students keep getting wrong — used as an
+>       argument for leaving the database, so it is recorded rather than dropped).
+>
+> 16. ✅ **NEW — the CAT pool's membership test was measuring the wrong column.
+>     FIXED 2026-07-29, on `main`** (migration `20260824120000`, dev-applied).
+>     CAT selects on `difficulty_irt`, the number; the placeability CHECK, the
+>     reserve drawer, the audit lens and the reserve action all screened on
+>     `difficulty`, the curator's word. The two are written together by the editor
+>     — and not by bulk SQL. The 622-item gap-fill run set a band on every row and
+>     a number on none, leaving **633 items with a word and no number**: 622 of them
+>     offerable in the reserve drawer as CAT stock the engine could never serve, and
+>     **11 already reserved, counted in Coverage and dead**. Reserve a few hundred of
+>     the rest and the targets would have looked met while CAT served none of them.
+>     Fixed by making the number **impossible to omit** — a trigger seeds it from the
+>     band on any write, so no load path can reproduce the state — rather than by
+>     tightening the four tests that missed it; those follow behind as backstops. The
+>     reserve action's case gate now also requires **six** placeable children rather
+>     than merely finding no broken one. **Also:** CAT now honours a trend dataset's
+>     publish state, which practice always has (zero rows affected today, latent
+>     before). Dev: band-but-no-number 633 → 0, drawer-offerable-but-dead 622 → 0,
+>     reserved-but-dead 11 → 0, CAT first-item candidates 2,382 → 2,393.
 >
 > 15. ✅ **NEW — the bank coverage gap-fill + the marks defect under it. DONE
 >     2026-07-28 (later), on `main`.** A cloud session measured the standalone
