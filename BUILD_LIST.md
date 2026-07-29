@@ -171,6 +171,16 @@
 >         RLS (no new policy). Shared copy `lib/bank/atoms/cat-pool.ts`. ⚠ Diverged
 >         from §20.2: a boolean column, not a `UNIQUE` reservation table → the
 >         mutual-exclusivity guard is deferred to 10b3.
+>         **✅ The "editor tick is a second reservation door" ⚠ is CLOSED
+>         2026-07-29** (migration `20260828120000`): it was a *fourth*-door problem
+>         — reserving carries three obligations beyond the flag and all three lived
+>         in the admin drawer's action alone, while both editor ticks write it bare
+>         and the drawer itself never re-checks pack membership for **cases**. Now a
+>         `BEFORE INSERT OR UPDATE` trigger on items + case wrappers forces
+>         `is_builder_visible` / `is_free_sample` false and refuses a readiness-pack
+>         member by name. ⚠ **The trigger name sorts after `..._inherit_trg` on
+>         purpose** — same-event triggers fire alphabetically; a tidier earlier name
+>         disables it on INSERT. See §20.5.
 >       - ✅ **10b2 — admin CAT-pool management page — BUILT 2026-07-28** (all four
 >         sub-slices, from the v1 Claude Design prototype; on `main`, no migration).
 >         **`/admin/cat-pool`, top-level beside Readiness Packs** — the Bank group's

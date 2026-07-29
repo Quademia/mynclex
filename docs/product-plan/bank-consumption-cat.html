@@ -4792,7 +4792,56 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   <em>below</em> dev's counts and still clear the floor comfortably.
 </p>
 
-<h3>20.5 Curator surfaces — the editor tick, the dropdown, the admin page <span class="status settled">settled 2026-07-26</span></h3>
+<h3>20.5 Curator surfaces — the editor tick, the dropdown, the admin page <span class="status settled">settled 2026-07-26 · <strong>reservation SEALED in the database 2026-07-29</strong> (migration <code>20260828120000</code>)</span></h3>
+<p class="callout">
+  <strong>⭐ The reservation contract now lives in the database, not in one caller (2026-07-29).</strong> Reserving
+  carries three obligations beyond setting the flag — the row leaves the practice builder
+  (<code>is_builder_visible</code>), it stops being a public free sample (<code>is_free_sample</code>), and it must
+  not also be sold inside a readiness pack. All three lived only in the admin reserve drawer's Server Action, and
+  <strong>four paths can set <code>cat_pool</code></strong>.
+</p>
+<ul>
+  <li>The <strong>standalone editor's tick</strong> writes the flag bare.</li>
+  <li>The <strong>case-wrapper editor's tick</strong> does the same.</li>
+  <li>The <strong>drawer's own action, for cases</strong> — its readiness re-check covers only <code>item</code>
+    targets.</li>
+</ul>
+<p>
+  That third one needs stating precisely, because <strong>the first reading of it was wrong and is recorded here
+  rather than quietly corrected.</strong> It was reported as a one-click leak on the sanctioned surface. It is not:
+  the drawer's <em>UI</em> does grey a case whose child is in a pack — <code>lib/bank/cat-pool/queries.ts</code>
+  rolls child pack membership up into the wrapper's <code>readinessTagged</code> — so a curator cannot click those
+  cases. What is genuinely missing is the <em>server-side</em> re-check that the item path has, and that one exists
+  for an explicit stated reason: check the live link table rather than trusting what the drawer displayed. The case
+  path trusted the page, so a stale tab or a pack edited concurrently went through. The UI rollup also counts only
+  <strong>published</strong> children, so a pack member that is an unpublished child greys nothing (zero such rows
+  at the time of writing, and nothing preventing one).
+</p>
+<p>
+  Hence a <strong>trigger</strong> rather than a fourth copy of the rules in TypeScript: four paths can set the
+  flag, three skip part of the contract, and the database is the only layer all four cross. On any write leaving
+  <code>cat_pool</code> true it forces both flags false and, for items, refuses the write if the row is in a pack —
+  naming the item and the pack. A case needs no check of its own: the cascade updates each child, each child fires
+  the item trigger, and a pack-member child aborts the whole transaction, so the error names the offending
+  <em>child</em> rather than the case that was clicked.
+</p>
+<p>
+  <strong>Forcing the flags but rejecting on pack membership is deliberate.</strong> A curator ticking "Reserve for
+  CAT" has stated an intention the flags merely follow from, so making them agree completes the instruction rather
+  than overriding it. Pack membership is two intentions in genuine conflict, and only a human can say which wins.
+  ⚠ <code>is_free_sample</code> is forced on <em>cases</em> too, which the drawer never did (it clears it for items
+  only) — same column, same reasoning, a gap closed rather than a behaviour copied. The six-placeable-children rule
+  stays in TypeScript where it can explain itself, and the placeability CHECK still exempts case children so the
+  cascade cannot make a child unsaveable.
+</p>
+<p class="callout">
+  <strong>⚠ The trigger NAME is load-bearing — do not tidy it.</strong> Postgres fires same-event row triggers in
+  <em>alphabetical</em> order, and <code>nclex_item_cat_pool_inherit_trg</code> is what copies a child's
+  <code>cat_pool</code> down from its parent case. The guard must run after it, or on an INSERT it would inspect the
+  value before inheritance and wave through a child that is about to become reserved.
+  <code>nclex_item_cat_pool_seal_trg</code> is named "seal" for that reason and no other: it sorts after "inherit".
+  Renaming it to something tidier that sorts earlier silently disables it on exactly the path that matters.
+</p>
 <p>
   Reserving a question for the CAT pool is a <strong>visible curator action, not a hidden / code-only flag</strong>.
   Three surfaces:
