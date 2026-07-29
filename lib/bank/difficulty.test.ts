@@ -68,33 +68,44 @@ describe('bandForIrt — §5.5.1 number → band, cut-offs at ±0.5 / ±1.5', ()
   });
 });
 
-describe('displayBand — §5.5.2 what a human is shown', () => {
-  it('shows the curator label verbatim while CURATOR_LABEL', () => {
-    // Even if the seed number would band elsewhere, the seed label wins
-    // until there is empirical evidence.
-    expect(
-      displayBand({ label: 'Hard', irt: 1.0, source: 'CURATOR_LABEL' }),
-    ).toBe('Hard');
+describe('displayBand — §5.5.2b what a human is shown', () => {
+  // ⭐ The property that makes dropping the difficulty_source branch safe.
+  // If a seed did NOT round-trip, an unmeasured question would silently
+  // start displaying a different word than the curator authored the day
+  // Slice 10d shipped. Asserted, not assumed.
+  it('round-trips every seed: an unmeasured item shows the word it was authored with', () => {
+    for (const label of DIFFICULTY_LEVELS) {
+      expect(displayBand(seedIrtForLabel(label))).toBe(label);
+    }
   });
 
-  it('derives the band from the number once EMPIRICAL', () => {
-    // Authored "Medium" but the data says it behaves Very hard.
-    expect(
-      displayBand({ label: 'Medium', irt: 2.3, source: 'EMPIRICAL' }),
-    ).toBe('Very hard');
+  it('derives the band from the number, so a drifted item stops reading stale', () => {
+    // Authored "Medium" (seed 0.0); recalibration moved it to +2.3. The
+    // curator's word is deliberately never rewritten (§5.2), so deriving
+    // is the only thing that keeps the pill honest.
+    expect(displayBand(2.3)).toBe('Very hard');
+    // ...and in the other direction.
+    expect(displayBand(-1.8)).toBe('Very easy');
   });
 
-  it('falls back to the label when EMPIRICAL but the number is missing', () => {
-    expect(
-      displayBand({ label: 'Easy', irt: null, source: 'EMPIRICAL' }),
-    ).toBe('Easy');
+  it('does not consult difficulty_source — the same number bands the same way', () => {
+    // The branch this replaced would have shown the curator's word here.
+    // There is no longer any input that could make 1.0 read anything but
+    // Hard, which is the point: shown and used are one fact.
+    expect(displayBand(1.0)).toBe('Hard');
   });
 
-  it('returns null when there is no difficulty to show', () => {
-    expect(displayBand({ label: null, irt: null, source: 'CURATOR_LABEL' })).toBeNull();
-    expect(displayBand({ label: '', irt: null, source: null })).toBeNull();
-    expect(
-      displayBand({ label: 'Nonsense', irt: null, source: 'CURATOR_LABEL' }),
-    ).toBeNull();
+  it('returns null when the snapshot froze no number', () => {
+    // An item authored without a difficulty — the caller renders nothing
+    // rather than inventing a Medium.
+    expect(displayBand(null)).toBeNull();
+    expect(displayBand(undefined)).toBeNull();
+  });
+
+  it('bands zero rather than treating it as absent', () => {
+    // 0.0 is the Medium seed and a perfectly real value; a truthiness
+    // check instead of a typeof would blank the most common pill in the
+    // bank.
+    expect(displayBand(0)).toBe('Medium');
   });
 });

@@ -15,7 +15,7 @@
 //
 // See bank-consumption-cat.html §5.1 (seeds), §5.5 (display band).
 
-import { DIFFICULTY_LEVELS, type Difficulty } from './classifications';
+import { type Difficulty } from './classifications';
 
 // ── §5.1 — day-one seed: curator label → number ──────────────────────
 // Five evenly-spaced points on the logit scale, one logit apart, where
@@ -54,24 +54,34 @@ export function bandForIrt(irt: number): Difficulty {
   return 'Very hard';
 }
 
-// ── §5.5.2 — the difficulty a human is shown ─────────────────────────
-// While the number is still the curator's seed (source = CURATOR_LABEL),
-// show the label the curator typed. Once recalibration owns the number
-// (source = EMPIRICAL), show the band DERIVED from that number, so the
-// displayed difficulty never drifts out of step with what the engine
-// actually uses. Returns null when there is no difficulty to show (the
-// caller renders nothing).
-export function displayBand(params: {
-  label: string | null | undefined;
-  irt: number | null | undefined;
-  source: string | null | undefined;
-}): Difficulty | null {
-  const { label, irt, source } = params;
-  if (source === 'EMPIRICAL' && typeof irt === 'number') {
-    return bandForIrt(irt);
-  }
-  if (label && (DIFFICULTY_LEVELS as readonly string[]).includes(label)) {
-    return label as Difficulty;
-  }
-  return null;
+// ── §5.5.2b — the difficulty a human is shown ────────────────────────
+// Derived from the number, always. The shown difficulty and the used
+// difficulty are therefore the same fact by construction — they cannot
+// drift, which is the whole reason §5.5 exists.
+//
+// This used to branch on difficulty_source: show the curator's word while
+// the number was still just that word translated, and only switch to the
+// derived band once recalibration owned it. The branch was dropped in
+// Slice 10d because it protects nothing — the §5.1 seeds round-trip
+// exactly (each sits dead-centre of its own band, a full half-logit clear
+// of the nearest cut-off), so for an unmeasured item both rules return the
+// same word. Worse, it PERMITTED the drift: a row whose number and word
+// disagreed while the source still read CURATOR_LABEL would show the word
+// while the engine used the number.
+//
+// What the branch really defended was an item with a word and no number,
+// where deriving would show nothing. That state is unreachable since the
+// seeding trigger in 20260824120000 — which is what makes dropping the
+// branch safe now and would not have made it safe before.
+//
+// difficulty_source is still needed on the CURATOR side: the editor's
+// Calibrated difficulty readout must say whether a number is measured or
+// assumed. It is only the student's pill that does not need the flag.
+//
+// Returns null when there is no number to band (the caller renders
+// nothing) — an item with no difficulty has no honest position on the
+// scale, and inventing "Medium" would be a lie the student can't see
+// through.
+export function displayBand(irt: number | null | undefined): Difficulty | null {
+  return typeof irt === 'number' ? bandForIrt(irt) : null;
 }

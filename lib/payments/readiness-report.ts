@@ -18,6 +18,7 @@
 // loader is the one read the whole report shares.
 
 import { createClient } from '@/lib/supabase/server';
+import { displayBand } from '@/lib/bank/difficulty';
 import { scoreToBand, type BandInfo } from './readiness-band';
 import { reviewWindowOpen } from './readiness-window';
 import { pointsDetail } from '@/lib/scoring/detail';
@@ -278,6 +279,7 @@ export async function getReadinessReport(
     const cls = item.classification_snapshot ?? {};
     const str = (v: unknown): string | null =>
       typeof v === 'string' && v.trim() !== '' ? v : null;
+    const num = (v: unknown): number | null => (typeof v === 'number' ? v : null);
     const answered = ans != null && ans.submission_status !== 'SKIPPED';
     const timeSpentSec = ans?.time_spent_sec ?? null;
     reportItems.push({
@@ -286,7 +288,12 @@ export async function getReadinessReport(
       category: str(cls.client_needs_category),
       subcategory: str(cls.client_needs_subcategory),
       bodySystem: str(cls.body_system),
-      difficulty: str(cls.difficulty),
+      // §5.5.2b — the snapshot freezes difficulty_irt, the number the engine
+      // selects on; the word it used to freeze is gone. Deriving the band
+      // here means the report and the runner's pill show the same word for
+      // the same question, so a report can't disagree with the sitting it
+      // describes (CAT Slice 10d).
+      difficulty: displayBand(num(cls.difficulty_irt)),
       cjmmStep: str(item.cjmm_step),
       topic: str(cls.topic),
       subtopic: str(cls.subtopic),

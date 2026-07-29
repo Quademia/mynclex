@@ -34,7 +34,11 @@ export interface TutorialClassification {
   tags:                     string[];
   topic:                    string | null;
   subtopic:                 string | null;
-  difficulty:               'Easy' | 'Medium' | 'Hard';
+  // §5.5.2b — the snapshot freezes the NUMBER, and the runner derives the
+  // shown band from it (CAT Slice 10d). These fixtures hold the §5.1 seed
+  // for the band we want the pill to read, exactly as a real unmeasured
+  // row does: −1 Easy · 0 Medium · +1 Hard.
+  difficulty_irt:           number;
   body_system:              string | null;
   nursing_subject:          string | null;
   client_needs_category:    string | null;
@@ -86,7 +90,7 @@ export interface TutorialTrend {
 // Small helper to keep the classification blocks readable below.
 function clsf(
   partial: Partial<TutorialClassification> &
-    Pick<TutorialClassification, 'difficulty'>,
+    Pick<TutorialClassification, 'difficulty_irt'>,
 ): TutorialClassification {
   return {
     tags:                     [],
@@ -108,7 +112,7 @@ export const TUTORIAL_QUESTIONS: TutorialQuestion[] = [
     stem:          'A client with heart failure reports waking at night short of breath. Which action should the nurse take first?',
     instruction:   'Select the one best answer.',
     classification: clsf({
-      difficulty:               'Medium',
+      difficulty_irt:            0.0,
       nursing_subject:          'Medical-Surgical',
       body_system:              'Cardiovascular',
       client_needs_category:    'Physiological Integrity',
@@ -142,7 +146,7 @@ export const TUTORIAL_QUESTIONS: TutorialQuestion[] = [
     stem:          'A rising serum potassium of 6.8 mmol/L in a client with acute kidney injury is a medical emergency.',
     instruction:   'Select True or False.',
     classification: clsf({
-      difficulty:               'Easy',
+      difficulty_irt:           -1.0,
       nursing_subject:          'Medical-Surgical',
       body_system:              'Genitourinary',
       client_needs_category:    'Physiological Integrity',
@@ -172,7 +176,7 @@ export const TUTORIAL_QUESTIONS: TutorialQuestion[] = [
     stem:          'A client is admitted with suspected hypoglycaemia. Which findings support this?',
     instruction:   'Select all that apply.',
     classification: clsf({
-      difficulty:               'Medium',
+      difficulty_irt:            0.0,
       nursing_subject:          'Medical-Surgical',
       body_system:              'Endocrine',
       client_needs_category:    'Physiological Integrity',
@@ -208,7 +212,7 @@ export const TUTORIAL_QUESTIONS: TutorialQuestion[] = [
     stem:          'A client is prescribed a new potassium-sparing diuretic. Which TWO points are most important to teach?',
     instruction:   'Select exactly 2 options.',
     classification: clsf({
-      difficulty:               'Medium',
+      difficulty_irt:            0.0,
       nursing_subject:          'Pharmacology',
       client_needs_category:    'Physiological Integrity',
       client_needs_subcategory: 'Pharmacological and Parenteral Therapies',
@@ -244,7 +248,7 @@ export const TUTORIAL_QUESTIONS: TutorialQuestion[] = [
     stem:          'For each nursing action below, indicate whether it is Appropriate or Contraindicated for a client with a new deep vein thrombosis (DVT) in the left leg.',
     instruction:   'Select one option in each row.',
     classification: clsf({
-      difficulty:               'Medium',
+      difficulty_irt:            0.0,
       nursing_subject:          'Medical-Surgical',
       body_system:              'Cardiovascular',
       client_needs_category:    'Physiological Integrity',
@@ -281,7 +285,7 @@ export const TUTORIAL_QUESTIONS: TutorialQuestion[] = [
     stem:          'For each assessment finding, indicate every body system it may reflect in a client with sepsis.',
     instruction:   'Select all that apply in each row.',
     classification: clsf({
-      difficulty:               'Hard',
+      difficulty_irt:            1.0,
       nursing_subject:          'Medical-Surgical',
       body_system:              'Multisystem',
       client_needs_category:    'Physiological Integrity',
@@ -324,7 +328,7 @@ export const TUTORIAL_QUESTIONS: TutorialQuestion[] = [
     stem:          'A client 2 days post-op reports sudden shortness of breath and pleuritic chest pain. Complete the diagram to show the priority condition, the findings that support it, and what to monitor.',
     instruction:   'Drag one option into each box.',
     classification: clsf({
-      difficulty:               'Hard',
+      difficulty_irt:            1.0,
       nursing_subject:          'Medical-Surgical',
       body_system:              'Respiratory',
       client_needs_category:    'Physiological Integrity',
@@ -387,7 +391,7 @@ export const TUTORIAL_QUESTIONS: TutorialQuestion[] = [
     stem:          'The nurse reviews a client in early shock. The blood pressure is expected to be {1} and the heart rate is expected to be {2}.',
     instruction:   'Choose the option that completes each sentence.',
     classification: clsf({
-      difficulty:               'Medium',
+      difficulty_irt:            0.0,
       nursing_subject:          'Medical-Surgical',
       body_system:              'Cardiovascular',
       client_needs_category:    'Physiological Integrity',
@@ -439,7 +443,7 @@ export const TUTORIAL_QUESTIONS: TutorialQuestion[] = [
     stem:          'Nurse’s note: The client is [[drowsy but rousable]], reports [[a headache rated 7/10]], has [[warm pink skin]], and shows [[a widening pulse pressure]]. Vital signs are otherwise stable.',
     instruction:   'Highlight the findings that require immediate follow-up.',
     classification: clsf({
-      difficulty:               'Hard',
+      difficulty_irt:            1.0,
       nursing_subject:          'Medical-Surgical',
       body_system:              'Neurological',
       client_needs_category:    'Physiological Integrity',
@@ -473,7 +477,7 @@ export const TUTORIAL_QUESTIONS: TutorialQuestion[] = [
     stem:          'Complete the teaching: the client should take the inhaler [1] and then [2] before the next dose.',
     instruction:   'Drag one option into each blank.',
     classification: clsf({
-      difficulty:               'Easy',
+      difficulty_irt:           -1.0,
       nursing_subject:          'Pharmacology',
       client_needs_category:    'Physiological Integrity',
       client_needs_subcategory: 'Pharmacological and Parenteral Therapies',
@@ -508,7 +512,7 @@ export const TUTORIAL_QUESTIONS: TutorialQuestion[] = [
     stem:          'Place the steps for responding to an unwitnessed adult collapse in the correct order.',
     instruction:   'Drag each step into the correct order.',
     classification: clsf({
-      difficulty:               'Medium',
+      difficulty_irt:            0.0,
       nursing_subject:          'Fundamentals of Nursing',
       client_needs_category:    'Safe and Effective Care Environment',
       client_needs_subcategory: 'Management of Care',
@@ -635,7 +639,7 @@ export const TUTORIAL_CASE_QUESTIONS: TutorialQuestion[] = [
     stem:           'Reviewing the 06:00–08:00 data, which findings are of most concern?',
     instruction:    'Select all that apply.',
     classification: clsf({
-      difficulty:               'Medium',
+      difficulty_irt:            0.0,
       nursing_subject:          'Medical-Surgical',
       body_system:              'Multisystem',
       client_needs_category:    'Physiological Integrity',
@@ -676,7 +680,7 @@ export const TUTORIAL_CASE_QUESTIONS: TutorialQuestion[] = [
     stem:           'For each finding, indicate whether it is consistent with sepsis or unrelated.',
     instruction:    'Select one option in each row.',
     classification: clsf({
-      difficulty:               'Medium',
+      difficulty_irt:            0.0,
       nursing_subject:          'Medical-Surgical',
       body_system:              'Multisystem',
       client_needs_category:    'Physiological Integrity',
@@ -718,7 +722,7 @@ export const TUTORIAL_CASE_QUESTIONS: TutorialQuestion[] = [
     stem:           'Which is the priority nursing action?',
     instruction:    'Select the one best answer.',
     classification: clsf({
-      difficulty:               'Medium',
+      difficulty_irt:            0.0,
       nursing_subject:          'Medical-Surgical',
       client_needs_category:    'Safe and Effective Care Environment',
       client_needs_subcategory: 'Management of Care',
@@ -754,7 +758,7 @@ export const TUTORIAL_CASE_QUESTIONS: TutorialQuestion[] = [
     stem:           'Which TWO interventions should the nurse anticipate first?',
     instruction:    'Select exactly 2 options.',
     classification: clsf({
-      difficulty:               'Hard',
+      difficulty_irt:            1.0,
       nursing_subject:          'Medical-Surgical',
       client_needs_category:    'Physiological Integrity',
       client_needs_subcategory: 'Pharmacological and Parenteral Therapies',
@@ -793,7 +797,7 @@ export const TUTORIAL_CASE_QUESTIONS: TutorialQuestion[] = [
     stem:           'Place the first sepsis-bundle actions in the correct order.',
     instruction:    'Drag each step into the correct order.',
     classification: clsf({
-      difficulty:               'Hard',
+      difficulty_irt:            1.0,
       nursing_subject:          'Medical-Surgical',
       client_needs_category:    'Physiological Integrity',
       client_needs_subcategory: 'Pharmacological and Parenteral Therapies',
@@ -835,7 +839,7 @@ export const TUTORIAL_CASE_QUESTIONS: TutorialQuestion[] = [
     stem:           'By 16:00, which findings show the treatment is working?',
     instruction:    'Select all that apply.',
     classification: clsf({
-      difficulty:               'Medium',
+      difficulty_irt:            0.0,
       nursing_subject:          'Medical-Surgical',
       body_system:              'Multisystem',
       client_needs_category:    'Physiological Integrity',
@@ -908,7 +912,7 @@ export const TUTORIAL_TREND_QUESTIONS: TutorialQuestion[] = [
     stem:           'Reviewing the trend of neurological findings, which is the priority action at 1400?',
     instruction:    'Select the one best answer.',
     classification: clsf({
-      difficulty:               'Hard',
+      difficulty_irt:            1.0,
       nursing_subject:          'Medical-Surgical',
       body_system:              'Neurological',
       client_needs_category:    'Physiological Integrity',
