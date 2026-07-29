@@ -347,14 +347,105 @@
   color: var(--text);
 }
 
+/* ── The expanded row: scenario + attempt history ─────────────────── */
+
+.cb-detail {
+  padding: 0 10px 14px 42px;
+}
+
 .cb-scenario {
   margin: 0;
-  padding: 0 10px 14px 42px;
   font-size: 12.5px;
   line-height: 1.55;
   color: var(--text-muted);
   max-width: 78ch;
   text-wrap: pretty;
+}
+
+.cb-scenario + .cb-history {
+  margin-top: 12px;
+}
+
+.cb-history {
+  max-width: 78ch;
+}
+
+.cb-history-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.cb-history-more {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-faint);
+}
+
+.cb-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--bg-soft);
+}
+
+.cb-history-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--bg-soft);
+  font-size: 12px;
+}
+
+.cb-history-date {
+  flex: 0 0 84px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.cb-history-pct {
+  flex: 0 0 auto;
+  min-width: 44px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cb-history-pct.good { color: var(--success); }
+.cb-history-pct.mid  { color: var(--warning); }
+.cb-history-pct.poor { color: var(--danger); }
+/* Never answered — not a bad score, so not scored red. */
+.cb-history-pct.none {
+  color: var(--text-faint);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.cb-history-origin {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-faint);
+}
+
+.cb-history-cover {
+  color: var(--text-faint);
+}
+
+.cb-history-link {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* ── The rail ────────────────────────────────────────────────────── */
@@ -582,5 +673,16 @@
     justify-content: flex-end;
   }
 
-  .cb-scenario { padding-left: 32px; }
+  .cb-detail { padding-left: 32px; }
+
+  /* The date column's fixed width crushes the origin text on a phone;
+   * let each entry wrap into two lines instead. */
+  .cb-history-date { flex-basis: auto; }
+
+  .cb-history-origin {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .cb-history-link { order: 2; }
 }

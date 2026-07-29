@@ -8,8 +8,14 @@ import {
   runQuestionCount,
   groupCases,
   runHint,
+  attemptHref,
+  attemptLinkLabel,
+  attemptScoreLabel,
+  attemptCoverageLabel,
+  originLabel,
+  headlineAttempt,
 } from './derive';
-import type { CaseBankRow } from './types';
+import type { CaseAttemptEntry, CaseAttemptOrigin, CaseBankRow } from './types';
 
 // A verbatim-shaped excerpt of NCLEX_CS_00024's real scenario_summary on
 // dev: prose split across sibling text nodes by bold/italic marks, mid
@@ -32,15 +38,29 @@ const REAL_TIPTAP = JSON.stringify({
   ],
 });
 
+function entry(over: Partial<CaseAttemptEntry> = {}): CaseAttemptEntry {
+  return {
+    attemptId: 'att-1',
+    endedAt: '2026-07-18T10:00:00Z',
+    pct: 60,
+    answered: 6,
+    served: 6,
+    origin: 'CASE_BANK',
+    ...over,
+  };
+}
+
 function row(over: Partial<CaseBankRow> = {}): CaseBankRow {
   return {
     caseId: 'NCLEX_CS_00001',
     title: 'Diabetic Ketoacidosis',
     locked: false,
-    seen: false,
+    satHere: false,
+    inProgress: false,
+    attemptsTotal: 0,
+    history: [],
     axes: 'Medical-Surgical · Endocrine',
     snippet: 'A 24-year-old male…',
-    last: null,
     ...over,
   };
 }
@@ -165,10 +185,79 @@ describe('runQuestionCount', () => {
   });
 });
 
+describe('attempt history helpers', () => {
+  // ⭐ The whole point of the origin field: an entry must never send the
+  // student into a 100-question exam in the runner.
+  it('sends a readiness sitting to its pack report, not the runner', () => {
+    expect(attemptHref(entry({ origin: 'READINESS', attemptId: 'p1' })))
+      .toBe('/student/bank/packs/report/p1');
+  });
+
+  it('sends a CAT sitting to its result page, not the runner', () => {
+    expect(attemptHref(entry({ origin: 'CAT', attemptId: 'c1' })))
+      .toBe('/student/bank/cat/result/c1');
+  });
+
+  it('opens the runner only for sittings small enough to read', () => {
+    expect(attemptHref(entry({ origin: 'CASE_BANK', attemptId: 'k1' }))).toBe('/session/k1');
+    expect(attemptHref(entry({ origin: 'PRACTICE',  attemptId: 'k2' }))).toBe('/session/k2');
+    expect(attemptHref(entry({ origin: 'PROGRAMME', attemptId: 'k3' }))).toBe('/session/k3');
+  });
+
+  it('names the destination rather than promising Review everywhere', () => {
+    expect(attemptLinkLabel('READINESS')).toBe('Pack report');
+    expect(attemptLinkLabel('CAT')).toBe('CAT result');
+    expect(attemptLinkLabel('CASE_BANK')).toBe('Review');
+  });
+
+  it('labels every origin', () => {
+    const all: CaseAttemptOrigin[] = ['CASE_BANK','READINESS','CAT','PRACTICE','PROGRAMME'];
+    for (const o of all) {
+      expect(originLabel(o).length).toBeGreaterThan(0);
+      expect(attemptLinkLabel(o).length).toBeGreaterThan(0);
+      expect(attemptHref(entry({ origin: o }))).toMatch(/^\//);
+    }
+  });
+
+  it('distinguishes "scored zero" from "never answered"', () => {
+    // A real dev row: one readiness sitting with 0 of 6 answered sat next
+    // to one with 5 of 6. Both would have read as a red percentage.
+    expect(attemptScoreLabel(entry({ pct: 0, answered: 0 }))).toBe('Not answered');
+    expect(attemptScoreLabel(entry({ pct: 0, answered: 6 }))).toBe('0%');
+    expect(attemptScoreLabel(entry({ pct: 47, answered: 5 }))).toBe('47%');
+  });
+
+  it('explains partial coverage, and stays quiet when there is nothing to explain', () => {
+    expect(attemptCoverageLabel(entry({ answered: 6, served: 6 }))).toBeNull();
+    expect(attemptCoverageLabel(entry({ answered: 0, served: 6 }))).toBeNull();
+    expect(attemptCoverageLabel(entry({ answered: 4, served: 6 }))).toBe('4 of 6 answered');
+    // A CAT can stop partway through a case, so `served` is not always 6.
+    expect(attemptCoverageLabel(entry({ answered: 2, served: 3 }))).toBe('2 of 3 answered');
+  });
+
+  it('headline is the most recent sitting FROM THIS PAGE', () => {
+    const r = row({
+      history: [
+        entry({ attemptId: 'cat',  origin: 'CAT' }),
+        entry({ attemptId: 'here', origin: 'CASE_BANK' }),
+        entry({ attemptId: 'old',  origin: 'CASE_BANK' }),
+      ],
+    });
+    expect(headlineAttempt(r)?.attemptId).toBe('here');
+  });
+
+  it('has no headline for a case only ever met in an exam', () => {
+    // This is what keeps Review from ever pointing at a 100-question exam.
+    const r = row({ history: [entry({ origin: 'CAT' }), entry({ origin: 'READINESS' })] });
+    expect(headlineAttempt(r)).toBeNull();
+  });
+});
+
 describe('groupCases', () => {
   const rows: CaseBankRow[] = [
-    row({ caseId: 'A', title: 'Sepsis', seen: false }),
-    row({ caseId: 'B', title: 'Ketoacidosis', seen: true, last: { attemptId: 'x', pct: 83, endedAt: null } }),
+    row({ caseId: 'A', title: 'Sepsis', satHere: false }),
+    row({ caseId: 'B', title: 'Ketoacidosis', satHere: true, attemptsTotal: 1,
+          history: [entry({ origin: 'CASE_BANK', pct: 83 })] }),
     row({ caseId: 'C', title: 'Stroke alert', locked: true, snippet: null }),
   ];
 
@@ -205,12 +294,24 @@ describe('groupCases', () => {
     expect(groupCases(rows, 'stroke', 'new')[0].rows[0].caseId).toBe('C');
   });
 
-  it('treats a seen case with no finished attempt as attempted', () => {
-    // Met in a sitting still in progress: there is nothing to Review, but
-    // it is not "Ready to sit" either.
-    const inProgress = [row({ caseId: 'D', seen: true, last: null })];
-    const groups = groupCases(inProgress, '', 'all');
-    expect(groups[0].key).toBe('attempted');
+  it('⭐ keeps an exam-only case in Ready to sit, with its result intact', () => {
+    // The change that makes Review safe by construction: meeting a case
+    // in a CAT unlocks it but does not count as having sat it, so the
+    // only sittings Review can reach are this page's own small runs.
+    const examOnly = [row({
+      caseId: 'D', satHere: false, attemptsTotal: 1,
+      history: [entry({ origin: 'CAT', pct: 43 })],
+    })];
+    const groups = groupCases(examOnly, '', 'all');
+    expect(groups.map((g) => g.key)).toEqual(['ready']);
+    // The result is still there to show inside the expanded row.
+    expect(groups[0].rows[0].history).toHaveLength(1);
+  });
+
+  it('the Attempted filter also means sat-here', () => {
+    const examOnly = row({ caseId: 'D', satHere: false, history: [entry({ origin: 'CAT' })] });
+    expect(groupCases([examOnly], '', 'done')).toEqual([]);
+    expect(groupCases([examOnly], '', 'new')[0].key).toBe('ready');
   });
 });
 

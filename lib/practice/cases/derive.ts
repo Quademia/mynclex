@@ -13,6 +13,8 @@
 
 import {
   QUESTIONS_PER_CASE,
+  type CaseAttemptEntry,
+  type CaseAttemptOrigin,
   type CaseBankRow,
   type CaseFilterId,
   type CaseGroup,
@@ -151,6 +153,89 @@ export function scoreTone(pct: number): 'good' | 'mid' | 'poor' {
   return 'poor';
 }
 
+// ── Attempt history ───────────────────────────────────────────────────
+
+/**
+ * Where a history entry links to.
+ *
+ * ⭐ This is what keeps the page honest. Sending every entry to
+ * /session/[id] is what made "Review" open a 100-question CAT at its
+ * LAST question, 90 questions from the case you clicked (measured on a
+ * real dev row). A readiness sitting and a CAT sitting already have
+ * proper homes — their report and their result page — so they go there
+ * instead of into the runner.
+ *
+ * Only a sitting that is actually about this case (a case-bank run) or
+ * small enough to read (an ordinary practice run) opens the runner.
+ */
+export function attemptHref(entry: CaseAttemptEntry): string {
+  switch (entry.origin) {
+    case 'READINESS':
+      return `/student/bank/packs/report/${entry.attemptId}`;
+    case 'CAT':
+      return `/student/bank/cat/result/${entry.attemptId}`;
+    case 'CASE_BANK':
+    case 'PRACTICE':
+    case 'PROGRAMME':
+      return `/session/${entry.attemptId}`;
+  }
+}
+
+/** What that destination is, so the link doesn't promise the wrong thing. */
+export function attemptLinkLabel(origin: CaseAttemptOrigin): string {
+  switch (origin) {
+    case 'CASE_BANK': return 'Review';
+    case 'READINESS': return 'Pack report';
+    case 'CAT':       return 'CAT result';
+    case 'PRACTICE':  return 'Review';
+    case 'PROGRAMME': return 'Review';
+  }
+}
+
+/** Where this sitting came from, in the student's words. */
+export function originLabel(origin: CaseAttemptOrigin): string {
+  switch (origin) {
+    case 'CASE_BANK': return 'Case study';
+    case 'READINESS': return 'Readiness pack';
+    case 'CAT':       return 'CAT exam';
+    case 'PRACTICE':  return 'Practice';
+    case 'PROGRAMME': return 'Assigned quiz';
+  }
+}
+
+/**
+ * The score to print for one sitting.
+ *
+ * A percentage alone conflates "did badly" with "never answered" — both
+ * render 0%. A real dev row has a readiness sitting with 0 of 6 answered
+ * sitting next to one with 5 of 6; showing both as a red percentage
+ * would have told the student two different things in the same words.
+ */
+export function attemptScoreLabel(entry: CaseAttemptEntry): string {
+  if (entry.answered === 0) return 'Not answered';
+  return `${entry.pct}%`;
+}
+
+/**
+ * "6 of 6" — how much of the case that sitting actually covered. Null
+ * when it covered all of it and there is nothing to caveat.
+ */
+export function attemptCoverageLabel(entry: CaseAttemptEntry): string | null {
+  if (entry.answered === 0) return null;             // the score label says it
+  if (entry.answered === entry.served) return null;  // nothing to explain
+  return `${entry.answered} of ${entry.served} answered`;
+}
+
+/**
+ * The sitting the collapsed row summarises: the most recent one from
+ * THIS page. Null for a case only ever met in an exam — which is
+ * precisely why such a case shows no score and no Review button, and
+ * waits in "Ready to sit" with its result inside the expanded history.
+ */
+export function headlineAttempt(row: CaseBankRow): CaseAttemptEntry | null {
+  return row.history.find((e) => e.origin === 'CASE_BANK') ?? null;
+}
+
 /** "12 Jul 2026", or null when there's no timestamp to show. */
 export function formatAttemptDate(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -170,6 +255,14 @@ export function runQuestionCount(selectedCount: number): number {
 
 /**
  * Search + attempted-filter, then bucket into the three groups.
+ *
+ * ⭐ "Attempted" means SAT HERE, not "met somewhere" (Sam, 2026-07-29).
+ * A case met inside a CAT or a readiness pack waits in "Ready to sit"
+ * with its result kept in `history`. Two reasons: it makes the Review
+ * button safe by construction — the only sittings it can point at are
+ * this page's own 1- or 2-case runs — and it is the truer claim, since
+ * meeting six questions buried in a timed 100-question exam, with no
+ * rationales at the time, is not the same as having studied the case.
  *
  * Locked rows are exempt from the Attempted/Not-attempted filter — they
  * aren't takeable, so filtering them by attempt state is meaningless and
@@ -192,17 +285,16 @@ export function groupCases(
 
   const passesFilter = (r: CaseBankRow): boolean => {
     if (r.locked) return true;
-    const attempted = r.seen;
-    if (filter === 'new') return !attempted;
-    if (filter === 'done') return attempted;
+    if (filter === 'new') return !r.satHere;
+    if (filter === 'done') return r.satHere;
     return true;
   };
 
   const visible = rows.filter((r) => matches(r) && passesFilter(r));
 
   const buckets: CaseGroup[] = [
-    { key: 'ready',       title: 'Ready to sit',      rows: visible.filter((r) => !r.locked && !r.seen) },
-    { key: 'attempted',   title: 'Already attempted', rows: visible.filter((r) => !r.locked && r.seen) },
+    { key: 'ready',       title: 'Ready to sit',      rows: visible.filter((r) => !r.locked && !r.satHere) },
+    { key: 'attempted',   title: 'Already attempted', rows: visible.filter((r) => !r.locked && r.satHere) },
     { key: 'unavailable', title: 'Not available',     rows: visible.filter((r) => r.locked) },
   ];
 
@@ -221,6 +313,9 @@ export const MODE_NOTE: Record<CaseBankMode, string> = {
  * implying a second case is required — one case is a legitimate run.
  */
 export function runHint(selectedCount: number, reattempts: number): string {
+  // `reattempts` counts cases sat HERE before — not cases merely met in an
+  // exam, which are offered as fresh material and shouldn't be described
+  // as a reattempt.
   if (selectedCount === 0) {
     return 'Pick a case to begin. Each one is six questions; you can add a second.';
   }

@@ -36,8 +36,14 @@ import { ErrorToast } from '@/lib/toast/error-toast';
 import { createCaseAttemptAction } from '@/lib/practice/cases/actions';
 import {
   MODE_NOTE,
+  attemptCoverageLabel,
+  attemptHref,
+  attemptLinkLabel,
+  attemptScoreLabel,
   formatAttemptDate,
   groupCases,
+  headlineAttempt,
+  originLabel,
   runHint,
   runQuestionCount,
   scoreTone,
@@ -86,7 +92,9 @@ export function CaseBankClient({ rows }: { rows: CaseBankRow[] }) {
   );
 
   const qCount = runQuestionCount(picked.length);
-  const reattempts = picked.filter((r) => r.seen).length;
+  // Sat HERE before — a case merely met in an exam is offered as fresh
+  // material, so calling it a reattempt would misdescribe it.
+  const reattempts = picked.filter((r) => r.satHere).length;
   const full = selected.length >= MAX_CASES_PER_RUN;
 
   // The cap decision is made OUT here, not inside a setSelected updater.
@@ -199,7 +207,14 @@ export function CaseBankClient({ rows }: { rows: CaseBankRow[] }) {
                     const isSel = selected.includes(r.caseId);
                     const blocked = !r.locked && !isSel && full;
                     const isOpen = expanded === r.caseId;
-                    const date = formatAttemptDate(r.last?.endedAt);
+                    // The collapsed row summarises the most recent sitting
+                    // FROM THIS PAGE. A case only ever met in an exam has
+                    // none, so it shows no score and no Review — its result
+                    // lives in the expanded history instead.
+                    const head = headlineAttempt(r);
+                    const date = formatAttemptDate(head?.endedAt);
+                    const hasHistory = r.history.length > 0;
+                    const canExpand = !!r.snippet || hasHistory;
 
                     return (
                       <div
@@ -250,7 +265,7 @@ export function CaseBankClient({ rows }: { rows: CaseBankRow[] }) {
                               {r.locked && (
                                 <span className="cb-badge">Not available</span>
                               )}
-                              {!r.locked && r.seen && !r.last && (
+                              {!r.locked && r.inProgress && (
                                 <span className="cb-badge">In progress</span>
                               )}
                             </div>
@@ -258,23 +273,24 @@ export function CaseBankClient({ rows }: { rows: CaseBankRow[] }) {
                           </div>
 
                           <div className="cb-row-actions">
-                            {r.last && (
+                            {head && (
                               <div className="cb-score">
-                                <span className={`cb-score-pct ${scoreTone(r.last.pct)}`}>
-                                  {r.last.pct}%
+                                <span className={`cb-score-pct ${scoreTone(head.pct)}`}>
+                                  {attemptScoreLabel(head)}
                                 </span>
-                                {date && <span className="cb-score-date">{date}</span>}
+                                <span className="cb-score-date">
+                                  {r.attemptsTotal > 1
+                                    ? `${r.attemptsTotal} attempts`
+                                    : date}
+                                </span>
                               </div>
                             )}
-                            {r.last && (
-                              <Link
-                                className="cb-btn ghost"
-                                href={`/session/${r.last.attemptId}`}
-                              >
+                            {head && (
+                              <Link className="cb-btn ghost" href={attemptHref(head)}>
                                 Review
                               </Link>
                             )}
-                            {!r.locked && r.seen && (
+                            {!r.locked && r.satHere && (
                               <button
                                 type="button"
                                 className={`cb-btn${isSel ? ' ghost' : ' solid'}`}
@@ -283,15 +299,15 @@ export function CaseBankClient({ rows }: { rows: CaseBankRow[] }) {
                                 {isSel ? 'Added' : 'Reattempt'}
                               </button>
                             )}
-                            {r.snippet && (
+                            {canExpand && (
                               <button
                                 type="button"
                                 className="cb-expand"
                                 aria-expanded={isOpen}
                                 aria-label={
                                   isOpen
-                                    ? `Hide the scenario for ${r.title}`
-                                    : `Show the scenario for ${r.title}`
+                                    ? `Hide details for ${r.title}`
+                                    : `Show details for ${r.title}`
                                 }
                                 onClick={() => setExpanded(isOpen ? null : r.caseId)}
                               >
@@ -301,8 +317,56 @@ export function CaseBankClient({ rows }: { rows: CaseBankRow[] }) {
                           </div>
                         </div>
 
-                        {isOpen && r.snippet && (
-                          <p className="cb-scenario">{r.snippet}</p>
+                        {isOpen && (
+                          <div className="cb-detail">
+                            {r.snippet && <p className="cb-scenario">{r.snippet}</p>}
+
+                            {hasHistory && (
+                              <div className="cb-history">
+                                <div className="cb-history-head">
+                                  Your attempts
+                                  {r.attemptsTotal > r.history.length && (
+                                    <span className="cb-history-more">
+                                      showing {r.history.length} of {r.attemptsTotal}
+                                    </span>
+                                  )}
+                                </div>
+                                <ul className="cb-history-list">
+                                  {r.history.map((e) => {
+                                    const coverage = attemptCoverageLabel(e);
+                                    return (
+                                      <li className="cb-history-row" key={e.attemptId}>
+                                        <span className="cb-history-date">
+                                          {formatAttemptDate(e.endedAt) ?? '—'}
+                                        </span>
+                                        <span
+                                          className={`cb-history-pct${
+                                            e.answered === 0 ? ' none' : ` ${scoreTone(e.pct)}`
+                                          }`}
+                                        >
+                                          {attemptScoreLabel(e)}
+                                        </span>
+                                        <span className="cb-history-origin">
+                                          {originLabel(e.origin)}
+                                          {coverage && (
+                                            <span className="cb-history-cover"> · {coverage}</span>
+                                          )}
+                                        </span>
+                                        {/* Origin decides the destination: a
+                                            readiness sitting goes to its pack
+                                            report and a CAT to its result page,
+                                            so no entry can open a 100-question
+                                            exam in the runner. */}
+                                        <Link className="cb-history-link" href={attemptHref(e)}>
+                                          {attemptLinkLabel(e.origin)}
+                                        </Link>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     );

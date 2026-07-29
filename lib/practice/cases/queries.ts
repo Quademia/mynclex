@@ -16,19 +16,30 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { caseAxesLabel, caseSummarySnippet } from './derive';
-import type { CaseBankRow } from './types';
+import type { CaseAttemptOrigin, CaseBankRow } from './types';
 
 /** Raw row shape as built by nclex_case_bank_list(). */
 interface RawCaseRow {
   case_id: string;
   title: string;
   locked: boolean;
-  seen: boolean;
+  sat_here: boolean;
+  in_progress: boolean;
+  attempts_total: number;
+  history: RawAttemptEntry[] | null;
   scenario: unknown;
   /** Dominant nursing subject / body system across the six children. */
   subject: string | null;
   body: string | null;
-  last: { attempt_id: string; pct: number | null; ended_at: string | null } | null;
+}
+
+interface RawAttemptEntry {
+  attempt_id: string;
+  ended_at: string | null;
+  pct: number | null;
+  answered: number | null;
+  served: number | null;
+  origin: CaseAttemptOrigin;
 }
 
 export async function getCaseBankRows(): Promise<CaseBankRow[]> {
@@ -44,19 +55,22 @@ export async function getCaseBankRows(): Promise<CaseBankRow[]> {
     caseId: r.case_id,
     title: r.title,
     locked: r.locked,
-    seen: r.seen,
+    satHere: r.sat_here,
+    inProgress: r.in_progress,
+    attemptsTotal: r.attempts_total ?? 0,
     axes: caseAxesLabel(r.subject, r.body),
     // Belt and braces: the RPC already nulls this for locked rows. Doing
     // it again here means a future edit to either layer alone cannot
     // start shipping exam content to the browser.
     snippet: r.locked ? null : caseSummarySnippet(r.scenario),
-    last:
-      r.last && r.last.pct !== null
-        ? {
-            attemptId: r.last.attempt_id,
-            pct: Number(r.last.pct),
-            endedAt: r.last.ended_at,
-          }
-        : null,
+    history: (r.history ?? []).map((e) => ({
+      attemptId: e.attempt_id,
+      endedAt: e.ended_at,
+      // ROUND() comes back as a numeric string over the wire.
+      pct: Number(e.pct ?? 0),
+      answered: Number(e.answered ?? 0),
+      served: Number(e.served ?? 0),
+      origin: e.origin,
+    })),
   }));
 }
