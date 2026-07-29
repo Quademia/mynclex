@@ -248,8 +248,15 @@ export async function loadReserveCandidates(
   // One read covers both question tabs: free standalone rows and free trend
   // questions differ only by whether `trend_id` is set, and both are ticked
   // individually. The placeability CHECK binds on both, so rows missing a
-  // difficulty band or a subcategory are excluded here rather than offered and
-  // then rejected on save.
+  // difficulty band, a calibrated number or a subcategory are excluded here
+  // rather than offered and then rejected on save.
+  //
+  // `difficulty_irt` is the column CAT actually selects on. It is seeded from
+  // the band by a database trigger (20260824120000), so screening on the band
+  // alone would normally give the same answer — but it did not before that
+  // trigger existed: the 622-item gap-fill run set bands and no numbers, and
+  // this query would have cheerfully offered every one of them as CAT stock
+  // the engine could never serve.
   type RawCandidate = {
     item_id: string;
     question_type: string;
@@ -273,6 +280,7 @@ export async function loadReserveCandidates(
         .eq('cat_pool', false)
         .is('parent_case_id', null)
         .not('difficulty', 'is', null)
+        .not('difficulty_irt', 'is', null)
         .not('client_needs_subcategory', 'is', null)
         .order('item_id')
         .range(from, to),

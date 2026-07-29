@@ -33,30 +33,37 @@ export const WARNING_TITLE: Record<StockWarning, string> = {
     'Also reserved for a readiness pack. A question can only honestly serve one purpose.',
   draft: 'Not published — CAT will not serve it, but it still counts against the target.',
   unplaceable:
-    'No difficulty band or no Client Needs subcategory, so the selector cannot place it. For a case child this makes the WHOLE case unpickable.',
+    'No difficulty band, no calibrated difficulty number, or no Client Needs subcategory, so the selector cannot place it. For a case child this makes the WHOLE case unpickable.',
 };
 
 /**
  * Which warnings apply to a row.
  *
- * Note `builder` fires on almost the whole pool today: nothing has ever
- * cleared builder visibility on reservation, and selection does not yet honour
- * `cat_pool` at all. That is the expected state before the selection slice,
- * not a fault in the data.
+ * `builder` should now read zero: 10b3 made reserving clear builder visibility
+ * and taught the practice pool to skip reserved stock, so a row carrying both
+ * flags is drift — which is precisely what this card is for.
  *
- * `unplaceable` can only ever fire on a CASE CHILD. A directly-reserved row —
- * standalone or trend — is held to the placeability CHECK in the database, so
- * it cannot carry the flag without a band and a subcategory. Case children are
- * exempt from that constraint (their flag is derived from the wrapper, and
- * enforcing it there would lock a curator out of saving the fix), which is
- * exactly why the condition is surfaced here instead.
+ * `unplaceable` tests all THREE columns the selector needs, not just the two a
+ * human sets. CAT picks on `difficulty_irt`, the number; a curator sets
+ * `difficulty`, the word. They are written together by the editor and by the
+ * seeding trigger (20260824120000), so the number should never be missing on
+ * its own — but the 622-item gap-fill run loaded bands with no numbers, every
+ * membership test screened on the word, and 11 of them sat in the pool counted
+ * and unservable. The warning names the column the engine actually reads.
+ *
+ * In practice this fires on a CASE CHILD. A directly-reserved row — standalone
+ * or trend — is held to the placeability CHECK in the database, so it cannot
+ * carry the flag without all three. Case children are exempt from that
+ * constraint (their flag is derived from the wrapper, and enforcing it there
+ * would lock a curator out of saving the fix), which is exactly why the
+ * condition is surfaced here instead.
  */
 export function warningsFor(row: PoolItemRow): StockWarning[] {
   const out: StockWarning[] = [];
   if (row.isBuilderVisible) out.push('builder');
   if (row.readinessTagged) out.push('readiness');
   if (!row.isPublished) out.push('draft');
-  if (!row.difficulty || !row.subcategory) out.push('unplaceable');
+  if (!row.difficulty || row.difficultyIrt === null || !row.subcategory) out.push('unplaceable');
   return out;
 }
 

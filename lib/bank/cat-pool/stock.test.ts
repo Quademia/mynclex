@@ -25,7 +25,11 @@ const item = (over: Partial<PoolItemRow> = {}): PoolItemRow => ({
   wrapperId: null,
   stem: 'A nurse is caring for a client.',
   difficulty: 'Medium',
-  difficultyIrt: null,
+  // The seed for 'Medium'. A band with no number is no longer a reachable
+  // state — the trigger in 20260824120000 fills it on every write — so a
+  // fixture that left this null was modelling a row that cannot exist, and
+  // would now read as unplaceable in every test that expects a clean row.
+  difficultyIrt: 0,
   difficultySource: 'CURATOR_LABEL',
   subcategory: 'Management of Care',
   isPublished: true,
@@ -240,7 +244,7 @@ describe('auditCounts', () => {
     // so this lens is where it has to become visible.
     const rows = toStockRows(
       [
-        item({ itemId: 'B1', source: 'case', wrapperId: 'CS_1', difficulty: null }),
+        item({ itemId: 'B1', source: 'case', wrapperId: 'CS_1', difficulty: null, difficultyIrt: null }),
         item({ itemId: 'B2', source: 'case', wrapperId: 'CS_1', subcategory: null }),
         item({ itemId: 'B3', source: 'case', wrapperId: 'CS_1' }),
       ],
@@ -249,6 +253,18 @@ describe('auditCounts', () => {
     const counts = auditCounts(rows);
     expect(counts.unplaceable).toBe(2);
     expect(counts.anyWarning).toBe(2);
+  });
+
+  it('counts a row with a band but no calibrated number — the column CAT selects on', () => {
+    // The state the 622-item gap-fill run left behind: a curator's word with
+    // no number under it. Every membership test screened on the word, so the
+    // pool counted 11 of these and the engine could serve none of them.
+    const rows = toStockRows(
+      [item({ itemId: 'A1', difficulty: 'Hard', difficultyIrt: null })],
+      {},
+    );
+    expect(warningsFor(rows[0])).toEqual(['unplaceable']);
+    expect(auditCounts(rows).unplaceable).toBe(1);
   });
 
   it('agrees with the list its card links to', () => {

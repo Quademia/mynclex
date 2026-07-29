@@ -130,27 +130,37 @@ export async function reserveToCatPool(
   // placeability CHECK exempts case children on purpose, because the cascade
   // trigger would otherwise make an unplaceable child unsaveable — so the
   // gate lives here, where it can say what is wrong.
+  //
+  // The test mirrors `cat_next_item`'s case slot exactly: SIX published
+  // children, each carrying `difficulty_irt`. Counting the shortfall is what
+  // makes it binding — checking only that no child is *broken* passes a case
+  // with five published children, which the scheduler then skips forever.
+  // `difficulty_irt` is the column the scheduler counts; the band and the
+  // subcategory are held to as well, since a child with no subcategory can
+  // still be served but cannot be balanced against the blueprint.
   const caseIds = byKind.get('case') ?? [];
   if (caseIds.length) {
     const { data: kids } = await supabase
       .from('nclex_bank_items')
-      .select('parent_case_id, difficulty, client_needs_subcategory')
+      .select('parent_case_id, difficulty, difficulty_irt, client_needs_subcategory')
       .in('parent_case_id', caseIds)
       .eq('is_published', true);
 
-    const incomplete = new Set(
-      (kids ?? [])
-        .filter(
-          (k) =>
-            !(k as { difficulty: string | null }).difficulty ||
-            !(k as { client_needs_subcategory: string | null }).client_needs_subcategory,
-        )
-        .map((k) => (k as { parent_case_id: string }).parent_case_id),
-    );
+    const placeable = new Map<string, number>();
+    for (const k of (kids ?? []) as {
+      parent_case_id: string;
+      difficulty: string | null;
+      difficulty_irt: number | null;
+      client_needs_subcategory: string | null;
+    }[]) {
+      if (!k.difficulty || k.difficulty_irt === null || !k.client_needs_subcategory) continue;
+      placeable.set(k.parent_case_id, (placeable.get(k.parent_case_id) ?? 0) + 1);
+    }
 
-    if (incomplete.size) {
-      skipped += incomplete.size;
-      byKind.set('case', caseIds.filter((id) => !incomplete.has(id)));
+    const schedulable = caseIds.filter((id) => (placeable.get(id) ?? 0) === 6);
+    if (schedulable.length !== caseIds.length) {
+      skipped += caseIds.length - schedulable.length;
+      byKind.set('case', schedulable);
     }
   }
 
@@ -188,7 +198,7 @@ export async function reserveToCatPool(
       ok: false,
       error:
         skipped > 0
-          ? 'Nothing was reserved — those are already reserved, belong to a readiness pack, or are cases with a question missing its difficulty band.'
+          ? 'Nothing was reserved — those are already reserved, belong to a readiness pack, or are cases without six published questions the selector can place.'
           : 'Nothing was reserved.',
     };
   }
