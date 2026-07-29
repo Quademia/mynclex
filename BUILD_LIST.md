@@ -193,8 +193,24 @@
 >         ⚠ Left out on purpose: the audit's **"Hide all N"** button (it would clear
 >         builder visibility on 2,825 questions in one click — that is 10b3's call).
 >         ⚠ The reserve drawer takes **~6s** to open on dev's ~1,700-row free pool.
->       - ⬜ **10b3 — CAT selection draws only from `cat_pool`** (children of reserved
->         wrappers included via inheritance), leaks close, + the mutual-exclusivity guard.
+>       - ✅ **10b3 — selection draws only from the pool — BUILT 2026-07-29** (migration
+>         `20260823120000`, dev-applied). Practice excludes reserved stock via **one predicate** in
+>         `_nclex_eligible_unit_pool` — the single gateway every practice path funnels through, so
+>         the count / breakdown / create RPCs follow for free and can't drift. CAT draws only from
+>         the pool in `create_cat_attempt` + `cat_next_item`, **except the mid-case branch**, left
+>         ungated on purpose so releasing a case can't abandon a student mid-block.
+>         ⚠ **CAT stopped requiring `is_builder_visible`** — with enforcement on, "offer this in the
+>         practice builder" contradicts "reserved", so the pool would have emptied the moment a
+>         curator hid reserved stock; this also closed a pre-existing drift where the case pick and
+>         the standalone picks disagreed about that flag. Second layer: reserving clears
+>         `is_builder_visible` + `is_free_sample` (8 dev rows were both reserved and free samples —
+>         Sam: unmark, free samples aren't in use). Mutual exclusivity now binds from the **readiness
+>         side too** (the three pack-add actions refuse CAT-reserved items).
+>         **Dev:** practice 3,245 → **807** units, 61 → **24** cases, both leak checks zero;
+>         reserved-and-builder-visible 2,824 → 0; CAT keeps 2,382 first-item candidates + 36 cases.
+>         The two big CAT functions were deployed by **transforming the live definitions under
+>         assertions**, then the migration file proven **byte-identical by md5** — not retyped.
+>         ⚠ **A live CAT sitting has not been played end to end.** Full write-up: cat.html §20.7.
 >     - ⬜ **10c — the recalibration job** (§5.3 / §17). Weekly GitHub Actions
 >       `pyirt` whole-bank fit; flips items to `EMPIRICAL`; also the piece that
 >       lights up the student pill (snapshot plumbing) and needs accumulated data.

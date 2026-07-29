@@ -156,7 +156,15 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-29 — <strong>Slice 10b2 BUILT, then the reservation REGRAINED</strong>
+  Living planning document. Last updated: 2026-07-29 — <strong>Slice 10b3 BUILT: the reservation is now ENFORCED</strong>
+  (new §20.7; migration <code>20260823120000</code>, dev-applied). Practice stops serving reserved stock via one
+  predicate in <code>_nclex_eligible_unit_pool</code> — the single gateway, so the count / breakdown / create RPCs
+  follow for free — and CAT draws only from the pool. <strong>CAT stopped requiring <code>is_builder_visible</code></strong>,
+  which with enforcement on would have contradicted reservation and emptied the pool; that also closed a drift
+  between the case pick and the standalone picks. Reserving now clears the practice-side flags as a second layer,
+  and mutual exclusivity binds from the readiness side too. Dev: practice 3,245 → 807 units and 61 → 24 cases, both
+  leak checks zero. §20 is complete; <strong>10c (the recalibration job) is what remains of Slice 10.</strong>
+  <em>Earlier the same day</em> — <strong>Slice 10b2 BUILT, then the reservation REGRAINED</strong>
   (new §20.2.1; §20.4, §20.5, §20.6 rewritten; migration <code>20260822120000</code>, dev-applied). The admin
   CAT-pool page shipped at <code>/admin/cat-pool</code> — three lenses off one snapshot plus a reserve drawer, with
   the §20.5 mutual-exclusivity guard built in both halves rather than deferred. Then <strong>two reservation units,
@@ -3580,13 +3588,17 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
             the UI <em>and</em> re-checked server-side. Followed by the <strong>regrain</strong> (§20.2.1, migration
             <code>20260822120000</code>): trends reserved per question, cases cascading by trigger, the dead
             child-guard fixed, and the silent 1,000-row read cap paged past.</li>
-          <li><strong>10b3 — CAT selection draws only from <code>cat_pool</code></strong>; the leaks close
-            (readiness-reserved out of CAT, <code>cat_pool</code> out of practice). <strong>Simpler than first
-            planned:</strong> the regrain means every reserved question carries the flag on its own row, so both the
-            selection query and the practice exclusion test one boolean on <code>nclex_bank_items</code> instead of
-            joining back to wrapper tables — except the case-scheduling path, which still reads
-            <code>nclex_case_studies.cat_pool</code> because a case is drawn as a wrapper. The mutual-exclusivity
-            guard is already done (10b2), so this slice is selection and leak-closing only.</li>
+          <li><strong>10b3 — selection draws only from the pool. ✅ BUILT 2026-07-29</strong> (migration
+            <code>20260823120000</code>, dev-applied). Practice excludes reserved stock via one predicate in
+            <code>_nclex_eligible_unit_pool</code> — the single gateway, so the count / breakdown / create RPCs
+            follow for free; CAT draws only from the pool in <code>create_cat_attempt</code> and
+            <code>cat_next_item</code>, except the mid-case branch which stays ungated on purpose (a released case
+            must not abandon a student mid-block). <strong>CAT stopped reading <code>is_builder_visible</code></strong>
+            — with enforcement on it contradicts reservation and would empty the pool — which also closed a
+            pre-existing drift between the case pick and the standalone picks. Second layer: reserving clears
+            <code>is_builder_visible</code> + <code>is_free_sample</code>. Mutual exclusivity now binds from the
+            readiness side too. Dev: practice 3,245 → 807 units, 61 → 24 cases, both leak checks zero. Full write-up
+            in §20.7. ⚠ A live CAT sitting has not been played end to end.</li>
         </ol></li>
       <li><strong>10c — The recalibration job (§5.3 / §17).</strong> The weekly <strong>GitHub Actions</strong>
         Python / <code>pyirt</code> job (§17.6): a whole-bank joint fit over <em>all</em> response sources (§17.1),
@@ -4636,22 +4648,82 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
 <ul>
   <li>✅ <strong>Reserved stock as a <code>cat_pool</code> flag</strong> (schema) — 10b1, migration
   <code>20260819120000</code>; regrained to two reservation units by <code>20260822120000</code> (§20.2.1).</li>
-  <li>⬜ <strong>CAT selection draws only from <code>cat_pool</code></strong>; readiness-reserved items excluded from
-  CAT (closes the 452 leak); <code>cat_pool</code> excluded from practice. <strong>This is 10b3 and is the only
-  part still unbuilt</strong> — until it lands, the flag is written and read but honoured by nothing, which the
-  page says plainly at the top of every lens.</li>
+  <li>✅ <strong>CAT selection draws only from <code>cat_pool</code></strong>; reserved stock excluded from practice;
+  readiness and CAT reservation now mutually exclusive from <em>both</em> sides — 10b3, migration
+  <code>20260823120000</code>. See §20.7.</li>
   <li>✅ <strong>Curator editor: the "Reserve for CAT" tick</strong> (10b1, corrected 10b2) <strong>with the
   mutual-exclusivity guard</strong> (10b2), and the five-option difficulty dropdown (10a, §20.5).</li>
   <li>✅ <strong>The admin CAT-pool management page</strong> with reserved-stock bookkeeping — 10b2, three lenses
   plus the reserve drawer (§20.5).</li>
 </ul>
 <p>
-  <strong>Status:</strong> design settled 2026-07-26, regrained 2026-07-28. <strong>10b1 and 10b2 are built and
-  verified live on dev</strong>; <strong>10b3 (selection + closing the leaks both ways) is the remaining work.</strong>
-  Note that 10b3 is now materially simpler than first planned: because a case child carries its wrapper's flag,
-  both the CAT selection query and the practice exclusion can test one boolean on <code>nclex_bank_items</code>
-  rather than joining back to two wrapper tables — with the one exception that a case is <em>scheduled</em> from
-  <code>nclex_case_studies</code>, so that path still reads the wrapper's own flag.
+  <strong>Status:</strong> design settled 2026-07-26, regrained 2026-07-28, <strong>enforced 2026-07-29</strong>.
+  10b1, 10b2 and 10b3 are all built and verified on dev. §20 is complete; what remains of Slice 10 is
+  <strong>10c</strong>, the recalibration job (§5.3 / §17).
+</p>
+
+<h3 id="s20-7">20.7 As enforced — Slice 10b3 <span class="status settled">built 2026-07-29</span></h3>
+<p>
+  Reservation stopped being a label. Migration <code>20260823120000</code>; verified on dev.
+</p>
+<ul>
+  <li><strong>Practice stops serving reserved stock</strong> — one predicate in
+  <code>_nclex_eligible_unit_pool</code>. That helper is the single gateway every practice path funnels through
+  (<code>nclex_create_attempt</code>, <code>nclex_count_eligible_items</code> and
+  <code>nclex_filter_breakdown</code> all call it), so the counts, the breakdown and attempt creation follow for
+  free and cannot drift apart. Two predicates in total — one for individually-reserved questions, one for reserved
+  case wrappers; case children need none, since <code>parent_case_id IS NULL</code> already excludes them.</li>
+  <li><strong>CAT serves only reserved stock</strong> — <code>create_cat_attempt</code> (both picks, strict and
+  exposure-relaxed) and <code>cat_next_item</code> (the scheduled case slot plus both adaptive picks).</li>
+  <li><strong>The mid-case branch is deliberately NOT gated.</strong> A case is vetted when it is scheduled;
+  re-checking on each child would abandon a student mid-block if a curator released it during the sitting, which is
+  worse than letting them finish the case they started.</li>
+  <li><strong>Both TS leak sites closed</strong> — the Builder's filter chips
+  (<code>get-filter-options.ts</code>, which would otherwise advertise an axis the pool can no longer serve) and
+  the readiness pack-add actions.</li>
+</ul>
+<p class="callout">
+  <strong>⚠ CAT stopped requiring <code>is_builder_visible</code>, and had to.</strong> Both CAT picks demanded it.
+  That was harmless while CAT drew from the practice bank, but with reservation enforced it is a contradiction:
+  builder-visible means "offer this in the practice builder", which is exactly what a reserved question must not
+  be. The moment a curator did the sensible thing and hid reserved stock from the builder, CAT would have found
+  nothing to serve. Reservation is now what makes an item CAT-eligible, and builder visibility is a practice-side
+  flag CAT no longer reads. This also closed a pre-existing drift in which the case pick and the standalone picks
+  disagreed about that flag.
+</p>
+<p class="callout">
+  <strong>Two layers, on purpose.</strong> The pool predicate is the real gate. Reserving <em>also</em> clears
+  <code>is_builder_visible</code>, so a reserved row is unservable even to some future query that forgets the
+  predicate — and the Audit lens's first card, which used to count live leaks, becomes a drift detector for that
+  second layer. <code>is_free_sample</code> is cleared alongside it: a free sample is public shop window and a
+  reserved question must not be met before the exam, so the two cannot both be true (8 rows on dev were; Sam,
+  2026-07-29 — unmark them, free samples are not in use. Only reserved rows were touched).
+</p>
+<p class="callout">
+  <strong>Mutual exclusivity now binds from both sides.</strong> The CAT reserve drawer already refused a
+  readiness-tagged question; the three pack-add actions now refuse a CAT-reserved one. Previously a curator could
+  walk a reserved question into a pack from the readiness side and the same item would be measuring twice.
+</p>
+<p class="callout">
+  <strong>How the two large CAT functions were deployed, and why it matters.</strong> <code>cat_next_item</code> is
+  the biggest function in the system and the one a mistake breaks an exam with, so it and
+  <code>create_cat_attempt</code> were <em>not</em> redeployed by retyping. The live definitions were transformed in
+  place under assertions (raise if an anchor is missing or matched the wrong number of times), and the migration
+  file's own versions were then proven <strong>byte-identical by md5</strong> against what was deployed. What ships
+  to prod is exactly what dev runs, not a lookalike. Worth repeating for any future edit to these two.
+</p>
+<p>
+  <strong>Measured on dev:</strong> the practice pool went from 3,245 standalone units and 61 cases to
+  <strong>807 and 24</strong>; both leak checks (reserved stock reachable in practice) return zero rows;
+  reserved-and-builder-visible went 2,824 → 0 and reserved-and-free-sample 8 → 0; CAT retains 2,382 first-item
+  candidates and 36 schedulable cases. The collapse of the practice pool is the seeding working as intended — most
+  of what left is the synthetic <code>DEV_CAT_POOL</code> filler. <strong>Prod is unaffected either way:</strong> it
+  does not yet carry the <code>cat_pool</code> column at all, and its practice pool is 60 questions, so the whole of
+  §20 is a no-op there until content is reserved.
+</p>
+<p>
+  ⚠ <strong>Not yet done:</strong> a live CAT sitting has not been run end to end against the enforced pool. The
+  selection queries were verified by the stock they can see, not by playing an exam.
 </p>
 
 
