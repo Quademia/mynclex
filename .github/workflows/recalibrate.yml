@@ -70,6 +70,14 @@ jobs:
       - name: Install dependencies
         run: npm ci --omit=dev
 
+      # Which database this run wrote to, in the run log. A recalibration is
+      # only auditable if you can tell prod runs from dev ones after the fact,
+      # and the run summary itself does not say.
+      - name: Say which database is being recalibrated
+        run: |
+          echo "Target: ${{ (github.event.inputs.environment == 'dev') && 'DEV' || 'PROD' }}"
+          echo "Trigger: ${{ github.event_name }}"
+
       - name: Run the recalibration
         env:
           CALIBRATION_RUN: '1'
@@ -80,11 +88,18 @@ jobs:
           # Ties every row of one run together, and back to this run's log.
           CALIBRATION_RUN_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
           # The scheduled run targets prod. A manual run targets whichever
-          # environment was chosen, defaulting to dev.
+          # environment was chosen — and `inputs.environment` is empty on a
+          # scheduled run, so the comparison is false and it falls to prod.
+          #
+          # The URLs are literals, not secrets. A Supabase project URL is
+          # public: it ships inside the browser bundle on every page load, and
+          # migrate-prod.yml already carries the prod project ref in plain
+          # sight. Making them secrets would have meant two more values to set
+          # and rotate while hiding nothing. The KEY is the secret.
           SUPABASE_URL: >-
             ${{ (github.event.inputs.environment == 'dev')
-                && secrets.SUPABASE_URL_DEV
-                || secrets.SUPABASE_URL_PROD }}
+                && 'https://xkqxfzfsllxyxpdtcrja.supabase.co'
+                || 'https://dehspjcfmhoshcdtsmjq.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: >-
             ${{ (github.event.inputs.environment == 'dev')
                 && secrets.SUPABASE_SERVICE_ROLE_KEY_DEV
