@@ -10,7 +10,7 @@
 // student with active bank access OR a readiness entitlement — so a
 // pack-owner with no bank subscription can reach the Readiness Packs page
 // (which lives in this sidebar). ENTRY only: the bank-consumption pages
-// (dashboard / practice / history / journey / profile) each keep their own
+// (dashboard / practice / cases / history / profile) each keep their own
 // requireActiveBankSubscription() so a readiness-only student who clicks
 // them still bounces to the reason-aware access wall (/no-access?need=bank).
 // The Packs page adds no bank check. A student with neither entitlement

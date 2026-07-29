@@ -8,7 +8,7 @@
 // sidebar.
 //
 // This gate protects ENTRY only. The bank-consumption pages
-// (dashboard / practice / history / journey / profile) each keep their
+// (dashboard / practice / cases / history / profile) each keep their
 // own requireActiveBankSubscription() call, so a readiness-only student
 // who clicks Practice still bounces to the reason-aware access wall
 // (/no-access?need=bank) — the sidebar is shared, the entitlements are

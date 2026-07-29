@@ -146,6 +146,7 @@ describe('recentItems — titles and shape', () => {
 describe('buildDoorways', () => {
   const base = {
     bankTotal: 2361,
+    casesAvailable: 37,
     creditsReady: 0,
     catsTaken: 0,
     lastCatLabel: null,
@@ -191,12 +192,35 @@ describe('buildDoorways', () => {
     expect(cat.sub).toBe('3 taken · Above standard');
   });
 
-  // The pillar isn't built. A locked door is honest; "Phase 3 of 7" is
-  // what the prototype showed, and would have been fiction.
-  it('locks the Journey Tracker instead of inventing progress', () => {
-    const journey = buildDoorways(base).find((d) => d.key === 'journey')!;
-    expect(journey.href).toBeNull();
-    expect(journey.tone).toBe('locked');
-    expect(journey.sub).toBe('Coming soon');
+  it('opens the case bank with a real count, beside the Question Bank', () => {
+    const doors = buildDoorways(base);
+    const cases = doors.find((d) => d.key === 'cases')!;
+    expect(cases.sub).toBe('37 cases available');
+    expect(cases.href).toBe('/student/bank/cases');
+    expect(cases.tone).toBe('default');
+    // Same act as the Question Bank, so it sits next to it — and in the
+    // same order as the sidebar.
+    expect(doors.findIndex((d) => d.key === 'cases'))
+      .toBe(doors.findIndex((d) => d.key === 'bank') + 1);
+  });
+
+  it('drops the case sub-line rather than inventing one when the count fails', () => {
+    const cases = buildDoorways({ ...base, casesAvailable: null })
+      .find((d) => d.key === 'cases')!;
+    expect(cases.sub).toBeNull();
+    expect(cases.href).toBe('/student/bank/cases');
+  });
+
+  // Removed 2026-07-30 with its placeholder route. The door was locked
+  // because the pillar was never built; a door to nowhere earned its
+  // place less than one that goes somewhere real.
+  it('no longer carries a Journey Tracker door', () => {
+    expect(buildDoorways(base).some((d) => d.key === 'journey')).toBe(false);
+  });
+
+  it('every remaining door goes somewhere', () => {
+    for (const d of buildDoorways(base)) {
+      expect(d.href, `${d.key} has no destination`).toBeTruthy();
+    }
   });
 });

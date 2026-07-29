@@ -1,18 +1,28 @@
 // mynclex/lib/home/student/bank/doorways.ts
 //
-// Card 9 — "Where to next". Five doors, each carrying a live figure.
+// Card 9 — "Where to next". Each door carries a live figure.
+// (No count in this line on purpose: it said "Five" through two
+// additions and was wrong both times.)
 //
 // The rule that shapes this file: a door may only say something we can
 // actually count. Where we can't, it opens with no sub-line rather
-// than a plausible-sounding one. The Journey Tracker is the sharp case
-// — that pillar is not built, so its door is LOCKED rather than
-// carrying the prototype's invented "Phase 3 of 7".
+// than a plausible-sounding one.
+//
+// The Journey Tracker used to be the sharp case — an unbuilt pillar, so
+// its door was LOCKED rather than carrying the prototype's invented
+// "Phase 3 of 7". It was removed entirely on 2026-07-30 (Sam) along with
+// its placeholder route, and the NGN Case Studies door took its place: a
+// door that goes somewhere real, with a figure we can genuinely count.
+// Re-add Journey when it is built — the design is still in
+// docs/product-plan/journey-tracker.md.
 
 import type { Doorway } from './types';
 
 export type DoorwayCounts = {
   /** Questions eligible for this student, or null if the count failed. */
   bankTotal: number | null;
+  /** Case studies this student can sit, or null if the count failed. */
+  casesAvailable: number | null;
   /** Readiness credits claimed and waiting to be used. */
   creditsReady: number;
   /** Completed CAT sittings. */
@@ -45,6 +55,21 @@ export function buildDoorways(c: DoorwayCounts): Doorway[] {
       title: 'Question Bank',
       sub: c.bankTotal !== null ? `${c.bankTotal.toLocaleString()} questions available` : null,
       href: '/student/bank/practice',
+      tone: 'default',
+    },
+    {
+      // Sits next to the Question Bank because it is the same act — sit
+      // questions from the bank — just the NGN case half of it, which is
+      // also the order the sidebar uses. `file-text` matches its sidebar
+      // entry, per the icon note below.
+      key: 'cases',
+      icon: 'file-text',
+      title: 'NGN Case Studies',
+      // Cases the student can actually sit. Counted through the same
+      // eligibility helper the page itself reads, so this figure and the
+      // page's own groups cannot disagree.
+      sub: c.casesAvailable !== null ? `${c.casesAvailable.toLocaleString()} cases available` : null,
+      href: '/student/bank/cases',
       tone: 'default',
     },
     {
@@ -83,14 +108,6 @@ export function buildDoorways(c: DoorwayCounts): Doorway[] {
       sub: 'Practice the interface — nothing recorded',
       href: '/tutorial/exam?return=/student/bank/dashboard',
       tone: 'default',
-    },
-    {
-      key: 'journey',
-      icon: 'map',
-      title: 'Journey Tracker',
-      sub: 'Coming soon',
-      href: null,
-      tone: 'locked',
     },
   ];
 }
