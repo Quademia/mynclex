@@ -245,10 +245,42 @@
 >       students arrive. ⚠ The Sunday 02:00 UTC schedule targets **prod** and is live
 >       from now, not from launch.
 >       ⬜ **Follow-ons deliberately not built:** the admin "recalibrate now" button ·
->       the history readout · **the snapshot plumbing that lights the student
->       difficulty pill** (two values into six attempt-creation RPCs) · **misfit
->       warnings** (flagging a question strong students keep getting wrong — used as an
->       argument for leaving the database, so it is recorded rather than dropped).
+>       the history readout · **the student difficulty pill** (specified below) ·
+>       **misfit warnings** (flagging a question strong students keep getting wrong —
+>       used as an argument for leaving the database, so it is recorded rather than
+>       dropped).
+>     - ⬜ **10d — light up the student difficulty pill** (§5.5.2b, specified with Sam
+>       2026-07-29 and **smaller than first scoped**). The pill has been dormant since
+>       10a because the attempt snapshot freezes `difficulty`, the curator's *word*,
+>       and never the number.
+>       - **Six functions, one substitution each:** in `classification_snapshot`, store
+>         `difficulty_irt` **in place of** `difficulty`. `create_cat_attempt` ·
+>         `cat_next_item` · `nclex_create_attempt` · `nclex_create_programme_attempt` ·
+>         `nclex_create_readiness_attempt` · `nclex_create_standalone_quiz_attempt`.
+>         **No new column, no table migration.** Replacing rather than adding is safe —
+>         verified that nothing else in the product reads that word (no SQL, no report,
+>         no analytics; the pill is the only reader).
+>       - **⭐ Sam's simplification — `displayBand()` drops the source branch.** The
+>         student's band derives from `difficulty_irt` unconditionally. The seeds
+>         round-trip *exactly* (−2/−1/0/1/2 sit dead-centre of their bands, verified by
+>         running the built code), so for an unmeasured question deriving the band and
+>         showing the curator's word give the same answer — the branch protects nothing.
+>         It is also **more faithful to §5.5's purpose**: the branch allowed the shown
+>         difficulty to disagree with the number the engine uses, which is the exact
+>         drift §5.5 was written to prevent. What it was really defending against — a
+>         word with no number — became unreachable with the seeding trigger in
+>         `20260824120000`, so this is only safe *because* of that fix.
+>         ⓘ `difficulty_source` is still needed on the **curator** side (the editor's
+>         Calibrated-difficulty readout must say measured-vs-assumed). Only the
+>         student's pill drops it.
+>       - **`cat_item_difficulty` stays untouched** — it has fed from `difficulty_irt`
+>         since Slice 1 and is the engine's own audit of what the arithmetic used. A CAT
+>         row will hold the number twice; both copies are written **in the same INSERT
+>         from the same variable**, so they cannot diverge.
+>       - ⓘ **Optional extra, not required:** review can show *then and now* — the
+>         snapshot plus a read of the live bank row. This needs **no** history table;
+>         `nclex_bank_item_calibration_history` answers the different question of
+>         trajectory over time, which belongs to the admin history readout.
 >
 > 16. ✅ **NEW — the CAT pool's membership test was measuring the wrong column.
 >     FIXED 2026-07-29, on `main`** (migration `20260824120000`, dev-applied).

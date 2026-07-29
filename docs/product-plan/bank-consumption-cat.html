@@ -961,7 +961,7 @@
 </p>
 
 
-<h3>5.5 Student-facing difficulty band — derived from <code>difficulty_irt</code> <span class="status settled">settled 2026-07-26 · <code>displayBand()</code> built 2026-07-27, empirical branch dormant until 10c feeds the number into the attempt snapshot</span></h3>
+<h3>5.5 Student-facing difficulty band — derived from <code>difficulty_irt</code> <span class="status settled">settled 2026-07-26 · <code>displayBand()</code> built 2026-07-27 · §5.5.2 SUPERSEDED 2026-07-29 (derive always, no source branch) · dormant until the snapshot carries the number, §5.5.2b</span></h3>
 <p>
   <strong>The difficulty a student sees is derived from the empirical number, not the frozen curator label.</strong>
   The curator's Very easy … Very hard choice is the <em>seed</em> only (§5.1). Recalibration moves
@@ -998,6 +998,66 @@
   <li>While <code>difficulty_source = 'CURATOR_LABEL'</code> (below the §5.3.1 threshold of responses) → show the curator's seed label. A brand-new item has no data to band from, so it shows what the curator typed.</li>
   <li>Once <code>difficulty_source = 'EMPIRICAL'</code> → show the band derived from <code>difficulty_irt</code> via §5.5.1. The label changes at most once, when there is enough evidence — it does not twitch on three data points.</li>
 </ul>
+
+<p class="callout">
+  <strong>⭐ Superseded 2026-07-29 (Sam) — drop the branch. The student's band is derived from
+  <code>difficulty_irt</code>, always, with no reference to <code>difficulty_source</code>.</strong>
+</p>
+<p>
+  The two-branch rule above is redundant, because <strong>the seeds round-trip exactly</strong>. Every seed in §5.1
+  sits dead-centre of its own band in §5.5.1 — −2 → Very easy, −1 → Easy, 0 → Medium, 1 → Hard, 2 → Very hard, each
+  a full half-logit clear of the nearest cut-off (verified against the built code, not by inspection). So for an
+  unmeasured item, "derive the band from the number" and "show the curator's word" return the same word every time.
+  The branch protects nothing.
+</p>
+<p>
+  Removing it is not merely simpler, it is <em>more faithful to this section's own purpose</em>. §5.5 exists so the
+  displayed difficulty cannot drift from the number the engine uses — yet the branch permits exactly that: any row
+  whose number and label disagree while the source still reads <code>CURATOR_LABEL</code> would display the label
+  while the engine used the number. Deriving unconditionally makes the shown difficulty and the used difficulty the
+  same fact by construction.
+</p>
+<p>
+  <strong>What the branch was really defending</strong> was an item with a label and no number, where a derived band
+  would show nothing. That was a live hazard — 633 items were in that state on 2026-07-29, from the gap-fill run
+  loading bands without numbers. It is no longer reachable: the seeding trigger in <code>20260824120000</code>
+  guarantees a number wherever there is a band, and the taxonomy CHECK closes the band to five known values. The
+  earlier fix is what makes this simplification safe; it would not have been safe the day before.
+</p>
+<p>
+  <code>difficulty_source</code> is <strong>still needed on the curator side</strong> — the editor's Calibrated
+  difficulty readout must say whether a number is measured or assumed, since a curator deciding whether to trust it
+  needs to know. It is only the <em>student's</em> pill that does not need the flag.
+</p>
+
+<h4>5.5.2b What the attempt snapshot carries <span class="status settled">settled 2026-07-29</span></h4>
+<p>
+  The pill reads a <em>snapshot</em>, not the live bank row, so an attempt stays a faithful record of its own sitting
+  (§11). <code>classification_snapshot</code> currently freezes <code>difficulty</code>, the curator's word — which
+  is why the derived band has never once fired, and why §5.5 has been dormant since <code>displayBand()</code> shipped
+  in 10a.
+</p>
+<ul>
+  <li><strong>Store the number in place of the word</strong> — <code>difficulty_irt</code> replaces
+    <code>difficulty</code> in <code>classification_snapshot</code>. Not alongside: nothing else in the product reads
+    that word (verified — no SQL, no report, no analytics; the pill is the only reader), and for an unmeasured item
+    the number encodes the word exactly, while for a measured one the word is stale by definition.</li>
+  <li><strong>Six functions, one substitution each</strong> — <code>create_cat_attempt</code>,
+    <code>cat_next_item</code>, <code>nclex_create_attempt</code>, <code>nclex_create_programme_attempt</code>,
+    <code>nclex_create_readiness_attempt</code>, <code>nclex_create_standalone_quiz_attempt</code>. No new column, no
+    change to <code>nclex_attempt_items</code>, no migration to the table itself.</li>
+  <li><strong><code>cat_item_difficulty</code> stays as it is</strong> — it has fed from <code>difficulty_irt</code>
+    since Slice 1, with <code>cat_item_difficulty_source</code> beside it, and it is the engine's own audit record of
+    what the arithmetic used. A CAT row will therefore hold the number twice. That is accepted rather than
+    tolerated: both copies are written <em>in the same INSERT from the same variable</em>, so they cannot diverge —
+    not "should not", cannot.</li>
+</ul>
+<p>
+  <strong>Then-and-now in review</strong> (optional, not required by the above): a review screen can show both the
+  difficulty as it was and the question's current value, since the first is the snapshot and the second is a read of
+  the live bank row. This needs <em>no</em> history table — <code>nclex_bank_item_calibration_history</code> answers a
+  different question, the trajectory over time, which belongs to the admin history readout.
+</p>
 <h4>5.5.3 Scope — where the band shows, and where it does not</h4>
 <ul>
   <li><strong>CAT sittings show no difficulty at all</strong> — the §16.6 exam-mode fix hides the difficulty pill, so a derived band never reaches a live adaptive exam. This is a practice/study + curator-surface concern only.</li>
