@@ -45,13 +45,34 @@
 -- One row per published case with 6 published children (the same
 -- completeness rule _nclex_eligible_unit_pool applies — an unpublished
 -- child must not leak a broken case here either).
+--
+-- ── Why `is_builder_visible` is checked, but only for UNRESERVED cases ──
+-- The flag means "offer this in student practice", so a curator who unticks
+-- it on a case should not then find it offered here (Sam, 2026-07-29).
+--
+-- It cannot be tested unconditionally, though: reserving a case for CAT
+-- FORCES the flag off (the 10b3 trigger, migration 20260828120000), so a
+-- plain `AND is_builder_visible` would re-lock every reserved case a
+-- student has already met — destroying the unlock this surface exists for.
+-- Measured on dev: that is 13 cases.
+--
+-- Hence `reserved OR is_builder_visible`:
+--   · unreserved + visible  → offered
+--   · unreserved + hidden   → withheld entirely   ← the curator's tick
+--   · reserved   + hidden   → still listed (locked, or unlocked if seen)
+--
+-- ⓘ Trade-off, deliberate: hiding an unreserved case also removes it from
+-- a student who already sat it, so its Review link goes with it. Their
+-- attempt is untouched and still on the History page. The alternative
+-- (keep it whenever `seen`) makes "hidden" mean two different things
+-- depending on the reader, which is worse than one clear rule.
 
 CREATE OR REPLACE FUNCTION _nclex_case_bank_pool(p_student_id UUID)
 RETURNS TABLE (case_id TEXT, locked BOOLEAN, seen BOOLEAN)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
 
   WITH pub AS (
-    SELECT cs.case_id, cs.cat_pool
+    SELECT cs.case_id, cs.cat_pool, cs.is_builder_visible
     FROM nclex_case_studies cs
     WHERE cs.is_published = TRUE
       AND (
@@ -67,6 +88,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   flags AS (
     SELECT
       p.case_id,
+      p.is_builder_visible,
       -- Reserved = CAT pool ∨ any child sits in a readiness pack. The
       -- pack test is per-child because pack membership is stored per
       -- question (nclex_readiness_pack_items), never per wrapper.
@@ -98,7 +120,8 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     f.case_id,
     (f.reserved AND NOT f.seen) AS locked,
     f.seen
-  FROM flags f;
+  FROM flags f
+  WHERE f.reserved OR f.is_builder_visible;
 
 $$;
 
@@ -122,6 +145,23 @@ DECLARE
 BEGIN
   IF v_student IS NULL THEN
     RAISE EXCEPTION 'authentication required';
+  END IF;
+
+  -- Entitlement, not just authentication. The page already bounces a
+  -- non-subscriber, but this RPC returns scenario TEXT for every unlocked
+  -- case — content behind the subscription — so a direct call with a valid
+  -- token had to be refused here too, not only in the UI.
+  --
+  -- ⓘ This is stricter than the practice read RPCs
+  -- (nclex_count_eligible_items / nclex_filter_breakdown check auth only;
+  -- the entitlement gate went on the write paths in 20260605120000). The
+  -- difference is what leaks: those return counts, this returns content.
+  --
+  -- Mirrors requireActiveBankSubscription() exactly, SUPER_ADMIN bypass
+  -- included, so the page gate and this one cannot disagree.
+  IF NOT (nclex_user_has_role('SUPER_ADMIN') OR nclex_has_active_bank_access(v_student)) THEN
+    RAISE EXCEPTION 'active bank subscription required'
+      USING ERRCODE = 'insufficient_privilege';
   END IF;
 
   WITH pool AS (
