@@ -15,10 +15,11 @@
 //                      runner.html §2.3.1; review mode reads the
 //                      same fields off the unsealed item directly.
 //
-// Mode policy reminder (BUILD_LIST.md slice 4.1): every mode renders as
-// Untimed Learning behaviour for now — per-Q submit + immediate
-// rationale + free nav. Per-mode deltas (timer, sequential lock,
-// batched submit) layer in with slice 4.5.
+// Mode policy: the runner dispatches on ARCHETYPE — UL, FREE_BATCHED,
+// SEQUENTIAL — defined in lib/practice/runner/mode-brief.ts. (The note that
+// stood here saying "every mode renders as Untimed Learning behaviour for
+// now ... layer in with slice 4.5" described the pre-4.5 runner and was years
+// out of date: the timer, the sequential lock and batched submit all ship.)
 
 'use client';
 
@@ -45,6 +46,9 @@ import type {
 } from '@/lib/scoring';
 import type { SelectNContent, MatrixContent, MatrixMrContent, ClozeContent, DragClozeContent, DragOrderContent } from '@/lib/bank/types';
 import type { MatrixAnswer, MatrixMrAnswer, HighlightAnswer, ClozeAnswer, DragClozeAnswer, DragOrderAnswer, BowtieAnswer } from '@/lib/scoring';
+// Sandbox tutorial scores Submit locally with the SAME pure scorer the
+// server action uses — identical feedback, zero network. See onSubmit.
+import { scoreAttempt } from '@/lib/scoring';
 import {
   isMcqComplete,
   isSataComplete,
@@ -66,66 +70,40 @@ import { ResultsPopup } from '@/lib/practice/runner/results-popup';
 import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
+import { Calculator } from '@/lib/calculator/calculator';
+import { SandboxCoach } from '@/lib/practice/tutorial/coach/coach';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
 import { Preflight }          from './preflight';
-import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction } from './actions';
+import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction, recordEngagedTimeAction } from './actions';
+import { useEngagementClock } from './use-engagement-clock';
 import { catTurnAction } from '@/lib/practice/cat/turn-action';
 import { useQuestionTimer } from './use-question-timer';
 import { useTurnTransition } from './use-turn-transition';
 import { CatTransition } from './cat-transition';
 import { isBlocking } from '@/lib/practice/cat/turn-transition';
+import { modeLabelFor } from '@/lib/practice/builder/filter-config';
+import { archetypeFor, footerBrief } from '@/lib/practice/runner/mode-brief';
 
 interface Props {
   data: RunnerData;
 }
 
-const MODE_LABELS: Record<RunnerData['attempt']['mode'], string> = {
-  UNTIMED_LEARNING:  'Untimed Learning',
-  UNTIMED_TEST:      'Untimed Test',
-  TIMED_FREE_NAV:    'Timed · free nav',
-  TIMED_SEQUENTIAL:  'Timed · sequential',
-  CAT:               'CAT',
-};
-
-// Archetype collapses 8 (mode, intent) tuples into 3 behavioural groups
-// (slice 4.5b — runner.html §15 + BUILD_LIST 4.5):
+// This file keeps NO copy of its own for modes. Three things it used to
+// hardcode now resolve from one place each, because all three had gone stale
+// in the same way — they described a runner that no longer exists:
 //
-//   • UL            — per-Q submit + immediate rationale + free nav (4.1).
-//   • FREE_BATCHED  — per-Q submit removed; footer is Prev / Next / Finish;
-//                     rationale hidden mid-quiz; revisable until Finish.
-//   • SEQUENTIAL    — per-Q "Submit & continue"; Prev disabled; no Skip.
-//                     In 4.5b the lock semantics (DRAFT → SUBMITTED on
-//                     submit, cell read-only) are deferred to 4.5c — for
-//                     now "Submit & continue" advances + saves like Next.
-//
-// CAT is treated as Sequential for the dispatch — it isn't reachable in
-// v1 (create-attempt rejects CAT mode until slice 3.x), and Sequential is
-// the closest defensive default.
-type Archetype = 'UL' | 'FREE_BATCHED' | 'SEQUENTIAL';
-
-function getArchetype(mode: RunnerData['attempt']['mode']): Archetype {
-  switch (mode) {
-    case 'UNTIMED_LEARNING': return 'UL';
-    case 'UNTIMED_TEST':
-    case 'TIMED_FREE_NAV':   return 'FREE_BATCHED';
-    case 'TIMED_SEQUENTIAL':
-    case 'CAT':              return 'SEQUENTIAL';
-  }
-}
-
-function statusMessage(mode: RunnerData['mode'], attemptMode: RunnerData['attempt']['mode']): string {
-  if (mode === 'review') {
-    return 'Review · use the grid to filter Wrong / Marked / Unanswered, or step in order';
-  }
-  // CAT (slice 6b): the generic line below is actively wrong here — there is
-  // no rationale shown mid-exam and no Next button, because the engine
-  // decides what comes next and whether the exam is over.
-  if (attemptMode === 'CAT') {
-    return 'CAT · answer each question and submit — the exam adapts as you go and ends when it is confident';
-  }
-  // 4.5 will branch on attemptMode for timer / sequential / batched-submit copy.
-  return 'Untimed Learning · pick an option, Submit to see the rationale, then Next →';
-}
+//   • the mode LABEL  → modeLabelFor(intent, mode) in the builder's config.
+//     The local map was mode-keyed, so it could not express TIMED_FREE_NAV
+//     being named differently under each intent, and had drifted to a third
+//     spelling of it.
+//   • the ARCHETYPE   → archetypeFor(mode) in mode-brief.ts, which sits next
+//     to the per-mode copy that has to agree with it. CAT dispatches as
+//     SEQUENTIAL; the old note claiming CAT "isn't reachable in v1" predates
+//     the engine, which has been live since 2026-07-19 and is on prod.
+//   • the FOOTER LINE → footerBrief(...). The local version returned
+//     Untimed-Learning copy for EVERY non-CAT mode, promising a rationale
+//     after each submit to students in batched and sequential modes who see
+//     nothing until the end.
 
 
 // Outer router: preflight gate vs runner shell. Split out so the
@@ -138,6 +116,7 @@ export function Runner({ data }: Props) {
         attempt={data.attempt}
         itemCount={data.items.length}
         exitHref={data.exitHref}
+        offerDismissed={data.offerDismissed ?? false}
       />
     );
   }
@@ -202,6 +181,9 @@ function RunnerShell({ data }: Props) {
     : navCurrent;
   const [filter, setFilter]     = useState<GridFilter>('all');
   const [gridOpen, setGridOpen] = useState(true);
+  // The on-screen calculator (BUILD_LIST #16) — a real NCLEX tool, so it is
+  // available in every mode; closed by default, toggled from the topbar.
+  const [calcOpen, setCalcOpen] = useState(false);
 
   // pendingAnswers seeds from any DRAFT rows already on the server. With
   // universal save-on-tap (slice 4.5a §9.1), every material answer change
@@ -280,19 +262,61 @@ function RunnerShell({ data }: Props) {
   const durationSec = data.attempt.duration_seconds; // null = untimed
   const isTimed     = durationSec !== null;
   const isLive      = data.mode === 'live';
+  // Runner tutorial sandbox (docs/product-plan/runner-tutorial.md). The
+  // no-writes teaching runner: same shell, same components, but every
+  // server action is skipped and Submit scores locally against
+  // data.sandboxKeys. Gated so real attempts are byte-for-byte unchanged.
+  const isSandbox   = data.mode === 'live' && data.sandbox === true;
 
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+  // ── Exam-mode display leaks (bank-consumption-cat.html §16.6) ──────
+  // During a LIVE exam, the runner must not reveal anything that (a) shows
+  // the engine's opinion of the candidate — chiefly the difficulty pill,
+  // which in a CAT is a live readout of the ability estimate — or (b)
+  // pre-announces the exam's structure / internal item scaffolding (case
+  // counter, CJMM step). Stripped for ALL exam-intent modes, not just CAT
+  // (Sam, 2026-07-25): "an exam is an exam." Also strips the subject chip.
+  // Study modes keep the scaffolding (it teaches), and it all comes back in
+  // REVIEW — which is why the flag is gated on `isLive`: a completed exam
+  // being reviewed is educational, not a live leak.
+  const hideExamScaffold = data.attempt.intent === 'EXAM' && isLive;
+
+  // ── Engagement clock (BUILD_LIST #6) ──────────────────────────────
+  // (STUDY, TIMED_FREE_NAV) counts ENGAGED time, not wall time: the
+  // countdown freezes while the page is hidden and resumes on return,
+  // durably across a full close (engaged_seconds_used persists server-side).
+  // Every other mode keeps the wall clock below. The hook is a no-op unless
+  // enabled, so calling it unconditionally is safe.
+  const isEngagementClock =
+    data.attempt.intent === 'STUDY' && data.attempt.mode === 'TIMED_FREE_NAV';
+  const { engagedSec, persistNow: persistEngaged } = useEngagementClock({
+    enabled:         isLive && startedAtMs !== null && isEngagementClock && isTimed,
+    priorEngagedSec: data.attempt.engaged_seconds_used ?? 0,
+    attemptId:       data.attempt.attempt_id,
+    onPersist:       recordEngagedTimeAction,
+  });
+
+  // Sandbox: freeze the clock at the start time so server and client render
+  // the same value (no hydration mismatch), and because an untimed teaching
+  // run shouldn't imply the student is being timed. Init to startedAtMs (a
+  // prop, identical on both sides) → elapsed 0 → a steady "0:00".
+  const [nowMs, setNowMs] = useState<number>(() =>
+    isSandbox && startedAtMs !== null ? startedAtMs : Date.now(),
+  );
   useEffect(() => {
     if (!isLive)              return;
+    if (isSandbox)            return;   // frozen clock — never tick in the tutorial
     if (startedAtMs === null) return;
     const t = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(t);
-  }, [isLive, startedAtMs]);
+  }, [isLive, isSandbox, startedAtMs]);
 
-  // Stopwatch / countdown derivations (purely from nowMs + anchors).
+  // Stopwatch / countdown derivations. Engagement mode counts down from
+  // ENGAGED time (frozen while away); every other timed mode from wall
+  // elapsed. Untimed → null (stopwatch).
   const elapsedSec   = startedAtMs !== null ? (nowMs - startedAtMs) / 1000 : 0;
+  const usedSec      = isEngagementClock ? engagedSec : elapsedSec;
   const remainingSec = isTimed && durationSec !== null
-    ? Math.max(0, durationSec - elapsedSec)
+    ? Math.max(0, durationSec - usedSec)
     : null;
 
   // Warning tier with sticky escalation (§8.4 — tone never reverts).
@@ -324,7 +348,7 @@ function RunnerShell({ data }: Props) {
   // Flushes are fire-and-forget (additive RPC self-heals); flushActive()
   // is awaited by the finish handlers so the last segment lands before
   // the attempt goes terminal.
-  const timerEnabled = isLive && startedAtMs !== null;
+  const timerEnabled = isLive && startedAtMs !== null && !isSandbox;
   const { flushActive } = useQuestionTimer({
     activeItemId: data.items[current]?.attempt_item_id ?? null,
     enabled:      timerEnabled,
@@ -344,13 +368,23 @@ function RunnerShell({ data }: Props) {
 
     setFiredExpire(true);
     startSubmit(async () => {
-      await flushActive(); // bank the last segment before status flips
+      await flushActive();  // bank the last per-question segment
+      persistEngaged();     // and the engaged total, before status flips
       const r = await expireAttemptAction(data.attempt.attempt_id);
       if (!r.ok) { setError(r.error); return; }
       setShowResults(true);
       router.refresh();
     });
-  }, [isLive, isTimed, remainingSec, firedExpire, data.attempt.attempt_id, router, flushActive]);
+  }, [isLive, isTimed, remainingSec, firedExpire, data.attempt.attempt_id, router, flushActive, persistEngaged]);
+
+  // Engagement clock — save the engaged total on every question change
+  // (navigation + submit-and-advance), one of its natural save points.
+  // Leaving the page is saved inside the hook; a hard crash mid-question
+  // forgives that question's engaged time, in the student's favour
+  // (BUILD_LIST #6). No-op for every non-engagement attempt.
+  useEffect(() => {
+    persistEngaged();
+  }, [navCurrent, persistEngaged]);
 
   // Server answers + client overlays. Client wins on conflict — student
   // just submitted in this session, so their fresh row is authoritative.
@@ -371,10 +405,24 @@ function RunnerShell({ data }: Props) {
   // "Q N / 85" like any other finished attempt.
   const displayTotal = isCat && data.mode === 'live' ? null : total;
   const currentItem = data.items[current];
-  const modeLabel   = MODE_LABELS[data.attempt.mode];
-  const modeMsg     = statusMessage(data.mode, data.attempt.mode);
+  const modeLabel   = modeLabelFor(data.attempt.intent, data.attempt.mode);
+  const modeMsg     = footerBrief(data.attempt.intent, data.attempt.mode, data.mode === 'review');
+  // Topbar title — the intent frame ("Study session" / "Exam session"),
+  // singular to match the mode-label cleanup that dropped "Exams". Applies
+  // in review too: a reviewed exam is still an exam session.
+  const sessionTitle = data.attempt.intent === 'EXAM' ? 'Exam session' : 'Study session';
 
-  const archetype = getArchetype(data.attempt.mode);
+  const archetype = archetypeFor(data.attempt.mode);
+
+  // Question grid availability. In a LIVE Sequential exam or CAT the grid
+  // can't navigate — clicks are already a no-op (onPickGuarded), so it was
+  // tappable-looking dead furniture. Hide it entirely there; the question
+  // reclaims the space (.rn-main is flex:1, the grid a fixed sibling). The
+  // SEQUENTIAL archetype covers CAT too (it dispatches as SEQUENTIAL).
+  // Gated on isLive so REVIEW keeps the grid — in review you can navigate
+  // freely to inspect any answer. Also drives the topbar grid toggle:
+  // where there's no grid, there's no toggle.
+  const gridAvailable = !(archetype === 'SEQUENTIAL' && isLive);
 
   // NOTE: `isCat` and the derived `current` are declared with the state
   // block above — `current` is read at the question timer before this point.
@@ -629,6 +677,8 @@ function RunnerShell({ data }: Props) {
       //     SUBMITTED row). The RPC enforces both rules; the client skip
       //     avoids the round-trip + console noise.
       if (data.mode === 'review') return;
+      // Sandbox writes nothing — there is no attempt row to save into.
+      if (isSandbox) return;
       if (answersByItem.has(currentItem.attempt_item_id)) return;
 
       const itemId = currentItem.attempt_item_id;
@@ -650,7 +700,7 @@ function RunnerShell({ data }: Props) {
 
       map.set(itemId, t);
     },
-    [currentItem, data.mode, answersByItem],
+    [currentItem, data.mode, answersByItem, isSandbox],
   );
 
   // Per-type submit gate — `canSubmit` controls the button, `submitValue`
@@ -663,6 +713,34 @@ function RunnerShell({ data }: Props) {
   const onSubmit = () => {
     if (!currentItem || !submitGate?.canSubmit || submitGate.submitValue === null) return;
     const submission = submitGate.submitValue;
+
+    // Sandbox: score locally against the baked-in key and reveal the same
+    // per-Q feedback the server would — no attempt row, no RPC, no write.
+    if (isSandbox) {
+      const k = data.sandboxKeys?.[currentItem.attempt_item_id];
+      if (!k) return;
+      const { score_awarded, is_correct } = scoreAttempt(
+        currentItem.question_type,
+        k.correct,
+        submission,
+      );
+      mergeSubmitResult(
+        {
+          attempt_item_id:              currentItem.attempt_item_id,
+          score_awarded,
+          is_correct,
+          marks_max:                    k.marksMax,
+          correct_answer_snapshot_json: k.correct,
+          rationale_snapshot:           k.rationale,
+          rationale_img_snapshot:       k.rationaleImg,
+        },
+        submission,
+        setClientAnswers,
+        setClientUnseal,
+      );
+      return;
+    }
+
     startSubmit(async () => {
       const r = await submitAnswerAction(currentItem.attempt_item_id, submission);
       if (!r.ok) { setError(r.error); return; }
@@ -671,6 +749,9 @@ function RunnerShell({ data }: Props) {
   };
 
   const onFinish = () => {
+    // Sandbox has no attempt to complete — Finish just leaves the tutorial.
+    // (The coach layer in Slice 2 will replace this with a proper ending.)
+    if (isSandbox) { router.push(data.exitHref); return; }
     startSubmit(async () => {
       await flushActive(); // bank the last segment before status flips
       const r = await completeAttemptAction(data.attempt.attempt_id);
@@ -816,7 +897,7 @@ function RunnerShell({ data }: Props) {
   if (data.mode === 'review' || !isLive) {
     // Review state — primary is unused (no footer interaction needed).
     // Keep a Next-style label so the rendered button shape is preserved.
-    primaryLabel    = 'Next →';
+    primaryLabel    = 'Next';
     primaryDisabled = isLastQ;
     primaryHint     = isLastQ ? 'You\'re on the last question' : undefined;
     onPrimary       = onNext;
@@ -851,7 +932,7 @@ function RunnerShell({ data }: Props) {
       primaryHint     = undefined;
       onPrimary       = onFinish;
     } else {
-      primaryLabel    = 'Next →';
+      primaryLabel    = 'Next';
       primaryDisabled = isLastQ;
       primaryHint     = isLastQ ? 'You\'re on the last question' : undefined;
       onPrimary       = onNextGuarded;
@@ -870,7 +951,7 @@ function RunnerShell({ data }: Props) {
       primaryHint     = undefined;
       onPrimary       = onFinishFreeBatched;
     } else {
-      primaryLabel    = 'Next →';
+      primaryLabel    = 'Next';
       primaryDisabled = false;
       primaryHint     = undefined;
       onPrimary       = onNextGuarded;
@@ -900,7 +981,7 @@ function RunnerShell({ data }: Props) {
       primaryHint     = canSubmit ? undefined : (submitGate?.hint ?? skipHint);
       onPrimary       = onSubmitAndFinish;
     } else {
-      primaryLabel    = 'Submit & continue →';
+      primaryLabel    = 'Submit & continue';
       primaryDisabled = !canSubmit || submitting;
       primaryHint     = canSubmit ? undefined : (submitGate?.hint ?? skipHint);
       onPrimary       = onSubmitAndAdvance;
@@ -960,7 +1041,9 @@ function RunnerShell({ data }: Props) {
   // the grid column), so the question's internal layout is unchanged.
   const inCase  = Boolean(currentCaseId  && caseSnap);
   const inTrend = Boolean(currentTrendId && trendSnap);
-  const cjmmTopSlot = inCase && cjmmStep
+  // §16.6 — the CJMM step strip is teaching scaffolding; hidden during a
+  // live exam, restored in review (hideExamScaffold is false in review).
+  const cjmmTopSlot = inCase && cjmmStep && !hideExamScaffold
     ? <CjmmStrip current={cjmmStep} />
     : undefined;
 
@@ -980,6 +1063,7 @@ function RunnerShell({ data }: Props) {
         onAnswerChange={onAnswerChange}
         topSlot={cjmmTopSlot}
         trendBadge={inTrend}
+        examLive={hideExamScaffold}
         resolveImageUrl={(id) =>
           getAttemptImageUrlAction(data.attempt.attempt_id, id)
         }
@@ -994,6 +1078,7 @@ function RunnerShell({ data }: Props) {
         unseal={unsealForCurrent}
         topSlot={cjmmTopSlot}
         trendBadge={inTrend}
+        examLive={hideExamScaffold}
         resolveImageUrl={(id) =>
           getAttemptImageUrlAction(data.attempt.attempt_id, id)
         }
@@ -1088,14 +1173,39 @@ function RunnerShell({ data }: Props) {
     <div className="rn">
       <ErrorToast error={error} onDismiss={() => setError(null)} />
 
+      <Calculator open={calcOpen} onClose={() => setCalcOpen(false)} />
+
+      {isSandbox && (
+        <SandboxCoach
+          onGoto={(key) => {
+            const i = data.items.findIndex((it) => it.attempt_item_id === key);
+            if (i >= 0) setCurrent(i);
+          }}
+          setGridOpen={setGridOpen}
+          onEnd={() => router.push(data.exitHref)}
+          calcOpen={calcOpen}
+          currentSubmitted={
+            currentItem ? answersByItem.has(currentItem.attempt_item_id) : false
+          }
+        />
+      )}
+
       <RunnerTopbar
+        sessionTitle={sessionTitle}
         modeLabel={modeLabel}
         current={current + 1}
         total={displayTotal}
         marked={marked.has(currentItem?.attempt_item_id ?? '')}
         statusLabel={statusLabel}
-        caseMeta={caseMeta}
+        caseMeta={hideExamScaffold ? undefined : caseMeta}
         clock={clockProps}
+        gridToggle={
+          gridAvailable
+            ? { open: gridOpen, onToggle: () => setGridOpen((o) => !o) }
+            : null
+        }
+        calcToggle={{ open: calcOpen, onToggle: () => setCalcOpen((o) => !o) }}
+        sandbox={isSandbox}
         onExit={
           // Live (mid-flight) → confirm first. Review → leave directly.
           // A CAT review came from its summary page (§14.3: review is a
@@ -1132,7 +1242,7 @@ function RunnerShell({ data }: Props) {
           </div>
         </main>
 
-        {gridOpen ? (
+        {gridAvailable && (gridOpen ? (
           <RunnerGrid
             items={data.items}
             answers={answersByItem}
@@ -1151,7 +1261,7 @@ function RunnerShell({ data }: Props) {
             total={displayTotal}
             onExpand={() => setGridOpen(true)}
           />
-        )}
+        ))}
       </div>
 
       <RunnerFooter

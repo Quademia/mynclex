@@ -352,6 +352,11 @@ export function CatResultView({ report }: { report: CatReport }) {
           straight away.
         </p>
       </div>
+
+      <p className="catr-help-link">
+        New to adaptive testing?{' '}
+        <Link href="/help/cat">How CAT works →</Link>
+      </p>
       </div>
     </div>
   );

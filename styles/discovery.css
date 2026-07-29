@@ -633,6 +633,9 @@ a.pub-btn-primary:hover { background: var(--primary-dark); }
   font-size: 13px;
   color: var(--ink-soft);
 }
+.pub-footer-links { margin-top: 6px; }
+.pub-footer-links a { color: var(--ink-soft); font-weight: 600; }
+.pub-footer-links a:hover { color: var(--accent); text-decoration: underline; }
 .pub-footer-copy { margin-top: 4px; color: var(--ink-faint); font-size: 12px; }
 
 /* ── responsive ─────────────────────────────────────────────── */

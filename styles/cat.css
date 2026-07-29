@@ -773,3 +773,31 @@
   /* The abandoned page has no rail — it stays one centred column. */
   .catr-abandoned { display: block; max-width: 560px; }
 }
+
+/* ── "How CAT works" help links → /help/cat (cat.html §3.2) ───────────── */
+.cat-hero-help {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.cat-hero-help:hover { text-decoration: underline; }
+
+.cat-preflight-help {
+  display: inline-block;
+  margin: -4px 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.cat-preflight-help:hover { text-decoration: underline; }
+
+.catr-help-link {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.catr-help-link a { color: var(--accent); font-weight: 600; }
+.catr-help-link a:hover { text-decoration: underline; }

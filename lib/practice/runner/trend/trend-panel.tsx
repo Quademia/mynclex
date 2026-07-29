@@ -39,7 +39,7 @@ export function TrendPanel({ trendSnap, resolveImageUrl }: Props) {
   const tabs = (trendSnap.tabs_snapshot_json ?? []) as TrendTabRow[];
 
   return (
-    <aside className="rn-trend" aria-label="Trend dataset panel">
+    <aside className="rn-trend" aria-label="Trend dataset panel" data-coach="trendpanel">
       <div className="rn-trend-head">
         <div className="label">
           <span className="dot" aria-hidden="true" />

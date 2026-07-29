@@ -22,6 +22,7 @@ import '@/styles/nav.css';
 import '@/styles/authoring.css';
 import '@/styles/builder.css';
 import '@/styles/runner.css';
+import '@/styles/tutorial.css';
 import '@/styles/history.css';
 import '@/styles/programmes.css';
 import '@/styles/cohorts.css';
@@ -60,9 +61,15 @@ import '@/styles/products.css';
 // Bank). Namespaced `bl-*`; tops the old list rules during the staged
 // per-surface migration. See styles/bank-list.css.
 import '@/styles/bank-list.css';
+// Admin CAT-pool page (slice 10b2) — page-scoped .cp-*, no overlap with the
+// bank list above.
+import '@/styles/cat-pool.css';
 // Loaded after nav.css so its ≤768px breakpoint rules win: the mobile
 // navigation chrome (drawer + bottom tabs + account sheet).
 import '@/styles/mobile-nav.css';
+// The app-wide on-screen calculator widget (`calc-*`), mounted by the
+// runner today and any surface that renders <Calculator> later.
+import '@/styles/calculator.css';
 
 export const dynamic = 'force-dynamic';
 

@@ -940,7 +940,7 @@ export function NoteEditor({
             )}
             <p className="lib-rail-muted">
               {embedCounts.questions === 0
-                ? 'No embedded questions yet. The picker that adds them ships with slice 11.15. Cap: 20 per note (50 hard).'
+                ? 'No embedded questions yet. Add an “Embedded questions” block from the note body (type / or use the + block menu). Cap: 20 per note (50 hard).'
                 : 'Cap: 20 per note (50 hard). Picks come from your own tutor bank only.'}
             </p>
           </section>
@@ -957,7 +957,7 @@ export function NoteEditor({
             </div>
             <p className="lib-rail-muted">
               {usedInCount === 0
-                ? "Not attached to any programme unit yet. Notes become unit activities in slice 11.11."
+                ? "Not attached to any programme unit yet. Attach it from a programme’s curriculum to make it a unit activity."
                 : 'Live count — updates as you attach or detach this note in programme curricula.'}
             </p>
           </section>

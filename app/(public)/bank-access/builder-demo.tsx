@@ -40,16 +40,24 @@ const DIFF = [
   { id: 'med', label: 'Medium', w: 0.41 },
   { id: 'hard', label: 'Hard', w: 0.25 },
 ];
+// Deliberately hardcoded, NOT read from the builder's config (Sam,
+// 2026-07-24): this is a public marketing illustration of the surface, not
+// the surface itself, and it must render for a signed-out visitor with no
+// data behind it. The cost of that choice is that the labels below have to
+// be kept in step by hand whenever the real ones move — they had already
+// drifted a full naming generation before this pass. Source of truth for
+// the real thing: MODES_STUDY / MODES_EXAM in
+// lib/practice/builder/filter-config.ts.
 const MODES: Record<Intent, { id: string; label: string; clock: string; feedback: string; nav: string }[]> = {
   STUDY: [
-    { id: 'UNTIMED_LEARNING', label: 'Untimed Learning', clock: 'No clock', feedback: 'Instant feedback', nav: 'Free nav' },
-    { id: 'UNTIMED_TEST', label: 'Untimed Test', clock: 'No clock', feedback: 'Feedback at end', nav: 'Free nav' },
-    { id: 'TIMED_FREE_NAV', label: 'Timed · Free Nav', clock: 'Engagement-clock', feedback: 'Feedback at end', nav: 'Free nav' },
+    { id: 'UNTIMED_LEARNING', label: 'Learning', clock: 'No clock', feedback: 'Instant feedback', nav: 'Free nav' },
+    { id: 'UNTIMED_TEST', label: 'Untimed practice', clock: 'No clock', feedback: 'Feedback at end', nav: 'Free nav' },
+    { id: 'TIMED_FREE_NAV', label: 'Timed practice', clock: 'Engagement-clock', feedback: 'Feedback at end', nav: 'Free nav' },
   ],
   EXAM: [
-    { id: 'TIMED_SEQUENTIAL', label: 'Timed · Sequential', clock: 'Wall-clock', feedback: 'Feedback at end', nav: 'Forward only' },
-    { id: 'TIMED_FREE_NAV', label: 'Timed · Free Nav', clock: 'Wall-clock', feedback: 'Feedback at end', nav: 'Free nav' },
-    { id: 'CAT', label: 'CAT (adaptive)', clock: 'Wall-clock', feedback: 'Feedback at end', nav: 'Forward only' },
+    { id: 'TIMED_SEQUENTIAL', label: 'Sequential', clock: 'Wall-clock', feedback: 'Feedback at end', nav: 'Forward only' },
+    { id: 'TIMED_FREE_NAV', label: 'Free Navigation', clock: 'Wall-clock', feedback: 'Feedback at end', nav: 'Free nav' },
+    { id: 'CAT', label: 'Computer Adaptive Testing (CAT)', clock: 'Wall-clock', feedback: 'Feedback at end', nav: 'Forward only' },
   ],
 };
 
@@ -93,14 +101,16 @@ export function BuilderDemo() {
   const shownCount = Math.min(count, total || count);
 
   const disabled = !isCat && (pools.length === 0 || total === 0);
-  const startLabel = isCat ? 'Start Exam — CAT' : intent === 'EXAM' ? `Start Exam · ${modeLabel}` : `Start Quiz · ${modeLabel}`;
+  const startLabel = isCat ? 'Go to CAT' : intent === 'EXAM' ? `Start Exam · ${modeLabel}` : `Start Quiz · ${modeLabel}`;
   const startNote = disabled
     ? pools.length === 0
       ? 'Pick at least one pool to draw from.'
       : 'No questions match these filters. Loosen your filters.'
-    : isCat || intent === 'EXAM'
+    : isCat
       ? 'Wall-clock timer · single sitting · cannot be resumed.'
-      : 'You can pause and resume. Progress saves automatically.';
+      : intent === 'EXAM'
+        ? 'Wall-clock timer · single sitting · the clock keeps running if you leave.'
+        : 'You can pause and resume. Progress saves automatically.';
 
   return (
     <section id="builder" className="bkc-builder">

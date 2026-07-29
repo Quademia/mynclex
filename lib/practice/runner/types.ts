@@ -31,6 +31,11 @@ export interface AttemptHeader {
   mode:                     'UNTIMED_LEARNING' | 'UNTIMED_TEST' | 'TIMED_FREE_NAV' | 'TIMED_SEQUENTIAL' | 'CAT';
   status:                   'IN_PROGRESS' | 'COMPLETED' | 'TIMED_OUT' | 'ABANDONED';
   duration_seconds:         number | null;
+  /** Engagement clock (STUDY, TIMED_FREE_NAV only): engaged seconds spent so
+   *  far. remaining = duration_seconds - engaged_seconds_used. NULL for every
+   *  other mode and for a fresh engagement attempt before its first save —
+   *  both read as 0. See migration 20260815120000. */
+  engaged_seconds_used:     number | null;
   filters_json:             Record<string, unknown>;
   requested_question_count: number;
   actual_question_count:    number;
@@ -137,6 +142,23 @@ export interface LiveData {
    *  router.push with no spinner. Same resolver feeds the results
    *  popup's Exit button. */
   exitHref: string;
+  /** Runner tutorial Slice 3c — has this student dismissed the pre-exam
+   *  walkthrough offer ("Don't show again")? Read server-side only for a
+   *  live, not-yet-started attempt (the preflight is the only place it's
+   *  used); false/omitted otherwise. Drives whether the offer popup shows
+   *  when Start is pressed. */
+  offerDismissed?: boolean;
+  /** Runner tutorial sandbox (docs/product-plan/runner-tutorial.md).
+   *  When true this is the no-writes teaching runner: every server action
+   *  is skipped and Submit scores locally against `sandboxKeys`. A real
+   *  attempt NEVER sets this — the whole feature creates no attempt row,
+   *  so there is nothing to write. Optional so real bundles omit it. */
+  sandbox?: true;
+  /** Sandbox only — the per-item answer keys the client-side scorer reads
+   *  on Submit, keyed by attempt_item_id. Mirrors exactly what
+   *  submitAnswerAction returns from the server, so `mergeSubmitResult` is
+   *  reused unchanged. Undefined for real attempts. */
+  sandboxKeys?: Record<string, PerItemUnseal>;
 }
 export interface ReviewData {
   mode:    'review';

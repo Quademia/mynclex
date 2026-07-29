@@ -156,7 +156,75 @@
 
 <h1>MyNclex — Bank Consumption · CAT Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-07-19 — <strong>Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
+  Living planning document. Last updated: 2026-07-29 — <strong>Slice 10c BUILT: difficulty stops being an opinion</strong>
+  (<code>lib/calibration/</code>, migration <code>20260825120000</code>, <code>.github/workflows/recalibrate.yml</code>;
+  dev-applied and merged to <code>main</code>). The weekly joint fit measures every question's difficulty from how
+  students actually answered it — whole bank, per §5.3.5 — with the 30-response threshold, the 70/30 blend and the
+  one-way source flip intact. <strong>The person half is not a copy of the live estimator, it IS
+  <code>estimateAbility</code></strong> from <code>lib/cat</code>: §4.5 requires recalibration to read a response
+  exactly as the engine does, and sharing the implementation makes drift impossible rather than merely forbidden. It
+  also anchors calibrated difficulty to the same scale as the passing standard. Only the item half is new.
+  <strong>⚠ §17.6's stated reason for running outside the database is overstated and is corrected here:</strong> it
+  claims in-Postgres maths "does not" do a joint fit. It can — the calculation is a loop of weighted sums. The real
+  reasons are that <strong>17.6% of our answers carry partial credit</strong> (a SQL version would have to flatten
+  them to right/wrong, systematically making every multi-select look harder than it is), that an estimator's bugs are
+  silent rather than loud, and that the iteration should not compete for CPU with the instance serving students.
+  <strong>The runtime is TypeScript, not the Python/<code>pyirt</code> §17.6 named</strong> — there is no Python on the
+  development machine, and session branches never reach the remote, so a Python job could not have been executed even
+  once before merging; an unrunnable estimator loses on the very axis (correctness) that sent the job out of the
+  database. <strong>⚠ The audit table was NOT created — it has existed since Slice 1</strong>
+  (§12.7.5) and arriving with §17.2's column list nearly produced a second one; §12.7 is canonical, so this adapts to
+  it and adds only <code>raw_empirical_value</code> (the blend can hide a wild measurement behind a mild-looking move)
+  plus <code>job_trigger</code> / <code>job_triggered_by</code>. Writes go through <strong>one RPC, one
+  transaction</strong> — the client cannot span statements, so a loop could stop between changing a difficulty and
+  recording why. The off-switch is <code>cat_recalibration_enabled</code> in <code>nclex_config</code>, on
+  <code>/admin/config</code> beside the nightly enrolment sweep, shipped ON because the job is self-gating.
+  <strong>Proven</strong> by recovering chosen difficulties from a simulated cohort (150 students, 40 questions, every
+  seed deliberately wrong at 0 → mean error 0.25, ordering &gt;95% correct), by a live GitHub Actions run against dev
+  reproducing the local numbers exactly (678 responses, 551 items, nothing over threshold, nothing written), by the
+  off-switch live, and by the write path under a rollback. <strong>⚠ The maths has never met real data</strong> — the
+  best-covered question in the bank has 4 answers and needs 30 — so 10c is built, verified, and correctly doing
+  nothing until students arrive. Still open: the manual trigger button, the history readout, the snapshot plumbing that
+  lights the student pill (six attempt-creation RPCs), and misfit warnings.
+  <strong>Also this session — the CAT pool's membership test was measuring the wrong column</strong> (migration
+  <code>20260824120000</code>): CAT selects on <code>difficulty_irt</code>, but the placeability CHECK, the reserve
+  drawer, the audit lens and the reserve action all screened on <code>difficulty</code>, the curator's word. The
+  622-item gap-fill run had set bands with no numbers, so <strong>633 items carried a word and no number</strong>, 622
+  of them offerable as CAT stock the engine could never serve and 11 already sitting in the pool counted and dead.
+  Fixed by making the number impossible to omit — a trigger seeds it on any write — rather than by tightening the four
+  tests that missed it. CAT also now honours a trend dataset's publish state, which practice always has.
+  <em>Earlier the same day</em> — <strong>Slice 10b3 BUILT: the reservation is now ENFORCED</strong>
+  (new §20.7; migration <code>20260823120000</code>, dev-applied). Practice stops serving reserved stock via one
+  predicate in <code>_nclex_eligible_unit_pool</code> — the single gateway, so the count / breakdown / create RPCs
+  follow for free — and CAT draws only from the pool. <strong>CAT stopped requiring <code>is_builder_visible</code></strong>,
+  which with enforcement on would have contradicted reservation and emptied the pool; that also closed a drift
+  between the case pick and the standalone picks. Reserving now clears the practice-side flags as a second layer,
+  and mutual exclusivity binds from the readiness side too. Dev: practice 3,245 → 807 units and 61 → 24 cases, both
+  leak checks zero. §20 is complete; <strong>10c (the recalibration job) is what remains of Slice 10.</strong>
+  <em>And before that</em> — <strong>Slice 10b2 BUILT, then the reservation REGRAINED</strong>
+  (new §20.2.1; §20.4, §20.5, §20.6 rewritten; migration <code>20260822120000</code>, dev-applied). The admin
+  CAT-pool page shipped at <code>/admin/cat-pool</code> — three lenses off one snapshot plus a reserve drawer, with
+  the §20.5 mutual-exclusivity guard built in both halves rather than deferred. Then <strong>two reservation units,
+  not three:</strong> reading the selection code showed a <strong>trend dataset is not a selection unit anywhere</strong>
+  (<code>_nclex_eligible_unit_pool</code> emits only <code>QUESTION</code> and <code>CASE</code>; trend questions are
+  picked individually, one per dataset per exam), so reserving a dataset reserved something nothing draws — the column
+  is dropped from <code>nclex_trend_datasets</code> and each trend question carries its own flag. A <strong>case</strong>
+  stays a wrapper reservation, but its children now hold a <strong>trigger-maintained copy</strong> of the flag, so
+  <code>cat_pool</code> means one thing on every row and 10b3 can test one boolean instead of remembering a join. The
+  dataset survives only as a <strong>variety measure</strong> (distinct datasets represented / 60 — an editorial goal,
+  not a supply floor). <strong>Three defects fixed:</strong> the "never tick a child" rule had never been enforced (it
+  tested a housekeeping mode retired in May, so the tick showed on case children and wrote a flag the page ignored);
+  the difficulty-spread marker was measured against the standalone target while the bars counted the whole pool; and
+  <strong>every Coverage number was truncated by PostgREST's silent 1,000-row cap</strong> — a 2,833-question pool read
+  as "1,000 / 2,880", caught only when a human first opened the page. <em>Previously, 2026-07-28</em> — <strong>Slice 10b1 BUILT</strong> (the CAT-pool reservation
+  flag + the admin-only "Reserve for CAT" editor tick): a boolean <code>cat_pool</code> on six tables (standalones +
+  case / trend wrappers, admin + tutor mirrors); the tick on three editor surfaces, never on a child (reservation
+  lives on the wrapper, children inherit); admin-only at UI + save + inherited RLS; migration
+  <code>20260819120000</code>, dev-applied, on the session branch (awaiting live test + merge, NOT prod). <strong>⚠
+  Diverged from §20.2</strong> — a boolean column, not a <code>UNIQUE</code> reservation table (matches how the flags
+  + the readiness tag already work), so the §20.5 mutual-exclusivity guard is deferred to 10b3. 10b split into
+  <strong>10b1</strong> (flag + tick, done) · <strong>10b2</strong> (admin pool page) · <strong>10b3</strong>
+  (selection draws from the pool + the guard). <em>Previously, 2026-07-27</em> — <strong>Slice 10a BUILT</strong> (five-band difficulty end to end: CHECK widened on both tables, <code>DIFFICULTY_LEVELS</code> → five, <code>lib/bank/difficulty.ts</code> = label↔seed map + <code>displayBand()</code>, save-path re-seed, student pill via <code>displayBand()</code>; migration <code>20260818120000</code>, dev-applied, NOT yet on <code>main</code>; §19.4 10a marked built). <strong>§5.2 overwrite rule revised — <em>last writer wins</em></strong>, replacing "empirical locks the field": a curator changing the label reclaims <code>difficulty_irt</code> back to the seed + <code>CURATOR_LABEL</code>, but only when the label actually changes (the changed-only guard); rationale + the dev proof recorded in §5.2. <em>Previously, 2026-07-26</em> — <strong>Difficulty scale expanded 3 → 5 labels, and the student-facing band is now derived from the empirical number</strong> (§5.1 rewritten, new §5.5, §5.2 / §5.4 updated, §7.7 route 2 adopted). Settled with Sam in a design session: five bands (Very easy … Very hard, seeds −2 … +2) with cut-offs at ±0.5 / ±1.5; the shown difficulty derives from <code>difficulty_irt</code> once <code>difficulty_source = 'EMPIRICAL'</code>, with the curator label as seed only; expanding curator authoring to ±2 also widens the day-one CAT ladder (the §7.7 route-2 fix). <strong>Also settled — new §20: CAT gets a dedicated item pool</strong> (reserved stock via a "Reserve for CAT" editor tick + admin management page, generalising the readiness mechanism; §20.5), which commits us to the <code>pyirt</code> recalibration runtime and is sized to a 15-CAT non-overlapping floor (target 2,400 standalone / 60 cases / 60 trends). Recalibration scope is the <strong>whole bank</strong> (not CAT-only), which settles the runtime as the Python / <code>pyirt</code> joint fit — a weekly <strong>GitHub Actions</strong> job, not a Cloudflare Worker (§5.3.5, §17.6, §20.3). Slice 10 is restructured into sub-slices <strong>10a</strong> (five bands) · <strong>10b</strong> (CAT pool) · <strong>10c</strong> (the job); case-child calibration resolved to full weight (§19.4). <strong>Earlier — 2026-07-19: Slices 6a + 6b BUILT — a human sat a complete CAT end to end</strong> (new §19.4.4).
   85 items, CONFIDENCE_REACHED, ABOVE_STANDARD, final theta 0.480 / SE 0.232 in 121 minutes; 3 cases at the
   scheduled 8/35/59, evidence weight 76.0 across 85 items, and near-perfect blueprint balance (22/21/21/21).
   <strong>It terminated by 0.025</strong> — one more wrong answer and the band would not have cleared — and
@@ -389,7 +457,7 @@
   (verdict copy, trajectory graph + per-item marker), §14 review (uses shared runner Review surface),
   §15 re-take rules, §16 runner UX (current-Q-only progress, no back nav, no live mark-for-review,
   abandoned on browser-close), §17 calibration capture (one new audit table). Remaining: §18
-  out-of-scope notes, §20 related docs.
+  out-of-scope notes, §21 related docs.
 </div>
 
 <h2>Why this doc exists</h2>
@@ -434,7 +502,8 @@
     <li><a href="#s17">Calibration data capture</a></li>
     <li><a href="#s18">Out of scope for v1 / deferred</a></li>
     <li><a href="#s19">Open decisions</a></li>
-    <li><a href="#s20">Related docs</a></li>
+    <li><a href="#s20">CAT item pool — dedicated reserved stock</a></li>
+    <li><a href="#s21">Related docs</a></li>
   </ol>
 </div>
 
@@ -711,31 +780,45 @@
 </p>
 
 <h3>5.1 Day-one mapping — curator label → numeric proxy</h3>
+<p class="callout">
+  <strong>Revised 2026-07-26 — three labels → five.</strong> The scale was originally three (Easy/Medium/Hard →
+  −1.0 / 0.0 / +1.0). It is now <strong>five</strong> — Very easy · Easy · Medium · Hard · Very hard, seeded at
+  −2.0 … +2.0. Two reasons, settled with Sam this session: (1) the student-facing difficulty band is now
+  <em>derived</em> from the empirical number (§5.5), and five bands distribute the "% an average candidate gets
+  right" far more evenly than three (three crammed 38% → 5% into a single "Hard"); (2) seeding the extremes at ±2
+  <strong>widens the day-one ladder to ±2 with no data required</strong> — the curator-authoring route §7.7 floated
+  for the "exam stops responding to a strong candidate" symptom. Existing items keep their labels and seeds
+  untouched (Easy = −1.0 is still a valid point on the five-seed scale).
+</p>
 <p>
-  Three numeric values on the IRT logit scale, where 0 = average ability:
+  Five numeric values on the IRT logit scale, where 0 = average ability:
 </p>
 <table>
   <thead>
     <tr><th>Curator label</th><th>Rasch difficulty</th><th>Plain-English meaning</th></tr>
   </thead>
   <tbody>
+    <tr><td>Very easy</td><td>−2.0</td><td>A 50/50 student gets this right ~88% of the time.</td></tr>
     <tr><td>Easy</td><td>−1.0</td><td>A 50/50 student gets this right ~73% of the time.</td></tr>
     <tr><td>Medium</td><td>0.0</td><td>A 50/50 student gets this right ~50% of the time.</td></tr>
     <tr><td>Hard</td><td>+1.0</td><td>A 50/50 student gets this right ~27% of the time.</td></tr>
+    <tr><td>Very hard</td><td>+2.0</td><td>A 50/50 student gets this right ~12% of the time.</td></tr>
   </tbody>
 </table>
 <p>
-  The middle three values on the standard IRT logit scale. Wide enough that the three labels are meaningfully
-  different (the engine picks differently for a Medium-leaning student vs a Hard-leaning student); tight enough
-  that no question is treated as extreme.
+  Five evenly-spaced values on the standard IRT logit scale (−2 … +2, one logit apart). Wide enough that the five
+  labels are meaningfully different to the engine's selection; the ±2 extremes sit where an average candidate
+  succeeds ~88% (Very easy) / ~12% (Very hard) of the time — clearly distinct without being implausibly extreme.
+  Beyond ±2 (±3 and out) is reserved for what empirical recalibration may later discover, not for curator seeding.
 </p>
 
-<h3>5.2 Where the numeric value lives — schema decision</h3>
+<h3>5.2 Where the numeric value lives — schema decision <span class="status settled">overwrite rule revised · 10a built 2026-07-27</span></h3>
 <p>
-  The existing <code>nclex_bank_items.difficulty</code> column is a TEXT column with a CHECK constraint that
-  restricts values to <code>'Easy'</code> / <code>'Medium'</code> / <code>'Hard'</code>. It cannot hold a number
-  like 0.34 — that would violate the constraint. So the numeric value the CAT engine reads must live in a
-  separate column.
+  The existing <code>nclex_bank_items.difficulty</code> column is a TEXT column with a CHECK constraint. As of
+  2026-07-26 it allows <strong>five</strong> values — <code>'Very easy'</code> / <code>'Easy'</code> /
+  <code>'Medium'</code> / <code>'Hard'</code> / <code>'Very hard'</code> (widened from three by the same migration
+  that adds the two new seeds; see §5.1). It cannot hold a number like 0.34 — that would violate the constraint.
+  So the numeric value the CAT engine reads must live in a separate column.
 </p>
 <p>
   <strong>Add a new column: <code>difficulty_irt</code> (NUMERIC).</strong> The text column stays exactly as it
@@ -756,25 +839,40 @@
       <td><code>difficulty_irt</code> (new)</td>
       <td>NUMERIC</td>
       <td>The number the CAT engine reads for selection</td>
-      <td>Initialised from <code>difficulty</code> via the §5.1 mapping; updated by the recalibration job</td>
+      <td>Seeded from <code>difficulty</code> via the §5.1 mapping on save — and re-seeded whenever a curator <em>changes</em> the label; updated by the recalibration job (10c)</td>
     </tr>
     <tr>
       <td><code>difficulty_source</code> (new)</td>
       <td>TEXT</td>
       <td>Provenance flag for <code>difficulty_irt</code></td>
-      <td><code>'CURATOR_LABEL'</code> on insert; flipped to <code>'EMPIRICAL'</code> by the recalibration job once the threshold is crossed</td>
+      <td><code>'CURATOR_LABEL'</code> on insert and whenever a curator changes the label; flipped to <code>'EMPIRICAL'</code> by the recalibration job once the threshold is crossed</td>
     </tr>
   </tbody>
 </table>
 <p>
-  <strong>Rules of access:</strong>
+  <strong>Rules of access</strong> (overwrite rule revised 2026-07-27 — <em>last writer wins</em>, replacing the earlier "empirical locks the field"):
 </p>
 <ul>
-  <li>Curator UI never touches <code>difficulty_irt</code>. The curator picks Easy / Medium / Hard; the system writes the corresponding number to <code>difficulty_irt</code> automatically on save.</li>
+  <li>The curator UI never edits <code>difficulty_irt</code> as a number — but the curator's label <em>owns</em> it. On save, when the curator <strong>changes</strong> the difficulty label, the system writes the corresponding §5.1 seed to <code>difficulty_irt</code> and resets <code>difficulty_source</code> to <code>'CURATOR_LABEL'</code>. <strong>Last writer wins:</strong> a deliberate label change reclaims the number even from the recalibration job.</li>
+  <li><strong>The changed-only guard.</strong> The re-seed fires <em>only</em> when the submitted label differs from the stored one. An unrelated edit (fixing a typo in the stem) leaves <code>difficulty_irt</code> / <code>difficulty_source</code> untouched, so a routine save can never silently wipe a value the recalibration job has taken over.</li>
   <li>CAT engine never touches <code>difficulty</code>. It reads <code>difficulty_irt</code> only.</li>
-  <li>Recalibration job writes only to <code>difficulty_irt</code> and <code>difficulty_source</code>. Never touches the curator's label.</li>
-  <li>This preserves the curator's original judgement as a stable field. Once recalibration runs, we can still see <em>"this question was originally labelled Hard, but the data shows it's actually Medium-difficulty"</em> by comparing the two columns.</li>
+  <li>Recalibration job (10c) writes only to <code>difficulty_irt</code> and <code>difficulty_source</code>. Never touches the curator's label.</li>
+  <li>The two columns can still diverge for insight — <em>"labelled Hard, but the data shows it behaves Medium"</em> — until a curator next changes the label, at which point the number snaps to their new judgement. Because a data-rich item is re-calibrated weekly, a curator override is a <strong>nudge until the data catches up</strong>, not a permanent lock.</li>
 </ul>
+<p class="callout">
+  <strong>Why last-writer-wins, not empirical-locks (settled with Sam 2026-07-27).</strong> The earlier
+  rule had recalibration permanently own <code>difficulty_irt</code> once <code>EMPIRICAL</code>, with the
+  curator unable to overwrite it. Replaced, for two reasons. <strong>(1) Real cases need it:</strong> a
+  question whose wording was rewritten (its old responses no longer apply) or a calibration fitted to thin,
+  noisy data — the rigid lock can handle neither. <strong>(2) It self-corrects:</strong> the weekly job
+  re-calibrates any item with enough responses, so a curator override on a data-rich item is reclaimed by
+  data at the next run — human judgement fills the gap while data is thin, data wins once it is plentiful.
+  Trade-off recorded: a curator's number is the coarse §5.1 seed (Hard → +1.0), so an override discards a
+  precise empirical value like +1.34 — which the next run restores if the item still has evidence. The
+  changed-only guard stops an unrelated edit from triggering any of this. Proven end-to-end on dev against a
+  real tutor row (first-set writes all three; unrelated edit preserved a simulated <code>EMPIRICAL 0.75</code>;
+  a real label change overwrote it back to the seed + <code>CURATOR_LABEL</code>).
+</p>
 
 <h3>5.3 Empirical recalibration trigger</h3>
 <p>
@@ -832,11 +930,144 @@
   is the curator-derived starting number, the new value is the first empirical estimate.
 </p>
 
+<h4>5.3.5 Scope — the whole bank, not CAT-only <span class="status settled">settled 2026-07-26</span></h4>
+<p>
+  Recalibration runs over the <strong>whole bank</strong>, not only the dedicated CAT pool (§20). The CAT engine
+  only <em>needs</em> empirical difficulty for its own pool, but calibrating everything buys three things: (1) an
+  audience-corrected <strong>"% of candidates who get this right"</strong> insight for every question — the raw rate
+  is confounded by <em>who</em> practised it, and IRT strips that out; (2) a coherent difficulty map for curation
+  across the whole bank, not just CAT; and (3) <strong>pool mobility</strong> — an item promoted from practice into
+  the CAT pool arrives <em>pre-calibrated</em>, with no 30-response cold start.
+</p>
+<p>Two caveats, recorded not blocking:</p>
+<ul>
+  <li><strong>Practice items are measured under practice conditions.</strong> They are answered only in practice
+  (untimed, lower-stakes), so their difficulty reflects "hard <em>in practice</em>" and reads slightly easier than
+  the exam-condition CAT pool on the same scale. Harmless — a student never sees a practice band and a CAT band side
+  by side — but curators should know the two contexts differ. The disjoint pools are linked onto one scale by the
+  <em>common students</em> who sit both (§17.6).</li>
+  <li><strong>Velocity is uneven.</strong> Practice items cross the 30-response threshold fast (practice is the main
+  activity); CAT-pool items slowly (few sittings). So the audience-corrected map fills in for practice first — CAT
+  difficulty leans on curator seeds plus the authored five-band spread (§20.4) for a while.</li>
+</ul>
+
 <h3>5.4 Confidence display</h3>
 <p>
   Each item's <code>difficulty_source</code> column tells the curator dashboard whether the value is curator-
   derived or empirically calibrated. The dashboard can show: "X% of bank items are now empirically calibrated"
-  and per-item flags. <strong>Admin/curator-side only for v1; not surfaced student-facing.</strong>
+  and per-item flags. <strong>The calibration-confidence readout — how much of the bank is empirically
+  calibrated, plus the per-item CURATOR_LABEL vs EMPIRICAL flag — is admin/curator-side only for v1.</strong>
+  The difficulty <em>band</em> itself, however, <em>is</em> surfaced to students, derived from the number per §5.5.
+</p>
+
+
+<h3>5.5 Student-facing difficulty band — derived from <code>difficulty_irt</code> <span class="status settled">settled 2026-07-26 · <code>displayBand()</code> built 2026-07-27 · §5.5.2 SUPERSEDED 2026-07-29 (derive always, no source branch) · dormant until the snapshot carries the number, §5.5.2b</span></h3>
+<p>
+  <strong>The difficulty a student sees is derived from the empirical number, not the frozen curator label.</strong>
+  The curator's Very easy … Very hard choice is the <em>seed</em> only (§5.1). Recalibration moves
+  <code>difficulty_irt</code> but by rule never rewrites the curator's label (§5.2) — so without a derived band the
+  displayed label would drift out of step with the number the engine actually uses. The example that forced the
+  decision: two items both authored "Medium" (seed 0) that recalibrate to +2 and +3 would both keep reading
+  "Medium" to a student, while the engine treats them as hard. Deriving the shown band from the number keeps the
+  label honest and cuts drift. This interacts with the CAT item-pool decision — see §20.3.
+</p>
+<h4>5.5.1 The five bands and their cut-offs</h4>
+<p>
+  A band = whichever seed rung the item now sits closest to, so the cut-offs fall at the midpoints between the five
+  seeds (−2, −1, 0, +1, +2) — at <strong>±0.5 and ±1.5</strong>. The "% correct" column is for the reference
+  average candidate (θ = 0), via the Rasch success formula <code>P = 1 / (1 + e^(b − θ))</code> — the
+  human-readable gloss on the logit number (and the rigorous form of "what % of students get it right").
+</p>
+<table>
+  <thead>
+    <tr><th>Display band</th><th><code>difficulty_irt</code> range</th><th>Seed</th><th>Avg candidate (θ=0) gets it right</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Very easy</td><td><code>b ≤ −1.5</code></td><td>−2.0</td><td>~82% – 95%+</td></tr>
+    <tr><td>Easy</td><td><code>−1.5 &lt; b ≤ −0.5</code></td><td>−1.0</td><td>~62% – 82%</td></tr>
+    <tr><td>Medium</td><td><code>−0.5 &lt; b &lt; +0.5</code></td><td>0.0</td><td>~38% – 62%</td></tr>
+    <tr><td>Hard</td><td><code>+0.5 ≤ b &lt; +1.5</code></td><td>+1.0</td><td>~18% – 38%</td></tr>
+    <tr><td>Very hard</td><td><code>b ≥ +1.5</code></td><td>+2.0</td><td>≤ ~18% (down to ~5%)</td></tr>
+  </tbody>
+</table>
+<h4>5.5.2 When the derived band replaces the seed label</h4>
+<p>
+  The switch reuses <code>difficulty_source</code> (§5.2), so no new state is needed:
+</p>
+<ul>
+  <li>While <code>difficulty_source = 'CURATOR_LABEL'</code> (below the §5.3.1 threshold of responses) → show the curator's seed label. A brand-new item has no data to band from, so it shows what the curator typed.</li>
+  <li>Once <code>difficulty_source = 'EMPIRICAL'</code> → show the band derived from <code>difficulty_irt</code> via §5.5.1. The label changes at most once, when there is enough evidence — it does not twitch on three data points.</li>
+</ul>
+
+<p class="callout">
+  <strong>⭐ Superseded 2026-07-29 (Sam) — drop the branch. The student's band is derived from
+  <code>difficulty_irt</code>, always, with no reference to <code>difficulty_source</code>.</strong>
+</p>
+<p>
+  The two-branch rule above is redundant, because <strong>the seeds round-trip exactly</strong>. Every seed in §5.1
+  sits dead-centre of its own band in §5.5.1 — −2 → Very easy, −1 → Easy, 0 → Medium, 1 → Hard, 2 → Very hard, each
+  a full half-logit clear of the nearest cut-off (verified against the built code, not by inspection). So for an
+  unmeasured item, "derive the band from the number" and "show the curator's word" return the same word every time.
+  The branch protects nothing.
+</p>
+<p>
+  Removing it is not merely simpler, it is <em>more faithful to this section's own purpose</em>. §5.5 exists so the
+  displayed difficulty cannot drift from the number the engine uses — yet the branch permits exactly that: any row
+  whose number and label disagree while the source still reads <code>CURATOR_LABEL</code> would display the label
+  while the engine used the number. Deriving unconditionally makes the shown difficulty and the used difficulty the
+  same fact by construction.
+</p>
+<p>
+  <strong>What the branch was really defending</strong> was an item with a label and no number, where a derived band
+  would show nothing. That was a live hazard — 633 items were in that state on 2026-07-29, from the gap-fill run
+  loading bands without numbers. It is no longer reachable: the seeding trigger in <code>20260824120000</code>
+  guarantees a number wherever there is a band, and the taxonomy CHECK closes the band to five known values. The
+  earlier fix is what makes this simplification safe; it would not have been safe the day before.
+</p>
+<p>
+  <code>difficulty_source</code> is <strong>still needed on the curator side</strong> — the editor's Calibrated
+  difficulty readout must say whether a number is measured or assumed, since a curator deciding whether to trust it
+  needs to know. It is only the <em>student's</em> pill that does not need the flag.
+</p>
+
+<h4>5.5.2b What the attempt snapshot carries <span class="status settled">settled 2026-07-29</span></h4>
+<p>
+  The pill reads a <em>snapshot</em>, not the live bank row, so an attempt stays a faithful record of its own sitting
+  (§11). <code>classification_snapshot</code> currently freezes <code>difficulty</code>, the curator's word — which
+  is why the derived band has never once fired, and why §5.5 has been dormant since <code>displayBand()</code> shipped
+  in 10a.
+</p>
+<ul>
+  <li><strong>Store the number in place of the word</strong> — <code>difficulty_irt</code> replaces
+    <code>difficulty</code> in <code>classification_snapshot</code>. Not alongside: nothing else in the product reads
+    that word (verified — no SQL, no report, no analytics; the pill is the only reader), and for an unmeasured item
+    the number encodes the word exactly, while for a measured one the word is stale by definition.</li>
+  <li><strong>Six functions, one substitution each</strong> — <code>create_cat_attempt</code>,
+    <code>cat_next_item</code>, <code>nclex_create_attempt</code>, <code>nclex_create_programme_attempt</code>,
+    <code>nclex_create_readiness_attempt</code>, <code>nclex_create_standalone_quiz_attempt</code>. No new column, no
+    change to <code>nclex_attempt_items</code>, no migration to the table itself.</li>
+  <li><strong><code>cat_item_difficulty</code> stays as it is</strong> — it has fed from <code>difficulty_irt</code>
+    since Slice 1, with <code>cat_item_difficulty_source</code> beside it, and it is the engine's own audit record of
+    what the arithmetic used. A CAT row will therefore hold the number twice. That is accepted rather than
+    tolerated: both copies are written <em>in the same INSERT from the same variable</em>, so they cannot diverge —
+    not "should not", cannot.</li>
+</ul>
+<p>
+  <strong>Then-and-now in review</strong> (optional, not required by the above): a review screen can show both the
+  difficulty as it was and the question's current value, since the first is the snapshot and the second is a read of
+  the live bank row. This needs <em>no</em> history table — <code>nclex_bank_item_calibration_history</code> answers a
+  different question, the trajectory over time, which belongs to the admin history readout.
+</p>
+<h4>5.5.3 Scope — where the band shows, and where it does not</h4>
+<ul>
+  <li><strong>CAT sittings show no difficulty at all</strong> — the §16.6 exam-mode fix hides the difficulty pill, so a derived band never reaches a live adaptive exam. This is a practice/study + curator-surface concern only.</li>
+  <li><strong>The CAT engine is unaffected by the band count.</strong> It reads the raw <code>difficulty_irt</code> number for selection and never buckets — going 3 → 5 bands is purely a human-facing display change.</li>
+  <li><strong>Surfaces that become five-way:</strong> the curator authoring dropdown (§5.1), the student practice-builder difficulty filter, and any study-mode difficulty pill.</li>
+</ul>
+<p>
+  <strong>Coarse-display note.</strong> Five bands is deliberately still coarse — a +0.6 and a +1.4 item both read
+  "Hard". That is fine: the engine tells them apart by the raw number for selection; the band is only the human
+  gloss. A sixth band is a display nicety we can add later if wanted, not a v1 need.
 </p>
 
 
@@ -1384,6 +1615,15 @@ Sam's live run @ Q35     theta 1.65  SE 0.369   P(above)  99.999%</code></pre>
   data), or <strong>curator authoring beyond the range</strong> (immediate, needs no data, but requires either a
   finer authoring scale or letting <code>difficulty_irt</code> be set directly for outliers). The second is the
   faster of the two and does not touch the engine.
+</p>
+<p class="callout">
+  <strong>Adopted 2026-07-26 — the curator-authoring route (route 2).</strong> The curator scale was expanded from
+  three labels to <strong>five</strong> (Very easy … Very hard, seeds −2 … +2; §5.1), a "finer authoring scale"
+  exactly as this route described. It widens the day-one ladder to ±2 with no data required, so a curator can
+  author a genuine +2 "Very hard" item today. Recalibration (route 1) still runs on top to refine the numbers
+  empirically. This directly addresses consequence #1 (the exam serving a strong candidate items that are all too
+  easy); it <em>eases but does not fully remove</em> the §9.5 saturation of consequence #2, which still depends on
+  empirical spread accumulating.
 </p>
 <p>
   <strong>The honest caveat:</strong> even with a well-spread bank the strongest student always outruns the pool —
@@ -2944,8 +3184,31 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   This means recalibration has all the inputs it needs without further schema work on the response-capture side.
   The job just queries existing tables.
 </p>
+<p class="callout">
+  <strong>Scope note (2026-07-26): the job reads <em>all</em> response sources, not only CAT.</strong> Per the
+  whole-bank decision (§5.3.5), the joint fit consumes practice responses and readiness-pack responses as well as
+  CAT responses. CAT responses carry an ability estimate (<code>cat_theta_before</code>); practice and pack responses
+  do not, but the joint fit estimates ability for those sitters from their full response vectors, and the common
+  students across sources link everything onto one scale (§17.6). The "response" is the same fraction
+  (<code>score_awarded / marks</code>) in every source.
+</p>
 
 <h3>17.2 Audit history of difficulty changes — one new table</h3>
+
+<p class="callout">
+  <strong>⚠ The column names below are the SKETCH, not the table. The table already exists</strong> —
+  <code>nclex_bank_item_calibration_history</code> was built in <strong>Slice 1</strong>
+  (<code>20260808120000</code>, §12.7.5) and sat empty until 10c filled it. §12.7 is canonical on audit-table column
+  names where it diverges from here (§12.7.5 note), so the built names win:
+  <code>bank_item_id</code> · <code>previous_difficulty_irt</code> · <code>new_difficulty_irt</code> ·
+  <code>responses_used</code> · <code>recalibrated_at</code> · <code>recalibration_job_run_id</code>.
+  Building 10c from this list alone nearly produced a <em>second</em> table. What §17.2 asked for and §12.7.5 did not
+  build was added in <code>20260825120000</code>: <code>raw_empirical_value</code>, <code>job_trigger</code> and
+  <code>job_triggered_by</code>. One thing was deliberately NOT changed — <code>new_source</code> still accepts
+  <code>CURATOR_LABEL</code>, though §5.2 says recalibration never writes back to it. The rule is enforced in
+  <code>lib/calibration/rules.ts</code> and tested; narrowing a CHECK that §12.7.5 chose was not that slice's call.
+</p>
+
 <p>
   Per §5.3, recalibration overwrites <code>nclex_bank_items.difficulty_irt</code> with the 70/30 blended value
   on every weekly run. To preserve history of how each item's difficulty has evolved, we add a single new
@@ -2972,6 +3235,16 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 </table>
 
 <h3>17.3 No separate job-run table</h3>
+
+<p class="callout">
+  <strong>⚠ Where this reasoning stops (noted at build time, 2026-07-29).</strong> "Group the rows sharing a
+  <code>calibrated_at</code>" reconstructs a run that <em>changed something</em>. It reconstructs nothing from a run
+  that changed nothing — and that is <strong>every run until real students arrive</strong>, since an item needs 30
+  answers and the best-covered question in the bank has 4. Those runs write zero rows and leave no trace in our data
+  at all, so "did it run, was it healthy" is answerable only from the GitHub Actions run log. Accepted rather than
+  solved; if it ever needs solving the answer is a run-log table, not a change row that says nothing changed.
+</p>
+
 <p>
   An earlier draft proposed a separate <code>nclex_calibration_job_runs</code> table to record each weekly job
   execution (start/end time, items processed, error count). Rejected: the per-run summary can be derived from
@@ -3005,14 +3278,71 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
   Build-time decision. Two viable shapes:
 </p>
 <ul>
-  <li>A scheduled Cloudflare Worker (cron triggers) that calls a small Python service for the actual statistical fit using <code>pyirt</code> or similar.</li>
-  <li>A Supabase scheduled function (pg_cron) that uses simpler in-Postgres math.</li>
+  <li>A weekly scheduled <strong>GitHub Actions</strong> job running Python (<code>numpy</code> / <code>pyirt</code>), reading from and writing back to Supabase. <strong>(Chosen — see the callout.)</strong></li>
+  <li>A Supabase scheduled function (pg_cron) using simpler in-Postgres math.</li>
+  <li>(Earlier draft: a Cloudflare Worker calling a Python service — ruled out, Workers do not run scientific Python.)</li>
 </ul>
 <p>
   What's locked here regardless of the runtime: the schedule (Sundays 02:00 UTC, per §5.3.2), the manual
   trigger pathway (admin button calls the same job logic with <code>job_trigger = 'MANUAL'</code>), the audit
-  table that gets written to regardless of where the job runs. The Python-vs-pg_cron choice is a Sam-and-Claude
-  -Desktop call when the build moves forward.
+  table that gets written to regardless of where the job runs.
+</p>
+<p class="callout">
+  <strong>Runtime settled 2026-07-26 — the Python / <code>pyirt</code> joint fit.</strong> The pg_cron
+  "simpler in-Postgres math" option is ruled out, because recalibration now runs over the <strong>whole bank</strong>
+  (§5.3.5), including practice items that carry <em>no</em> θ estimate. Estimating item difficulty without a known
+  ability requires a joint fit (item and person parameters together) over the full response matrix — and it must be
+  <strong>one fit over all responses</strong> so the common students who take both practice and CAT link the two
+  disjoint item pools (§20) onto a single scale. That is what <code>pyirt</code> (or equivalent) does and in-Postgres
+  math does not. <strong>The runner is a weekly scheduled GitHub Actions job</strong> — corrected 2026-07-26 (the
+  earlier "Cloudflare Worker → Python service" shape was wrong: Workers do not run scientific Python). GitHub Actions
+  already runs our deploy / migrate pipelines, executes any Python on a cron, and reads from / writes back to
+  Supabase — keeping the heavy weekly batch off the request path. (pg_cron can still fire the schedule if preferred,
+  but the compute lives in the Action.)
+</p>
+<p class="callout">
+  <strong>⚠ Corrected at build time, 2026-07-29 — the paragraph above is right about WHERE and wrong about WHY,
+  and the language is TypeScript, not Python.</strong>
+</p>
+<p>
+  <strong>The reason given does not hold.</strong> "In-Postgres math does not do a joint fit" is overstated: the
+  calculation is a loop of weighted sums, Postgres loops and sums, and at our scale it would be fast. Someone could
+  have written this as a SQL function. The honest trade was never <em>can it</em> — it was <em>do we want to own a
+  statistical estimator ourselves</em>.
+</p>
+<p>
+  <strong>Three reasons that do hold</strong>, and they are what the decision now rests on:
+</p>
+<ul>
+  <li><strong>Partial credit.</strong> 17.6% of every answer recorded so far is part-right. The simple model that is
+    easy to hand-write in SQL accepts only right or wrong, so a SQL version would have to flatten a 3-of-5 to a
+    failure — discarding real information on nearly one answer in five and systematically making every SATA, matrix,
+    bow-tie and cloze read harder than it is. Our bank is full of them. This is the reason that actually decides it.</li>
+  <li><strong>The failure mode is silent.</strong> An estimator's bugs do not crash; they produce plausible wrong
+    numbers. An easy question marked hard gets fed to strong candidates and nothing anywhere looks broken.</li>
+  <li><strong>CPU.</strong> Dozens of passes over the full answer table, inside the database serving students. Free
+    today; the one cost that grows exactly as the product succeeds.</li>
+</ul>
+<p>
+  <strong>Why TypeScript rather than the Python / <code>pyirt</code> named above.</strong> Two facts settled it, both
+  discovered at build time. There is <strong>no Python interpreter on the development machine</strong> — which is also
+  why <code>validate.py</code> shipped untested — and <strong>session branches never reach the remote</strong>, so a
+  GitHub Action could not have run one either without merging first. A Python job would have been written blind,
+  merged unexecuted, and first run in anger. That loses on <em>correctness</em>, which is the whole reason the job
+  left the database. In TypeScript the estimator is testable in vitest beside the other 600 tests, and the job itself
+  was run end to end against dev before it was merged. The cost is that the maths is ours rather than a library's —
+  paid down by proving it recovers difficulties we chose from a simulated cohort, which is the same proof a library
+  would have had to pass. <code>pyirt</code> was also a weak choice on its own terms: an old, lightly-maintained
+  package named a year before it would be used.
+</p>
+<p>
+  <strong>What was actually built</strong> (2026-07-29): <code>lib/calibration/fit.ts</code> (the item half plus the
+  loop; the person half is <code>estimateAbility</code> from <code>lib/cat</code>, shared not copied, per §4.5) ·
+  <code>lib/calibration/rules.ts</code> (§5.3.1 threshold, §5.3.3 blend, §5.2 one-way source flip) ·
+  <code>lib/calibration/job.ts</code> (the entry point) · <code>nclex_apply_calibration</code>, which applies a whole
+  run in one transaction so a difficulty and the history row explaining it cannot come apart ·
+  <code>.github/workflows/recalibrate.yml</code> (Sundays 02:00 UTC + a manual run with a dev/prod choice) ·
+  <code>cat_recalibration_enabled</code> on <code>/admin/config</code>.
 </p>
 
 
@@ -3360,24 +3690,95 @@ SELECT proname FROM pg_proc WHERE proname IN ('create_cat_attempt', 'cat_next_it
 
 <p><strong>Phase D — Calibration (trails; not needed to launch CAT).</strong></p>
 <ol start="10">
-  <li><strong>Slice 10 — Weekly recalibration job (§5.3 / §17).</strong> Turns curator-labelled difficulties into
-    empirical ones over time: 30-response threshold, 70/30 blend, writes <code>difficulty_irt</code> +
-    <code>difficulty_source</code> + the audit table, plus a manual trigger. A CAT runs fully without it — it only
-    sharpens difficulty as data accumulates.
-    <strong>⚠ Priority raised 2026-07-19 (§7.7).</strong> "Not needed to launch" is true of the <em>engine</em> but
-    not of the plan's <em>promises</em>: a live run showed that on the current three-rung ladder the exam cannot
-    visibly track a strong student, and the §9.5 readiness probability saturates at ~100% — the number §13 intends
-    to show students. Both need difficulty spread, which is what this slice produces.
-    <strong>Inputs:</strong> the per-item CAT columns (§12.7.4) — the snapshotted
-    <code>cat_item_difficulty</code>, the recorded <code>cat_weight</code>, and
-    <code>nclex_attempts.cat_engine_version</code>, which tells the job which update formula produced a given
-    response set (§12.7.12). Per §4.5's consistency requirement, the job must define a "response" the same way the
-    live engine does — the <em>fraction</em> <code>score_awarded / marks</code>, not a dichotomised right/wrong —
-    or difficulty values drift against a different definition than the engine scores against.
-    <strong>⬜ Open question for this slice:</strong> does a case child's response count <em>fully</em> when
-    calibrating that item's own difficulty? The §7.4 half-weight exists because six children share one scenario and
-    should not over-inform the <em>student's ability</em>. Whether the same discount applies to the <em>item's
-    difficulty</em> is a separate question, and §5 does not address it. Decide before the job first writes.</li>
+  <li><strong>Slice 10 — Difficulty recalibration + the CAT pool (§5 / §17 / §20).</strong> Turns curator-labelled
+    difficulties into empirical ones over time <em>and</em> gives CAT its own reserved pool.
+    <strong>⚠ Priority raised 2026-07-19 (§7.7)</strong> and <strong>substantially expanded 2026-07-26</strong> —
+    what was one job is now a three-sub-slice arc. "Not needed to launch" is true of the <em>engine</em> but not of
+    the plan's <em>promises</em>: on the three-rung ladder the exam cannot visibly track a strong student and the
+    §9.5 readiness probability saturates at ~100%; both need difficulty spread, which this arc produces.
+    <ol type="a">
+      <li><strong>10a — Five-band difficulty. ✅ BUILT 2026-07-27</strong> (migration
+        <code>20260818120000_five_band_difficulty</code>, applied to dev; app-layer otherwise; NOT yet on
+        <code>main</code>). Widened the <code>difficulty</code> <code>CHECK</code> to five values on both
+        <code>nclex_bank_items</code> and <code>nclex_tutor_questions</code> (no backfill — existing rows keep their
+        labels + −1/0/+1 seeds); <code>DIFFICULTY_LEVELS</code> → five (cascades free to ~9 dropdowns/filters incl.
+        the curator editor and the practice filter); new <code>lib/bank/difficulty.ts</code> holds the label↔seed map
+        (−2 … +2) and <code>displayBand()</code> (§5.5 cut-offs), 11 unit tests. The save path
+        (<code>save-question.ts</code>) writes <code>difficulty_irt</code> from the label on create and re-seeds it
+        on a label <em>change</em> only (§5.2 last-writer-wins + changed-only guard) — proven end-to-end on dev. The
+        student pill routes through <code>displayBand()</code> so §5.5 is the single authority; on the
+        <em>student</em> pill the <strong>empirical branch is dormant until 10c</strong> because it reads the frozen
+        <code>classification_snapshot</code>, which the create-attempt RPCs do not yet populate with
+        <code>difficulty_irt</code> / <code>difficulty_source</code> — that snapshot plumbing rides with 10c.
+        <strong>✅ Also built 2026-07-27 — the curator calibration readout</strong> (was the "read-only measured
+        difficulty beside the editable seed", once slated for after 10a): the Classification tab now shows
+        <strong>Set difficulty</strong> (editable) beside a read-only <strong>Calibrated difficulty</strong> box —
+        <code>band (IRT)</code> + a <code>CURATOR</code>/<code>EMPIRICAL</code> pill + a <code>≠ label</code> flag when
+        the measured band disagrees. It reads the <em>real</em> <code>difficulty_irt</code> / <code>difficulty_source</code>
+        columns (threaded through all 11 row-mappers + editors), so it shows genuine empirical states <em>now</em> —
+        unlike the student pill it does <em>not</em> wait for 10c. A 💡 bulb
+        (<code>lib/hints/bank/difficulty-calibration-bulb.tsx</code>) explains both fields.</li>
+      <li><strong>10b — CAT dedicated pool (§20)</strong>, split into sub-slices:
+        <ol>
+          <li><strong>10b1 — the reservation flag + the editor tick. ✅ BUILT 2026-07-28</strong> (migration
+            <code>20260819120000</code>, dev-applied; app-layer otherwise; on the session branch — awaiting Sam's
+            live test + merge, NOT yet on <code>main</code>, NOT prod). A boolean <code>cat_pool</code> column on all
+            <strong>six</strong> tables — standalone questions (<code>nclex_bank_items</code> /
+            <code>nclex_tutor_questions</code>), case wrappers (<code>nclex_case_studies</code> /
+            <code>nclex_tutor_case_studies</code>) and trend wrappers (<code>nclex_trend_datasets</code> /
+            <code>nclex_tutor_trend_datasets</code>); tutor mirrors dormant-for-symmetry. An <strong>admin-only
+            "Reserve for CAT" tick</strong> on three editor surfaces — the question Housekeeping tab, the
+            case-wrapper editor, the trend-wrapper editor — and <em>never</em> on a case / trend <strong>child</strong>
+            editor: <strong>reservation lives on the wrapper, children inherit</strong> (mirrors the readiness tag —
+            "a tag on the case counts as a tag on every child"). Admin-only enforced at three layers — UI (tick only
+            on the admin surface), save (writes <code>cat_pool</code> only when surface = admin), and RLS (the admin
+            tables' existing <code>BANK_CURATE</code> <code>FOR ALL</code> policy, which tutors don't hold — no new
+            policy). Shared copy in <code>lib/bank/atoms/cat-pool.ts</code>.
+            <strong>⚠ Model note — diverged from §20.2:</strong> reservation is a plain boolean on the row, <em>not</em>
+            the originally-planned <code>UNIQUE(item_id)</code> reservation table. Reason: the other flags already live
+            as row columns, and readiness reservation is itself a row-level <em>tag</em> (not a table), so a column is
+            the consistent, simplest shape. Consequence: the §20.5 <strong>mutual-exclusivity guard</strong> (can't be
+            both CAT- and readiness-reserved) is <strong>deferred</strong> — with a boolean + a readiness tag it
+            becomes a cross-check, not a <code>UNIQUE</code> constraint. <em>(Guard subsequently built in 10b2.)</em>
+            <br /><strong>⚠ Superseded on two points by the 2026-07-28 regrain</strong> (§20.2.1): the trend-wrapper
+            columns are <strong>dropped</strong> (four tables carry <code>cat_pool</code>, not six) and the tick sits
+            on <strong>two</strong> editor surfaces, not three. Its "children inherit" is now literal — the children
+            hold a trigger-maintained copy of the flag.</li>
+          <li><strong>10b2 — the admin CAT-pool management page. ✅ BUILT 2026-07-28</strong> (§20.4 / §20.5), on
+            <code>main</code>, no migration of its own. <code>/admin/cat-pool</code>, top-level beside Readiness
+            Packs; one route, three lenses via <code>?lens=</code> off a single snapshot — <strong>Coverage</strong>
+            (four targets, five-band spread with Set ⟷ Calibrated, blueprint vs NCLEX ranges, wrapper supply),
+            <strong>Reserved stock</strong> (paged, filterable, release per question or per case) and
+            <strong>Audit</strong> (four degradation conditions, each deep-linking to its subset) — plus the
+            <strong>reserve drawer</strong> (<code>?reserve=1</code>) carrying the §20.5 mutual-exclusivity guard in
+            the UI <em>and</em> re-checked server-side. Followed by the <strong>regrain</strong> (§20.2.1, migration
+            <code>20260822120000</code>): trends reserved per question, cases cascading by trigger, the dead
+            child-guard fixed, and the silent 1,000-row read cap paged past.</li>
+          <li><strong>10b3 — selection draws only from the pool. ✅ BUILT 2026-07-29</strong> (migration
+            <code>20260823120000</code>, dev-applied). Practice excludes reserved stock via one predicate in
+            <code>_nclex_eligible_unit_pool</code> — the single gateway, so the count / breakdown / create RPCs
+            follow for free; CAT draws only from the pool in <code>create_cat_attempt</code> and
+            <code>cat_next_item</code>, except the mid-case branch which stays ungated on purpose (a released case
+            must not abandon a student mid-block). <strong>CAT stopped reading <code>is_builder_visible</code></strong>
+            — with enforcement on it contradicts reservation and would empty the pool — which also closed a
+            pre-existing drift between the case pick and the standalone picks. Second layer: reserving clears
+            <code>is_builder_visible</code> + <code>is_free_sample</code>. Mutual exclusivity now binds from the
+            readiness side too. Dev: practice 3,245 → 807 units, 61 → 24 cases, both leak checks zero. Full write-up
+            in §20.7. ⚠ A live CAT sitting has not been played end to end.</li>
+        </ol></li>
+      <li><strong>10c — The recalibration job (§5.3 / §17).</strong> The weekly <strong>GitHub Actions</strong>
+        Python / <code>pyirt</code> job (§17.6): a whole-bank joint fit over <em>all</em> response sources (§17.1),
+        30-response threshold, 70/30 blend, <code>difficulty_source</code> flip, audit-table writes (§17.2), plus a
+        manual trigger. Trails after launch — it needs accumulated data to chew on.</li>
+    </ol>
+    <strong>Response definition:</strong> per §4.5, the job must define a "response" the same way the live engine
+    does — the <em>fraction</em> <code>score_awarded / marks</code>, not a dichotomised right/wrong — across every
+    source, or difficulty drifts against a different definition than the engine scores against.
+    <strong>✅ Case-child weighting — resolved 2026-07-26:</strong> a case child calibrates its own difficulty at
+    <em>full</em> weight. The §7.4 half-weight is an <em>ability</em>-estimation formula (six children share a
+    scenario, so they should not over-inform θ); it does not apply to estimating an item's own difficulty, where each
+    response is a normal data point. Known simplification: the shared scenario makes the six children's responses
+    slightly correlated (a "testlet" effect), which we do not model in v1.</li>
 </ol>
 <p class="callout">
   <strong>Scope note.</strong> These ten slices cover the CAT <em>engine and its student-facing surfaces</em>. They
@@ -4157,7 +4558,342 @@ final_score NULL (correct — a CAT has no raw score)</code></pre>
   tired, so the first real user-eyes pass is still outstanding.
 </p>
 
-<h2 id="s20">20. Related docs</h2>
+<h2 id="s20">20. CAT item pool — dedicated reserved stock <span class="status settled">settled 2026-07-26 · regrained 2026-07-28</span></h2>
+<p>
+  Where CAT draws its questions from. Today the selection query (§10.2, <code>cat_next_item</code>) reads the
+  <em>whole</em> published bank. This section settles that CAT will instead draw from a <strong>dedicated pool of
+  reserved questions that never appear in student practice</strong> — generalising the readiness-pack "reserved
+  stock" mechanism. Settled with Sam in the 2026-07-26 design session.
+</p>
+<p class="callout">
+  <strong>⚠ Regrained 2026-07-28 — there are TWO reservation units, not three.</strong> The original design assumed
+  reservation sat on a standalone question, a case wrapper, <em>or</em> a trend wrapper, with children inheriting.
+  Reading the selection code disproved the third: <strong>a trend dataset is not a selection unit anywhere in the
+  product.</strong> <code>_nclex_eligible_unit_pool</code> emits exactly two unit types, <code>QUESTION</code> and
+  <code>CASE</code>; trend-linked questions travel in the standalone branch on their own row, and
+  <code>cat_next_item</code> picks them individually too, capped at one per dataset per exam. Reserving a dataset
+  therefore reserved something nothing ever draws.
+</p>
+<p class="callout">
+  So <code>cat_pool</code> was <strong>dropped from <code>nclex_trend_datasets</code></strong> (+ the tutor mirror)
+  and each trend question now carries its own flag, exactly like a standalone. A <strong>case</strong> stays a
+  wrapper-level reservation — it <em>is</em> a selection unit — but its children now hold a materialised copy of the
+  flag, maintained by database trigger. The dataset survives in the design only as a <strong>variety measure</strong>:
+  the admin page counts how many <em>distinct</em> datasets the reserved trend questions span. Migration
+  <code>20260822120000</code>. Sections 20.2, 20.4, 20.5 and 20.6 below are updated to match; the reasoning in 20.1
+  and 20.3 is unaffected.
+</p>
+
+<h3>20.1 Why a dedicated pool — the exposure problem</h3>
+<p>
+  A CAT measures ability from responses. If a student has already <em>practised</em> a question, their response
+  reflects memory, not ability, and the estimate inflates. This threat is structurally high for us: the product
+  <em>is</em> a practice bank, and <strong>the students who sit CATs are the same students who practise most</strong>.
+</p>
+<p>Current state (found by reading the code, 2026-07-26):</p>
+<ul>
+  <li><code>cat_next_item</code> excludes items the student saw in <em>prior CATs</em> (<code>mode = 'CAT'</code>) but <strong>not</strong> items they met in practice / custom builds. So a practised question can be served in a CAT today.</li>
+  <li>Reserved (readiness-pack) questions are excluded from practice but <strong>not</strong> from CAT — on dev, <strong>452 of 500</strong> reserved items are currently CAT-eligible. A question earmarked for a paid pack can leak into a CAT.</li>
+</ul>
+<p>The shared-pool alternatives both fail for the CAT-taking population:</p>
+<ul>
+  <li><strong>Shared pool, no exclusion</strong> → contaminated (they have already seen the items).</li>
+  <li><strong>Shared pool, exclude practice-seen items per student</strong> → <em>degrades</em> the diligent student's CAT: someone who has practised 2,000 of 2,500 items has few unseen items left, badly spread across difficulty, so their measurement suffers precisely because they studied hard.</li>
+</ul>
+<p>
+  A dedicated pool is the only option that gives every student a clean, full-quality adaptive exam regardless of
+  practice history. <strong>Item security is deliberately a weak part of the argument</strong> — our CAT is
+  <em>formative</em> (a readiness signal, not the licensure exam), so gaming it is self-defeating; the case rests on
+  measurement quality, not on keeping the answer key off the street.
+</p>
+
+<h3>20.2 The mechanism — generalise "reserved stock"</h3>
+<p>
+  We do not build a new silo. Reservation already exists for readiness packs
+  (<code>nclex_readiness_pack_items</code>, <code>UNIQUE(item_id)</code>, excluded from practice). We generalise it
+  to carry a <strong>purpose</strong>: <code>readiness_pack</code> or <code>cat_pool</code>. Rules:
+</p>
+<ul>
+  <li>A question is reserved for <strong>at most one</strong> purpose (a pack question is not also a CAT question, and vice versa).</li>
+  <li>CAT selection (§10.2) draws <strong>only</strong> from <code>cat_pool</code> items — which also closes the 452-item leak, since readiness-reserved items are no longer CAT-eligible.</li>
+  <li>Both purposes stay hidden from student practice (the existing <code>_nclex_eligible_unit_pool</code> exclusion widens to cover both).</li>
+  <li>The admin "Reserved stock" surface (currently the readiness "how-far-to-500" lens) becomes multi-target — a readiness target and a CAT-pool target.</li>
+</ul>
+<p>
+  Exact storage shape (a second link table mirroring the readiness one, versus a single reservation table with a
+  <code>purpose</code> column) is a build-time call; the readiness link table is the precedent to follow. One
+  consequence worth noting: with a dedicated pool that students never practise, the per-student practice-seen
+  exclusion becomes unnecessary for CAT items — the pool makes practice→CAT exposure <em>structurally impossible</em>
+  rather than patched. The existing cross-CAT <code>mode = 'CAT'</code> exclusion still applies, so a student's
+  repeat CATs draw fresh items.
+</p>
+
+<h4>20.2.1 As built — a boolean column, two reservation units <span class="status settled">2026-07-28</span></h4>
+<p>
+  The <code>UNIQUE</code> reservation table above was <strong>not</strong> what shipped. 10b1 backed reservation with
+  a plain boolean <code>cat_pool</code> column (rationale in the §19.4 10b1 entry: CAT reservation is flat
+  membership, so a table was over-engineering). 10b2 then regrained <em>which rows carry it</em>:
+</p>
+<ul>
+  <li><strong>A QUESTION</strong> — <code>cat_pool</code> on its own <code>nclex_bank_items</code> row. This covers
+  standalone questions <em>and</em> trend-linked ones: both are picked individually by every selection path, so both
+  are reserved individually. A trend dataset is not a unit and no longer carries the column.</li>
+  <li><strong>A CASE</strong> — <code>cat_pool</code> on <code>nclex_case_studies</code>. The wrapper is the selection
+  unit and stays authoritative; its children carry a copy so that <code>cat_pool = TRUE</code> means one thing on
+  every row and selection can read one column instead of joining back to a wrapper.</li>
+</ul>
+<p>
+  <strong>The cascade is a database trigger, not app code</strong> (<code>nclex_cat_pool_cascade_case</code> +
+  <code>nclex_cat_pool_inherit_case</code>). Reserve or release a case and its children follow; attach a child and it
+  inherits; detach and it clears. Two reasons it belongs in the database rather than a Server Action: a forgotten
+  join in one practice-side query is exactly how reserved stock leaks back into practice, and a cascade living in one
+  save path is a cascade a second save path will eventually forget. Detach-clear is load-bearing in its own right —
+  without it a detached child becomes a reserved standalone nobody ticked, vanishing from practice with no visible
+  cause.
+</p>
+<p>
+  <strong>Consequence for the placeability CHECK</strong> (<code>20260821120000</code>, which requires a reserved item
+  to carry a difficulty band and a subcategory): it now binds on <em>individually-reserved</em> rows only. It had to.
+  The inherit trigger re-asserts the wrapper's value on every save of a child, so an unplaceable child under a
+  reserved case could never be saved again — including the save that would add the missing band, locking the curator
+  out of the exact fix the constraint was demanding. Case completeness is instead gated on the <strong>case</strong>
+  in the reserve action, and surfaced as an "unplaceable" card on the admin page's Audit lens (§20.5).
+</p>
+
+<h3>20.3 Coupling with §5 recalibration and §5.5 — commits us to the pyirt runtime</h3>
+<p>
+  A dedicated pool sharpens the §17.6 runtime fork into a <em>decision</em>, because of how it interacts with the
+  §5.5 student-facing difficulty band:
+</p>
+<ul>
+  <li>Dedicated CAT items get empirical difficulty from CAT sittings — but students <strong>never see</strong> those items' difficulty (it is hidden in exams, §16.6).</li>
+  <li>The items students <em>do</em> see difficulty for are <strong>practice items</strong>, and those only get empirically calibrated if recalibration reads <strong>practice responses</strong> — the <code>pyirt</code> joint fit, not the simple "θ-known-from-CAT" approach.</li>
+</ul>
+<p>
+  Therefore: <strong>dedicated pool + <code>pyirt</code> runtime</strong> = CAT gets a clean pool <em>and</em>
+  practice items get honest, data-driven bands (§5.5 pays off). <strong>Dedicated pool + the simple runtime</strong>
+  = §5.5 is neutered for practice items (they stay on curator seeds forever). So this decision <strong>commits the
+  §17.6 fork to <code>pyirt</code></strong>.
+</p>
+<p class="callout">
+  <strong>Resolved 2026-07-26 — whole-bank recalibration chosen (§5.3.5).</strong> We calibrate the whole bank, not
+  just the CAT pool, so practice items <em>do</em> get empirical difficulty and §5.5 pays off on the surfaces
+  students actually see. This <strong>confirms the <code>pyirt</code> runtime</strong> (§17.6) — no longer a fork —
+  and carries the two caveats recorded in §5.3.5 (practice items measured under practice conditions; uneven
+  calibration velocity).
+</p>
+
+<h3>20.4 Pool sizing — the 15-CAT floor (not a cap)</h3>
+<p>
+  <strong>15 is a content-sizing floor, not a per-student limit.</strong> It is the least number of questions
+  needed so a student gets <strong>15 non-overlapping CATs of fresh questions</strong>. The CAT allowance is
+  unchanged — it stays unlimited where a subscription grants it (<code>cat_allowance = NULL</code>). Beyond the
+  fresh supply, attempts still work; items simply begin to repeat (graceful degradation). And because most CATs
+  terminate near the <strong>85-item minimum</strong> rather than the 150 maximum, real students reach well past 15
+  fresh sittings before any repeat — so 15-at-max-length is a conservative floor.
+</p>
+<p>Assumptions: a sitting is 85–150 items = mostly standalone + exactly 3 cases (~18 child items) + ~2 trends (~3 child items).</p>
+<table>
+  <thead>
+    <tr><th>Component</th><th>15-CAT floor (max length)</th><th>Prod target</th><th>Child questions</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Standalone</td><td>~1,935 (+headroom ≈ 2,400)</td><td><strong>2,400</strong></td><td>2,400</td></tr>
+    <tr><td>Case wrappers</td><td>45 (3 × 15)</td><td><strong>60</strong></td><td>~360 (≈6 each)</td></tr>
+    <tr><td>Trend datasets <em>(variety, see below)</em></td><td>~30 (2 × 15)</td><td><strong>60</strong></td><td>~120 (≈2 each)</td></tr>
+    <tr><td colspan="3"><strong>Total CAT pool</strong></td><td><strong>2,880 questions</strong></td></tr>
+  </tbody>
+</table>
+<p class="callout">
+  <strong>⚠ The trend target is a different KIND of number from the other two (2026-07-28).</strong> 2,400 and
+  60-cases fall out of the arithmetic above: a sitting consumes standalone items and exactly 3 cases, so fifteen
+  non-overlapping sittings need that much stock. <strong>Sixty <em>datasets</em> does not follow that way.</strong>
+  CAT caps trend questions at one per dataset <em>per exam</em>, not globally, so fifteen sittings could in principle
+  be served by far fewer scenarios reused across students.
+</p>
+<p class="callout">
+  It is kept at 60 as an <strong>editorial variety goal</strong> — the pool should not lean on a handful of charts —
+  and the admin page measures it as such: the tile reads <em>distinct datasets represented / 60</em>, with the
+  reserved trend-question count in its note. Supply is the 120-odd <em>questions</em>; 60 is the spread they should
+  cover. Sam's call, and worth labelling honestly rather than implying it derives from the floor.
+</p>
+<p>
+  <strong>The one real content action is the five-band spread, not bulk volume.</strong> The 2,400 standalone must
+  span all five bands (−2 … +2). Today everything sits on three rungs (Easy 805 / Medium 1,297 / Hard 916 on dev),
+  so the <strong>Very-easy and Very-hard tails are empty</strong>. The gap is roughly <strong>~250 Very-easy + ~250
+  Very-hard</strong> items — filled either by curators <em>re-labelling</em> genuinely-extreme items out of the
+  existing Easy/Hard piles, or by authoring new tail items; the middle is already over-supplied. Cases and trends
+  should likewise carry a range of difficulty, not cluster at Medium.
+</p>
+<p>
+  <strong>Dev precedent:</strong> dev was seeded with 3,086 items (2,418 standalone / 92 cases / 80 trends)
+  <em>specifically to make CAT runnable</em> — so on dev the CAT pool is effectively the whole bank. Prod
+  designates an equivalent reserved set as <code>cat_pool</code>; the case (60) and trend (60) targets sit
+  <em>below</em> dev's counts and still clear the floor comfortably.
+</p>
+
+<h3>20.5 Curator surfaces — the editor tick, the dropdown, the admin page <span class="status settled">settled 2026-07-26</span></h3>
+<p>
+  Reserving a question for the CAT pool is a <strong>visible curator action, not a hidden / code-only flag</strong>.
+  Three surfaces:
+</p>
+<ul>
+  <li><strong>A "Reserve for CAT" tick on the question editor. ✅ BUILT 2026-07-28 (10b1).</strong> The curator marks
+  a question as CAT-pool stock while authoring it. This works cleanly because CAT reservation is <em>flat
+  membership</em> — in the pool or not, with no order and no sub-grouping (the exam is adaptive, so there is no
+  "position"). A single tick expresses the whole reservation. <strong>As built (regrained 2026-07-28):</strong> the
+  tick is admin-only and appears on <em>two</em> surfaces — the <strong>question editor</strong> (Housekeeping tab,
+  which covers standalone <em>and</em> trend-linked questions alike) and the <strong>case-wrapper editor</strong>.
+  It is never shown on a case child: that reservation belongs to the wrapper and the database keeps the child in
+  step, so a tick there would be a control that does nothing. The trend-wrapper tick was removed outright — a
+  dataset is not a reservation unit. Backed by a boolean <code>cat_pool</code> column, not the §20.2
+  <code>UNIQUE</code> reservation table (see §20.2.1 and the 10b1 entry in §19.4).
+  <br />
+  <strong>⚠ Defect found and fixed 2026-07-28:</strong> the "never on a child" rule had never actually been enforced.
+  The guard tested <code>mode === 'wrapper-child'</code>, a housekeeping mode nothing has set since the 2026-05-01
+  case retrofit moved children onto the default <code>'standalone'</code> — so the condition silently passed for
+  everything and the tick <em>was</em> shown on case children, writing a flag the admin page then ignored. Replaced
+  with a React context the case wrapper page provides (<code>CaseChildScope</code>), since the eleven row mappers do
+  not read <code>parent_case_id</code>. Treat <code>HousekeepingMode</code> as unusable for "is this a wrapper
+  child" tests.</li>
+  <li><strong>The five-option difficulty dropdown.</strong> The editor's difficulty selector gains the two new
+  labels (Very easy … Very hard, §5.1) — a UI change paired with the §5.2 <code>CHECK</code> widening. <strong>✅ Built
+  2026-07-27</strong>, together with the read-only <em>measured</em> difficulty beside the editable seed (the
+  "Calibrated difficulty" readout — the earlier open question is resolved: yes, we show it; see §19.4 Slice 10a).</li>
+  <li><strong>An admin CAT-pool management page. ✅ BUILT 2026-07-28 (10b2)</strong> — <code>/admin/cat-pool</code>,
+  top-level beside Readiness Packs (both <em>allocate</em> already-authored stock; the Bank group's children all
+  <em>author</em> it). One route, three lenses via <code>?lens=</code>, all reading one snapshot:
+  <strong>Coverage</strong> (the four targets, the five-band spread with a Set ⟷ Calibrated toggle, blueprint vs
+  NCLEX ranges, wrapper supply), <strong>Reserved stock</strong> (the whole pool, filterable, released per question
+  or per case), and <strong>Audit</strong> (see below). Plus a <strong>reserve drawer</strong> (<code>?reserve=1</code>)
+  whose three tabs are Standalone · Cases · Trend questions — two of the three list questions ticked one at a time.
+  The editor tick and the admin page are <em>complementary</em>: the tick <em>sets</em> a reservation, the page
+  <em>manages and audits</em> the set; both read and write the same column.</li>
+</ul>
+<p>
+  <strong>Mutual exclusivity is enforced at the editor, not just at save.</strong> Because a question is reserved for
+  at most one purpose, the surface shows current reservation state and prevents reserving a question already in a
+  readiness pack (and vice versa) — a disabled control with an explanation, not a failed save.
+  <strong>✅ Built in 10b2</strong>, in both halves: the reserve drawer greys a readiness-tagged row out with its
+  reason, <em>and</em> the Server Action re-checks the live link table before writing, because 10b1's boolean leaves
+  no constraint to catch a stale page or a crafted request. Blocked ids are skipped and reported, not failed as a
+  batch. (A case is blocked if <em>any</em> child is readiness-tagged — the wrapper is the unit.)
+</p>
+<p>
+  <strong>The Audit lens — four conditions that degrade a pool without blocking a sitting.</strong> Each is counted
+  from the same rows the stock pane lists, and deep-links to its own subset:
+  <em>still visible in the student builder</em> (expected until 10b3) · <em>reserved for two purposes at once</em> ·
+  <em>reserved but impossible to place</em> · <em>reserved but still draft</em>. The third is the compensating
+  control for narrowing the placeability CHECK (§20.2.1): a case child with no difficulty band cannot be refused by
+  the database any more, and one such child stops CAT scheduling the <em>whole</em> case, so it has to be visible
+  somewhere a curator can act on it.
+</p>
+<p class="callout">
+  <strong>⚠ Read-path gotcha worth remembering.</strong> Every number on this page is aggregated in memory from rows
+  it reads, and PostgREST caps a select at <strong>1,000 rows silently</strong> — no error, just a short array. The
+  Coverage lens therefore reported a 2,833-question pool as "1,000 / 2,880", with a plausible-looking spread and
+  blueprint built from whatever the first thousand rows were. It survived three rounds of tsc / vitest / SQL checks
+  because none of those go through the client's row limit; it was caught the first time a human opened the page.
+  Both unbounded reads now page explicitly, ordered by <code>item_id</code>. Any future surface that aggregates the
+  pool in memory must do the same.
+</p>
+<p class="callout">
+  <strong>Readiness retrofit — deferred, and not symmetric.</strong> The intent is to eventually give readiness
+  reservation the same editor-tick treatment. Noted, but it is <em>harder</em> than CAT: a readiness question carries
+  a <strong>pack assignment</strong> (which pack) <em>and</em> a <strong>position</strong> (sit-order within the fixed
+  set), which a lone tick cannot express — it would need the tick plus pack / position controls, or a hybrid with the
+  existing pack picker. CAT's flat membership is what makes the pure tick work. Filed as "look into it later," not
+  part of this build.
+</p>
+
+<h3>20.6 What this adds — a new slice, distinct from Slice 10</h3>
+<p>
+  This is a separate piece of build from Slice 10 (recalibration), though coupled to it through the
+  <code>pyirt</code> commitment (§20.3). New work:
+</p>
+<ul>
+  <li>✅ <strong>Reserved stock as a <code>cat_pool</code> flag</strong> (schema) — 10b1, migration
+  <code>20260819120000</code>; regrained to two reservation units by <code>20260822120000</code> (§20.2.1).</li>
+  <li>✅ <strong>CAT selection draws only from <code>cat_pool</code></strong>; reserved stock excluded from practice;
+  readiness and CAT reservation now mutually exclusive from <em>both</em> sides — 10b3, migration
+  <code>20260823120000</code>. See §20.7.</li>
+  <li>✅ <strong>Curator editor: the "Reserve for CAT" tick</strong> (10b1, corrected 10b2) <strong>with the
+  mutual-exclusivity guard</strong> (10b2), and the five-option difficulty dropdown (10a, §20.5).</li>
+  <li>✅ <strong>The admin CAT-pool management page</strong> with reserved-stock bookkeeping — 10b2, three lenses
+  plus the reserve drawer (§20.5).</li>
+</ul>
+<p>
+  <strong>Status:</strong> design settled 2026-07-26, regrained 2026-07-28, <strong>enforced 2026-07-29</strong>.
+  10b1, 10b2 and 10b3 are all built and verified on dev. §20 is complete; what remains of Slice 10 is
+  <strong>10c</strong>, the recalibration job (§5.3 / §17).
+</p>
+
+<h3 id="s20-7">20.7 As enforced — Slice 10b3 <span class="status settled">built 2026-07-29</span></h3>
+<p>
+  Reservation stopped being a label. Migration <code>20260823120000</code>; verified on dev.
+</p>
+<ul>
+  <li><strong>Practice stops serving reserved stock</strong> — one predicate in
+  <code>_nclex_eligible_unit_pool</code>. That helper is the single gateway every practice path funnels through
+  (<code>nclex_create_attempt</code>, <code>nclex_count_eligible_items</code> and
+  <code>nclex_filter_breakdown</code> all call it), so the counts, the breakdown and attempt creation follow for
+  free and cannot drift apart. Two predicates in total — one for individually-reserved questions, one for reserved
+  case wrappers; case children need none, since <code>parent_case_id IS NULL</code> already excludes them.</li>
+  <li><strong>CAT serves only reserved stock</strong> — <code>create_cat_attempt</code> (both picks, strict and
+  exposure-relaxed) and <code>cat_next_item</code> (the scheduled case slot plus both adaptive picks).</li>
+  <li><strong>The mid-case branch is deliberately NOT gated.</strong> A case is vetted when it is scheduled;
+  re-checking on each child would abandon a student mid-block if a curator released it during the sitting, which is
+  worse than letting them finish the case they started.</li>
+  <li><strong>Both TS leak sites closed</strong> — the Builder's filter chips
+  (<code>get-filter-options.ts</code>, which would otherwise advertise an axis the pool can no longer serve) and
+  the readiness pack-add actions.</li>
+</ul>
+<p class="callout">
+  <strong>⚠ CAT stopped requiring <code>is_builder_visible</code>, and had to.</strong> Both CAT picks demanded it.
+  That was harmless while CAT drew from the practice bank, but with reservation enforced it is a contradiction:
+  builder-visible means "offer this in the practice builder", which is exactly what a reserved question must not
+  be. The moment a curator did the sensible thing and hid reserved stock from the builder, CAT would have found
+  nothing to serve. Reservation is now what makes an item CAT-eligible, and builder visibility is a practice-side
+  flag CAT no longer reads. This also closed a pre-existing drift in which the case pick and the standalone picks
+  disagreed about that flag.
+</p>
+<p class="callout">
+  <strong>Two layers, on purpose.</strong> The pool predicate is the real gate. Reserving <em>also</em> clears
+  <code>is_builder_visible</code>, so a reserved row is unservable even to some future query that forgets the
+  predicate — and the Audit lens's first card, which used to count live leaks, becomes a drift detector for that
+  second layer. <code>is_free_sample</code> is cleared alongside it: a free sample is public shop window and a
+  reserved question must not be met before the exam, so the two cannot both be true (8 rows on dev were; Sam,
+  2026-07-29 — unmark them, free samples are not in use. Only reserved rows were touched).
+</p>
+<p class="callout">
+  <strong>Mutual exclusivity now binds from both sides.</strong> The CAT reserve drawer already refused a
+  readiness-tagged question; the three pack-add actions now refuse a CAT-reserved one. Previously a curator could
+  walk a reserved question into a pack from the readiness side and the same item would be measuring twice.
+</p>
+<p class="callout">
+  <strong>How the two large CAT functions were deployed, and why it matters.</strong> <code>cat_next_item</code> is
+  the biggest function in the system and the one a mistake breaks an exam with, so it and
+  <code>create_cat_attempt</code> were <em>not</em> redeployed by retyping. The live definitions were transformed in
+  place under assertions (raise if an anchor is missing or matched the wrong number of times), and the migration
+  file's own versions were then proven <strong>byte-identical by md5</strong> against what was deployed. What ships
+  to prod is exactly what dev runs, not a lookalike. Worth repeating for any future edit to these two.
+</p>
+<p>
+  <strong>Measured on dev:</strong> the practice pool went from 3,245 standalone units and 61 cases to
+  <strong>807 and 24</strong>; both leak checks (reserved stock reachable in practice) return zero rows;
+  reserved-and-builder-visible went 2,824 → 0 and reserved-and-free-sample 8 → 0; CAT retains 2,382 first-item
+  candidates and 36 schedulable cases. The collapse of the practice pool is the seeding working as intended — most
+  of what left is the synthetic <code>DEV_CAT_POOL</code> filler. <strong>Prod is unaffected either way:</strong> it
+  does not yet carry the <code>cat_pool</code> column at all, and its practice pool is 60 questions, so the whole of
+  §20 is a no-op there until content is reserved.
+</p>
+<p>
+  ⚠ <strong>Not yet done:</strong> a live CAT sitting has not been run end to end against the enforced pool. The
+  selection queries were verified by the stock they can see, not by playing an exam.
+</p>
+
+
+<h2 id="s21">21. Related docs</h2>
 <ul>
   <li><code>bank-consumption.html</code> — parent plan; §16 is the original CAT scoping note this doc replaces.</li>
   <li><code>bank-consumption-attempt-creation.html</code> — sibling sub-plan; §13 names the two-RPC architecture this doc fleshes out.</li>

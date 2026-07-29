@@ -1,7 +1,22 @@
 # Journey Tracker
 
 *Planning document. Captures the design conversation of 2026-06-19.*
-Last updated: 2026-06-21 (**architecture decision:** build the Journey
+Last updated: 2026-07-21 (**adds the admin surface** — settles that v1 needs
+one admin surface: **authoring the QAcademy starter templates** (the same
+template editor as the tutor's *My Pathways*, scoped to official/global
+starters, admin-permission-gated). An admin **oversight dashboard** is
+deferred to v2 alongside the tutor board grid. See the new *Admin surface*
+section. Earlier same-day: **decision reaffirmed** — building the Journey
+Tracker as a standalone product *from day one* (option "B") was
+reconsidered and **declined** — we stay with the module-now / extract-later
+approach ("A") below. Rationale: only one concrete use-case (Ghana→US nurse
+migration) has real users today; the generic-product cases (university
+applications, visas, other verticals) are real *ideas* but have no users
+yet, so building a standalone product now means building for nobody and
+delaying value to the paying v1 audience. **Revisit if a concrete second
+use-case with real users appears** — that flips the calculus toward
+standalone-first. No design change: the *Architecture* section below already
+commits to A. Earlier — 2026-06-21 (**architecture decision:** build the Journey
 Tracker as a **bounded, neutrally-named (`journey_*`) module inside the
 MyNclex repo now, with intent to extract it into a standalone QAcademy
 platform product later** — it's a generic case-management engine, not an
@@ -609,6 +624,53 @@ separate surface is where a tutor works their **templates**:
 > distinct in the model: edit a template here and it changes future
 > assignments; edit a pathway in a case and it changes only that student.
 
+## Admin surface
+
+*Added 2026-07-21.* The *Access model* settles that admins can **see**
+journey data; this section settles what an admin **does** — the one admin
+surface v1 actually needs, plus a position on oversight.
+
+### Authoring the QAcademy starter templates (v1 — required)
+
+QAcademy ships per-destination **starter templates** (US/UK/Canada — see
+*The default starter templates*) that every tutor clones and every Tier-1
+Pathway Guide is seeded from. Those starters are **QAcademy-owned platform
+content**, not any one tutor's — so they have to be created and maintained
+on an **admin surface**. Without it, there's no answer to "how do the
+starters get into the system in v1?", so this surface is **not deferrable**.
+
+- **Same editor, different scope — reuse, don't reinvent.** It's the same
+  template-authoring machinery as the tutor's *My Pathways* manager (create
+  / edit / reorder / add-remove stages and sub-steps), pointed at a
+  different **scope**: the templates it produces are **official / global
+  starters** — visible to *every* tutor as clonable seeds and used to seed
+  Tier-1 guides — not private to one tutor. One editor, two scopes;
+  "who may publish an *official* starter" is a **permission on top**, not a
+  second editor.
+- **It's core journey machinery.** Template authoring lives in the journey
+  module (not MyNclex admin code); the MyNclex admin area just *mounts* it
+  and supplies the official-scope + permission gate. Extraction-friendly:
+  the future standalone product mounts the same editor behind its own admin.
+- **Gated by an admin permission** — SCREAMING_SNAKE_CASE per CLAUDE.md
+  (e.g. `JOURNEY_TEMPLATES_MANAGE`; exact key a build detail). Note the
+  neutral `journey_`/platform naming, since the module is meant to extract.
+- **Snapshot semantics already protect everyone downstream.** A tutor's
+  clone and every assigned pathway are independent snapshots (see
+  *Relationship model → A pathway is an independent instance*). So an admin
+  editing an official starter later does **not** retro-rewrite tutors'
+  saved clones or students' live pathways — it only changes **future**
+  clones/seeds. Same non-retro-propagation rule as everywhere else here.
+
+### Oversight view — minimal in v1
+
+The access model grants admins full read reach for support/troubleshooting,
+but a **purpose-built admin dashboard of all journeys/cases** is the same
+shape as the tutor's all-students **board grid** — which is already **v2**
+(see *Tutor's working surface*). So v1 keeps admin oversight **minimal**:
+admins keep their normal platform reach, but a dedicated case-monitoring
+surface is **deferred to v2** alongside the tutor grid. The one admin
+surface v1 commits to building is the **starter-template authoring** above.
+
 ## Getting onto a journey (entry points & onboarding)
 
 A journey comes into existence three ways. The first makes the Pathway
@@ -765,6 +827,27 @@ see below.)
 
 **Resolved this session:**
 
+- **Admin surface: starter-template authoring is v1; oversight dashboard is
+  v2** *(2026-07-21)*. v1 needs exactly one admin surface — a surface to
+  **author/maintain the QAcademy starter templates** (US/UK/Canada), since
+  those are platform-owned content and there was otherwise no answer to how
+  they enter the system. It reuses the tutor's *My Pathways* template editor,
+  scoped to **official/global starters** and gated by an admin permission
+  (`JOURNEY_TEMPLATES_MANAGE`, key TBD). A purpose-built admin **oversight
+  dashboard** of all cases is deferred to **v2** (same shape as the tutor
+  board grid); admins keep normal read reach in the meantime. See *Admin
+  surface*.
+- **Standalone-from-day-one (option B) declined; staying with A** *(2026-07-21)*.
+  Building the Journey Tracker as its own product/app/deployment from the
+  start was reconsidered and set aside. We keep the *module now → extract
+  later* approach: build it embedded-but-extractable inside MyNclex, spin it
+  out once a real second use-case pulls on it. Reason: only the Ghana→US
+  nurse-migration case has real users today; the generic cases (university
+  applications, visas, other verticals) are real ideas without users, so
+  standalone-first means building for nobody and delaying value to the paying
+  v1 audience. **Trigger to revisit:** a concrete second use-case with real
+  users lined up. See the *Architecture* section (unchanged — it already
+  commits to A).
 - **Service scope is per-relationship** — the tutor's menu of offerable
   services is standing; *which* a given student takes is decided per
   relationship. See *Stages as priced services*.
@@ -834,6 +917,10 @@ see below.)
 - **Deeper nesting** below sub-steps (v1 is two levels: stage → sub-step).
 - **Board / pipeline grid** of all students at once (v1 is a simple
   list → individual case file — see *Tutor's working surface*).
+- **Admin oversight dashboard** of all journeys/cases — same shape as the
+  tutor board grid above, so likewise **v2**. v1 admins keep normal read
+  reach but get no purpose-built case-monitoring surface. See *Admin
+  surface → Oversight view*.
 - **Shared-stage de-duplication across pathways** — v1 runs pathways
   side by side (the shared NCLEX stage appears in each); a single shared
   stage node feeding multiple pathways, plus the rule that a **shared

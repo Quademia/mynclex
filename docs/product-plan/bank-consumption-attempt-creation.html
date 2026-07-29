@@ -379,7 +379,8 @@
   different framing — STUDY uses an engagement-clock and is resumable; EXAM uses a wall-clock and is single-sitting.
 </p>
 <p>
-  <strong>Valid (mode, intent) tuples — 8 of 10 combinations:</strong>
+  <strong>Valid (mode, intent) tuples — 6 of 10 combinations</strong>
+  <span class="status settled">narrowed from 8 on 2026-07-24</span>
 </p>
 <table>
   <thead>
@@ -387,21 +388,85 @@
   </thead>
   <tbody>
     <tr><td>Untimed Learning</td><td>✅</td><td>❌ — rationales after each submit defeats exam framing; would be Untimed Test instead</td></tr>
-    <tr><td>Untimed Test</td><td>✅</td><td>✅</td></tr>
-    <tr><td>Timed Free Navigation</td><td>✅ engagement-clock</td><td>✅ wall-clock</td></tr>
-    <tr><td>Timed Sequential</td><td>✅ engagement-clock</td><td>✅ wall-clock</td></tr>
+    <tr><td>Untimed Test</td><td>✅</td><td>❌ <strong>removed 2026-07-24</strong> — see below</td></tr>
+    <tr><td>Timed Free Navigation</td><td>✅ engagement-clock <em>(not built — see the warning below)</em></td><td>✅ wall-clock</td></tr>
+    <tr><td>Timed Sequential</td><td>❌ <strong>removed 2026-07-24</strong> — see below</td><td>✅ wall-clock</td></tr>
     <tr><td>CAT</td><td>❌ — IRT model needs continuous engagement; pause/resume invalidates the estimate</td><td>✅</td></tr>
   </tbody>
 </table>
 <p>
-  <strong>Validation:</strong> the create-attempt RPC rejects invalid tuples (<code>(UNTIMED_LEARNING, EXAM)</code>
-  and <code>(CAT, STUDY)</code>). The builder UI only surfaces valid combinations under each intent, so the rejection
-  case shouldn't happen at the UI level — defence-in-depth for direct RPC calls.
+  <strong>The two removals — 2026-07-24, built in migration
+  <code>20260814120000_modes_remove_two_tuples.sql</code>.</strong> Both were removed for the same underlying reason:
+  each was <em>mechanically identical</em> to its twin under the other intent. Since <code>intent</code> drives no
+  runner behaviour (it is read in exactly one place across the whole session route, to print the word "Study" or
+  "Exam" on the preflight), a duplicated mode differed only by a label — and in both cases the label promised
+  something the runner does not do.
+</p>
+<ul>
+  <li><strong>(EXAM, Untimed Test)</strong> — untimed modes carry <code>duration_seconds = NULL</code>, so there was
+    no clock on either side; both were free navigation, feedback at the end, batched submit, the same FREE_BATCHED
+    runner path, and both resumable. Its card promised "no clock, single sitting, rationales at the end only" and
+    delivered the STUDY quiz. The one thing that could have justified it — exam framing without time pressure — is
+    precisely what (STUDY, Untimed Test) already is.</li>
+  <li><strong>(STUDY, Timed Sequential)</strong> — forward-only exists to reproduce exam mechanics (NCSBN: candidates
+    must answer in the order presented, cannot go back, cannot skip). It has no pedagogical purpose; preventing a
+    student from reconsidering an earlier question removes an option without teaching anything. An exam constraint
+    wearing a study label.</li>
+</ul>
+<p>
+  <strong>Both modes still exist</strong> — each now lives under one intent instead of two. No mode ID was deleted, so
+  the column-level <code>mode IN (...)</code> CHECK, the <code>ModeId</code> union and every runner archetype are
+  unchanged. <strong>Landing shape: STUDY</strong> = Untimed Learning · Untimed Test · Timed Free Nav;
+  <strong>EXAM</strong> = Timed Free Nav · Timed Sequential · CAT.
 </p>
 <p>
-  <strong>Note for parent doc §15.</strong> The mode list needs intent annotations (which intents each mode supports)
-  and the "Resume restricted to untimed modes" rule rewrites to "Resume restricted to STUDY intent." The §17 builder
-  spec also gains an intent-picker step before the mode picker. Both flagged in §14.
+  <strong>The tutor-quiz mirror moved with it.</strong> <code>nclex_tutor_quizzes</code> has no intent column — intent
+  is derived at launch (MOCK → EXAM, PRACTICE → STUDY) — so its <code>nclex_tutor_quizzes_kind_mode_tuple</code> CHECK
+  had to narrow in step or a tutor could author a quiz that failed on launch against the tightened constraint above.
+  MOCK lost Untimed Test, PRACTICE lost Timed Sequential: <strong>7 pairs → 5</strong>. No existing quiz used either
+  pairing.
+</p>
+<p>
+  <strong>⚠ Consequence — the engagement clock is now load-bearing.</strong> STUDY's only remaining timed mode is
+  Timed Free Navigation, and its entire distinction from the EXAM one is the engagement-clock this section describes.
+  <strong>That clock does not exist.</strong> runner.html §8 (settled later, 2026-05-09) defines the countdown as
+  running toward <code>started_at + duration_seconds</code> with no intent branch, the code matches §8, and
+  <code>nclex_attempts</code> has no pause columns — so a STUDY timed attempt burns its clock while the student is
+  away, which is the opposite of what its card says. The concept is real and wanted (Sam, 2026-07-24: a 60-minute
+  quiz should hold its remaining time while you are gone); it is simply unbuilt, and it is the next piece of work.
+</p>
+<p>
+  <strong>Validation — enforced at three layers.</strong> The four rejected tuples are now
+  <code>(UNTIMED_LEARNING, EXAM)</code>, <code>(CAT, STUDY)</code>, <code>(UNTIMED_TEST, EXAM)</code> and
+  <code>(TIMED_SEQUENTIAL, STUDY)</code>. The builder UI only surfaces valid combinations under each intent
+  (<code>MODES_STUDY</code> / <code>MODES_EXAM</code> in <code>lib/practice/builder/filter-config.ts</code>), the
+  create-attempt RPC rejects a bad tuple, and the <code>nclex_attempts_intent_mode_tuple</code> CHECK is the final
+  backstop — so the rejection path shouldn't be reachable through the UI at all, and exists as defence-in-depth for
+  direct RPC calls.
+</p>
+<p>
+  <strong>⚠ One live consequence of narrowing the list.</strong> <code>MODES_STUDY</code> / <code>MODES_EXAM</code> are
+  not only the builder's pickers — four read paths use them as the <em>label lookup</em> for stored attempts
+  (<code>intent === 'STUDY' ? MODES_STUDY : MODES_EXAM</code>, then find by id, falling back to the raw id). So
+  removing an entry means any stored rows on that tuple must be <em>converted, not left</em>, or their History row
+  prints <code>UNTIMED_TEST</code> instead of "Untimed Test". The 2026-07-24 migration converted three dev rows for
+  exactly this reason: 2 × (EXAM, Untimed Test) → STUDY, and 1 × (STUDY, Timed Sequential) → Timed Free Nav. Both
+  conversions are behaviour-preserving, the second only loosening navigation.
+</p>
+<p>
+  <strong>Note for parent doc §15.</strong> ✅ The intent annotations asked for here are <strong>done</strong> — §15's
+  mode list now carries an "Offered under" column (2026-07-24). ✅ The §17 builder spec gained its intent-picker step.
+  <strong>✅ The resume rule is RESOLVED (2026-07-25, Sam).</strong> The three-way contradiction — parent §15 "no
+  timed resume", this section's "STUDY only" rewrite, and the code (<code>getResumableAttempt()</code>) resuming
+  everything except CAT — is settled in favour of <strong>what the code already does, which is the coherent
+  behaviour</strong>: <strong>every non-CAT attempt is resumable; the only difference is whether the clock waited for
+  the student.</strong> STUDY timed froze on the engagement clock (BUILD_LIST #6, built the same day) so they resume
+  with the same time left; EXAM timed kept its wall clock running, so they resume with less time — or, if it fully
+  drained, <code>page.tsx</code> finalises it on next open. This matches the settled re-entry rule already written in
+  <strong>§6.1.3</strong>. The defect was never the behaviour — it was the builder's EXAM start-note falsely claiming
+  "cannot be resumed"; that copy is now <em>"single sitting · the clock keeps running if you leave"</em>
+  (<code>summary-panel.tsx</code> + the public demo). Parent §15's "resume is impossible for any timed mode" line is
+  corrected to match. CAT remains the one true exception (adaptive state).
 </p>
 
 <h3>6.1.3 Status enum + lifecycle</h3>

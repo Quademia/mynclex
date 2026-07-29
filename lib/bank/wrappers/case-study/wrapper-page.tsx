@@ -18,6 +18,8 @@
 'use client';
 
 import { useState, useMemo, useTransition, type MouseEvent } from 'react';
+import { CAT_POOL_LABEL, CAT_POOL_HELP_CASE } from '@/lib/bank/atoms/cat-pool';
+import { CaseChildScope } from '@/lib/bank/atoms/housekeeping-fields';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ErrorToast } from '@/lib/toast/error-toast';
@@ -189,6 +191,7 @@ export const SAMPLE_DATA: WrapperData = {
     is_free_sample:           false,
     is_builder_visible:       true,
     is_published:             false,
+    cat_pool:                 false,
     created_at:               '2026-04-30T00:00:00Z',
     updated_at:               '2026-04-30T00:00:00Z',
   },
@@ -302,6 +305,9 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
   const [isPublished, setIsPublished] = useState(caseRow.is_published);
   const [isFreeSample, setIsFreeSample] = useState(caseRow.is_free_sample);
   const [isBuilderVisible, setIsBuilderVisible] = useState(caseRow.is_builder_visible);
+  // §20 (10b1) — reserve the whole case as CAT-pool stock; children inherit.
+  // Admin-only (surface === 'admin').
+  const [catPool, setCatPool] = useState(caseRow.cat_pool);
   // Wrapper tags — held as the raw comma-separated input text; parsed to
   // an array at compare/save time so cosmetic spacing isn't "dirty".
   const [tagsText, setTagsText] = useState((caseRow.tags ?? []).join(', '));
@@ -567,12 +573,13 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     if (isPublished !== caseRow.is_published) return true;
     if (isFreeSample !== caseRow.is_free_sample) return true;
     if (isBuilderVisible !== caseRow.is_builder_visible) return true;
+    if (catPool !== caseRow.cat_pool) return true;
     if (parseTagsText(tagsText).join(' ') !== (caseRow.tags ?? []).join(' ')) return true;
     for (const s of slots) {
       if ((cjmmBySlot[s.position] ?? '') !== (s.cjmm_step ?? '')) return true;
     }
     return false;
-  }, [title, scenario, initialScenarioSerialized, isPublished, isFreeSample, isBuilderVisible, tagsText, cjmmBySlot, caseRow, slots]);
+  }, [title, scenario, initialScenarioSerialized, isPublished, isFreeSample, isBuilderVisible, catPool, tagsText, cjmmBySlot, caseRow, slots]);
 
   // Combined dirty signal — used by the leave-page guard on the
   // ← Back link and the Case Studies breadcrumb. True if any
@@ -611,6 +618,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     if (isPublished)      fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
+    if (catPool)          fd.set('cat_pool', 'on');
     for (const s of slots) {
       if (s.item_id !== null) {
         fd.set(`cjmm_${s.position}`, cjmmBySlot[s.position] ?? '');
@@ -671,6 +679,7 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
     fd.set('is_published', 'on');
     if (isFreeSample)     fd.set('is_free_sample', 'on');
     if (isBuilderVisible) fd.set('is_builder_visible', 'on');
+    if (catPool)          fd.set('cat_pool', 'on');
     for (const s of slots) {
       if (s.item_id !== null) {
         fd.set(`cjmm_${s.position}`, cjmmBySlot[s.position] ?? '');
@@ -1102,6 +1111,9 @@ export function CaseStudyWrapperPage({ data, sandboxMode = false, focusItemId = 
                   <VisibilityRow label="Published" help="Live to students. All 6 questions must be published first." on={isPublished} onChange={onTogglePublish} />
                   <VisibilityRow label="Free sample" help="Available without subscription." on={isFreeSample} onChange={setIsFreeSample} />
                   <VisibilityRow label="Visible in builder" help="Show in tutor programme builders." on={isBuilderVisible} onChange={setIsBuilderVisible} />
+                  {surface === 'admin' && (
+                    <VisibilityRow label={CAT_POOL_LABEL} help={CAT_POOL_HELP_CASE} on={catPool} onChange={setCatPool} />
+                  )}
                 </div>
               </div>
             )}
@@ -1358,21 +1370,39 @@ function ActiveChartTabEditor({
 // button (which submits the body's form via form= attribute).
 // ───────────────────────────────────────────────────────────
 
-function ActiveQuestionEditorBody({
-  editor,
-  error,
-  pending,
-  onSubmit,
-  onDirty,
-  onErrorDismiss,
-}: {
+type QuestionEditorBodyProps = {
   editor:         SlotEditorInitial;
   error:          string | null;
   pending:        boolean;
   onSubmit:       (formData: FormData) => void;
   onDirty:        () => void;
   onErrorDismiss: () => void;
-}) {
+};
+
+/**
+ * Everything mounted here is a CASE CHILD, so it is wrapped in the scope that
+ * tells the shared Housekeeping panel so. The reservation for CAT belongs to
+ * the case wrapper — a database trigger keeps the children in step — so the
+ * child editor must not offer a "Reserve for CAT" tick of its own. It did
+ * until 2026-07-28: the guard tested `mode === 'wrapper-child'`, a mode
+ * nothing has set since the 2026-05-01 retrofit, so it never hid anything.
+ */
+function ActiveQuestionEditorBody(props: QuestionEditorBodyProps) {
+  return (
+    <CaseChildScope>
+      <QuestionEditorSwitch {...props} />
+    </CaseChildScope>
+  );
+}
+
+function QuestionEditorSwitch({
+  editor,
+  error,
+  pending,
+  onSubmit,
+  onDirty,
+  onErrorDismiss,
+}: QuestionEditorBodyProps) {
   switch (editor.kind) {
     case 'MCQ':
       return <McqEditorBody initial={editor.initial} error={error} pending={pending} onSubmit={onSubmit} onDirty={onDirty} onErrorDismiss={onErrorDismiss} />;

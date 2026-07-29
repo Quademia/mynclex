@@ -12,6 +12,8 @@
 
 import { requireActiveBankSubscription } from '@/lib/access';
 import { getCatHomeView } from '@/lib/practice/cat/home-view';
+import { hasDismissedPrompt } from '@/lib/practice/tutorial/completion';
+import { PROMPT_KEY_PRE_EXAM_OFFER } from '@/lib/practice/tutorial/keys';
 import { CatHomeClient } from './cat-home-client';
 
 export const dynamic = 'force-dynamic';
@@ -22,5 +24,8 @@ export default async function BankCatPage() {
   await requireActiveBankSubscription();
 
   const view = await getCatHomeView();
-  return <CatHomeClient view={view} />;
+  // Runner tutorial Slice 3c: has the student dismissed the pre-exam
+  // walkthrough offer? Drives whether the CAT preflight's Start shows it.
+  const offerDismissed = await hasDismissedPrompt(PROMPT_KEY_PRE_EXAM_OFFER);
+  return <CatHomeClient view={view} offerDismissed={offerDismissed} />;
 }

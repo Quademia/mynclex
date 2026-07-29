@@ -4,19 +4,32 @@
 // no React — safe to import from both server and client modules.
 
 import type { QuizKind, QuizMode, QuizStatus } from './types';
+import { modeLabelFor, type Intent } from '@/lib/practice/builder/filter-config';
 
 // Which modes each quiz kind allows. Mirrors the DB CHECK
-// nclex_tutor_quizzes_kind_mode_tuple: PRACTICE gets all four
-// non-adaptive modes; MOCK excludes UNTIMED_LEARNING (that mode
-// reveals answers live, wrong for an exam-style mock).
+// nclex_tutor_quizzes_kind_mode_tuple — and, through it, the attempts CHECK
+// nclex_attempts_intent_mode_tuple, because a quiz has no intent column:
+// intent is DERIVED at launch (MOCK → EXAM, PRACTICE → STUDY). So this list
+// must move whenever that one does, or a tutor could author a quiz that
+// explodes on launch when the attempt INSERT hits the tightened constraint.
+//
+// MOCK excludes UNTIMED_LEARNING — that mode reveals answers live, wrong for
+// an exam-style mock. MOCK cannot be CAT either: a CAT is its own surface,
+// spends a metered allowance, and is never authored as a tutor quiz.
+//
+// Trimmed 2026-07-24 (migration 20260814120000) alongside the student
+// builder, for the same reasons:
+//   • MOCK loses UNTIMED_TEST — an untimed mock exam is the same
+//     contradiction as Untimed Test under EXAM intent was. With no clock the
+//     only exam-ness left is "you can't come back to it", which is an
+//     arbitrary restriction rather than a simulation.
+//   • PRACTICE loses TIMED_SEQUENTIAL — forward-only is an exam constraint
+//     with no pedagogical purpose; blocking a student from reconsidering an
+//     earlier question teaches nothing.
+// Verified at the time: no existing quiz used either pairing.
 export const QUIZ_MODES_BY_KIND: Record<QuizKind, QuizMode[]> = {
-  PRACTICE: [
-    'UNTIMED_LEARNING',
-    'UNTIMED_TEST',
-    'TIMED_FREE_NAV',
-    'TIMED_SEQUENTIAL',
-  ],
-  MOCK: ['UNTIMED_TEST', 'TIMED_FREE_NAV', 'TIMED_SEQUENTIAL'],
+  PRACTICE: ['UNTIMED_LEARNING', 'UNTIMED_TEST', 'TIMED_FREE_NAV'],
+  MOCK: ['TIMED_FREE_NAV', 'TIMED_SEQUENTIAL'],
 };
 
 // Timed modes carry a duration; untimed modes leave it null.
@@ -28,14 +41,30 @@ export function formatQuizKind(kind: QuizKind): string {
   return kind === 'MOCK' ? 'Mock exam' : 'Practice quiz';
 }
 
-const MODE_LABELS: Record<QuizMode, string> = {
-  UNTIMED_LEARNING: 'Untimed — learning',
-  UNTIMED_TEST: 'Untimed — test',
-  TIMED_FREE_NAV: 'Timed — free navigation',
-  TIMED_SEQUENTIAL: 'Timed — sequential',
-};
-export function formatQuizMode(mode: QuizMode): string {
-  return MODE_LABELS[mode];
+/**
+ * A quiz kind IS an intent — MOCK launches as EXAM, PRACTICE as STUDY.
+ * That derivation is the system's rule (both launch RPCs apply it, and the
+ * kind/mode CHECK mirrors the intent/mode one through it), so the label
+ * follows it too.
+ */
+export function intentForQuizKind(kind: QuizKind): Intent {
+  return kind === 'MOCK' ? 'EXAM' : 'STUDY';
+}
+
+/**
+ * The mode's label, resolved through the SAME source the student sees
+ * (modeLabelFor in the practice builder's config). A tutor configuring a
+ * quiz should read the words their students will read — otherwise the two
+ * halves of the product name the same behaviour differently.
+ *
+ * Takes `kind` because mode alone is not enough: TIMED_FREE_NAV is the one
+ * mode allowed under BOTH kinds, and it is named differently under each
+ * ("Timed practice" for PRACTICE/STUDY, "Free Navigation" for MOCK/EXAM).
+ * This file previously kept its own mode-keyed map, which could not express
+ * that and had drifted to its own vocabulary ("Timed — free navigation").
+ */
+export function formatQuizMode(kind: QuizKind, mode: QuizMode): string {
+  return modeLabelFor(intentForQuizKind(kind), mode);
 }
 
 const MODE_HELP: Record<QuizMode, string> = {

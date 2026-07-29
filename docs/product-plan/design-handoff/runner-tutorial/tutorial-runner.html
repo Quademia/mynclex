@@ -1,0 +1,1844 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  html, body { height: 100%; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.5; background: #f4f6f8; color: #111827; -webkit-font-smoothing: antialiased; }
+  *, *::before, *::after { box-sizing: border-box; }
+  a { color: #2d7d72; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  button { font-family: inherit; }
+  @keyframes rn-bt-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); } 50% { box-shadow: 0 0 0 4px rgba(37,99,235,.18); } }
+  @keyframes coach-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes rn-ready-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(45,125,114,.45); } 50% { box-shadow: 0 0 0 7px rgba(45,125,114,0); } }
+  @keyframes coach-ring { 0%,100% { box-shadow: 0 0 0 0 rgba(45,125,114,.35), 0 0 0 9999px rgba(15,23,42,.55); } 50% { box-shadow: 0 0 0 6px rgba(45,125,114,.12), 0 0 0 9999px rgba(15,23,42,.55); } }
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;height:100vh;background:#f4f6f8;color:#111827;overflow:hidden">
+
+  <header data-coach="topbar" style="height:56px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;padding:0 18px;gap:16px;flex-shrink:0">
+    <button type="button" data-coach="exit" onClick="{{ onExit }}" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e5e7eb;background:#fff;padding:6px 11px 6px 9px;border-radius:6px;font-size:12px;font-weight:600;color:#6b7280;cursor:pointer">← Exit</button>
+    <div style="width:1px;height:24px;background:#e5e7eb"></div>
+    <div data-coach="title" style="display:flex;align-items:baseline;gap:8px;min-width:0">
+      <div style="font-size:13px;font-weight:700;color:#1e3a5f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px">Exam tutorial</div>
+      <div style="font-size:11px;color:#6b7280;font-weight:500;display:flex;gap:6px;align-items:center">
+        <span>{{ modeLabel }}</span>
+        <span style="width:3px;height:3px;background:#9ca3af;border-radius:50%"></span>
+        <span>{{ totalLabel }}</span>
+        <sc-if value="{{ hasCase }}" hint-placeholder-val="{{ false }}">
+          <span style="width:3px;height:3px;background:#9ca3af;border-radius:50%"></span>
+          <span>Case 1 of 1</span>
+          <span style="width:3px;height:3px;background:#9ca3af;border-radius:50%"></span>
+          <span>CJMM step {{ cjmmNum }} of 6 · {{ cjmmLabel }}</span>
+        </sc-if>
+      </div>
+    </div>
+    <div data-coach="tutpill" style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:rgba(45,125,114,.10);border:1px solid rgba(45,125,114,.28);font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#1f5a52;white-space:nowrap">Tutorial · nothing is recorded</div>
+    <div style="flex:1"></div>
+    <div data-coach="counter" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6b7280">
+      Q <strong style="font-size:13px;font-weight:700;color:#111827;font-variant-numeric:tabular-nums">{{ current1 }}</strong>
+      <span style="color:#9ca3af">/</span>
+      <strong style="font-size:13px;font-weight:700;color:#111827;font-variant-numeric:tabular-nums">{{ totalQ }}</strong>
+    </div>
+    <div data-coach="clock" style="display:inline-flex;align-items:center;gap:6px">
+      <button type="button" onClick="{{ toggleClock }}" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:1px solid #e5e7eb;border-radius:6px;background:#fff;color:#6b7280;cursor:pointer">
+        <sc-if value="{{ clockHidden }}" hint-placeholder-val="{{ false }}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5V12l3 2"></path><line x1="3.5" y1="3.5" x2="20.5" y2="20.5"></line></svg>
+        </sc-if>
+        <sc-if value="{{ clockShown }}" hint-placeholder-val="{{ true }}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5V12l3 2"></path></svg>
+        </sc-if>
+      </button>
+      <sc-if value="{{ clockShown }}" hint-placeholder-val="{{ true }}">
+        <div style="display:inline-flex;align-items:baseline;gap:8px;padding:5px 11px;border-radius:999px;background:#f9fafb;border:1px solid #e5e7eb;font-size:12px;font-weight:600;color:#6b7280;font-variant-numeric:tabular-nums">
+          <span style="font-weight:700">{{ clockDisplay }}</span>
+        </div>
+      </sc-if>
+    </div>
+    <button type="button" data-coach="mark" onClick="{{ toggleMark }}" style="{{ markBtnStyle }}">⚑ {{ markLabel }}</button>
+    <button type="button" data-coach="calc" onClick="{{ toggleCalc }}" style="{{ calcBtnStyle }}">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="1.5" width="10" height="13" rx="1.6"></rect><rect x="5" y="3.5" width="6" height="2.5" rx="0.5"></rect><line x1="5.5" y1="9" x2="5.5" y2="9"></line><line x1="8" y1="9" x2="8" y2="9"></line><line x1="10.5" y1="9" x2="10.5" y2="9"></line><line x1="5.5" y1="11.5" x2="5.5" y2="11.5"></line><line x1="8" y1="11.5" x2="8" y2="11.5"></line><line x1="10.5" y1="11.5" x2="10.5" y2="11.5"></line></svg>
+      <span>Calc</span>
+    </button>
+    <button type="button" data-coach="gridtoggle" onClick="{{ toggleGrid }}" style="{{ gridBtnStyle }}">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1"></rect><rect x="9" y="2" width="5" height="5" rx="1"></rect><rect x="2" y="9" width="5" height="5" rx="1"></rect><rect x="9" y="9" width="5" height="5" rx="1"></rect></svg>
+      <span>Grid</span>
+    </button>
+  </header>
+
+  <div style="flex:1;display:flex;min-height:0;position:relative">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden">
+      <div style="flex:1;overflow:auto;padding:28px 36px 24px">
+        <div style="{{ splitStyle }}">
+
+          <sc-if value="{{ hasCase }}" hint-placeholder-val="{{ false }}">
+            <aside data-coach="casepanel" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;position:sticky;top:0;max-height:calc(100vh - 176px);display:flex;flex-direction:column">
+              <div style="padding:12px 14px;background:linear-gradient(180deg,rgba(45,125,114,.06) 0%,rgba(45,125,114,0) 100%);border-bottom:1px solid #e5e7eb">
+                <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#1f5a52;margin-bottom:4px;display:flex;align-items:center;gap:6px">
+                  Case study
+                  <span style="background:rgba(45,125,114,.14);padding:1px 7px;border-radius:999px;font-size:10px;letter-spacing:.04em;color:#2d7d72;font-weight:700">{{ caseAnswered }} of 6 answered</span>
+                </div>
+                <div style="font-size:14px;font-weight:700;color:#111827;line-height:1.4">{{ caseTitle }}</div>
+              </div>
+              <div style="padding:10px 14px 12px;border-bottom:1px solid #e5e7eb;background:#fff">
+                <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;margin-bottom:4px">Scenario</div>
+                <div style="font-size:13px;line-height:1.55;color:#111827">{{ caseScenario }}</div>
+              </div>
+              <div data-coach="casetabs" role="tablist" style="display:flex;background:#f9fafb;border-bottom:1px solid #e5e7eb;padding:0 6px;overflow-x:auto">
+                <sc-for list="{{ caseTabs }}" as="tab" hint-placeholder-count="3">
+                  <button type="button" role="tab" onClick="{{ tab.onClick }}" style="{{ tab.style }}">{{ tab.title }}</button>
+                </sc-for>
+              </div>
+              <div style="padding:14px;overflow:auto;font-size:13px;line-height:1.6;color:#111827">
+                <sc-for list="{{ caseRows }}" as="row" hint-placeholder-count="4">
+                  <div style="display:grid;grid-template-columns:minmax(120px,40%) 1fr;gap:8px;padding:5px 8px;border-bottom:1px solid #e5e7eb;font-size:12.5px">
+                    <div style="color:#6b7280;font-weight:600">{{ row.label }}</div>
+                    <div style="font-variant-numeric:tabular-nums">{{ row.value }}</div>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ caseNote }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:8px 2px 2px;font-size:13px;line-height:1.55">{{ caseNote }}</div>
+                </sc-if>
+              </div>
+            </aside>
+          </sc-if>
+
+          <sc-if value="{{ hasTrend }}" hint-placeholder-val="{{ false }}">
+            <aside data-coach="trendpanel" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;position:sticky;top:0;max-height:calc(100vh - 176px);display:flex;flex-direction:column">
+              <div style="padding:12px 14px;background:linear-gradient(180deg,rgba(45,125,114,.06) 0%,rgba(45,125,114,0) 100%);border-bottom:1px solid #e5e7eb">
+                <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#1f5a52;margin-bottom:4px;display:flex;align-items:center;gap:6px">
+                  <span style="width:6px;height:6px;border-radius:50%;background:#2d7d72"></span>
+                  Trend data
+                </div>
+                <div style="font-size:14px;font-weight:700;color:#111827;line-height:1.4">{{ trendTitle }}</div>
+              </div>
+              <div style="padding:10px 14px 12px;border-bottom:1px solid #e5e7eb;background:#fff">
+                <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;margin-bottom:4px">Scenario</div>
+                <div style="font-size:13px;line-height:1.55;color:#111827">{{ trendScenario }}</div>
+              </div>
+              <div role="tablist" style="display:flex;background:#f9fafb;border-bottom:1px solid #e5e7eb;padding:0 6px;overflow-x:auto">
+                <sc-for list="{{ trendTabs }}" as="tab" hint-placeholder-count="2">
+                  <button type="button" role="tab" onClick="{{ tab.onClick }}" style="{{ tab.style }}">{{ tab.title }}</button>
+                </sc-for>
+              </div>
+              <div style="flex:1;min-height:0;overflow:auto;padding:10px 14px 14px">
+                <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:13px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden">
+                  <thead>
+                    <tr>
+                      <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:left;background:#fafbfc;font-weight:600;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.03em">Metric</th>
+                      <sc-for list="{{ trendCols }}" as="col" hint-placeholder-count="3">
+                        <th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:left;background:#fafbfc;font-weight:600;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.03em">{{ col.title }}</th>
+                      </sc-for>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ trendRows }}" as="row" hint-placeholder-count="4">
+                      <tr>
+                        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#111827;font-weight:600;font-size:12.5px">{{ row.metric }}</td>
+                        <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="3">
+                          <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-variant-numeric:tabular-nums">{{ cell.v }}</td>
+                        </sc-for>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+            </aside>
+          </sc-if>
+
+          <div style="{{ qWrapStyle }}">
+            <sc-if value="{{ hasCase }}" hint-placeholder-val="{{ false }}">
+              <div data-coach="cjmm" style="display:flex;align-items:center;gap:4px;padding:8px 12px;background:rgba(45,125,114,.05);border:1px solid rgba(45,125,114,.15);border-radius:8px;margin-bottom:14px;font-size:11px">
+                <sc-for list="{{ cjmmSteps }}" as="s" hint-placeholder-count="6">
+                  <div style="{{ s.style }}"><span style="font-size:9.5px;opacity:.7;margin-right:4px">{{ s.num }}</span>{{ s.label }}</div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <div data-coach="qmeta" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+              <span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f9fafb;color:#111827;border:1px solid #e5e7eb">{{ typeLabel }}</span>
+              <sc-if value="{{ hasTrend }}" hint-placeholder-val="{{ false }}">
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.04em;padding:3px 9px;border-radius:999px;background:rgba(45,125,114,.14);color:#1f5a52"><span style="font-weight:800;font-size:13px;line-height:1">⤬</span>Trend</span>
+              </sc-if>
+              <span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f9fafb;color:#111827;border:1px solid #e5e7eb">{{ subject }}</span>
+              <span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f9fafb;color:#111827;border:1px solid #e5e7eb">Difficulty · {{ difficulty }}</span>
+            </div>
+
+            <sc-if value="{{ showPlainStem }}" hint-placeholder-val="{{ true }}">
+              <div data-coach="stem" style="font-size:15.5px;line-height:1.65;color:#111827;margin-bottom:18px">{{ stem }}</div>
+            </sc-if>
+            <sc-if value="{{ instruction }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size:12.5px;color:#6b7280;font-style:italic;margin:0 0 14px">{{ instruction }}</p>
+            </sc-if>
+
+            <sc-if value="{{ isSelectN }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-left:32px;max-width:460px;margin-bottom:8px;font-size:12.5px;color:#6b7280;display:flex;align-items:baseline;gap:6px">
+                <sc-if value="{{ selectNEmpty }}" hint-placeholder-val="{{ true }}">
+                  <span>Select <strong style="color:#111827;font-weight:700">{{ selectNTotal }}</strong>.</span>
+                </sc-if>
+                <sc-if value="{{ selectNPicked }}" hint-placeholder-val="{{ false }}">
+                  <span><strong style="color:#111827;font-weight:700">{{ selectNCount }}</strong> of <strong style="color:#111827;font-weight:700">{{ selectNTotal }}</strong> chosen</span>
+                  <span style="color:#9ca3af">·</span>
+                  <span style="{{ selectNHintStyle }}">{{ selectNHint }}</span>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isOptionList }}" hint-placeholder-val="{{ true }}">
+              <div data-coach="answerarea" style="display:flex;flex-direction:column;gap:6px;margin-left:32px;max-width:460px">
+                <sc-for list="{{ options }}" as="opt" hint-placeholder-count="4">
+                  <button type="button" onClick="{{ opt.onClick }}" style="{{ opt.style }}">
+                    <span style="{{ opt.letterStyle }}">{{ opt.letter }}</span>
+                    <div style="flex:1;min-width:0">
+                      <div>{{ opt.text }}</div>
+                      <sc-if value="{{ opt.feedback }}" hint-placeholder-val="{{ false }}">
+                        <div style="margin-top:2px;font-size:12.5px;font-style:italic;line-height:1.5;color:#6b7280">{{ opt.feedback }}</div>
+                      </sc-if>
+                    </div>
+                    <sc-if value="{{ opt.verdict }}" hint-placeholder-val="{{ false }}">
+                      <span style="{{ opt.verdictStyle }}">{{ opt.verdict }}</span>
+                    </sc-if>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isMatrix }}" hint-placeholder-val="{{ false }}">
+              <div data-coach="answerarea" style="{{ matrixStyle }}">
+                <div style="{{ matrixHeadStyle }}">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;padding:6px 10px">{{ matrixRowLabel }}</div>
+                  <sc-for list="{{ matrixCols }}" as="col" hint-placeholder-count="2">
+                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;padding:6px 10px;text-align:center">{{ col.text }}</div>
+                  </sc-for>
+                </div>
+                <sc-for list="{{ matrixRows }}" as="row" hint-placeholder-count="3">
+                  <div style="border:1.5px solid #cbd5e1;border-radius:4px;background:#fff;padding:4px">
+                    <div style="{{ row.gridStyle }}">
+                      <div style="padding:10px 12px;font-size:14px;line-height:1.4;color:#111827;background:#f9fafb;border-radius:3px;display:flex;align-items:center">{{ row.text }}</div>
+                      <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="2">
+                        <button type="button" onClick="{{ cell.onClick }}" style="{{ cell.style }}">{{ cell.glyph }}</button>
+                      </sc-for>
+                    </div>
+                    <sc-if value="{{ row.feedback }}" hint-placeholder-val="{{ false }}">
+                      <div style="padding:4px 12px 8px;font-size:12.5px;color:#6b7280;font-style:italic;line-height:1.5">{{ row.feedback }}</div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isHighlight }}" hint-placeholder-val="{{ false }}">
+              <div data-coach="answerarea">
+                <sc-if value="{{ notReview }}" hint-placeholder-val="{{ true }}">
+                  <div style="margin-bottom:12px;font-size:12.5px;color:#6b7280;display:flex;align-items:baseline;gap:6px">{{ highlightHint }}</div>
+                </sc-if>
+                <div style="font-size:15.5px;line-height:1.85;color:#111827;margin-bottom:18px">
+                  <sc-for list="{{ highlightParts }}" as="p" hint-placeholder-count="6">
+                    <sc-if value="{{ p.isChunk }}" hint-placeholder-val="{{ false }}">
+                      <button type="button" onClick="{{ p.onClick }}" style="{{ p.style }}">{{ p.text }}</button>
+                    </sc-if>
+                    <sc-if value="{{ p.isText }}" hint-placeholder-val="{{ true }}">
+                      <span>{{ p.text }}</span>
+                    </sc-if>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ hlFeedback }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:16px;background:#f9fafb;border-left:3px solid #2d7d72;border-radius:0 4px 4px 0;padding:6px 14px">
+                    <sc-for list="{{ hlFeedbackList }}" as="f" hint-placeholder-count="3">
+                      <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px;line-height:1.5">
+                        <span style="{{ f.iconStyle }}">{{ f.icon }}</span>
+                        <span style="flex:1;color:#6b7280"><strong style="color:#111827;font-weight:600">{{ f.label }}</strong>{{ f.text }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isCloze }}" hint-placeholder-val="{{ false }}">
+              <div data-coach="answerarea">
+                <sc-if value="{{ notReview }}" hint-placeholder-val="{{ true }}">
+                  <div style="margin-bottom:12px;font-size:12.5px;color:#6b7280;display:flex;align-items:baseline;gap:6px">
+                    <sc-if value="{{ clozeEmpty }}" hint-placeholder-val="{{ true }}">
+                      <span>Choose one option for each blank.</span>
+                    </sc-if>
+                    <sc-if value="{{ clozeFilledAny }}" hint-placeholder-val="{{ false }}">
+                      <span><strong style="color:#111827;font-weight:700">{{ clozeFilled }}</strong> of <strong style="color:#111827;font-weight:700">{{ clozeTotal }}</strong> blanks filled</span>
+                      <span style="color:#9ca3af">·</span>
+                      <span style="font-style:italic">tap a dropdown to change</span>
+                    </sc-if>
+                  </div>
+                </sc-if>
+                <div style="font-size:15.5px;line-height:1.85;color:#111827;margin-bottom:18px">
+                  <sc-for list="{{ clozeParts }}" as="p" hint-placeholder-count="4">
+                    <sc-if value="{{ p.isBlank }}" hint-placeholder-val="{{ false }}">
+                      <span style="display:inline;white-space:nowrap">
+                        <span style="display:inline-block;margin-right:3px;font-size:10.5px;font-weight:700;color:#9ca3af;vertical-align:super;line-height:1">{{ p.num }}</span>
+                        <sc-if value="{{ p.locked }}" hint-placeholder-val="{{ false }}">
+                          <span style="{{ p.pillStyle }}">{{ p.pickedText }}</span>
+                        </sc-if>
+                        <sc-if value="{{ p.open }}" hint-placeholder-val="{{ true }}">
+                          <select value="{{ p.value }}" onChange="{{ p.onChange }}" style="{{ p.style }}">
+                            <sc-for list="{{ p.choices }}" as="c" hint-placeholder-count="3">
+                              <option value="{{ c.id }}">{{ c.text }}</option>
+                            </sc-for>
+                          </select>
+                        </sc-if>
+                      </span>
+                    </sc-if>
+                    <sc-if value="{{ p.isText }}" hint-placeholder-val="{{ true }}">
+                      <span>{{ p.text }}</span>
+                    </sc-if>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ clozeFeedback }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:18px;display:flex;flex-direction:column;gap:18px">
+                    <sc-for list="{{ clozeFeedbackList }}" as="f" hint-placeholder-count="2">
+                      <div style="border-left:3px solid #2d7d72;padding-left:14px;display:flex;flex-direction:column;gap:6px">
+                        <div style="{{ f.labelStyle }}"><span style="opacity:.7">{{ f.num }}</span> {{ f.verdict }}</div>
+                        <p style="margin:0;font-size:13px;line-height:1.65;color:#6b7280">
+                          <sc-for list="{{ f.items }}" as="ci" hint-placeholder-count="3">
+                            <span><span style="{{ ci.labelStyle }}">{{ ci.label }}</span>{{ ci.note }}{{ ci.tail }}</span>
+                          </sc-for>
+                        </p>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isDragCloze }}" hint-placeholder-val="{{ false }}">
+              <div data-coach="answerarea">
+                <sc-if value="{{ notReview }}" hint-placeholder-val="{{ true }}">
+                  <div style="margin-bottom:12px;font-size:12.5px;color:#6b7280;font-style:italic">{{ ddHint }}</div>
+                </sc-if>
+                <div style="font-size:15.5px;line-height:1.95;color:#111827;margin-bottom:18px">
+                  <sc-for list="{{ dcParts }}" as="p" hint-placeholder-count="4">
+                    <sc-if value="{{ p.isBox }}" hint-placeholder-val="{{ false }}">
+                      <button type="button" onClick="{{ p.onClick }}" style="{{ p.style }}"><span style="font-size:10.5px;font-weight:700;vertical-align:super;line-height:1;opacity:.65">{{ p.num }}</span>{{ p.text }}</button>
+                    </sc-if>
+                    <sc-if value="{{ p.isText }}" hint-placeholder-val="{{ true }}">
+                      <span>{{ p.text }}</span>
+                    </sc-if>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ notReview }}" hint-placeholder-val="{{ true }}">
+                  <div style="margin-top:12px;padding:14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">
+                    <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:10px">Tokens</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px">
+                      <sc-for list="{{ dcPool }}" as="t" hint-placeholder-count="4">
+                        <button type="button" onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.text }}</button>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ ddFeedback }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:18px;display:flex;flex-direction:column;gap:18px">
+                    <sc-for list="{{ ddFeedbackBlanks }}" as="f" hint-placeholder-count="2">
+                      <div style="border-left:3px solid #2d7d72;padding-left:14px;display:flex;flex-direction:column;gap:6px">
+                        <div style="{{ f.labelStyle }}"><span style="opacity:.7">{{ f.num }}</span> {{ f.verdict }}</div>
+                        <p style="margin:0;font-size:13px;line-height:1.65;color:#6b7280">{{ f.body }}</p>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ hasDistractors }}" hint-placeholder-val="{{ false }}">
+                      <div style="margin-top:4px;padding:12px 14px;background:#f9fafb;border-left:3px solid #c0392b;border-radius:0 6px 6px 0">
+                        <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9b2c2c;margin-bottom:8px">Distractors — not part of the correct answer</div>
+                        <div style="display:flex;flex-direction:column;gap:8px">
+                          <sc-for list="{{ ddDistractors }}" as="d" hint-placeholder-count="2">
+                            <div style="display:flex;flex-direction:column;gap:4px">
+                              <span style="align-self:flex-start;padding:5px 11px;border-radius:999px;border:1px solid #c0392b;background:transparent;color:#9b2c2c;font-size:12.5px;font-weight:600">{{ d.text }}</span>
+                              <sc-if value="{{ d.rationale }}" hint-placeholder-val="{{ false }}">
+                                <div style="font-size:13px;color:#111827;line-height:1.5;padding-left:2px">{{ d.rationale }}</div>
+                              </sc-if>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isDragOrder }}" hint-placeholder-val="{{ false }}">
+              <div data-coach="answerarea">
+                <sc-if value="{{ notReview }}" hint-placeholder-val="{{ true }}">
+                  <div style="margin-bottom:12px;font-size:12.5px;color:#6b7280;font-style:italic">{{ ddHint }}</div>
+                </sc-if>
+                <div style="display:flex;flex-direction:column;gap:8px;margin:0 0 18px">
+                  <sc-for list="{{ doSlots }}" as="s" hint-placeholder-count="4">
+                    <button type="button" onClick="{{ s.onClick }}" style="{{ s.style }}">
+                      <span style="{{ s.numStyle }}">{{ s.num }}</span>
+                      <sc-if value="{{ s.label }}" hint-placeholder-val="{{ false }}">
+                        <span style="{{ s.labelStyle }}">{{ s.label }}</span>
+                      </sc-if>
+                      <span style="{{ s.dropStyle }}">{{ s.text }}</span>
+                    </button>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ notReview }}" hint-placeholder-val="{{ true }}">
+                  <div style="margin-top:12px;padding:14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">
+                    <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:10px">Actions</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px">
+                      <sc-for list="{{ doPool }}" as="t" hint-placeholder-count="4">
+                        <button type="button" onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.text }}</button>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ ddFeedback }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px">
+                    <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:4px">Correct order</div>
+                    <sc-for list="{{ doFeedbackCards }}" as="c" hint-placeholder-count="4">
+                      <div style="display:flex;flex-direction:column;gap:4px;padding:8px 12px;background:#dcfce7;border:1px solid #16a34a;border-radius:6px;color:#14532d;font-size:13px">
+                        <div style="display:flex;align-items:center;gap:10px">
+                          <span style="flex:0 0 20px;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:10px;background:rgba(255,255,255,.6);font-size:10.5px;font-weight:700">{{ c.num }}</span>
+                          <sc-if value="{{ c.label }}" hint-placeholder-val="{{ false }}">
+                            <span style="flex:0 0 auto;font-size:11.5px;font-weight:600;opacity:.85">{{ c.label }}</span>
+                          </sc-if>
+                          <span style="flex:1;font-weight:700">{{ c.token }}</span>
+                        </div>
+                        <sc-if value="{{ c.rationale }}" hint-placeholder-val="{{ false }}">
+                          <p style="margin:0;padding-left:30px;font-size:12px;font-style:italic;line-height:1.5;color:rgba(20,83,45,.82)">{{ c.rationale }}</p>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ hasDistractors }}" hint-placeholder-val="{{ false }}">
+                      <div style="margin-top:4px;padding:12px 14px;background:#f9fafb;border-left:3px solid #c0392b;border-radius:0 6px 6px 0">
+                        <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9b2c2c;margin-bottom:8px">Distractors — not part of the correct answer</div>
+                        <div style="display:flex;flex-direction:column;gap:8px">
+                          <sc-for list="{{ ddDistractors }}" as="d" hint-placeholder-count="2">
+                            <div style="display:flex;flex-direction:column;gap:4px">
+                              <span style="align-self:flex-start;padding:5px 11px;border-radius:999px;border:1px solid #c0392b;background:transparent;color:#9b2c2c;font-size:12.5px;font-weight:600">{{ d.text }}</span>
+                              <sc-if value="{{ d.rationale }}" hint-placeholder-val="{{ false }}">
+                                <div style="font-size:13px;color:#111827;line-height:1.5;padding-left:2px">{{ d.rationale }}</div>
+                              </sc-if>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isBowtie }}" hint-placeholder-val="{{ false }}">
+              <div data-coach="answerarea">
+                <sc-if value="{{ notReview }}" hint-placeholder-val="{{ true }}">
+                  <div style="margin-bottom:12px;font-size:12.5px;color:#6b7280;font-style:italic;text-align:center">{{ ddHint }}</div>
+                </sc-if>
+                <div style="position:relative;display:grid;grid-template-columns:1fr 1.3fr 1fr;grid-template-rows:auto auto auto;gap:4px 14px;align-items:center;max-width:600px;margin:0 auto 12px;padding:8px 4px">
+                  <div style="grid-row:1;grid-column:1;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;text-align:center;padding-bottom:2px">Actions to take</div>
+                  <div style="grid-row:1;grid-column:2;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#2d7d72;text-align:center;padding-bottom:2px">Condition</div>
+                  <div style="grid-row:1;grid-column:3;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;text-align:center;padding-bottom:2px">Parameters to monitor</div>
+                  <sc-for list="{{ btSlots }}" as="s" hint-placeholder-count="5">
+                    <button type="button" onClick="{{ s.onClick }}" style="{{ s.style }}">{{ s.text }}</button>
+                  </sc-for>
+                </div>
+                <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+                  <sc-for list="{{ btPools }}" as="col" hint-placeholder-count="3">
+                    <div style="{{ col.style }}">
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:6px;padding-bottom:6px;border-bottom:1px solid #e5e7eb;margin-bottom:4px">
+                        <span style="{{ col.labelStyle }}">{{ col.label }}</span>
+                        <span style="{{ col.countStyle }}">{{ col.count }}</span>
+                      </div>
+                      <div style="display:flex;flex-direction:column;gap:4px">
+                        <sc-for list="{{ col.tokens }}" as="t" hint-placeholder-count="3">
+                          <div>
+                            <button type="button" onClick="{{ t.onClick }}" style="{{ t.style }}">
+                              <span style="flex:1">{{ t.text }}</span>
+                              <sc-if value="{{ t.verdict }}" hint-placeholder-val="{{ false }}">
+                                <span style="{{ t.verdictStyle }}">{{ t.verdict }}</span>
+                              </sc-if>
+                            </button>
+                            <sc-if value="{{ t.rationale }}" hint-placeholder-val="{{ false }}">
+                              <div style="margin:3px 0 6px;padding:0 10px;font-size:11.5px;font-style:italic;line-height:1.5;color:#6b7280">{{ t.rationale }}</div>
+                            </sc-if>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showRationale }}" hint-placeholder-val="{{ false }}">
+              <div data-coach="rationale" style="margin-top:16px;background:#f9fafb;border-left:3px solid #2d7d72;border-radius:0 4px 4px 0;padding:12px 14px">
+                <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
+                  <span style="{{ verdictStyle }}">{{ verdictLabel }}</span>
+                  <span style="font-size:11.5px;color:#6b7280;font-weight:600">{{ scoreLabel }}</span>
+                </div>
+                <div style="font-size:13px;line-height:1.6;color:#111827">{{ rationale }}</div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{ gridOpen }}" hint-placeholder-val="{{ true }}">
+      <aside data-coach="grid" style="width:240px;background:#fff;border-left:1px solid #e5e7eb;display:flex;flex-direction:column;flex-shrink:0">
+        <div style="padding:14px 16px 10px;border-bottom:1px solid #e5e7eb">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;white-space:nowrap">Question grid</div>
+            <button type="button" onClick="{{ toggleGrid }}" style="margin-left:auto;width:22px;height:22px;border-radius:4px;background:transparent;border:none;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;cursor:pointer">›</button>
+          </div>
+          <div data-coach="gridfilters" role="tablist" style="display:flex;gap:4px;background:#f9fafb;padding:3px;border-radius:7px;border:1px solid #e5e7eb">
+            <sc-for list="{{ gridFilters }}" as="f" hint-placeholder-count="4">
+              <button type="button" role="tab" onClick="{{ f.onClick }}" style="{{ f.style }}">{{ f.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="flex:1;min-height:0;overflow:auto;padding:12px 14px 14px;position:relative">
+          <div style="display:grid;grid-template-columns:repeat(5,36px);gap:5px;position:relative;justify-content:start">
+            <sc-for list="{{ gridCells }}" as="c" hint-placeholder-count="18">
+              <button type="button" onClick="{{ c.onClick }}" style="{{ c.style }}">{{ c.n }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div data-coach="legend" style="flex-shrink:0;border-top:1px solid #e5e7eb;padding:10px 16px 12px;display:flex;flex-direction:column;gap:5px;font-size:11px;color:#6b7280;white-space:nowrap">
+          <sc-for list="{{ legend }}" as="l" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;gap:7px;flex-shrink:0;white-space:nowrap;line-height:1.35"><span style="{{ l.style }}"></span> {{ l.label }}</div>
+          </sc-for>
+        </div>
+      </aside>
+    </sc-if>
+  </div>
+
+  <footer data-coach="footer" style="height:64px;flex-shrink:0;background:#fff;border-top:1px solid #e5e7eb;display:flex;align-items:center;padding:0 24px;gap:14px">
+    <div style="flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;min-width:110px">
+      <button type="button" onClick="{{ onPrev }}" disabled="{{ prevDisabled }}" title="{{ prevTitle }}" style="{{ prevStyle }}">← Previous</button>
+    </div>
+    <div style="flex:1;font-size:12px;color:#6b7280;text-align:center">{{ footerMsg }}</div>
+    <div style="flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;min-width:110px;justify-content:flex-end">
+      <button type="button" data-coach="primary" onClick="{{ onPrimary }}" disabled="{{ primaryDisabled }}" title="{{ primaryHint }}" style="{{ primaryStyle }}">{{ primaryLabel }}</button>
+    </div>
+  </footer>
+
+  <sc-if value="{{ calcOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;top:64px;right:264px;width:230px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.11);padding:12px;z-index:60">
+      <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:8px">Calculator</div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;text-align:right;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin-bottom:8px;overflow:hidden">{{ calcDisplay }}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        <sc-for list="{{ calcKeys }}" as="k" hint-placeholder-count="16">
+          <button type="button" onClick="{{ k.onClick }}" style="{{ k.style }}">{{ k.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasSpot }}" hint-placeholder-val="{{ false }}">
+    <div style="{{ spotStyle }}"></div>
+  </sc-if>
+  <sc-if value="{{ noSpot }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(15,23,42,.55);pointer-events:none;z-index:70"></div>
+  </sc-if>
+
+  <div data-coach-callout="1" style="{{ calloutStyle }}">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#2d7d72;background:rgba(45,125,114,.12);padding:3px 8px;border-radius:999px">Tutorial</span>
+      <span style="font-size:11px;color:#9ca3af;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">Step {{ stepNum }} of {{ stepTotal }}</span>
+      <button type="button" onClick="{{ onSkip }}" style="margin-left:auto;border:none;background:transparent;color:#9ca3af;font-size:11px;font-weight:600;cursor:pointer;padding:2px 4px;white-space:nowrap">Hide coaching</button>
+      <button type="button" onClick="{{ onEndTutorial }}" style="border:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;font-size:11px;font-weight:700;cursor:pointer;padding:3px 9px;border-radius:999px;white-space:nowrap">End tutorial</button>
+    </div>
+
+    <div style="position:relative;margin-bottom:10px">
+      <button type="button" onClick="{{ toggleJump }}" style="{{ jumpBtnStyle }}">
+        <span style="font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af">Section</span>
+        <span style="flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ sectionLabel }}</span>
+        <span style="color:#9ca3af">▾</span>
+      </button>
+      <sc-if value="{{ jumpOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:calc(100% + 6px);left:0;right:0;max-height:280px;overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,.18);padding:6px;z-index:5">
+          <sc-for list="{{ sectionItems }}" as="sec" hint-placeholder-count="8">
+            <button type="button" onClick="{{ sec.onClick }}" style="{{ sec.style }}">
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4">{{ sec.label }}</span>
+              <span style="{{ sec.stepStyle }}">{{ sec.step }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+    <div style="font-size:15px;font-weight:700;color:#111827;line-height:1.35;margin-bottom:6px">{{ coachTitle }}</div>
+    <div style="font-size:13px;line-height:1.6;color:#374151">{{ coachBody }}</div>
+    <sc-if value="{{ coachGateMsg }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:10px;font-size:12px;font-weight:600;color:#b45309;background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.28);border-radius:6px;padding:7px 10px">{{ coachGateMsg }}</div>
+    </sc-if>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
+      <button type="button" onClick="{{ onBack }}" style="{{ backStyle }}">← Back</button>
+      <div style="flex:1"></div>
+      <sc-if value="{{ showSkipStep }}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{ onSkipStep }}" style="border:none;background:transparent;color:#6b7280;font-size:12.5px;font-weight:600;cursor:pointer;padding:7px 6px;text-decoration:underline">Skip this step</button>
+      </sc-if>
+      <button type="button" onClick="{{ onNext }}" style="{{ nextStyle }}">{{ nextLabel }}</button>
+    </div>
+  </div>
+
+  <sc-if value="{{ coachHidden }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:18px;bottom:80px;z-index:80;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e5e7eb;border-radius:999px;box-shadow:0 6px 20px rgba(15,23,42,.14);padding:6px 8px 6px 14px">
+      <span style="font-size:11.5px;font-weight:600;color:#6b7280;white-space:nowrap">Coaching hidden</span>
+      <button type="button" onClick="{{ onResume }}" style="border:1px solid #2d7d72;background:#2d7d72;color:#fff;font-size:11.5px;font-weight:700;cursor:pointer;padding:4px 11px;border-radius:999px;white-space:nowrap">Resume</button>
+      <button type="button" onClick="{{ onEndTutorial }}" style="border:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;font-size:11.5px;font-weight:700;cursor:pointer;padding:4px 11px;border-radius:999px;white-space:nowrap">End tutorial</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ finished }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:24px;z-index:90">
+      <div style="width:100%;max-width:520px;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.20);padding:28px 30px;max-height:86vh;overflow:auto">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;text-align:center;margin-bottom:6px">Tutorial complete</div>
+        <div style="font-size:24px;font-weight:700;line-height:1.2;color:#111827;text-align:center;margin:8px 0 10px">You know how the exam behaves</div>
+        <p style="font-size:13.5px;line-height:1.6;color:#6b7280;text-align:center;margin:0 auto 18px;max-width:42ch">Nothing you did here was recorded — no attempt, no answers, no score. Run it again whenever you like.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+          <sc-for list="{{ recap }}" as="r" hint-placeholder-count="6">
+            <div style="display:flex;gap:10px;padding:9px 12px;background:#f9fafb;border-left:3px solid #2d7d72;border-radius:0 6px 6px 0;font-size:13px;line-height:1.5">
+              <span style="font-weight:700;color:#111827;flex:0 0 auto">{{ r.k }}</span>
+              <span style="color:#6b7280">{{ r.v }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:grid;gap:8px">
+          <button type="button" onClick="{{ onRestart }}" style="display:block;width:100%;text-align:center;padding:11px 16px;border-radius:10px;border:0;font-size:14px;font-weight:600;cursor:pointer;background:#111827;color:#fff">Run the tutorial again</button>
+          <button type="button" onClick="{{ onExit }}" style="display:block;width:100%;text-align:center;padding:11px 16px;border-radius:10px;border:0;font-size:14px;font-weight:600;cursor:pointer;background:rgba(45,125,114,.10);color:#2d7d72">Go to practice</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+const ACCENT = '#2d7d72', BORDER = '#e5e7eb', STRONG = '#cbd5e1', MUTED = '#6b7280', FAINT = '#9ca3af', TEXT = '#111827';
+const L = ['A','B','C','D','E','F','G','H'];
+
+const CJMM = ['Recognise','Analyse','Prioritise','Generate','Take action','Evaluate'];
+
+const CASE_TABS = [
+  { id: 'vitals', title: 'Vital signs', from: 1, rows: [
+    { label: 'Temperature', value: '38.9 °C', from: 1 },
+    { label: 'Heart rate', value: '118 bpm', from: 1 },
+    { label: 'Blood pressure', value: '92/54 mmHg', from: 1 },
+    { label: 'Respirations', value: '26 / min', from: 1 },
+    { label: 'SpO₂', value: '91% on room air', from: 2 },
+  ]},
+  { id: 'labs', title: 'Laboratory results', from: 2, rows: [
+    { label: 'WBC', value: '18.4 ×10⁹/L', from: 2 },
+    { label: 'Lactate', value: '3.8 mmol/L', from: 2 },
+    { label: 'Creatinine', value: '142 µmol/L', from: 3 },
+  ]},
+  { id: 'notes', title: 'Nurses notes', from: 1, note: '0740 — Client admitted from the emergency department with a two-day history of dysuria and fever. Confused about the time of day; oriented to person only. Skin warm and flushed.', rows: [] },
+  { id: 'orders', title: 'Orders', from: 4, rows: [
+    { label: '09:10', value: 'Blood cultures ×2, then IV ceftriaxone 1 g', from: 4 },
+    { label: '09:10', value: '0.9% sodium chloride 500 mL bolus IV', from: 4 },
+    { label: '09:15', value: 'Hourly urine output monitoring', from: 5 },
+  ]},
+];
+
+const TREND_TABS = [
+  { id: 'vs', title: 'Vital signs', cols: ['08:00','12:00','16:00'], rows: [
+    { metric: 'Heart rate (bpm)', cells: ['88','102','121'] },
+    { metric: 'BP (mmHg)', cells: ['128/78','116/70','98/58'] },
+    { metric: 'Respirations', cells: ['18','22','28'] },
+    { metric: 'Temperature (°C)', cells: ['37.4','38.2','39.1'] },
+  ]},
+  { id: 'io', title: 'Intake / output', cols: ['08:00','12:00','16:00'], rows: [
+    { metric: 'Oral intake (mL)', cells: ['200','120','0'] },
+    { metric: 'Urine output (mL)', cells: ['180','90','25'] },
+  ]},
+];
+
+const ITEMS = [
+  { id: 'q1', type: 'MCQ', subject: 'Cardiovascular', diff: 'Medium',
+    stem: 'A client with heart failure reports waking at night short of breath. Which action should the nurse take first?',
+    instruction: 'Select the one best answer.',
+    options: [
+      { id: 'a', text: 'Raise the head of the bed and assess respiratory effort.' },
+      { id: 'b', text: 'Notify the healthcare provider.' },
+      { id: 'c', text: 'Document paroxysmal nocturnal dyspnoea in the record.' },
+      { id: 'd', text: 'Restrict oral fluids for the remainder of the shift.' },
+    ],
+    correct: ['a'],
+    feedback: { a: 'Positioning improves ventilation immediately and the assessment informs everything that follows.', b: 'Reasonable, but not before you have assessed.', c: 'Documentation follows care, it is not the first action.', d: 'A fluid change needs a prescription and is not the first action.' },
+    rationale: 'Airway and breathing come first. Sitting the client upright reduces venous return and eases the work of breathing, and the focused respiratory assessment tells you whether escalation is needed.' },
+
+  { id: 'q2', type: 'TF', subject: 'Infection control', diff: 'Easy',
+    stem: 'Alcohol-based hand rub is appropriate when the hands are visibly soiled.',
+    instruction: 'Select True or False.',
+    options: [ { id: 't', text: 'True' }, { id: 'f', text: 'False' } ],
+    correct: ['f'],
+    feedback: { t: 'Alcohol does not remove soil or spores.', f: 'Correct — visibly soiled hands need soap and water.' },
+    rationale: 'Alcohol-based rub is the default for routine hand hygiene, but visible soiling (and C. difficile) requires washing with soap and running water.' },
+
+  { id: 'q3', type: 'SATA', subject: 'Endocrine', diff: 'Medium',
+    stem: 'A client taking insulin becomes unwell before lunch. Which findings suggest hypoglycaemia?',
+    instruction: 'Select all that apply.',
+    options: [
+      { id: 'a', text: 'Diaphoresis' },
+      { id: 'b', text: 'Tremor' },
+      { id: 'c', text: 'Kussmaul respirations' },
+      { id: 'd', text: 'Confusion' },
+      { id: 'e', text: 'Fruity breath odour' },
+    ],
+    correct: ['a','b','d'],
+    feedback: { a: 'Adrenergic response to falling glucose.', b: 'Adrenergic response.', c: 'Seen in ketoacidosis — high glucose.', d: 'Neuroglycopenic sign.', e: 'A ketosis finding, not hypoglycaemia.' },
+    rationale: 'Early hypoglycaemia is adrenergic (sweating, tremor, palpitations); as glucose falls further, neuroglycopenic signs such as confusion appear. Kussmaul respirations and fruity breath belong to diabetic ketoacidosis.' },
+
+  { id: 'q4', type: 'SELECT_N', subject: 'Pharmacology', diff: 'Hard', selectCount: 2,
+    stem: 'Before administering digoxin, which two assessments are essential?',
+    instruction: 'Select 2 findings.',
+    options: [
+      { id: 'a', text: 'Apical heart rate for one full minute' },
+      { id: 'b', text: 'Serum potassium' },
+      { id: 'c', text: 'Bowel sounds' },
+      { id: 'd', text: 'Pupillary response' },
+    ],
+    correct: ['a','b'],
+    feedback: { a: 'Hold and report a rate below 60 in an adult.', b: 'Hypokalaemia potentiates digoxin toxicity.', c: 'Not related to safe digoxin administration.', d: 'Not related.' },
+    rationale: 'Digoxin slows conduction, so the apical rate is checked for a full minute, and hypokalaemia sharply increases the risk of toxicity — both are checked before every dose.' },
+
+  { id: 'q5', type: 'MATRIX', subject: 'Respiratory', diff: 'Medium',
+    stem: 'A client is admitted with an acute asthma exacerbation.',
+    instruction: 'For each finding, mark whether it is anticipated or not anticipated.',
+    rowLabel: 'Finding',
+    cols: [ { id: 'ant', text: 'Anticipated' }, { id: 'not', text: 'Not anticipated' } ],
+    rows: [
+      { id: 'r1', text: 'Expiratory wheeze' },
+      { id: 'r2', text: 'Use of accessory muscles' },
+      { id: 'r3', text: 'Bradycardia' },
+    ],
+    correct: { r1: 'ant', r2: 'ant', r3: 'not' },
+    feedback: { r1: 'Airflow obstruction produces expiratory wheeze.', r2: 'Increased work of breathing is expected.', r3: 'Tachycardia, not bradycardia, is expected — bradycardia is an ominous late sign.' },
+    rationale: 'Anticipated findings map to the pathophysiology of bronchoconstriction; bradycardia in an acute exacerbation suggests imminent respiratory failure and is never an expected finding.' },
+
+  { id: 'q6', type: 'MATRIX_MR', subject: 'Pharmacology', diff: 'Hard',
+    stem: 'The nurse reviews the morning medication list for a client whose potassium is 6.2 mmol/L.',
+    instruction: 'For each medication, select every action that applies.',
+    rowLabel: 'Medication',
+    cols: [ { id: 'hold', text: 'Hold' }, { id: 'notify', text: 'Notify prescriber' }, { id: 'give', text: 'Give as scheduled' } ],
+    rows: [
+      { id: 'r1', text: 'Spironolactone' },
+      { id: 'r2', text: 'Paracetamol' },
+    ],
+    correct: { r1: ['hold','notify'], r2: ['give'] },
+    feedback: { r1: 'Potassium-sparing — hold and report the level.', r2: 'Unaffected by the potassium level.' },
+    rationale: 'A potassium-sparing diuretic worsens hyperkalaemia, so it is withheld and the prescriber informed. Medications that do not affect potassium continue as scheduled.' },
+
+  { id: 'q7', type: 'HIGHLIGHT', subject: 'Fundamentals', diff: 'Medium',
+    instruction: 'Click the findings in the note that require immediate follow-up.',
+    stemParts: [
+      { t: '1400 — Client is ' },
+      { c: 'restless and oriented to person only', id: 'h1' },
+      { t: ', a change from this morning. Dressing is dry and intact. ' },
+      { c: 'Urine output 15 mL over the last two hours', id: 'h2' },
+      { t: '. Reports mild thirst. ' },
+      { c: 'Radial pulse 126 and thready', id: 'h3' },
+      { t: '. Family present at the bedside.' },
+    ],
+    correct: ['h1','h2','h3'],
+    chunkFb: {
+      h1: 'A new fall in level of consciousness is an early sign of inadequate cerebral perfusion.',
+      h2: 'Under 30 mL/hour in an adult signals inadequate renal perfusion.',
+      h3: 'A thready tachycardia is the body compensating for a falling stroke volume.',
+    },
+    rationale: 'A fall in level of consciousness, oliguria and a thready tachycardia together point to inadequate perfusion — each one alone warrants follow-up, and together they warrant escalation now.' },
+
+  { id: 'q8', type: 'CLOZE', subject: 'Fluid & electrolytes', diff: 'Hard',
+    instruction: 'Choose the option that completes each sentence.',
+    stemParts: [
+      { t: 'The client\u2019s findings are most consistent with ' },
+      { b: 'b1' },
+      { t: ', and the nurse should first ' },
+      { b: 'b2' },
+      { t: '.' },
+    ],
+    blanks: [
+      { id: 'b1', choices: [ { id: 'x', text: 'hypovolaemia' }, { id: 'y', text: 'fluid overload' }, { id: 'z', text: 'hypercalcaemia' } ], correct: 'x',
+        fb: {
+          x: 'tachycardia with low urine output and a postural drop fits volume depletion.',
+          y: 'would show crackles, raised JVP and rising weight.',
+          z: 'does not explain the tachycardia or the low output.',
+        } },
+      { id: 'b2', choices: [ { id: 'x', text: 'give the prescribed fluid bolus' }, { id: 'y', text: 'restrict oral fluids' }, { id: 'z', text: 'obtain a 12-lead ECG' } ], correct: 'x',
+        fb: {
+          x: 'restoring circulating volume is the priority action.',
+          y: 'restriction would deepen the deficit.',
+          z: 'useful data, but it does not treat the underlying problem.',
+        } },
+    ],
+    rationale: 'Read the whole sentence before choosing — each blank is scored on its own, so a wrong first blank does not cost you the second.' },
+
+  { id: 'q9', type: 'DRAG_CLOZE', subject: 'Maternal health', diff: 'Medium',
+    instruction: 'Select a token, then select the box where it belongs.',
+    stemParts: [
+      { t: 'A postpartum client with a boggy uterus should first receive ' },
+      { b: 1 },
+      { t: ', and the nurse should monitor for ' },
+      { b: 2 },
+      { t: '.' },
+    ],
+    tokens: [ { id: 't1', text: 'fundal massage' }, { id: 't2', text: 'continued heavy bleeding' }, { id: 't3', text: 'a warm compress' }, { id: 't4', text: 'urinary retention' } ],
+    correct: { 1: 't1', 2: 't2' },
+    tokenFb: {
+      t1: 'Massage contracts the uterus and is the first intervention for atony.',
+      t2: 'Ongoing heavy bleeding is the sign the atony has not resolved.',
+      t3: 'Warmth does nothing for a boggy uterus.',
+      t4: 'A full bladder can displace the uterus, but retention is not what you monitor for here.',
+    },
+    rationale: 'Fundal massage is the first intervention for uterine atony; ongoing heavy bleeding is the sign that the atony has not resolved and escalation is required.' },
+
+  { id: 'q10', type: 'DRAG_ORDER', subject: 'Fundamentals', diff: 'Medium',
+    stem: 'A client\u2019s IV site is red, swollen and painful.',
+    instruction: 'Select an action, then select the position it belongs in.',
+    tokens: [
+      { id: 't1', text: 'Stop the infusion' },
+      { id: 't2', text: 'Remove the cannula' },
+      { id: 't3', text: 'Apply a warm compress' },
+      { id: 't4', text: 'Document and report the phlebitis score' },
+    ],
+    correct: { 1: 't1', 2: 't2', 3: 't3', 4: 't4' },
+    slotLabels: { 1: 'First', 2: 'Then', 3: 'Then', 4: 'Finally' },
+    tokenFb: {
+      t1: 'Stopping the infusion prevents further irritant entering the vein.',
+      t2: 'The cannula is the source — it comes out once the infusion is stopped.',
+      t3: 'Warmth eases pain and helps resolve the inflammation.',
+      t4: 'Recording the score lets the next nurse judge whether it is settling.',
+    },
+    rationale: 'Stop the harm, remove the source, treat the tissue, then record and hand over — the same shape as most ordered-response items.' },
+
+  { id: 'q11', type: 'BOWTIE', subject: 'Cardiovascular', diff: 'Hard',
+    stem: 'A client two days after abdominal surgery becomes suddenly breathless with pleuritic chest pain, heart rate 124 and SpO₂ 88%.',
+    instruction: 'Fill in each box: two actions, one condition, two parameters.',
+    bt: {
+      left: [ { id: 'l1', text: 'Apply supplemental oxygen' }, { id: 'l2', text: 'Raise the head of the bed' }, { id: 'l3', text: 'Encourage oral fluids' }, { id: 'l4', text: 'Apply a heat pack to the chest' } ],
+      centre: [ { id: 'c1', text: 'Pulmonary embolism' }, { id: 'c2', text: 'Pneumothorax' }, { id: 'c3', text: 'Anxiety attack' } ],
+      right: [ { id: 'r1', text: 'Oxygen saturation' }, { id: 'r2', text: 'Respiratory rate' }, { id: 'r3', text: 'Bowel sounds' }, { id: 'r4', text: 'Skin turgor' } ],
+    },
+    correct: { lt: 'l1', lb: 'l2', c: 'c1', rt: 'r1', rb: 'r2' },
+    tokenFb: {
+      l1: 'Hypoxaemia is the immediate threat — oxygen first.',
+      l2: 'Upright positioning improves ventilation and eases the work of breathing.',
+      l3: 'Fluids do nothing for a blocked pulmonary artery.',
+      l4: 'Heat treats musculoskeletal pain, not pleuritic pain from an embolus.',
+      c1: 'Sudden dyspnoea, pleuritic pain and tachycardia two days post-op is a classic embolic picture.',
+      c2: 'Possible, but far less likely without trauma or a central line.',
+      c3: 'Never the first hypothesis when saturations are falling.',
+      r1: 'Saturation is the most direct measure of the gas-exchange problem.',
+      r2: 'A rising rate shows the compensation failing.',
+      r3: 'Unrelated to the respiratory event.',
+      r4: 'A hydration measure, not a marker of this deterioration.',
+    },
+    rationale: 'The bow-tie asks for one clinical picture and the care that follows from it: oxygenate and position for a suspected PE, then monitor the two parameters that will show whether it is worsening.' },
+
+  { id: 'c1', type: 'SATA', case: 1, cjmm: 1, subject: 'Recognise cues', diff: 'Medium',
+    stem: 'Which findings in the chart are cues that require the nurse\u2019s attention?',
+    instruction: 'Select all that apply.',
+    options: [
+      { id: 'a', text: 'Temperature 38.9 °C' }, { id: 'b', text: 'Heart rate 118 bpm' },
+      { id: 'c', text: 'Blood pressure 92/54 mmHg' }, { id: 'd', text: 'Family at the bedside' },
+    ],
+    correct: ['a','b','c'],
+    rationale: 'Fever, tachycardia and hypotension together are the cues that matter here — the social detail is context, not a cue.' },
+
+  { id: 'c2', type: 'MATRIX', case: 1, cjmm: 2, subject: 'Analyse cues', diff: 'Hard',
+    stem: 'The laboratory results are now available on the chart.',
+    instruction: 'For each finding, mark whether it supports sepsis.',
+    rowLabel: 'Finding', cols: [ { id: 'y', text: 'Supports' }, { id: 'n', text: 'Does not support' } ],
+    rows: [ { id: 'r1', text: 'WBC 18.4 ×10⁹/L' }, { id: 'r2', text: 'Lactate 3.8 mmol/L' }, { id: 'r3', text: 'Oriented to person only' } ],
+    correct: { r1: 'y', r2: 'y', r3: 'y' },
+    rationale: 'Leucocytosis, raised lactate and new confusion are all consistent with sepsis in an older adult with a urinary source.' },
+
+  { id: 'c3', type: 'MCQ', case: 1, cjmm: 3, subject: 'Prioritise hypotheses', diff: 'Medium',
+    stem: 'Which hypothesis should the nurse prioritise?',
+    instruction: 'Select the one best answer.',
+    options: [
+      { id: 'a', text: 'Sepsis from a urinary source' }, { id: 'b', text: 'Dehydration alone' },
+      { id: 'c', text: 'Acute coronary syndrome' }, { id: 'd', text: 'Medication side effect' },
+    ],
+    correct: ['a'],
+    rationale: 'The combination of infection markers, hypotension and a urinary history makes urosepsis the hypothesis that carries the most risk and must be acted on first.' },
+
+  { id: 'c4', type: 'SATA', case: 1, cjmm: 4, subject: 'Generate solutions', diff: 'Medium',
+    stem: 'Which interventions should the nurse prepare for?',
+    instruction: 'Select all that apply.',
+    options: [
+      { id: 'a', text: 'Blood cultures before antibiotics' }, { id: 'b', text: 'IV fluid bolus' },
+      { id: 'c', text: 'Strict oral fluid restriction' }, { id: 'd', text: 'Hourly urine output monitoring' },
+    ],
+    correct: ['a','b','d'],
+    rationale: 'Cultures first, then fluids and antibiotics, with hourly output as the response measure. Restricting fluids would worsen hypoperfusion.' },
+
+  { id: 'c5', type: 'MCQ', case: 1, cjmm: 5, subject: 'Take action', diff: 'Medium',
+    stem: 'The orders are now on the chart. What should the nurse do first?',
+    instruction: 'Select the one best answer.',
+    options: [
+      { id: 'a', text: 'Draw blood cultures' }, { id: 'b', text: 'Start the ceftriaxone' },
+      { id: 'c', text: 'Send the client for imaging' }, { id: 'd', text: 'Complete the admission paperwork' },
+    ],
+    correct: ['a'],
+    rationale: 'Cultures are drawn before the first antibiotic dose so the organism can still be identified — but antibiotics must not be delayed beyond the first hour.' },
+
+  { id: 'c6', type: 'MATRIX', case: 1, cjmm: 6, subject: 'Evaluate outcomes', diff: 'Medium',
+    stem: 'Two hours after the bolus and antibiotic, the nurse reassesses.',
+    instruction: 'For each finding, mark whether it shows improvement.',
+    rowLabel: 'Finding', cols: [ { id: 'y', text: 'Improved' }, { id: 'n', text: 'Not improved' } ],
+    rows: [ { id: 'r1', text: 'Blood pressure 108/66 mmHg' }, { id: 'r2', text: 'Urine output 20 mL/hour' }, { id: 'r3', text: 'Oriented to person and place' } ],
+    correct: { r1: 'y', r2: 'n', r3: 'y' },
+    rationale: 'Two of three parameters improved; urine output below 30 mL/hour still signals inadequate renal perfusion and must be escalated.' },
+
+  { id: 't1', type: 'MCQ', trend: true, subject: 'Medical-surgical', diff: 'Hard',
+    stem: 'Based on the trend across the shift, which conclusion should the nurse draw?',
+    instruction: 'Select the one best answer.',
+    options: [
+      { id: 'a', text: 'The client is deteriorating and requires escalation.' },
+      { id: 'b', text: 'The client is stable; continue routine observations.' },
+      { id: 'c', text: 'The changes are explained by the client\u2019s activity level.' },
+      { id: 'd', text: 'Only the temperature is clinically significant.' },
+    ],
+    correct: ['a'],
+    feedback: { a: 'Every parameter is moving the wrong way at once.', b: 'Falling pressure with falling output is not stability.', c: 'Activity would not drop the blood pressure and urine output together.', d: 'Reading one row in isolation is the trap this item tests.' },
+    rationale: 'A trend item is answered by reading across the row and down the column: rising heart rate and respirations with falling blood pressure and urine output is early shock, not a single abnormal value.' },
+];
+
+const STEPS = [
+  { t: 'This is the exam tutorial', b: 'Everything you see here is the real exam screen — same layout, same controls, same behaviour for every question type. Nothing is recorded: no attempt, no answers, no score. Work through it as many times as you like.', goto: 0, grid: true },
+  { t: 'Leaving the exam', b: 'Exit sits top-left. In a real sitting it asks you to confirm before it lets go of an attempt in progress. Here it simply ends the tutorial.', target: 'exit' },
+  { t: 'What you are sitting', b: 'The title line names the session and its mode, how many questions it holds, and — inside a case study — which case you are in and which clinical-judgment step the question belongs to.', target: 'title' },
+  { t: 'Nothing here is recorded', b: 'This badge only appears in the tutorial. When it is gone, you are in a real attempt and your answers count.', target: 'tutpill' },
+  { t: 'Where you are', b: 'The counter shows the current question and the total. In an adaptive (CAT) exam there is no total to show, so only the current question appears — the exam ends when it has enough evidence about you.', target: 'counter' },
+  { t: 'The clock', b: 'Untimed sittings count up; timed sittings count down and warn you at 30, 15, 5 and 1 minute. Use the button to hide the clock if it distracts you — once a warning fires, the clock locks visible.', target: 'clock' },
+  { t: 'Mark for review', b: 'Flag anything you want to come back to. Marked questions get an amber border in the grid and can be filtered there. Marking never changes your answer.', target: 'mark', gate: 'mark', gateMsg: 'Try it: mark this question.' },
+  { t: 'The calculator', b: 'An on-screen calculator is available on every question, in every mode — the same tool you get in the real exam. Open and close it from here.', target: 'calc', gate: 'calc', gateMsg: 'Open the calculator to continue.' },
+  { t: 'The question grid', b: 'Every question in the sitting, colour-coded. Click any cell to jump to it — where the mode allows going back.', target: 'grid', grid: true },
+  { t: 'Filtering the grid', b: 'Narrow the grid to what you still owe: All, Marked, Unanswered, and — where feedback is available — Wrong.', target: 'gridfilters' },
+  { t: 'Reading the colours', b: 'White is unanswered, blue is answered, green correct, dark red wrong, amber skipped. An amber border means marked; a teal ring means you are here now.', target: 'legend' },
+  { t: 'The footer', b: 'Previous on the left, the mode reminder in the middle, and the action button on the right. The action button is disabled until your answer is complete — hover it to see what is missing.', target: 'footer' },
+
+  { t: 'Multiple choice', b: 'The most common item. Pick one option, then Submit. In this tutorial you see the rationale straight after each submit, the way untimed learning behaves.', goto: 0, target: 'answerarea', gate: 'submit', gateMsg: 'Pick an option and press Submit answer.' },
+  { t: 'True / false', b: 'Two locked options and the same rules as multiple choice.', goto: 1, target: 'answerarea', gate: 'submit', gateMsg: 'Answer and submit to continue.' },
+  { t: 'Select all that apply', b: 'Any number of options may be correct — including, occasionally, only one. There is no partial hint: choose every option you believe is correct. Submit is allowed even with nothing selected, because "none of these" is a real answer.', goto: 2, target: 'answerarea', gate: 'submit', gateMsg: 'Answer and submit to continue.' },
+  { t: 'Select N', b: 'Like select-all, but the number is fixed. The counter above the list tracks your picks, and once you hit the limit the remaining options dim — deselect one to swap.', goto: 3, target: 'answerarea', gate: 'submit', gateMsg: 'Choose exactly 2, then submit.' },
+  { t: 'Matrix', b: 'One choice per row. Every row must be answered before you can submit. In feedback each row is marked on its own and carries its own note.', goto: 4, target: 'answerarea', gate: 'submit', gateMsg: 'Answer every row, then submit.' },
+  { t: 'Matrix — multiple response', b: 'Same grid, square boxes: a row can need more than one answer. Every row still needs at least one.', goto: 5, target: 'answerarea', gate: 'submit', gateMsg: 'Give every row at least one answer, then submit.' },
+  { t: 'Highlight', b: 'The passage itself is the answer space. Clickable phrases are not marked in advance — finding them is part of the question. Click to highlight, click again to undo.', goto: 6, target: 'answerarea', gate: 'submit', gateMsg: 'Highlight what needs follow-up, then submit.' },
+  { t: 'Cloze (drop-down)', b: 'Sentences with numbered blanks. Each blank is a drop-down and each is scored on its own, so a wrong first blank does not cost you the rest.', goto: 7, target: 'answerarea', gate: 'submit', gateMsg: 'Fill both blanks, then submit.' },
+  { t: 'Drag-and-drop cloze', b: 'Same idea, tokens instead of drop-downs — and it works by tapping, not dragging. Select a token, then select the box. Select a filled box to send its token back to the pool.', goto: 8, target: 'answerarea', gate: 'submit', gateMsg: 'Fill both boxes, then submit.' },
+  { t: 'Drag to order', b: 'Put the actions in sequence with the same tap-to-place interaction. Every position must be filled before you can submit.', goto: 9, target: 'answerarea', gate: 'submit', gateMsg: 'Fill all four positions, then submit.' },
+  { t: 'Bow-tie', b: 'The hardest shape: one condition in the centre, the actions it demands on the left, the parameters you would monitor on the right. All five boxes must be filled. Each wing has its own token pool.', goto: 10, target: 'answerarea', gate: 'submit', gateMsg: 'Fill all five boxes, then submit.' },
+
+  { t: 'Case studies', b: 'A case is six linked questions about one client. The chart stays beside the question the whole way through — this is the part of the exam most students meet cold.', goto: 11, target: 'casepanel' },
+  { t: 'The chart unfolds as you go', b: 'Tabs appear as the case progresses: labs arrive at question 2, orders at question 4. Move through the tabs freely — nothing is hidden from you that the case has already given.', target: 'casetabs' },
+  { t: 'The six clinical-judgment steps', b: 'Each question maps to one step: recognise cues, analyse cues, prioritise hypotheses, generate solutions, take action, evaluate outcomes. The strip shows where you are in that reasoning chain.', target: 'cjmm', gate: 'submit', gateMsg: 'Answer question 12 and submit to move through the case.' },
+  { t: 'Working the case', b: 'The rest of the case behaves exactly the same way. Answer this one and the tutorial will step you to the last question of the case.', goto: 12, target: 'answerarea', gate: 'submit', gateMsg: 'Answer and submit to continue.' },
+  { t: 'The end of a case', b: 'The final step asks whether what you did worked. The counter pill at the top of the chart tracks how many of the six you have answered.', goto: 16, target: 'answerarea', gate: 'submit', gateMsg: 'Answer and submit to continue.' },
+  { t: 'Trend items', b: 'A trend gives you one dataset over time. Unlike a case there is no progressive disclosure — everything is visible from the start, and the answer lives in the direction of travel, not in any single value.', goto: 17, target: 'trendpanel' },
+  { t: 'Reading a trend', b: 'Read across the row for change over time and down the column for the picture at one moment. Then answer.', target: 'answerarea', gate: 'submit', gateMsg: 'Answer and submit to continue.' },
+
+  { t: 'One last thing: modes', b: 'This tutorial behaves like untimed learning — rationale after every submit, free navigation. A test-style sitting saves your answers as drafts and holds all rationales until you finish. A sequential or adaptive sitting submits you forward one question at a time with no way back. The screen is identical; only the footer message and the buttons change.', target: 'footer' },
+  { t: 'That is the whole exam interface', b: 'Nothing you did here was recorded. When you start a real sitting the tutorial badge disappears and everything else stays exactly as you have just seen it.', done: true },
+];
+
+// Jump-to menu. `start` is the first step of the section; type entries are
+// sub-rows under "Question types" so a student can drop straight onto the
+// item shape they came to practise.
+const SECTIONS = [
+  { label: 'Welcome', start: 0 },
+  { label: 'The exam screen', start: 1 },
+  { label: 'Mark & calculator', start: 6 },
+  { label: 'Question grid', start: 8 },
+  { label: 'The footer', start: 11 },
+  { label: 'Question types', start: 12 },
+  { label: 'Multiple choice', start: 12, sub: true },
+  { label: 'True / false', start: 13, sub: true },
+  { label: 'Select all that apply', start: 14, sub: true },
+  { label: 'Select N', start: 15, sub: true },
+  { label: 'Matrix', start: 16, sub: true },
+  { label: 'Matrix — multiple response', start: 17, sub: true },
+  { label: 'Highlight', start: 18, sub: true },
+  { label: 'Cloze', start: 19, sub: true },
+  { label: 'Drag-and-drop cloze', start: 20, sub: true },
+  { label: 'Drag to order', start: 21, sub: true },
+  { label: 'Bow-tie', start: 22, sub: true },
+  { label: 'Case studies', start: 23 },
+  { label: 'Trend items', start: 28 },
+  { label: 'Modes & finish', start: 30 },
+];
+
+const RECAP = [
+  { k: 'Topbar', v: 'counter, clock and hide toggle, mark for review, calculator, grid toggle' },
+  { k: 'Question grid', v: 'jump, filter by marked / unanswered / wrong, colour legend' },
+  { k: 'Item types', v: 'MCQ, true-false, SATA, select N, matrix, matrix multi-response, highlight, cloze, drag cloze, ordering, bow-tie' },
+  { k: 'Case studies', v: 'six linked questions, chart tabs that unfold, the six clinical-judgment steps' },
+  { k: 'Trend items', v: 'one dataset over time, fully visible from the start' },
+  { k: 'Modes', v: 'untimed learning, batched test, sequential and adaptive' },
+];
+
+class Component extends DCLogic {
+  state = {
+    step: 0, current: 0, answers: {}, submitted: {}, marked: {},
+    gridOpen: true, calcOpen: false, calcDisplay: '0', calcAcc: null, calcOp: null, calcFresh: true,
+    clockHidden: false, elapsed: 0, filter: 'all', caseTab: 'vitals', trendTab: 'vs',
+    armed: null, rect: null, calloutH: 0, finished: false, dismissed: false, jumpOpen: false,
+    touchedMark: false, touchedCalc: false,
+  };
+
+  componentDidMount() {
+    this.timer = setInterval(() => this.setState((s) => ({ elapsed: s.elapsed + 1 })), 1000);
+    this.onResize = () => this.measure();
+    window.addEventListener('resize', this.onResize);
+    this.measure();
+  }
+  componentDidUpdate() { this.measure(); }
+  componentWillUnmount() { clearInterval(this.timer); window.removeEventListener('resize', this.onResize); }
+
+  measure() {
+    // Measure the callout itself — its height swings with the section row,
+    // the gate banner and the body copy, so placement can't assume one.
+    const cal = document.querySelector('[data-coach-callout]');
+    const calloutH = cal ? Math.round(cal.getBoundingClientRect().height) : 0;
+    if (calloutH && Math.abs(calloutH - this.state.calloutH) > 2) this.setState({ calloutH });
+
+    const st = STEPS[this.state.step];
+    const el = st && st.target ? document.querySelector('[data-coach="' + st.target + '"]') : null;
+    if (!el) { if (this.state.rect) this.setState({ rect: null }); return; }
+    const r = el.getBoundingClientRect();
+    const next = { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) };
+    const cur = this.state.rect;
+    if (!cur || cur.x !== next.x || cur.y !== next.y || cur.w !== next.w || cur.h !== next.h) this.setState({ rect: next });
+  }
+
+  // Clamped — a bad index must never blank the whole component.
+  item() {
+    const i = Math.min(Math.max(0, this.state.current | 0), ITEMS.length - 1);
+    return ITEMS[i];
+  }
+  ans(it) { return this.state.answers[it.id]; }
+  isSubmitted(it) { return !!this.state.submitted[it.id]; }
+
+  complete(it) {
+    const a = this.ans(it);
+    switch (it.type) {
+      case 'MCQ': case 'TF': return a != null;
+      case 'SATA': return true;
+      case 'SELECT_N': return (a || []).length === it.selectCount;
+      case 'MATRIX': return it.rows.every((r) => (a || {})[r.id]);
+      case 'MATRIX_MR': return it.rows.every((r) => ((a || {})[r.id] || []).length > 0);
+      case 'HIGHLIGHT': return (a || []).length > 0;
+      case 'CLOZE': return it.blanks.every((b) => (a || {})[b.id]);
+      case 'DRAG_CLOZE': return Object.keys(a || {}).length === 2;
+      case 'DRAG_ORDER': return Object.keys(a || {}).length === it.tokens.length;
+      case 'BOWTIE': { const v = a || {}; return !!(v.lt && v.lb && v.c && v.rt && v.rb); }
+      default: return false;
+    }
+  }
+
+  // Per-gate hint shown as the disabled button's tooltip (runner.tsx's
+  // footer hints).
+  submitHint(it) {
+    const a = this.ans(it);
+    switch (it.type) {
+      case 'MCQ': case 'TF': return 'Choose an option to continue';
+      case 'SELECT_N': return 'Choose exactly ' + it.selectCount + ' — ' + ((a || []).length) + ' chosen so far';
+      case 'MATRIX': case 'MATRIX_MR': return 'Answer every row to continue';
+      case 'HIGHLIGHT': return 'Highlight at least one finding to continue';
+      case 'CLOZE': return 'Fill every blank to continue';
+      case 'DRAG_CLOZE': return 'Fill both boxes to continue';
+      case 'DRAG_ORDER': return 'Fill all ' + it.tokens.length + ' positions to continue';
+      case 'BOWTIE': return 'Fill all five boxes — each wing needs 2 + 1 + 2';
+      default: return 'Answer the question to continue';
+    }
+  }
+
+  scoreOf(it) {
+    const a = this.ans(it);
+    switch (it.type) {
+      case 'MCQ': case 'TF': return it.correct.includes(a) ? 1 : 0;
+      case 'SATA': case 'SELECT_N': case 'HIGHLIGHT': {
+        const got = new Set(a || []);
+        return (it.correct.every((c) => got.has(c)) && got.size === it.correct.length) ? 1 : 0;
+      }
+      case 'MATRIX': return it.rows.every((r) => (a || {})[r.id] === it.correct[r.id]) ? 1 : 0;
+      case 'MATRIX_MR': return it.rows.every((r) => {
+        const got = ((a || {})[r.id] || []).slice().sort().join(',');
+        return got === (it.correct[r.id] || []).slice().sort().join(',');
+      }) ? 1 : 0;
+      case 'CLOZE': return it.blanks.every((b) => (a || {})[b.id] === b.correct) ? 1 : 0;
+      case 'DRAG_CLOZE': case 'DRAG_ORDER': return Object.keys(it.correct).every((k) => (a || {})[k] === it.correct[k]) ? 1 : 0;
+      case 'BOWTIE': return Object.keys(it.correct).every((k) => (a || {})[k] === it.correct[k]) ? 1 : 0;
+      default: return 0;
+    }
+  }
+
+  setAnswer(next) {
+    const it = this.item();
+    if (this.isSubmitted(it)) return;
+    this.setState((s) => ({ answers: Object.assign({}, s.answers, { [it.id]: next }) }));
+  }
+
+  submit() {
+    const it = this.item();
+    if (!this.complete(it) || this.isSubmitted(it)) return;
+    this.setState((s) => ({ submitted: Object.assign({}, s.submitted, { [it.id]: true }), armed: null }));
+  }
+
+  goStep(i) {
+    if (i < 0 || i >= STEPS.length) return;
+    const st = STEPS[i];
+    const patch = { step: i, armed: null, jumpOpen: false };
+    if (st.goto != null) patch.current = st.goto;
+    if (st.grid != null) patch.gridOpen = st.grid;
+    this.setState(patch);
+  }
+
+  gateOk() {
+    const st = STEPS[this.state.step];
+    if (!st.gate) return true;
+    if (st.gate === 'mark') return this.state.touchedMark;
+    if (st.gate === 'calc') return this.state.touchedCalc;
+    if (st.gate === 'submit') return this.isSubmitted(this.item());
+    return true;
+  }
+
+  // ── style helpers ────────────────────────────────────────────
+  chip(on, onColor, onBg) {
+    return {
+      display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 10px', borderRadius: '6px',
+      border: '1px solid ' + (on ? onColor : BORDER), background: on ? onBg : '#fff',
+      fontSize: '12px', fontWeight: 600, color: on ? onColor : MUTED, cursor: 'pointer', whiteSpace: 'nowrap',
+    };
+  }
+
+  optStyle(state) {
+    const s = {
+      display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '8px 12px',
+      border: '1px solid ' + BORDER, borderLeft: '3px solid ' + BORDER, borderRadius: '3px',
+      background: '#fff', color: TEXT, cursor: state.locked ? 'default' : 'pointer',
+      fontSize: '14px', lineHeight: 1.55, textAlign: 'left', width: '100%',
+    };
+    if (state.sel) { s.borderColor = ACCENT; s.borderLeftColor = ACCENT; }
+    if (state.right) s.borderLeftColor = '#16a34a';
+    if (state.wrong) s.borderLeftColor = '#b91c1c';
+    if (state.missed) s.borderLeftColor = '#d97706';
+    if (state.dim) s.opacity = 0.6;
+    return s;
+  }
+
+  letterStyle(fill) {
+    const s = {
+      flexShrink: 0, width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center',
+      justifyContent: fill ? 'center' : 'flex-end', fontWeight: 700, fontSize: fill ? '12px' : '14px',
+      lineHeight: 1, color: fill ? '#fff' : TEXT,
+    };
+    if (fill) { s.borderRadius = '50%'; s.background = fill; }
+    return s;
+  }
+
+  verdictStyleFor(color) {
+    return { flexShrink: 0, alignSelf: 'baseline', fontSize: '11.5px', fontWeight: 600, color: color || MUTED };
+  }
+
+  pill(bg, bd, fg, dashed) {
+    return { display: 'inline', padding: '2px 6px', margin: '0 2px', border: '1px ' + (dashed ? 'dashed' : 'solid') + ' ' + bd, borderRadius: '3px', background: bg, color: fg, fontWeight: 700 };
+  }
+
+  // ── per-type view models ─────────────────────────────────────
+  buildOptions(it, rev) {
+    const a = this.ans(it);
+    const type = it.type;
+    const many = type === 'SATA' || type === 'SELECT_N';
+    const picked = many ? new Set(a || []) : new Set(a == null ? [] : [a]);
+    const correct = new Set(it.correct || []);
+    const atCap = type === 'SELECT_N' && picked.size >= it.selectCount;
+    return it.options.map((o, i) => {
+      const isPicked = picked.has(o.id), isCorrect = correct.has(o.id);
+      let st = {}, verdict = null, vcolor = MUTED, fill = null;
+      if (rev) {
+        st.locked = true;
+        if (many) {
+          if (isCorrect && isPicked) { st.right = true; verdict = '✓ Correct'; vcolor = '#15803d'; fill = '#16a34a'; }
+          else if (!isCorrect && isPicked) { st.wrong = true; verdict = '✕ Wrong pick'; vcolor = '#b91c1c'; fill = '#b91c1c'; }
+          else if (isCorrect && !isPicked) { st.missed = true; verdict = '⚠ Missed'; vcolor = '#b45309'; fill = '#d97706'; }
+          else st.dim = true;
+        } else {
+          if (isCorrect) { st.right = true; verdict = '✓ Correct'; vcolor = '#15803d'; fill = '#16a34a'; }
+          else if (isPicked) { st.wrong = true; verdict = '✕ Your answer'; vcolor = '#b91c1c'; fill = '#b91c1c'; }
+          else st.dim = true;
+        }
+      } else if (isPicked) { st.sel = true; fill = ACCENT; }
+      else if (atCap) st.dim = true;
+
+      return {
+        id: o.id, text: o.text, letter: fill ? L[i] : L[i] + '.',
+        style: this.optStyle(st), letterStyle: this.letterStyle(fill),
+        verdict, verdictStyle: this.verdictStyleFor(vcolor),
+        feedback: rev ? (it.feedback || {})[o.id] || null : null,
+        onClick: rev ? undefined : () => {
+          if (many) {
+            const cur = (this.ans(it) || []).slice();
+            const at = cur.indexOf(o.id);
+            if (at >= 0) cur.splice(at, 1);
+            else if (type === 'SATA' || cur.length < it.selectCount) cur.push(o.id);
+            this.setAnswer(cur);
+          } else this.setAnswer(o.id);
+        },
+      };
+    });
+  }
+
+  buildMatrix(it, rev) {
+    const multi = it.type === 'MATRIX_MR';
+    const a = this.ans(it) || {};
+    const tpl = 'minmax(180px, 30%) repeat(' + it.cols.length + ', 1fr)';
+    const rows = it.rows.map((r) => {
+      const cells = it.cols.map((c) => {
+        const picks = multi ? (a[r.id] || []) : (a[r.id] ? [a[r.id]] : []);
+        const isPicked = picks.indexOf(c.id) >= 0;
+        const corr = multi ? (it.correct[r.id] || []) : [it.correct[r.id]];
+        const isCorrect = rev && corr.indexOf(c.id) >= 0;
+        const s = {
+          background: '#fff', border: '1px solid ' + BORDER, borderRadius: '3px', cursor: rev ? 'default' : 'pointer',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '44px',
+          fontSize: '20px', fontWeight: 700, lineHeight: 1, color: FAINT,
+        };
+        let glyph = multi ? '☐' : '○';
+        if (rev) {
+          if (isCorrect && isPicked) { s.background = 'rgba(22,163,74,.08)'; s.borderColor = '#16a34a'; s.color = '#15803d'; glyph = multi ? '☑' : '●'; }
+          else if (!isCorrect && isPicked) { s.background = 'rgba(185,28,28,.06)'; s.borderColor = '#b91c1c'; s.color = '#b91c1c'; glyph = multi ? '☒' : '●'; }
+          else if (isCorrect && !isPicked) { s.borderColor = '#d97706'; s.borderStyle = 'dashed'; s.color = '#b45309'; glyph = multi ? '☑' : '✓'; }
+        } else if (isPicked) { s.background = 'rgba(45,125,114,.07)'; s.borderColor = ACCENT; s.color = ACCENT; glyph = multi ? '☑' : '●'; }
+        return { glyph, style: s, onClick: rev ? undefined : () => {
+          const cur = Object.assign({}, this.ans(it) || {});
+          if (multi) {
+            const list = (cur[r.id] || []).slice();
+            const at = list.indexOf(c.id);
+            if (at >= 0) list.splice(at, 1); else list.push(c.id);
+            if (list.length) cur[r.id] = list; else delete cur[r.id];
+          } else cur[r.id] = c.id;
+          this.setAnswer(cur);
+        }};
+      });
+      return { text: r.text, cells, gridStyle: { display: 'grid', gap: '4px', gridTemplateColumns: tpl }, feedback: rev ? (it.feedback || {})[r.id] || null : null };
+    });
+    return { rows, tpl };
+  }
+
+  buildHighlight(it, rev) {
+    const picked = new Set(this.ans(it) || []);
+    return it.stemParts.map((p, i) => {
+      if (!p.c) return { isText: true, text: p.t, key: 'h' + i };
+      const isP = picked.has(p.id), isC = (it.correct || []).indexOf(p.id) >= 0;
+      // Review: neutral chunks (not picked, not correct) render as plain text.
+      if (rev && !isP && !isC) return { isText: true, text: p.c, key: 'h' + i };
+      const s = { display: 'inline', padding: '2px 6px', border: '1px solid transparent', borderRadius: '3px', background: 'transparent', color: 'inherit', cursor: rev ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', lineHeight: 'inherit' };
+      if (rev) {
+        if (isC && isP) { s.background = '#dcfce7'; s.borderColor = '#16a34a'; s.color = '#14532d'; s.fontWeight = 700; }
+        else if (!isC && isP) { s.background = '#fee2e2'; s.borderColor = '#b91c1c'; s.color = '#7f1d1d'; s.fontWeight = 600; s.textDecoration = 'line-through'; }
+        else if (isC && !isP) { s.borderColor = '#d97706'; s.borderStyle = 'dashed'; s.color = '#b45309'; s.fontWeight = 600; }
+      } else if (isP) { s.background = '#fef9c3'; s.borderColor = '#facc15'; s.color = '#713f12'; s.fontWeight = 600; }
+      return { isChunk: true, text: p.c, style: s, onClick: rev ? undefined : () => {
+        const cur = (this.ans(it) || []).slice();
+        const at = cur.indexOf(p.id);
+        if (at >= 0) cur.splice(at, 1); else cur.push(p.id);
+        this.setAnswer(cur);
+      }};
+    });
+  }
+
+  buildHighlightFeedback(it) {
+    const picked = new Set(this.ans(it) || []);
+    const correct = new Set(it.correct || []);
+    return it.stemParts.filter((p) => p.c && (picked.has(p.id) || correct.has(p.id))).map((p) => {
+      const isP = picked.has(p.id), isC = correct.has(p.id);
+      const icon = isC && isP ? '✓' : (isP ? '✕' : '⚠');
+      const color = isC && isP ? '#15803d' : (isP ? '#b91c1c' : '#b45309');
+      const fb = (it.chunkFb || {})[p.id];
+      return {
+        icon, label: p.c, text: fb ? ' — ' + fb : '',
+        iconStyle: { flexShrink: 0, fontWeight: 700, fontSize: '13px', width: '16px', textAlign: 'center', color },
+      };
+    });
+  }
+
+  distractorList(it, fbKey) {
+    const correctIds = Object.keys(it.correct).map((k) => it.correct[k]);
+    return it.tokens.filter((t) => correctIds.indexOf(t.id) < 0).map((t) => ({
+      text: t.text, rationale: (it[fbKey] || {})[t.id] || null,
+    }));
+  }
+
+  buildCloze(it, rev) {
+    const a = this.ans(it) || {};
+    let n = 0;
+    const parts = it.stemParts.map((p, i) => {
+      if (!p.b) return { isText: true, text: p.t };
+      n += 1;
+      const blank = it.blanks.find((x) => x.id === p.b);
+      const val = a[blank.id] || '';
+      const isRight = val === blank.correct;
+      const chosen = blank.choices.find((c) => c.id === val);
+      const s = { display: 'inline-block', verticalAlign: 'baseline', margin: '0 2px', padding: '2px 6px', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit', color: 'inherit', background: '#fff', border: '1px solid ' + BORDER, borderRadius: '4px', maxWidth: '22ch', cursor: 'pointer' };
+      if (val) { s.background = '#eff6ff'; s.borderColor = '#3b82f6'; s.color = '#1e3a8a'; s.fontWeight = 600; }
+      return {
+        isBlank: true, num: n, locked: rev, open: !rev, value: val,
+        pickedText: chosen ? ((isRight ? '✓ ' : '✕ ') + chosen.text) : '(skipped)',
+        pillStyle: rev ? (isRight ? this.pill('#dcfce7', '#16a34a', '#14532d') : (chosen ? this.pill('#fee2e2', '#b91c1c', '#7f1d1d') : Object.assign(this.pill('transparent', '#d97706', '#b45309', true), { fontStyle: 'italic', fontWeight: 600 }))) : null,
+        style: s,
+        choices: [{ id: '', text: '— choose —' }].concat(blank.choices),
+        onChange: (e) => {
+          const v = e.target.value;
+          this.setAnswer(Object.assign({}, this.ans(it) || {}, { [blank.id]: v }));
+        },
+      };
+    });
+    const fb = it.blanks.map((b, i) => {
+      const val = a[b.id];
+      const ok = val === b.correct;
+      const verdict = !val ? 'SKIPPED' : (ok ? 'CORRECT' : 'WRONG');
+      const color = !val ? '#b45309' : (ok ? '#15803d' : '#9b2c2c');
+      // Every choice label runs inline with its own rationale; the correct
+      // label is green, the distractors a softened red (cloze.tsx).
+      const items = b.choices.map((c, ci) => ({
+        label: c.text,
+        note: (b.fb || {})[c.id] ? ' — ' + b.fb[c.id] : '',
+        tail: ci < b.choices.length - 1 ? ' ' : '',
+        labelStyle: { fontWeight: 600, color: c.id === b.correct ? '#15803d' : '#9b2c2c' },
+      }));
+      return { num: i + 1, verdict, items, labelStyle: { fontSize: '11.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', display: 'flex', alignItems: 'baseline', gap: '6px', color } };
+    });
+    return { parts, fb };
+  }
+
+  buildDragCloze(it, rev) {
+    const a = this.ans(it) || {};
+    const used = Object.keys(a).map((k) => a[k]);
+    let n = 0;
+    const parts = it.stemParts.map((p) => {
+      if (!p.b) return { isText: true, text: p.t };
+      n += 1;
+      const slot = p.b;
+      const tokId = a[slot];
+      const tok = it.tokens.find((t) => t.id === tokId);
+      const s = { display: 'inline-flex', alignItems: 'baseline', gap: '4px', margin: '0 2px', padding: '3px 8px', border: '1px dashed ' + BORDER, borderRadius: '4px', background: '#f9fafb', color: FAINT, fontFamily: 'inherit', fontSize: 'inherit', fontStyle: 'italic', fontWeight: 500, cursor: rev ? 'default' : 'pointer', verticalAlign: 'baseline' };
+      if (tok) { s.background = '#fff'; s.borderStyle = 'solid'; s.color = TEXT; s.fontStyle = 'normal'; s.fontWeight = 600; }
+      if (!rev && this.state.armed && !tok) { s.borderColor = ACCENT; s.borderStyle = 'solid'; s.background = '#eff6ff'; }
+      if (rev) {
+        const ok = tokId === it.correct[slot];
+        if (ok) { s.background = '#dcfce7'; s.borderColor = '#16a34a'; s.borderStyle = 'solid'; s.color = '#14532d'; s.fontWeight = 700; }
+        else if (tok) { s.background = '#fee2e2'; s.borderColor = '#b91c1c'; s.borderStyle = 'solid'; s.color = '#7f1d1d'; }
+        else { s.borderColor = '#d97706'; s.color = '#b45309'; }
+      }
+      const mark = rev && tok ? ((tokId === it.correct[slot] ? '✓ ' : '✕ ')) : '';
+      return { isBox: true, num: n, text: mark + (tok ? tok.text : (rev ? '(skipped)' : 'tap')), style: s, onClick: rev ? undefined : () => {
+        const cur = Object.assign({}, this.ans(it) || {});
+        if (cur[slot]) { delete cur[slot]; this.setAnswer(cur); return; }
+        if (this.state.armed) { cur[slot] = this.state.armed; this.setAnswer(cur); this.setState({ armed: null }); }
+      }};
+    });
+    const pool = it.tokens.filter((t) => used.indexOf(t.id) < 0).map((t) => ({
+      text: t.text, style: this.tokenStyle(this.state.armed === t.id), onClick: rev ? undefined : () => this.setState((s) => ({ armed: s.armed === t.id ? null : t.id })),
+    }));
+    const fb = [1, 2].map((slot, i) => {
+      const pickedId = a[slot], correctId = it.correct[slot];
+      const correctTok = it.tokens.find((t) => t.id === correctId);
+      const verdict = !pickedId ? 'SKIPPED' : (pickedId === correctId ? 'CORRECT' : 'WRONG');
+      const color = !pickedId ? '#b45309' : (pickedId === correctId ? '#15803d' : '#9b2c2c');
+      const note = (it.tokenFb || {})[correctId] || '';
+      const body = verdict === 'CORRECT' ? note : ('Correct answer: ' + (correctTok ? correctTok.text : '—') + '. ' + note);
+      return { num: i + 1, verdict, body, labelStyle: { fontSize: '11.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', display: 'flex', alignItems: 'baseline', gap: '6px', color } };
+    });
+    return { parts, pool, fb, distractors: this.distractorList(it, 'tokenFb') };
+  }
+
+  tokenStyle(armed) {
+    const s = { padding: '8px 14px', fontFamily: 'inherit', fontSize: '13.5px', fontWeight: 600, color: TEXT, background: '#fff', border: '1px solid ' + BORDER, borderRadius: '999px', cursor: 'pointer' };
+    if (armed) { s.background = '#eff6ff'; s.borderColor = ACCENT; s.color = '#1e3a8a'; s.transform = 'translateY(-2px)'; s.boxShadow = '0 4px 10px rgba(37,99,235,.18)'; }
+    return s;
+  }
+
+  buildDragOrder(it, rev) {
+    const a = this.ans(it) || {};
+    const used = Object.keys(a).map((k) => a[k]);
+    const slots = it.tokens.map((_, i) => {
+      const n = i + 1;
+      const tokId = a[n];
+      const tok = it.tokens.find((t) => t.id === tokId);
+      const s = { display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px 14px', background: '#fff', border: '1px dashed ' + BORDER, borderRadius: '8px', fontFamily: 'inherit', fontSize: '14px', color: TEXT, cursor: rev ? 'default' : 'pointer', textAlign: 'left' };
+      if (tok) s.borderStyle = 'solid';
+      if (!rev && this.state.armed && !tok) { s.borderStyle = 'solid'; s.borderColor = ACCENT; s.background = '#eff6ff'; }
+      if (rev) {
+        const ok = tokId === it.correct[n];
+        if (ok) { s.background = '#dcfce7'; s.borderColor = '#16a34a'; s.borderStyle = 'solid'; s.color = '#14532d'; }
+        else if (tok) { s.background = '#fee2e2'; s.borderColor = '#b91c1c'; s.borderStyle = 'solid'; s.color = '#7f1d1d'; }
+        else { s.borderColor = '#d97706'; s.color = '#b45309'; }
+      }
+      const drop = { flex: 1, display: 'inline-flex', alignItems: 'baseline', gap: '6px', fontWeight: 600, color: tok || rev ? 'currentColor' : FAINT, fontStyle: tok ? 'normal' : 'italic' };
+      const mark = rev && tok ? (tokId === it.correct[n] ? '✓ ' : '✕ ') : '';
+      return {
+        num: n, label: (it.slotLabels || {})[n] || null,
+        text: mark + (tok ? tok.text : (rev ? '(skipped)' : 'tap to place')), style: s, dropStyle: drop,
+        labelStyle: { flex: '0 0 auto', fontSize: '12.5px', fontWeight: 600, color: rev ? 'currentColor' : MUTED, opacity: rev ? 0.85 : 1 },
+        numStyle: { flex: '0 0 24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '12px', background: rev ? 'rgba(255,255,255,.5)' : '#f9fafb', color: rev ? 'currentColor' : MUTED, fontSize: '11.5px', fontWeight: 700 },
+        onClick: rev ? undefined : () => {
+          const cur = Object.assign({}, this.ans(it) || {});
+          if (cur[n]) { delete cur[n]; this.setAnswer(cur); return; }
+          if (this.state.armed) { cur[n] = this.state.armed; this.setAnswer(cur); this.setState({ armed: null }); }
+        },
+      };
+    });
+    const pool = it.tokens.filter((t) => used.indexOf(t.id) < 0).map((t) => ({
+      text: t.text, style: this.tokenStyle(this.state.armed === t.id), onClick: rev ? undefined : () => this.setState((s) => ({ armed: s.armed === t.id ? null : t.id })),
+    }));
+    const cards = it.tokens.map((_, i) => {
+      const n = i + 1;
+      const correctTok = it.tokens.find((t) => t.id === it.correct[n]);
+      return { num: n, label: (it.slotLabels || {})[n] || null, token: correctTok ? correctTok.text : '—', rationale: (it.tokenFb || {})[it.correct[n]] || null };
+    });
+    return { slots, pool, cards, distractors: this.distractorList(it, 'tokenFb') };
+  }
+
+  buildBowtie(it, rev) {
+    const a = this.ans(it) || {};
+    const all = it.bt.left.concat(it.bt.centre, it.bt.right);
+    const find = (id) => all.find((t) => t.id === id);
+    const defs = [
+      { k: 'lt', wing: 'left', gc: 1, gr: 2 }, { k: 'lb', wing: 'left', gc: 1, gr: 3 },
+      { k: 'c', wing: 'centre', gc: 2, gr: 2 },
+      { k: 'rt', wing: 'right', gc: 3, gr: 2 }, { k: 'rb', wing: 'right', gc: 3, gr: 3 },
+    ];
+    const used = Object.keys(a).map((k) => a[k]);
+    const slots = defs.map((d) => {
+      const tok = find(a[d.k]);
+      const s = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', minHeight: d.k === 'c' ? '56px' : '36px', width: '100%', padding: '6px 10px', border: '1.5px dashed ' + (d.k === 'c' ? ACCENT : BORDER), borderRadius: '5px', background: '#f9fafb', color: FAINT, fontFamily: 'inherit', fontSize: d.k === 'c' ? '13px' : '12px', fontStyle: 'italic', cursor: rev ? 'default' : 'pointer', textAlign: 'center', gridColumn: d.gc, gridRow: d.gr };
+      if (tok) { s.background = '#eff6ff'; s.borderStyle = 'solid'; s.borderColor = ACCENT; s.color = '#1e3a8a'; s.fontStyle = 'normal'; s.fontWeight = 600; }
+      const armedTok = this.state.armed ? find(this.state.armed) : null;
+      const armedWing = armedTok ? (it.bt.left.indexOf(armedTok) >= 0 ? 'left' : it.bt.centre.indexOf(armedTok) >= 0 ? 'centre' : 'right') : null;
+      if (!rev && armedWing === d.wing && !tok) { s.borderStyle = 'solid'; s.borderColor = ACCENT; s.background = '#dbeafe'; s.animation = 'rn-bt-pulse 1.4s ease-in-out infinite'; }
+      if (rev) {
+        const ok = a[d.k] === it.correct[d.k];
+        if (ok) { s.background = '#dcfce7'; s.borderColor = '#16a34a'; s.borderStyle = 'solid'; s.color = '#14532d'; s.fontWeight = 700; s.fontStyle = 'normal'; }
+        else if (tok) { s.background = '#fee2e2'; s.borderColor = '#b91c1c'; s.borderStyle = 'solid'; s.color = '#7f1d1d'; s.fontStyle = 'normal'; }
+        else { s.borderColor = '#d97706'; s.color = '#b45309'; }
+      }
+      const mark = rev && tok ? (a[d.k] === it.correct[d.k] ? '✓ ' : '✕ ') : '';
+      return { text: mark + (tok ? tok.text : (rev ? '(skipped)' : 'tap')), style: s, onClick: rev ? undefined : () => {
+        const cur = Object.assign({}, this.ans(it) || {});
+        if (cur[d.k]) { delete cur[d.k]; this.setAnswer(cur); return; }
+        const at = this.state.armed ? find(this.state.armed) : null;
+        if (!at) return;
+        const wing = it.bt.left.indexOf(at) >= 0 ? 'left' : it.bt.centre.indexOf(at) >= 0 ? 'centre' : 'right';
+        if (wing !== d.wing) return;
+        cur[d.k] = at.id; this.setAnswer(cur); this.setState({ armed: null });
+      }};
+    });
+    const cols = [
+      { key: 'left', label: 'Actions to take', need: 2, tokens: it.bt.left },
+      { key: 'centre', label: 'Condition', need: 1, tokens: it.bt.centre },
+      { key: 'right', label: 'Parameters to monitor', need: 2, tokens: it.bt.right },
+    ].map((c) => {
+      const placed = c.tokens.filter((t) => used.indexOf(t.id) >= 0).length;
+      const pickedIds = ['lt','lb','c','rt','rb'].map((k) => a[k]).filter(Boolean);
+      const correctIds = ['lt','lb','c','rt','rb'].map((k) => it.correct[k]);
+      let count;
+      if (rev) {
+        const right = c.tokens.filter((t) => pickedIds.indexOf(t.id) >= 0 && correctIds.indexOf(t.id) >= 0).length;
+        const wrong = c.tokens.filter((t) => pickedIds.indexOf(t.id) >= 0 && correctIds.indexOf(t.id) < 0).length;
+        count = wrong === 0 ? right + ' right' : right + ' right · ' + wrong + ' wrong';
+      } else if (placed === 0) count = 'Pick ' + c.need;
+      else count = placed + ' of ' + c.need + ' chosen' + (placed === c.need ? ' ✓' : '');
+      const base = {
+        label: c.label, count,
+        style: { display: 'flex', flexDirection: 'column', gap: '4px', padding: '10px 12px', background: '#fff', border: '1px solid ' + (c.key === 'centre' ? ACCENT : BORDER), borderRadius: '8px' },
+        labelStyle: { fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: c.key === 'centre' ? ACCENT : MUTED },
+        countStyle: { fontSize: '10.5px', fontWeight: 600, color: (!rev && placed >= c.need) ? '#15803d' : MUTED },
+      };
+      if (rev) {
+        base.tokens = c.tokens.map((t) => {
+          const isP = pickedIds.indexOf(t.id) >= 0, isC = correctIds.indexOf(t.id) >= 0;
+          const pillBase = { width: '100%', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '6px 10px', fontSize: '12.5px', fontWeight: 500, textAlign: 'left', color: TEXT, background: '#fff', border: '1px solid ' + BORDER, borderRadius: '5px', cursor: 'default' };
+          let verdict = null, vcolor = MUTED;
+          if (isP && isC) { Object.assign(pillBase, { background: '#dcfce7', borderColor: '#16a34a', color: '#14532d', fontWeight: 700 }); verdict = '✓ Correct'; vcolor = '#15803d'; }
+          else if (isP && !isC) { Object.assign(pillBase, { background: '#fee2e2', borderColor: '#b91c1c', color: '#7f1d1d', fontWeight: 600 }); verdict = '✕ Wrong pick'; vcolor = '#b91c1c'; }
+          else if (!isP && isC) { Object.assign(pillBase, { background: 'transparent', borderColor: '#d97706', borderStyle: 'dashed', color: '#b45309', fontWeight: 600 }); verdict = '⚠ Missed'; vcolor = '#b45309'; }
+          else Object.assign(pillBase, { background: '#f9fafb', color: MUTED, fontWeight: 400 });
+          return {
+            text: t.text, style: pillBase, verdict,
+            verdictStyle: { flexShrink: 0, fontSize: '10.5px', fontWeight: 700, letterSpacing: '.04em', color: vcolor },
+            rationale: (it.tokenFb || {})[t.id] || null,
+          };
+        });
+      } else {
+        base.tokens = c.tokens.filter((t) => used.indexOf(t.id) < 0).map((t) => {
+          const armed = this.state.armed === t.id;
+          const s = { width: '100%', padding: '6px 10px', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: armed ? 600 : 500, textAlign: 'left', color: armed ? '#1e3a8a' : TEXT, background: armed ? '#eff6ff' : '#fff', border: '1px solid ' + (armed ? ACCENT : BORDER), borderRadius: '5px', cursor: 'pointer' };
+          if (armed) { s.transform = 'translateY(-2px)'; s.boxShadow = '0 4px 10px rgba(37,99,235,.2)'; }
+          return { text: t.text, style: s, verdict: null, rationale: null, onClick: () => this.setState((st) => ({ armed: st.armed === t.id ? null : t.id })) };
+        });
+      }
+      return base;
+    });
+    return { slots, cols };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const it = this.item();
+    const rev = this.isSubmitted(it);
+    const st = STEPS[s.step];
+    const gateOk = this.gateOk();
+    const isCase = !!it.case, isTrend = !!it.trend;
+    const casePos = isCase ? it.cjmm : 0;
+
+    // clock
+    const mm = String(Math.floor(s.elapsed / 60)).padStart(2, '0');
+    const ss = String(s.elapsed % 60).padStart(2, '0');
+
+    // grid
+    const gridCells = ITEMS.map((x, i) => {
+      const sub = !!s.submitted[x.id];
+      const answered = s.answers[x.id] !== undefined;
+      const cs = { width: '36px', height: '36px', borderRadius: '6px', border: '1px solid #d6dae0', background: '#fff', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: 600, color: TEXT, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative', fontVariantNumeric: 'tabular-nums', padding: 0 };
+      let fill = 'unanswered';
+      if (sub) { const ok = this.scoreOf(x) === 1; fill = ok ? 'right' : 'wrong';
+        if (ok) { cs.background = '#c8ecd1'; cs.borderColor = '#84c193'; cs.color = '#14532d'; }
+        else { cs.background = '#5b1d1d'; cs.borderColor = '#3d0e0e'; cs.color = '#fde8e8'; }
+      } else if (answered) { fill = 'answered'; cs.background = '#dbe6f1'; cs.borderColor = '#b8c8dc'; cs.color = '#1e3a5f'; }
+      if (s.marked[x.id]) cs.border = '2px solid #d97706';
+      if (i === s.current) { cs.boxShadow = '0 0 0 2px ' + ACCENT; cs.zIndex = 2; }
+      let visible = true;
+      if (s.filter === 'marked') visible = !!s.marked[x.id];
+      if (s.filter === 'unanswered') visible = fill === 'unanswered';
+      if (s.filter === 'wrong') visible = fill === 'wrong';
+      if (!visible) cs.visibility = 'hidden';
+      return { n: i + 1, style: cs, onClick: () => this.setState({ current: i, armed: null }) };
+    });
+
+    const counts = {
+      all: ITEMS.length,
+      marked: ITEMS.filter((x) => s.marked[x.id]).length,
+      unanswered: ITEMS.filter((x) => s.answers[x.id] === undefined).length,
+      wrong: ITEMS.filter((x) => s.submitted[x.id] && this.scoreOf(x) !== 1).length,
+    };
+    const gridFilters = [['all','All'],['marked','Marked'],['unanswered','Unans'],['wrong','Wrong']].map(([id, label]) => ({
+      label: label + ' ' + counts[id],
+      style: { flex: 1, padding: '4px 0', fontSize: '10px', whiteSpace: 'nowrap', fontWeight: 600, border: 'none', background: s.filter === id ? '#fff' : 'transparent', borderRadius: '4px', color: s.filter === id ? '#1e3a5f' : MUTED, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'uppercase', letterSpacing: '.04em', boxShadow: s.filter === id ? '0 1px 2px rgba(15,23,42,.08)' : 'none' },
+      onClick: () => this.setState({ filter: id }),
+    }));
+    const sw = (extra) => Object.assign({ width: '14px', height: '14px', borderRadius: '3px', border: '1px solid #d6dae0', flexShrink: 0, display: 'inline-block' }, extra || {});
+    const legend = [
+      { label: 'Unanswered', style: sw() },
+      { label: 'Answered', style: sw({ background: '#dbe6f1', borderColor: '#b8c8dc' }) },
+      { label: 'Correct', style: sw({ background: '#c8ecd1', borderColor: '#84c193' }) },
+      { label: 'Wrong', style: sw({ background: '#5b1d1d', borderColor: '#3d0e0e' }) },
+      { label: 'Marked for review', style: sw({ background: '#fff', border: '2px solid #d97706' }) },
+      { label: 'Current', style: sw({ background: '#fff', borderColor: 'transparent', boxShadow: '0 0 0 2px ' + ACCENT, width: '12px', height: '12px', margin: '1px' }) },
+    ];
+
+    // coach geometry
+    const r = s.rect;
+    const spotStyle = r ? {
+      position: 'fixed', left: (r.x - 6) + 'px', top: (r.y - 6) + 'px', width: (r.w + 12) + 'px', height: (r.h + 12) + 'px',
+      borderRadius: '10px', border: '2px solid ' + ACCENT, pointerEvents: 'none', zIndex: 70,
+      boxShadow: '0 0 0 9999px rgba(15,23,42,.55)', transition: 'left .18s ease, top .18s ease, width .18s ease, height .18s ease',
+    } : null;
+
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1440;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 900;
+    const CW = 380;
+    let cx, cy;
+    if (r) {
+      const CH = Math.min(s.calloutH || 260, vh - 32);
+      const clampX = (v) => Math.min(Math.max(16, v), Math.max(16, vw - CW - 16));
+      const clampY = (v) => Math.min(Math.max(16, v), Math.max(16, vh - CH - 16));
+      if (r.y + r.h + CH + 16 < vh) {
+        cy = r.y + r.h + 16; cx = clampX(r.x + r.w / 2 - CW / 2);
+      } else if (r.y - CH - 16 > 0) {
+        cy = r.y - CH - 16; cx = clampX(r.x + r.w / 2 - CW / 2);
+      } else if (r.x + r.w + CW + 32 < vw) {
+        cx = r.x + r.w + 16; cy = clampY(r.y);
+      } else if (r.x - CW - 32 > 0) {
+        cx = r.x - CW - 16; cy = clampY(r.y);
+      } else { cx = clampX(vw - CW - 24); cy = clampY(vh - CH - 24); }
+    } else { cx = vw / 2 - CW / 2; cy = Math.max(16, vh / 2 - (s.calloutH || 260) / 2); }
+    const calloutStyle = {
+      position: 'fixed', left: Math.round(cx) + 'px', top: Math.round(cy) + 'px', width: CW + 'px',
+      background: '#fff', borderRadius: '12px', boxShadow: '0 10px 40px rgba(15,23,42,.28)', border: '1px solid ' + BORDER,
+      padding: '16px 18px', zIndex: 80, pointerEvents: 'auto', animation: 'coach-in .18s ease-out',
+      maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
+      display: s.finished || s.dismissed ? 'none' : 'block',
+    };
+
+    const btn = (kind, disabled) => ({
+      padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer',
+      border: '1px solid ' + (kind === 'primary' ? ACCENT : BORDER),
+      background: kind === 'primary' ? ACCENT : 'transparent', color: kind === 'primary' ? '#fff' : MUTED,
+      opacity: disabled ? 0.5 : 1,
+    });
+
+    const primaryDisabled = !rev && !this.complete(it);
+    const lastItem = s.current === ITEMS.length - 1;
+
+    const vals = {
+      // topbar
+      modeLabel: 'Untimed learning',
+      totalLabel: ITEMS.length + ' questions',
+      current1: s.current + 1, totalQ: ITEMS.length,
+      clockDisplay: mm + ':' + ss, clockHidden: s.clockHidden, clockShown: !s.clockHidden,
+      toggleClock: () => this.setState((x) => ({ clockHidden: !x.clockHidden })),
+      markLabel: s.marked[it.id] ? 'Marked' : 'Mark',
+      markBtnStyle: this.chip(!!s.marked[it.id], '#d97706', 'rgba(217,119,6,.08)'),
+      toggleMark: () => this.setState((x) => ({ marked: Object.assign({}, x.marked, { [it.id]: !x.marked[it.id] }), touchedMark: true })),
+      calcBtnStyle: this.chip(s.calcOpen, '#235f56', '#f2f8f7'),
+      toggleCalc: () => this.setState((x) => ({ calcOpen: !x.calcOpen, touchedCalc: true })),
+      gridBtnStyle: this.chip(s.gridOpen, '#1e3a5f', '#fff'),
+      toggleGrid: () => this.setState((x) => ({ gridOpen: !x.gridOpen })),
+      gridOpen: s.gridOpen,
+
+      // layout
+      splitStyle: (isCase || isTrend)
+        ? { display: 'grid', gridTemplateColumns: 'minmax(380px, 1fr) minmax(520px, 720px)', gap: '24px', maxWidth: '1240px', margin: '0 auto', alignItems: 'start' }
+        : { maxWidth: '720px', margin: '0 auto' },
+      qWrapStyle: (isCase || isTrend) ? { minWidth: 0 } : { maxWidth: '720px', margin: '0 auto' },
+
+      // question meta
+      typeLabel: { MCQ: 'Multiple choice', TF: 'True / false', SATA: 'Select all that apply', SELECT_N: 'Select N', MATRIX: 'Matrix', MATRIX_MR: 'Matrix (multiple response)', HIGHLIGHT: 'Highlight', CLOZE: 'Cloze', DRAG_CLOZE: 'Drag-and-drop cloze', DRAG_ORDER: 'Drag to order', BOWTIE: 'Bow-tie' }[it.type],
+      subject: it.subject, difficulty: it.diff,
+      stem: it.stem, instruction: it.instruction,
+      showPlainStem: !!it.stem,
+
+      isOptionList: ['MCQ','TF','SATA','SELECT_N'].indexOf(it.type) >= 0,
+      isSelectN: it.type === 'SELECT_N' && !rev,
+      selectNCount: it.type === 'SELECT_N' ? (this.ans(it) || []).length : 0,
+      selectNTotal: it.type === 'SELECT_N' ? it.selectCount : 0,
+      selectNEmpty: it.type === 'SELECT_N' && (this.ans(it) || []).length === 0,
+      selectNPicked: it.type === 'SELECT_N' && (this.ans(it) || []).length > 0,
+      selectNHint: it.type === 'SELECT_N' && (this.ans(it) || []).length >= it.selectCount ? 'tap a selected option to swap' : 'tap to deselect',
+      selectNHintStyle: it.type === 'SELECT_N' && (this.ans(it) || []).length >= it.selectCount
+        ? { color: ACCENT, fontWeight: 600, fontStyle: 'normal' } : { fontStyle: 'italic' },
+      isMatrix: it.type === 'MATRIX' || it.type === 'MATRIX_MR',
+      isHighlight: it.type === 'HIGHLIGHT',
+      isCloze: it.type === 'CLOZE',
+      isDragCloze: it.type === 'DRAG_CLOZE',
+      isDragOrder: it.type === 'DRAG_ORDER',
+      isBowtie: it.type === 'BOWTIE',
+
+      // case / trend
+      hasCase: isCase, hasTrend: isTrend,
+      cjmmNum: casePos, cjmmLabel: CJMM[casePos - 1] || '',
+      caseTitle: '72-year-old admitted with fever and confusion',
+      caseScenario: 'Mrs Ada Nwosu, 72, is admitted from the emergency department with a two-day history of dysuria, fever and new confusion. She lives alone and takes ramipril for hypertension.',
+      caseAnswered: ITEMS.filter((x) => x.case && s.submitted[x.id]).length,
+      cjmmSteps: CJMM.map((lab, i) => ({
+        num: i + 1, label: lab,
+        style: Object.assign({ flex: 1, padding: '5px 6px', borderRadius: '5px', textAlign: 'center', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '10.5px', letterSpacing: '.02em', color: MUTED },
+          i + 1 < casePos ? { color: '#1f5a52' } : i + 1 === casePos ? { background: ACCENT, color: '#fff', boxShadow: '0 1px 2px rgba(45,125,114,.3)' } : {}),
+      })),
+      caseTabs: CASE_TABS.filter((t) => t.from <= casePos).map((t) => ({
+        title: t.title,
+        style: { padding: '8px 12px', border: 'none', background: s.caseTab === t.id ? '#fff' : 'transparent', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600, color: s.caseTab === t.id ? '#1e3a5f' : MUTED, cursor: 'pointer', borderBottom: '2px solid ' + (s.caseTab === t.id ? ACCENT : 'transparent'), whiteSpace: 'nowrap' },
+        onClick: () => this.setState({ caseTab: t.id }),
+      })),
+      caseRows: (() => {
+        const tab = CASE_TABS.find((t) => t.id === s.caseTab && t.from <= casePos) || CASE_TABS[0];
+        return (tab.rows || []).filter((r) => r.from <= casePos);
+      })(),
+      caseNote: (() => {
+        const tab = CASE_TABS.find((t) => t.id === s.caseTab && t.from <= casePos);
+        return tab && tab.note ? tab.note : null;
+      })(),
+
+      trendTitle: 'Observations across one shift',
+      trendScenario: 'A 58-year-old is being monitored on a surgical ward after a bowel resection two days ago.',
+      trendTabs: TREND_TABS.map((t) => ({
+        title: t.title,
+        style: { padding: '8px 12px', border: 'none', background: s.trendTab === t.id ? '#fff' : 'transparent', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600, color: s.trendTab === t.id ? '#1e3a5f' : MUTED, cursor: 'pointer', borderBottom: '2px solid ' + (s.trendTab === t.id ? ACCENT : 'transparent'), whiteSpace: 'nowrap' },
+        onClick: () => this.setState({ trendTab: t.id }),
+      })),
+      trendCols: (TREND_TABS.find((t) => t.id === s.trendTab) || TREND_TABS[0]).cols.map((c) => ({ title: c })),
+      trendRows: (TREND_TABS.find((t) => t.id === s.trendTab) || TREND_TABS[0]).rows.map((row) => ({ metric: row.metric, cells: row.cells.map((v) => ({ v })) })),
+
+      // grid
+      gridCells, gridFilters, legend,
+
+      // footer
+      footerMsg: 'Untimed learning · pick an option, Submit to see the rationale, then Next →',
+      prevStyle: { padding: '5px 12px', fontSize: '12px', fontWeight: 600, borderRadius: '8px', border: '1px solid ' + BORDER, background: 'transparent', color: TEXT, cursor: s.current === 0 ? 'not-allowed' : 'pointer', opacity: s.current === 0 ? 0.6 : 1 },
+      onPrev: () => { if (s.current > 0) this.setState({ current: s.current - 1, armed: null }); },
+      prevDisabled: s.current === 0,
+      prevTitle: s.current === 0 ? "You're on the first question" : null,
+      primaryDisabled,
+      primaryHint: primaryDisabled ? this.submitHint(it) : null,
+      primaryLabel: rev ? (lastItem ? 'Finish' : 'Next →') : 'Submit answer',
+      primaryStyle: Object.assign(
+        { padding: '7px 16px', fontSize: '12.5px', fontWeight: 700, borderRadius: '8px', border: '1px solid ' + ACCENT, background: ACCENT, color: '#fff', cursor: primaryDisabled ? 'not-allowed' : 'pointer', opacity: primaryDisabled ? 0.45 : 1, transition: 'opacity .15s ease, box-shadow .15s ease' },
+        primaryDisabled ? { background: '#f9fafb', color: FAINT, borderColor: BORDER, opacity: 1 } : { animation: 'rn-ready-pulse 1.8s ease-in-out infinite' },
+      ),
+      onPrimary: () => {
+        if (!rev) { this.submit(); return; }
+        if (lastItem) { this.setState({ finished: true }); return; }
+        this.setState({ current: s.current + 1, armed: null });
+      },
+
+      // rationale
+      notReview: !rev,
+      showRationale: rev,
+      verdictLabel: this.scoreOf(it) === 1 ? 'Correct' : 'Not correct',
+      verdictStyle: { fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', whiteSpace: 'nowrap', color: this.scoreOf(it) === 1 ? '#15803d' : '#b91c1c' },
+      scoreLabel: this.scoreOf(it) + ' of 1 mark',
+      rationale: it.rationale,
+
+      // calculator
+      calcOpen: s.calcOpen, calcDisplay: s.calcDisplay,
+      calcKeys: ['C','÷','×','⌫','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map((k) => ({
+        label: k,
+        style: { padding: '9px 0', borderRadius: '6px', border: '1px solid ' + BORDER, background: ['÷','×','−','+','='].indexOf(k) >= 0 ? '#f2f8f7' : '#fff', color: TEXT, fontSize: '13px', fontWeight: 600, cursor: 'pointer', gridColumn: k === '0' ? 'span 2' : 'auto' },
+        onClick: () => this.calcKey(k),
+      })),
+
+      // coach
+      stepNum: s.step + 1, stepTotal: STEPS.length,
+      coachTitle: st.t, coachBody: st.b,
+      coachGateMsg: gateOk ? null : (st.gateMsg || '') + (st.gate === 'submit'
+        ? (primaryDisabled
+            ? ' The “Submit answer” button sits in the bottom-right corner of the screen — it lights up green once your answer is complete.'
+            : ' Your answer is complete — press the glowing green “Submit answer” button in the bottom-right corner.')
+        : ''),
+      jumpOpen: s.jumpOpen,
+      jumpBtnStyle: { display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '6px 10px', borderRadius: '8px', border: '1px solid ' + (s.jumpOpen ? ACCENT : BORDER), background: s.jumpOpen ? '#f2f8f7' : '#f9fafb', color: TEXT, fontFamily: 'inherit', fontSize: '12px', fontWeight: 600, cursor: 'pointer' },
+      toggleJump: () => this.setState((x) => ({ jumpOpen: !x.jumpOpen })),
+      sectionLabel: (() => {
+        let cur = SECTIONS[0].label;
+        for (const sec of SECTIONS) { if (!sec.sub && sec.start <= s.step) cur = sec.label; }
+        return cur;
+      })(),
+      sectionItems: SECTIONS.map((sec) => {
+        const active = sec.sub ? sec.start === s.step : false;
+        return {
+          label: sec.label, step: 'Step ' + (sec.start + 1),
+          style: {
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', width: '100%',
+            padding: sec.sub ? '5px 10px 5px 22px' : '7px 10px', border: 'none', borderRadius: '6px',
+            background: active ? 'rgba(45,125,114,.12)' : 'transparent', cursor: 'pointer', textAlign: 'left',
+            fontFamily: 'inherit', fontSize: sec.sub ? '12px' : '12.5px',
+            fontWeight: sec.sub ? 500 : 700, color: active ? '#1f5a52' : (sec.sub ? MUTED : TEXT),
+          },
+          stepStyle: { fontSize: '10.5px', fontWeight: 600, color: FAINT, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' },
+          onClick: () => { this.setState({ jumpOpen: false }); this.goStep(sec.start); },
+        };
+      }),
+      showSkipStep: !gateOk,
+      onSkipStep: () => { const n = STEPS[s.step]; if (n.done) { this.setState({ finished: true }); return; } this.goStep(s.step + 1); },
+      hasSpot: !!spotStyle && !s.finished && !s.dismissed,
+      noSpot: !spotStyle && !s.finished && !s.dismissed,
+      spotStyle: spotStyle || {},
+      calloutStyle,
+      backStyle: btn('ghost', s.step === 0),
+      nextStyle: btn('primary', !gateOk),
+      nextLabel: st.done ? 'Finish tutorial' : 'Next →',
+      onBack: () => this.goStep(s.step - 1),
+      onNext: () => { if (!gateOk) return; if (st.done) { this.setState({ finished: true }); return; } this.goStep(s.step + 1); },
+      onSkip: () => this.setState({ dismissed: true, jumpOpen: false }),
+      onResume: () => this.setState({ dismissed: false }),
+      onEndTutorial: () => this.setState({ finished: true, dismissed: false, jumpOpen: false }),
+      coachHidden: s.dismissed && !s.finished,
+      onExit: () => this.setState({ finished: true }),
+      onRestart: () => this.setState({ step: 0, current: 0, answers: {}, submitted: {}, marked: {}, finished: false, dismissed: false, armed: null, elapsed: 0, filter: 'all', caseTab: 'vitals', touchedMark: false, touchedCalc: false }),
+      finished: s.finished, recap: RECAP,
+
+      // per-type view models
+      options: [], matrixRows: [], matrixCols: [], highlightParts: [], clozeParts: [],
+      dcParts: [], dcPool: [], doSlots: [], doPool: [], btSlots: [], btPools: [],
+      ddHint: '', highlightHint: '', clozeFilled: 0, clozeTotal: 0, clozeEmpty: true, clozeFilledAny: false,
+      hlFeedback: false, hlFeedbackList: [],
+      ddFeedback: false, ddFeedbackBlanks: [], doFeedbackCards: [], ddDistractors: [], hasDistractors: false,
+      clozeFeedback: false, clozeFeedbackList: [],
+      matrixStyle: {}, matrixHeadStyle: {}, matrixRowLabel: '',
+    };
+
+    if (vals.isOptionList) vals.options = this.buildOptions(it, rev);
+    if (vals.isMatrix) {
+      const m = this.buildMatrix(it, rev);
+      vals.matrixRows = m.rows; vals.matrixCols = it.cols; vals.matrixRowLabel = it.rowLabel;
+      vals.matrixStyle = { marginLeft: '32px', display: 'flex', flexDirection: 'column', gap: '6px', border: '2px solid ' + STRONG, borderRadius: '6px', padding: '10px', background: '#fff' };
+      vals.matrixHeadStyle = { display: 'grid', gap: '4px', gridTemplateColumns: m.tpl, borderBottom: '2px solid ' + STRONG, padding: '0 4px 8px', marginBottom: '6px' };
+    }
+    if (vals.isHighlight) {
+      vals.highlightParts = this.buildHighlight(it, rev);
+      const n = (this.ans(it) || []).length;
+      vals.highlightHint = n === 0 ? 'Tap a clinical finding in the passage to highlight it.' : (n + ' highlighted · tap a highlight to remove');
+      vals.hlFeedback = rev;
+      vals.hlFeedbackList = rev ? this.buildHighlightFeedback(it) : [];
+    }
+    if (vals.isCloze) {
+      const c = this.buildCloze(it, rev);
+      vals.clozeParts = c.parts; vals.clozeFeedback = rev; vals.clozeFeedbackList = rev ? c.fb : [];
+      const filled = Object.keys(this.ans(it) || {}).filter((k) => (this.ans(it) || {})[k]).length;
+      vals.clozeFilled = filled; vals.clozeTotal = it.blanks.length;
+      vals.clozeEmpty = filled === 0; vals.clozeFilledAny = filled > 0;
+    }
+    if (vals.isDragCloze) {
+      const d = this.buildDragCloze(it, rev);
+      vals.dcParts = d.parts; vals.dcPool = d.pool;
+      vals.ddFeedback = rev; vals.ddFeedbackBlanks = rev ? d.fb : [];
+      vals.ddDistractors = rev ? d.distractors : []; vals.hasDistractors = rev && d.distractors.length > 0;
+      const filled = Object.keys(this.ans(it) || {}).length;
+      vals.ddHint = s.armed ? 'Token ready — tap a slot to place it.'
+        : filled === 0 ? 'Tap a token, then tap a slot to place it.'
+        : filled === 2 ? 'All 2 slots filled · tap a slot to undo if needed.'
+        : filled + ' of 2 slots filled · tap a token to continue.';
+    }
+    if (vals.isDragOrder) {
+      const d = this.buildDragOrder(it, rev);
+      vals.doSlots = d.slots; vals.doPool = d.pool;
+      vals.ddFeedback = rev; vals.doFeedbackCards = rev ? d.cards : [];
+      vals.ddDistractors = rev ? d.distractors : []; vals.hasDistractors = rev && d.distractors.length > 0;
+      const filled = Object.keys(this.ans(it) || {}).length, total = it.tokens.length;
+      vals.ddHint = s.armed ? 'Token ready — tap a slot to place it.'
+        : filled === 0 ? 'Tap a token, then tap a slot to place it.'
+        : filled === total ? 'All ' + total + ' slots filled · tap a slot to undo if needed.'
+        : filled + ' of ' + total + ' slots filled · tap a token to continue.';
+    }
+    if (vals.isBowtie) {
+      const b = this.buildBowtie(it, rev); vals.btSlots = b.slots; vals.btPools = b.cols;
+      const v = this.ans(it) || {};
+      const picked = ['lt','lb','c','rt','rb'].filter((k) => v[k]).length;
+      vals.ddHint = s.armed ? 'Token armed · tap a slot in the same wing to place it.'
+        : picked === 0 ? 'Pick 2 actions, 1 condition, 2 parameters.'
+        : picked === 5 ? 'All wings filled · ready to submit.'
+        : picked + ' of 5 picks made · finish each wing to submit.';
+    }
+
+    return vals;
+  }
+
+  calcKey(k) {
+    const s = this.state;
+    const num = parseFloat(s.calcDisplay) || 0;
+    const apply = (a, op, b) => op === '+' ? a + b : op === '−' ? a - b : op === '×' ? a * b : op === '÷' ? (b === 0 ? 0 : a / b) : b;
+    if (k === 'C') { this.setState({ calcDisplay: '0', calcAcc: null, calcOp: null, calcFresh: true }); return; }
+    if (k === '⌫') { const d = s.calcDisplay.length > 1 ? s.calcDisplay.slice(0, -1) : '0'; this.setState({ calcDisplay: d }); return; }
+    if (['+','−','×','÷'].indexOf(k) >= 0) {
+      const acc = s.calcAcc == null ? num : apply(s.calcAcc, s.calcOp, num);
+      this.setState({ calcAcc: acc, calcOp: k, calcFresh: true, calcDisplay: String(acc) });
+      return;
+    }
+    if (k === '=') {
+      const out = s.calcAcc == null ? num : apply(s.calcAcc, s.calcOp, num);
+      this.setState({ calcDisplay: String(Math.round(out * 1e6) / 1e6), calcAcc: null, calcOp: null, calcFresh: true });
+      return;
+    }
+    const d = s.calcFresh ? (k === '.' ? '0.' : k) : (k === '.' ? (s.calcDisplay.indexOf('.') >= 0 ? s.calcDisplay : s.calcDisplay + '.') : (s.calcDisplay === '0' ? k : s.calcDisplay + k));
+    this.setState({ calcDisplay: d, calcFresh: false });
+  }
+}
+</script>
+</body>
+</html>

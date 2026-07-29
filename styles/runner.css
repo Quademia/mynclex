@@ -307,6 +307,53 @@
   background: rgba(217, 119, 6, 0.08);
 }
 
+/* Grid show/hide toggle — sits after Mark, matches its look. Active state
+ * tints toward the grid panel it controls (rather than the mark orange). */
+.rn-grid-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rn-grid-toggle-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.rn-grid-toggle-btn.on {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--rn-pane-bg);
+}
+
+/* Calculator toggle — sits between Mark and Grid, same look. Always present
+ * (the calculator is a real NCLEX tool in every mode). Active state tints to
+ * the accent, distinct from the grid toggle's primary tint. */
+.rn-calc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rn-calc-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.rn-calc-btn.on {
+  color: var(--accent-dark);
+  border-color: var(--accent);
+  background: #f2f8f7;
+}
+
 /* ────────────────────────────────────────────────────────────
  *  Body — main + grid
  * ──────────────────────────────────────────────────────────── */
@@ -2718,4 +2765,90 @@
   .rn-cat-waiting { transition: none; }
   /* No spin — a static ring still reads as "working" without motion. */
   .rn-cat-tx-spinner { animation: none; border-top-color: var(--accent, #2d7d72); }
+}
+
+/* ─────────────────────────────────────────────────────
+ * Pre-exam tutorial offer (runner-tutorial Slice 3c)
+ * A calm, NEUTRAL modal offering the walkthrough before an exam Start —
+ * deliberately not the amber auth-discard/warning chrome. Shown over the
+ * session preflight and (3c-ii-b) the CAT preflight; z sits above both.
+ * ───────────────────────────────────────────────────── */
+.pre-exam-offer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 90;
+}
+.pre-exam-offer-card {
+  position: relative;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: var(--shadow-lg);
+}
+.pre-exam-offer-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  opacity: 0.5;
+  cursor: pointer;
+}
+.pre-exam-offer-close:hover {
+  opacity: 0.9;
+  background: rgba(15, 23, 42, 0.06);
+}
+.pre-exam-offer-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+  margin: 0;
+  padding-right: 24px; /* clear the × */
+}
+.pre-exam-offer-hint {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  opacity: 0.8;
+  margin: 0;
+}
+.pre-exam-offer-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.85;
+  cursor: pointer;
+  user-select: none;
+}
+.pre-exam-offer-check input {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+.pre-exam-offer-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 4px;
 }

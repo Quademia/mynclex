@@ -202,6 +202,7 @@ function Header({ view, hasNothing }: { view: StudentReadinessView; hasNothing: 
         <a className="rs-btn rs-btn-teal rs-head-cta" href="/readiness">
           Get credits
         </a>
+        <a className="rs-head-help" href="/help/readiness-packs">How readiness packs work →</a>
       </header>
     );
   }
@@ -225,6 +226,7 @@ function Header({ view, hasNothing }: { view: StudentReadinessView; hasNothing: 
     <header className={`rs-head${view.unclaimed > 0 ? ' rs-head-hot' : ''}`}>
       <h1 className="rs-head-title">{title}</h1>
       <p className="rs-head-sub">{sub}</p>
+      <a className="rs-head-help" href="/help/readiness-packs">How readiness packs work →</a>
       {chips.length > 0 && (
         <div className="rs-chips">
           {chips.map((c) => (

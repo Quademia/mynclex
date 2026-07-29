@@ -353,7 +353,7 @@ export function QuizFormModal(props: QuizFormModalProps) {
                   >
                     {allowedModes.map((m) => (
                       <option key={m} value={m}>
-                        {formatQuizMode(m)}
+                        {formatQuizMode(quizKind, m)}
                       </option>
                     ))}
                   </select>

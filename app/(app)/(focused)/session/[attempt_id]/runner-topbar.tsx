@@ -35,6 +35,9 @@ export interface ClockProps {
 }
 
 interface Props {
+  // "Study session" / "Exam session" — the intent frame. Computed in
+  // runner.tsx (which owns the copy) so the topbar stays presentational.
+  sessionTitle: string;
   modeLabel:   string;
   current:     number;          // 1-indexed for display
   /**
@@ -58,9 +61,23 @@ interface Props {
   // only in review; null in live (the pill just shows the clock).
   // When non-null the status pill becomes a button.
   onPillClick?: (() => void) | null;
+  // Topbar show/hide toggle for the question grid — mirrors the clock's
+  // eye toggle so both panels have an obvious, always-visible control.
+  // null in modes where the grid doesn't exist (live Sequential / CAT),
+  // so the toggle comes and goes with the grid itself.
+  gridToggle?: { open: boolean; onToggle: () => void } | null;
+  // Topbar toggle for the on-screen calculator. Always present — the
+  // calculator is a real NCLEX tool available in EVERY mode (study + exam,
+  // live + review), so unlike the grid it never comes and goes.
+  calcToggle: { open: boolean; onToggle: () => void };
+  // Runner tutorial (sandbox) only — render the "Nothing is recorded" badge
+  // and the data-coach anchor markers the coach overlay points at. Off (and
+  // absent) for every real attempt.
+  sandbox?:    boolean;
 }
 
 export function RunnerTopbar({
+  sessionTitle,
   modeLabel,
   current,
   total,
@@ -70,6 +87,9 @@ export function RunnerTopbar({
   clock,
   onExit,
   onPillClick,
+  gridToggle,
+  calcToggle,
+  sandbox,
 }: Props) {
   return (
     <header className="rn-top">
@@ -77,14 +97,15 @@ export function RunnerTopbar({
         type="button"
         className="rn-top-exit"
         onClick={onExit}
+        data-coach={sandbox ? 'exit' : undefined}
       >
         ← Exit
       </button>
 
       <div className="rn-top-divider" />
 
-      <div className="rn-top-title">
-        <div className="name">Practice session</div>
+      <div className="rn-top-title" data-coach={sandbox ? 'title' : undefined}>
+        <div className="name">{sessionTitle}</div>
         <div className="meta">
           <span>{modeLabel}</span>
           <span className="dot" />
@@ -100,9 +121,15 @@ export function RunnerTopbar({
         </div>
       </div>
 
+      {sandbox && (
+        <span className="tc-pill" data-coach="tutpill">
+          Tutorial · Nothing is recorded
+        </span>
+      )}
+
       <div className="rn-top-spacer" />
 
-      <div className="rn-counter">
+      <div className="rn-counter" data-coach={sandbox ? 'counter' : undefined}>
         Q <strong>{current}</strong>
         {total !== null && (
           <>
@@ -112,30 +139,132 @@ export function RunnerTopbar({
         )}
       </div>
 
-      {clock ? (
-        <ClockGroup clock={clock} />
-      ) : onPillClick ? (
-        <button
-          type="button"
-          className="rn-timer untimed rn-timer-btn"
-          onClick={onPillClick}
-          title="Show results"
-        >
-          {statusLabel}
-        </button>
-      ) : (
-        <div className="rn-timer untimed">{statusLabel}</div>
-      )}
+      {(() => {
+        const clockNode = clock ? (
+          <ClockGroup clock={clock} />
+        ) : onPillClick ? (
+          <button
+            type="button"
+            className="rn-timer untimed rn-timer-btn"
+            onClick={onPillClick}
+            title="Show results"
+          >
+            {statusLabel}
+          </button>
+        ) : (
+          <div className="rn-timer untimed">{statusLabel}</div>
+        );
+        // Sandbox wraps the clock in a measurable anchor for the coach; real
+        // attempts render it bare, so their topbar DOM is untouched.
+        return sandbox ? (
+          <span className="rn-clock-anchor" data-coach="clock">{clockNode}</span>
+        ) : clockNode;
+      })()}
 
       <button
         type="button"
         className={'rn-mark-btn' + (marked ? ' on' : '')}
         disabled
-        title="Mark-for-review · slice 4.7"
+        // The button is a placeholder until the marking table is wired
+        // (BUILD_LIST 4.7). The tooltip said "Mark-for-review · slice 4.7" —
+        // our build vocabulary, shown to a student hovering a dead control.
+        title="Marking questions for review isn’t available yet"
       >
         ⚑ {marked ? 'Marked' : 'Mark'}
       </button>
+
+      <button
+        type="button"
+        className={'rn-calc-btn' + (calcToggle.open ? ' on' : '')}
+        onClick={calcToggle.onToggle}
+        data-coach={sandbox ? 'calc' : undefined}
+        aria-pressed={calcToggle.open}
+        aria-label={calcToggle.open ? 'Hide calculator' : 'Show calculator'}
+        title={calcToggle.open ? 'Hide calculator' : 'Calculator'}
+      >
+        <CalcIcon />
+        <span className="rn-calc-btn-label">Calc</span>
+      </button>
+
+      {gridToggle && (
+        <button
+          type="button"
+          className={'rn-grid-toggle-btn' + (gridToggle.open ? ' on' : '')}
+          onClick={gridToggle.onToggle}
+          aria-pressed={gridToggle.open}
+          aria-label={gridToggle.open ? 'Hide question grid' : 'Show question grid'}
+          title={gridToggle.open ? 'Hide grid' : 'Show grid'}
+        >
+          {gridToggle.open ? <GridIcon /> : <GridOffIcon />}
+          <span className="rn-grid-toggle-label">Grid</span>
+        </button>
+      )}
     </header>
+  );
+}
+
+// A compact calculator glyph for the topbar toggle — a rounded body, a
+// display strip, and a 3×… key grid, drawn in the same stroke style as the
+// grid/clock icons so the three topbar toggles read as one family.
+function CalcIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="1.5" width="10" height="13" rx="1.6" />
+      <rect x="5" y="3.5" width="6" height="2.5" rx="0.5" />
+      <line x1="5.5" y1="9" x2="5.5" y2="9" />
+      <line x1="8" y1="9" x2="8" y2="9" />
+      <line x1="10.5" y1="9" x2="10.5" y2="9" />
+      <line x1="5.5" y1="11.5" x2="5.5" y2="11.5" />
+      <line x1="8" y1="11.5" x2="8" y2="11.5" />
+      <line x1="10.5" y1="11.5" x2="10.5" y2="11.5" />
+    </svg>
+  );
+}
+
+function GridIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+      <rect x="2" y="2" width="5" height="5" rx="1" />
+      <rect x="9" y="2" width="5" height="5" rx="1" />
+      <rect x="2" y="9" width="5" height="5" rx="1" />
+      <rect x="9" y="9" width="5" height="5" rx="1" />
+    </svg>
+  );
+}
+
+// Same grid with a diagonal slash — shown when the grid is hidden, mirroring
+// the clock toggle's plain/slashed pair so both topbar toggles read the same.
+function GridOffIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+      <rect x="2" y="2" width="5" height="5" rx="1" />
+      <rect x="9" y="2" width="5" height="5" rx="1" />
+      <rect x="2" y="9" width="5" height="5" rx="1" />
+      <rect x="9" y="9" width="5" height="5" rx="1" />
+      <line x1="1.5" y1="1.5" x2="14.5" y2="14.5" />
+    </svg>
+  );
+}
+
+// Clock visibility toggle — a clock face when the clock is showing, the
+// same face with a slash when it's hidden. Names the subject (the clock),
+// which a bare eye did not. Replaces the old ◉/◌ glyphs.
+function ClockIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5V12l3 2" />
+    </svg>
+  );
+}
+
+function ClockOffIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5V12l3 2" />
+      <line x1="3.5" y1="3.5" x2="20.5" y2="20.5" />
+    </svg>
   );
 }
 
@@ -159,7 +288,7 @@ function ClockGroup({ clock }: { clock: ClockProps }) {
               : 'Hide clock'
         }
       >
-        {clock.hidden ? '◌' : '◉'}
+        {clock.hidden ? <ClockOffIcon /> : <ClockIcon />}
       </button>
 
       {!clock.hidden && (

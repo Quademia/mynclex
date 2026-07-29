@@ -170,6 +170,11 @@ export async function saveCaseMetadataAction(
   const is_builder_visible = formData.get('is_builder_visible') === 'on';
   const is_published       = formData.get('is_published') === 'on';
 
+  // §20 (10b1) — the CAT-pool reservation is admin-only; never written on the
+  // tutor surface (the column stays dormant-false; the tutor UI hides the tick).
+  const catPoolPatch =
+    surface === 'admin' ? { cat_pool: formData.get('cat_pool') === 'on' } : {};
+
   // Wrapper tags — same comma-separated convention as the question
   // editors. A tag on the case counts as a tag on every child in the
   // student builder (inheritance, migration 20260717120000).
@@ -185,6 +190,7 @@ export async function saveCaseMetadataAction(
       is_free_sample,
       is_builder_visible,
       is_published,
+      ...catPoolPatch,
       updated_at: new Date().toISOString(),
     })
     .eq('case_id', case_id);

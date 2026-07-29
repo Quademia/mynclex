@@ -40,7 +40,11 @@ export const ADMIN_NAV: NavItem[] = [
       { key: 'bank-trends', label: 'Trend datasets', icon: 'book', href: '/admin/bank/trends', permission: 'BANK_CURATE' },
     ],
   },
+  // The two reserved-stock surfaces sit together: both carve a set out of the
+  // bank for one delivery mode, rather than authoring content (§20.2 — the CAT
+  // pool generalises the readiness mechanism).
   { key: 'packs',         label: 'Readiness Packs',     icon: 'target',   href: '/admin/packs',         permission: 'BANK_CURATE' },
+  { key: 'cat-pool',      label: 'CAT Pool',            icon: 'target',   href: '/admin/cat-pool',      permission: 'BANK_CURATE' },
   { key: 'users',         label: 'Users',               icon: 'users',    href: '/admin/users',         permission: 'USERS_MANAGE' },
   { key: 'tutors',        label: 'Tutors',              icon: 'tutor',    href: '/admin/tutors',        permission: 'TUTORS_MANAGE' },
   { key: 'applications',  label: 'Tutor Applications',  icon: 'apply',    href: '/admin/applications',  permission: 'TUTORS_MANAGE' },

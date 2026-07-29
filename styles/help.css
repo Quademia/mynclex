@@ -1,0 +1,142 @@
+/* mynclex/styles/help.css
+ *
+ * The public Help section (/help and /help/[slug]). A clean, readable
+ * article style — reference material, not a marketing surface — using the
+ * shared token palette so it sits consistently inside the public shell
+ * (PublicNav + PublicFooter). Namespaced `help-*`.
+ *
+ * The index (/help) is a hub that carries BOTH short inline help items and
+ * teasers linking to full articles (topics that need depth, e.g. CAT get
+ * their own /help/[slug] page). Built to grow — new cards slot in with no
+ * redesign.
+ */
+
+.help-wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 56px 20px 80px;
+}
+
+/* ── Shared header ─────────────────────────────────────────────────────── */
+.help-head { margin-bottom: 36px; }
+.help-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+.help-head h1 {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1.15;
+  margin-bottom: 12px;
+}
+.help-lead {
+  font-size: 16px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 60ch;
+}
+
+/* ── Index — topic cards ───────────────────────────────────────────────── */
+.help-topics {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.help-topic {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+}
+.help-topic h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.help-topic p {
+  font-size: 14.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.help-topic p + p { margin-top: 10px; }
+
+/* "Read more →" — present only on topics that have their own article. */
+.help-readmore {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.help-readmore:hover { text-decoration: none; gap: 9px; }
+.help-topic:hover { border-color: var(--border-strong); }
+
+/* A short inline-only help item (no article) reads as plain text — the same
+ * card without the read-more affordance. */
+
+/* ── Article (/help/[slug]) ────────────────────────────────────────────── */
+.help-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 22px;
+}
+.help-back:hover { color: var(--accent); text-decoration: none; }
+
+.help-article h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 34px 0 12px;
+  padding-top: 6px;
+}
+.help-article h2:first-of-type { margin-top: 26px; }
+.help-article p {
+  font-size: 15.5px;
+  color: var(--text);
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+.help-article p.help-muted { color: var(--text-muted); font-size: 14.5px; }
+.help-article strong { font-weight: 700; }
+
+/* A soft callout for the honesty note (calibration approximation, §3.1). */
+.help-note {
+  border-left: 3px solid var(--accent);
+  background: var(--primary-light);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 14px 18px;
+  margin: 18px 0;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+/* Closing CTA row on the article. */
+.help-cta {
+  margin-top: 40px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .help-wrap { padding: 36px 16px 64px; }
+  .help-head h1 { font-size: 26px; }
+  .help-article h2 { font-size: 18px; }
+}

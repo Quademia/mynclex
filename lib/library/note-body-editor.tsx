@@ -378,7 +378,7 @@ function BlockTray({ editor }: { editor: Editor }) {
               embedCapped
                 ? `${item.name} — this note is at its question-set limit`
                 : disabled
-                  ? `${item.name} — coming in slice ${item.comingIn}`
+                  ? `${item.name} — coming soon`
                   : `Insert ${item.name}`
             }
             aria-disabled={disabled}
@@ -388,7 +388,7 @@ function BlockTray({ editor }: { editor: Editor }) {
             </span>
             <span className="lib-tiptap-block-chip-label">{item.name}</span>
             {item.comingIn ? (
-              <span className="lib-tiptap-block-chip-pill">{item.comingIn}</span>
+              <span className="lib-tiptap-block-chip-pill">Soon</span>
             ) : embedCapped ? (
               <span className="lib-tiptap-block-chip-pill">Limit</span>
             ) : null}

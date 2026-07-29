@@ -29,6 +29,7 @@ import {
   TUTOR_ITEM_ID_PREFIX,
   type QuestionType,
 } from '@/lib/bank/classifications';
+import { seedIrtForLabel } from '@/lib/bank/difficulty';
 import type {
   BankItemContent,
   BankItemCorrect,
@@ -525,11 +526,26 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
   const cfg = surfaceConfig(surface);
   const existingItemId = String(formData.get('item_id') ?? '').trim();
 
+  // §20 — the "Reserve for CAT" flag is admin-only. On the tutor surface we
+  // never write it (the column stays dormant-false; the tutor UI never renders
+  // the tick anyway). An absent checkbox is false, so an admin unticking
+  // clears the reservation.
+  //
+  // Trend-linked questions carry it exactly like standalone ones: a dataset is
+  // not a reservation unit, so each trend question is ticked on its own row.
+  //
+  // For a CASE CHILD this write is a no-op whatever it says: the editor hides
+  // the tick (so the value here is always false), and the database's inherit
+  // trigger overwrites `cat_pool` from the parent case on every save that
+  // touches `parent_case_id`. The wrapper is the only authority.
+  const catPoolPatch =
+    surface === 'admin' ? { cat_pool: formData.get('cat_pool') === 'on' } : {};
+
   // ── UPDATE ─────────────────────────────────────────────────
   if (existingItemId) {
     const { data: existing, error: fetchErr } = await supabase
       .from(cfg.table)
-      .select('question_type')
+      .select('question_type, difficulty')
       .eq('item_id', existingItemId)
       .maybeSingle();
 
@@ -540,10 +556,26 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
       return { ok: false, error: 'Question type cannot be changed after creation.' };
     }
 
+    // §5.2 — re-seed the numeric difficulty ONLY when the curator actually
+    // changed the label. Last writer wins: a curator changing the label
+    // reclaims the number as curator-owned (source → CURATOR_LABEL). An
+    // unrelated edit (fixing a typo) must NOT wipe a number the
+    // recalibration job may have taken over — so we leave difficulty_irt /
+    // difficulty_source untouched when the label is unchanged.
+    const difficultyChanged = existing.difficulty !== parsed.difficulty;
+    const difficultyPatch = difficultyChanged
+      ? {
+          difficulty_irt: seedIrtForLabel(parsed.difficulty),
+          difficulty_source: 'CURATOR_LABEL',
+        }
+      : {};
+
     const { error } = await supabase
       .from(cfg.table)
       .update({
         ...parsed,
+        ...difficultyPatch,
+        ...catPoolPatch,
         updated_at: new Date().toISOString(),
       })
       .eq('item_id', existingItemId);
@@ -583,7 +615,14 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
   // survives later edits.
   const parentNoteId = String(formData.get('parent_note_id') ?? '').trim();
 
-  const row: Record<string, unknown> = { item_id, ...parsed };
+  // §5.2 — seed the numeric difficulty from the curator's label on create.
+  // difficulty_source defaults to 'CURATOR_LABEL' at the column level.
+  const row: Record<string, unknown> = {
+    item_id,
+    ...parsed,
+    difficulty_irt: seedIrtForLabel(parsed.difficulty),
+    ...catPoolPatch,
+  };
   if (surface === 'tutor') {
     row.tutor_id = user.id;
   }

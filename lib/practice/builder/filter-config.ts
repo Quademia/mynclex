@@ -51,6 +51,27 @@ export const POOLS: PoolDef[] = [
 // Mode IDs match the nclex_attempts CHECK constraint exactly so we can
 // pass them straight to the create-attempt RPC.
 //
+// THREE MODES PER INTENT — six tuples, not the original eight. Two pairings
+// were removed 2026-07-24 (migration 20260814120000) because each was
+// MECHANICALLY IDENTICAL to its twin under the other intent, `intent` driving
+// no runner behaviour today:
+//
+//   • UNTIMED_TEST is no longer offered under EXAM. Untimed means
+//     duration_seconds = NULL, so there was no clock either way — leaving a
+//     card that promised "no clock, single sitting" and delivered the STUDY
+//     quiz. "Exam framing without time pressure" is what STUDY already is.
+//   • TIMED_SEQUENTIAL is no longer offered under STUDY. Forward-only exists
+//     to reproduce exam mechanics (NCSBN: answer in order, no going back, no
+//     skipping); it teaches nothing, it only removes an option.
+//
+// Both modes still exist — each just lives under one intent now. Neither the
+// ModeId union nor the runner archetypes changed.
+//
+// ⚠ These two arrays are ALSO the label lookup for history/launcher reads
+// (`intent === 'STUDY' ? MODES_STUDY : MODES_EXAM`, then find by id). An
+// attempt row on a tuple missing here falls back to printing its raw id, so
+// removing an entry means any stored rows on it must be converted, not left.
+//
 // Clock / Feedback / Nav metadata drives the rich Mode card pills.
 //   clock    — none / engagement / wall (visual pill colour key)
 //   feedback — when rationales appear
@@ -74,10 +95,17 @@ export interface ModeDef {
   desc: string;
 }
 
+// ⚠ STUDY LABELS ARE INTERIM (2026-07-24, Sam). They read as one
+// "Learning" mode plus two "practice" modes separated only by the clock —
+// which is their only actual difference now that Timed Sequential has left
+// STUDY. "Free Nav" was dropped from the timed one for the same reason:
+// with no other timed study mode to contrast against, the words were no
+// longer distinguishing anything. A settled naming decision is still open —
+// see bank-consumption.html §15.1 for the full proposal and the reasoning.
 export const MODES_STUDY: ModeDef[] = [
   {
     id: 'UNTIMED_LEARNING',
-    label: 'Untimed Learning',
+    label: 'Learning',
     clock: 'none',
     feedback: 'After each submit',
     nav: 'Free',
@@ -85,7 +113,7 @@ export const MODES_STUDY: ModeDef[] = [
   },
   {
     id: 'UNTIMED_TEST',
-    label: 'Untimed Test',
+    label: 'Untimed practice',
     clock: 'none',
     feedback: 'At the end',
     nav: 'Free',
@@ -93,34 +121,29 @@ export const MODES_STUDY: ModeDef[] = [
   },
   {
     id: 'TIMED_FREE_NAV',
-    label: 'Timed · Free Nav',
+    label: 'Timed practice',
     clock: 'engagement',
     feedback: 'At the end',
     nav: 'Free',
     desc: 'Engagement-clock — pauses if you step away. Resumable.',
   },
-  {
-    id: 'TIMED_SEQUENTIAL',
-    label: 'Timed · Sequential',
-    clock: 'engagement',
-    feedback: 'At the end',
-    nav: 'Forward',
-    desc: 'Engagement-clock, forward-only. Practise pacing without losing your place.',
-  },
 ];
 
+// ⚠ EXAM LABELS ARE INTERIM too (2026-07-24, Sam), matching the STUDY set
+// above. Named for the thing that varies within this intent — navigation,
+// then adaptivity — since every exam mode is timed with feedback at the end,
+// so "Timed" was the shared axis rather than the distinguishing one.
+//
+// The word "Exams" was dropped from the first two: the student has already
+// chosen the Exam intent before these are shown, so it added nothing, and it
+// read twice over on the surfaces that prefix with the intent themselves
+// ("Start Exam · Sequential Exams", "Mode: Exam · Sequential Exams").
+// "Free Navigation" rather than "Free Navigational" — the latter is an
+// adjective with nothing to modify once the noun is gone.
 export const MODES_EXAM: ModeDef[] = [
   {
-    id: 'UNTIMED_TEST',
-    label: 'Untimed Test',
-    clock: 'none',
-    feedback: 'At the end',
-    nav: 'Free',
-    desc: 'No clock, single sitting. Rationales at the end only.',
-  },
-  {
     id: 'TIMED_FREE_NAV',
-    label: 'Timed · Free Nav',
+    label: 'Free Navigation',
     clock: 'wall',
     feedback: 'At the end',
     nav: 'Free',
@@ -128,7 +151,7 @@ export const MODES_EXAM: ModeDef[] = [
   },
   {
     id: 'TIMED_SEQUENTIAL',
-    label: 'Timed · Sequential',
+    label: 'Sequential',
     clock: 'wall',
     feedback: 'At the end',
     nav: 'Forward',
@@ -136,7 +159,7 @@ export const MODES_EXAM: ModeDef[] = [
   },
   {
     id: 'CAT',
-    label: 'CAT',
+    label: 'Computer Adaptive Testing (CAT)',
     clock: 'wall',
     feedback: 'Verdict',
     nav: 'Adaptive',
@@ -145,6 +168,27 @@ export const MODES_EXAM: ModeDef[] = [
     desc: `${MIN_ITEMS}–${MAX_ITEMS} questions. Difficulty adapts. Terminates on confidence.`,
   },
 ];
+
+/**
+ * The display label for a stored attempt's (intent, mode), resolved from
+ * the arrays above so there is exactly one place a mode is named.
+ *
+ * Needed because the two lists deliberately disagree on TIMED_FREE_NAV —
+ * the one mode offered under BOTH intents — where STUDY says "Timed
+ * practice" and EXAM says "Timed · Free Nav". A label map keyed on mode
+ * alone cannot express that, and the runner and preflight each kept one:
+ * three hardcoded lists that had already drifted into three spellings of
+ * the same mode ("Timed · Free Nav" / "Timed · free navigation" /
+ * "Timed · free nav"). They now all resolve through here.
+ *
+ * Falls back to the raw id, matching what the history and launcher reads
+ * already do — a stored row on a tuple no longer offered still renders
+ * something rather than blank.
+ */
+export function modeLabelFor(intent: Intent, mode: ModeId): string {
+  const list = intent === 'STUDY' ? MODES_STUDY : MODES_EXAM;
+  return list.find((m) => m.id === mode)?.label ?? mode;
+}
 
 export const DEFAULT_MODE_FOR_INTENT: Record<Intent, ModeId> = {
   STUDY: 'UNTIMED_LEARNING',

@@ -4,13 +4,18 @@
 // unfinished attempt (any intent, any mode except CAT) for the
 // signed-in student.
 //
-// Resume rules (attempt-creation §6.1.3, revised in slice 4.5a):
+// Resume rules (attempt-creation §6.1.3, revised in slice 4.5a; clock
+// behaviour updated 2026-07-25 for the engagement clock, BUILD_LIST #6):
 //   • All non-CAT attempts are resumable. STUDY + EXAM, untimed +
-//     timed all surface here.
-//   • Timed attempts: wall-clock continues during the student's
-//     absence — page.tsx fires lazy expire detection on next mount
-//     if the attempt is past its duration. The banner shows them
-//     while they're still in flight.
+//     timed all surface here. The only difference is whether the clock
+//     waited for the student while they were away:
+//       - STUDY timed (TIMED_FREE_NAV): the ENGAGEMENT clock froze on
+//         absence, so they resume with the same time left — this is the
+//         mode the engagement clock was built for.
+//       - EXAM timed: the WALL clock kept running during the absence, so
+//         they resume with less time (or, if it fully drained, page.tsx
+//         fires lazy expire detection on next mount and finalises it).
+//     Either way the banner shows the attempt while it's still IN_PROGRESS.
 //   • CAT can't be resumed (adaptive selection state). CAT isn't
 //     creatable in v1 anyway, but the mode filter is defensive for
 //     Phase B.

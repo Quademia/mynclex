@@ -140,7 +140,15 @@
 
 <h1>MyNclex — Bank Consumption Plan</h1>
 <div class="doc-meta">
-  Living planning document. Last updated: 2026-05-06 (whole doc converted from plain text to proper HTML formatting — same structure and CSS as <code>bank-consumption-runner.html</code>; content preserved as-is, only markup added. Same day: §15 "Open for runner planning" subsection annotated to mark navigation specifics as settled in runner.html §15 + §16 — see SESSIONS.md 2026-05-06 (planning, late evening). Earlier 2026-05-04: §10 rule 1 marked SUPERSEDED — mid-case auto-discard no longer applies under STUDY/EXAM intent split. Earlier same day: §17 Builder — added Intent picker step (Study vs Exam) before Mode selection; modes filter by chosen intent; Recent Quizzes + Default form state updated. Driven by attempt-creation sub-plan §6.1.2 + §6.3.1 — see <code>bank-consumption-attempt-creation.html</code>).
+  Living planning document. Last updated: 2026-07-24 — <strong>new §15.1 records a mode-label naming proposal that is
+  PROPOSED, NOT APPLIED</strong> (Sam to decide; stored mode IDs unchanged under any outcome), plus the reasoning for
+  rejecting numbered mode names and a naming avoid-list. Nothing student-visible changed. <strong>Same session, and
+  BUILT:</strong> two (intent, mode) tuples removed — <code>(EXAM, UNTIMED_TEST)</code> and
+  <code>(STUDY, TIMED_SEQUENTIAL)</code> — taking the framework to <strong>six tuples, three per intent</strong>;
+  the §15 mode list now carries per-mode intent availability, which also closes the "needs intent annotations" note
+  §6.1.2 had been holding against it. Both cuts are enforced in the database (migration
+  <code>20260814120000</code>), and the mode <em>labels</em> are unchanged.
+  Earlier: 2026-05-06 (whole doc converted from plain text to proper HTML formatting — same structure and CSS as <code>bank-consumption-runner.html</code>; content preserved as-is, only markup added. Same day: §15 "Open for runner planning" subsection annotated to mark navigation specifics as settled in runner.html §15 + §16 — see SESSIONS.md 2026-05-06 (planning, late evening). Earlier 2026-05-04: §10 rule 1 marked SUPERSEDED — mid-case auto-discard no longer applies under STUDY/EXAM intent split. Earlier same day: §17 Builder — added Intent picker step (Study vs Exam) before Mode selection; modes filter by chosen intent; Recent Quizzes + Default form state updated. Driven by attempt-creation sub-plan §6.1.2 + §6.3.1 — see <code>bank-consumption-attempt-creation.html</code>).
 </div>
 
 <h2>Why this doc exists</h2>
@@ -177,7 +185,8 @@
     <li><a href="#s12">Analytic — Time per question</a> <span class="status settled">settled (principle)</span></li>
     <li><a href="#s13">Analytic — Slice labels</a> <span class="status settled">settled (principle)</span></li>
     <li><a href="#s14">Analytic — Peer percentile</a> <span class="status settled">settled (principle)</span></li>
-    <li><a href="#s15">Source / Mode / Session State framework</a> <span class="status settled">settled</span></li>
+    <li><a href="#s15">Source / Mode / Session State framework</a> <span class="status settled">settled</span>
+      — incl. <a href="#s15-labels">15.1 Proposed mode labels</a> <span class="status open">proposed, not applied</span></li>
     <li><a href="#s16">CAT — own section in scope</a> <span class="status deferred">deferred to <code>bank-consumption-cat.html</code></span></li>
     <li><a href="#s17">Practice page — the Builder</a> <span class="status settled">settled</span></li>
     <li><a href="#s18">Engagement mechanics — what we will and won't build</a> <span class="status settled">settled</span></li>
@@ -645,14 +654,116 @@
   <li><strong>Programme-assigned</strong> — tutor set up an activity in a programme week (covers practice quizzes and mocks; the difference is the mode the tutor chose, not the source).</li>
 </ul>
 
-<h3>Modes (5) — provisional v1 list</h3>
-<ul>
-  <li><strong>Untimed Learning</strong> — rationales after each submit.</li>
-  <li><strong>Untimed Test</strong> — rationales at the end.</li>
-  <li><strong>Timed Free navigation</strong> — clock running, can skip and return.</li>
-  <li><strong>Timed Sequential</strong> — clock running, no going back.</li>
-  <li><strong>CAT</strong> — adaptive, IRT-based, terminates on confidence. In scope for v1. Detailed design in its own section (§16).</li>
-</ul>
+<h3>Modes (5) — with intent availability <span class="status settled">annotated 2026-07-24</span></h3>
+<p>
+  Five modes, but <strong>six (intent, mode) tuples — three per intent</strong>, not ten. The <em>Offered under</em>
+  column is the canonical availability; the authority is
+  <code>nclex_attempts_intent_mode_tuple</code>, and the reasoning for each pairing is in
+  attempt-creation §6.1.2. <em>(This closes the "the mode list needs intent annotations" note that §6.1.2 had been
+  carrying against this section.)</em>
+</p>
+<table>
+  <thead>
+    <tr><th>Mode</th><th>Behaviour</th><th>Offered under</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Untimed Learning</strong></td><td>Rationales after each submit.</td><td>STUDY only</td></tr>
+    <tr><td><strong>Untimed Test</strong></td><td>Rationales at the end.</td><td>STUDY only <span class="status open">EXAM removed 2026-07-24</span></td></tr>
+    <tr><td><strong>Timed Free navigation</strong></td><td>Clock running, can skip and return.</td><td>STUDY <em>and</em> EXAM — the only mode under both</td></tr>
+    <tr><td><strong>Timed Sequential</strong></td><td>Clock running, no going back.</td><td>EXAM only <span class="status open">STUDY removed 2026-07-24</span></td></tr>
+    <tr><td><strong>CAT</strong></td><td>Adaptive, IRT-based, terminates on confidence. In scope for v1; detailed design in its own section (§16).</td><td>EXAM only</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>Why two pairings were removed</strong> (migration
+  <code>20260814120000_modes_remove_two_tuples.sql</code>). Each was <em>mechanically identical</em> to its twin under
+  the other intent, because <code>intent</code> drives no runner behaviour today — so each was a duplicate card
+  distinguished only by a label making a promise the runner does not keep.
+  <strong>(EXAM, Untimed Test)</strong>: untimed means <code>duration_seconds</code> is NULL, so there was no clock
+  either way, and "exam framing without time pressure" is exactly what the STUDY version already is.
+  <strong>(STUDY, Timed Sequential)</strong>: forward-only exists to reproduce exam mechanics (NCSBN — answer in the
+  order presented, no going back, no skipping) and carries no pedagogical purpose; blocking a student from
+  reconsidering an earlier question teaches nothing.
+</p>
+<p>
+  <strong>⚠ Consequence — the engagement clock is now load-bearing.</strong> STUDY's only remaining timed mode is
+  Timed Free navigation, whose entire distinction from the EXAM one is an engagement-clock that pauses when the
+  student steps away. <strong>That clock is not built</strong> — runner.html §8 derives the countdown from
+  <code>started_at + duration_seconds</code> with no intent branch, and <code>nclex_attempts</code> has no pause
+  columns. So the two remain identical while the STUDY card advertises that it pauses. Next piece of work.
+</p>
+
+<h3 id="s15-labels">15.1 Proposed mode labels <span class="status open">PROPOSED — NOT APPLIED · reviewed 2026-07-25, parked as a future alternative</span></h3>
+<div class="callout">
+  <p>
+    <strong>Decision (2026-07-25):</strong> Sam reviewed this proposal against the interim labels adopted 2026-07-24
+    and chose to <strong>keep the interim labels as they are for now</strong> (Study: Learning · Untimed practice ·
+    Timed practice / Exam: Free Navigation · Sequential · CAT). This proposal is <strong>retained as a future
+    alternative</strong>, not discarded. <strong>⚠ One caveat to weigh if it is ever revisited:</strong> the
+    <strong>"Tutor"</strong> label for <code>UNTIMED_LEARNING</code> collides with MyNclex's real tutor role
+    (Tutored Programmes) — a collision UWorld doesn't have, since it has no in-product human tutors, and one the
+    avoid-list below didn't catch. A student would see a mode called "Tutor" and also have an actual person as their
+    tutor. Candidate replacement that keeps the rest of the set: <strong>"Learn"</strong>.
+  </p>
+  <p>
+    <strong>Nothing here is built.</strong> The labels a student sees today are still the five above. This section
+    records a naming proposal so the reasoning isn't lost, and so the decision can be picked up without re-running
+    the investigation. <strong>Stored mode IDs (<code>UNTIMED_LEARNING</code>, <code>UNTIMED_TEST</code>,
+    <code>TIMED_FREE_NAV</code>, <code>TIMED_SEQUENTIAL</code>, <code>CAT</code>) do NOT change under any outcome</strong>
+    — they sit on every attempt row, inside saved filter payloads, on <code>nclex_tutor_quizzes</code>, in two CHECK
+    constraints and several RPCs. Renaming them would be a multi-table data migration with no user-visible benefit.
+    Labels are display-only and change freely.
+  </p>
+</div>
+<p>
+  <strong>Why rename at all.</strong> Two of the five are named after the axis they <em>share</em> rather than the one
+  that separates them — "Untimed Learning" and "Untimed Test" both lead with the clock, when the real difference
+  between them is <em>when the truth arrives</em> (instantly, vs withheld to the end). The names point at the wrong
+  variable, which makes the structure hard to see. "Free Nav" and "Sequential" are our jargon, not a nurse's.
+</p>
+<table>
+  <thead>
+    <tr><th>Intent</th><th>ID (unchanged)</th><th>Proposed label</th><th>Provenance</th></tr>
+  </thead>
+  <tbody>
+    <tr><td rowspan="3">STUDY</td><td><code>UNTIMED_LEARNING</code></td><td><strong>Tutor</strong></td><td>Borrowed — UWorld / Archer / Bootcamp all use "Tutor mode" for immediate rationale. NCLEX candidates already know the term.</td></tr>
+    <tr><td><code>UNTIMED_TEST</code></td><td><strong>Untimed</strong></td><td>Borrowed — UWorld's "untimed" means exactly this (no clock, answers withheld to the end).</td></tr>
+    <tr><td><code>TIMED_FREE_NAV</code></td><td><strong>Timed</strong></td><td>Borrowed — the universal third setting.</td></tr>
+    <tr><td rowspan="3">EXAM</td><td><code>TIMED_FREE_NAV</code></td><td><strong>Timed exam</strong></td><td>Ours — clock, but you can still move around.</td></tr>
+    <tr><td><code>TIMED_SEQUENTIAL</code></td><td><strong>Exam simulation</strong></td><td>Ours — these are NCSBN's actual rules (answer in the order presented, no going back, no skipping).</td></tr>
+    <tr><td><code>CAT</code></td><td><strong>CAT</strong></td><td>Universal, and NCSBN's own term. The one good name we already have.</td></tr>
+  </tbody>
+</table>
+<p>
+  Study then reads <strong>Tutor · Untimed · Timed</strong> — which is UWorld's two toggles expressed as three
+  choices, so it needs no explanation to anyone who has prepped before. Exam reads as an <strong>authenticity
+  ladder</strong> (Timed exam → Exam simulation → CAT), which is the question a student is actually asking when
+  they pick an exam mode.
+</p>
+<p>
+  <strong>⬜ Open sub-question.</strong> <code>TIMED_FREE_NAV</code> is the one mode that appears under BOTH intents,
+  and today it wears the same label in both — which is part of why nobody noticed the two are currently identical.
+  Either give it one label everywhere (more honest that it is one mode; matches how UWorld treats timing as a simple
+  toggle), or a different label per intent as tabled above (makes the difference visible once the engagement clock
+  exists). <code>MODES_STUDY</code> and <code>MODES_EXAM</code> are already separate arrays with their own label
+  fields, so per-intent labels cost nothing to implement.
+</p>
+<p>
+  <strong>Rejected: numbering the modes</strong> ("Study Mode 1", "Study Mode 2" …). Considered 2026-07-24 and set
+  aside for three reasons. (1) The number becomes the headline and the meaning is demoted to subtitle — a first-time
+  user must learn a mapping before she can choose, and will re-read the description every time. (2) Position-based
+  numbers are brittle exactly when the list changes: removing Untimed Test from EXAM renumbers everything below it,
+  silently invalidating tutor curricula, support conversations and screenshots. A stable-number scheme avoids that
+  but leaves visible gaps (Study 1, 2, 4). (3) Higher numbers read as more advanced, but timed practice is not
+  "better" than tutor mode — a student drilling a weak topic should stay in the first one to test day. No product in
+  the category numbers its modes (UWorld, Archer, Kaplan, AMBOSS all use descriptive names).
+</p>
+<p>
+  <strong>Naming avoid-list.</strong> Don't use "Practice" or "Mock" as mode labels — <code>PRACTICE</code> and
+  <code>MOCK</code> are already the tutor <em>quiz kinds</em> and would cross wires on the tutor surfaces. Don't use
+  bare "Study mode" / "Exam mode" either: those are the <em>intent</em> names (and AMBOSS ships exactly that pair at
+  the same level), so reusing them one level down collides with ourselves.
+</p>
 
 <h3>Source × Mode rules — provisional</h3>
 <ul>
@@ -672,14 +783,14 @@
 <p>A session is in exactly one of three states at any moment. The runner behaves differently in each.</p>
 <ul>
   <li><strong>New</strong> — fresh start. Builder finished, runner opens at question 1. Always available for any source/mode.</li>
-  <li><strong>Resume</strong> — student previously started a session and didn't finish (closed browser, lost connection, paused intentionally). They re-open it and pick up where they left off — saved progress restored, answers already given preserved. Restricted to untimed modes only. Timed modes (including CAT) cannot be resumed — if the student exits, the session is abandoned, same rule as case-study mid-session abandonment in §10.</li>
+  <li><strong>Resume</strong> — student previously started a session and didn't finish (closed browser, lost connection, paused intentionally). They re-open it and pick up where they left off — saved progress restored, answers already given preserved. <strong>[CORRECTED 2026-07-25 — the "untimed only" restriction below was never how the code behaved and is superseded by attempt-creation §6.1.3 + §6.1.2.]</strong> Every non-CAT attempt is resumable; the only difference is whether the clock waited: <strong>STUDY timed</strong> froze on the engagement clock (BUILD_LIST #6), so they resume with the same time left; <strong>EXAM timed</strong> kept its wall clock running, so they resume with less time (or it finalises on open if fully drained). <strong>CAT</strong> is the one exception — adaptive state cannot be resumed; if the student exits a CAT it is abandoned.</li>
   <li><strong>Review</strong> — read-only review of a completed session. Student's answers shown alongside correct answers and rationales; no further submission accepted. Available for every source/mode. CAT review additionally shows the result verdict and confidence band.</li>
 </ul>
 
 <h3>Source × Mode × State — quick rules</h3>
 <ul>
-  <li>Resume is impossible for any timed mode, regardless of source.</li>
-  <li>Resume is impossible for Readiness Packs (always timed-sequential by default).</li>
+  <li>Resume works for every non-CAT mode (corrected 2026-07-25 — see the Resume state above and attempt-creation §6.1.3). Timed modes resume too: STUDY timed with the same time left (engagement clock), EXAM timed with the wall clock having continued. CAT is the only mode that cannot be resumed.</li>
+  <li>Readiness Packs are timed-sequential (EXAM framing) by default. Their re-entry is governed by their own one-shot-credit + 21-day review-window rules (see the readiness-packs doc), not by this general resume rule — confirm that path separately before relying on it.</li>
   <li>Review is available for every finished session, regardless of source or mode.</li>
   <li>Abandoned timed sessions never become Reviewable until they complete — abandoning a timed session is equivalent to discarding it (same rule as abandoned case-study sessions).</li>
 </ul>

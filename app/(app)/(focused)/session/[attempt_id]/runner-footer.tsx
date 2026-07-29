@@ -32,7 +32,10 @@ export function RunnerFooter({
   modeMsg,
   primaryLabel    = 'Submit answer',
   primaryDisabled = true,
-  primaryHint     = 'MCQ wiring lands in slice 4.1.4',
+  // Fallback tooltip only — runner.tsx passes a real per-gate hint on every
+  // branch. Was "MCQ wiring lands in slice 4.1.4", internal jargon that would
+  // have surfaced to a student on any branch that forgot to pass one.
+  primaryHint     = 'Answer the question to continue',
   prevDisabled    = false,
   prevHint,
   onPrev,
@@ -50,7 +53,7 @@ export function RunnerFooter({
     : undefined;
 
   return (
-    <footer className="rn-foot">
+    <footer className="rn-foot" data-coach="footer">
       <div className="rn-foot-side">
         <button
           type="button"
@@ -65,6 +68,11 @@ export function RunnerFooter({
 
       <div className="rn-foot-msg">{modeMsg}</div>
 
+      {/* THIS component owns the arrow — callers pass the bare label. Three
+          of runner.tsx's five labels used to bake one in ("Next →",
+          "Submit & continue →") and got a second appended here, so the most
+          common button in the runner rendered "Next → →" on every question
+          but the last, in every mode. */}
       <div className="rn-foot-side right">
         <button
           type="button"

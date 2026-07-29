@@ -29,7 +29,7 @@ export function StudentSidebar({ items }: { items: NavItem[] }) {
             aria-current={isActive ? 'page' : undefined}
           >
             <NavIcon name={item.icon} />
-            <span>{item.label}</span>
+            <span className="nav-label">{item.label}</span>
           </Link>
         );
       })}

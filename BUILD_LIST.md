@@ -1,5 +1,410 @@
 # MyNclex Build List
 
+> ## ⏭ THE OPEN LIST — carried forward from 2026-07-24
+>
+> Everything currently flagged and unbuilt, in one place, so a session can
+> pick from it without re-deriving. Grouped by what each one needs from us.
+> **Sam's pick for next session: #6, the pausing clock.**
+>
+> **✅ Cleared 2026-07-25 (branch `claude/work-session-4fe7ee`, on that
+> branch — NOT yet on `main`):** the whole **Small fixes** group below.
+> #3 done (`f0b5901`) — the public demo's CAT button now reads "Go to CAT".
+> #4 done (`0266425`) — five stale slice-number build notes on the tutor
+> library retired (including the dormant `comingIn` template → "coming
+> soon", so a future disabled block type can't leak a slice number). #5
+> **closed as not-actually-broken** — inspected the live curator bulb; it
+> renders as a properly spaced, indented list (the note had generalized the
+> dashboard's already-fixed squashing onto the curator bulbs, which never
+> had it). The only residue is latent fragility: the shared `<Bulb>` ships
+> no default list style, so a *future* bare-`<ul>` bulb on a non-`.bd` page
+> could squash — hardening deferred, nothing visible today.
+>
+> **✅ Built and merged 2026-07-24** (so it isn't re-opened): two
+> conflicting `(intent, mode)` tuples removed — `(EXAM, UNTIMED_TEST)` and
+> `(STUDY, TIMED_SEQUENTIAL)` — taking the framework to **6 tuples, 3 per
+> intent**, enforced in the DB (migration `20260814120000`) with the tutor
+> mirror moved in step; interim mode labels across every surface, resolved
+> through one `modeLabelFor()`; the Builder made mobile-compatible; the
+> intent card tightened; and the runner/preflight stale-copy cleanup.
+>
+> ### Needs a decision from Sam
+>
+> 1. ✅ **The mode names — reviewed 2026-07-25, interim labels kept for now.**
+>    Sam walked the §15.1 proposal (Study: Tutor · Untimed · Timed / Exam:
+>    Timed exam · Exam simulation · CAT) against the labels adopted 2026-07-24
+>    (Study: Learning · Untimed practice · Timed practice / Exam: Free
+>    Navigation · Sequential · CAT) and chose to **keep the current labels as
+>    they are for now**. The §15.1 proposal is **retained as a future
+>    alternative**, not discarded — ⚠ if it's ever revisited, its **"Tutor"**
+>    label collides with MyNclex's real tutor role (a collision UWorld doesn't
+>    have and the §15.1 avoid-list didn't catch; candidate replacement "Learn").
+>    No code change — labels are display-only and already live.
+> 2. ✅ **The Builder's filter accordion on a phone — reviewed 2026-07-25,
+>    closed.** Sam looked at it on a real phone and decided the accordion
+>    **stays as-is**: collapsing the default-open axes isn't a UX win, it just
+>    trades away discoverability + the live per-row counts to shorten a scroll
+>    that read fine in practice, and the current 5-open/4-closed split is
+>    already a considered "which axes are worth the scroll" call. The
+>    hydration-mismatch reasoning still stands as the record of why a naive
+>    "collapse on phone" isn't a CSS one-liner. **Related outcome of the same
+>    review:** the builder's crowded two-tab layout (the "Filters" tab stacked
+>    the Question-pool chips above the nine content axes) was **split into three
+>    tabs — Intent & Mode · Question pool · Content filters** so each pane has
+>    one job. Pure UI reshaping, no logic/state/payload change; the tab-key type
+>    went `'mode' | 'filters'` → `'mode' | 'pool' | 'content'`. Verified live
+>    (clean split, metas track state, console clean, desktop untouched, three
+>    even tab columns at 375px with zero horizontal overflow). On session branch
+>    `claude/work-session-bd5542`, **NOT yet on `main`** — awaiting Sam's test +
+>    merge approval. The axis-sub-panes idea (turn the 9 headings into a
+>    sub-tab strip) was considered and **rejected** — it duplicates what the
+>    accordion already does and hides the whole-filter-state-at-a-glance view.
+>
+> ### Small fixes — ✅ all cleared 2026-07-25 (see the note above)
+>
+> 3. ✅ **Public `/bank-access` demo CAT button** → "Go to CAT" (`f0b5901`).
+> 4. ✅ **Stale slice-number build notes on the tutor library** retired —
+>    five strings in `note-editor`, `notes-view`, `note-body-editor` and
+>    `slash-menu` (`0266425`). Two edge cases resolved: the dormant
+>    `comingIn` template now reads "coming soon" (closes the leak for good);
+>    a fifth, "filters and search land in a future slice" on the all-notes
+>    view, was folded in (both already exist). ⓘ One left untouched on
+>    purpose: the "Recent" view's *"Needs visit tracking — ships with a later
+>    slice"* — genuinely unbuilt, no slice-number jargon, so it's an honest
+>    "not yet", not a false "coming".
+> 5. ✅ **The 💡 bulb** — closed as **not actually broken** (inspected live;
+>    the curator bulb renders as a clean, spaced, indented list). The note
+>    over-generalized the dashboard's already-fixed squashing. Latent
+>    hardening (give the shared `<Bulb>` its own default list style so a
+>    future bare-`<ul>` bulb can't squash) left for a rainy day.
+>
+> ### The four findings from the mode investigation (2026-07-24)
+>
+> Full write-up in `bank-consumption-attempt-creation.html` §6.1.2 and
+> `bank-consumption.html` §15. **#6 built 2026-07-25 (`da850cc`), which also
+> closes #7 and #9; #8 still open.**
+>
+> 6. ✅ **⭐ The engagement clock — BUILT 2026-07-25 (`da850cc`, on the session
+>    branch, NOT `main`).** (STUDY, TIMED_FREE_NAV) now counts ENGAGED time:
+>    the countdown freezes while the page is hidden (tab-switch / screen-off /
+>    backgrounded / closed) and resumes on return, durably across a full close
+>    days later — `remaining = duration - engaged_seconds_used`, persisted
+>    server-side. **Design settled with Sam:** "away" = page hidden, tab-
+>    switches included (reusing the per-question engine's own signal); away-time
+>    forgiven in full ("all of it"); saved on submit / navigation / page-hide
+>    with **no heartbeat** (a crash mid-question forgives that one question's
+>    time, in the student's favour). Migration `20260815120000`
+>    (`engaged_seconds_used` + mode-guarded `nclex_record_engaged_time`); the
+>    load-bearing fix is the lazy expiry (engaged ≥ duration, not wall).
+>    Verified live on dev (froze 8s hidden; reload resumed at engaged-remaining
+>    not wall; exam control drained while hidden, its column stayed NULL).
+>    ⚠ Known minor: an engagement *timeout* still back-dates `ended_at` (rare,
+>    cosmetic — needs an RPC to fix, deferred).
+> 7. ✅ **Study-timed and Exam-timed are no longer identical** — resolved by #6.
+>    Study-timed now pauses on the engagement clock; Exam-timed keeps the wall
+>    clock. Proven live on two attempts of the *same* mode id (`TIMED_FREE_NAV`)
+>    that behaved differently by intent.
+> 8. ✅ **Resume contradiction — RESOLVED 2026-07-25 (`1a64969`).** The
+>    behaviour was never broken, the **copy** was: an Exam is resumable while
+>    its wall clock still runs (it finalises on open once drained), yet the
+>    Builder claimed "cannot be resumed" and the banner offered it anyway.
+>    Settled in favour of the code's coherent behaviour: **every non-CAT
+>    attempt is resumable; the only difference is whether the clock waited** —
+>    STUDY timed froze (engagement clock, same time left), EXAM timed kept
+>    draining. Fixed the Exam start-note ("the clock keeps running if you
+>    leave") on the real builder + public demo (CAT keeps "cannot be
+>    resumed"), corrected the stale resume-fetcher comment, and reconciled
+>    both plan docs (§15 + §6.1.2 → §6.1.3). No behaviour change, no migration.
+> 9. ✅ **`intent` now drives behaviour** — resolved by #6. `intent === 'STUDY'`
+>    (with `mode === 'TIMED_FREE_NAV'`) is what selects the engagement clock, so
+>    intent is no longer a display-only word.
+>
+> ### Bigger CAT work still open
+>
+> 10. ✅ **§16.6 — exam-mode display leaks — BUILT 2026-07-25 (`7e845fb`).**
+>     During a live exam the runner no longer shows the difficulty pill (a
+>     live readout of the engine's opinion of the candidate), the subject chip
+>     (Sam chose to strip this too — "an exam is an exam"), the `Case N of M`
+>     counter, the `CJMM step` label, or the six-pill CJMM strip. Kept: the
+>     question-type pill + Trend badge (they describe the item, not the
+>     candidate), the case content panel, and the grid. One flag —
+>     `hideExamScaffold = intent === 'EXAM' && isLive` — so **review restores
+>     everything** for free. Applied to ALL exam modes, not just CAT.
+>     **Related, same session:** the **question grid is fully hidden in live
+>     Sequential + CAT** (`cb35dce`) where it can't navigate (clicks were
+>     already no-ops), and everywhere the grid *does* show it got a **topbar
+>     show/hide toggle** next to Mark, mirroring the clock's eye toggle; both
+>     toggles then got **real icons** (`163d6c4`) — a clock face and a grid,
+>     plain when shown / slashed when hidden. Also **the runner title is now
+>     intent-based** — "Study session" / "Exam session" (`b19aa00`).
+> 11. ✅ **`/help/cat` — BUILT 2026-07-25 (on `main`).** Built as a whole
+>     public **Help section**, not just the one page: `/help` hub +
+>     `/help/cat` (§3.2's five sections) + `/help/readiness-packs` (a bonus
+>     Sam asked for), flat `/help/[slug]`, outside the auth boundary. Entry
+>     points wired from the CAT surfaces (home / result / preflight), the
+>     dashboard CAT + pack "?" signals, the pack surface, and a public-footer
+>     link. `styles/help.css`. ⚠ Deferred doc-catchup: mark this in BUILD_LIST's
+>     header + flip cat.html §3.2 status.
+> 12. **Slice 10 — recalibration + the CAT pool** (§5 / §17 / §20), split into
+>     **10a / 10b / 10c**.
+>     - ✅ **10a — five-band difficulty — BUILT + MERGED to `main` 2026-07-27**
+>       (commits `a516898` + `b909598`; migration `20260818120000`, dev-applied;
+>       NOT prod). Difficulty widened Easy/Medium/Hard → **Very easy … Very hard**
+>       (seeds −2 … +2) on both tables; `lib/bank/difficulty.ts` (label↔IRT map +
+>       `displayBand()`, 11 tests); save-path writes/re-seeds `difficulty_irt`
+>       (last-writer-wins + changed-only guard, proven on dev); student runner
+>       pill via `displayBand()` (empirical branch dormant until 10c feeds the
+>       attempt snapshot). **Plus the curator calibration readout** (the old
+>       "read-only measured difficulty", once slated for after 10a): the
+>       Classification tab now shows **Set difficulty** beside a read-only
+>       **Calibrated difficulty** box (`band (IRT)` + `CURATOR`/`EMPIRICAL` pill +
+>       `≠ label`), reading the *real* columns threaded through all 11
+>       row-mappers + editors, so it shows genuine empirical states now; 💡 bulb
+>       explainer. Verified live on 2,315 seeded empirical bank rows.
+>     - **10b — CAT dedicated pool** (§20), split into 10b1 / 10b2 / 10b3:
+>       - ✅ **10b1 — reservation flag + editor tick — BUILT 2026-07-28** (migration
+>         `20260819120000`, dev-applied; on the session branch — awaiting Sam's live
+>         test + merge, NOT `main`, NOT prod). Boolean `cat_pool` on all 6 tables
+>         (standalones + case/trend wrappers, admin + tutor mirrors); admin-only
+>         "Reserve for CAT" tick on 3 editor surfaces (question Housekeeping +
+>         case-wrapper + trend-wrapper), never on a child — reservation lives on the
+>         wrapper, children inherit. Admin-only at UI + save + inherited `BANK_CURATE`
+>         RLS (no new policy). Shared copy `lib/bank/atoms/cat-pool.ts`. ⚠ Diverged
+>         from §20.2: a boolean column, not a `UNIQUE` reservation table → the
+>         mutual-exclusivity guard is deferred to 10b3.
+>       - ✅ **10b2 — admin CAT-pool management page — BUILT 2026-07-28** (all four
+>         sub-slices, from the v1 Claude Design prototype; on `main`, no migration).
+>         **`/admin/cat-pool`, top-level beside Readiness Packs** — the Bank group's
+>         children all *author* content; this *allocates* already-authored stock,
+>         exactly as packs does. One route, three panes via `?lens=` (in the URL, not
+>         `useState`, because Load-more is a soft navigation), all reading one
+>         snapshot. **Coverage** (targets, five-band spread with Set⟷Calibrated,
+>         blueprint vs NCLEX ranges, wrapper supply as sittings covered) ·
+>         **Reserved stock** (flat list, 50-at-a-time Load more, honest "N of M";
+>         grouped only when filtered to case/trend; release always confirms; bulk
+>         release collapses a wrapper's children to one target) · **Audit** (three
+>         cards, each deep-linking to its own subset) · **Reserve drawer**
+>         (`?reserve=1`; published practice-eligible stock only; the **§20.5
+>         mutual-exclusivity guard** enforced in the UI *and* re-checked server-side,
+>         since 10b1's boolean leaves no constraint).
+>         ⚠ **NOT visually verified** — behind an admin login; Sam tests next session.
+>         ⚠ **Dev coverage numbers are inflated:** 1,811 of 2,393 reserved standalones
+>         are `DEV_CAT_POOL` filler, so "how far to target" reads ~2,393/2,400 when the
+>         genuine reservation is **582**. Prod is unaffected. Don't "fix" the design for it.
+>         ⚠ Left out on purpose: the audit's **"Hide all N"** button (it would clear
+>         builder visibility on 2,825 questions in one click — that is 10b3's call).
+>         ⚠ The reserve drawer takes **~6s** to open on dev's ~1,700-row free pool.
+>       - ✅ **10b3 — selection draws only from the pool — BUILT 2026-07-29** (migration
+>         `20260823120000`, dev-applied). Practice excludes reserved stock via **one predicate** in
+>         `_nclex_eligible_unit_pool` — the single gateway every practice path funnels through, so
+>         the count / breakdown / create RPCs follow for free and can't drift. CAT draws only from
+>         the pool in `create_cat_attempt` + `cat_next_item`, **except the mid-case branch**, left
+>         ungated on purpose so releasing a case can't abandon a student mid-block.
+>         ⚠ **CAT stopped requiring `is_builder_visible`** — with enforcement on, "offer this in the
+>         practice builder" contradicts "reserved", so the pool would have emptied the moment a
+>         curator hid reserved stock; this also closed a pre-existing drift where the case pick and
+>         the standalone picks disagreed about that flag. Second layer: reserving clears
+>         `is_builder_visible` + `is_free_sample` (8 dev rows were both reserved and free samples —
+>         Sam: unmark, free samples aren't in use). Mutual exclusivity now binds from the **readiness
+>         side too** (the three pack-add actions refuse CAT-reserved items).
+>         **Dev:** practice 3,245 → **807** units, 61 → **24** cases, both leak checks zero;
+>         reserved-and-builder-visible 2,824 → 0; CAT keeps 2,382 first-item candidates + 36 cases.
+>         The two big CAT functions were deployed by **transforming the live definitions under
+>         assertions**, then the migration file proven **byte-identical by md5** — not retyped.
+>         ⚠ **A live CAT sitting has not been played end to end.** Full write-up: cat.html §20.7.
+>     - ✅ **10c — the recalibration job — BUILT 2026-07-29, on `main`** (new
+>       `lib/calibration/`, migration `20260825120000` dev-applied,
+>       `.github/workflows/recalibrate.yml`). The weekly joint fit measures every
+>       question's difficulty from how students actually answered it — **whole bank**
+>       (§5.3.5) — keeping the 30-answer threshold, the 70/30 blend and the one-way
+>       source flip. **The person half is not a copy of the live estimator, it IS
+>       `estimateAbility` from `lib/cat`** — §4.5 demands recalibration read a response
+>       exactly as the engine does, and sharing the code makes drift impossible rather
+>       than forbidden; it also puts calibrated difficulty on the same scale as the
+>       passing standard. Only the item half is new.
+>       ⚠ **§17.6's stated reason was wrong and is corrected in the doc:** Postgres
+>       *can* do a joint fit. What actually decides it is that **17.6% of our answers
+>       carry partial credit**, which a SQL version would have to flatten to
+>       right/wrong — making every SATA/matrix/bow-tie read harder than it is.
+>       ⚠ **TypeScript, not the Python/`pyirt` the doc named:** there is no Python on
+>       the machine and session branches never reach the remote, so a Python job could
+>       not have been run even once before merging — and an unrunnable estimator loses
+>       on correctness, the very reason the job left the database.
+>       ⚠ **The audit table was NOT created** — it has existed since Slice 1 (§12.7.5)
+>       and building from §17.2's column list nearly produced a second one; this added
+>       `raw_empirical_value` + `job_trigger` + `job_triggered_by` to what was there.
+>       Writes go through **one RPC, one transaction**, so a difficulty and the history
+>       row explaining it cannot come apart. Off-switch `cat_recalibration_enabled` on
+>       `/admin/config` beside the nightly sweep, **shipped ON** (self-gating).
+>       **Proven:** recovers chosen difficulties from a simulated cohort (mean error
+>       0.25, ordering >95% correct); a **live GitHub Actions run against dev**
+>       reproduced the local numbers exactly (678 responses, 551 items, nothing over
+>       threshold, nothing written); off-switch verified live; the write path verified
+>       under a rollback. vitest 566 → 606.
+>       ⚠ **The maths has never met real data** — the best-covered question has 4
+>       answers and needs 30. Built, verified, and correctly doing nothing until
+>       students arrive. ⚠ The Sunday 02:00 UTC schedule targets **prod** and is live
+>       from now, not from launch.
+>       ⬜ **Follow-ons deliberately not built:** the admin "recalibrate now" button ·
+>       the history readout · **the student difficulty pill** (specified below) ·
+>       **misfit warnings** (flagging a question strong students keep getting wrong —
+>       used as an argument for leaving the database, so it is recorded rather than
+>       dropped).
+>     - ⬜ **10d — light up the student difficulty pill** (§5.5.2b, specified with Sam
+>       2026-07-29 and **smaller than first scoped**). The pill has been dormant since
+>       10a because the attempt snapshot freezes `difficulty`, the curator's *word*,
+>       and never the number.
+>       - **Six functions, one substitution each:** in `classification_snapshot`, store
+>         `difficulty_irt` **in place of** `difficulty`. `create_cat_attempt` ·
+>         `cat_next_item` · `nclex_create_attempt` · `nclex_create_programme_attempt` ·
+>         `nclex_create_readiness_attempt` · `nclex_create_standalone_quiz_attempt`.
+>         **No new column, no table migration.** Replacing rather than adding is safe —
+>         verified that nothing else in the product reads that word (no SQL, no report,
+>         no analytics; the pill is the only reader).
+>       - **⭐ Sam's simplification — `displayBand()` drops the source branch.** The
+>         student's band derives from `difficulty_irt` unconditionally. The seeds
+>         round-trip *exactly* (−2/−1/0/1/2 sit dead-centre of their bands, verified by
+>         running the built code), so for an unmeasured question deriving the band and
+>         showing the curator's word give the same answer — the branch protects nothing.
+>         It is also **more faithful to §5.5's purpose**: the branch allowed the shown
+>         difficulty to disagree with the number the engine uses, which is the exact
+>         drift §5.5 was written to prevent. What it was really defending against — a
+>         word with no number — became unreachable with the seeding trigger in
+>         `20260824120000`, so this is only safe *because* of that fix.
+>         ⓘ `difficulty_source` is still needed on the **curator** side (the editor's
+>         Calibrated-difficulty readout must say measured-vs-assumed). Only the
+>         student's pill drops it.
+>       - **`cat_item_difficulty` stays untouched** — it has fed from `difficulty_irt`
+>         since Slice 1 and is the engine's own audit of what the arithmetic used. A CAT
+>         row will hold the number twice; both copies are written **in the same INSERT
+>         from the same variable**, so they cannot diverge.
+>       - ⓘ **Optional extra, not required:** review can show *then and now* — the
+>         snapshot plus a read of the live bank row. This needs **no** history table;
+>         `nclex_bank_item_calibration_history` answers the different question of
+>         trajectory over time, which belongs to the admin history readout.
+>
+> 16. ✅ **NEW — the CAT pool's membership test was measuring the wrong column.
+>     FIXED 2026-07-29, on `main`** (migration `20260824120000`, dev-applied).
+>     CAT selects on `difficulty_irt`, the number; the placeability CHECK, the
+>     reserve drawer, the audit lens and the reserve action all screened on
+>     `difficulty`, the curator's word. The two are written together by the editor
+>     — and not by bulk SQL. The 622-item gap-fill run set a band on every row and
+>     a number on none, leaving **633 items with a word and no number**: 622 of them
+>     offerable in the reserve drawer as CAT stock the engine could never serve, and
+>     **11 already reserved, counted in Coverage and dead**. Reserve a few hundred of
+>     the rest and the targets would have looked met while CAT served none of them.
+>     Fixed by making the number **impossible to omit** — a trigger seeds it from the
+>     band on any write, so no load path can reproduce the state — rather than by
+>     tightening the four tests that missed it; those follow behind as backstops. The
+>     reserve action's case gate now also requires **six** placeable children rather
+>     than merely finding no broken one. **Also:** CAT now honours a trend dataset's
+>     publish state, which practice always has (zero rows affected today, latent
+>     before). Dev: band-but-no-number 633 → 0, drawer-offerable-but-dead 622 → 0,
+>     reserved-but-dead 11 → 0, CAT first-item candidates 2,382 → 2,393.
+>
+> 15. ✅ **NEW — the bank coverage gap-fill + the marks defect under it. DONE
+>     2026-07-28 (later), on `main`.** A cloud session measured the standalone
+>     bank against the NCLEX-RN test plan and the Klimek lectures, then authored
+>     **622 items** to close what it found; reconciled onto `main` this session
+>     along with a journey-tracker docs branch.
+>     - **The analysis** (`docs/product-plan/bank-coverage-gap-analysis.md`): 6 of
+>       8 client-needs cells already in range, Management of Care under its floor
+>       and Physiological Adaptation over its ceiling; the bigger gap was
+>       specialty mix — **Maternity and Pediatrics 3.7% each**, both skewed to
+>       health promotion — plus **12 Klimek topics at zero coverage**. All eight
+>       cells now in range; standalone 2,978 → 3,600; free pool 578 → **1,192
+>       servable**. §6 holds **15 "Klimek angles"** as a commissioning brief for
+>       the next authoring run — captured, not built.
+>     - **Taxonomy normalised** (mig `20260820120000`) — 19 drifted labels folded
+>       into the canonical vocabularies, both closed by CHECK constraints.
+>     - **CAT pool made selectable** (mig `20260821120000`) — 61 reserved items
+>       could never be served (no difficulty band or no subcategory); 54
+>       completed, 7 non-questions unpublished, CHECK added so nothing
+>       unplaceable can enter the pool again.
+>     - **⭐ The marks defect** — **312 of the 622** had `marks = 1` when it must
+>       equal the item's max partial-credit score, so `nclex_submit_answer`
+>       raised `score_awarded out of range` and the questions **could not be
+>       submitted**. Score-dependent, so invisible to anyone scoring 0–1. Fixed
+>       from each item's own answer key; whole bank now at zero mismatches.
+>       `instruction` also filled on the 313 multi-select items, and
+>       **`validate.py` hardened** — it had never checked `marks`, which is why
+>       they loaded.
+>     ⚠ **Open:** the 622 items are **unreviewed by a human** — `cat_pool = FALSE`
+>     and no `for_prod` tag, so they cannot reach a student on prod; shipping
+>     them is a separate decision. Also open: the **1,307 pre-existing**
+>     multi-select items with no `instruction`; `validate.py` is **untested** (no
+>     Python interpreter available); and the seed files carry **no `ON CONFLICT`**
+>     clause despite the log claiming one, so a re-run fails on the primary key.
+>
+> 16. ✅ **Option shuffle — CLOSED, nothing to do.** A 2026-07-28 audit appeared
+>     to find 240 published CLOZE/DRAG_ORDER items whose answer could be got
+>     without reading. **Retracted:** the runtime shuffle already covers
+>     cloze/bowtie/both drag types and has been **on prod since 2026-07-17**
+>     (slices 3a/3b). ⚠ Do **not** read `SHUFFLE_OPTION_TYPES` in
+>     `lib/practice/runner/option-order.ts` as the runner's coverage — it is the
+>     **embed player's** set; the runner's is the DB trigger
+>     `_nclex_attempt_item_shuffle`. The authored data does cluster the answer
+>     first (73.9% of MCQ keys are "A"), which is a storage artifact the shuffle
+>     neutralises by design. MATRIX is excluded deliberately and measures near
+>     chance (51% naive vs 44.9% guessing).
+>     Why it mattered: the old three-rung ladder couldn't track a strong student
+>     and the readiness probability saturated near 100%; the five bands fix the
+>     spread.
+> 13. **Two reopened CAT decisions** — §9.3 ✅ **DONE 2026-07-25: time limit
+>     4h → 5h** (on `main`; migration `20260816120000` redefines
+>     `create_cat_attempt` to stamp 5h; new CATs 5h, in-progress keep their
+>     limit; ⚠ cat.html's ~8 "4 hours" mentions not yet updated). §9.1.1 the
+>     passing standard **left at 0.0 on purpose** — moving it needs a
+>     standard-setting exercise (expert-judgement pass), not a guess, and is
+>     cheapest **pre-launch** (re-interprets every CAT once there are users);
+>     recorded for a later, deliberate decision.
+> 14. **NEW — the runner tutorial (sandbox). DESIGNED, not built.** A sandbox
+>     that teaches the exam runner (all types + tools), safe/unscored. Design
+>     pass complete: doc `docs/product-plan/runner-tutorial.md` (build-ready) +
+>     CD blueprint saved `design-handoff/runner-tutorial/`. Principle: **one
+>     runner in a sandbox mode + coach overlay, never a copy.** Build = 3
+>     slices (sandbox mode → coach layer → entry points), sign-off = zero DB
+>     writes. **Next session.**
+>
+> ### Operational
+>
+> 14. **Prod is behind `main`.** `origin/prod` is at `1a6717d`; everything
+>     from 2026-07-24 is `main`-only. The next release ships migration
+>     `20260814120000` — a no-op on prod data (no attempts, no tutor quizzes).
+> 15. **⚠ `PAYSTACK_SECRET_KEY`** (live key) still not on the prod Worker —
+>     launch-day only, not a release blocker.
+>
+> ### New feature slice — the calculator (app-wide)
+>
+> 16. ✅ **On-screen calculator — BUILT 2026-07-25** (`0048344` + `d577fd5`,
+>     on the session branch, **NOT `main`**; app-layer, **no migration**; tsc
+>     clean bar the 2 known `scoring-roundtrip` errors; eslint clean; vitest
+>     **+42** in `calculator-logic.test.ts`). Full design/rationale now lives
+>     in its own doc: **`docs/product-plan/calculator.md`**. What shipped:
+>     - **The full *standard* (non-scientific) set** — not the bare 4-function
+>       minimum. Digits · `.` · `+ − × ÷` · `=` · `C`/`CE`/`⌫` · `±` · `√` ·
+>       `%` · `1/x` · the five memory keys (`MC MR MS M+ M−`), mirroring the
+>       Pearson VUE / Windows-Standard layout the candidate actually sees.
+>       Basic-not-scientific is the *fidelity* call (matching the real screen),
+>       not a shortcut.
+>     - **App-wide reusable widget** in its own **`lib/calculator/`** (Sam's
+>       chosen home) — pure `calculator-logic.ts` reducer + `calculator.tsx`
+>       draggable panel, `styles/calculator.css` (`calc-*`), imported in the
+>       `(app)` layout so any surface can mount `<Calculator>`. Runner is the
+>       first (only current) consumer.
+>     - **A running expression line** above the big value (`10 ×` → frozen
+>       `10 × 2 =`) so the user sees the operation in progress — fixes the
+>       "one value at a time" confusion Sam flagged. Reflects the real
+>       left-to-right fold (no fake precedence). Plus the **pending operator
+>       stays lit (armed)** and a **press-flash** ring on each tap.
+>     - **Draggable pop-up** (header drag), **topbar Calc toggle** beside
+>       Mark / Grid (own glyph), **available in every mode** (study + exam,
+>       live + review) — a real NCLEX tool, not a §16.6 display leak.
+>     - **Keyboard entry** too (digits / `+ − * /` / Enter / Backspace /
+>       Esc), guarded so it never hijacks a Cloze fill-in.
+>     - **No data, no migration, no engine.** Verified live: `1000/8=125`,
+>       `0.1+0.2=0.3` (no float noise), `÷0`→Error (latched, `C` clears),
+>       memory store/recall with the `M` flag, drag keeps state, console clean.
+
 > **CAT — ✅ Slice 7 (the results page) BUILT + MERGED to `main` 2026-07-20
 > (NOT prod).** The surface a student lands on when a CAT ends, and re-opens
 > from history (`7462682`; app-layer, **no migration**; tsc + eslint clean;

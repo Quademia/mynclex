@@ -220,6 +220,8 @@ export function TrendWrapperPage({ data, focusItemId = null, authorship = null }
   const [isPublished, setIsPublished] = useState(datasetRow.is_published);
   const [isFreeSample, setIsFreeSample] = useState(datasetRow.is_free_sample);
   const [isBuilderVisible, setIsBuilderVisible] = useState(datasetRow.is_builder_visible);
+  // §20 (10b1) — reserve the whole trend as CAT-pool stock; children inherit.
+  // Admin-only (surface === 'admin').
   // Wrapper tags — held as the raw comma-separated input text; parsed to
   // an array at compare time so cosmetic spacing isn't "dirty".
   const [tagsText, setTagsText] = useState((datasetRow.tags ?? []).join(', '));
@@ -1203,6 +1205,15 @@ function DatasetView({
             onChange={onIsBuilderVisibleChange}
             hint="No effect on trends — each question sets its own builder visibility."
           />
+          {/*
+            No "Reserve for CAT" tick here, and deliberately so. A dataset is
+            not a selection unit anywhere in the product — the exam picks trend
+            questions individually, one per dataset per sitting — so reserving
+            the dataset would reserve something nothing ever draws. Each
+            question carries its own tick, exactly as the builder-visibility
+            hint above already describes for that flag.
+            (Migration 20260822120000.)
+          */}
         </div>
       </section>
     </div>

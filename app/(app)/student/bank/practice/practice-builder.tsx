@@ -55,6 +55,7 @@ import { discardAttemptAction } from '@/lib/practice/builder/actions';
 import { Axis } from './axis';
 import { ModeCard } from './mode-card';
 import { SummaryPanel } from './summary-panel';
+import { MobileLaunchBar } from './mobile-launch-bar';
 
 // Set helpers — toggle a value, replace the set, etc. Local only.
 function toggle<T>(s: Set<T>, v: T): Set<T> {
@@ -107,10 +108,12 @@ export function PracticeBuilder({
   const [mode,   setMode]   = useState<ModeId>('UNTIMED_LEARNING');
   const [count,  setCount]  = useState<number>(25);
 
-  // Tab strip — Intent+Mode vs Filters. Default tab is the higher-
-  // level decision (Intent+Mode) so the student doesn't fill out
-  // filters and then discover their mode (e.g. CAT) doesn't use them.
-  const [activeTab, setActiveTab] = useState<'mode' | 'filters'>(hasSeed ? 'filters' : 'mode');
+  // Tab strip — three steps: Intent+Mode · Question pool · Content
+  // filters. Default tab is the higher-level decision (Intent+Mode) so
+  // the student doesn't fill out filters and then discover their mode
+  // (e.g. CAT) doesn't use them. A deep-link that pre-seeds content
+  // filters lands on the content tab so the student sees what arrived.
+  const [activeTab, setActiveTab] = useState<'mode' | 'pool' | 'content'>(hasSeed ? 'content' : 'mode');
 
   // Entry-helper local state. Resumable can be cleared client-side
   // when the student clicks Start fresh (the discard RPC fires and we
@@ -355,9 +358,10 @@ export function PracticeBuilder({
     setIntent(rec.intent);
     setMode(rec.mode);
     setCount(rec.requested_count);
-    // Switch to the Filters tab so the student sees what was
-    // restored. They can tweak then Start, or Start straight away.
-    setActiveTab('filters');
+    // Switch to the Content filters tab so the student sees the bulk of
+    // what was restored (mode + pool are restored too, on their own
+    // tabs). They can tweak then Start, or Start straight away.
+    setActiveTab('content');
   };
 
   const onWeakSpots = () => {
@@ -394,8 +398,12 @@ export function PracticeBuilder({
 
       <div className="bk-builder-head">
         <h1>Build a practice quiz</h1>
+        {/* "on the right" was true of the desktop rail only — on a phone
+            the summary sits at the end of the form and the live count
+            rides in the launch strip, so the direction pointed at
+            nothing. Stated without a direction, it is true of both. */}
         <div className="sub">
-          Pick what you’re practising and how. The count on the right updates as you go.
+          Pick what you’re practising and how. The count updates as you go.
         </div>
       </div>
 
@@ -417,8 +425,9 @@ export function PracticeBuilder({
           <RecentQuizzesRow recents={recents} onSelect={onRecentSelect} />
           <WeakSpotsButton onTrigger={onWeakSpots} pending={weakStarting} />
 
-          {/* Tab strip — switches between Intent & Mode and Filters.
-              The right-rail summary stays mounted across both tabs. */}
+          {/* Tab strip — three steps: Intent & Mode · Question pool ·
+              Content filters. The right-rail summary stays mounted across
+              all three tabs. */}
           <div className="bk-tabs" role="tablist">
             <button
               type="button"
@@ -435,19 +444,37 @@ export function PracticeBuilder({
             <button
               type="button"
               role="tab"
-              aria-selected={activeTab === 'filters'}
-              className={'bk-tab' + (activeTab === 'filters' ? ' on' : '')}
-              onClick={() => setActiveTab('filters')}
+              aria-selected={activeTab === 'pool'}
+              className={'bk-tab' + (activeTab === 'pool' ? ' on' : '')}
+              onClick={() => setActiveTab('pool')}
             >
-              Filters
+              Question pool
               <span className="bk-tab-meta">
-                {isCAT ? "doesn't apply in CAT" : (anyContentSelected || pools.size > 0 ? 'configured' : 'any')}
+                {isCAT
+                  ? "doesn't apply in CAT"
+                  : pools.size === 0
+                    ? 'none'
+                    : pools.size === 1
+                      ? (POOLS.find((p) => pools.has(p.id))?.label ?? '1 selected')
+                      : `${pools.size} selected`}
+              </span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'content'}
+              className={'bk-tab' + (activeTab === 'content' ? ' on' : '')}
+              onClick={() => setActiveTab('content')}
+            >
+              Content filters
+              <span className="bk-tab-meta">
+                {isCAT ? "doesn't apply in CAT" : (anyContentSelected ? 'configured' : 'any')}
               </span>
             </button>
           </div>
 
-          {/* ─── FILTERS TAB — Pool section ─── */}
-          {activeTab === 'filters' && (
+          {/* ─── QUESTION POOL TAB ─── */}
+          {activeTab === 'pool' && (
           <section className="bk-section">
             <div className="bk-section-head">
               <div>
@@ -500,8 +527,8 @@ export function PracticeBuilder({
           </section>
           )}
 
-          {/* ─── FILTERS TAB — Content filters section ─── */}
-          {activeTab === 'filters' && (
+          {/* ─── CONTENT FILTERS TAB ─── */}
+          {activeTab === 'content' && (
           <section className="bk-section">
             <div className="bk-section-head">
               <div>
@@ -738,6 +765,19 @@ export function PracticeBuilder({
           onStart={onStart}
         />
       </div>
+
+      {/* Phone-only (≤768px, hidden by CSS above it). Outside .bk-grid
+          because it is fixed-position furniture, not a column. */}
+      <MobileLaunchBar
+        total={isCAT ? null : total}
+        loading={countLoading}
+        intent={intent}
+        modeLabel={modeLabel}
+        isCAT={isCAT}
+        disabledReason={disabledReason}
+        starting={starting}
+        onStart={onStart}
+      />
     </div>
   );
 }

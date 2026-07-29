@@ -178,6 +178,10 @@ export async function saveTrendMetadataAction(
   const is_free_sample     = formData.get('is_free_sample') === 'on';
   const is_builder_visible = formData.get('is_builder_visible') === 'on';
 
+  // §20 — a dataset is NOT a CAT reservation unit and no longer carries the
+  // column (migration 20260822120000). Trend questions are reserved on their
+  // own rows, through the question editor's tick.
+
   // Wrapper tags — same comma-separated convention as the question
   // editors. A tag on the trend counts as a tag on every linked
   // question in the student builder (inheritance, migration

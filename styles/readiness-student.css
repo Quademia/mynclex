@@ -20,6 +20,9 @@
 .rs-head-title { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; color: var(--primary); margin: 0; }
 .rs-head-sub { font-size: 13.5px; color: var(--text-muted); margin: 4px 0 0; line-height: 1.5; max-width: 640px; }
 .rs-head-cta { margin-top: 16px; display: inline-flex; }
+/* "How readiness packs work" → /help/readiness-packs (cat.html §3.2 shape). */
+.rs-head-help { display: block; width: fit-content; margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--accent); }
+.rs-head-help:hover { text-decoration: underline; }
 
 .rs-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .rs-chip { display: inline-flex; align-items: center; font-size: 12.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px; }
@@ -157,6 +160,8 @@
 .rs-rep-topbar { margin-bottom: 18px; }
 .rs-rep-topbar .rs-report-back { margin-bottom: 6px; }
 .rs-rep-topbar-title { font-size: 20px; font-weight: 800; color: var(--primary); letter-spacing: -0.01em; }
+.rs-rep-help { display: block; width: fit-content; margin-top: 8px; font-size: 12.5px; font-weight: 600; color: var(--accent); }
+.rs-rep-help:hover { text-decoration: underline; }
 
 .rs-rep { position: relative; }
 

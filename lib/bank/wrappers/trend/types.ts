@@ -46,6 +46,9 @@ export interface TrendDatasetRow {
   is_published:       boolean;
   is_free_sample:     boolean;
   is_builder_visible: boolean;
+  // No `cat_pool` here on purpose. §20 — a dataset is not a CAT reservation
+  // unit (the exam picks trend questions individually), so the column was
+  // dropped in migration 20260822120000 and each question carries its own.
   created_at:         string;
   updated_at:         string;
 }

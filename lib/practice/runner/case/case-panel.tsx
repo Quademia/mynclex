@@ -92,7 +92,7 @@ export function CasePanel({
   const activeTab = visibleTabs.find((t) => t.tab_id === effectiveActiveId);
 
   return (
-    <aside className="rn-case" aria-label="Case study panel">
+    <aside className="rn-case" aria-label="Case study panel" data-coach="casepanel">
       <div className="rn-case-head">
         <div className="label">
           Case study
@@ -125,7 +125,7 @@ export function CasePanel({
       })()}
 
       {visibleTabs.length > 0 && (
-        <div className="rn-case-tabs" role="tablist">
+        <div className="rn-case-tabs" role="tablist" data-coach="casetabs">
           {visibleTabs.map((t) => (
             <button
               key={t.tab_id}

@@ -276,6 +276,29 @@ export async function recordQuestionTimeAction(
 }
 
 
+// Engagement-clock save (BUILD_LIST #6, 2026-07-25). Called from the runner's
+// useEngagementClock hook on submit / navigation / page-hide with the running
+// ENGAGED-seconds total for a (STUDY, TIMED_FREE_NAV) attempt. The RPC is
+// monotonic + mode-guarded server-side, so this is a plain forward-save.
+// Fire-and-forget like recordQuestionTimeAction: a dropped save must never
+// disrupt the sitting — the next save (or the on-hide save) carries the true
+// total, and the guard means it can only ever touch an engagement attempt.
+export async function recordEngagedTimeAction(
+  attemptId:    string,
+  engagedSec:   number,
+): Promise<void> {
+  if (!Number.isFinite(engagedSec) || engagedSec < 0) return;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.rpc('nclex_record_engaged_time', {
+    p_attempt_id:      attemptId,
+    p_engaged_seconds: Math.floor(engagedSec),
+  });
+}
+
+
 // Timer expiry. Triggered by lazy detection (page.tsx mounts and notices
 // `now() >= started_at + duration_seconds`) or by the client-side
 // countdown hitting zero. Two-step finalisation:
@@ -350,6 +373,17 @@ export async function expireAttemptAction(
     p_attempt_id: attemptId,
   });
   if (error) return { ok: false, error: error.message };
+
+  // ⚠ KNOWN MINOR (BUILD_LIST #6, 2026-07-25): for an engagement-clock timeout
+  // (STUDY, TIMED_FREE_NAV), nclex_expire_attempt back-dates ended_at to
+  // `started_at + duration` — the true deadline for a WALL clock, but wrong for
+  // an engagement clock, where the student paused along the way and the real
+  // end is now. Left as-is because (a) writes to nclex_attempts require a
+  // SECURITY DEFINER RPC (owner has no direct UPDATE under RLS), so correcting
+  // it means recreating/parameterising nclex_expire_attempt, and (b) an
+  // engagement timeout is a rare path (students usually finish before the
+  // budget) and the effect is a cosmetic ended_at, not a scoring or clock bug.
+  // Revisit if the timeout path ever needs an accurate ended_at downstream.
 
   return { ok: true, data: { final_score: Number(data) } };
 }

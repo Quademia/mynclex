@@ -64,7 +64,7 @@ export function StudentQuizRowView({
         </div>
 
         <div className="sq-row-meta">
-          <span>{formatQuizMode(row.mode)}</span>
+          <span>{formatQuizMode(row.quiz_kind, row.mode)}</span>
           <span className="sq-row-meta-sep" aria-hidden="true">·</span>
           <span>{formatItemCount(row.item_count)}</span>
           {duration && (

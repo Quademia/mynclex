@@ -445,7 +445,7 @@ export async function addPackStandalonesAction(
 
   const { data: itemRows, error: itemErr } = await supabase
     .from('nclex_bank_items')
-    .select('item_id, tags, is_published, parent_case_id, trend_id')
+    .select('item_id, tags, is_published, parent_case_id, trend_id, cat_pool')
     .in('item_id', ids);
   if (itemErr) return { ok: false, error: `Could not load questions: ${itemErr.message}` };
   const items = (itemRows ?? []) as {
@@ -454,6 +454,7 @@ export async function addPackStandalonesAction(
     is_published: boolean;
     parent_case_id: string | null;
     trend_id: string | null;
+    cat_pool: boolean;
   }[];
   if (items.length !== ids.length) {
     return { ok: false, error: 'One of those questions no longer exists.' };
@@ -463,6 +464,18 @@ export async function addPackStandalonesAction(
     return {
       ok: false,
       error: `${bad.item_id} is not a published standalone question — refresh the picker.`,
+    };
+  }
+
+  // §20.5 mutual exclusivity, the OTHER direction. The CAT reserve drawer
+  // already refuses a readiness-tagged question; without this a curator could
+  // still walk a CAT-reserved one into a pack from this side and the same
+  // question would be measuring twice.
+  const reserved = items.find((i) => i.cat_pool);
+  if (reserved) {
+    return {
+      ok: false,
+      error: `${reserved.item_id} is reserved for the CAT pool — release it there first. A question can only serve one purpose.`,
     };
   }
 
@@ -486,7 +499,7 @@ export async function addPackCaseAction(
   const [{ data: caseRow }, { data: childRows, error: childErr }] = await Promise.all([
     supabase
       .from('nclex_case_studies')
-      .select('case_id, tags, is_published')
+      .select('case_id, tags, is_published, cat_pool')
       .eq('case_id', caseId)
       .maybeSingle(),
     supabase
@@ -497,8 +510,20 @@ export async function addPackCaseAction(
   ]);
   if (!caseRow) return { ok: false, error: 'Case study not found.' };
   if (childErr) return { ok: false, error: `Could not load case members: ${childErr.message}` };
-  const c = caseRow as { case_id: string; tags: string[]; is_published: boolean };
+  const c = caseRow as {
+    case_id: string;
+    tags: string[];
+    is_published: boolean;
+    cat_pool: boolean;
+  };
   if (!c.is_published) return { ok: false, error: 'Only published case studies can join a pack.' };
+  // §20.5 mutual exclusivity, the other direction (see addPackStandalonesAction).
+  if (c.cat_pool) {
+    return {
+      ok: false,
+      error: `${caseId} is reserved for the CAT pool — release it there first. A case can only serve one purpose.`,
+    };
+  }
   const childIds = ((childRows ?? []) as { item_id: string }[]).map((r) => r.item_id);
   if (childIds.length === 0) return { ok: false, error: 'That case study has no questions.' };
 
@@ -539,7 +564,7 @@ export async function addPackTrendQuestionsAction(
       .maybeSingle(),
     supabase
       .from('nclex_bank_items')
-      .select('item_id, tags, is_published, trend_id')
+      .select('item_id, tags, is_published, trend_id, cat_pool')
       .in('item_id', ids),
   ]);
   if (!trendRow) return { ok: false, error: 'Trend not found.' };
@@ -552,6 +577,7 @@ export async function addPackTrendQuestionsAction(
     tags: string[];
     is_published: boolean;
     trend_id: string | null;
+    cat_pool: boolean;
   }[];
   if (items.length !== ids.length) {
     return { ok: false, error: 'One of those questions no longer exists.' };
@@ -561,6 +587,14 @@ export async function addPackTrendQuestionsAction(
     return {
       ok: false,
       error: `${bad.item_id} is not a published question of this trend — refresh the picker.`,
+    };
+  }
+  // §20.5 mutual exclusivity, the other direction (see addPackStandalonesAction).
+  const reserved = items.find((i) => i.cat_pool);
+  if (reserved) {
+    return {
+      ok: false,
+      error: `${reserved.item_id} is reserved for the CAT pool — release it there first. A question can only serve one purpose.`,
     };
   }
 

@@ -950,6 +950,8 @@ export function DragOrderEditorBody({
                   topic: initial.topic,
                   subtopic: initial.subtopic,
                   difficulty: initial.difficulty,
+                  difficulty_irt: initial.difficulty_irt,
+                  difficulty_source: initial.difficulty_source,
                   bloom_level: initial.bloom_level,
                   tags: initial.tags,
                 }}
@@ -958,6 +960,7 @@ export function DragOrderEditorBody({
 
             <TabPanel id="housekeeping">
               <HousekeepingFields
+                canReserveCat={initial.surface === 'admin'}
                 mode={initial.mode}
                 questionType="DRAG_ORDER"
                 defaults={{
@@ -965,6 +968,7 @@ export function DragOrderEditorBody({
                   question_ref: initial.question_ref,
                   batch_id: initial.batch_id,
                   is_published: initial.is_published,
+                  cat_pool: initial.cat_pool,
                   is_free_sample: initial.is_free_sample,
                   is_builder_visible: initial.is_builder_visible,
                   shuffle_options: initial.shuffle_options,
