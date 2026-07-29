@@ -19,6 +19,7 @@
 
 import { Fragment, useState } from 'react';
 import type { ReportItem } from '@/lib/payments/readiness-report';
+import { DIFFICULTY_LEVELS } from '@/lib/bank/classifications';
 import { formatSecsWords } from '@/lib/payments/readiness-pacing';
 
 type Outcome = 'full' | 'partial' | 'wrong';
@@ -207,7 +208,10 @@ export default function PerQuestionMap({
       .map((nm) => ({ label: nm, cells: shown.filter((c) => c.it.category === nm) }))
       .filter((g) => g.cells.length > 0);
   } else if (group === 'difficulty') {
-    groups = ['Easy', 'Medium', 'Hard']
+    // DIFFICULTY_LEVELS, not a hardcoded three — since 10a there are five
+    // bands, and the literal list here silently dropped every Very easy /
+    // Very hard question from this grouping.
+    groups = [...DIFFICULTY_LEVELS]
       .map((nm) => ({ label: nm, cells: shown.filter((c) => c.it.difficulty === nm) }))
       .filter((g) => g.cells.length > 0);
   } else {
@@ -273,9 +277,11 @@ export default function PerQuestionMap({
         </select>
         <select className="rs-map-select" value={diff} onChange={(e) => setDiff(e.target.value)}>
           <option value="all">All difficulties</option>
-          <option value="Easy">Easy</option>
-          <option value="Medium">Medium</option>
-          <option value="Hard">Hard</option>
+          {DIFFICULTY_LEVELS.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
         </select>
         <span className="rs-map-shown">
           Showing {shown.length} of {items.length}

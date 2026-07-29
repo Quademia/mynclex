@@ -171,6 +171,16 @@
 >         RLS (no new policy). Shared copy `lib/bank/atoms/cat-pool.ts`. ⚠ Diverged
 >         from §20.2: a boolean column, not a `UNIQUE` reservation table → the
 >         mutual-exclusivity guard is deferred to 10b3.
+>         **✅ The "editor tick is a second reservation door" ⚠ is CLOSED
+>         2026-07-29** (migration `20260828120000`): it was a *fourth*-door problem
+>         — reserving carries three obligations beyond the flag and all three lived
+>         in the admin drawer's action alone, while both editor ticks write it bare
+>         and the drawer itself never re-checks pack membership for **cases**. Now a
+>         `BEFORE INSERT OR UPDATE` trigger on items + case wrappers forces
+>         `is_builder_visible` / `is_free_sample` false and refuses a readiness-pack
+>         member by name. ⚠ **The trigger name sorts after `..._inherit_trg` on
+>         purpose** — same-event triggers fire alphabetically; a tidier earlier name
+>         disables it on INSERT. See §20.5.
 >       - ✅ **10b2 — admin CAT-pool management page — BUILT 2026-07-28** (all four
 >         sub-slices, from the v1 Claude Design prototype; on `main`, no migration).
 >         **`/admin/cat-pool`, top-level beside Readiness Packs** — the Bank group's
@@ -245,21 +255,53 @@
 >       students arrive. ⚠ The Sunday 02:00 UTC schedule targets **prod** and is live
 >       from now, not from launch.
 >       ⬜ **Follow-ons deliberately not built:** the admin "recalibrate now" button ·
->       the history readout · **the student difficulty pill** (specified below) ·
+>       the history readout · ~~the student difficulty pill~~ (**built 2026-07-29 as
+>       10d**, below) ·
 >       **misfit warnings** (flagging a question strong students keep getting wrong —
 >       used as an argument for leaving the database, so it is recorded rather than
 >       dropped).
->     - ⬜ **10d — light up the student difficulty pill** (§5.5.2b, specified with Sam
->       2026-07-29 and **smaller than first scoped**). The pill has been dormant since
->       10a because the attempt snapshot freezes `difficulty`, the curator's *word*,
->       and never the number.
->       - **Six functions, one substitution each:** in `classification_snapshot`, store
->         `difficulty_irt` **in place of** `difficulty`. `create_cat_attempt` ·
->         `cat_next_item` · `nclex_create_attempt` · `nclex_create_programme_attempt` ·
+>     - ✅ **10d — light up the student difficulty pill. BUILT 2026-07-29**
+>       (§5.5.2b + §5.5.3; migrations `20260826120000` + `20260827120000`,
+>       dev-applied). The pill had been dormant since 10a because the attempt
+>       snapshot freezes `difficulty`, the curator's *word*, and never the number.
+>       - **Six functions, ten lines** (not "one substitution each"): in
+>         `classification_snapshot`, store `difficulty_irt` **in place of**
+>         `difficulty`. `create_cat_attempt` · `cat_next_item` ·
+>         `nclex_create_attempt` · `nclex_create_programme_attempt` ·
 >         `nclex_create_readiness_attempt` · `nclex_create_standalone_quiz_attempt`.
->         **No new column, no table migration.** Replacing rather than adding is safe —
->         verified that nothing else in the product reads that word (no SQL, no report,
->         no analytics; the pill is the only reader).
+>         **No new column, no table migration.** A standalone question and a case
+>         child are frozen by *two separate builders* in two of those functions, and
+>         the tutor-quiz paths need their `SELECT` list widened too — missing the
+>         case-child branch would have blanked the pill on every case question, six
+>         per case.
+>       - **⭐ "The pill is the only reader" was wrong — there were three.** The
+>         plan justified replacing rather than adding by saying nothing else read
+>         the word (no SQL, no report, no analytics). The **readiness-pack report**
+>         read it into every report row (breakdown table, per-question detail,
+>         filter *and* grouping), and the **runner tutorial's** in-code fixtures
+>         carried it, so every pill in the public walkthrough would have gone blank.
+>         Both now derive the band. **Neither was caught by `tsc` or the suite** —
+>         optional-field runtime shapes, so everything stayed green.
+>       - **⭐ Part 2 — the drift relocates to the filter, and had to be closed too.**
+>         The practice builder's difficulty axis is chosen and counted **in the
+>         database** on `bi.difficulty`, so a student picked by the word and was then
+>         shown a band derived from the number. New SQL `nclex_difficulty_band()`
+>         (the §5.5.1 cut-offs) now drives both the filter predicate and the per-band
+>         counts, in the standalone *and* case-child branches of
+>         `_nclex_eligible_unit_pool` + `nclex_filter_breakdown`; count and attempt
+>         creation follow for free through the one gateway. ⚠ **The cut-offs now
+>         exist in two languages** — bound by a test that reads them out of the
+>         migration file and asserts they match the TypeScript, verified to bite.
+>         A generated column and TS-side numeric ranges were both considered and
+>         rejected (see §5.5.3).
+>       - **Dev backfill, not a migration:** 1,636 existing snapshot rows translated
+>         through the seed map by a one-off statement — prod has **zero** attempt
+>         rows, so a migration would be a permanent no-op there. 0 mistranslated;
+>         every other classification key byte-identical to a backup.
+>       - **Also fixed, pre-existing:** the readiness report's per-question map had
+>         **two** hardcoded `['Easy','Medium','Hard']` lists (grouping + filter
+>         dropdown) that had been silently dropping every Very easy / Very hard
+>         question since 10a's five bands shipped.
 >       - **⭐ Sam's simplification — `displayBand()` drops the source branch.** The
 >         student's band derives from `difficulty_irt` unconditionally. The seeds
 >         round-trip *exactly* (−2/−1/0/1/2 sit dead-centre of their bands, verified by

@@ -124,6 +124,49 @@ export async function reserveToCatPool(
     }
   }
 
+  // A case is not a pack member, but its CHILDREN can be — and reserving a
+  // case cascades `cat_pool` onto all six. The drawer's UI already greys
+  // these (queries.ts rolls child pack membership up into the wrapper's
+  // `readinessTagged`), so this is not a hole a curator can click through.
+  // What was missing is the SERVER-side re-check the item path above has —
+  // and that one exists for a stated reason: don't trust what the drawer
+  // displayed. A stale page, or a pack edited in another tab between load
+  // and submit, went straight through for cases. The UI rollup also counts
+  // only published children, so a pack member that is an unpublished child
+  // greys nothing.
+  //
+  // The database now refuses it outright (`nclex_cat_pool_seal_item`,
+  // migration 20260828120000) — that is the guarantee. This check exists so
+  // the curator gets a counted skip and a sentence they can act on, rather
+  // than a raw check_violation naming a child id they never selected.
+  //
+  // Runs BEFORE the placeability gate so a case failing both is skipped
+  // once, not twice.
+  const packCaseIds = byKind.get('case') ?? [];
+  if (packCaseIds.length) {
+    const { data: kids } = await supabase
+      .from('nclex_bank_items')
+      .select('item_id, parent_case_id')
+      .in('parent_case_id', packCaseIds);
+
+    const children = (kids ?? []) as { item_id: string; parent_case_id: string }[];
+    if (children.length) {
+      const { data: clash } = await supabase
+        .from('nclex_readiness_pack_items')
+        .select('item_id')
+        .in('item_id', children.map((k) => k.item_id));
+
+      const blockedKids = new Set((clash ?? []).map((r) => (r as { item_id: string }).item_id));
+      if (blockedKids.size) {
+        const blockedCases = new Set(
+          children.filter((k) => blockedKids.has(k.item_id)).map((k) => k.parent_case_id),
+        );
+        skipped += blockedCases.size;
+        byKind.set('case', packCaseIds.filter((id) => !blockedCases.has(id)));
+      }
+    }
+  }
+
   // A case whose children cannot all be placed is a case CAT will never
   // schedule, so reserving it adds nothing to the pool while adding six
   // questions to the target. The database no longer refuses this — the

@@ -119,12 +119,12 @@ interface Classification {
   client_needs_subcategory?: string;
   nursing_subject?:          string;
   body_system?:              string;
-  difficulty?:               string;
-  // §5.5 — the derived band uses these when the snapshot carries them.
-  // The create-attempt RPCs don't populate them yet (CAT Slice 10c), so
-  // today displayBand() falls back to the curator label above.
+  // §5.5.2b — the snapshot freezes the NUMBER, not the curator's word, so
+  // the shown band derives from the same value the engine selects on and
+  // cannot drift from it (CAT Slice 10d, migration 20260826120000).
+  // Optional because an item authored without a difficulty freezes none —
+  // displayBand() returns null and the pill renders nothing.
   difficulty_irt?:           number | null;
-  difficulty_source?:        string | null;
 }
 
 interface CommonProps {
@@ -168,14 +168,10 @@ export function RunnerQuestionArea(props: Props) {
   const { item } = props;
   const cls = (item.classification_snapshot ?? {}) as Classification;
   const subjectPill = cls.nursing_subject || cls.body_system;
-  // §5.5 — show the curator label while CURATOR_LABEL, the band derived
-  // from difficulty_irt once EMPIRICAL. displayBand is the single authority
-  // so the shown difficulty never drifts from what the engine uses.
-  const difficulty  = displayBand({
-    label:  cls.difficulty,
-    irt:    cls.difficulty_irt,
-    source: cls.difficulty_source,
-  });
+  // §5.5 — the band is derived from the frozen difficulty_irt, always.
+  // displayBand is the single authority, so the shown difficulty cannot
+  // drift from the number the engine actually uses.
+  const difficulty  = displayBand(cls.difficulty_irt);
 
   return (
     <div className="rn-q-wrap" data-coach="answerarea">
