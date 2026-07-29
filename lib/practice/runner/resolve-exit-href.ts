@@ -20,12 +20,28 @@ export type AttemptForExit = {
    *  than optional on purpose: every caller must state it, so a new call
    *  site can't silently inherit the Builder destination for a CAT. */
   mode:                  string | null;
+  /** The attempt's `filters_json`. Required for the same reason `mode` is:
+   *  a Case Study bank run is ALSO stored as CUSTOM_BUILT, and the only
+   *  thing distinguishing it is the `case_bank` marker in here. Callers
+   *  must state it so a new call site cannot silently send a case run back
+   *  to the practice Builder. */
+  filters_json:          unknown;
 };
+
+/** True when this attempt was launched from the Case Study bank. */
+function isCaseBankRun(filters: unknown): boolean {
+  return (
+    !!filters &&
+    typeof filters === 'object' &&
+    Object.prototype.hasOwnProperty.call(filters, 'case_bank')
+  );
+}
 
 /**
  * Resolves the Exit destination for any attempt. Mode first, then source.
  *
  *   • mode CAT           → /student/bank/cat
+ *   • case-bank run      → /student/bank/cases
  *   • CUSTOM_BUILT       → /student/bank/practice
  *   • PROGRAMME_ASSIGNED → prefer a cohort URL when a cohort has this
  *     activity in its checklist (Permissive v1 — any cohort is
@@ -47,6 +63,15 @@ export async function resolveAttemptExitHref(
   // topbar, the preflight Back, two runner pushes, and the results popup.
   if (attempt.mode === 'CAT') {
     return '/student/bank/cat';
+  }
+
+  // Checked before source for exactly the reason CAT is: a Case Study bank
+  // run is stored as CUSTOM_BUILT too (it is a student-built run, just
+  // built by picking cases rather than filters), so the branch below would
+  // claim it and exit to the practice Builder — again a surface they did
+  // not come from and cannot pick another case in.
+  if (isCaseBankRun(attempt.filters_json)) {
+    return '/student/bank/cases';
   }
 
   if (attempt.source === 'CUSTOM_BUILT') {
@@ -111,10 +136,14 @@ export async function resolveAttemptExitHref(
  * CUSTOM_BUILT, and the label has to name where the href actually goes.
  */
 export function exitBackLabel(
-  source: AttemptForExit['source'],
-  mode:   string | null,
+  source:  AttemptForExit['source'],
+  mode:    string | null,
+  filters?: unknown,
 ): string {
   if (mode === 'CAT') return '← Back to CAT home';
+  // Same ordering as the resolver — a case run reads as CUSTOM_BUILT, and
+  // the label has to name where the href actually goes.
+  if (isCaseBankRun(filters)) return '← Back to Case Studies';
   switch (source) {
     case 'CUSTOM_BUILT':       return '← Back to Practice';
     case 'PROGRAMME_ASSIGNED': return '← Back to curriculum';

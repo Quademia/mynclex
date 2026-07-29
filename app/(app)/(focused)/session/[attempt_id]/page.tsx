@@ -237,6 +237,7 @@ export default async function SessionPage({ params }: PageProps) {
     source:                attempt.source,
     programme_activity_id: attempt.programme_activity_id,
     mode:                  attempt.mode,
+    filters_json:          attempt.filters_json,
   });
 
   // Runner tutorial Slice 3c: the pre-exam walkthrough offer shows on the
