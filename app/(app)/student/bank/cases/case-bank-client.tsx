@@ -130,40 +130,45 @@ export function CaseBankClient({ rows }: { rows: CaseBankRow[] }) {
     <div className="cb-page">
       <ErrorToast error={error} onDismiss={() => setError(null)} />
 
+      {/* The top pane spans the full page width; the list and the run rail
+          split the space beneath it. The rail belongs to the list it is
+          built from, not to the page heading. */}
+      <header className="cb-head">
+        <div className="cb-eyebrow">Next Generation NCLEX</div>
+        <h1 className="cb-title">Case Studies</h1>
+        <p className="cb-lede">
+          Sit an unfolding case straight from the bank. Every case is six
+          questions across the clinical judgement steps — add a second for a
+          twelve-question run.
+        </p>
+
+        <div className="cb-controls">
+          <input
+            type="search"
+            className="cb-search"
+            placeholder="Search cases"
+            aria-label="Search cases"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <div className="cb-segment" role="group" aria-label="Filter by attempt state">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={`cb-seg-btn${filter === f.id ? ' on' : ''}`}
+                aria-pressed={filter === f.id}
+                onClick={() => setFilter(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
       <div className="cb-layout">
         <div className="cb-main">
-          <div className="cb-eyebrow">Next Generation NCLEX</div>
-          <h1 className="cb-title">Case Studies</h1>
-          <p className="cb-lede">
-            Sit an unfolding case straight from the bank. Every case is six
-            questions across the clinical judgement steps — add a second for a
-            twelve-question run.
-          </p>
-
-          <div className="cb-controls">
-            <input
-              type="search"
-              className="cb-search"
-              placeholder="Search cases"
-              aria-label="Search cases"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <div className="cb-segment" role="group" aria-label="Filter by attempt state">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  className={`cb-seg-btn${filter === f.id ? ' on' : ''}`}
-                  aria-pressed={filter === f.id}
-                  onClick={() => setFilter(f.id)}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {groups.length === 0 && (
             <p className="cb-empty">No cases match that search.</p>
           )}

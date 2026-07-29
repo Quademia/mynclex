@@ -14,6 +14,17 @@
   padding: 20px 20px 0;
 }
 
+/* ── The top pane ────────────────────────────────────────────────── */
+/* Full page width, with the list + rail splitting the space beneath it.
+ * The rule below it makes the band read as a pane rather than as text
+ * that happens to be wide. */
+
+.cb-head {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
 .cb-layout {
   display: flex;
   flex-wrap: wrap;
@@ -53,17 +64,20 @@
   margin: 0 0 16px;
 }
 
+/* Spacing below is the pane's own padding now, not the row's margin. */
 .cb-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-bottom: 14px;
 }
 
+/* Capped: the pane is now page-width, and a search field stretched across
+ * all of it is a lot of empty box for a one-word query. */
 .cb-search {
-  flex: 1 1 200px;
+  flex: 1 1 260px;
   min-width: 160px;
+  max-width: 420px;
   padding: 8px 11px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
