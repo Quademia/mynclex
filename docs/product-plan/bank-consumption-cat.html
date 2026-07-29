@@ -961,7 +961,7 @@
 </p>
 
 
-<h3>5.5 Student-facing difficulty band — derived from <code>difficulty_irt</code> <span class="status settled">settled 2026-07-26 · <code>displayBand()</code> built 2026-07-27 · §5.5.2 SUPERSEDED 2026-07-29 (derive always, no source branch) · dormant until the snapshot carries the number, §5.5.2b</span></h3>
+<h3>5.5 Student-facing difficulty band — derived from <code>difficulty_irt</code> <span class="status settled">settled 2026-07-26 · <code>displayBand()</code> built 2026-07-27 · §5.5.2 SUPERSEDED 2026-07-29 (derive always, no source branch) · <strong>LIVE 2026-07-29 — Slice 10d BUILT</strong> (snapshot carries the number, §5.5.2b; the practice-builder filter follows, §5.5.3)</span></h3>
 <p>
   <strong>The difficulty a student sees is derived from the empirical number, not the frozen curator label.</strong>
   The curator's Very easy … Very hard choice is the <em>seed</em> only (§5.1). Recalibration moves
@@ -1030,7 +1030,7 @@
   needs to know. It is only the <em>student's</em> pill that does not need the flag.
 </p>
 
-<h4>5.5.2b What the attempt snapshot carries <span class="status settled">settled 2026-07-29</span></h4>
+<h4>5.5.2b What the attempt snapshot carries <span class="status settled">settled 2026-07-29 · BUILT 2026-07-29 (Slice 10d) · two claims below corrected on contact with the code</span></h4>
 <p>
   The pill reads a <em>snapshot</em>, not the live bank row, so an attempt stays a faithful record of its own sitting
   (§11). <code>classification_snapshot</code> currently freezes <code>difficulty</code>, the curator's word — which
@@ -1039,10 +1039,9 @@
 </p>
 <ul>
   <li><strong>Store the number in place of the word</strong> — <code>difficulty_irt</code> replaces
-    <code>difficulty</code> in <code>classification_snapshot</code>. Not alongside: nothing else in the product reads
-    that word (verified — no SQL, no report, no analytics; the pill is the only reader), and for an unmeasured item
-    the number encodes the word exactly, while for a measured one the word is stale by definition.</li>
-  <li><strong>Six functions, one substitution each</strong> — <code>create_cat_attempt</code>,
+    <code>difficulty</code> in <code>classification_snapshot</code>. Not alongside: for an unmeasured item the number
+    encodes the word exactly, while for a measured one the word is stale by definition.</li>
+  <li><strong>Six functions, ten lines</strong> — <code>create_cat_attempt</code>,
     <code>cat_next_item</code>, <code>nclex_create_attempt</code>, <code>nclex_create_programme_attempt</code>,
     <code>nclex_create_readiness_attempt</code>, <code>nclex_create_standalone_quiz_attempt</code>. No new column, no
     change to <code>nclex_attempt_items</code>, no migration to the table itself.</li>
@@ -1051,6 +1050,25 @@
     what the arithmetic used. A CAT row will therefore hold the number twice. That is accepted rather than
     tolerated: both copies are written <em>in the same INSERT from the same variable</em>, so they cannot diverge —
     not "should not", cannot.</li>
+</ul>
+<p class="callout">
+  <strong>⭐ Two corrections from building it (2026-07-29).</strong> Both were found by checking rather than by
+  trusting this section, and neither would have been caught by <code>tsc</code> or the test suite — they are
+  optional-field runtime shapes, so everything stayed green and a human opening the page would have found them.
+</p>
+<ul>
+  <li><strong>"One substitution each" was ten lines, not six.</strong> A standalone question and a case child are
+    frozen by <em>two separate builders</em> inside both <code>nclex_create_attempt</code> and
+    <code>nclex_create_readiness_attempt</code>; and the two tutor-quiz paths need the record's
+    <code>SELECT</code> list widened as well as the snapshot changed. Missing the case-child branch would have left
+    every case question — six per case study — with a blank difficulty pill.</li>
+  <li><strong>"The pill is the only reader" was wrong — there were three.</strong> The claim above originally read
+    "nothing else in the product reads that word (verified — no SQL, no report, no analytics)". In fact the
+    <em>readiness-pack report</em> froze the word into every report row and fed it to a breakdown table, the
+    per-question detail, and a filter and grouping; and the runner tutorial's in-code fixtures carried the word, so
+    every pill in the public walkthrough would have gone blank. Both now derive the band, so the report and the
+    runner show the same word for the same question. The claim is true <em>now</em> — no SQL reads the snapshot's
+    difficulty at all — but it was not true when written.</li>
 </ul>
 <p>
   <strong>Then-and-now in review</strong> (optional, not required by the above): a review screen can show both the
@@ -1064,6 +1082,48 @@
   <li><strong>The CAT engine is unaffected by the band count.</strong> It reads the raw <code>difficulty_irt</code> number for selection and never buckets — going 3 → 5 bands is purely a human-facing display change.</li>
   <li><strong>Surfaces that become five-way:</strong> the curator authoring dropdown (§5.1), the student practice-builder difficulty filter, and any study-mode difficulty pill.</li>
 </ul>
+<p class="callout">
+  <strong>⭐ The relocated drift — closed 2026-07-29 (Slice 10d, part 2).</strong> Making the pill derive from the
+  number does not finish the job: the practice-builder's difficulty axis is <em>chosen and counted in the
+  database</em>, on <code>bi.difficulty</code>, the curator's word. So the two ends of one journey read two
+  different facts about the same question — the student picks by the word and is then shown a band derived from the
+  number. The day recalibration moves a question, ticking "Hard" hands them a question whose pill reads "Very hard".
+</p>
+<p>
+  That is <em>more</em> visible than the bug it replaced, not less. Before part 1 both ends read the stale word, so
+  they agreed with each other while both were wrong. A filter that disagrees with the label on the very question it
+  returned reads as a defect rather than as calibration.
+</p>
+<p>
+  Closed by a SQL function <code>nclex_difficulty_band()</code> holding the §5.5.1 cut-offs, used by both the filter
+  predicate and the per-band counts, in the standalone <em>and</em> case-child branches of
+  <code>_nclex_eligible_unit_pool</code> and <code>nclex_filter_breakdown</code>. Because the pool helper is the one
+  gateway every practice path funnels through, <code>nclex_count_eligible_items</code> and
+  <code>nclex_create_attempt</code> follow for free and cannot drift from what the builder previewed — the property
+  §20's enforcement (Slice 10b3) leaned on.
+</p>
+<p>
+  <strong>The cost, named rather than hidden:</strong> the cut-offs now exist in two languages —
+  <code>bandForIrt()</code> in TypeScript and <code>nclex_difficulty_band()</code> in SQL — which is the exact shape
+  of problem this section exists to remove. Two alternatives were rejected: a <em>stored generated column</em> (the
+  rule still lives in SQL, so the duplication relocates rather than disappears, and it adds a column §5.5.2b
+  deliberately avoided), and <em>sending numeric ranges from TypeScript</em> so the database never learns what
+  "Hard" means (cleanest for the filter, but the live per-band counts then need the five ranges passed in and
+  grouped by hand — half the surface gets worse to make the other half purer).
+</p>
+<p>
+  The two copies are instead bound by a test that reads the cut-offs out of the migration file and asserts they
+  equal the TypeScript ones, including the <em>asymmetric operators</em> (<code>≤</code> below zero,
+  <code>&lt;</code> above) where a boundary value is the one place they could silently part. Verified to bite:
+  moving one SQL cut-off to 1.6 fails it. Same move as §17.6's shared <code>estimateAbility</code> — not a rule
+  against divergence, a mechanism that makes divergence noisy.
+</p>
+<p>
+  <strong>Effect on dev at build time:</strong> of 807 questions in the practice pool, 3 change band and all three
+  <em>gain</em> one — they carry a number but no word, so the filter could not reach them before and did not count
+  them. None loses a band. The 268 bank rows whose word already disagrees with their number are almost all reserved
+  CAT stock, which practice excludes. Quiet now, load-bearing once recalibration has real data.
+</p>
 <p>
   <strong>Coarse-display note.</strong> Five bands is deliberately still coarse — a +0.6 and a +1.4 item both read
   "Hard". That is fine: the engine tells them apart by the raw number for selection; the band is only the human
