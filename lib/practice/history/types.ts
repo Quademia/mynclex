@@ -94,6 +94,15 @@ export interface HistoryRow {
   attempt: HistoryAttempt;
   /** Null when the sitting has no answer rows at all. */
   stats: AnswerStats | null;
+  /**
+   * Whether a readiness pack's 21-day ANSWER review window is still open.
+   * Null for anything that isn't a pack, and for a pack whose credit row
+   * can't be found.
+   *
+   * Only the answers expire — the pack's score and report last forever — so
+   * this gates the row's Review action and nothing else.
+   */
+  packReviewOpen: boolean | null;
 }
 
 export interface HistoryPage {

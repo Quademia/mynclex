@@ -10,8 +10,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   answeredDetail,
-  attemptHref,
-  attemptLinkLabel,
+  reportHref,
+  reportLinkLabel,
+  resumeHref,
+  reviewClosedForPack,
+  reviewHref,
   canDiscard,
   describeOutcome,
   sanitiseSearchTerm,
@@ -63,41 +66,74 @@ describe('sittingKind — a CAT is stored as CUSTOM_BUILT', () => {
   });
 });
 
-describe('attemptHref — each kind opens its OWN home', () => {
-  it('sends a finished CAT to its result page, never the runner', () => {
-    // ⭐ The defect this replaces: every row went to /session/[id], so
-    // "Review" on a 100-question CAT opened the runner at question 100.
-    expect(attemptHref(attempt({ ...CAT, attempt_id: 'c9' }))).toBe(
+describe('the row actions — the SAME pair on every finished sitting', () => {
+  // Previously one link whose destination depended on kind, so a pack and a
+  // CAT advertised their report while a practice quiz advertised the runner —
+  // leaving the practice report reachable only by clicking the result cell.
+
+  it('reports each kind to its own report page', () => {
+    expect(reportHref(attempt({ ...CAT, attempt_id: 'c9' }))).toBe(
       '/student/bank/cat/result/c9',
     );
-    expect(attemptLinkLabel(attempt(CAT))).toBe('CAT result');
-  });
-
-  it('sends a finished pack to its report', () => {
-    expect(attemptHref(attempt({ ...PACK, attempt_id: 'p3' }))).toBe(
+    expect(reportHref(attempt({ ...PACK, attempt_id: 'p3' }))).toBe(
       '/student/bank/packs/report/p3',
     );
-    expect(attemptLinkLabel(attempt(PACK))).toBe('Pack report');
+    expect(reportHref(attempt({ attempt_id: 'q7' }))).toBe(
+      '/student/bank/session/report/q7',
+    );
   });
 
-  it('sends a practice quiz to the runner in review — its only report', () => {
-    expect(attemptHref(attempt({ attempt_id: 'q7' }))).toBe('/session/q7');
-    expect(attemptLinkLabel(attempt())).toBe('Review');
+  it('labels the report link uniformly, since the Type pill says the kind', () => {
+    expect(reportLinkLabel()).toBe('Report');
   });
 
-  it('resumes an unfinished sitting of ANY kind in the runner', () => {
-    // A report page for a sitting with no result would have nothing on it.
+  it('offers review of the answers for all three kinds', () => {
     for (const over of [{}, CAT, PACK]) {
-      const row = attempt({ ...over, status: 'IN_PROGRESS', attempt_id: 'z1' });
-      expect(attemptHref(row)).toBe('/session/z1');
-      expect(attemptLinkLabel(row)).toBe('Resume');
+      expect(reviewHref(attempt({ ...over, attempt_id: 'z1' }), true)).toBe('/session/z1');
     }
   });
 
-  it('gives a discarded sitting no link at all', () => {
+  it('⭐ withholds review on a pack whose 21-day window has CLOSED', () => {
+    // /session/[id] redirects an expired pack to its report, so offering
+    // Review there would be a link that bounces — the same defect the
+    // dashboard rail carried.
+    const row = attempt({ ...PACK, attempt_id: 'p9' });
+    expect(reviewHref(row, false)).toBeNull();
+    expect(reviewClosedForPack(row, false)).toBe(true);
+  });
+
+  it('⭐ treats an UNKNOWN pack window as closed, mirroring the runner', () => {
+    // The runner does reviewWindowOpen(credit?.expires_at ?? null), so a
+    // MISSING credit row is expired to it. Measured on dev: most pack
+    // attempts have no credit row at all, so a permissive default here would
+    // have offered Review on nearly every pack row and bounced every one.
+    const row = attempt({ ...PACK, attempt_id: 'p9' });
+    expect(reviewHref(row, null)).toBeNull();
+    expect(reviewClosedForPack(row, null)).toBe(true);
+  });
+
+  it('never applies the pack window to a practice quiz or a CAT', () => {
+    expect(reviewHref(attempt({ attempt_id: 'q1' }), false)).toBe('/session/q1');
+    expect(reviewHref(attempt({ ...CAT, attempt_id: 'c1' }), false)).toBe('/session/c1');
+    expect(reviewClosedForPack(attempt(), false)).toBe(false);
+  });
+
+  it('offers only Resume while a sitting of any kind is unfinished', () => {
+    // A report for a sitting with no result would have nothing on it.
+    for (const over of [{}, CAT, PACK]) {
+      const row = attempt({ ...over, status: 'IN_PROGRESS', attempt_id: 'z1' });
+      expect(resumeHref(row)).toBe('/session/z1');
+      expect(reportHref(row)).toBeNull();
+      expect(reviewHref(row, true)).toBeNull();
+    }
+  });
+
+  it('gives a discarded sitting nothing at all', () => {
     const row = attempt({ status: 'ABANDONED' });
-    expect(attemptHref(row)).toBeNull();
-    expect(attemptLinkLabel(row)).toBeNull();
+    expect(resumeHref(row)).toBeNull();
+    expect(reportHref(row)).toBeNull();
+    expect(reviewHref(row, true)).toBeNull();
+    expect(reviewClosedForPack(row, false)).toBe(false);
   });
 });
 

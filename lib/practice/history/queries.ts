@@ -24,6 +24,7 @@ import {
 } from '@/lib/practice/builder/filter-config';
 import type { FilterPayload } from '@/lib/practice/builder/types';
 import { sanitiseSearchTerm } from './derive';
+import { reviewWindowOpen } from '@/lib/payments/readiness-window';
 import type {
   AnswerStats,
   AttemptSource,
@@ -188,6 +189,42 @@ async function getAnswerStats(
 }
 
 /**
+ * Whether each readiness pack row's ANSWER review window is still open.
+ *
+ * The row offers Review only while it is, because `/session/[id]` redirects a
+ * pack to its report once `expires_at` has passed — so advertising Review on
+ * an old pack would be a link that bounces, the same defect the dashboard rail
+ * carried. Only the answers expire; the score and the report are permanent.
+ *
+ * One query, and only when the page actually holds a pack row. RLS scopes the
+ * credits table to the owner, as it does the attempts themselves.
+ */
+async function getPackReviewWindows(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  attempts: HistoryAttempt[],
+): Promise<Map<string, boolean>> {
+  const out = new Map<string, boolean>();
+  const packIds = attempts
+    .filter((a) => a.source === 'READINESS_PACK')
+    .map((a) => a.attempt_id);
+  if (packIds.length === 0) return out;
+
+  const { data, error } = await supabase
+    .from('nclex_readiness_credits')
+    .select('attempt_id, expires_at')
+    .in('attempt_id', packIds);
+
+  if (error || !data) return out;
+
+  for (const r of data as unknown as Array<Record<string, unknown>>) {
+    const id = r.attempt_id as string | null;
+    if (!id) continue;
+    out.set(id, reviewWindowOpen(r.expires_at as string | null));
+  }
+  return out;
+}
+
+/**
  * One page of the directory, plus the true totals.
  *
  * Two counts are returned because an empty page has two very different
@@ -260,11 +297,15 @@ export async function getHistoryPage(query: HistoryQuery): Promise<HistoryPage> 
       ? []
       : (data as unknown as Array<Record<string, unknown>>).map(toAttempt);
 
-  const stats = await getAnswerStats(supabase, attempts);
+  const [stats, packWindows] = await Promise.all([
+    getAnswerStats(supabase, attempts),
+    getPackReviewWindows(supabase, attempts),
+  ]);
 
   const rows: HistoryRow[] = attempts.map((attempt) => ({
     attempt,
     stats: stats.get(attempt.attempt_id) ?? null,
+    packReviewOpen: packWindows.get(attempt.attempt_id) ?? null,
   }));
 
   // Cheap (head-only) and only needed to phrase the empty state.

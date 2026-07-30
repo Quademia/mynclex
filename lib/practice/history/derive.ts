@@ -147,45 +147,77 @@ export function answeredDetail(
   return `${stats.answered} of ${stats.served} answered`;
 }
 
-/**
- * Where this row opens.
- *
- * ⭐ This is the fix that matters most. Sending every row to
- * /session/[id] is what made "Review" open a 100-question CAT at its
- * LAST question. A pack sitting and a CAT sitting already have permanent
- * homes — their report and their result page — so they go there. Only a
- * practice quiz opens the runner, because the runner in review mode is
- * the only report it has today.
- *
- * Null for a discarded sitting: it was thrown away, there is nothing to
- * open, and a dead link is worse than no link.
- */
-export function attemptHref(row: HistoryAttempt): string | null {
-  if (row.status === 'ABANDONED') return null;
+// ── Row actions ───────────────────────────────────────────────
+//
+// A finished sitting offers TWO, uniformly across all three kinds: its
+// REPORT, and REVIEW of the answers. They are genuinely different
+// destinations and a student wants one or the other, so collapsing them into
+// one link meant guessing which.
+//
+// It used to be a single action whose destination depended on kind — the
+// report for a pack and a CAT, the runner for a practice quiz. Which left the
+// practice report reachable only by clicking the result cell, i.e. not
+// discoverable, while the other two advertised theirs plainly.
 
-  switch (sittingKind(row)) {
-    case 'CAT':
-      // An unfinished CAT has no result page yet — resume it instead.
-      if (row.status === 'IN_PROGRESS') return `/session/${row.attempt_id}`;
-      return `/student/bank/cat/result/${row.attempt_id}`;
-    case 'PACK':
-      if (row.status === 'IN_PROGRESS') return `/session/${row.attempt_id}`;
-      return `/student/bank/packs/report/${row.attempt_id}`;
-    case 'PRACTICE':
-      return `/session/${row.attempt_id}`;
-  }
+/** Pick up an unfinished sitting. Null once it is finished or discarded. */
+export function resumeHref(row: HistoryAttempt): string | null {
+  return row.status === 'IN_PROGRESS' ? `/session/${row.attempt_id}` : null;
 }
+
+/**
+ * Walk the answers in the runner's review mode.
+ *
+ * Null when there is nothing to review yet (unfinished — that is Resume's
+ * job), when the sitting was discarded, or — the one asymmetric case — when a
+ * readiness pack's answer-review window has closed.
+ *
+ * ⚠ THE PACK WINDOW IS LOAD-BEARING. `/session/[id]` reads the pack's
+ * `expires_at` and redirects to the pack report once it is past, so offering
+ * Review on an old pack row would produce exactly the bounce link the
+ * dashboard rail was fixed for an hour earlier. A pack's SCORE lasts forever;
+ * only its answers expire.
+ *
+ * @param packReviewOpen for a pack, ONLY an explicit `true` opens review.
+ *   Null and false are both closed — mirroring the runner, which does
+ *   `reviewWindowOpen(credit?.expires_at ?? null)` and so treats a MISSING
+ *   credit row as expired. ⚠ Measured on dev: most pack attempts have no
+ *   credit row linked at all, so a permissive default here would have offered
+ *   Review on nearly every pack row and bounced every one of them. Fail
+ *   closed, and let the report — which is permanent — carry the sitting.
+ */
+export function reviewHref(
+  row: HistoryAttempt,
+  packReviewOpen: boolean | null,
+): string | null {
+  if (row.status === 'ABANDONED' || row.status === 'IN_PROGRESS') return null;
+  if (sittingKind(row) === 'PACK' && packReviewOpen !== true) return null;
+  return `/session/${row.attempt_id}`;
+}
+
+/** True when Review is missing BECAUSE the pack window closed, as opposed to
+ *  simply not applying. The row then shows a disabled control with a reason
+ *  rather than silently dropping the option, so the rule is learnable. */
+export function reviewClosedForPack(
+  row: HistoryAttempt,
+  packReviewOpen: boolean | null,
+): boolean {
+  return (
+    sittingKind(row) === 'PACK' &&
+    packReviewOpen !== true &&
+    row.status !== 'IN_PROGRESS' &&
+    row.status !== 'ABANDONED'
+  );
+}
+
+export const REVIEW_CLOSED_REASON =
+  'The 21-day answer review window for this pack has closed — its report stays available.';
 
 /**
  * The permanent REPORT for this sitting, when it has one.
  *
- * All three kinds now do — a practice quiz got its own report page, so the
- * Result cell can be a link to a debrief instead of dead text. Null while a
- * sitting is unfinished or discarded: there is nothing to report yet.
- *
- * Distinct from attemptHref(), which is the "open it" action: for a practice
- * quiz the report and the runner are two different destinations, and the row
- * offers both (Result → report, Review → the runner).
+ * All three kinds now do, since a practice quiz got its own report page —
+ * which is what let the row settle on one uniform pair of actions. Null while
+ * a sitting is unfinished or discarded: there is nothing to report yet.
  */
 export function reportHref(row: HistoryAttempt): string | null {
   if (row.status === 'ABANDONED' || row.status === 'IN_PROGRESS') return null;
@@ -197,16 +229,17 @@ export function reportHref(row: HistoryAttempt): string | null {
   }
 }
 
-/** What that destination is, so the link doesn't promise the wrong thing. */
-export function attemptLinkLabel(row: HistoryAttempt): string | null {
-  if (row.status === 'ABANDONED') return null;
-  if (row.status === 'IN_PROGRESS') return 'Resume';
-
-  switch (sittingKind(row)) {
-    case 'CAT':      return 'CAT result';
-    case 'PACK':     return 'Pack report';
-    case 'PRACTICE': return 'Review';
-  }
+/**
+ * What to call the report link.
+ *
+ * Uniform "Report" rather than each page's own name ("CAT result", "Pack
+ * report"): the actions now sit in a fixed pair on every row, and a column
+ * where the same position reads three different words is harder to scan than
+ * one that always says the same thing. The row's Type pill already says which
+ * kind of sitting it is.
+ */
+export function reportLinkLabel(): string {
+  return 'Report';
 }
 
 /**

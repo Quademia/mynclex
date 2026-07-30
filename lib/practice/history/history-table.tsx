@@ -28,11 +28,14 @@ import type {
 import { formatDuration, formatRelativeDate, rowTimestamp } from './format';
 import {
   answeredDetail,
-  attemptHref,
-  attemptLinkLabel,
   canDiscard,
   describeOutcome,
   reportHref,
+  reportLinkLabel,
+  REVIEW_CLOSED_REASON,
+  resumeHref,
+  reviewClosedForPack,
+  reviewHref,
   sittingKind,
   sittingKindLabel,
   sittingSummary,
@@ -89,11 +92,10 @@ function ResultCell({ row }: { row: HistoryRow }) {
 
   if (!outcome) return <span className="hist-result-none">—</span>;
 
-  // The result is the way IN to the sitting's own report — every kind has one
-  // now that a practice quiz does. The Review link stays as the second
-  // action, so the row offers the debrief and the answers separately.
-  const href = reportHref(row.attempt);
-  const label = (
+  // Plain text, not a link. The report has its own labelled button now, and
+  // two links to one destination in a single row is noise — it was the
+  // unlabelled one that made the practice report hard to find at all.
+  return (
     <>
       <span className={`hist-outcome hist-outcome-${outcome.tone}`}>
         {outcome.label}
@@ -101,35 +103,68 @@ function ResultCell({ row }: { row: HistoryRow }) {
       {detail && <span className="hist-result-detail">{detail}</span>}
     </>
   );
-
-  if (!href) return label;
-  return (
-    <Link className="hist-result-link" href={href}>
-      {label}
-    </Link>
-  );
 }
 
+/**
+ * The row's actions — the same pair on every finished sitting, whatever kind
+ * it is: its REPORT, and REVIEW of the answers.
+ *
+ * Previously a single link whose destination depended on kind, which meant a
+ * pack and a CAT advertised their report while a practice quiz advertised the
+ * runner — so the practice report was reachable only by clicking the result,
+ * i.e. not discoverable.
+ */
 function ActionCell({ row }: { row: HistoryRow }) {
-  const href = attemptHref(row.attempt);
-  const label = attemptLinkLabel(row.attempt);
+  const resume = resumeHref(row.attempt);
+  if (resume) {
+    return (
+      <>
+        <Link className="hist-action-link" href={resume}>
+          Resume →
+        </Link>
+        {/* Only ever on an unfinished practice row — canDiscard mirrors the
+            database function, so the button is never offered for something
+            the database would then refuse. */}
+        {canDiscard(row.attempt) && (
+          <DiscardButton
+            attemptId={row.attempt.attempt_id}
+            sessionLabel={sittingSummary(row.attempt)}
+          />
+        )}
+      </>
+    );
+  }
 
-  if (!href || !label) {
+  const report = reportHref(row.attempt);
+  if (!report) {
+    // Discarded: nothing to open, and a dead link is worse than no link.
     return <span className="hist-action-empty">discarded</span>;
   }
+
+  const review = reviewHref(row.attempt, row.packReviewOpen);
+  const reviewClosed = reviewClosedForPack(row.attempt, row.packReviewOpen);
+
   return (
     <>
-      <Link className="hist-action-link" href={href}>
-        {label} →
+      <Link className="hist-action-link" href={report}>
+        {reportLinkLabel()} →
       </Link>
-      {/* Only ever on an unfinished practice row — canDiscard mirrors the
-          database function, so the button is never offered for something
-          the database would then refuse. */}
-      {canDiscard(row.attempt) && (
-        <DiscardButton
-          attemptId={row.attempt.attempt_id}
-          sessionLabel={sittingSummary(row.attempt)}
-        />
+      {review ? (
+        <Link className="hist-action-link hist-action-second" href={review}>
+          Review →
+        </Link>
+      ) : (
+        // A closed pack window is STATED, not silently dropped — otherwise the
+        // student just sees an option their other rows have and this one
+        // doesn't, with no way to learn why.
+        reviewClosed && (
+          <span
+            className="hist-action-link hist-action-second is-off"
+            title={REVIEW_CLOSED_REASON}
+          >
+            Review closed
+          </span>
+        )
       )}
     </>
   );
@@ -342,10 +377,12 @@ export function HistoryTable({
       )}
 
       <p className="hist-note">
-        <strong>Note.</strong> Unfinished sessions pick up where you left
-        off. A practice quiz opens in review; a readiness pack opens its
-        report and a CAT its result page. Time is only shown for sessions
-        recorded after per-question timing was added.
+        <strong>Note.</strong> Every finished session has a{' '}
+        <strong>Report</strong> — a permanent debrief — and{' '}
+        <strong>Review</strong>, which walks your answers. Unfinished sessions
+        pick up where you left off. A readiness pack&apos;s answers can only be
+        reviewed for 21 days; its report stays for good. Time is only shown for
+        sessions recorded after per-question timing was added.
       </p>
     </div>
   );

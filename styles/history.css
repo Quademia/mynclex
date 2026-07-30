@@ -394,16 +394,29 @@
 /* An absent value, not a zero. */
 .hist-bank .hist-result-none { color: var(--text-faint); font-weight: 400; }
 
-/* The result is a link to the sitting's own report. Styled as text, not as a
- * link — the cell's job is to state the outcome; being clickable is a bonus
- * the underline-on-hover reveals. Colouring it accent would fight the
- * outcome tone, which is the thing carrying meaning here. */
-.hist-bank .hist-result-link {
-  color: inherit;
-  text-decoration: none;
-  display: inline-block;
+/* ─── The action pair ────────────────────────────────
+ * Every finished row offers the same two: its report, and review of the
+ * answers. Stacked rather than side by side so the column stays narrow — see
+ * the column-width note above; side-by-side actions were what starved the
+ * Session column.
+ */
+.hist-bank .hist-action-second {
+  display: block;
+  margin-top: 4px;
+  font-weight: 400;
+  color: var(--text-muted);
 }
-.hist-bank .hist-result-link:hover .hist-outcome { text-decoration: underline; }
+.hist-bank .hist-action-second:hover { color: var(--accent); }
+
+/* A pack whose 21-day answer window has closed. Stated, not hidden: the
+ * option exists on every other row, so its absence needs a reason. Not a
+ * link, and the title carries the explanation. */
+.hist-bank .hist-action-link.is-off {
+  color: var(--text-faint);
+  cursor: default;
+  text-decoration: none;
+}
+.hist-bank .hist-action-link.is-off:hover { color: var(--text-faint); }
 
 .hist-bank .hist-time {
   font-variant-numeric: tabular-nums;
@@ -582,6 +595,16 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     font-size: 13px;
+  }
+
+  /* Report and Review sit SIDE BY SIDE on a phone: the card is full width so
+     there is room, and two stacked full-width buttons read as a form. (On
+     desktop they stack, because that column is deliberately narrow — see the
+     column-width note.) Stated explicitly rather than left to cascade order. */
+  .hist-bank .hist-action-cell .hist-action-second {
+    display: inline-block;
+    margin-top: 0;
+    margin-left: 8px;
   }
 
   /* On a phone the pair sits side by side — the card is full width, there
