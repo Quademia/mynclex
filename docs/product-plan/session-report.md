@@ -13,7 +13,7 @@ directory, discard, the report in three slices, and the uniform row actions)
 
 ## Status
 
-**Built. On the session branch, merged to `main` 2026-07-30. NOT on `prod`.**
+**Built and RELEASED TO PROD** 2026-07-30 (PR [#44](https://github.com/QAcademy-Nurses/mynclex/pull/44), `b8c7e82`). Live for users.
 
 One migration, dev-applied:
 

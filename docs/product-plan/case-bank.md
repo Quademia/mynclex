@@ -12,7 +12,7 @@ attempt history, two access fixes, and the nav/dashboard rearrangement)
 
 ## Status
 
-**Built. On the session branch, merged to `main` 2026-07-30. NOT on `prod`.**
+**Built and RELEASED TO PROD** 2026-07-30 (PR [#44](https://github.com/QAcademy-Nurses/mynclex/pull/44), `b8c7e82`). Live for users.
 
 Three migrations, all dev-applied:
 

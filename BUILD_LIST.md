@@ -1,17 +1,23 @@
 # MyNclex Build List
 
-> ## ⏭ NEXT SESSION: **release `main` → `prod`**, then marking
+> ## ⏭ NEXT SESSION: **build marking** (Sam's pick, 2026-07-30)
 >
-> ### ⚠ PROD IS ELEVEN COMMITS BEHIND, with five migrations un-applied
+> The write path for `nclex_question_marks` — see the ⚠ section below for why
+> it is the highest-value small piece: every consumer is already wired, so this
+> both fixes a Builder filter that has never been able to match a question and
+> unblocks three designed elements of the session report.
 >
-> `origin/prod` is `e636665` (2026-07-29). Missing: the whole **case-bank arc**
-> (`20260829120000`, `20260830120000`, `20260831120000`) and this session's
-> **History + Session Report** arc (`20260901120000`). None of it is in front of
-> users. The gap grows every session — worth clearing before it needs untangling.
+> ### ✅ RELEASED TO PROD 2026-07-30 — prod is CURRENT
 >
-> After that, **marking** — see the ⚠ below. It is small, it unblocks three
-> designed elements of the session report, and it fixes a Builder filter that
-> has never been able to match a question.
+> `origin/prod` is **`b8c7e82`** (PR
+> [#44](https://github.com/QAcademy-Nurses/mynclex/pull/44)). Both workflows
+> green; tracker 145 → **149 rows**, newest `20260901120000`. The **case-bank**
+> arc and the **History + Session Report** arc are both live for users.
+>
+> ⚠ **Nobody has clicked through either arc on the prod deployment.** Dev was
+> verified thoroughly; prod has only been probed (landing 200, authed routes
+> 307). Also expect the case bank to look sparse there — 7 published-complete
+> cases against dev's 93. That is content supply, not a fault.
 >
 > ---
 >
@@ -21,7 +27,7 @@
 > Builder-built practice sitting, plus **`/student/bank/history`** rebuilt as the
 > directory that indexes every sitting. **9 commits, one migration**
 > (`20260901120000_discard_attempt.sql`), dev-applied; vitest **648 → 739**.
-> **On `main`, NOT prod.** Full write-up: **`docs/product-plan/session-report.md`**.
+> **RELEASED TO PROD** 2026-07-30 (PR #44, `b8c7e82`). Full write-up: **`docs/product-plan/session-report.md`**.
 > This closes **slice 7.1** below.
 >
 > - **⭐ The shape is Sam's.** I proposed putting practice detail *inside*
