@@ -2265,6 +2265,15 @@
   font-variant-numeric: tabular-nums;
 }
 .rn-strip-time .glyph { color: var(--text-muted); }
+/* How other students did. Dotted underline + help cursor because the
+ * hover sentence is where the population is named — the visible text is
+ * two numbers and cannot say who they are of. */
+.rn-strip-others {
+  border-bottom: 1px dotted var(--text-muted);
+  cursor: help;
+  font-variant-numeric: tabular-nums;
+}
+.rn-strip-others strong { color: var(--text); font-weight: 700; }
 
 @media (max-width: 768px) {
   /* margin-left:auto strands the time on its own line once the row has
