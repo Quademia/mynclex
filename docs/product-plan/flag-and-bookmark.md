@@ -1,6 +1,8 @@
 # Flag and Bookmark
 
-**Status:** designed, not built. Settled with Sam 2026-07-30.
+**Status:** ✅ **BUILT — all five slices, 2026-07-30.** On `main`, not yet on
+prod (migration `20260902120000` is dev-applied and ships with the next
+release). Designed and built the same day, with Sam.
 **Supersedes:** `bank-consumption-runner.html` §14 "Mark-for-review" (tagged
 *skeleton*, TBD on UI placement, icon design, and re-attempt behaviour — all
 three are answered here).
@@ -371,9 +373,9 @@ missing piece (§7.2).
 
 ## 7. Open and deferred
 
-### 7.1 ⚠ Open: does Timed Sequential get a flag?
+### 7.1 ✅ SETTLED: Timed Sequential gets no flag
 
-The only mode-level question not settled.
+Sam, 2026-07-30. Built that way.
 
 - **Against:** it is strict-forward with no grid, so you can never return —
   which is the flag's stated purpose, and the same reasoning that excludes CAT.
@@ -381,8 +383,10 @@ The only mode-level question not settled.
   forward-only sitting means *"show me this in my review afterwards"* — a real
   use that only exists because of the storage decision.
 
-**Recommendation: hide it**, consistent with CAT and with the definition Sam
-gave. Revisit if students ask for it.
+**Hidden**, consistent with CAT and with the definition Sam gave. The rule
+collapses to one sentence — *can you get back to the question?* — which lands
+on exactly the same set as grid availability. Not a coincidence: the grid is
+HOW you come back. If one is ever changed, look hard at the other.
 
 ### 7.2 Deferred, with the reason
 
@@ -405,19 +409,55 @@ When this ships the tutorial needs **two** steps, not one, and its recap line
 (*"counter, clock and hide toggle, mark for review, calculator, grid toggle"*)
 needs rewording. The tutorial is **public and on prod** — this is user-visible.
 
-### 7.4 Returns to the session report when this lands
+### 7.4 ⭐ The report shows BOOKMARKS, and no flag at all (Sam, 2026-07-30)
 
-Three elements of CD's design were deliberately absent because nothing wrote
-marks (`session-report.md` §6). Two of the three are **flag**, not bookmark:
+Three elements of CD's design were absent because nothing wrote marks
+(`session-report.md` §6). This section first planned to restore all three as
+**flag** readings. Sam rejected that outright, and he was right.
+
+**His question was: what if I flagged questions during the attempt but
+unflagged them all before submitting?** Answer: the report shows nothing —
+correct, but it exposes that the flag is a *weak* signal here, failing in both
+directions:
+
+- **flagged but fine** — you flagged it, worked it out, got it right, never
+  tidied up. That is the common case; most people do not unflag.
+- **unflagged but still lost** — his scenario. The diligent student who clears
+  their flags leaves no trace of where they struggled.
+
+⚠ **And it exposed an over-claim of mine.** I had written *"you flagged 6
+questions during this sitting"* in this doc, a column comment and two commit
+messages. Unflagging **deletes** the state, so the report can only ever see
+the position **at submit**. The data never supported that sentence.
+
+**Sam's replacement:** show what is **still bookmarked at the time the report
+is viewed**. A bookmark is deliberate and durable — you would have to actively
+remove it to make the statement false — so reading it live is what makes it
+honest. It is also the only signal on the page that is **actionable**: it feeds
+the Builder's Bookmarked pool, so the action can serve those questions back.
+
+Built as three surfaces:
 
 | Element | Reads |
 |---|---|
-| "N questions you flagged" fix-list item | flag |
-| flagged ring on the question map | flag |
-| filter chip on the per-question table | flag |
+| "N of these are still bookmarked" fix-list entry, ranked **first** | bookmark, live |
+| "Bookmarked" filter chip on the per-question table | bookmark, live |
+| inline star toggle per row | bookmark, live |
 
-Reconfirm against the CD design when building — all three were specified
-before the split existed.
+Ranked first because **the student's own stated intent outranks our inference
+about them**. Hidden entirely at zero.
+
+⚠ **The wording rule is now a test.** Bookmarks have no attempt scoping, so one
+may have been set months ago in a different sitting. Copy must say *"still
+bookmarked"* and never *"you bookmarked these here"* — the same class of
+over-claim the flag was rejected for. `derive.test.ts` fails if someone later
+writes the friendlier-sounding wrong thing.
+
+**One rule was bent to make it work.** Builder deep links force the pool to
+UNSEEN so practice serves fresh questions — but a bookmark is the student
+saying the opposite in as many words, so `pool=marked` is honoured. Narrow on
+purpose: that value only, and content axes are *not* combined with it.
+INCORRECT stays off-limits from a link.
 
 ---
 
@@ -425,16 +465,21 @@ before the split existed.
 
 | Piece | State |
 |---|---|
-| `nclex_question_marks` table + indexes + RLS | ✅ built, unchanged |
-| Bookmark read path in `_nclex_eligible_unit_pool` | ✅ built, correct, no change |
-| Builder pool chip | ✅ wired — needs relabelling only |
-| Grid marked-state encoding (border channel) | ✅ designed and built |
-| Grid filter chip | ✅ wired — needs relabelling only |
-| Runner topbar button | ⚠ present but `disabled` |
-| **Flag column on `nclex_attempt_items`** | ❌ |
-| **Flag toggle RPC** | ❌ |
-| **Bookmark write/delete from the runner** | ❌ |
-| **Tutorial steps** | ❌ (§7.3) |
+| `nclex_question_marks` table + indexes + RLS | ✅ pre-existing, unchanged |
+| Bookmark read path in `_nclex_eligible_unit_pool` | ✅ pre-existing, correct, never touched |
+| Grid marked-state encoding (border channel) | ✅ pre-existing |
+| Builder pool chip | ✅ relabelled **Bookmarked** |
+| Grid filter chip + legend | ✅ relabelled **Flagged** |
+| Runner topbar — dead ⚑ Mark button | ✅ **removed** |
+| Bookmark control + write/delete | ✅ slice 1 |
+| Flag column on `nclex_attempt_items` | ✅ slice 2 (`20260902120000`) |
+| Flag toggle RPC | ✅ slice 2 |
+| Flag control, grid wiring, review-frozen | ✅ slice 3 |
+| Report: still-bookmarked + inline toggle | ✅ slice 4 |
+| Tutorial steps + sandbox controls | ✅ slice 5 |
+
+⚠ **Not on prod.** The migration is dev-applied and committed; it ships with
+the next `main → prod` release, which applies migrations automatically.
 
 ---
 
@@ -473,16 +518,46 @@ before the split existed.
 
 ---
 
-## 11. Build slices
+## 11. Build slices — ✅ ALL FIVE BUILT (2026-07-30)
 
-Five slices. **Bookmark goes first** — it needs no migration and no RPC, and it
-closes a filter that has never once matched a question. Flag needs schema work
-and fixes nothing currently broken, because there is no flag today and nobody
-misses it. Value per unit of risk favours bookmark.
+| | Slice | Commit | Verified |
+|---|---|---|---|
+| 1 | Bookmark, end to end | `9ff71ef` | Sam, live |
+| 2 | Flag storage + RPC | `2720bcc` | 12 checks under rollback |
+| 3 | Flag in runner + grid | `4138efd` | Sam, live |
+| 4 | Report: still-bookmarked | `4d33b3c` | ⚠ not clicked |
+| 5 | Tutorial + vocabulary | `fc35739` | ⚠ coach copy not clicked |
 
-Each slice is independently testable and independently mergeable.
+vitest **739 → 784**. One migration. Bookmark went first because it needed no
+migration and no RPC, and closed a filter that had never once matched a
+question; the flag needed schema work and fixed nothing that was broken.
 
-### Slice 1 — Bookmark, end to end · *no migration*
+**What the build changed about the plan**, recorded because the reasons
+outlived the decisions:
+
+- **§3.4 gained a third exclusion — tutor quizzes.** The practice pool reads
+  `nclex_bank_items` only, so a bookmarked TUTOR question is exactly as
+  unservable as a reserved one. A consequence of the rule, not a new rule,
+  but the doc had not noticed the pool was bank-only.
+- **§7.4 was rewritten by Sam.** The report shows no flag at all; it shows
+  **still-bookmarked**, read live. See §7.4.
+- **Slice 5 was bigger than planned.** The sandbox *hid* both controls, so the
+  walkthrough could not teach them — teaching them meant making the sandbox
+  render them with local-only state.
+
+⚠ **Two silent breakages, both caught, both now guarded by tests:**
+
+1. **`COACH_SECTIONS` holds raw indices into `COACH_STEPS`.** Inserting the two
+   tutorial steps misaligned every section below them — jump menu one topic
+   off, tsc clean, all tests passing. Now pinned to step titles.
+2. **The coach's gate check was `s.gate === 'calc' ? calcOpen : currentSubmitted`.**
+   Anything not `'calc'` fell through to the submit gate, so adding `'flag'`
+   would have gated the flag step on *submitting*. Now an exhaustive switch.
+
+Both are the same shape as the defects this project keeps finding: correct
+types, green tests, wrong behaviour.
+
+### ✅ Slice 1 — Bookmark, end to end · *no migration*
 
 The whole of bookmarking. Nothing in the database changes.
 
@@ -505,7 +580,7 @@ delete it in this slice** and reintroduce it as Flag in slice 3. It is
 **Done when:** a student bookmarks a question, builds a new quiz filtered to
 Bookmarked, and is served it — the first time that filter has ever worked.
 
-### Slice 2 — Flag storage · *migration + RPC, no UI*
+### ✅ Slice 2 — Flag storage · *migration + RPC, no UI*
 
 - Migration: flag column on `nclex_attempt_items`.
 - `SECURITY DEFINER` toggle RPC (§2.3): verifies attempt ownership, refuses
@@ -518,7 +593,7 @@ Bookmarked, and is served it — the first time that filter has ever worked.
 **Done when:** the RPC is proven on real rows in a rolled-back transaction and
 the migration file is md5-identical to the deployed body.
 
-### Slice 3 — Flag in the runner and grid · *needs §7.1 answered first*
+### ✅ Slice 3 — Flag in the runner and grid
 
 - Topbar **Flag** control, wired to slice 2's RPC.
 - Load the attempt's flags, keyed by `attempt_item_id` — **starts empty every
@@ -536,7 +611,7 @@ starting; the recommendation is no.
 grid and review, and shows **unflagged** in a later sitting containing the same
 question. That single test proves the split works.
 
-### Slice 4 — The session report gains flag readings
+### ✅ Slice 4 — The session report gains a study-list reading
 
 The payoff, and the reason marking was worth building. Three CD elements return
 (§7.4) — all three read **flag**, not bookmark:
