@@ -1,5 +1,60 @@
 # MyNclex Build List
 
+> ## ✅ DONE 2026-07-30 — the **review scoring strip**
+>
+> **On `main`.** Doc: **`docs/product-plan/scoring-strip.md`**. **7 commits,
+> one migration** (`20260903120000_item_response_stats.sql`), dev-applied;
+> vitest **784 → 848**; tsc at the known `scoring-roundtrip` errors.
+> ⚠ **Not on prod** — the migration ships with the next release.
+> Built from Sam's Claude Design prototype, *"Runner Review Scoring Line"*.
+>
+> - **⭐ The headline fix was not the new figures.** The rationale header
+>   read `Rationale · wrong` off `is_correct`, which is **full-credit-only
+>   by design** — so a student scoring 2 of 3 was told "wrong" with
+>   "2 / 3" beside it. **199 of 715 dev answers (28%) are partial**, so
+>   one review screen in four was contradicting itself. The three-state
+>   verdict landed first, alone, and reached the tutor-library embeds for
+>   free.
+> - **Derived, not stored.** A three-state `is_correct` was proposed and
+>   argued down: score + marks already determine the answer, and **57 TS
+>   files and 24 SQL files** read that flag wanting it strict. The rule
+>   this arc settled: **derive when the source is one row away;
+>   materialise when the source is the whole table** — which is why item
+>   statistics went the other way, into a table.
+> - **⭐ "Cohort" is retired** (Sam). Already a domain noun here (~219
+>   files), and it points at the **wrong set** — a tutor reads "my class"
+>   when this is every student ever. It is **item statistics** now.
+> - **Two audiences, two gates.** Students see a percentage at **n ≥ 30**,
+>   enforced in SQL. **Tutors see their own questions with no threshold**,
+>   because a percentage needs a large n to mean anything and a fraction
+>   does not. Refreshed nightly by **pg_cron**, not the recalibration
+>   Action — `recalibrate.yml`'s own header states the rule.
+> - **The grid gained a sixth fill** so it could stop calling partial
+>   answers wrong; **amber moved from Skipped to Partial**, Skipped
+>   becoming a dashed neutral. ⚠ The tutorial **teaches the colour key in
+>   words**, so that step became wrong, not dated, on a public walkthrough.
+> - **⭐ All seven scoring rules reworded by Sam** — the first time the
+>   product tells a student how their marks were calculated. Each carries
+>   a machine-checkable claim run against the real scorer.
+> - ⚠ **Four defects found by reading the rendered page**, none by tsc,
+>   tests or lint — a tooltip that dropped 41% of students, one that
+>   totalled 101%, one as wide as the screen, and a word collision with
+>   our own "verdict".
+> - ⚠ **The figure cannot be seen on dev naturally** — the most-answered
+>   question has **3** answers against a threshold of 30. Staged data was
+>   left in place on Sam's call and self-clears at the next cron run.
+> - ⬜ **Not built:** a skipped question still reads **WRONG** in the strip
+>   (already settled the other way in the session report: *"Not
+>   answered"*, grey not red) · **slice 3b**, the legend becoming the
+>   filter · tap-to-reveal on phones · the session report, readiness
+>   report and curator "hardest questions" views, all cheap now the table
+>   exists.
+> - ⚠ **The runner is badly broken at phone widths** — `.rn-grid` is a
+>   fixed 240px with no rule below 768px. Pre-existing, confirmed by
+>   experiment, and left for its own session.
+>
+> ---
+>
 > ## ✅ DONE 2026-07-30 — **marking, built as TWO features: flag + bookmark**
 >
 > **All five slices on `main`.** Doc: **`docs/product-plan/flag-and-bookmark.md`**.
