@@ -21,12 +21,11 @@ export type {
 
 export {
   deriveCellFill,
-  gridCounts,
+  FILL_LABEL,
   isVisibleUnderFilter,
 } from './cell-state';
 
 export type {
-  GridCounts,
   GridFilter,
 } from './cell-state';
 

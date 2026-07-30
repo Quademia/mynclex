@@ -121,7 +121,18 @@ export interface TrendSnapshot {
   tabs_snapshot_json:       unknown[];
 }
 
-export type CellFill = 'unanswered' | 'answered' | 'right' | 'wrong' | 'skipped';
+// 'partial' arrived with the review scoring strip: the grid painted a
+// partially-credited answer dark-red "wrong" while the strip beside it
+// said "Partial credit", two inches apart on one screen. 28% of
+// submitted answers on dev are partial, so this is the common case, not
+// an edge one.
+export type CellFill =
+  | 'unanswered'
+  | 'answered'
+  | 'right'
+  | 'partial'
+  | 'wrong'
+  | 'skipped';
 
 // Per-item unseal envelope. Live mode receives this via two paths:
 //   (a) submitAnswerAction's response on per-Q submit (UL hybrid,

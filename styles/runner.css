@@ -40,8 +40,18 @@
   --rn-fill-right-text:        #14532d;
   --rn-fill-wrong:             #5b1d1d;
   --rn-fill-wrong-text:        #fde8e8;
-  --rn-fill-skipped:           #f6d99c;
-  --rn-fill-skipped-text:      #7c4a03;
+  /* Amber belongs to PARTIAL CREDIT, matching the review scoring strip
+   * and the ".missed" option rows a partial score is made of. It used to
+   * be Skipped's — moved 2026-07-30, because the grid and the strip
+   * saying the same thing in two colours was the whole defect. */
+  --rn-fill-partial:           #f6d99c;
+  --rn-fill-partial-text:      #7c4a03;
+  /* Skipped is not a score — it is the ABSENCE of an answer, and it sits
+   * next to Unanswered in the legend for that reason. So it reads as a
+   * neutral, marked out by a dashed edge rather than a fill. */
+  --rn-fill-skipped:           #eef0f3;
+  --rn-fill-skipped-text:      #6b7280;
+  --rn-fill-skipped-border:    #9ca3af;
 
   /* Channel overlays */
   --rn-mark-border:     #d97706;
@@ -2475,7 +2485,7 @@
 }
 .rn-cell:hover { transform: translateY(-1px); }
 
-/* Fill (background) — 5 states */
+/* Fill (background) — 6 states */
 .rn-cell.f-answered {
   background: var(--rn-fill-answered);
   border-color: #b8c8dc;
@@ -2486,14 +2496,23 @@
   border-color: #84c193;
   color: var(--rn-fill-right-text);
 }
+.rn-cell.f-partial {
+  background: var(--rn-fill-partial);
+  border-color: #d6a85a;
+  color: var(--rn-fill-partial-text);
+}
 .rn-cell.f-wrong {
   background: var(--rn-fill-wrong);
   border-color: #3d0e0e;
   color: var(--rn-fill-wrong-text);
 }
+/* Dashed edge carries "skipped" without a hue, so the state stays
+ * legible to anyone who cannot separate amber from grey — and so that
+ * the six fills are not six flat colours competing at 36px. */
 .rn-cell.f-skipped {
   background: var(--rn-fill-skipped);
-  border-color: #d6a85a;
+  border-style: dashed;
+  border-color: var(--rn-fill-skipped-border);
   color: var(--rn-fill-skipped-text);
 }
 
@@ -2538,8 +2557,13 @@
 }
 .rn-grid-legend .swatch.f-answered { background: var(--rn-fill-answered); border-color: #b8c8dc; }
 .rn-grid-legend .swatch.f-right    { background: var(--rn-fill-right);    border-color: #84c193; }
+.rn-grid-legend .swatch.f-partial  { background: var(--rn-fill-partial);  border-color: #d6a85a; }
 .rn-grid-legend .swatch.f-wrong    { background: var(--rn-fill-wrong);    border-color: #3d0e0e; }
-.rn-grid-legend .swatch.f-skipped  { background: var(--rn-fill-skipped);  border-color: #d6a85a; }
+.rn-grid-legend .swatch.f-skipped  {
+  background: var(--rn-fill-skipped);
+  border-style: dashed;
+  border-color: var(--rn-fill-skipped-border);
+}
 .rn-grid-legend .swatch.marked     {
   border: 2px solid var(--rn-mark-border);
   background: var(--white);
