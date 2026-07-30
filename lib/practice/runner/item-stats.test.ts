@@ -21,7 +21,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { statsDisplay, type ItemStats } from './item-stats';
+import { statsDisplay, statsTooltip, TOOLTIP_MAX_LINE, type ItemStats } from './item-stats';
 import { verdictFor } from '@/lib/scoring';
 import { DEFAULT_MIN_RESPONSES } from '@/lib/calibration/fit';
 
@@ -68,6 +68,59 @@ describe('statsDisplay', () => {
     expect(d.fullPct).toBe(33);
     expect(d.partialPct).toBe(33);
     expect(d.zeroPct).toBe(33);
+  });
+});
+
+describe('statsTooltip', () => {
+  const display = (marksMax: number) => statsDisplay(stats(), marksMax)!;
+
+  it('stays narrow — every line under the cap', () => {
+    // ⚠ This is the whole point of the function's shape. A native title
+    // renders as ONE unbroken line, so the first version (a single
+    // ~180-char sentence) stretched most of the way across the screen.
+    // No CSS can constrain it; only the line breaks can. Without this
+    // test, one appended clause quietly undoes the fix.
+    for (const marks of [1, 5]) {
+      for (const line of statsTooltip(display(marks)).split('\n')) {
+        expect(line.length, `too wide: "${line}"`).toBeLessThan(TOOLTIP_MAX_LINE);
+      }
+    }
+  });
+
+  it('is several short lines, not one long one', () => {
+    expect(statsTooltip(display(5)).split('\n').length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('names who the percentages are of', () => {
+    // The visible text is two bare numbers; this sentence is the only
+    // place a student can learn whose results they are.
+    expect(statsTooltip(display(5))).toContain('100 students have answered this question');
+  });
+
+  it('the three shares total exactly 100', () => {
+    // Rounded independently, so the raw values can sum to 101. Fine in
+    // the strip, where nobody adds two figures side by side — not fine
+    // here, where all three are listed and a reader can.
+    const d = statsDisplay({ nStudents: 88, nFull: 26, nPartial: 41, nZero: 21 }, 5)!;
+    const shares = [...statsTooltip(d).matchAll(/(\d+)%/g)].map((m) => Number(m[1]));
+    expect(shares).toHaveLength(3);
+    expect(shares.reduce((a, b) => a + b, 0)).toBe(100);
+  });
+
+  it('on a one-mark question, "did not" is everyone short of full marks', () => {
+    // Not the zero share: marksMax is frozen per attempt while the counts
+    // aggregate across attempts, so an edited question can carry partial
+    // answers this branch would otherwise drop. Was seen printing
+    // "41% got it right, 18% did not" — 59% of students unaccounted for.
+    const d = statsDisplay({ nStudents: 100, nFull: 41, nPartial: 41, nZero: 18 }, 1)!;
+    const shares = [...statsTooltip(d).matchAll(/(\d+)%/g)].map((m) => Number(m[1]));
+    expect(shares).toEqual([41, 59]);
+  });
+
+  it('does not borrow "verdict", which names the chip beside it', () => {
+    // Same trap as "cohort": one word, two meanings, on one screen.
+    expect(statsTooltip(display(5)).toLowerCase()).not.toContain('verdict');
+    expect(statsTooltip(display(5)).toLowerCase()).not.toContain('cohort');
   });
 });
 

@@ -112,3 +112,58 @@ export function statsDisplay(stats: ItemStats, marksMax: number): StatsDisplay |
     nStudents:  stats.nStudents,
   };
 }
+
+/** No line in the tooltip may reach this. Enforced by a test. */
+export const TOOLTIP_MAX_LINE = 42;
+
+/**
+ * The hover text behind the percentages.
+ *
+ * ⚠ WRITTEN AS SHORT LINES, ON PURPOSE. A native `title` renders as one
+ * unbroken line, so the first version — a single ~180-character sentence
+ * — stretched most of the way across the screen. Browsers honour \n
+ * inside a title, so THE LINE BREAKS HERE ARE THE WIDTH CONTROL: no CSS
+ * can do it, because the tooltip is drawn by the browser and not by us.
+ * A test keeps every line under TOOLTIP_MAX_LINE so a later clause
+ * cannot quietly widen it again.
+ *
+ * Names the population explicitly — "students have answered this
+ * question" — rather than reaching for a collective noun. "Cohort" is
+ * taken here and would point at the wrong set; no other word is both
+ * short and true, so the sentence does the naming.
+ *
+ * Ends by saying a low figure means a hard question. Without it, a
+ * student who has just got one wrong reads "18% correct" as being about
+ * them rather than about the item. Deliberately NOT "not a verdict on
+ * you": `verdict` is this feature's own word for the chip two inches to
+ * the left, and borrowing it for something else is the mistake "cohort"
+ * already taught us.
+ */
+export function statsTooltip(d: StatsDisplay): string {
+  const parts =
+    d.partialPct !== null
+      // ⚠ The "none" share is the REMAINDER, not d.zeroPct. All three are
+      // rounded independently, which is fine in the strip — nobody adds
+      // two figures sitting side by side — but this line lists all three
+      // and a reader can. Seen totalling 101% (30 / 47 / 24). The two
+      // shares shown in the strip stay exactly as rendered; the one that
+      // appears only here absorbs the rounding, which is what a residual
+      // is for.
+      ? `${d.fullPct}% full marks · ${d.partialPct}% partial · ${100 - d.fullPct - d.partialPct}% none`
+      // ⚠ The complement, NOT the zero share. "Did not" means "did not
+      // get full marks", which is zero AND partial. The two look
+      // identical on a one-mark question, where partial is impossible —
+      // but marksMax comes from the ATTEMPT SNAPSHOT while the counts
+      // aggregate across every attempt, so a question edited from one
+      // mark to several after someone answered it has partial answers
+      // this branch would silently drop. Seen doing exactly that:
+      // "41% got it right, 18% did not".
+      : `${d.fullPct}% got it right · ${100 - d.fullPct}% did not`;
+
+  return [
+    `${d.nStudents} students have answered this question`,
+    parts,
+    'A low figure means a hard question,',
+    'not a comment on you',
+  ].join('\n');
+}
