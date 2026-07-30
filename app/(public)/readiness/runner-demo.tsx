@@ -151,7 +151,7 @@ export function RunnerDemo() {
             <span className="rpc-frame-spacer" />
             <span className="rpc-frame-qn">Question <strong>14 / 100</strong></span>
             <span className="rpc-frame-clock">2:41:07 <span className="u">left</span></span>
-            <span className="rpc-frame-tag">⚑ Mark for review</span>
+            <span className="rpc-frame-tag">⚑ Flag for review</span>
           </div>
 
           <div className="rpc-frame-body">

@@ -445,10 +445,19 @@ function RunnerShell({ data }: Props) {
   // third-case refusal.
   const currentBookmarkId = currentItem?.item_id ?? null;
   const onToggleBookmark = useCallback(() => {
-    if (!currentBookmarkId || isSandbox) return;
+    if (!currentBookmarkId) return;
 
     const next = !bookmarkedItemIds.has(currentBookmarkId);
     setBookmarkedItemIds((prev) => applyBookmarkToggle(prev, currentBookmarkId, next));
+
+    // The tutorial's runner is the REAL runner in a no-writes mode, so the
+    // control toggles for real and simply never reaches the server. Hiding
+    // it there was the alternative, and it would have meant the walkthrough
+    // could not teach the control at all — against the whole principle of
+    // this tutorial: ONE runner in a sandbox mode, never a copy. There is
+    // no attempt row for a write to belong to.
+    if (isSandbox) return;
+
     setBookmarkBusy(true);
 
     void toggleBookmarkAction(data.attempt.attempt_id, currentBookmarkId, next)
@@ -469,6 +478,7 @@ function RunnerShell({ data }: Props) {
       .finally(() => setBookmarkBusy(false));
   }, [currentBookmarkId, bookmarkedItemIds, data.attempt.attempt_id, isSandbox]);
 
+
   // Flag toggle for the question on screen. Optimistic like the bookmark,
   // and for a stronger reason: this fires mid-sitting with a clock running,
   // so a control that waits on the network before responding is worse than
@@ -477,12 +487,18 @@ function RunnerShell({ data }: Props) {
   // ⚠ setError lives OUTSIDE the state updater — see the note on the
   // bookmark handler above.
   const currentFlagId = currentItem?.attempt_item_id ?? null;
-  const canEditFlag   = flagEditable(data.attempt, isLive) && !isSandbox;
+  // Editable in the sandbox too — the tutorial gates a step on actually
+  // flagging something, so a frozen control there would deadlock the
+  // walkthrough. The write is what is skipped, not the interaction.
+  const canEditFlag   = flagEditable(data.attempt, isLive);
   const onToggleFlag = useCallback(() => {
     if (!currentFlagId || !canEditFlag) return;
 
     const next = !flaggedAttemptItemIds.has(currentFlagId);
     setFlaggedAttemptItemIds((prev) => applyFlagToggle(prev, currentFlagId, next));
+
+    if (isSandbox) return;   // see the bookmark handler above
+
     setFlagBusy(true);
 
     void toggleFlagAction(currentFlagId, next)
@@ -497,7 +513,7 @@ function RunnerShell({ data }: Props) {
         setError('Could not save that flag. Please try again.');
       })
       .finally(() => setFlagBusy(false));
-  }, [currentFlagId, canEditFlag, flaggedAttemptItemIds]);
+  }, [currentFlagId, canEditFlag, flaggedAttemptItemIds, isSandbox]);
 
   const archetype = archetypeFor(data.attempt.mode);
 
@@ -1274,6 +1290,9 @@ function RunnerShell({ data }: Props) {
           currentSubmitted={
             currentItem ? answersByItem.has(currentItem.attempt_item_id) : false
           }
+          currentFlagged={
+            currentItem ? flaggedAttemptItemIds.has(currentItem.attempt_item_id) : false
+          }
         />
       )}
 
@@ -1286,7 +1305,7 @@ function RunnerShell({ data }: Props) {
         // renders the state but does not respond (§2.4). Hidden entirely in
         // the two forward-only modes, and in the sandbox (no attempt row).
         flag={
-          flaggingOffered(data.attempt) && !isSandbox && currentFlagId
+          flaggingOffered(data.attempt) && currentFlagId
             ? {
                 on:       flaggedAttemptItemIds.has(currentFlagId),
                 busy:     flagBusy,
@@ -1301,7 +1320,7 @@ function RunnerShell({ data }: Props) {
         // sandbox: the tutorial creates no attempt row, so there is nothing
         // to write against; its own steps land with slice 5.
         bookmark={
-          data.canBookmark && !isSandbox && currentBookmarkId
+          data.canBookmark && currentBookmarkId
             ? {
                 on:       bookmarkedItemIds.has(currentBookmarkId),
                 busy:     bookmarkBusy,

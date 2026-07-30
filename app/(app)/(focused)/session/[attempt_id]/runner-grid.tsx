@@ -233,7 +233,7 @@ export function RunnerGrid({
             <div className="row"><span className="swatch f-skipped" /> Skipped</div>
           </>
         )}
-        <div className="row"><span className="swatch marked" /> Marked for review</div>
+        <div className="row"><span className="swatch marked" /> Flagged for review</div>
         <div className="row"><span className="swatch current" /> Current</div>
       </div>
     </aside>

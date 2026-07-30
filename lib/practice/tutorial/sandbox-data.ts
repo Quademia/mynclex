@@ -169,12 +169,16 @@ export function buildSandboxData(returnTo?: string): LiveData {
     answers:      [],
     seededUnseal: {},
     exitHref:     safeInternalPath(returnTo),
-    // No bookmarking in the teaching runner: the whole feature creates no
-    // attempt row, so there is nothing for a write to belong to. The runner
-    // also hides the control on isSandbox, so this is the second of two
-    // independent guards rather than the only one.
+    // Bookmarking is OFFERED here so the walkthrough can teach it — the
+    // control toggles, and the runner skips the write on isSandbox. It
+    // starts empty because a tutorial that opened with someone else's
+    // bookmarks already set would be teaching a lie.
+    //
+    // ⚠ This is `true` on purpose. It was false while the tutorial had no
+    // step for it; flipping it back would silently break that step by
+    // removing the element the coach anchors to.
     bookmarkedItemIds: [],
-    canBookmark:       false,
+    canBookmark:       true,
     sandbox:      true,
     sandboxKeys,
   };
