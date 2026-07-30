@@ -20,8 +20,7 @@
 //     item minimum reads the same here as it does on the report and
 //     on the CAT home.
 
-import { scoreToBand } from '@/lib/payments/readiness-band';
-import { isUnmeasured, UNMEASURED_SHORT_LABEL } from '@/lib/practice/cat/report-derive';
+import { describeOutcome } from '@/lib/practice/history/derive';
 import type { HistoryAttempt } from '@/lib/practice/history/types';
 import type { RecentBadgeTone, RecentItem } from './types';
 
@@ -37,32 +36,14 @@ function badgeFor(
   if (row.status === 'IN_PROGRESS') return { label: 'In progress', tone: 'neutral' };
   if (row.status === 'ABANDONED') return { label: 'Abandoned', tone: 'neutral' };
 
-  // A CAT is CUSTOM_BUILT with mode 'CAT' — check the mode first, or
-  // it falls through to the quiz branch and shows a percentage the
-  // §13.5 rule forbids on a CAT.
-  if (row.mode === 'CAT') {
-    if (isUnmeasured(row.cat_termination_reason, row.cat_items_administered ?? 0)) {
-      return { label: UNMEASURED_SHORT_LABEL, tone: 'low' };
-    }
-    if (row.cat_verdict === 'ABOVE_STANDARD') return { label: 'Above standard', tone: 'good' };
-    if (row.cat_verdict === 'BELOW_STANDARD') return { label: 'Below standard', tone: 'low' };
-    return null; // unfinished / abandoned — no verdict exists yet
-  }
-
-  if (row.final_score === null) return null;
-
-  if (row.source === 'READINESS_PACK') {
-    const band = scoreToBand(row.final_score);
-    if (!band) return null;
-    // Ready and Excelling are the achievement bands; the lower two are
-    // stated plainly rather than alarmingly — a pack is a diagnostic.
-    const tone: RecentBadgeTone =
-      band.key === 'EXCELLING' || band.key === 'READY' ? 'good' : 'neutral';
-    return { label: band.label, tone };
-  }
-
-  // A practice quiz: the score, stated, not judged.
-  return { label: `${Math.round(row.final_score * 100)}%`, tone: 'neutral' };
+  // The three per-kind result rules (CAT verdict · pack band · practice
+  // percentage, and never a percentage on a CAT) now live in one shared
+  // place, because the History page was applying different ones — it
+  // printed a raw percentage for everything. Moved out rather than
+  // copied: two surfaces describing the same sitting must not be able
+  // to disagree. No answer counts are passed, so no "Not answered"
+  // state here — that needs a per-attempt read the rail doesn't do.
+  return describeOutcome(row);
 }
 
 function iconFor(row: HistoryAttempt): string {

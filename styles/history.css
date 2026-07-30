@@ -23,14 +23,18 @@
   margin-top: 4px;
 }
 
-/* ─── Filter row (chips + search are placeholders) ─── */
+/* ─── Filter row ─────────────────────────────────────
+ * Bank-side only. The chips are LINKS (the filter state lives in the URL),
+ * so these rules target `a` as well as the legacy `button` selector the
+ * programme-side table still relies on.
+ */
 
 .hist-filter-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .hist-seg {
@@ -39,8 +43,8 @@
   border-radius: var(--radius);
   background: var(--white);
   overflow: hidden;
-  opacity: 0.55;
 }
+.hist-seg a,
 .hist-seg button {
   padding: 6px 12px;
   font-size: 12px;
@@ -49,10 +53,14 @@
   border: 0;
   border-right: 1px solid var(--border);
   color: var(--text-muted);
-  cursor: not-allowed;
   font-family: inherit;
+  text-decoration: none;
+  white-space: nowrap;
 }
+.hist-seg a:hover { background: var(--bg); color: var(--text); }
+.hist-seg a:last-child,
 .hist-seg button:last-child { border-right: 0; }
+.hist-seg a.on,
 .hist-seg button.on {
   background: var(--primary-light);
   color: var(--primary);
@@ -82,18 +90,55 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Search is a plain GET form, so it works without JavaScript. */
+.hist-search-form {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
 .hist-search {
-  width: 220px;
+  width: 200px;
   padding: 7px 10px;
   font-size: 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--white);
-  color: var(--text-muted);
+  color: var(--text);
   font-family: inherit;
-  opacity: 0.6;
-  cursor: not-allowed;
 }
+.hist-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.hist-search-go {
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-muted);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.hist-search-go:hover { background: var(--bg); color: var(--text); }
+
+/* ─── Count line + clear ────────────────────────────
+ * Always states the TRUE total, never the number of rows fetched.
+ */
+.hist-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.hist-clear {
+  color: var(--accent);
+  font-weight: 500;
+}
+.hist-clear:hover { text-decoration: underline; }
 
 /* ─── Table card ────────────────────────────────────── */
 
@@ -310,3 +355,167 @@
   white-space: nowrap;
 }
 .hist-note strong { color: var(--text); }
+
+/* ═══════════════════════════════════════════════════════
+ * BANK HISTORY (rebuilt 2026-07-30)
+ *
+ * Everything below is scoped to `.hist-bank`, which only the bank-side
+ * table renders. The programme and cohort history pages share the
+ * `.hist-*` skeleton above and must be left exactly as they are — their
+ * own responsive pass is a separate job.
+ * ═══════════════════════════════════════════════════════ */
+
+/* ─── Result cell ───────────────────────────────────
+ * Three kinds of sitting produce three kinds of result (a percentage, a
+ * band word, a CAT verdict), so the cell is toned rather than coloured
+ * per-value. `neutral` is the default on purpose: a practice quiz has no
+ * pass mark, and colouring a low score red invents a verdict.
+ */
+.hist-bank .hist-outcome {
+  display: block;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.hist-bank .hist-outcome-good    { color: var(--success); }
+.hist-bank .hist-outcome-low     { color: var(--danger); }
+.hist-bank .hist-outcome-neutral { color: var(--text); }
+
+/* "8 of 20 answered" — the line that stops a part-finished sitting from
+   reading like a bad one. Muted: it qualifies the result, it isn't one. */
+.hist-bank .hist-result-detail {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* An absent value, not a zero. */
+.hist-bank .hist-result-none { color: var(--text-faint); font-weight: 400; }
+
+.hist-bank .hist-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.hist-bank .hist-when-prefix {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.hist-bank .hist-action-cell { text-align: right; white-space: nowrap; }
+
+/* ─── Pager ─────────────────────────────────────────── */
+
+.hist-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.hist-pager-link {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  text-decoration: none;
+}
+.hist-pager-link:hover { background: var(--bg); }
+.hist-pager-link.is-off {
+  color: var(--text-faint);
+  background: var(--bg-soft);
+  cursor: default;
+}
+
+.hist-pager-at {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Phone (≤768px) ────────────────────────────────
+ * History is one of the four student BOTTOM TABS, so it has to work on a
+ * phone — and a seven-column table does not. Per CLAUDE.md UI #3 this is
+ * pure CSS: the table reflows into one stacked card per sitting, with each
+ * cell labelled from its `data-label`. No second markup tree, so the two
+ * layouts cannot drift apart.
+ */
+@media (max-width: 768px) {
+  .hist-bank .hist-filter-row { gap: 6px; }
+
+  /* The chip groups and the search form each take a full row rather than
+     wrapping mid-group, which split "Any state" from its siblings. */
+  .hist-bank .hist-seg { flex: 1 1 100%; }
+  .hist-bank .hist-seg a { flex: 1; text-align: center; padding: 8px 6px; }
+  .hist-bank .hist-search-form { flex: 1 1 100%; margin-left: 0; }
+  .hist-bank .hist-search { flex: 1; width: auto; }
+
+  .hist-bank .hist-card { box-shadow: none; }
+
+  .hist-bank .hist-table thead { display: none; }
+  .hist-bank .hist-table,
+  .hist-bank .hist-table tbody,
+  .hist-bank .hist-table tr,
+  .hist-bank .hist-table td { display: block; width: 100%; }
+
+  .hist-bank .hist-table tr {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hist-bank .hist-table tr:last-child { border-bottom: 0; }
+
+  .hist-bank .hist-table td {
+    border: 0;
+    padding: 2px 0;
+  }
+
+  /* The session summary leads the card — it's what identifies the row. */
+  .hist-bank .hist-table td.hist-session {
+    font-size: 14px;
+    font-weight: 600;
+    padding-bottom: 6px;
+  }
+
+  .hist-bank .hist-table td[data-label]:not(.hist-session)::before {
+    content: attr(data-label) ' ';
+    display: inline-block;
+    min-width: 62px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+  }
+
+  /* Result and its qualifier sit inline on a phone, where a block-level
+     value would leave the label stranded on its own line. */
+  .hist-bank .hist-table td.hist-result .hist-outcome,
+  .hist-bank .hist-table td.hist-result .hist-result-detail {
+    display: inline;
+    margin-top: 0;
+  }
+  .hist-bank .hist-table td.hist-result .hist-result-detail::before {
+    content: ' · ';
+  }
+
+  .hist-bank .hist-action-cell {
+    text-align: left;
+    margin-top: 8px;
+  }
+  .hist-bank .hist-action-cell .hist-action-link {
+    display: inline-block;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 13px;
+  }
+
+  .hist-bank .hist-pager-link { padding: 10px 14px; }
+}

@@ -17,11 +17,13 @@ function attempt(over: Partial<HistoryAttempt> = {}): HistoryAttempt {
   return {
     attempt_id: 'a1',
     created_at: '2026-07-21T10:00:00Z',
+    last_activity_at: null,
     status: 'COMPLETED',
     source: 'CUSTOM_BUILT',
     mode: 'TIMED_SEQUENTIAL',
     mode_label: 'Timed · Sequential',
     requested_count: 20,
+    actual_count: 20,
     final_score: 0.55,
     filters_json: {},
     cat_verdict: null,
