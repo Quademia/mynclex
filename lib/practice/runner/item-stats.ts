@@ -117,7 +117,19 @@ export function statsDisplay(stats: ItemStats, marksMax: number): StatsDisplay |
 export const TOOLTIP_MAX_LINE = 42;
 
 /**
- * The hover text behind the percentages.
+ * The hover text behind the percentages: the same shares in words, plus
+ * the one the strip has no room for.
+ *
+ * ⚠ IT NEVER SAYS HOW MANY STUDENTS HAVE ANSWERED. Sam's call, and the
+ * reason is commercial rather than technical: the count would tell a
+ * student how small the platform still is. It IS in the payload — the
+ * RPC returns the counts and always has — and that was raised and
+ * deliberately left alone. The case-bank rule ("what we hide must not be
+ * in the response") protects EXAM CONTENT, where a leak lets a student
+ * work the system. Nothing follows from knowing this number, so it is a
+ * display decision, not a boundary, and hardening the SQL around it
+ * would buy nothing. If it ever becomes something we truly must not
+ * reveal, the RPC is where to fix it — not here.
  *
  * ⚠ WRITTEN AS SHORT LINES, ON PURPOSE. A native `title` renders as one
  * unbroken line, so the first version — a single ~180-character sentence
@@ -127,43 +139,36 @@ export const TOOLTIP_MAX_LINE = 42;
  * A test keeps every line under TOOLTIP_MAX_LINE so a later clause
  * cannot quietly widen it again.
  *
- * Names the population explicitly — "students have answered this
- * question" — rather than reaching for a collective noun. "Cohort" is
- * taken here and would point at the wrong set; no other word is both
- * short and true, so the sentence does the naming.
- *
- * Ends by saying a low figure means a hard question. Without it, a
- * student who has just got one wrong reads "18% correct" as being about
- * them rather than about the item. Deliberately NOT "not a verdict on
- * you": `verdict` is this feature's own word for the chip two inches to
- * the left, and borrowing it for something else is the mistake "cohort"
- * already taught us.
+ * "of students" is the only naming left, and it carries the whole job the
+ * dropped first line used to do: saying whose results these are. Not
+ * "users" (what a platform calls people rather than what it calls them),
+ * and not a collective noun — "cohort" is taken here and would point at
+ * the wrong set entirely.
  */
 export function statsTooltip(d: StatsDisplay): string {
-  const parts =
-    d.partialPct !== null
-      // ⚠ The "none" share is the REMAINDER, not d.zeroPct. All three are
-      // rounded independently, which is fine in the strip — nobody adds
-      // two figures sitting side by side — but this line lists all three
-      // and a reader can. Seen totalling 101% (30 / 47 / 24). The two
-      // shares shown in the strip stay exactly as rendered; the one that
-      // appears only here absorbs the rounding, which is what a residual
-      // is for.
-      ? `${d.fullPct}% full marks · ${d.partialPct}% partial · ${100 - d.fullPct - d.partialPct}% none`
-      // ⚠ The complement, NOT the zero share. "Did not" means "did not
-      // get full marks", which is zero AND partial. The two look
-      // identical on a one-mark question, where partial is impossible —
-      // but marksMax comes from the ATTEMPT SNAPSHOT while the counts
-      // aggregate across every attempt, so a question edited from one
-      // mark to several after someone answered it has partial answers
-      // this branch would silently drop. Seen doing exactly that:
-      // "41% got it right, 18% did not".
-      : `${d.fullPct}% got it right · ${100 - d.fullPct}% did not`;
+  if (d.partialPct === null) {
+    // ⚠ "did not" is the COMPLEMENT, not the zero share: it means "did
+    // not get full marks", which is zero AND partial. The two look
+    // identical on a one-mark question, where partial is impossible —
+    // but marksMax comes from the ATTEMPT SNAPSHOT while the counts
+    // aggregate across every attempt, so a question edited from one mark
+    // to several after someone answered it has exactly those partial
+    // answers. Seen dropping them: "41% got it right, 18% did not".
+    return [
+      `${d.fullPct}% of students got it right`,
+      `${100 - d.fullPct}% did not`,
+    ].join('\n');
+  }
 
+  // ⚠ The last share is the REMAINDER, not d.zeroPct. All three are
+  // rounded independently, which is fine in the strip — nobody adds two
+  // figures sitting side by side — but these lines give all three and a
+  // reader can. Seen totalling 101% (30 / 47 / 24). The two shares also
+  // shown in the strip stay exactly as rendered; the one that appears
+  // only here absorbs the rounding, which is what a residual is for.
   return [
-    `${d.nStudents} students have answered this question`,
-    parts,
-    'A low figure means a hard question,',
-    'not a comment on you',
+    `${d.fullPct}% of students got it fully correct`,
+    `${d.partialPct}% got partial credit`,
+    `${100 - d.fullPct - d.partialPct}% got no marks`,
   ].join('\n');
 }

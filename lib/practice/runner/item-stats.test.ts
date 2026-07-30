@@ -91,10 +91,30 @@ describe('statsTooltip', () => {
     expect(statsTooltip(display(5)).split('\n').length).toBeGreaterThanOrEqual(3);
   });
 
-  it('names who the percentages are of', () => {
-    // The visible text is two bare numbers; this sentence is the only
-    // place a student can learn whose results they are.
-    expect(statsTooltip(display(5))).toContain('100 students have answered this question');
+  it('never says how many students have answered', () => {
+    // ⚠ Sam's call, for a commercial reason: the count tells a student
+    // how small the platform still is. It IS in the payload and was
+    // deliberately left there — nothing follows from knowing it, so this
+    // is a display decision rather than a boundary. But the copy must
+    // not carry it, and "100" is easy to reintroduce by accident when
+    // rewording. Checked against a deliberately round n so a stray count
+    // would be unmistakable.
+    for (const marks of [1, 5]) {
+      const text = statsTooltip(statsDisplay({ ...stats(), nStudents: 137 }, marks)!);
+      expect(text, 'the student count leaked into the tooltip').not.toContain('137');
+      expect(text.toLowerCase()).not.toContain('have answered');
+    }
+  });
+
+  it('says whose results these are, without counting them', () => {
+    // "of students" is the only naming left, and it does the whole job
+    // the dropped count line used to: the visible text is two bare
+    // numbers, and nothing else on screen says who they are of.
+    expect(statsTooltip(display(5))).toContain('of students');
+    expect(statsTooltip(display(1))).toContain('of students');
+    // Not "users" — what a platform calls people rather than what it
+    // calls them to their face.
+    expect(statsTooltip(display(5)).toLowerCase()).not.toContain('users');
   });
 
   it('the three shares total exactly 100', () => {
