@@ -234,6 +234,55 @@
 }
 .bsr-btn-ghost:hover { background: var(--bg); }
 
+/* ─── On this page ───────────────────────────────────
+ * Plain anchors with their section's figure alongside, so the list reads as a
+ * contents summary as well as navigation.
+ */
+
+.bsr-jump {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.bsr-jump-h {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+
+.bsr-jump ul { list-style: none; }
+
+.bsr-jump a {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.bsr-jump a:hover { color: var(--accent); }
+.bsr-jump a:hover .bsr-jump-label { text-decoration: underline; }
+
+.bsr-jump-n {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The anchor targets. Without this the sticky app topbar covers the heading a
+ * jump lands on, and the section looks like it starts mid-card. */
+#results,
+#slipped,
+#fixes,
+#questions {
+  scroll-margin-top: 88px;
+}
+
 /* ─── Section cards ──────────────────────────────────── */
 
 .bsr-card {
@@ -649,6 +698,11 @@
 
   /* The paired cards stack rather than squeezing two bars into 375px. */
   .bsr-pair { grid-template-columns: minmax(0, 1fr); }
+
+  /* On this page is dropped — the design's own reasoning, and it holds: with
+   * the rail unstacked into the top block, these become links to things
+   * directly beneath them. */
+  .bsr-jump { display: none; }
 
   /* The axis switcher becomes a scrollable pill row, per the design's note —
    * four tabs in a segmented control at this width would either wrap

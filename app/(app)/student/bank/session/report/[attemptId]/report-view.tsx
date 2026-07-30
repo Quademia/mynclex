@@ -18,6 +18,7 @@ import Link from 'next/link';
 import {
   allAxisRows,
   changesAgainstYou,
+  defaultAxisRowCount,
   answerPoints,
   fixList,
   hasRebuildableFilters,
@@ -76,6 +77,17 @@ export function SessionReportView({ report }: { report: SessionReport }) {
   if (engagedLabel) facts.push({ label: 'Time on task', value: engagedLabel });
   const paceLabel = formatDuration(pace);
   if (paceLabel) facts.push({ label: 'Pace', value: `${paceLabel} avg` });
+
+  // The rail's jump list. Each figure is the one the section itself shows, so
+  // the list can't advertise a number the section then contradicts — the
+  // slipped count comes from defaultAxisRowCount(), which reads the same
+  // "first axis with rows" rule the switcher opens on.
+  const jumps = [
+    { id: 'results', label: 'Your results', value: scorePct == null ? '—' : `${scorePct}%` },
+    { id: 'slipped', label: 'Where you slipped', value: String(defaultAxisRowCount(axes)) },
+    { id: 'fixes', label: 'Your fix list', value: String(fixes.length) },
+    { id: 'questions', label: 'Every question', value: String(rows.length) },
+  ];
 
   return (
     <div className="bsr">
@@ -154,19 +166,48 @@ export function SessionReportView({ report }: { report: SessionReport }) {
               {sameAgain ? 'Build the same again' : 'Build another'}
             </Link>
           </div>
+
+          {/* On this page.
+           *
+           * Plain anchors — no JavaScript, and each carries the figure for its
+           * section so the list doubles as a contents summary: you can see
+           * there are three fix-list items without scrolling to them.
+           *
+           * Hidden below 768px, per the design's own reasoning: once the rail
+           * unstacks into the top block, these would be links to things
+           * directly beneath them. */}
+          <nav className="bsr-jump" aria-label="On this page">
+            <p className="bsr-jump-h">On this page</p>
+            <ul>
+              {jumps.map((j) => (
+                <li key={j.id}>
+                  <a href={`#${j.id}`}>
+                    <span className="bsr-jump-label">{j.label}</span>
+                    <span className="bsr-jump-n">{j.value}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </aside>
 
         <div className="bsr-sections">
-          <div className="bsr-pair">
+          <div className="bsr-pair" id="results">
             <OutcomesCard counts={counts} />
             <AnswerPointsCard split={split} totalQuestions={counts.total} />
           </div>
           {/* Only the axis switcher is a client island — the four breakdowns
               are computed here, so the frozen answer keys they derive from
               never reach the browser. */}
-          <WhereYouSlipped axes={axes} />
-          <FixList items={fixes} />
-          <EveryQuestion rows={rows} changes={changes} />
+          <div id="slipped">
+            <WhereYouSlipped axes={axes} />
+          </div>
+          <div id="fixes">
+            <FixList items={fixes} />
+          </div>
+          <div id="questions">
+            <EveryQuestion rows={rows} changes={changes} />
+          </div>
         </div>
       </div>
     </div>

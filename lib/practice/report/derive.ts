@@ -378,6 +378,23 @@ export const AXIS_LABEL: Record<AxisKey, string> = {
   question_type: 'Question type',
 };
 
+/** Tab order, and therefore which axis opens by default — the first with any
+ *  rows. Exported so the rail's jump list and the switcher itself agree on
+ *  which axis the student will land on; two copies of this order would let the
+ *  rail advertise a count from a different pane. */
+export const AXIS_ORDER: readonly AxisKey[] = [
+  'client_needs',
+  'subject',
+  'difficulty',
+  'question_type',
+];
+
+/** How many rows the switcher will show when it opens. */
+export function defaultAxisRowCount(axes: Record<AxisKey, AxisRow[]>): number {
+  const first = AXIS_ORDER.find((a) => axes[a].length > 0);
+  return first ? axes[first].length : 0;
+}
+
 export interface AxisRow {
   value: string;
   /** Questions fully landed. */

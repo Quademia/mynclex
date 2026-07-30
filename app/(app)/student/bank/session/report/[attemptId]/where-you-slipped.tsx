@@ -14,9 +14,11 @@
 'use client';
 
 import { useState } from 'react';
-import { AXIS_LABEL, type AxisKey, type AxisRow } from '@/lib/practice/report/derive';
+import { AXIS_LABEL, AXIS_ORDER, type AxisKey, type AxisRow } from '@/lib/practice/report/derive';
 
-const ORDER: AxisKey[] = ['client_needs', 'subject', 'difficulty', 'question_type'];
+// Shared with the rail's jump list, so the count it advertises is the count of
+// the pane that actually opens here.
+const ORDER = AXIS_ORDER;
 
 export function WhereYouSlipped({ axes }: { axes: Record<AxisKey, AxisRow[]> }) {
   // Open on the first axis that actually has rows: a sitting built entirely
