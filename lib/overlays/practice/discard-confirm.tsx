@@ -46,10 +46,13 @@ export function DiscardSessionConfirm({
         aria-modal="true"
       >
         <p className="auth-discard-confirm-title">Discard this session?</p>
+        {/* The session gets its own line. Inlined into the sentence, a long
+            summary and the warning ran together into one amber block. */}
+        <p className="auth-discard-confirm-target">{sessionLabel}</p>
         <p className="auth-discard-confirm-hint">
-          <strong>{sessionLabel}</strong> will stop being resumable, and you
-          won&apos;t be able to pick it up again. Anything you already
-          answered still counts towards your progress.
+          It will stop being resumable, and you won&apos;t be able to pick it
+          up again. Anything you already answered still counts towards your
+          progress.
         </p>
         <div className="auth-discard-confirm-actions">
           {/* Cancel first and focused — the safe option should be the one a
