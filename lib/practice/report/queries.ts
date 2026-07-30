@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/server';
 import { modeLabelFor, type Intent, type ModeId } from '@/lib/practice/builder/filter-config';
 import { summariseRecent } from '@/lib/practice/launchers/summarise-recent';
 import type { FilterPayload } from '@/lib/practice/builder/types';
-import { countMindChanges } from './derive';
+
 import type { ReportQuestion, SessionReportResult } from './types';
 
 /** A Builder sitting cannot exceed the Builder's own maximum, which is far
@@ -136,7 +136,7 @@ export async function getSessionReport(
         scoreAwarded: a ? ((a.score_awarded as number | null) ?? null) : null,
         submissionStatus: a ? ((a.submission_status as string | null) ?? null) : null,
         timeSpentSec: a ? ((a.time_spent_sec as number | null) ?? null) : null,
-        answerChanges: a ? countMindChanges(a.answer_changes_json) : 0,
+        changeLog: a ? (a.answer_changes_json ?? null) : null,
         correct: it.correct_answer_snapshot_json ?? null,
         answer: a ? (a.answer_json ?? null) : null,
         difficultyIrt:

@@ -12,6 +12,7 @@
 
 import { pointsDetail } from '@/lib/scoring/detail';
 import { displayBand } from '@/lib/bank/difficulty';
+import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import type { FilterPayload } from '@/lib/practice/builder/types';
 import type { QuestionOutcome, ReportQuestion } from './types';
 
@@ -147,8 +148,53 @@ export interface ChangeSummary {
 
 export function changeSummary(questions: readonly ReportQuestion[]): ChangeSummary {
   let changed = 0;
-  for (const q of questions) if (q.answerChanges > 0) changed++;
+  for (const q of questions) if (countMindChanges(q.changeLog) > 0) changed++;
   return { changed, total: questions.length };
+}
+
+// ── The per-question table ────────────────────────────────────
+
+export interface QuestionRow {
+  position: number;
+  /** Plain text, whatever the stem was stored as. */
+  stem: string;
+  subject: string | null;
+  outcome: QuestionOutcome;
+  timeSpentSec: number | null;
+  changes: number;
+  /** Where this question opens for review. */
+  href: string;
+}
+
+/**
+ * The rows of "Every question", in the order they were sat.
+ *
+ * ⚠ Stems must go through richTextToPlain. The bank's authoring surface went
+ * rich, so a stem snapshot is EITHER plain text OR a Tiptap JSON document —
+ * measured on dev: 139 of 1,853 item snapshots (7.5%) are JSON. Rendering the
+ * column value directly would print `{"type":"doc",…}` into the table for one
+ * row in thirteen. That helper exists for exactly this and is deliberately
+ * free of any @tiptap import, so it is safe in server code.
+ *
+ * Only DISPLAY data is returned. The frozen answer keys stay behind, so the
+ * client table can render without them ever entering the browser bundle.
+ */
+export function questionRows(
+  questions: readonly ReportQuestion[],
+  attemptId: string,
+): QuestionRow[] {
+  return questions.map((q) => ({
+    position: q.position,
+    stem: richTextToPlain(q.stem).trim(),
+    subject: (q.classification.nursing_subject as string | null) ?? null,
+    outcome: questionOutcome(q),
+    timeSpentSec: q.timeSpentSec,
+    changes: countMindChanges(q.changeLog),
+    // The runner opens at the attempt; there is no per-question deep link
+    // yet (the same gap the case bank recorded). One destination for every
+    // row is honest; a link that silently lands elsewhere is not.
+    href: `/session/${attemptId}`,
+  }));
 }
 
 /**
@@ -173,38 +219,96 @@ export function changeSummary(questions: readonly ReportQuestion[]): ChangeSumma
  * Additive edits are how a multi-part answer gets built, so they are not
  * changes of mind however many there are.
  */
-export function countMindChanges(log: unknown): number {
-  if (!Array.isArray(log)) return 0;
-  let changes = 0;
+function isRealChange(entry: unknown): boolean {
+  if (!entry || typeof entry !== 'object') return false;
+  const { from, to } = entry as { from?: unknown; to?: unknown };
+  if (from == null) return false; // the first answer is not a change
 
-  for (const entry of log) {
-    if (!entry || typeof entry !== 'object') continue;
-    const { from, to } = entry as { from?: unknown; to?: unknown };
-    if (from == null) continue; // the first answer is not a change
-
-    if (Array.isArray(from) && Array.isArray(to)) {
-      const kept = new Set(to.map((v) => JSON.stringify(v)));
-      if (from.some((v) => !kept.has(JSON.stringify(v)))) changes++;
-      continue;
-    }
-
-    if (typeof from === 'object' && typeof to === 'object' && to !== null) {
-      const before = from as Record<string, unknown>;
-      const after = to as Record<string, unknown>;
-      const replaced = Object.keys(before).some(
-        (k) => k in after && JSON.stringify(after[k]) !== JSON.stringify(before[k]),
-      );
-      // A key present before and absent after is a removal, which is also a
-      // change — not just a value swap.
-      const removed = Object.keys(before).some((k) => !(k in after));
-      if (replaced || removed) changes++;
-      continue;
-    }
-
-    if (JSON.stringify(from) !== JSON.stringify(to)) changes++;
+  if (Array.isArray(from) && Array.isArray(to)) {
+    const kept = new Set(to.map((v) => JSON.stringify(v)));
+    return from.some((v) => !kept.has(JSON.stringify(v)));
   }
 
-  return changes;
+  if (typeof from === 'object' && typeof to === 'object' && to !== null) {
+    const before = from as Record<string, unknown>;
+    const after = to as Record<string, unknown>;
+    const replaced = Object.keys(before).some(
+      (k) => k in after && JSON.stringify(after[k]) !== JSON.stringify(before[k]),
+    );
+    // A key present before and absent after is a removal, which is also a
+    // change — not just a value swap.
+    const removed = Object.keys(before).some((k) => !(k in after));
+    return replaced || removed;
+  }
+
+  return JSON.stringify(from) !== JSON.stringify(to);
+}
+
+export function countMindChanges(log: unknown): number {
+  if (!Array.isArray(log)) return 0;
+  return log.filter(isRealChange).length;
+}
+
+/** How many correct answer-slots a given answer shape would have found.
+ *  Null when the shape can't be read, so the caller declines to judge rather
+ *  than guessing a direction. */
+function foundFor(q: ReportQuestion, answer: unknown): number | null {
+  if (!q.correct) return null;
+  const detail = pointsDetail(
+    q.questionType as Parameters<typeof pointsDetail>[0],
+    q.correct as Parameters<typeof pointsDetail>[1],
+    (answer ?? null) as Parameters<typeof pointsDetail>[2],
+  );
+  return detail ? detail.found : null;
+}
+
+export interface ChangeReading {
+  /** Questions whose answer was genuinely changed at least once. */
+  changed: number;
+  /** Of those, the ones where a change moved AWAY from the right answer. */
+  costly: number;
+}
+
+/**
+ * ⭐ "4 answers changed — 3 of them away from the right answer."
+ *
+ * The one reading on this page no other surface offers, and the only reason
+ * it's possible is that the edit log stores the answer BEFORE and AFTER each
+ * edit. Scoring both through the shared pointsDetail() says which direction
+ * the student moved: fewer correct slots after than before means that change
+ * cost them.
+ *
+ * Counts QUESTIONS, not edits — "4 answers changed" means four questions, so
+ * a student who dithered five times on one question is one changed answer,
+ * not five.
+ *
+ * Declines to judge when a shape can't be read: a question with an
+ * unparseable key contributes to `changed` but never to `costly`, because
+ * asserting a direction we cannot compute would be worse than saying less.
+ */
+export function changesAgainstYou(questions: readonly ReportQuestion[]): ChangeReading {
+  let changed = 0;
+  let costly = 0;
+
+  for (const q of questions) {
+    const log = Array.isArray(q.changeLog) ? q.changeLog : [];
+    let qChanged = 0;
+    let qCostly = 0;
+
+    for (const entry of log) {
+      if (!isRealChange(entry)) continue;
+      qChanged++;
+      const { from, to } = entry as { from?: unknown; to?: unknown };
+      const before = foundFor(q, from);
+      const after = foundFor(q, to);
+      if (before != null && after != null && after < before) qCostly++;
+    }
+
+    if (qChanged > 0) changed++;
+    if (qCostly > 0) costly++;
+  }
+
+  return { changed, costly };
 }
 
 // ── Answer points: found / missed / wrong-picked ──────────────

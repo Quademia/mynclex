@@ -43,8 +43,11 @@ export interface ReportQuestion {
   /** Engaged seconds on this question, or null when not recorded. Timing
    *  arrived late in the product's life, so most older sittings have none. */
   timeSpentSec: number | null;
-  /** How many times the answer was changed before submitting. */
-  answerChanges: number;
+  /** The raw append-only edit log, kept whole rather than pre-counted.
+   *  ⚠ Its LENGTH is not a change count — see countMindChanges() — and the
+   *  direction of each change (did it move away from the right answer?) can
+   *  only be read from the entries themselves. */
+  changeLog: unknown;
 
   // ── For the answer-points split (slice 2) ────────────────
   // The frozen key and the frozen answer, fed to pointsDetail() to derive

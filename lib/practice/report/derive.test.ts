@@ -9,6 +9,7 @@ import {
   answerPoints,
   axisRows,
   changeSummary,
+  changesAgainstYou,
   countMindChanges,
   fixList,
   hasRebuildableFilters,
@@ -18,6 +19,7 @@ import {
   paceSeconds,
   pointsSplit,
   questionOutcome,
+  questionRows,
   rebuildHref,
   totalEngagedSeconds,
 } from './derive';
@@ -34,7 +36,7 @@ function q(over: Partial<ReportQuestion> = {}): ReportQuestion {
     scoreAwarded: 1,
     submissionStatus: 'SUBMITTED',
     timeSpentSec: 30,
-    answerChanges: 0,
+    changeLog: [],
     correct: { answer: 'A' },
     answer: 'A',
     difficultyIrt: 0,
@@ -208,8 +210,95 @@ describe('countMindChanges — composing an answer is not changing your mind', (
 
 describe('changeSummary', () => {
   it('counts questions whose answer was changed at least once', () => {
-    expect(changeSummary([q({ answerChanges: 3 }), q({ answerChanges: 0 }), q({ answerChanges: 1 })]))
-      .toEqual({ changed: 2, total: 3 });
+    const swap = [{ from: 'A', to: 'B' }];
+    const built = [{ from: null, to: 'A' }];
+    expect(
+      changeSummary([q({ changeLog: swap }), q({ changeLog: built }), q({ changeLog: swap })]),
+    ).toEqual({ changed: 2, total: 3 });
+  });
+});
+
+describe('changesAgainstYou — which way the student moved', () => {
+  it('⭐ counts a change that moved AWAY from the right answer', () => {
+    // The reading no other surface offers, and only possible because the log
+    // stores the answer before AND after each edit.
+    const reading = changesAgainstYou([
+      q({ correct: { answer: 'A' }, changeLog: [{ from: 'A', to: 'B' }] }),
+    ]);
+    expect(reading).toEqual({ changed: 1, costly: 1 });
+  });
+
+  it('does not count a change that moved TOWARD the right answer', () => {
+    const reading = changesAgainstYou([
+      q({ correct: { answer: 'A' }, changeLog: [{ from: 'B', to: 'A' }] }),
+    ]);
+    expect(reading).toEqual({ changed: 1, costly: 0 });
+  });
+
+  it('counts questions, not edits — dithering five times is one answer', () => {
+    const reading = changesAgainstYou([
+      q({
+        correct: { answer: 'A' },
+        changeLog: [
+          { from: 'A', to: 'B' },
+          { from: 'B', to: 'C' },
+        ],
+      }),
+    ]);
+    expect(reading).toEqual({ changed: 1, costly: 1 });
+  });
+
+  it('declines to judge direction when the key cannot be read', () => {
+    // Contributes to `changed` but never to `costly`: asserting a direction
+    // we cannot compute would be worse than saying less.
+    const reading = changesAgainstYou([
+      q({ correct: null, changeLog: [{ from: 'A', to: 'B' }] }),
+    ]);
+    expect(reading).toEqual({ changed: 1, costly: 0 });
+  });
+
+  it('ignores answer-building edits entirely', () => {
+    const reading = changesAgainstYou([
+      q({ questionType: 'SATA', correct: { answers: ['A', 'B'] }, changeLog: [{ from: ['A'], to: ['A', 'B'] }] }),
+    ]);
+    expect(reading).toEqual({ changed: 0, costly: 0 });
+  });
+});
+
+describe('questionRows — a stem may be stored as rich JSON', () => {
+  it('⭐ renders a Tiptap document as plain text, never as JSON', () => {
+    // Measured: 139 of 1,853 item snapshots are JSON docs. Printing the raw
+    // column would show {"type":"doc",…} in one row in thirteen.
+    const doc = JSON.stringify({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'A client reports chest pain.' }] }],
+    });
+    const [row] = questionRows([q({ stem: doc })], 'att1');
+    expect(row.stem).toBe('A client reports chest pain.');
+    expect(row.stem).not.toContain('{');
+  });
+
+  it('leaves a plain-text stem alone', () => {
+    const [row] = questionRows([q({ stem: 'A nurse is teaching a client.' })], 'att1');
+    expect(row.stem).toBe('A nurse is teaching a client.');
+  });
+
+  it('survives a null stem', () => {
+    expect(questionRows([q({ stem: null })], 'att1')[0].stem).toBe('');
+  });
+
+  it('carries the outcome, time, changes and a review link', () => {
+    const [row] = questionRows(
+      [q({ position: 4, marks: 4, scoreAwarded: 2, timeSpentSec: 41, changeLog: [{ from: 'A', to: 'B' }] })],
+      'att7',
+    );
+    expect(row).toMatchObject({
+      position: 4,
+      outcome: 'PARTIAL',
+      timeSpentSec: 41,
+      changes: 1,
+      href: '/session/att7',
+    });
   });
 });
 

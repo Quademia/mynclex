@@ -17,6 +17,7 @@
 import Link from 'next/link';
 import {
   allAxisRows,
+  changesAgainstYou,
   answerPoints,
   fixList,
   hasRebuildableFilters,
@@ -24,6 +25,7 @@ import {
   outcomeCounts,
   paceSeconds,
   pointsSplit,
+  questionRows,
   rebuildHref,
   totalEngagedSeconds,
 } from '@/lib/practice/report/derive';
@@ -33,6 +35,7 @@ import { OutcomesCard } from './outcomes-card';
 import { AnswerPointsCard } from './answer-points-card';
 import { WhereYouSlipped } from './where-you-slipped';
 import { FixList } from './fix-list';
+import { EveryQuestion } from './every-question';
 
 function sittingDate(iso: string): string {
   return new Date(iso).toLocaleString('en-GB', {
@@ -58,6 +61,8 @@ export function SessionReportView({ report }: { report: SessionReport }) {
   const split = pointsSplit(report.questions);
   const axes = allAxisRows(report.questions);
   const fixes = fixList(report.questions, report.attemptId);
+  const rows = questionRows(report.questions, report.attemptId);
+  const changes = changesAgainstYou(report.questions);
 
   // Time facts are omitted entirely when nothing was recorded. Per-question
   // timing arrived late in the product's life, so most older sittings have
@@ -161,16 +166,7 @@ export function SessionReportView({ report }: { report: SessionReport }) {
               never reach the browser. */}
           <WhereYouSlipped axes={axes} />
           <FixList items={fixes} />
-
-          {/* Slice 3 fills this: the per-question table and the
-              answers-you-changed line. */}
-          <section className="bsr-card bsr-pending">
-            <h2 className="bsr-card-h">Every question — coming next</h2>
-            <p className="bsr-card-sub">
-              The question-by-question table, with what you answered and how
-              long each one took, lands in the next build.
-            </p>
-          </section>
+          <EveryQuestion rows={rows} changes={changes} />
         </div>
       </div>
     </div>

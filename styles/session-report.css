@@ -498,6 +498,126 @@
 }
 .bsr-fix-action:hover { background: var(--bg-soft); }
 
+/* ─── Every question ─────────────────────────────────── */
+
+.bsr-qtable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  font-size: 12px;
+}
+
+.bsr-qtable th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  border-bottom: 1px solid var(--border);
+}
+
+.bsr-qtable td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text);
+}
+.bsr-qtable tbody tr:last-child td { border-bottom: 0; }
+.bsr-qtable tbody tr:hover { background: var(--bg); }
+
+.bsr-q-n {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+  width: 28px;
+}
+
+/* The stem is the widest thing on the row and the only one worth the space,
+ * so it takes what the fixed columns leave. Clamped to two lines: enough to
+ * recognise the question, not enough to turn the table into a document.
+ *
+ * ⚠ The clamp is on the inner SPAN, never on the <td>. `display: -webkit-box`
+ * on a table cell replaces its table-cell display, and the clamp then leaves
+ * a sliver of the cut line visible instead of ending at two — seen on screen
+ * before this was split out. */
+.bsr-q-stem { line-height: 1.45; }
+
+.bsr-q-stem-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* "changed" — the marker for a question whose answer was replaced. Inline
+ * with the stem rather than its own column: it applies to few rows, and an
+ * extra column of mostly-blank cells costs every row. */
+.bsr-q-changed {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  vertical-align: 1px;
+}
+
+.bsr-q-subject { color: var(--text-muted); white-space: nowrap; }
+.bsr-q-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.bsr-q-action { text-align: right; white-space: nowrap; }
+
+.bsr-q-review {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+}
+.bsr-q-review:hover { text-decoration: underline; }
+
+.bsr-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.bsr-pill-ok { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+.bsr-pill-warn { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+.bsr-pill-bad { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+/* Grey, never red — not answering is the absence of a result, not a bad one. */
+.bsr-pill-muted {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.bsr-more {
+  margin-top: 12px;
+  padding: 8px 12px;
+  width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--accent);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.bsr-more:hover { background: var(--bg); }
+
 /* ─── Phone (≤768px) ─────────────────────────────────
  * The rail becomes the TOP BLOCK above the sections, exactly as the
  * readiness report does — ring and facts side by side, then both actions
@@ -554,4 +674,97 @@
   }
 
   .bsr-trio-n { font-size: 19px; }
+
+  /* One CARD per question, not a six-column table squeezed into 375px. The
+   * design's note asked for exactly this: outcome and time on a meta row, the
+   * stem on its own line, and a full-width review action as the tap target —
+   * no horizontal scroll and no truncated stems. */
+  .bsr-qtable thead { display: none; }
+  .bsr-qtable,
+  .bsr-qtable tbody,
+  .bsr-qtable tr,
+  .bsr-qtable td { display: block; width: 100%; }
+
+  /* The row becomes a WRAPPING FLEX card, which is what actually controls the
+   * line breaks. Inline cells alone let the meta values flow on from the stem
+   * as though they were part of the question — seen on screen, and it read as
+   * "…is deteriorating? — Correct —". Flex + order puts number and stem on
+   * line 1, the meta values on line 2, and the action on its own. */
+  .bsr-qtable tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 10px;
+    row-gap: 4px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .bsr-qtable tr:hover { background: transparent; }
+  .bsr-qtable td { border: 0; padding: 0; width: auto; }
+
+  /* The number rides with the stem instead of owning a line. */
+  .bsr-qtable td.bsr-q-n {
+    order: 1;
+    flex: none;
+    font-weight: 600;
+    color: var(--text);
+  }
+  /* ⚠ The basis has to claim the WHOLE remainder of line 1, minus just enough
+   * for the number. At a smaller basis the shortest meta value (SUBJECT) fits
+   * in the leftover and gets orphaned up beside the stem while the other two
+   * wrap — seen on screen. 44px leaves room for a two-digit number and its
+   * gap, and nothing else. */
+  .bsr-qtable td.bsr-q-stem {
+    order: 2;
+    flex: 1 1 calc(100% - 44px);
+    font-size: 13px;
+  }
+  /* The clamp is a desktop density measure; on a phone the stem is the point
+   * of the card, so it wraps in full. */
+  .bsr-q-stem-text {
+    display: inline;
+    -webkit-line-clamp: none;
+    overflow: visible;
+  }
+
+  /* Subject · Outcome · Time as one labelled meta row under the stem. The
+   * labels matter here: a bare "—" floating after the question text is
+   * unreadable, while "TIME —" says plainly that none was recorded. Same
+   * device the History cards use. */
+  .bsr-qtable td.bsr-q-subject,
+  .bsr-qtable td[data-label='Outcome'],
+  .bsr-qtable td.bsr-q-time {
+    order: 3;
+    flex: none;
+    margin-top: 4px;
+    font-size: 11px;
+  }
+  .bsr-qtable td.bsr-q-subject::before,
+  .bsr-qtable td[data-label='Outcome']::before,
+  .bsr-qtable td.bsr-q-time::before {
+    content: attr(data-label) ' ';
+    margin-right: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+  }
+
+  .bsr-qtable td.bsr-q-action {
+    order: 4;
+    flex: 1 1 100%;
+    text-align: left;
+    margin-top: 10px;
+  }
+  .bsr-q-review {
+    display: block;
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-align: center;
+    font-size: 13px;
+  }
+
+  .bsr-more { padding: 12px; font-size: 13px; }
 }
