@@ -13,7 +13,13 @@
 //      MORE than 'wrong' did (it says you got some of it right).
 
 import { describe, it, expect } from 'vitest';
-import { deriveCellFill, isVisibleUnderFilter, FILL_LABEL } from './cell-state';
+import {
+  deriveCellFill,
+  isVisibleUnderFilter,
+  FILL_LABEL,
+  OUTCOME_FILTERS,
+  type GridFilter,
+} from './cell-state';
 import { verdictFor } from '@/lib/scoring';
 import type { AnswerRow, CellFill } from './types';
 
@@ -99,23 +105,98 @@ describe('deriveCellFill', () => {
   });
 });
 
+const ALL_FILLS: CellFill[] =
+  ['unanswered', 'answered', 'right', 'partial', 'wrong', 'skipped'];
+
 describe('isVisibleUnderFilter', () => {
   it('the Wrong filter does not sweep in partial answers', () => {
-    // Deliberate: a tab labelled "Wrong" listing partial answers would
-    // reintroduce in the filter the exact conflation the three-state
-    // verdict removed from the header.
+    // Deliberate: a filter labelled "Wrong" listing partial answers would
+    // reintroduce the exact conflation the three-state verdict removed
+    // from the header. Partial has its own row instead.
     expect(isVisibleUnderFilter('wrong', false, 'wrong')).toBe(true);
     expect(isVisibleUnderFilter('partial', false, 'wrong')).toBe(false);
   });
 
-  it('the Unanswered filter still covers skipped', () => {
-    expect(isVisibleUnderFilter('skipped', false, 'unanswered')).toBe(true);
-    expect(isVisibleUnderFilter('partial', false, 'unanswered')).toBe(false);
+  it('"To do" covers both never-reached and deliberately skipped', () => {
+    expect(isVisibleUnderFilter('unanswered', false, 'todo')).toBe(true);
+    expect(isVisibleUnderFilter('skipped', false, 'todo')).toBe(true);
+    expect(isVisibleUnderFilter('partial', false, 'todo')).toBe(false);
+    expect(isVisibleUnderFilter('right', false, 'todo')).toBe(false);
   });
 
-  it('All shows every fill, including the new one', () => {
-    const fills: CellFill[] = ['unanswered', 'answered', 'right', 'partial', 'wrong', 'skipped'];
-    for (const f of fills) expect(isVisibleUnderFilter(f, false, 'all')).toBe(true);
+  it('"Dropped marks" is exactly wrong + partial', () => {
+    // The view a student actually wants after a sitting, and unreachable
+    // without it: the two are separate states now and a single-select
+    // filter cannot union them.
+    expect(isVisibleUnderFilter('wrong', false, 'dropped')).toBe(true);
+    expect(isVisibleUnderFilter('partial', false, 'dropped')).toBe(true);
+    for (const f of ALL_FILLS.filter((x) => x !== 'wrong' && x !== 'partial')) {
+      expect(isVisibleUnderFilter(f, false, 'dropped'), `${f} must not be "dropped"`).toBe(false);
+    }
+  });
+
+  it('"Dropped marks" is the union of its two parts, never more', () => {
+    // Pins the relationship rather than the membership: if either part
+    // changes, this fails unless the union follows.
+    for (const f of ALL_FILLS) {
+      const union =
+        isVisibleUnderFilter(f, false, 'wrong') || isVisibleUnderFilter(f, false, 'partial');
+      expect(isVisibleUnderFilter(f, false, 'dropped'), `${f}`).toBe(union);
+    }
+  });
+
+  it('every fill has a filter that finds it', () => {
+    // The gap this slice closes: after the sixth fill landed, a partial
+    // answer was reachable by NO filter at all.
+    const perFill: Record<string, GridFilter> = {
+      unanswered: 'unanswered', answered: 'answered', right: 'right',
+      partial: 'partial', wrong: 'wrong', skipped: 'skipped',
+    };
+    for (const f of ALL_FILLS) {
+      expect(isVisibleUnderFilter(f, false, perFill[f]), `${f} unreachable`).toBe(true);
+    }
+  });
+
+  it('each single-state filter matches only its own fill', () => {
+    const perFill: [CellFill, GridFilter][] = [
+      ['unanswered', 'unanswered'], ['answered', 'answered'], ['right', 'right'],
+      ['partial', 'partial'], ['wrong', 'wrong'], ['skipped', 'skipped'],
+    ];
+    for (const [fill, filter] of perFill) {
+      for (const other of ALL_FILLS) {
+        expect(
+          isVisibleUnderFilter(other, false, filter),
+          `filter ${filter} on fill ${other}`,
+        ).toBe(other === fill);
+      }
+    }
+  });
+
+  it('Flagged is about the border, not the fill', () => {
+    for (const f of ALL_FILLS) {
+      expect(isVisibleUnderFilter(f, true, 'flagged')).toBe(true);
+      expect(isVisibleUnderFilter(f, false, 'flagged')).toBe(false);
+    }
+  });
+
+  it('All shows every fill', () => {
+    for (const f of ALL_FILLS) expect(isVisibleUnderFilter(f, false, 'all')).toBe(true);
+  });
+});
+
+describe('OUTCOME_FILTERS', () => {
+  it('holds exactly the filters that need results to be visible', () => {
+    // These are hidden mid-exam. Getting this set wrong either leaks
+    // correctness during a live sitting or hides a usable filter in
+    // review.
+    expect([...OUTCOME_FILTERS].sort())
+      .toEqual(['dropped', 'partial', 'right', 'skipped', 'wrong']);
+  });
+
+  it('excludes every progress filter', () => {
+    for (const f of ['all', 'flagged', 'todo', 'unanswered', 'answered'] as GridFilter[]) {
+      expect(OUTCOME_FILTERS.has(f), `${f} must not need results`).toBe(false);
+    }
   });
 });
 
