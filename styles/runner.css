@@ -2159,6 +2159,111 @@
 .rn-opt.wrong  .rn-opt-verdict { color: #b91c1c; }
 .rn-opt.missed .rn-opt-verdict { color: #b45309; }
 
+/* Review scoring strip — the line above the rationale carrying how the
+ * question was marked: verdict chip · score + breakdown | rule … time.
+ * A bordered card rather than the rationale's accent block, so the two
+ * read as separate statements (how it was marked / why).
+ *
+ * Wraps rather than truncates: the rule sentence is the longest piece
+ * and a phone will not hold it on one line. Nothing here is decorative,
+ * so nothing may be clipped away. */
+.rn-strip {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 9px 13px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+/* The strip states the verdict, so the rationale under it follows on
+ * closely rather than restarting at a full block gap. */
+.rn-strip + .rn-rationale { margin-top: 10px; }
+.rn-strip-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  border: 1px solid;
+}
+.rn-strip-verdict .glyph { font-size: 11px; line-height: 1; }
+.rn-strip-verdict.ok {
+  color: #15803d;
+  background: rgba(22, 163, 74, 0.08);
+  border-color: rgba(22, 163, 74, 0.35);
+}
+/* Amber, matching the ".missed" option rows a partial score is made of.
+ * Never red — a partial answer is not a wrong one. */
+.rn-strip-verdict.part {
+  color: #b45309;
+  background: rgba(217, 119, 6, 0.08);
+  border-color: rgba(217, 119, 6, 0.35);
+}
+.rn-strip-verdict.no {
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.07);
+  border-color: rgba(185, 28, 28, 0.30);
+}
+.rn-strip-score {
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+.rn-strip-score .sub {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.rn-strip-sep {
+  width: 1px;
+  height: 13px;
+  flex-shrink: 0;
+  background: var(--border);
+}
+.rn-strip-rule {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  /* Keeps the rule from wrapping to a single orphaned word — "never
+   * below" / "0" on its own line reads as a broken sentence. */
+  text-wrap: pretty;
+}
+/* Pushed right on a wide row; falls in line naturally once wrapped. */
+.rn-strip-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.rn-strip-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.rn-strip-time .glyph { color: var(--text-muted); }
+
+@media (max-width: 768px) {
+  /* margin-left:auto strands the time on its own line once the row has
+   * wrapped; on a phone it should simply follow the rule text. */
+  .rn-strip { gap: 7px 10px; padding: 9px 11px; }
+  .rn-strip-meta { margin-left: 0; }
+  .rn-strip-sep { display: none; }
+}
+
 /* Rationale block (UL post-submit + Review) — left-border accent on a
  * soft grey block. Replaces the bordered card to match the academic
  * option treatment (no boxed chrome, no chip backgrounds). Verdict is

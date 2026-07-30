@@ -27,6 +27,15 @@ interface Props {
   marksMax:     number;
   rationale:    string | null;
   rationaleImg: string | null;
+  /**
+   * Whether this block states the verdict and score itself.
+   *
+   * False in the runner, where the <ScoringStrip> directly above already
+   * carries both (and more) — showing them twice, six pixels apart, is
+   * how a screen stops being read. The tutor-library embeds, which have
+   * no strip, leave it at the default and keep the header.
+   */
+  showVerdict?: boolean;
 }
 
 /** Verdict → the CSS modifier carrying its colour. */
@@ -41,18 +50,25 @@ export function RationaleBlock({
   marksMax,
   rationale,
   rationaleImg,
+  showVerdict = true,
 }: Props) {
   const verdict = verdictFor(scoreAwarded, marksMax);
 
   return (
     <div className="rn-rationale">
       <div className="rn-rationale-head">
-        <span className={'verdict ' + VERDICT_CLASS[verdict]}>
-          Rationale · {VERDICT_LABEL[verdict].toLowerCase()}
-        </span>
-        <span className="score">
-          {formatScore(scoreAwarded)} / {marksMax}
-        </span>
+        {showVerdict ? (
+          <>
+            <span className={'verdict ' + VERDICT_CLASS[verdict]}>
+              Rationale · {VERDICT_LABEL[verdict].toLowerCase()}
+            </span>
+            <span className="score">
+              {formatScore(scoreAwarded)} / {marksMax}
+            </span>
+          </>
+        ) : (
+          <span className="verdict">Rationale</span>
+        )}
       </div>
       <div className="rn-rationale-body">
         {rationale && !isEmptyRichDoc(parseRichDoc(rationale)) ? (
