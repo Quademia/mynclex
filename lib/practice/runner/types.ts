@@ -14,6 +14,7 @@
 import type { QuestionType, CjmmStep } from '@/lib/bank/classifications';
 import type { BankItemCorrect } from '@/lib/bank/types';
 import type { BankItemAnswer } from '@/lib/scoring';
+import type { ItemStatsByAttemptItem } from './item-stats';
 
 export type RunnerMode = 'live' | 'review';
 
@@ -121,7 +122,18 @@ export interface TrendSnapshot {
   tabs_snapshot_json:       unknown[];
 }
 
-export type CellFill = 'unanswered' | 'answered' | 'right' | 'wrong' | 'skipped';
+// 'partial' arrived with the review scoring strip: the grid painted a
+// partially-credited answer dark-red "wrong" while the strip beside it
+// said "Partial credit", two inches apart on one screen. 28% of
+// submitted answers on dev are partial, so this is the common case, not
+// an edge one.
+export type CellFill =
+  | 'unanswered'
+  | 'answered'
+  | 'right'
+  | 'partial'
+  | 'wrong'
+  | 'skipped';
 
 // Per-item unseal envelope. Live mode receives this via two paths:
 //   (a) submitAnswerAction's response on per-Q submit (UL hybrid,
@@ -198,6 +210,12 @@ export interface ReviewData {
   cases:   CaseSnapshot[];
   trends:  TrendSnapshot[];
   answers: AnswerRow[];
+  /** How other students answered each question, for the scoring strip.
+   *  Keyed by attempt_item_id, and DELIBERATELY SPARSE: the RPC returns
+   *  nothing for a question under the threshold, so a missing key means
+   *  "not enough answers to say anything" and the strip omits the
+   *  segment. Review only — live mode never shows it. */
+  itemStats: ItemStatsByAttemptItem;
   /** Slice 3a — see LiveData.exitHref. */
   exitHref: string;
   /** See LiveData. Bookmarking stays editable in review — unlike the

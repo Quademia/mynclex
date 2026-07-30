@@ -40,8 +40,18 @@
   --rn-fill-right-text:        #14532d;
   --rn-fill-wrong:             #5b1d1d;
   --rn-fill-wrong-text:        #fde8e8;
-  --rn-fill-skipped:           #f6d99c;
-  --rn-fill-skipped-text:      #7c4a03;
+  /* Amber belongs to PARTIAL CREDIT, matching the review scoring strip
+   * and the ".missed" option rows a partial score is made of. It used to
+   * be Skipped's — moved 2026-07-30, because the grid and the strip
+   * saying the same thing in two colours was the whole defect. */
+  --rn-fill-partial:           #f6d99c;
+  --rn-fill-partial-text:      #7c4a03;
+  /* Skipped is not a score — it is the ABSENCE of an answer, and it sits
+   * next to Unanswered in the legend for that reason. So it reads as a
+   * neutral, marked out by a dashed edge rather than a fill. */
+  --rn-fill-skipped:           #eef0f3;
+  --rn-fill-skipped-text:      #6b7280;
+  --rn-fill-skipped-border:    #9ca3af;
 
   /* Channel overlays */
   --rn-mark-border:     #d97706;
@@ -2159,6 +2169,120 @@
 .rn-opt.wrong  .rn-opt-verdict { color: #b91c1c; }
 .rn-opt.missed .rn-opt-verdict { color: #b45309; }
 
+/* Review scoring strip — the line above the rationale carrying how the
+ * question was marked: verdict chip · score + breakdown | rule … time.
+ * A bordered card rather than the rationale's accent block, so the two
+ * read as separate statements (how it was marked / why).
+ *
+ * Wraps rather than truncates: the rule sentence is the longest piece
+ * and a phone will not hold it on one line. Nothing here is decorative,
+ * so nothing may be clipped away. */
+.rn-strip {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 9px 13px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+/* The strip states the verdict, so the rationale under it follows on
+ * closely rather than restarting at a full block gap. */
+.rn-strip + .rn-rationale { margin-top: 10px; }
+.rn-strip-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  border: 1px solid;
+}
+.rn-strip-verdict .glyph { font-size: 11px; line-height: 1; }
+.rn-strip-verdict.ok {
+  color: #15803d;
+  background: rgba(22, 163, 74, 0.08);
+  border-color: rgba(22, 163, 74, 0.35);
+}
+/* Amber, matching the ".missed" option rows a partial score is made of.
+ * Never red — a partial answer is not a wrong one. */
+.rn-strip-verdict.part {
+  color: #b45309;
+  background: rgba(217, 119, 6, 0.08);
+  border-color: rgba(217, 119, 6, 0.35);
+}
+.rn-strip-verdict.no {
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.07);
+  border-color: rgba(185, 28, 28, 0.30);
+}
+.rn-strip-score {
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+.rn-strip-score .sub {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.rn-strip-sep {
+  width: 1px;
+  height: 13px;
+  flex-shrink: 0;
+  background: var(--border);
+}
+.rn-strip-rule {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  /* Keeps the rule from wrapping to a single orphaned word — "never
+   * below" / "0" on its own line reads as a broken sentence. */
+  text-wrap: pretty;
+}
+/* Pushed right on a wide row; falls in line naturally once wrapped. */
+.rn-strip-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.rn-strip-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.rn-strip-time .glyph { color: var(--text-muted); }
+/* How other students did. Dotted underline + help cursor because the
+ * hover sentence is where the population is named — the visible text is
+ * two numbers and cannot say who they are of. */
+.rn-strip-others {
+  border-bottom: 1px dotted var(--text-muted);
+  cursor: help;
+  font-variant-numeric: tabular-nums;
+}
+.rn-strip-others strong { color: var(--text); font-weight: 700; }
+
+@media (max-width: 768px) {
+  /* margin-left:auto strands the time on its own line once the row has
+   * wrapped; on a phone it should simply follow the rule text. */
+  .rn-strip { gap: 7px 10px; padding: 9px 11px; }
+  .rn-strip-meta { margin-left: 0; }
+  .rn-strip-sep { display: none; }
+}
+
 /* Rationale block (UL post-submit + Review) — left-border accent on a
  * soft grey block. Replaces the bordered card to match the academic
  * option treatment (no boxed chrome, no chip backgrounds). Verdict is
@@ -2183,8 +2307,12 @@
   letter-spacing: 0.05em;
   color: var(--text-muted);
 }
-.rn-rationale-head .verdict.ok { color: #15803d; }
-.rn-rationale-head .verdict.no { color: #b91c1c; }
+.rn-rationale-head .verdict.ok   { color: #15803d; }
+/* Partial credit — amber, the same hue the option rows already use for
+ * ".missed" (a correct answer the student didn't pick), which is what a
+ * partial score is made of. Never red: a partial answer is not wrong. */
+.rn-rationale-head .verdict.part { color: #b45309; }
+.rn-rationale-head .verdict.no   { color: #b91c1c; }
 .rn-rationale-head .score {
   font-size: 11.5px;
   color: var(--text-muted);
@@ -2366,7 +2494,7 @@
 }
 .rn-cell:hover { transform: translateY(-1px); }
 
-/* Fill (background) — 5 states */
+/* Fill (background) — 6 states */
 .rn-cell.f-answered {
   background: var(--rn-fill-answered);
   border-color: #b8c8dc;
@@ -2377,14 +2505,23 @@
   border-color: #84c193;
   color: var(--rn-fill-right-text);
 }
+.rn-cell.f-partial {
+  background: var(--rn-fill-partial);
+  border-color: #d6a85a;
+  color: var(--rn-fill-partial-text);
+}
 .rn-cell.f-wrong {
   background: var(--rn-fill-wrong);
   border-color: #3d0e0e;
   color: var(--rn-fill-wrong-text);
 }
+/* Dashed edge carries "skipped" without a hue, so the state stays
+ * legible to anyone who cannot separate amber from grey — and so that
+ * the six fills are not six flat colours competing at 36px. */
 .rn-cell.f-skipped {
   background: var(--rn-fill-skipped);
-  border-color: #d6a85a;
+  border-style: dashed;
+  border-color: var(--rn-fill-skipped-border);
   color: var(--rn-fill-skipped-text);
 }
 
@@ -2429,8 +2566,13 @@
 }
 .rn-grid-legend .swatch.f-answered { background: var(--rn-fill-answered); border-color: #b8c8dc; }
 .rn-grid-legend .swatch.f-right    { background: var(--rn-fill-right);    border-color: #84c193; }
+.rn-grid-legend .swatch.f-partial  { background: var(--rn-fill-partial);  border-color: #d6a85a; }
 .rn-grid-legend .swatch.f-wrong    { background: var(--rn-fill-wrong);    border-color: #3d0e0e; }
-.rn-grid-legend .swatch.f-skipped  { background: var(--rn-fill-skipped);  border-color: #d6a85a; }
+.rn-grid-legend .swatch.f-skipped  {
+  background: var(--rn-fill-skipped);
+  border-style: dashed;
+  border-color: var(--rn-fill-skipped-border);
+}
 .rn-grid-legend .swatch.marked     {
   border: 2px solid var(--rn-mark-border);
   background: var(--white);

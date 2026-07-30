@@ -14,6 +14,11 @@ export {
 
 export { computeMarksFromKey, scoreAttempt } from './dispatch';
 
+// The three-state DISPLAY verdict. Derived from score + marks, never
+// stored — see verdict.ts for why `is_correct` was left alone.
+export { verdictFor, VERDICT_LABEL } from './verdict';
+export type { Verdict } from './verdict';
+
 export type {
   McqAnswer,
   TfAnswer,

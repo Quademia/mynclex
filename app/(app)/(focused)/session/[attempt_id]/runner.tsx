@@ -1179,6 +1179,13 @@ function RunnerShell({ data }: Props) {
         itemMode="review"
         answerRow={reviewAnswerRow}
         unseal={unsealForCurrent}
+        // Sparse by design: absent for a question too few people have
+        // answered, which is most of them early on.
+        itemStats={
+          data.mode === 'review'
+            ? data.itemStats[currentItem.attempt_item_id]
+            : undefined
+        }
         topSlot={cjmmTopSlot}
         trendBadge={inTrend}
         examLive={hideExamScaffold}

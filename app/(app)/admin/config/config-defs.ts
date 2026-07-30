@@ -49,6 +49,20 @@ export const CONFIG_DEFS: ConfigDef[] = [
       'This stops the weekly job that keeps question difficulty in step with real student performance. Nothing breaks — every question keeps the difficulty it last had — but the adaptive exam will go on matching students against increasingly out-of-date numbers until you turn it back on.',
   },
   {
+    key: 'item_stats_enabled',
+    label: 'Question statistics',
+    description:
+      'Counts how students have answered each question and shows it under their answer in review, refreshed nightly at 03:00 UTC. A question needs 30 answers before a student sees anything, so this does nothing until the bank has been used.',
+    type: 'boolean',
+    defaultValue: 'true',
+    // Unlike the two job switches above, this one governs the DISPLAY as
+    // well as the nightly recount. Stopping the job alone would freeze
+    // the last numbers on screen rather than remove them — the wrong
+    // outcome for the reason an admin would most likely reach for it.
+    confirmOff:
+      'This hides the figure from students, and from tutors on their own questions, and stops the nightly recount. Nothing is lost: the counts are rebuilt from the answers themselves the night after you turn it back on.',
+  },
+  {
     key: 'bank_optin_discount',
     label: 'Bank opt-in discount',
     description:

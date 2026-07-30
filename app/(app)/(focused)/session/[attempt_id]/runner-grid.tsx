@@ -19,12 +19,15 @@
 'use client';
 
 import type { AnswerRow } from '@/lib/practice/runner';
-import { deriveCellFill, isVisibleUnderFilter } from '@/lib/practice/runner';
+import { deriveCellFill, FILL_LABEL, isVisibleUnderFilter } from '@/lib/practice/runner';
 import type { GridFilter } from '@/lib/practice/runner';
 
 interface CellSummary {
   attempt_item_id: string;
   position:        number;
+  /** Needed to tell a PARTIAL score from a full one: the answer row
+   *  carries the score, but the maximum lives on the item. */
+  marks_snapshot:  number;
 }
 
 // One contiguous run of case-child cells. `from` / `to` are 0-indexed
@@ -119,9 +122,15 @@ export function RunnerGrid({
     wrong:      0,
   };
   for (const item of items) {
-    const fill = deriveCellFill(answers.get(item.attempt_item_id), revealCorrectness);
+    const fill = deriveCellFill(
+      answers.get(item.attempt_item_id),
+      item.marks_snapshot,
+      revealCorrectness,
+    );
     if (flagged.has(item.attempt_item_id)) filterCounts.flagged += 1;
     if (fill === 'unanswered' || fill === 'skipped') filterCounts.unanswered += 1;
+    // Counts WRONG only — a partial answer is not swept in here. See
+    // isVisibleUnderFilter for why.
     if (fill === 'wrong') filterCounts.wrong += 1;
   }
 
@@ -189,7 +198,11 @@ export function RunnerGrid({
           ))}
 
           {items.map((item, idx) => {
-            const fill   = deriveCellFill(answers.get(item.attempt_item_id), revealCorrectness);
+            const fill   = deriveCellFill(
+              answers.get(item.attempt_item_id),
+              item.marks_snapshot,
+              revealCorrectness,
+            );
             const isFlg  = flagged.has(item.attempt_item_id);
             const hidden = !isVisibleUnderFilter(fill, isFlg, filter);
             const cls = [
@@ -203,9 +216,12 @@ export function RunnerGrid({
               idx === current && 'current',
               hidden          && 'hidden',
             ].filter(Boolean).join(' ');
+            // Spoken words, not the raw fill token: a screen reader
+            // would otherwise say "partial", which does not say partial
+            // WHAT. The colour and the word have to move together.
             const label =
               `Question ${item.position}` +
-              (fill !== 'unanswered' ? `, ${fill}` : '') +
+              (fill !== 'unanswered' ? `, ${FILL_LABEL[fill]}` : '') +
               (isFlg ? ', flagged for review' : '') +
               (idx === current ? ', current' : '');
             return (
@@ -229,6 +245,7 @@ export function RunnerGrid({
         {revealCorrectness && (
           <>
             <div className="row"><span className="swatch f-right" /> Correct</div>
+            <div className="row"><span className="swatch f-partial" /> Partial credit</div>
             <div className="row"><span className="swatch f-wrong" /> Wrong</div>
             <div className="row"><span className="swatch f-skipped" /> Skipped</div>
           </>

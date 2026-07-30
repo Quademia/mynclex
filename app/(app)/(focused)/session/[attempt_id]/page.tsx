@@ -33,6 +33,7 @@ import { resolveAttemptExitHref } from '@/lib/practice/runner/resolve-exit-href'
 import { reviewWindowOpen } from '@/lib/payments/readiness-window';
 import { hasDismissedPrompt } from '@/lib/practice/tutorial/completion';
 import { bookmarkingOffered } from '@/lib/practice/runner/bookmarks';
+import { itemStatsForAttempt } from '@/lib/practice/runner/item-stats';
 import { PROMPT_KEY_PRE_EXAM_OFFER } from '@/lib/practice/tutorial/keys';
 
 export const dynamic = 'force-dynamic';
@@ -200,6 +201,14 @@ export default async function SessionPage({ params }: PageProps) {
     notFound();
   }
 
+  // How other students answered each question — review only, and one call
+  // for the whole sitting rather than one per question. Not part of the
+  // Promise.all above because it is decoration: it must never be able to
+  // fail the page, and itemStatsForAttempt swallows errors to a {} for
+  // that reason. Live mode never asks — the figure belongs beside a
+  // verdict, and live has none until submit.
+  const itemStats = isLive ? {} : await itemStatsForAttempt(supabase, attempt_id);
+
   // Resume support (slice 4.6a fix). For UL students returning to an
   // in-progress attempt, items the student already submitted need their
   // unseal data restored so per-Q feedback re-renders. The main items
@@ -311,6 +320,7 @@ export default async function SessionPage({ params }: PageProps) {
         cases:   (cases.data   ?? []) as unknown as CaseSnapshot[],
         trends:  (trends.data  ?? []) as unknown as TrendSnapshot[],
         answers: (answers.data ?? []) as unknown as AnswerRow[],
+        itemStats,
         exitHref,
         bookmarkedItemIds,
         canBookmark,

@@ -232,7 +232,6 @@ function EmbedPreviewPaged({
 
         {review && (
           <RationaleBlock
-            isCorrect={review.isCorrect}
             scoreAwarded={review.scoreAwarded}
             marksMax={review.marks}
             rationale={review.rationale}

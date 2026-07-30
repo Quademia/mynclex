@@ -93,7 +93,10 @@ import {
   DragOrderRunner,
   BowtieRunner,
   RationaleBlock,
+  ScoringStrip,
 } from '@/lib/practice/runner';
+import { pointsDetail } from '@/lib/scoring/detail';
+import type { ItemStats } from '@/lib/practice/runner/item-stats';
 import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc } from '@/lib/authoring/rich-doc';
 import { bankImageRenderer } from '@/lib/authoring/bank-image-render';
@@ -160,6 +163,11 @@ type ReviewProps = CommonProps & {
   itemMode:  'review';
   answerRow: AnswerRow;
   unseal:    PerItemUnseal;
+  /** How other students answered THIS question. Undefined when too few
+   *  have answered it to say anything — the strip then omits the
+   *  segment rather than showing an empty one. Undefined in live mode
+   *  and in the sandbox, which has no real answers behind it. */
+  itemStats?: ItemStats;
 };
 
 type Props = AnsweringProps | ReviewProps;
@@ -229,13 +237,29 @@ export function RunnerQuestionArea(props: Props) {
       <PerTypeRunner {...props} />
 
       {props.itemMode === 'review' && (
-        <RationaleBlock
-          isCorrect={props.answerRow.is_correct ?? false}
-          scoreAwarded={props.answerRow.score_awarded ?? 0}
-          marksMax={props.unseal.marksMax}
-          rationale={props.unseal.rationale}
-          rationaleImg={props.unseal.rationaleImg}
-        />
+        <>
+          {/* The strip carries the verdict, so the rationale below it
+           *  drops its own header rather than saying it twice. */}
+          <ScoringStrip
+            questionType={item.question_type}
+            scoreAwarded={props.answerRow.score_awarded ?? 0}
+            marksMax={props.unseal.marksMax}
+            detail={pointsDetail(
+              item.question_type,
+              props.unseal.correct,
+              props.answerRow.answer_json,
+            )}
+            timeSpentSec={props.answerRow.time_spent_sec}
+            stats={props.itemStats}
+          />
+          <RationaleBlock
+            scoreAwarded={props.answerRow.score_awarded ?? 0}
+            marksMax={props.unseal.marksMax}
+            rationale={props.unseal.rationale}
+            rationaleImg={props.unseal.rationaleImg}
+            showVerdict={false}
+          />
+        </>
       )}
     </div>
   );
