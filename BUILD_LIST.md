@@ -1,9 +1,72 @@
 # MyNclex Build List
 
-> ## ⏭ NEXT SESSION: the student **History page** (`/student/bank/history`)
+> ## ⏭ NEXT SESSION: **release `main` → `prod`**, then marking
 >
-> Sam's pick, 2026-07-30. Not the case bank's own per-case history — that is
-> built — the standalone History surface.
+> ### ⚠ PROD IS ELEVEN COMMITS BEHIND, with five migrations un-applied
+>
+> `origin/prod` is `e636665` (2026-07-29). Missing: the whole **case-bank arc**
+> (`20260829120000`, `20260830120000`, `20260831120000`) and this session's
+> **History + Session Report** arc (`20260901120000`). None of it is in front of
+> users. The gap grows every session — worth clearing before it needs untangling.
+>
+> After that, **marking** — see the ⚠ below. It is small, it unblocks three
+> designed elements of the session report, and it fixes a Builder filter that
+> has never been able to match a question.
+>
+> ---
+>
+> ### ✅ DONE 2026-07-30 — the **Session Report**, and History as its index
+>
+> **`/student/bank/session/report/[attemptId]`** — the permanent report for a
+> Builder-built practice sitting, plus **`/student/bank/history`** rebuilt as the
+> directory that indexes every sitting. **9 commits, one migration**
+> (`20260901120000_discard_attempt.sql`), dev-applied; vitest **648 → 739**.
+> **On `main`, NOT prod.** Full write-up: **`docs/product-plan/session-report.md`**.
+> This closes **slice 7.1** below.
+>
+> - **⭐ The shape is Sam's.** I proposed putting practice detail *inside*
+>   History; he pointed out that means practice needs its own page and History
+>   becomes a log — which is right, and made History *smaller*. A pack and a CAT
+>   each had a permanent report; practice had only the end-of-quiz popup, a
+>   moment rather than a destination.
+> - **Every finished row offers the same pair, Report and Review** (Sam, later
+>   the same day: the practice report was the only one you had to *discover*).
+>   ⚠ Packs are asymmetric — answers expire at 21 days, so Review shows only
+>   while the window is open. **Only an explicit `true` opens it:** the runner
+>   treats a *missing* credit row as expired, and most dev pack attempts have no
+>   credit row at all.
+> - **Discard** finally writes `ABANDONED` — nothing ever had, so 36 stale rows
+>   could never be cleared. Practice only, measured; no answer row touched.
+> - **Never banded, never compared** — stated under the score, because a pack
+>   *does* band and *does* compare, so silence here would be misread.
+> - ⬜ Not built: **marking** (below) · **"re-quiz what you got wrong"** — the
+>   Builder *has* an INCORRECT pool chip, but its deep-link prefill deliberately
+>   forces UNSEEN so practice serves fresh questions; overriding that from one
+>   call site is a decision, not a detail · **per-question deep links**, so a
+>   long CAT's Review opens near its end · History **sorting** beyond
+>   newest-first and **date-range** filters.
+> - **Renaming History: reviewed and dropped.** "Test history" is this market's
+>   convention and familiarity beats a marginally better label. The nav reads
+>   **"All history"**; the page heading stays **History**.
+>
+> ### ⚠ MARKING IS A HALF-BUILT FEATURE — pinned down 2026-07-30
+>
+> The Builder offers a **"Marked" pool chip**. The runner has a **⚑ Mark
+> button**. The question grid has a **"Marked" filter**.
+> `nclex_question_marks` exists and the SQL reads it.
+>
+> **Nothing writes to it.** The runner's button is `disabled` with the tooltip
+> *"Marking questions for review isn't available yet"*, and the marked set is
+> hardcoded empty — so **the Builder's Marked pool has never been able to match
+> a single question.** (Referred to as slice 4.7 in the runner's own comments.)
+>
+> Consequence: three elements of CD's session-report design — a "questions you
+> marked" fix-list item, a marked ring on the question map, and a Marked filter
+> chip on the per-question table — are deliberately absent. **Sam's call: build
+> marking later so it's built well.** When it is, only the write path is
+> missing; every consumer is already wired.
+>
+> ---
 >
 > ### ⚠ Two corrections to the header below, before you trust it
 >
@@ -3031,7 +3094,7 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 ### Phase F — Dashboard, history, analytics
 
-- ⬜ **7.1** History page polish — analytics + filtering layered on the MVP shipped in slice 4.6a. Per-attempt-card details (avg score, time-per-Q distribution, accuracy by axis), filter chips (mode, status, date range), sort options beyond newest-first. CAT-attempt cards open to the CAT summary page (slice 6.3) instead of the runner. The MVP list shipped earlier in 4.6a (pulled forward from this slice during 4.5 close).
+- ✅ **7.1** History page polish — **DONE 2026-07-30**, and reshaped on the way. Doc: `docs/product-plan/session-report.md`. The slice as written asked for per-attempt detail *on the History card* (avg score, time-per-Q, accuracy by axis); Sam redirected that detail into a **page of its own** — the Session Report at `/student/bank/session/report/[attemptId]` — leaving History as the **directory**, which is what it should have been. Delivered: paging (the 50-row cap was hiding 21 of one dev student's 71 sittings), working type/state filters + search in the URL, a phone layout that did not exist, honest counts, **discard**, and the same **Report + Review** pair on every finished row. The slice's "CAT-attempt cards open to the CAT summary instead of the runner" is done — a CAT row was also, separately, **displaying a percentage**, which §13.5 forbids. ⬜ Still open from the original wording: **sort options beyond newest-first** and a **date-range** filter; per-axis accuracy now lives on the report rather than the History row, deliberately.
 - ⬜ **7.2** Analytics page — `app/(app)/student/bank/analytics/`. All 6 breakdown axes with topic/subtopic drill-downs, peer percentile, answer-change tracking, time-per-question drill-down. Thin-slice gating.
 - ⬜ **7.3** Per-student-per-question state — materialised view over `nclex_attempt_answers` + marking table. Drives Unseen/Seen/Correct/Incorrect counts in the builder. Refresh on attempt completion. Promote to physical table only if measurable bottleneck.
 - ✅ **7.4** Dashboard surface — **BUILT 2026-07-23** (= CAT plan **Slice 9**; app-layer, no migration; vitest 341 → 412; see cat.html §19.4.9). `app/(app)/student/bank/dashboard/` rebuilt from the Claude Design "Bank Dashboard" **variant 2d** handoff into the `lib/home/<audience>/` pattern — thin route + new `lib/home/student/bank/` + `styles/bank-dashboard.css` (`bd-`). Nine cards: welcome header · bank-access countdown · bank study streak · resume banner · lowest-scoring category · accuracy by category (8 bars) · exam-readiness panel · Where-to-next doorways · recent activity. **The readiness card is a rules-based BAND, not an invented score** — three real signals (accuracy / latest pack / last CAT) with **three states each** so a student is never marked down for a product she hasn't bought, band words borrowed from the packs (Building / Approaching / Ready), and **volume as the evidence GATE rather than a fourth signal** (which doubles as the cold-start state). **⚠ Two cap bugs fixed, one already live:** the History count was reporting `getHistoryAttempts()`'s 50-row limit as a real total (true figure 51). **⚠ Not tested by Sam** — merged on his instruction. **Still open from Slice 9:** the Builder's EXAM-intent CAT option and the public `/help/cat` page (slice 6.4).
