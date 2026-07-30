@@ -94,13 +94,27 @@ describe('SCORING_RULE coverage', () => {
     }
   });
 
-  it('types scored by the same function share the same sentence', () => {
-    // Mirrors dispatch.ts. Two types scored identically must not tell the
-    // student two different stories.
+  it('types marked the same way, on the same thing, share one sentence', () => {
+    // ⚠ NOT "same scoring function" — that was an earlier and wrong
+    // description of this check. Cloze and Drag-cloze run through two
+    // differently-named functions (scorePerBlank / scorePerSlot) yet must
+    // read alike, because a student sees blanks in a sentence either way;
+    // Drag-cloze and Drag-to-order share ONE function yet must NOT, since
+    // one has blanks and the other slots. The maths decides the CLAIM
+    // (penalisesWrongPicks, checked below against the real scorer); what
+    // the student is looking at decides the NOUN.
     expect(SCORING_RULE.MCQ.text).toBe(SCORING_RULE.TF.text);
     expect(SCORING_RULE.SATA.text).toBe(SCORING_RULE.SELECT_N.text);
     expect(SCORING_RULE.SATA.text).toBe(SCORING_RULE.HIGHLIGHT.text);
     expect(SCORING_RULE.DRAG_CLOZE.text).toBe(SCORING_RULE.CLOZE.text);
+  });
+
+  it('MATRIX_MR is SATA\'s sentence with a per-row qualifier in front', () => {
+    // The two rules ARE the same mechanism on different units, so the
+    // wording says so structurally rather than describing it. If SATA's
+    // sentence is ever reworded, this fails until MATRIX_MR follows —
+    // which is the point.
+    expect(SCORING_RULE.MATRIX_MR.text).toBe('Per row — ' + SCORING_RULE.SATA.text);
   });
 
   it('MATRIX_MR does NOT borrow SATA\'s sentence', () => {
