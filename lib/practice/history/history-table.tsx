@@ -241,7 +241,9 @@ export function HistoryTable({
             <thead>
               <tr>
                 <th>When</th>
-                <th>Session</th>
+                {/* The identifying column, so it gets first claim on the
+                    width rather than whatever the nowrap columns leave. */}
+                <th className="hist-col-session">Session</th>
                 <th>Type</th>
                 <th>Result</th>
                 <th>Time</th>

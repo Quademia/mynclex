@@ -1378,6 +1378,17 @@
   justify-content: center;
   padding: 24px;
   z-index: 70;
+  /* ⭐ A dialog must not inherit text layout from wherever it happens to be
+   * mounted. position: fixed takes it out of the FLOW but not out of the
+   * cascade, so a trigger sitting inside anything with `white-space:
+   * nowrap` — a table cell keeping two buttons on one line, say — passes
+   * that straight down and the body copy becomes one unwrappable line,
+   * clipped at the viewport edge. Seen live on the History page, where the
+   * Discard trigger lives in a nowrap action cell. `text-align` and
+   * `font-size` inherit the same way, so they are pinned here too. */
+  white-space: normal;
+  text-align: left;
+  font-size: 14px;
   animation: auth-discard-overlay-in 140ms ease-out;
 }
 

@@ -400,19 +400,53 @@
   white-space: nowrap;
 }
 
+/* ─── Column widths ─────────────────────────────────
+ * Measured on a 1066px laptop: the table wanted 872px inside a 791px card,
+ * and .hist-card clips (overflow: hidden), so part of it was unreachable.
+ * The cause was a priority inversion — When (179px), Type, State and the
+ * action cell are all nowrap, so the only column that could give was
+ * Session, squeezed to 92px. Session is the column that says WHAT the
+ * sitting was; it should be the last to shrink, not the first.
+ */
+.hist-bank .hist-col-session { width: 32%; }
+
+/* "Left off" moves to its own line rather than forcing the widest column
+ * in the table. It is a qualifier, not part of the date. */
+.hist-bank .hist-when { white-space: normal; }
 .hist-bank .hist-when-prefix {
+  display: block;
   color: var(--text-muted);
   font-weight: 400;
+  font-size: 11px;
 }
 
-.hist-bank .hist-action-cell { text-align: right; white-space: nowrap; }
+/* Safety net: even with the above, a long classification value can push
+ * the table past a narrow window. Scrolling is recoverable; clipping is
+ * not — the row simply isn't there. */
+.hist-bank .hist-card { overflow-x: auto; }
+
+/* The two controls STACK rather than sitting side by side.
+ *
+ * Side by side they needed 158px of nowrap, which came straight out of the
+ * Session column. Stacking also removes the `white-space: nowrap` that this
+ * cell used to declare — and which, because a fixed-position dialog still
+ * inherits from its DOM parent, was leaking into the discard confirmation
+ * and making its body copy one unwrappable line. The overlay now defends
+ * itself too, but not declaring the hazard here is the better half of it. */
+.hist-bank .hist-action-cell {
+  text-align: right;
+  white-space: normal;
+}
+.hist-bank .hist-action-cell .hist-action-link { white-space: nowrap; }
 
 /* Discard — quiet on purpose. It sits beside "Resume →", which is the
  * action a student actually wants on an unfinished row; the destructive
  * one should be findable, not competing. It only turns red on hover, so
  * the consequence is signalled at the moment of intent. */
 .hist-bank .hist-discard {
-  margin-left: 10px;
+  display: block;
+  margin-left: auto;
+  margin-top: 6px;
   padding: 3px 8px;
   font-size: 11px;
   font-weight: 500;
@@ -539,9 +573,13 @@
     font-size: 13px;
   }
 
-  /* Matched to the primary action's height so the pair reads as one row
-     of controls, and big enough to be a real tap target. */
+  /* On a phone the pair sits side by side — the card is full width, there
+     is room, and two stacked full-width buttons read as a form. Matched to
+     the primary action's height so they read as one row of controls. */
   .hist-bank .hist-discard {
+    display: inline-block;
+    margin-left: 10px;
+    margin-top: 0;
     padding: 8px 14px;
     font-size: 13px;
   }
