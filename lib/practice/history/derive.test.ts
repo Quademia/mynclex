@@ -12,6 +12,7 @@ import {
   answeredDetail,
   attemptHref,
   attemptLinkLabel,
+  canDiscard,
   describeOutcome,
   sanitiseSearchTerm,
   sittingKind,
@@ -246,6 +247,33 @@ describe('sittingSummary — only a practice quiz was built from filters', () =>
     // The pool can come up short; showing the request overstates it.
     const row = attempt({ requested_count: 25, actual_count: 18 });
     expect(sittingSummary(row)).toBe('18 Q');
+  });
+});
+
+describe('canDiscard — must agree with nclex_discard_attempt', () => {
+  // These four cases are the same four the database function enforces,
+  // proven against real rows under rollback. If they drift, the page
+  // offers a button the database then refuses — worse than no button.
+
+  it('allows an unfinished practice sitting', () => {
+    expect(canDiscard(attempt({ status: 'IN_PROGRESS' }))).toBe(true);
+  });
+
+  it('refuses a FINISHED sitting — it is a record with a report', () => {
+    expect(canDiscard(attempt({ status: 'COMPLETED' }))).toBe(false);
+    expect(canDiscard(attempt({ status: 'TIMED_OUT' }))).toBe(false);
+  });
+
+  it('refuses an unfinished PACK — discarding forfeits a paid credit', () => {
+    expect(canDiscard(attempt({ ...PACK, status: 'IN_PROGRESS' }))).toBe(false);
+  });
+
+  it('refuses an unfinished CAT — an exam has its own lifecycle', () => {
+    expect(canDiscard(attempt({ mode: 'CAT', status: 'IN_PROGRESS' }))).toBe(false);
+  });
+
+  it('refuses an already-discarded sitting', () => {
+    expect(canDiscard(attempt({ status: 'ABANDONED' }))).toBe(false);
   });
 });
 

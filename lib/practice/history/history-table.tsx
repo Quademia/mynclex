@@ -30,11 +30,13 @@ import {
   answeredDetail,
   attemptHref,
   attemptLinkLabel,
+  canDiscard,
   describeOutcome,
   sittingKind,
   sittingKindLabel,
   sittingSummary,
 } from './derive';
+import { DiscardButton } from './discard-button';
 
 const STATUS_LABEL: Record<string, string> = {
   COMPLETED: 'Done',
@@ -104,9 +106,20 @@ function ActionCell({ row }: { row: HistoryRow }) {
     return <span className="hist-action-empty">discarded</span>;
   }
   return (
-    <Link className="hist-action-link" href={href}>
-      {label} →
-    </Link>
+    <>
+      <Link className="hist-action-link" href={href}>
+        {label} →
+      </Link>
+      {/* Only ever on an unfinished practice row — canDiscard mirrors the
+          database function, so the button is never offered for something
+          the database would then refuse. */}
+      {canDiscard(row.attempt) && (
+        <DiscardButton
+          attemptId={row.attempt.attempt_id}
+          sessionLabel={sittingSummary(row.attempt)}
+        />
+      )}
+    </>
   );
 }
 

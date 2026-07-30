@@ -42,7 +42,11 @@ export const STUDENT_BANK_NAV: NavItem[] = [
   // entry when it is actually built — the design work is untouched in
   // docs/product-plan/journey-tracker.md, and the dashboard keeps its
   // locked "Coming soon" tile, which links nowhere and so cannot 404.
-  { key: 'history',   label: 'History',         icon: 'clock',  href: '/student/bank/history',   mobileTab: true },
+  // "All history" in the sidebar and drawer (Sam, 2026-07-30) — it names
+  // what the surface is: the complete directory of sittings, as opposed to
+  // the dashboard's three most recent. The bottom tab keeps the short word;
+  // a tab has room for about one, and "All history" wraps.
+  { key: 'history',   label: 'All history',     icon: 'clock',  href: '/student/bank/history',   mobileTab: true, tabLabel: 'History' },
   { key: 'profile',   label: 'Profile',         icon: 'user',   href: '/student/bank/profile' },
 ];
 

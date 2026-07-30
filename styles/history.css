@@ -407,6 +407,28 @@
 
 .hist-bank .hist-action-cell { text-align: right; white-space: nowrap; }
 
+/* Discard — quiet on purpose. It sits beside "Resume →", which is the
+ * action a student actually wants on an unfinished row; the destructive
+ * one should be findable, not competing. It only turns red on hover, so
+ * the consequence is signalled at the moment of intent. */
+.hist-bank .hist-discard {
+  margin-left: 10px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--text-faint);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.hist-bank .hist-discard:hover:not(:disabled) {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.hist-bank .hist-discard:disabled { opacity: 0.5; cursor: default; }
+
 /* ─── Pager ─────────────────────────────────────────── */
 
 .hist-pager {
@@ -514,6 +536,13 @@
     padding: 8px 14px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    font-size: 13px;
+  }
+
+  /* Matched to the primary action's height so the pair reads as one row
+     of controls, and big enough to be a real tap target. */
+  .hist-bank .hist-discard {
+    padding: 8px 14px;
     font-size: 13px;
   }
 

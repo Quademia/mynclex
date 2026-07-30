@@ -209,6 +209,27 @@ export function sittingSummary(row: HistoryAttempt): string {
   }
 }
 
+/**
+ * May this sitting be discarded?
+ *
+ * Mirrors `nclex_discard_attempt` exactly — the database is the enforcer
+ * (a student has no UPDATE permission on the attempts table at all), and
+ * this decides whether the button is offered. Keeping them in step is the
+ * point of writing the rule down twice; an offered button that the
+ * database then refuses is worse than no button.
+ *
+ * PRACTICE ONLY, deliberately:
+ *   • a finished sitting is a record with a report attached
+ *   • a readiness pack is a paid one-shot — discarding forfeits a credit,
+ *     far too consequential for a two-click confirm in a list
+ *   • a CAT is an exam with its own lifecycle and its own surface
+ * All 36 stale sittings measured on dev are practice quizzes, so this
+ * covers the whole of the actual problem.
+ */
+export function canDiscard(row: HistoryAttempt): boolean {
+  return row.status === 'IN_PROGRESS' && sittingKind(row) === 'PRACTICE';
+}
+
 /** The word for what this sitting was, for the type pill. */
 export function sittingKindLabel(kind: SittingKind): string {
   switch (kind) {
