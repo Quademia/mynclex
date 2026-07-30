@@ -20,7 +20,7 @@
 //     item minimum reads the same here as it does on the report and
 //     on the CAT home.
 
-import { describeOutcome } from '@/lib/practice/history/derive';
+import { describeOutcome, reportHref } from '@/lib/practice/history/derive';
 import type { HistoryAttempt } from '@/lib/practice/history/types';
 import type { RecentBadgeTone, RecentItem } from './types';
 
@@ -60,15 +60,26 @@ function titleFor(row: HistoryAttempt): string {
   return row.mode_label;
 }
 
+/**
+ * Where a chip goes — now that all three kinds of sitting have a permanent
+ * report, and a report is a safer landing than dropping a student into
+ * question 1.
+ *
+ * ⚠ STATUS FIRST, KIND SECOND. Checking kind first is what made this rail
+ * offer links that bounce, seen live on the dashboard: an ABANDONED practice
+ * row linked to a report whose gate immediately redirects it away, and — this
+ * one pre-dating the session report — an IN-PROGRESS readiness pack linked to
+ * a pack report that does the same. A sitting with no result has nothing to
+ * report yet.
+ *
+ * Delegates to the History page's reportHref() rather than repeating the
+ * per-kind routing, so the dashboard and the list cannot drift. It returns
+ * null for a discarded sitting, and the rail already renders a row with no
+ * href as plain text rather than a dead link.
+ */
 function hrefFor(row: HistoryAttempt): string | null {
-  if (row.mode === 'CAT') return `/student/bank/cat/result/${row.attempt_id}`;
-  if (row.source === 'READINESS_PACK') return `/student/bank/packs/report/${row.attempt_id}`;
-  // A finished practice quiz now HAS a standalone report, so the chip points
-  // at the sitting itself rather than at the index — and a report is a safer
-  // landing than dropping the student into question 1. An unfinished one
-  // still has nothing to report, so it goes to the runner to be resumed.
   if (row.status === 'IN_PROGRESS') return `/session/${row.attempt_id}`;
-  return `/student/bank/session/report/${row.attempt_id}`;
+  return reportHref(row);
 }
 
 /**
