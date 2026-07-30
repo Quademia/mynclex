@@ -285,7 +285,16 @@
   50%      { box-shadow: 0 0 0 4px  rgba(185, 28, 28, 0.14); }
 }
 
-.rn-mark-btn {
+/* Bookmark toggle (docs/product-plan/flag-and-bookmark.md §5). Replaces the
+ * old .rn-mark-btn, which was disabled from the day it shipped.
+ *
+ * ⚠ The active state is deliberately ACCENT, not --rn-mark-border. That amber
+ * is the grid's flagged-cell colour and belongs to the per-sitting FLAG. The
+ * two controls sit near each other and mean different things — one ephemeral,
+ * one permanent — so they must not share a colour. The filled-vs-outlined
+ * glyph carries the state as well, since colour alone fails a glance on a
+ * phone in sunlight. */
+.rn-bookmark-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -299,16 +308,28 @@
   color: var(--text-muted);
   cursor: pointer;
 }
-.rn-mark-btn:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
-.rn-mark-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-.rn-mark-btn.on {
-  color: var(--rn-mark-border);
-  border-color: var(--rn-mark-border);
-  background: rgba(217, 119, 6, 0.08);
+.rn-bookmark-btn:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+/* Busy = mid-write. Dim it, but keep the cursor honest: this is a moment,
+ * not a permanently unavailable control. */
+.rn-bookmark-btn:disabled { opacity: 0.55; cursor: wait; }
+/* SOLID when saved, not a pale tint — and that difference is meaningful.
+ * The calc and grid toggles tint to say "a panel is open", a transient bit
+ * of UI state. A bookmark is a stored fact about the question that outlives
+ * the sitting, so it reads as filled rather than tinted. It also keeps it
+ * clear of .rn-calc-btn.on, which tints to the same accent. */
+.rn-bookmark-btn.on {
+  color: var(--white);
+  border-color: var(--accent, #2d7d72);
+  background: var(--accent, #2d7d72);
+}
+.rn-bookmark-btn.on:hover:not(:disabled) {
+  color: var(--white);
+  border-color: var(--accent-dark, #1f5a52);
+  background: var(--accent-dark, #1f5a52);
 }
 
-/* Grid show/hide toggle — sits after Mark, matches its look. Active state
- * tints toward the grid panel it controls (rather than the mark orange). */
+/* Grid show/hide toggle — matches the bookmark button's look. Active state
+ * tints toward the grid panel it controls. */
 .rn-grid-toggle-btn {
   display: inline-flex;
   align-items: center;
@@ -352,6 +373,30 @@
   color: var(--accent-dark);
   border-color: var(--accent);
   background: #f2f8f7;
+}
+
+/* Phone topbar (CLAUDE.md UI #3 — students are phone-first).
+ *
+ * The bar had no mobile rules at all, and the bookmark button makes it a
+ * fourth control competing with the title, counter and clock at 375px. The
+ * label spans were pre-wired for exactly this: drop the words, keep the
+ * icons, and every control stays reachable without a menu.
+ *
+ * ⚠ The bookmark keeps a visible label longer than the others would deserve
+ * on size alone — it is the only one of the three whose state is a fact
+ * about the student's data rather than a panel they can see for themselves.
+ * Below 480px even that goes; the filled glyph and aria-label carry it. */
+@media (max-width: 768px) {
+  .rn-calc-btn-label,
+  .rn-grid-toggle-label { display: none; }
+  .rn-calc-btn,
+  .rn-grid-toggle-btn,
+  .rn-bookmark-btn { padding: 5px 8px; gap: 0; }
+  .rn-bookmark-btn { gap: 6px; }
+}
+@media (max-width: 480px) {
+  .rn-bookmark-btn-label { display: none; }
+  .rn-bookmark-btn { gap: 0; }
 }
 
 /* ────────────────────────────────────────────────────────────

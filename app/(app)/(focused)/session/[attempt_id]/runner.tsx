@@ -74,7 +74,8 @@ import { Calculator } from '@/lib/calculator/calculator';
 import { SandboxCoach } from '@/lib/practice/tutorial/coach/coach';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
 import { Preflight }          from './preflight';
-import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction, recordEngagedTimeAction } from './actions';
+import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction, recordEngagedTimeAction, toggleBookmarkAction } from './actions';
+import { applyBookmarkToggle } from '@/lib/practice/runner/bookmarks';
 import { useEngagementClock } from './use-engagement-clock';
 import { catTurnAction } from '@/lib/practice/cat/turn-action';
 import { useQuestionTimer } from './use-question-timer';
@@ -395,9 +396,23 @@ function RunnerShell({ data }: Props) {
     return m;
   }, [data.answers, clientAnswers]);
 
-  // Mark-for-review wires up in slice 4.7 — empty Set keeps the channel
-  // available without changing the chrome contract.
-  const marked = useMemo(() => new Set<string>(), []);
+  // The grid's per-sitting FLAG channel (docs/product-plan/flag-and-bookmark.md
+  // §2). Still an empty Set — the flag lands in its own slice, keyed by
+  // ATTEMPT_ITEM_ID because a flag belongs to one sitting and starts empty
+  // every time. ⚠ Not the same thing as `bookmarked` below, which is keyed by
+  // item_id and persists across sittings (§3.8). Both are Set<string>, so the
+  // compiler will not catch a mix-up — only the names will.
+  const flaggedAttemptItemIds = useMemo(() => new Set<string>(), []);
+
+  // Bookmarks (§3) — "save this question so I can study it again". Seeded
+  // from the server with the bookmarks this student ALREADY holds among this
+  // sitting's questions (§3.7): a bookmark is (student, question), so one met
+  // in an earlier sitting arrives already on. Empty when bookmarking is not
+  // offered here (CAT / readiness / tutor quiz).
+  const [bookmarkedItemIds, setBookmarkedItemIds] = useState<Set<string>>(
+    () => new Set(data.bookmarkedItemIds),
+  );
+  const [bookmarkBusy, setBookmarkBusy] = useState(false);
 
   const total       = data.items.length;
   // A live CAT hides its total (length unknowable mid-exam → "Adaptive
@@ -411,6 +426,41 @@ function RunnerShell({ data }: Props) {
   // singular to match the mode-label cleanup that dropped "Exams". Applies
   // in review too: a reviewed exam is still an exam session.
   const sessionTitle = data.attempt.intent === 'EXAM' ? 'Exam session' : 'Study session';
+
+  // Bookmark toggle for the question on screen. Optimistic: flip locally,
+  // then write. A bookmark is one row with nothing downstream of it, so an
+  // optimistic flip that loses costs a revert and a toast — much better than
+  // a control that stalls mid-sitting while a clock runs.
+  //
+  // ⚠ setError is called OUTSIDE the state updater. Calling it inside one and
+  // returning the state unchanged makes React bail out of the re-render, so
+  // the toast never appears — the exact defect found in the case bank's
+  // third-case refusal.
+  const currentBookmarkId = currentItem?.item_id ?? null;
+  const onToggleBookmark = useCallback(() => {
+    if (!currentBookmarkId || isSandbox) return;
+
+    const next = !bookmarkedItemIds.has(currentBookmarkId);
+    setBookmarkedItemIds((prev) => applyBookmarkToggle(prev, currentBookmarkId, next));
+    setBookmarkBusy(true);
+
+    void toggleBookmarkAction(data.attempt.attempt_id, currentBookmarkId, next)
+      .then((r) => {
+        if (!r.ok) {
+          setBookmarkedItemIds((prev) =>
+            applyBookmarkToggle(prev, currentBookmarkId, !next),
+          );
+          setError(r.error);
+        }
+      })
+      .catch(() => {
+        setBookmarkedItemIds((prev) =>
+          applyBookmarkToggle(prev, currentBookmarkId, !next),
+        );
+        setError('Could not save that bookmark. Please try again.');
+      })
+      .finally(() => setBookmarkBusy(false));
+  }, [currentBookmarkId, bookmarkedItemIds, data.attempt.attempt_id, isSandbox]);
 
   const archetype = archetypeFor(data.attempt.mode);
 
@@ -1195,7 +1245,20 @@ function RunnerShell({ data }: Props) {
         modeLabel={modeLabel}
         current={current + 1}
         total={displayTotal}
-        marked={marked.has(currentItem?.attempt_item_id ?? '')}
+        // Hidden entirely (null) rather than disabled when bookmarking is not
+        // offered — a greyed control invites a "why?" whose honest answer
+        // would name the reservation mechanism (§3.4). Also hidden in the
+        // sandbox: the tutorial creates no attempt row, so there is nothing
+        // to write against; its own steps land with slice 5.
+        bookmark={
+          data.canBookmark && !isSandbox && currentBookmarkId
+            ? {
+                on:       bookmarkedItemIds.has(currentBookmarkId),
+                busy:     bookmarkBusy,
+                onToggle: onToggleBookmark,
+              }
+            : null
+        }
         statusLabel={statusLabel}
         caseMeta={hideExamScaffold ? undefined : caseMeta}
         clock={clockProps}
@@ -1246,7 +1309,7 @@ function RunnerShell({ data }: Props) {
           <RunnerGrid
             items={data.items}
             answers={answersByItem}
-            marked={marked}
+            marked={flaggedAttemptItemIds}
             current={current}
             filter={filter}
             caseGroups={caseGroups}

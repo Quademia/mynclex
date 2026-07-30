@@ -43,7 +43,12 @@ export const POOLS: PoolDef[] = [
   { id: 'SEEN',      label: 'Seen',      sub: 'Attempted at least once' },
   { id: 'CORRECT',   label: 'Correct',   sub: 'Last attempt right' },
   { id: 'INCORRECT', label: 'Incorrect', sub: 'Last attempt wrong' },
-  { id: 'MARKED',    label: 'Marked',    sub: 'You bookmarked' },
+  // "Bookmarked", not "Marked" — flag-and-bookmark.md §4 retires "mark"
+  // from student-facing copy because it already means POINTS in this
+  // product ("a SATA question is worth 5 marks"). The id stays MARKED:
+  // it is internal, matches pool_marked in the RPC payload, and renaming
+  // it would be churn with migration risk and no user benefit.
+  { id: 'MARKED',    label: 'Bookmarked', sub: 'You saved these for later' },
   { id: 'ALL',       label: 'All',       sub: 'Every question in scope' },
 ];
 

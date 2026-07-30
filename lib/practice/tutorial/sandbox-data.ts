@@ -82,6 +82,13 @@ export function buildSandboxData(returnTo?: string): LiveData {
 
     items.push({
       attempt_item_id:         q.key,
+      // The tutorial's questions are fixtures in code, not bank rows — there
+      // is no real item to point at. Reusing the key keeps the shape honest
+      // without inventing an id that looks like a bank item. Nothing reads
+      // it here: bookmarking is off in the sandbox (no attempt row exists to
+      // write against), and its tutorial steps land with slice 5.
+      item_id:                 q.key,
+      item_source:             'BANK',
       position:                i + 1,
       question_type:           q.question_type,
       stem_snapshot:           q.stem,
@@ -158,6 +165,12 @@ export function buildSandboxData(returnTo?: string): LiveData {
     answers:      [],
     seededUnseal: {},
     exitHref:     safeInternalPath(returnTo),
+    // No bookmarking in the teaching runner: the whole feature creates no
+    // attempt row, so there is nothing for a write to belong to. The runner
+    // also hides the control on isSandbox, so this is the second of two
+    // independent guards rather than the only one.
+    bookmarkedItemIds: [],
+    canBookmark:       false,
     sandbox:      true,
     sandboxKeys,
   };
