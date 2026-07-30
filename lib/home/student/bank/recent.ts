@@ -20,8 +20,7 @@
 //     item minimum reads the same here as it does on the report and
 //     on the CAT home.
 
-import { scoreToBand } from '@/lib/payments/readiness-band';
-import { isUnmeasured, UNMEASURED_SHORT_LABEL } from '@/lib/practice/cat/report-derive';
+import { describeOutcome, reportHref } from '@/lib/practice/history/derive';
 import type { HistoryAttempt } from '@/lib/practice/history/types';
 import type { RecentBadgeTone, RecentItem } from './types';
 
@@ -37,32 +36,14 @@ function badgeFor(
   if (row.status === 'IN_PROGRESS') return { label: 'In progress', tone: 'neutral' };
   if (row.status === 'ABANDONED') return { label: 'Abandoned', tone: 'neutral' };
 
-  // A CAT is CUSTOM_BUILT with mode 'CAT' — check the mode first, or
-  // it falls through to the quiz branch and shows a percentage the
-  // §13.5 rule forbids on a CAT.
-  if (row.mode === 'CAT') {
-    if (isUnmeasured(row.cat_termination_reason, row.cat_items_administered ?? 0)) {
-      return { label: UNMEASURED_SHORT_LABEL, tone: 'low' };
-    }
-    if (row.cat_verdict === 'ABOVE_STANDARD') return { label: 'Above standard', tone: 'good' };
-    if (row.cat_verdict === 'BELOW_STANDARD') return { label: 'Below standard', tone: 'low' };
-    return null; // unfinished / abandoned — no verdict exists yet
-  }
-
-  if (row.final_score === null) return null;
-
-  if (row.source === 'READINESS_PACK') {
-    const band = scoreToBand(row.final_score);
-    if (!band) return null;
-    // Ready and Excelling are the achievement bands; the lower two are
-    // stated plainly rather than alarmingly — a pack is a diagnostic.
-    const tone: RecentBadgeTone =
-      band.key === 'EXCELLING' || band.key === 'READY' ? 'good' : 'neutral';
-    return { label: band.label, tone };
-  }
-
-  // A practice quiz: the score, stated, not judged.
-  return { label: `${Math.round(row.final_score * 100)}%`, tone: 'neutral' };
+  // The three per-kind result rules (CAT verdict · pack band · practice
+  // percentage, and never a percentage on a CAT) now live in one shared
+  // place, because the History page was applying different ones — it
+  // printed a raw percentage for everything. Moved out rather than
+  // copied: two surfaces describing the same sitting must not be able
+  // to disagree. No answer counts are passed, so no "Not answered"
+  // state here — that needs a per-attempt read the rail doesn't do.
+  return describeOutcome(row);
 }
 
 function iconFor(row: HistoryAttempt): string {
@@ -79,12 +60,26 @@ function titleFor(row: HistoryAttempt): string {
   return row.mode_label;
 }
 
+/**
+ * Where a chip goes — now that all three kinds of sitting have a permanent
+ * report, and a report is a safer landing than dropping a student into
+ * question 1.
+ *
+ * ⚠ STATUS FIRST, KIND SECOND. Checking kind first is what made this rail
+ * offer links that bounce, seen live on the dashboard: an ABANDONED practice
+ * row linked to a report whose gate immediately redirects it away, and — this
+ * one pre-dating the session report — an IN-PROGRESS readiness pack linked to
+ * a pack report that does the same. A sitting with no result has nothing to
+ * report yet.
+ *
+ * Delegates to the History page's reportHref() rather than repeating the
+ * per-kind routing, so the dashboard and the list cannot drift. It returns
+ * null for a discarded sitting, and the rail already renders a row with no
+ * href as plain text rather than a dead link.
+ */
 function hrefFor(row: HistoryAttempt): string | null {
-  if (row.mode === 'CAT') return `/student/bank/cat/result/${row.attempt_id}`;
-  if (row.source === 'READINESS_PACK') return `/student/bank/packs/report/${row.attempt_id}`;
-  // A finished practice quiz has no standalone report surface today —
-  // History is where it is reviewed.
-  return '/student/bank/history';
+  if (row.status === 'IN_PROGRESS') return `/session/${row.attempt_id}`;
+  return reportHref(row);
 }
 
 /**

@@ -1,0 +1,688 @@
+/* mynclex/styles/case-bank.css
+ *
+ * The student Case Study bank — /student/bank/cases.
+ * Page-scoped: every rule sits under a .cb-* class so nothing here can
+ * reach another surface. Tokens from styles/tokens.css throughout; no
+ * hardcoded palette values.
+ *
+ * Mobile (≤768px, the project breakpoint): the rail stops being a rail
+ * and the sticky launch strip takes over, so Start is never a scroll away
+ * on a 93-row list. Same shape as the practice builder.
+ */
+
+.cb-page {
+  padding: 20px 20px 0;
+}
+
+/* ── The top pane ────────────────────────────────────────────────── */
+/* Full page width, with the list + rail splitting the space beneath it.
+ * The rule below it makes the band read as a pane rather than as text
+ * that happens to be wide. */
+
+.cb-head {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.cb-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* ── Left column ─────────────────────────────────────────────────── */
+
+.cb-main {
+  flex: 1 1 460px;
+  min-width: 300px;
+}
+
+.cb-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.cb-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--primary);
+  margin: 0 0 6px;
+}
+
+.cb-lede {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 62ch;
+  text-wrap: pretty;
+  margin: 0 0 16px;
+}
+
+/* Spacing below is the pane's own padding now, not the row's margin. */
+.cb-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Capped: the pane is now page-width, and a search field stretched across
+ * all of it is a lot of empty box for a one-word query. */
+.cb-search {
+  flex: 1 1 260px;
+  min-width: 160px;
+  max-width: 420px;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--white);
+}
+
+.cb-search:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.cb-segment {
+  display: flex;
+  gap: 4px;
+  background: var(--bg);
+  padding: 3px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.cb-seg-btn {
+  padding: 5px 11px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cb-seg-btn.on {
+  background: var(--white);
+  color: var(--primary);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+
+.cb-empty {
+  padding: 36px;
+  text-align: center;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ── Groups ──────────────────────────────────────────────────────── */
+
+.cb-group {
+  margin-bottom: 24px;
+}
+
+.cb-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
+.cb-group-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.cb-group-count {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.cb-group-toggle {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.cb-group-toggle:hover {
+  text-decoration: underline;
+}
+
+/* ── Rows ────────────────────────────────────────────────────────── */
+
+.cb-row {
+  border-bottom: 1px solid var(--bg-soft);
+  border-left: 3px solid transparent;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.cb-row.sel {
+  border-left-color: var(--accent);
+  background: var(--primary-light);
+}
+
+.cb-row.locked,
+.cb-row.blocked {
+  opacity: 0.6;
+}
+
+.cb-row-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 12px 10px;
+}
+
+.cb-check {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  color: var(--text-faint);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.cb-row.sel .cb-check {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--white);
+}
+
+.cb-check:disabled {
+  border-color: var(--border);
+  background: var(--bg-soft);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+.cb-row-body {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.cb-row-titleline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cb-row-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  text-wrap: pretty;
+}
+
+.cb-row.locked .cb-row-title {
+  color: var(--text-muted);
+}
+
+.cb-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.cb-row-axes {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+
+/* The action cluster pushes right and wraps to its own line rather than
+ * crushing the title on a narrow viewport. */
+.cb-row-actions {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cb-score {
+  text-align: right;
+  line-height: 1.25;
+}
+
+.cb-score-pct {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cb-score-pct.good { color: var(--success); }
+.cb-score-pct.mid  { color: var(--warning); }
+.cb-score-pct.poor { color: var(--danger); }
+
+.cb-score-date {
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.cb-btn {
+  padding: 5px 12px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.cb-btn.ghost {
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text);
+}
+
+.cb-btn.solid {
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--white);
+}
+
+.cb-btn.ghost:hover { border-color: var(--border-strong); text-decoration: none; }
+.cb-btn.solid:hover { background: var(--primary-dark); text-decoration: none; }
+
+.cb-expand {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cb-expand:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+/* ── The expanded row: scenario + attempt history ─────────────────── */
+
+.cb-detail {
+  padding: 0 10px 14px 42px;
+}
+
+.cb-scenario {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 78ch;
+  text-wrap: pretty;
+}
+
+.cb-scenario + .cb-history {
+  margin-top: 12px;
+}
+
+.cb-history {
+  max-width: 78ch;
+}
+
+.cb-history-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.cb-history-more {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-faint);
+}
+
+.cb-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--bg-soft);
+}
+
+.cb-history-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--bg-soft);
+  font-size: 12px;
+}
+
+.cb-history-date {
+  flex: 0 0 84px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.cb-history-pct {
+  flex: 0 0 auto;
+  min-width: 44px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cb-history-pct.good { color: var(--success); }
+.cb-history-pct.mid  { color: var(--warning); }
+.cb-history-pct.poor { color: var(--danger); }
+/* Never answered — not a bad score, so not scored red. */
+.cb-history-pct.none {
+  color: var(--text-faint);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.cb-history-origin {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-faint);
+}
+
+.cb-history-cover {
+  color: var(--text-faint);
+}
+
+.cb-history-link {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── The rail ────────────────────────────────────────────────────── */
+
+.cb-rail {
+  flex: 1 1 280px;
+  max-width: 320px;
+  position: sticky;
+  top: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.cb-rail-head {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.cb-rail-empty {
+  margin: 0 0 14px;
+  padding: 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.cb-slots {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cb-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: var(--radius);
+  background: var(--white);
+  border: 1px solid var(--accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cb-slot-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cb-slot-x {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cb-slot-x:hover { color: var(--danger); }
+
+.cb-qcount {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+
+.cb-qcount-n {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--primary);
+}
+
+.cb-qcount-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cb-mode-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.cb-mode {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--white);
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.cb-mode-note {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  margin: 0 0 14px;
+}
+
+.cb-start {
+  width: 100%;
+  padding: 11px;
+  border-radius: 9px;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--white);
+  font-size: 13.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.cb-start:hover:not(:disabled) { background: var(--primary-dark); }
+
+.cb-start:disabled {
+  border-color: var(--border);
+  background: var(--bg-soft);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+.cb-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin: 10px 0 0;
+  text-wrap: pretty;
+}
+
+/* ── Phone-only launch strip ─────────────────────────────────────── */
+
+.cb-mobile-bar { display: none; }
+
+@media (max-width: 768px) {
+  .cb-page { padding: 16px 14px 0; }
+
+  /* The rail stops being a rail: it flows after the list, and the sticky
+   * strip is what you actually launch from. */
+  .cb-rail {
+    position: static;
+    max-width: none;
+    flex-basis: 100%;
+    /* Clear the fixed strip + the student bottom-tab bar. */
+    margin-bottom: 96px;
+  }
+
+  .cb-mobile-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: fixed;
+    left: 0;
+    right: 0;
+    /* Sits directly above the student bottom tab bar. */
+    bottom: 56px;
+    z-index: 30;
+    padding: 10px 14px;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+  }
+
+  .cb-mobile-figure {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .cb-mobile-n {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--primary);
+  }
+
+  .cb-mobile-unit {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cb-start.compact {
+    width: auto;
+    margin-left: auto;
+    flex-shrink: 0;
+    padding: 10px 20px;
+  }
+
+  /* Actions drop below the title instead of squeezing it — full width and
+   * right-aligned, so the cluster (or a lone chevron) reads as a deliberate
+   * second line rather than something orphaned mid-row. */
+  .cb-row-actions {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .cb-detail { padding-left: 32px; }
+
+  /* The date column's fixed width crushes the origin text on a phone;
+   * let each entry wrap into two lines instead. */
+  .cb-history-date { flex-basis: auto; }
+
+  .cb-history-origin {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .cb-history-link { order: 2; }
+}

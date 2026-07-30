@@ -78,7 +78,7 @@ export async function getResultsContext(
   const { data: attempt, error: aErr } = await supabase
     .from('nclex_attempts')
     .select(
-      'source, mode, status, programme_activity_id, cat_verdict, cat_termination_reason, cat_items_administered',
+      'source, mode, status, programme_activity_id, filters_json, cat_verdict, cat_termination_reason, cat_items_administered',
     )
     .eq('attempt_id', attemptId)
     .maybeSingle();
@@ -90,6 +90,7 @@ export async function getResultsContext(
     source:                attempt.source,
     programme_activity_id: attempt.programme_activity_id,
     mode:                  attempt.mode,
+    filters_json:          attempt.filters_json,
   });
 
   // CAT — branch on MODE, not source. A CAT attempt is stored with
@@ -171,7 +172,14 @@ export async function getResultsContext(
         retakeLabel:     'Build another',
         retakeAvailable: true,
         attemptsLine:    null,
-        reportHref:      null,
+        // A Builder sitting now has a permanent report too, so the popup can
+        // point at it. Unlike readiness and CAT, this does NOT replace the
+        // inline review + retake — a practice quiz is repeatable and
+        // low-stakes, so "Build another" stays on the popup rather than
+        // making the student go via the report to run another set. The popup
+        // renders all three when `reportHref` is set alongside
+        // `retakeAvailable`.
+        reportHref:      `/student/bank/session/report/${attemptId}`,
         cat:             null,
       },
     };

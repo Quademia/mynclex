@@ -24,6 +24,9 @@ import '@/styles/builder.css';
 import '@/styles/runner.css';
 import '@/styles/tutorial.css';
 import '@/styles/history.css';
+// The permanent report for a Builder-built practice sitting — the third
+// per-sitting report, beside the readiness pack's and CAT's.
+import '@/styles/session-report.css';
 import '@/styles/programmes.css';
 import '@/styles/cohorts.css';
 import '@/styles/strategies.css';
@@ -52,6 +55,8 @@ import '@/styles/packs.css';
 import '@/styles/readiness-student.css';
 // The CAT home + its one-shot preflight, `cat-*`.
 import '@/styles/cat.css';
+// The student Case Study bank (list + run rail), `cb-*`.
+import '@/styles/case-bank.css';
 // The student Bank Dashboard (the bank home), `bd-*`.
 import '@/styles/bank-dashboard.css';
 // After packs.css: the admin Products & Pricing surface reuses that

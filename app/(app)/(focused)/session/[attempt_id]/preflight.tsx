@@ -151,7 +151,7 @@ export function Preflight({ attempt, itemCount, exitHref, offerDismissed }: Prop
             onClick={onBack}
             disabled={pending}
           >
-            {exitBackLabel(attempt.source, attempt.mode)}
+            {exitBackLabel(attempt.source, attempt.mode, attempt.filters_json)}
           </button>
           <button
             type="button"

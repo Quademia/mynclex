@@ -28,12 +28,25 @@ import type { NavItem } from './types';
 export const STUDENT_BANK_NAV: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard',       icon: 'home',   href: '/student/bank/dashboard', mobileTab: true },
   { key: 'practice',  label: 'Question Bank',   icon: 'book',   href: '/student/bank/practice',  mobileTab: true, tabLabel: 'Practice' },
+  // Case Studies sits directly under Question Bank: both are "sit questions
+  // from the bank", and this one is the NGN case half of it. `file-text` —
+  // a case is a document you read before answering; `book` is already the
+  // Question Bank's and `target` is the assessment surfaces'.
+  { key: 'cases',     label: 'NGN Case Studies', icon: 'file-text', href: '/student/bank/cases' },
   { key: 'packs',     label: 'Readiness Packs', icon: 'target', href: '/student/bank/packs',     mobileTab: true, tabLabel: 'Packs' },
   // No mobileTab: the bar is capped at 4 and dashboard/practice/packs/history
-  // already fill it. CAT reaches mobile through the drawer.
-  { key: 'cat',       label: 'CAT',             icon: 'target', href: '/student/bank/cat' },
-  { key: 'journey',   label: 'Journey Tracker', icon: 'map',    href: '/student/bank/journey' },
-  { key: 'history',   label: 'History',         icon: 'clock',  href: '/student/bank/history',   mobileTab: true },
+  // already fill it. CAT and Case Studies reach mobile through the drawer.
+  { key: 'cat',       label: 'Adaptive Testing (CAT)', icon: 'target', href: '/student/bank/cat' },
+  // Journey Tracker removed 2026-07-30 (Sam): the route was a placeholder
+  // for an unbuilt pillar, so the sidebar led to an empty room. Re-add the
+  // entry when it is actually built — the design work is untouched in
+  // docs/product-plan/journey-tracker.md, and the dashboard keeps its
+  // locked "Coming soon" tile, which links nowhere and so cannot 404.
+  // "All history" in the sidebar and drawer (Sam, 2026-07-30) — it names
+  // what the surface is: the complete directory of sittings, as opposed to
+  // the dashboard's three most recent. The bottom tab keeps the short word;
+  // a tab has room for about one, and "All history" wraps.
+  { key: 'history',   label: 'All history',     icon: 'clock',  href: '/student/bank/history',   mobileTab: true, tabLabel: 'History' },
   { key: 'profile',   label: 'Profile',         icon: 'user',   href: '/student/bank/profile' },
 ];
 

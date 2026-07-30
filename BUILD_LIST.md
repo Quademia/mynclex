@@ -1,10 +1,140 @@
 # MyNclex Build List
 
+> ## ⏭ NEXT SESSION: **release `main` → `prod`**, then marking
+>
+> ### ⚠ PROD IS ELEVEN COMMITS BEHIND, with five migrations un-applied
+>
+> `origin/prod` is `e636665` (2026-07-29). Missing: the whole **case-bank arc**
+> (`20260829120000`, `20260830120000`, `20260831120000`) and this session's
+> **History + Session Report** arc (`20260901120000`). None of it is in front of
+> users. The gap grows every session — worth clearing before it needs untangling.
+>
+> After that, **marking** — see the ⚠ below. It is small, it unblocks three
+> designed elements of the session report, and it fixes a Builder filter that
+> has never been able to match a question.
+>
+> ---
+>
+> ### ✅ DONE 2026-07-30 — the **Session Report**, and History as its index
+>
+> **`/student/bank/session/report/[attemptId]`** — the permanent report for a
+> Builder-built practice sitting, plus **`/student/bank/history`** rebuilt as the
+> directory that indexes every sitting. **9 commits, one migration**
+> (`20260901120000_discard_attempt.sql`), dev-applied; vitest **648 → 739**.
+> **On `main`, NOT prod.** Full write-up: **`docs/product-plan/session-report.md`**.
+> This closes **slice 7.1** below.
+>
+> - **⭐ The shape is Sam's.** I proposed putting practice detail *inside*
+>   History; he pointed out that means practice needs its own page and History
+>   becomes a log — which is right, and made History *smaller*. A pack and a CAT
+>   each had a permanent report; practice had only the end-of-quiz popup, a
+>   moment rather than a destination.
+> - **Every finished row offers the same pair, Report and Review** (Sam, later
+>   the same day: the practice report was the only one you had to *discover*).
+>   ⚠ Packs are asymmetric — answers expire at 21 days, so Review shows only
+>   while the window is open. **Only an explicit `true` opens it:** the runner
+>   treats a *missing* credit row as expired, and most dev pack attempts have no
+>   credit row at all.
+> - **Discard** finally writes `ABANDONED` — nothing ever had, so 36 stale rows
+>   could never be cleared. Practice only, measured; no answer row touched.
+> - **Never banded, never compared** — stated under the score, because a pack
+>   *does* band and *does* compare, so silence here would be misread.
+> - ⬜ Not built: **marking** (below) · **"re-quiz what you got wrong"** — the
+>   Builder *has* an INCORRECT pool chip, but its deep-link prefill deliberately
+>   forces UNSEEN so practice serves fresh questions; overriding that from one
+>   call site is a decision, not a detail · **per-question deep links**, so a
+>   long CAT's Review opens near its end · History **sorting** beyond
+>   newest-first and **date-range** filters.
+> - **Renaming History: reviewed and dropped.** "Test history" is this market's
+>   convention and familiarity beats a marginally better label. The nav reads
+>   **"All history"**; the page heading stays **History**.
+>
+> ### ⚠ MARKING IS A HALF-BUILT FEATURE — pinned down 2026-07-30
+>
+> The Builder offers a **"Marked" pool chip**. The runner has a **⚑ Mark
+> button**. The question grid has a **"Marked" filter**.
+> `nclex_question_marks` exists and the SQL reads it.
+>
+> **Nothing writes to it.** The runner's button is `disabled` with the tooltip
+> *"Marking questions for review isn't available yet"*, and the marked set is
+> hardcoded empty — so **the Builder's Marked pool has never been able to match
+> a single question.** (Referred to as slice 4.7 in the runner's own comments.)
+>
+> Consequence: three elements of CD's session-report design — a "questions you
+> marked" fix-list item, a marked ring on the question map, and a Marked filter
+> chip on the per-question table — are deliberately absent. **Sam's call: build
+> marking later so it's built well.** When it is, only the write path is
+> missing; every consumer is already wired.
+>
+> ---
+>
+> ### ⚠ Two corrections to the header below, before you trust it
+>
+> 1. **"Prod is behind `main` at `1a6717d`" (Operational #14) is WRONG and has
+>    been since the CAT arc released.** `origin/prod` carries `main`'s tip
+>    (release PR #43, `e636665`, 2026-07-29), so 10a/10b/10c/10d, the
+>    recalibration job and the reservation trigger are all **live on prod**.
+>    Check `git log origin/prod` at session start rather than believing a
+>    log line — every "NOT prod" note is only true on the day it was written.
+> 2. **The open list below is dated 2026-07-24** and most of it is cleared.
+>    Read the ✅ marks, not the header.
+>
+> ### ✅ NEW — the student **Case Study bank**, built 2026-07-30
+>
+> **`/student/bank/cases`** — browse every published case study, sit **1 or 2**
+> at a time in the existing runner. Full write-up:
+> **`docs/product-plan/case-bank.md`**. Five commits, three migrations
+> (`20260829120000`, `20260830120000`, `20260831120000`), dev-applied; vitest
+> **611 → 648**; tsc at the 2 known errors. **On `main`, NOT prod.**
+>
+> - **⭐ The unlock rule (Sam's).** Cases reserved for CAT or a readiness pack
+>   render locked — but once a student has actually MET one in a CAT or pack it
+>   unlocks for them, because the protection is spent. Side effect worth
+>   keeping: it turns packs and CAT into a *source* of practice material.
+>   "Seen" = the case was in one of their attempts AND (that attempt finished
+>   OR they submitted an answer to one of its questions) — both halves needed,
+>   since a pack snapshots every question at creation while an abandoned CAT
+>   genuinely showed what it served.
+> - **⭐ The student must never learn WHY a case is locked** (Sam). So the
+>   reason is not in the payload either, and a locked case ships **no scenario
+>   text at all** — verified against the live response, with an unlocked case's
+>   scenario present to prove the check bites.
+> - **Own SQL, nothing shared touched.** One eligibility helper read by both
+>   the list and the launch RPC, so they cannot disagree. Deliberately NOT
+>   `_nclex_eligible_unit_pool`: teaching that the unlock rule would leak
+>   reserved stock into the practice builder, which is 10b3's whole guarantee.
+> - **Row content is not the prototype's** — no "6 questions" (identical on all
+>   93 rows), no difficulty word (the average case spans **1.9 logits**), no raw
+>   tags (⚠ one is literally `readiness`, which would have named the mechanism).
+>   Dominant subject + body system instead; a 140-char line became 42.
+> - **Per-case attempt history** in the expanded row. "Already attempted" means
+>   **sat here**, so Review can only ever open a 1- or 2-case run; exam sittings
+>   appear as earlier attempts with their scores, linking to their pack report
+>   or CAT result. ⚠ This fixed a real defect: Review used to open the whole
+>   originating sitting — a **100-question CAT at question 100**.
+> - ⚠ **Content supply is the open question.** 59 of 93 dev cases are
+>   CAT-reserved and 10 are in packs, and CAT's own target is 60 — the two
+>   compete for the same shelf, so the page gets emptier as CAT fills. Author
+>   more cases; don't reallocate. Prod has 7 published-complete, none reserved.
+> - ⬜ Not built: deep-link Review to the case's first question (still lands on
+>   the run's last question — 12 questions now, not 100) · a coverage signal
+>   ("8 of 22 done") · a case-scoped review surface.
+>
+> ### ✅ Journey Tracker placeholders REMOVED 2026-07-30
+>
+> The student route, its sidebar entry and its locked dashboard door are gone
+> (Sam): the nav led to an empty room and the door was the only one on that
+> card going nowhere. **The design is untouched** in
+> `docs/product-plan/journey-tracker.md`, zero `journey_*` tables ever existed,
+> and CLAUDE.md rule #1's naming exception still stands. Re-add when built.
+> Nav also relabelled: **NGN Case Studies**, **Adaptive Testing (CAT)**.
+>
+> ---
+>
 > ## ⏭ THE OPEN LIST — carried forward from 2026-07-24
 >
 > Everything currently flagged and unbuilt, in one place, so a session can
 > pick from it without re-deriving. Grouped by what each one needs from us.
-> **Sam's pick for next session: #6, the pausing clock.**
 >
 > **✅ Cleared 2026-07-25 (branch `claude/work-session-4fe7ee`, on that
 > branch — NOT yet on `main`):** the whole **Small fixes** group below.
@@ -409,9 +539,13 @@
 >
 > ### Operational
 >
-> 14. **Prod is behind `main`.** `origin/prod` is at `1a6717d`; everything
->     from 2026-07-24 is `main`-only. The next release ships migration
->     `20260814120000` — a no-op on prod data (no attempts, no tutor quizzes).
+> 14. ~~**Prod is behind `main`.** `origin/prod` is at `1a6717d`~~ — **STALE,
+>     corrected 2026-07-30.** Prod moved on 2026-07-29 (release PR #43,
+>     `e636665`) and carries `main`'s tip, so everything through the CAT arc
+>     is live. Prod IS behind `main` again now — by the case bank and the nav
+>     changes — but never trust a pinned SHA in this file; run
+>     `git log origin/prod -1` instead. This entry named the wrong commit for
+>     five days.
 > 15. **⚠ `PAYSTACK_SECRET_KEY`** (live key) still not on the prod Worker —
 >     launch-day only, not a release blocker.
 >
@@ -2960,7 +3094,7 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 ### Phase F — Dashboard, history, analytics
 
-- ⬜ **7.1** History page polish — analytics + filtering layered on the MVP shipped in slice 4.6a. Per-attempt-card details (avg score, time-per-Q distribution, accuracy by axis), filter chips (mode, status, date range), sort options beyond newest-first. CAT-attempt cards open to the CAT summary page (slice 6.3) instead of the runner. The MVP list shipped earlier in 4.6a (pulled forward from this slice during 4.5 close).
+- ✅ **7.1** History page polish — **DONE 2026-07-30**, and reshaped on the way. Doc: `docs/product-plan/session-report.md`. The slice as written asked for per-attempt detail *on the History card* (avg score, time-per-Q, accuracy by axis); Sam redirected that detail into a **page of its own** — the Session Report at `/student/bank/session/report/[attemptId]` — leaving History as the **directory**, which is what it should have been. Delivered: paging (the 50-row cap was hiding 21 of one dev student's 71 sittings), working type/state filters + search in the URL, a phone layout that did not exist, honest counts, **discard**, and the same **Report + Review** pair on every finished row. The slice's "CAT-attempt cards open to the CAT summary instead of the runner" is done — a CAT row was also, separately, **displaying a percentage**, which §13.5 forbids. ⬜ Still open from the original wording: **sort options beyond newest-first** and a **date-range** filter; per-axis accuracy now lives on the report rather than the History row, deliberately.
 - ⬜ **7.2** Analytics page — `app/(app)/student/bank/analytics/`. All 6 breakdown axes with topic/subtopic drill-downs, peer percentile, answer-change tracking, time-per-question drill-down. Thin-slice gating.
 - ⬜ **7.3** Per-student-per-question state — materialised view over `nclex_attempt_answers` + marking table. Drives Unseen/Seen/Correct/Incorrect counts in the builder. Refresh on attempt completion. Promote to physical table only if measurable bottleneck.
 - ✅ **7.4** Dashboard surface — **BUILT 2026-07-23** (= CAT plan **Slice 9**; app-layer, no migration; vitest 341 → 412; see cat.html §19.4.9). `app/(app)/student/bank/dashboard/` rebuilt from the Claude Design "Bank Dashboard" **variant 2d** handoff into the `lib/home/<audience>/` pattern — thin route + new `lib/home/student/bank/` + `styles/bank-dashboard.css` (`bd-`). Nine cards: welcome header · bank-access countdown · bank study streak · resume banner · lowest-scoring category · accuracy by category (8 bars) · exam-readiness panel · Where-to-next doorways · recent activity. **The readiness card is a rules-based BAND, not an invented score** — three real signals (accuracy / latest pack / last CAT) with **three states each** so a student is never marked down for a product she hasn't bought, band words borrowed from the packs (Building / Approaching / Ready), and **volume as the evidence GATE rather than a fourth signal** (which doubles as the cold-start state). **⚠ Two cap bugs fixed, one already live:** the History count was reporting `getHistoryAttempts()`'s 50-row limit as a real total (true figure 51). **⚠ Not tested by Sam** — merged on his instruction. **Still open from Slice 9:** the Builder's EXAM-intent CAT option and the public `/help/cat` page (slice 6.4).

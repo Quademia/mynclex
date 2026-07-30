@@ -90,6 +90,7 @@ export async function getBankDashboardData(): Promise<BankDashboardData> {
     history,
     readiness,
     bankCountRes,
+    caseCountRes,
     sessionCountRes,
     catCountRes,
   ] = await Promise.all([
@@ -133,6 +134,12 @@ export async function getBankDashboardData(): Promise<BankDashboardData> {
     // no new loader needed. It counts what THIS student may be served,
     // which is the honest reading of "questions available".
     supabase.rpc('nclex_count_eligible_items', { p_filters: {} }),
+
+    // Case studies this student can sit. A dedicated count rather than
+    // the list RPC, which carries every case's scenario text (~100KB) —
+    // far too much payload for one integer on a dashboard. It reads the
+    // same eligibility helper the page does, so the two cannot disagree.
+    supabase.rpc('nclex_case_bank_count'),
 
     // The TRUE session count. getHistoryAttempts() caps at 50 rows, so
     // counting its length would report "50 past sessions" forever once
@@ -265,6 +272,7 @@ export async function getBankDashboardData(): Promise<BankDashboardData> {
     },
     doorways: buildDoorways({
       bankTotal: typeof bankCount === 'number' ? bankCount : null,
+      casesAvailable: typeof caseCountRes.data === 'number' ? caseCountRes.data : null,
       // "Ready" = owned but not yet placed on a pack — the ones that
       // need the student to do something. A claimed credit is already
       // committed to a pack and shows up there instead.

@@ -1,6 +1,20 @@
 # Journey Tracker
 
 *Planning document. Captures the design conversation of 2026-06-19.*
+
+> **⚠ 2026-07-30 — the placeholder surfaces were REMOVED. The design below
+> is untouched and still current.**
+>
+> The student route `app/(app)/student/bank/journey/` (a "Coming soon"
+> placeholder page), its sidebar entry, and its locked dashboard door were
+> all deleted (Sam): the nav led to an empty room, and the dashboard door
+> was the only one on that card that went nowhere. **Nothing else was
+> touched** — no `journey_*` tables ever existed, so nothing was stranded,
+> and CLAUDE.md rule #1's `journey_*` naming exception still stands.
+>
+> Re-add the route, the nav entry and the door when the pillar is actually
+> built. Everything needed to do that is in this document.
+
 Last updated: 2026-07-21 (**adds the admin surface** — settles that v1 needs
 one admin surface: **authoring the QAcademy starter templates** (the same
 template editor as the tutor's *My Pathways*, scoped to official/global

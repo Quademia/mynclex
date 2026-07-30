@@ -1378,6 +1378,17 @@
   justify-content: center;
   padding: 24px;
   z-index: 70;
+  /* ⭐ A dialog must not inherit text layout from wherever it happens to be
+   * mounted. position: fixed takes it out of the FLOW but not out of the
+   * cascade, so a trigger sitting inside anything with `white-space:
+   * nowrap` — a table cell keeping two buttons on one line, say — passes
+   * that straight down and the body copy becomes one unwrappable line,
+   * clipped at the viewport edge. Seen live on the History page, where the
+   * Discard trigger lives in a nowrap action cell. `text-align` and
+   * `font-size` inherit the same way, so they are pinned here too. */
+  white-space: normal;
+  text-align: left;
+  font-size: 14px;
   animation: auth-discard-overlay-in 140ms ease-out;
 }
 
@@ -1421,7 +1432,29 @@
 .auth-discard-confirm-hint {
   font-size: 13px;
   color: #92400e;
+  /* Was missing, unlike every sibling hint in this file
+   * (.auth-detach-confirm-hint and .auth-delete-confirm-hint both set
+   * 1.5). It never showed because the five dialogs using this class were
+   * one or two short lines; the first three-line body made it obvious.
+   * Fixing it here rather than with a one-off modifier improves all six. */
+  line-height: 1.5;
   margin: 0;
+}
+
+/* The THING being confirmed, on its own line.
+ *
+ * Inlining it into the sentence ("<b>Safe and Effective Care Environment ·
+ * Unseen · 20 Q</b> will stop being resumable…") produced a dense amber
+ * block where the eye could not separate the name of the session from the
+ * warning about it. A long summary also has to be able to break, or it
+ * pushes the panel wider than its max-width. */
+.auth-discard-confirm-target {
+  font-size: 13px;
+  font-weight: 700;
+  color: #78350f;
+  line-height: 1.4;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .auth-discard-confirm-actions {
