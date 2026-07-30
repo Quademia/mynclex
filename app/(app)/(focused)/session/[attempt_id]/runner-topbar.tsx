@@ -1,7 +1,7 @@
 // mynclex/app/(app)/(focused)/session/[attempt_id]/runner-topbar.tsx
 //
 // Runner topbar (56px). Layout:
-//   [Exit] | [Title + meta] [spacer] [Counter] [Clock + eye-icon] [Mark]
+//   [Exit] | [Title + meta] [spacer] [Counter] [Clock + eye] [Bookmark] [Calc] [Grid]
 //
 // Clock pill (slice 4.5a — runner.html §8):
 //   • In review mode: clock prop is null and statusLabel renders the
@@ -11,8 +11,17 @@
 //     the formatted display + tone class; eye-icon button next to it
 //     toggles visibility (locks once first warning fires per §8.5).
 //
-// Mark button — visual only, disabled with tooltip; toggle wiring lands
-// in slice 4.7 (mark-for-review).
+// Bookmark button — "save this question so I can study it again"
+// (docs/product-plan/flag-and-bookmark.md). Absent entirely when the
+// Builder could never serve the question back: CAT, readiness packs and
+// tutor quizzes (§3.4).
+//
+// ⚠ This REPLACES the old ⚑ Mark button, which was disabled from the day
+// it shipped and wrote nowhere. "Mark" was two features wearing one icon;
+// the other half — the per-sitting FLAG — is a separate control landing in
+// a later slice, keyed by attempt_item_id rather than item_id. The word
+// "mark" is retired from student-facing copy because it already means
+// points elsewhere in the product (§4).
 
 'use client';
 
@@ -47,7 +56,31 @@ interface Props {
    * be actively misleading (bank-consumption-cat.html §16.1).
    */
   total:       number | null;
-  marked:      boolean;
+  /**
+   * Bookmark toggle for the CURRENT question, or null when bookmarking is
+   * not offered on this attempt (§3.4 — CAT, readiness packs, tutor
+   * quizzes). Null hides the control entirely rather than disabling it: a
+   * greyed button invites a "why?" whose honest answer names the
+   * reservation mechanism.
+   *
+   * `on` is keyed by ITEM_ID upstream, not attempt_item_id — a bookmark
+   * persists across sittings, so a question met before arrives already on.
+   */
+  bookmark?:   { on: boolean; busy: boolean; onToggle: () => void } | null;
+  /**
+   * Flag-for-review for the CURRENT question, or null where flagging is
+   * not offered — the two forward-only modes (CAT, Timed Sequential),
+   * where you could never come back to the question anyway.
+   *
+   * `editable: false` renders the state without responding: in review
+   * the flag is part of the attempt record, and unflagging afterwards
+   * would make the report's "you flagged 6" retroactively untrue (§2.4).
+   *
+   * ⚠ `on` is keyed by ATTEMPT_ITEM_ID upstream, not item_id. The flag
+   * belongs to this sitting and starts empty every time — the opposite
+   * of the bookmark directly below it.
+   */
+  flag?:       { on: boolean; busy: boolean; editable: boolean; onToggle: () => void } | null;
   statusLabel: string;          // "Score · 67%" in review (live ignores)
   caseMeta?:   CaseMeta;
   // Live-mode clock state. Null in review mode (statusLabel renders
@@ -81,7 +114,8 @@ export function RunnerTopbar({
   modeLabel,
   current,
   total,
-  marked,
+  bookmark,
+  flag,
   statusLabel,
   caseMeta,
   clock,
@@ -161,17 +195,51 @@ export function RunnerTopbar({
         ) : clockNode;
       })()}
 
-      <button
-        type="button"
-        className={'rn-mark-btn' + (marked ? ' on' : '')}
-        disabled
-        // The button is a placeholder until the marking table is wired
-        // (BUILD_LIST 4.7). The tooltip said "Mark-for-review · slice 4.7" —
-        // our build vocabulary, shown to a student hovering a dead control.
-        title="Marking questions for review isn’t available yet"
-      >
-        ⚑ {marked ? 'Marked' : 'Mark'}
-      </button>
+      {flag && (
+        <button
+          type="button"
+          className={'rn-flag-btn' + (flag.on ? ' on' : '') + (flag.editable ? '' : ' frozen')}
+          onClick={flag.editable ? flag.onToggle : undefined}
+          disabled={flag.busy || !flag.editable}
+          data-coach={sandbox ? 'flag' : undefined}
+          aria-pressed={flag.on}
+          aria-label={
+            !flag.editable
+              ? (flag.on ? 'Flagged for review during this sitting' : 'Not flagged')
+              : (flag.on ? 'Remove flag' : 'Flag this question for review')
+          }
+          // In review the tooltip explains the frozen state rather than
+          // leaving a dead-looking control unexplained.
+          title={
+            !flag.editable
+              ? 'Flags cannot be changed after a sitting ends'
+              : (flag.on ? 'Remove flag' : 'Flag to come back to')
+          }
+        >
+          <FlagIcon filled={flag.on} />
+          <span className="rn-flag-btn-label">{flag.on ? 'Flagged' : 'Flag'}</span>
+        </button>
+      )}
+
+      {bookmark && (
+        <button
+          type="button"
+          className={'rn-bookmark-btn' + (bookmark.on ? ' on' : '')}
+          onClick={bookmark.onToggle}
+          disabled={bookmark.busy}
+          data-coach={sandbox ? 'bookmark' : undefined}
+          aria-pressed={bookmark.on}
+          // The state must be announced, not just coloured — a filled vs
+          // outlined glyph is invisible to a screen reader.
+          aria-label={bookmark.on ? 'Remove bookmark' : 'Bookmark this question'}
+          title={bookmark.on ? 'Remove bookmark' : 'Bookmark for later study'}
+        >
+          <BookmarkIcon filled={bookmark.on} />
+          <span className="rn-bookmark-btn-label">
+            {bookmark.on ? 'Saved' : 'Bookmark'}
+          </span>
+        </button>
+      )}
 
       <button
         type="button"
@@ -200,6 +268,35 @@ export function RunnerTopbar({
         </button>
       )}
     </header>
+  );
+}
+
+// Flag glyph — a pennant on a staff. Deliberately a DIFFERENT shape from
+// the bookmark ribbon beside it: the two controls sit together, mean
+// different things (one dies with the sitting, one outlives it), and a
+// mis-tap on either is silent. Shape carries that difference where
+// colour alone would not.
+function FlagIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="4" y1="2" x2="4" y2="14.5" />
+      <path d="M4 2.6h7.6l-1.9 3.1 1.9 3.1H4Z" fill={filled ? 'currentColor' : 'none'} />
+    </svg>
+  );
+}
+
+// Bookmark glyph — the classic ribbon, in the same stroke family as the
+// calc/grid icons. It FILLS when saved rather than only changing colour,
+// so the on-state survives a glance on a phone and does not depend on
+// hue alone.
+//
+// A ribbon deliberately, not a flag: the per-sitting flag control lands
+// later and the two must never be mistaken for one another (§5).
+function BookmarkIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 2.2h8a.8.8 0 0 1 .8.8v10.6L8 11.1l-4.8 2.5V3a.8.8 0 0 1 .8-.8Z" />
+    </svg>
   );
 }
 

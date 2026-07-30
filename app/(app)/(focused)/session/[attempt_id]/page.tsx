@@ -32,12 +32,22 @@ import { expireAttemptAction } from './actions';
 import { resolveAttemptExitHref } from '@/lib/practice/runner/resolve-exit-href';
 import { reviewWindowOpen } from '@/lib/payments/readiness-window';
 import { hasDismissedPrompt } from '@/lib/practice/tutorial/completion';
+import { bookmarkingOffered } from '@/lib/practice/runner/bookmarks';
 import { PROMPT_KEY_PRE_EXAM_OFFER } from '@/lib/practice/tutorial/keys';
 
 export const dynamic = 'force-dynamic';
 
 const SEALED_ITEM_COLUMNS = [
   'attempt_item_id',
+  // The source question behind this row. Needed as the BOOKMARK key —
+  // bookmarks are (student, question), so they cannot be keyed by
+  // attempt_item_id (flag-and-bookmark.md §3.8). Not a content leak:
+  // the student is already being served the question itself.
+  'item_id',
+  'item_source',
+  // Per-sitting flag. Comes along on the item row, so seeding the
+  // runner's flag set costs no second query.
+  'is_flagged',
   'position',
   'question_type',
   'stem_snapshot',
@@ -248,6 +258,36 @@ export default async function SessionPage({ params }: PageProps) {
       ? await hasDismissedPrompt(PROMPT_KEY_PRE_EXAM_OFFER)
       : false;
 
+  // Bookmarks (flag-and-bookmark.md §3.7). A bookmark is (student,
+  // question), so a question met in an earlier sitting ARRIVES ALREADY
+  // BOOKMARKED — this is a load, not a rule to enforce. Skip it and the
+  // control renders "off" for a bookmarked question, the student taps,
+  // and the insert hits the unique index.
+  //
+  // Scoped to this attempt's items rather than fetching the student's
+  // whole bookmark set: the runner only ever renders these questions,
+  // and an unbounded IN-list is how the 1,000-row cap bites.
+  const canBookmark = bookmarkingOffered(attempt as AttemptHeader);
+
+  let bookmarkedItemIds: string[] = [];
+  if (canBookmark) {
+    const attemptItemIds = ((items.data ?? []) as unknown as SealedItem[])
+      .map((i) => i.item_id)
+      .filter(Boolean);
+
+    if (attemptItemIds.length > 0) {
+      const { data: marks } = await supabase
+        .from('nclex_question_marks')
+        .select('target_id')
+        .eq('student_id',    user.id)
+        .eq('target_kind',   'QUESTION')
+        .eq('target_source', 'BANK')
+        .in('target_id',     attemptItemIds);
+
+      bookmarkedItemIds = (marks ?? []).map((m) => m.target_id as string);
+    }
+  }
+
   // Multi-line / concatenated select strings defeat supabase-js's row-
   // shape inference (returns GenericStringError[]); cast through unknown.
   const data: RunnerData = isLive
@@ -261,6 +301,8 @@ export default async function SessionPage({ params }: PageProps) {
         seededUnseal,
         exitHref,
         offerDismissed,
+        bookmarkedItemIds,
+        canBookmark,
       }
     : {
         mode:    'review',
@@ -270,6 +312,8 @@ export default async function SessionPage({ params }: PageProps) {
         trends:  (trends.data  ?? []) as unknown as TrendSnapshot[],
         answers: (answers.data ?? []) as unknown as AnswerRow[],
         exitHref,
+        bookmarkedItemIds,
+        canBookmark,
       };
 
   return <Runner data={data} />;

@@ -49,7 +49,7 @@ export function archetypeFor(mode: ModeId): Archetype {
  */
 export function footerBrief(intent: Intent, mode: ModeId, isReview: boolean): string {
   if (isReview) {
-    return 'Review · use the grid to filter Wrong / Marked / Unanswered, or step in order';
+    return 'Review · use the grid to filter Wrong / Flagged / Unanswered, or step in order';
   }
 
   const label = modeLabelFor(intent, mode);

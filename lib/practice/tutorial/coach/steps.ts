@@ -7,11 +7,13 @@
 // KEY — order-independent, unlike CD's numeric goto), and an optional gate
 // (a must-do before Next unlocks; wired in Slice 2b).
 //
-// TWO deliberate departures from the CD blueprint:
-//   • The Mark-for-review step is DROPPED. The runner's Mark button is a
-//     disabled placeholder (BUILD_LIST 4.7 — "toggle wiring lands" later);
-//     the tutorial must not teach a control that does nothing. Restore this
-//     step when Mark-for-review ships.
+// DEPARTURES from the CD blueprint:
+//   • CD had ONE "Mark for review" step. There are now TWO, because that one
+//     control was two features wearing one icon and has been split
+//     (docs/product-plan/flag-and-bookmark.md): FLAG is per-sitting, BOOKMARK
+//     outlives it. Teaching them as one would re-create the exact confusion
+//     the split removed — and the difference is invisible from the icons
+//     alone, so it has to be said out loud.
 //   • `goto` is a question KEY, not an index — so the coach never depends on
 //     the item ordering (CD's order differs from ours).
 
@@ -23,6 +25,8 @@ export type CoachTarget =
   | 'tutpill'
   | 'counter'
   | 'clock'
+  | 'flag'
+  | 'bookmark'
   | 'calc'
   | 'grid'
   | 'gridfilters'
@@ -46,8 +50,10 @@ export interface CoachStep {
   gotoKey?: string;
   /** Ensure the question grid is open for this step. */
   grid?:    boolean;
-  /** Must-do before Next unlocks (Slice 2b). Mark is intentionally absent. */
-  gate?:    'calc' | 'submit';
+  /** Must-do before Next unlocks (Slice 2b). `flag` is satisfied while the
+   *  CURRENT question is flagged — the student has to actually press it.
+   *  Bookmark has no gate on purpose: see its step. */
+  gate?:    'calc' | 'submit' | 'flag';
   /** Footer hint shown while the gate is unmet. */
   gateMsg?: string;
   /** The final step — the card shows the "you're ready" ending. */
@@ -62,10 +68,19 @@ export const COACH_STEPS: CoachStep[] = [
   { title: 'Nothing here is recorded', body: 'This badge only appears in the tutorial. When it is gone, you are in a real attempt and your answers count.', target: 'tutpill' },
   { title: 'Where you are', body: 'The counter shows the current question and the total. In an adaptive (CAT) exam there is no total to show, so only the current question appears — the exam ends when it has enough evidence about you.', target: 'counter' },
   { title: 'The clock', body: 'Untimed sittings count up; timed sittings count down and warn you at 30, 15, 5 and 1 minute. Use the button to hide the clock if it distracts you — once a warning fires, the clock locks visible.', target: 'clock' },
+  // ⭐ TWO steps, not CD's one. The pair is the point: same corner of the
+  // screen, similar-looking toggles, opposite lifetimes. Said plainly here
+  // because nothing on screen distinguishes them except shape and colour.
+  { title: 'Flag for review', body: 'Flag anything you want to come back to before you submit. Flagged questions get an amber border in the grid and can be filtered there, and flagging never changes your answer. A flag belongs to THIS sitting only — it is cleared when you finish, and it does not follow the question anywhere.', target: 'flag', gate: 'flag', gateMsg: 'Try it: flag this question.' },
+  { title: 'Bookmark for later', body: 'Bookmarking is the other one, and it is not the same thing. A bookmark saves the QUESTION to your study list and stays until you remove it — so when you meet that question again, weeks later, it is still bookmarked. You can then build a practice set from your bookmarks alone. Use flag for "come back in a minute", bookmark for "study this again".', target: 'bookmark' },
   { title: 'The calculator', body: 'An on-screen calculator is available on every question, in every mode — the same tool you get in the real exam. Open and close it from here.', target: 'calc', gate: 'calc', gateMsg: 'Open the calculator to continue.' },
   { title: 'The question grid', body: 'Every question in the sitting, colour-coded. Click any cell to jump to it — where the mode allows going back.', target: 'grid', grid: true },
-  { title: 'Filtering the grid', body: 'Narrow the grid to what you still owe: All, Marked, Unanswered, and — where feedback is available — Wrong.', target: 'gridfilters' },
-  { title: 'Reading the colours', body: 'White is unanswered, blue is answered, green correct, dark red wrong, amber skipped. An amber border means marked; a teal ring means you are here now.', target: 'legend' },
+  // Copy tracks the grid's real labels. Updated when "Marked" became
+  // "Flagged" — the tutorial is public and on prod, so leaving it naming
+  // a chip that no longer exists would be a live inaccuracy, not a
+  // tidy-up to defer. The tutorial's own FLAG STEPS are still to come.
+  { title: 'Filtering the grid', body: 'Narrow the grid to what you still owe: All, Flagged, Unanswered, and — where feedback is available — Wrong.', target: 'gridfilters' },
+  { title: 'Reading the colours', body: 'White is unanswered, blue is answered, green correct, dark red wrong, amber skipped. An amber border means flagged for review; a teal ring means you are here now.', target: 'legend' },
   { title: 'The footer', body: 'Previous on the left, the mode reminder in the middle, and the action button on the right. The action button is disabled until your answer is complete — hover it to see what is missing.', target: 'footer' },
 
   // ── Every question type ──────────────────────────────────────────
@@ -95,6 +110,13 @@ export const COACH_STEPS: CoachStep[] = [
   { title: 'That is the whole exam interface', body: 'Nothing you did here was recorded. When you start a real sitting the tutorial badge disappears and everything else stays exactly as you have just seen it.', done: true },
 ];
 
+// ⚠ THESE ARE RAW INDICES INTO COACH_STEPS, so inserting a step silently
+// misaligns every section below it — tsc is happy, the tests pass, and the
+// jump menu quietly lands one topic off. It bit when the two flag/bookmark
+// steps went in at 6: everything from Calculator down had to move by two.
+// The test in steps.test.ts now pins each label to the step title it should
+// open on, so the next insertion fails loudly instead of drifting.
+//
 // Jump-to-section index (Slice 2c). `start` is the COACH_STEPS index the
 // section opens on. `sub: true` entries are the individual question types,
 // shown indented under "Question types" so a returning student can drop
@@ -109,32 +131,35 @@ export interface CoachSection {
 export const COACH_SECTIONS: CoachSection[] = [
   { label: 'Welcome',                     start: 0 },
   { label: 'The exam screen',             start: 1 },
-  { label: 'Calculator',                  start: 6 },
-  { label: 'Question grid',               start: 7 },
-  { label: 'The footer',                  start: 10 },
-  { label: 'Question types',              start: 11 },
-  { label: 'Multiple choice',             start: 11, sub: true },
-  { label: 'True / false',                start: 12, sub: true },
-  { label: 'Select all that apply',       start: 13, sub: true },
-  { label: 'Select N',                    start: 14, sub: true },
-  { label: 'Matrix',                      start: 15, sub: true },
-  { label: 'Matrix — multiple response',  start: 16, sub: true },
-  { label: 'Highlight',                   start: 17, sub: true },
-  { label: 'Cloze',                       start: 18, sub: true },
-  { label: 'Drag-and-drop cloze',         start: 19, sub: true },
-  { label: 'Drag to order',               start: 20, sub: true },
-  { label: 'Bow-tie',                     start: 21, sub: true },
-  { label: 'Case studies',                start: 22 },
-  { label: 'Trend items',                 start: 27 },
-  { label: 'Modes & finish',              start: 29 },
+  { label: 'Flag & bookmark',             start: 6 },
+  { label: 'Calculator',                  start: 8 },
+  { label: 'Question grid',               start: 9 },
+  { label: 'The footer',                  start: 12 },
+  { label: 'Question types',              start: 13 },
+  { label: 'Multiple choice',             start: 13, sub: true },
+  { label: 'True / false',                start: 14, sub: true },
+  { label: 'Select all that apply',       start: 15, sub: true },
+  { label: 'Select N',                    start: 16, sub: true },
+  { label: 'Matrix',                      start: 17, sub: true },
+  { label: 'Matrix — multiple response',  start: 18, sub: true },
+  { label: 'Highlight',                   start: 19, sub: true },
+  { label: 'Cloze',                       start: 20, sub: true },
+  { label: 'Drag-and-drop cloze',         start: 21, sub: true },
+  { label: 'Drag to order',               start: 22, sub: true },
+  { label: 'Bow-tie',                     start: 23, sub: true },
+  { label: 'Case studies',                start: 24 },
+  { label: 'Trend items',                 start: 29 },
+  { label: 'Modes & finish',              start: 31 },
 ];
 
 // Closing recap (shown on the final step). Static content lifted from the
-// CD blueprint's RECAP array, with the Mark row folded into the topbar line
-// unchanged (Mark is described but not gated).
+// CD blueprint's RECAP array. CD's single "mark for review" is now the two
+// separate controls, named separately here for the same reason the steps
+// are separate.
 export const COACH_RECAP: { k: string; v: string }[] = [
-  { k: 'Topbar',        v: 'counter, clock and hide toggle, calculator, grid toggle' },
-  { k: 'Question grid', v: 'jump, filter by marked / unanswered / wrong, colour legend' },
+  { k: 'Topbar',        v: 'counter, clock and hide toggle, flag, bookmark, calculator, grid toggle' },
+  { k: 'Flag vs bookmark', v: 'flag = come back before you submit, this sitting only; bookmark = save the question to your study list, kept until you remove it' },
+  { k: 'Question grid', v: 'jump, filter by flagged / unanswered / wrong, colour legend' },
   { k: 'Item types',    v: 'MCQ, true-false, SATA, select N, matrix, matrix multi-response, highlight, cloze, drag cloze, ordering, bow-tie' },
   { k: 'Case studies',  v: 'six linked questions, chart tabs that unfold, the six clinical-judgment steps' },
   { k: 'Trend items',   v: 'one dataset over time, fully visible from the start' },

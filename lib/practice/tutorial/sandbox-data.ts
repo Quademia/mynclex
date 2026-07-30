@@ -82,6 +82,17 @@ export function buildSandboxData(returnTo?: string): LiveData {
 
     items.push({
       attempt_item_id:         q.key,
+      // The tutorial's questions are fixtures in code, not bank rows — there
+      // is no real item to point at. Reusing the key keeps the shape honest
+      // without inventing an id that looks like a bank item. Nothing reads
+      // it here: bookmarking is off in the sandbox (no attempt row exists to
+      // write against), and its tutorial steps land with slice 5.
+      item_id:                 q.key,
+      item_source:             'BANK',
+      // Nothing is flagged at the start of the walkthrough, and the
+      // sandbox writes nowhere, so the runner hides the control. Its
+      // teaching steps land with the tutorial slice.
+      is_flagged:              false,
       position:                i + 1,
       question_type:           q.question_type,
       stem_snapshot:           q.stem,
@@ -158,6 +169,16 @@ export function buildSandboxData(returnTo?: string): LiveData {
     answers:      [],
     seededUnseal: {},
     exitHref:     safeInternalPath(returnTo),
+    // Bookmarking is OFFERED here so the walkthrough can teach it — the
+    // control toggles, and the runner skips the write on isSandbox. It
+    // starts empty because a tutorial that opened with someone else's
+    // bookmarks already set would be teaching a lie.
+    //
+    // ⚠ This is `true` on purpose. It was false while the tutorial had no
+    // step for it; flipping it back would silently break that step by
+    // removing the element the coach anchors to.
+    bookmarkedItemIds: [],
+    canBookmark:       true,
     sandbox:      true,
     sandboxKeys,
   };

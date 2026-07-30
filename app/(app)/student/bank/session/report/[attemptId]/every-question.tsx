@@ -4,9 +4,16 @@
 // disclosure. Every row is computed on the server, so the frozen answer keys
 // the outcomes were derived from never enter the browser bundle.
 //
-// Deliberately absent: the design's "Marked" filter chip. Nothing in the
-// product writes a mark — zero rows, no write path anywhere — so the chip
-// would always read "Marked 0". It returns when marking is built.
+// The design's "Marked" chip arrives as BOOKMARKED, and the rows carry a
+// bookmark toggle. Two notes on why it is this and not the flag:
+//
+//   • It is read LIVE, so "still bookmarked" is a current fact rather than
+//     a frozen one. The flag was rejected for this page: unflagging deletes
+//     the state, so a report could only ever see the position at submit,
+//     and what survives conflates unresolved doubt with forgot-to-tidy.
+//   • The toggle is here because this is the moment a student has just
+//     seen what they got wrong — the natural point to add something to the
+//     study list, and a second home for the pruning loop besides the runner.
 //
 // Responsive is CSS (session-report.css): at ≤768px the table reflows into one
 // card per question with the stem on its own line and a full-width review
@@ -20,8 +27,9 @@ import type { QuestionRow } from '@/lib/practice/report/derive';
 import type { ChangeReading } from '@/lib/practice/report/derive';
 import type { QuestionOutcome } from '@/lib/practice/report/types';
 import { formatDuration } from '@/lib/practice/history/format';
+import { toggleBookmarkAction } from '@/lib/practice/runner/bookmark-actions';
 
-type Filter = 'all' | 'wrong' | 'partial' | 'blank';
+type Filter = 'all' | 'wrong' | 'partial' | 'blank' | 'bookmarked';
 
 const OUTCOME_LABEL: Record<QuestionOutcome, string> = {
   FULL: 'Correct',
@@ -46,12 +54,23 @@ const INITIAL_ROWS = 8;
 export function EveryQuestion({
   rows,
   changes,
+  attemptId,
 }: {
   rows: QuestionRow[];
   changes: ChangeReading;
+  attemptId: string;
 }) {
   const [filter, setFilter] = useState<Filter>('all');
   const [expanded, setExpanded] = useState(false);
+
+  // Bookmarks are the one thing on this page that CHANGES while you look
+  // at it, so they are local state seeded from the server rather than read
+  // off `rows` — otherwise a toggle would not move until a reload.
+  const [bookmarked, setBookmarked] = useState<Set<string>>(
+    () => new Set(rows.filter((r) => r.isBookmarked).map((r) => r.itemId)),
+  );
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const counts = useMemo(
     () => ({
@@ -59,8 +78,9 @@ export function EveryQuestion({
       wrong: rows.filter((r) => r.outcome === 'NONE').length,
       partial: rows.filter((r) => r.outcome === 'PARTIAL').length,
       blank: rows.filter((r) => r.outcome === 'NOT_ANSWERED').length,
+      bookmarked: rows.filter((r) => bookmarked.has(r.itemId)).length,
     }),
-    [rows],
+    [rows, bookmarked],
   );
 
   const matching = useMemo(() => {
@@ -68,9 +88,47 @@ export function EveryQuestion({
       case 'wrong': return rows.filter((r) => r.outcome === 'NONE');
       case 'partial': return rows.filter((r) => r.outcome === 'PARTIAL');
       case 'blank': return rows.filter((r) => r.outcome === 'NOT_ANSWERED');
+      case 'bookmarked': return rows.filter((r) => bookmarked.has(r.itemId));
       default: return rows;
     }
-  }, [rows, filter]);
+  }, [rows, filter, bookmarked]);
+
+  // Optimistic: flip, then write, revert on failure. A bookmark is one row
+  // with nothing downstream of it, so a flip that loses costs a revert and
+  // a message. ⚠ setError is called OUTSIDE the state updater — returning
+  // state unchanged inside one makes React bail out of the re-render, and
+  // the message never appears.
+  const onToggle = (itemId: string) => {
+    const next = !bookmarked.has(itemId);
+    setBookmarked((prev) => {
+      const out = new Set(prev);
+      if (next) out.add(itemId); else out.delete(itemId);
+      return out;
+    });
+    setBusyId(itemId);
+    setError(null);
+
+    void toggleBookmarkAction(attemptId, itemId, next)
+      .then((r) => {
+        if (!r.ok) {
+          setBookmarked((prev) => {
+            const out = new Set(prev);
+            if (next) out.delete(itemId); else out.add(itemId);
+            return out;
+          });
+          setError(r.error);
+        }
+      })
+      .catch(() => {
+        setBookmarked((prev) => {
+          const out = new Set(prev);
+          if (next) out.delete(itemId); else out.add(itemId);
+          return out;
+        });
+        setError('Could not save that bookmark. Please try again.');
+      })
+      .finally(() => setBusyId(null));
+  };
 
   const visible = expanded ? matching : matching.slice(0, INITIAL_ROWS);
   const hidden = matching.length - visible.length;
@@ -80,6 +138,7 @@ export function EveryQuestion({
     { id: 'wrong', label: 'Wrong', n: counts.wrong },
     { id: 'partial', label: 'Partial', n: counts.partial },
     { id: 'blank', label: 'Not answered', n: counts.blank },
+    { id: 'bookmarked', label: 'Bookmarked', n: counts.bookmarked },
   ];
 
   return (
@@ -109,6 +168,12 @@ export function EveryQuestion({
           ))}
         </div>
       </div>
+
+      {error && (
+        <p className="bsr-foot bsr-q-error" role="status">
+          {error}
+        </p>
+      )}
 
       {matching.length === 0 ? (
         <p className="bsr-foot">Nothing in this sitting matches that filter.</p>
@@ -159,6 +224,30 @@ export function EveryQuestion({
                   )}
                 </td>
                 <td className="bsr-q-action">
+                  <button
+                    type="button"
+                    className={
+                      'bsr-q-bookmark' + (bookmarked.has(r.itemId) ? ' on' : '')
+                    }
+                    onClick={() => onToggle(r.itemId)}
+                    disabled={busyId === r.itemId}
+                    aria-pressed={bookmarked.has(r.itemId)}
+                    // The row already announces its number; naming the
+                    // question here is what makes the control usable in a
+                    // list of identical buttons.
+                    aria-label={
+                      bookmarked.has(r.itemId)
+                        ? `Remove bookmark from question ${r.position}`
+                        : `Bookmark question ${r.position}`
+                    }
+                    title={
+                      bookmarked.has(r.itemId)
+                        ? 'Remove from your study list'
+                        : 'Save to your study list'
+                    }
+                  >
+                    {bookmarked.has(r.itemId) ? '★' : '☆'}
+                  </button>
                   <Link className="bsr-q-review" href={r.href}>
                     Review →
                   </Link>

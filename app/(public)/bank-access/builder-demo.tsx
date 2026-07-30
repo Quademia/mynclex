@@ -23,7 +23,12 @@ const POOLS = [
   { id: 'SEEN', label: 'Seen', sub: 'Anything you have attempted before', n: 380 },
   { id: 'CORRECT', label: 'Correct', sub: 'Ones you last got right', n: 260 },
   { id: 'INCORRECT', label: 'Incorrect', sub: 'Ones you last got wrong', n: 120 },
-  { id: 'MARKED', label: 'Marked', sub: 'Flagged for review mid-quiz', n: 45 },
+  // ⚠ This description was WRONG, not merely dated: it said "Flagged for
+  // review mid-quiz", which describes the FLAG. This pool is the bookmark —
+  // questions saved to a study list, kept across sittings. A public page
+  // teaching the conflation is the one place it does most damage, since it
+  // is what a prospective student reads first.
+  { id: 'MARKED', label: 'Bookmarked', sub: 'Saved to your study list', n: 45 },
 ];
 const CNC = [
   { id: 'moc', label: 'Management of Care', w: 0.17 },

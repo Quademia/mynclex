@@ -74,10 +74,14 @@ function poolLabelFor(f: FilterPayload): string | null {
   if (m && h.length === 0) return POOL_LABEL.MARKED;
   if (!m && h.length === 1) return POOL_LABEL[h[0]] ?? h[0];
 
-  // Marked + something
+  // Bookmarked + something. ⚠ These two are hardcoded rather than read from
+  // POOL_LABEL.MARKED like every other branch here, so the rename in
+  // filter-config.ts does NOT reach them — they have to be changed by hand
+  // (flag-and-bookmark.md §4: "mark" is retired from student-facing copy
+  // because it already means points).
   if (m && h.length > 0) {
-    if (h.length === 1) return `${POOL_LABEL[h[0]]} + Marked`;
-    return 'Marked + filters';
+    if (h.length === 1) return `${POOL_LABEL[h[0]]} + ${POOL_LABEL.MARKED}`;
+    return `${POOL_LABEL.MARKED} + filters`;
   }
 
   // Multiple history values, no marked — combined

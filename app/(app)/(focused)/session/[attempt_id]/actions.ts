@@ -387,3 +387,47 @@ export async function expireAttemptAction(
 
   return { ok: true, data: { final_score: Number(data) } };
 }
+
+
+// Bookmark toggle MOVED — it now lives in
+// lib/practice/runner/bookmark-actions.ts, because it has two callers on
+// two different routes: the runner topbar and the session report's
+// per-question table. A bookmark is (student, question) and is not a
+// property of the sitting you happen to be looking at.
+//
+// The FLAG below stays here: it IS a property of one sitting.
+
+
+// Flag toggle (flag-and-bookmark.md §2) — the per-sitting half.
+//
+// ⚠ Deliberately NOT shaped like toggleBookmarkAction above. That one
+// writes a table directly because students hold INSERT/DELETE on their
+// own marks rows. Students hold SELECT and nothing else on
+// nclex_attempt_items, which is the frozen snapshot every score is
+// computed against, so this goes through a SECURITY DEFINER function
+// (migration 20260902120000). Granting a student UPDATE on that table
+// to avoid the function would be a scoring hole.
+//
+// Thin on purpose: ownership, IN_PROGRESS and the CAT exclusion all
+// live in the RPC, so a stale tab cannot flag a finished sitting even
+// though the UI has already frozen the control. This does no checking
+// the database is not already doing.
+export async function toggleFlagAction(
+  attemptItemId: string,
+  flagged:       boolean,
+): Promise<ActionResult<{ flagged: boolean }>> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { error } = await supabase.rpc('nclex_set_attempt_item_flag', {
+    p_attempt_item_id: attemptItemId,
+    p_flagged:         flagged,
+  });
+  // The RPC's messages are already student-facing ("this sitting has
+  // ended", "question not found") — surface them rather than replacing
+  // them with something vaguer.
+  if (error) return { ok: false, error: error.message };
+
+  return { ok: true, data: { flagged } };
+}

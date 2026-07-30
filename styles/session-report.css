@@ -633,6 +633,44 @@
 }
 .bsr-q-review:hover { text-decoration: underline; }
 
+/* Inline bookmark toggle (flag-and-bookmark.md §3). A star rather than the
+ * topbar's ribbon: at 13px in a dense table a ribbon outline is a smudge,
+ * while filled-vs-hollow star reads instantly. Same fact, legible at the
+ * size it is actually rendered.
+ *
+ * 28px box — below the 44px touch target the rest of the app uses, but this
+ * sits inside a table row and enlarging it would push the row height past
+ * the point where the table fits its card. It is a convenience control, not
+ * a primary action, and the row's Review link stays full size. */
+.bsr-q-bookmark {
+  width: 28px;
+  height: 28px;
+  margin-right: 6px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  vertical-align: middle;
+}
+.bsr-q-bookmark:hover:not(:disabled) {
+  border-color: var(--border);
+  color: var(--text);
+}
+.bsr-q-bookmark.on { color: var(--accent); }
+.bsr-q-bookmark:disabled { cursor: wait; opacity: 0.55; }
+
+.bsr-q-error { color: var(--danger, #b42318); }
+
+@media (max-width: 768px) {
+  /* In the stacked card layout the action row is full width, so the star
+   * can take a real target size. */
+  .bsr-q-bookmark { width: 40px; height: 40px; font-size: 18px; }
+}
+
 .bsr-pill {
   display: inline-block;
   padding: 2px 8px;

@@ -1,17 +1,57 @@
 # MyNclex Build List
 
-> ## ⏭ NEXT SESSION: **release `main` → `prod`**, then marking
+> ## ✅ DONE 2026-07-30 — **marking, built as TWO features: flag + bookmark**
 >
-> ### ⚠ PROD IS ELEVEN COMMITS BEHIND, with five migrations un-applied
+> **All five slices on `main`.** Doc: **`docs/product-plan/flag-and-bookmark.md`**.
+> **6 commits, one migration** (`20260902120000_attempt_item_flag.sql`),
+> dev-applied; vitest **739 → 784**; tsc at the known `scoring-roundtrip`
+> errors. ⚠ **Not on prod** — the migration ships with the next release.
 >
-> `origin/prod` is `e636665` (2026-07-29). Missing: the whole **case-bank arc**
-> (`20260829120000`, `20260830120000`, `20260831120000`) and this session's
-> **History + Session Report** arc (`20260901120000`). None of it is in front of
-> users. The gap grows every session — worth clearing before it needs untangling.
+> - **⭐ The split is the whole story.** "Mark" was two features sharing one
+>   icon, which is why it sat half-built since 2026-05. **Flag** = "come back
+>   before I submit", per-attempt, a column on `nclex_attempt_items`, starts
+>   empty every sitting. **Bookmark** = "save this to study again",
+>   per-student, the existing `nclex_question_marks`, *arrives already on*
+>   when you meet the question again. The old table structurally could not
+>   hold both: its unique index is `(student, kind, target)` with no
+>   `attempt_id` anywhere. Separating them was **less** work than merging.
+> - **Bookmark first, because it needed no migration** and closed a Builder
+>   filter that had **never once matched a question**. The read path was
+>   already correct — only the writer was missing, exactly as claimed.
+> - **⭐ Sam killed the flag card in the report.** His question — *what if I
+>   flagged everything then unflagged it all before submitting?* — exposed
+>   that a flag is a weak signal there (flagged-but-fine, unflagged-but-still-
+>   lost) **and** that "you flagged 6 during this sitting" is a claim the data
+>   cannot support, since unflagging deletes the state. Replaced by **still
+>   bookmarked, read live at view time** — deliberate, durable, and the only
+>   signal on the page that is actionable. Ranked **first** in the fix list:
+>   the student's own intent outranks our inference about them.
+> - **"Mark" is retired from student-facing copy** — it already means POINTS
+>   ("worth 5 marks"). Grid chip + legend now **Flagged**; Builder chip
+>   **Bookmarked**. ⚠ The public bank-access demo described its bookmark pool
+>   as *"Flagged for review mid-quiz"* — not dated but **wrong**, and the
+>   first thing a prospective student reads.
+> - ⚠ **Two silent breakages, caught and now tested:** `COACH_SECTIONS` holds
+>   raw indices into `COACH_STEPS`, so inserting two tutorial steps misaligned
+>   every section below them (tsc clean, tests green, jump menu one topic
+>   off); and the coach's gate check treated *anything not `calc`* as the
+>   submit gate, so a `flag` gate would have silently required **submitting**.
+> - ⬜ **Still deferred:** a "My bookmarks" surface (the Builder→runner loop
+>   covers v1) · a Bookmarked filter on the case bank · the topbar overflow
+>   menu · case-level bookmarking · mark history.
+> - ⚠ Slice 4 (report) and slice 5's **coach copy** have not been clicked.
 >
-> After that, **marking** — see the ⚠ below. It is small, it unblocks three
-> designed elements of the session report, and it fixes a Builder filter that
-> has never been able to match a question.
+> ### ✅ RELEASED TO PROD 2026-07-30 — prod is CURRENT
+>
+> `origin/prod` is **`b8c7e82`** (PR
+> [#44](https://github.com/QAcademy-Nurses/mynclex/pull/44)). Both workflows
+> green; tracker 145 → **149 rows**, newest `20260901120000`. The **case-bank**
+> arc and the **History + Session Report** arc are both live for users.
+>
+> ⚠ **Nobody has clicked through either arc on the prod deployment.** Dev was
+> verified thoroughly; prod has only been probed (landing 200, authed routes
+> 307). Also expect the case bank to look sparse there — 7 published-complete
+> cases against dev's 93. That is content supply, not a fault.
 >
 > ---
 >
@@ -21,7 +61,7 @@
 > Builder-built practice sitting, plus **`/student/bank/history`** rebuilt as the
 > directory that indexes every sitting. **9 commits, one migration**
 > (`20260901120000_discard_attempt.sql`), dev-applied; vitest **648 → 739**.
-> **On `main`, NOT prod.** Full write-up: **`docs/product-plan/session-report.md`**.
+> **RELEASED TO PROD** 2026-07-30 (PR #44, `b8c7e82`). Full write-up: **`docs/product-plan/session-report.md`**.
 > This closes **slice 7.1** below.
 >
 > - **⭐ The shape is Sam's.** I proposed putting practice detail *inside*
@@ -49,22 +89,16 @@
 >   convention and familiarity beats a marginally better label. The nav reads
 >   **"All history"**; the page heading stays **History**.
 >
-> ### ⚠ MARKING IS A HALF-BUILT FEATURE — pinned down 2026-07-30
+> ### ✅ ~~MARKING IS A HALF-BUILT FEATURE~~ — CLOSED the same day
 >
-> The Builder offers a **"Marked" pool chip**. The runner has a **⚑ Mark
-> button**. The question grid has a **"Marked" filter**.
-> `nclex_question_marks` exists and the SQL reads it.
+> This section described a Builder chip, a ⚑ button, a grid filter and a table
+> that **nothing wrote to**. All of it is now built — see the top of this file.
 >
-> **Nothing writes to it.** The runner's button is `disabled` with the tooltip
-> *"Marking questions for review isn't available yet"*, and the marked set is
-> hardcoded empty — so **the Builder's Marked pool has never been able to match
-> a single question.** (Referred to as slice 4.7 in the runner's own comments.)
->
-> Consequence: three elements of CD's session-report design — a "questions you
-> marked" fix-list item, a marked ring on the question map, and a Marked filter
-> chip on the per-question table — are deliberately absent. **Sam's call: build
-> marking later so it's built well.** When it is, only the write path is
-> missing; every consumer is already wired.
+> The diagnosis here was right about the symptom and wrong about the cause: it
+> read as one feature missing its write path. It was **two features sharing one
+> icon**, which is why "just wire the button" never happened. The dead ⚑ Mark
+> button has been removed; flag and bookmark replaced it. Kept as a record of
+> how the problem looked before it was named.
 >
 > ---
 >

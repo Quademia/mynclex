@@ -37,9 +37,14 @@ interface Props {
   /** Live: has the CURRENT question been submitted? Satisfies a `submit`
    *  gate. Resets to false whenever a goto switches to a fresh question. */
   currentSubmitted: boolean;
+  /** Live: is the CURRENT question flagged? Satisfies a `flag` gate. The
+   *  flag step makes the student actually press it — the difference between
+   *  flag and bookmark is not visible from the icons, so being made to use
+   *  one of them is worth more than another paragraph of copy. */
+  currentFlagged: boolean;
 }
 
-export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubmitted }: Props) {
+export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubmitted, currentFlagged }: Props) {
   const [step, setStep] = useState(0);
   // Slice 2c coach controls.
   const [hidden, setHidden] = useState(false);   // coaching collapsed → free explore
@@ -140,8 +145,19 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubm
   // before Next unlocks. Derived from live runner state — no latch needed:
   // `currentSubmitted` stays true once answered (and resets on the next
   // goto), and the calc gate is met while the calculator is open.
-  const gateSatisfied =
-    !s.gate || (s.gate === 'calc' ? calcOpen : currentSubmitted);
+  //
+  // ⚠ An explicit switch, not a two-branch ternary. The old form treated
+  // "anything that is not calc" as the submit gate, so adding `flag` would
+  // silently have gated it on SUBMITTING the question instead of flagging
+  // it — passing tsc, passing tests, and teaching the wrong lesson.
+  const gateSatisfied = (() => {
+    switch (s.gate) {
+      case undefined: return true;
+      case 'calc':    return calcOpen;
+      case 'submit':  return currentSubmitted;
+      case 'flag':    return currentFlagged;
+    }
+  })();
 
   const next = () => setStep((n) => Math.min(total - 1, n + 1));
   const back = () => setStep((n) => Math.max(0, n - 1));

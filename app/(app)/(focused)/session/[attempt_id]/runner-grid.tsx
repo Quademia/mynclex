@@ -40,7 +40,10 @@ export interface CaseGroup {
 interface Props {
   items:       CellSummary[];
   answers:     Map<string, AnswerRow>;
-  marked:      Set<string>;
+  /** Flagged-for-review, keyed by ATTEMPT_ITEM_ID — per sitting, starts
+   *  empty each time. Not bookmarks: those are keyed by item_id and
+   *  persist across sittings (flag-and-bookmark.md §3.8). */
+  flagged:     Set<string>;
   current:     number;          // 0-indexed
   filter:      GridFilter;
   caseGroups?: readonly CaseGroup[];
@@ -99,7 +102,7 @@ function bandsFor(group: CaseGroup): BandRect[] {
 export function RunnerGrid({
   items,
   answers,
-  marked,
+  flagged,
   current,
   filter,
   caseGroups,
@@ -111,13 +114,13 @@ export function RunnerGrid({
   // Filter row counts — refreshed on every render; cheap for ≤75 cells.
   const filterCounts = {
     all:        items.length,
-    marked:     0,
+    flagged:    0,
     unanswered: 0,
     wrong:      0,
   };
   for (const item of items) {
     const fill = deriveCellFill(answers.get(item.attempt_item_id), revealCorrectness);
-    if (marked.has(item.attempt_item_id)) filterCounts.marked += 1;
+    if (flagged.has(item.attempt_item_id)) filterCounts.flagged += 1;
     if (fill === 'unanswered' || fill === 'skipped') filterCounts.unanswered += 1;
     if (fill === 'wrong') filterCounts.wrong += 1;
   }
@@ -142,7 +145,9 @@ export function RunnerGrid({
           {(
             [
               { id: 'all',        label: 'All',    n: filterCounts.all,        show: true },
-              { id: 'marked',     label: 'Marked', n: filterCounts.marked,     show: true },
+              // "Flagged", not "Marked" — this is the per-sitting flag, and
+              // "marks" already means points elsewhere in the product (§4).
+              { id: 'flagged',    label: 'Flagged', n: filterCounts.flagged,   show: true },
               { id: 'unanswered', label: 'Unans',  n: filterCounts.unanswered, show: true },
               // Wrong filter only meaningful when correctness is revealed
               // (UL live, or any review state). In batched live modes the
@@ -185,19 +190,23 @@ export function RunnerGrid({
 
           {items.map((item, idx) => {
             const fill   = deriveCellFill(answers.get(item.attempt_item_id), revealCorrectness);
-            const isMrk  = marked.has(item.attempt_item_id);
-            const hidden = !isVisibleUnderFilter(fill, isMrk, filter);
+            const isFlg  = flagged.has(item.attempt_item_id);
+            const hidden = !isVisibleUnderFilter(fill, isFlg, filter);
             const cls = [
               'rn-cell',
               `f-${fill}`,
-              isMrk          && 'marked',
+              // CSS class stays `.marked` — it is the border channel's
+              // long-standing selector and renaming it would touch the
+              // legend, the tutorial's copied stylesheet and the cell
+              // rules for no user-visible gain. The DATA is the flag.
+              isFlg          && 'marked',
               idx === current && 'current',
               hidden          && 'hidden',
             ].filter(Boolean).join(' ');
             const label =
               `Question ${item.position}` +
               (fill !== 'unanswered' ? `, ${fill}` : '') +
-              (isMrk ? ', marked' : '') +
+              (isFlg ? ', flagged for review' : '') +
               (idx === current ? ', current' : '');
             return (
               <button
@@ -224,7 +233,7 @@ export function RunnerGrid({
             <div className="row"><span className="swatch f-skipped" /> Skipped</div>
           </>
         )}
-        <div className="row"><span className="swatch marked" /> Marked for review</div>
+        <div className="row"><span className="swatch marked" /> Flagged for review</div>
         <div className="row"><span className="swatch current" /> Current</div>
       </div>
     </aside>

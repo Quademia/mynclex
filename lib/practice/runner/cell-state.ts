@@ -4,8 +4,13 @@
 // Three orthogonal channels:
 //
 //   • Fill   — 5 states encoded by (submission_status, is_correct).
-//   • Border — marked-for-review (resolved against nclex_question_marks
-//              elsewhere; this module accepts a Set<attempt_item_id>).
+//   • Border — FLAGGED for review. Per-sitting, so this module takes a
+//              Set<attempt_item_id>. ⚠ The old comment here said it
+//              resolved against nclex_question_marks; that was never
+//              true and would have been the wrong table anyway — marks
+//              are (student, question) and outlive the sitting. The
+//              flag lives on nclex_attempt_items.is_flagged. See
+//              docs/product-plan/flag-and-bookmark.md §3.8.
 //   • Ring   — current cell (the index the student is on now).
 //
 // Slice 4.5c: `revealCorrectness` gates the right/wrong fills. Set it
@@ -39,37 +44,37 @@ export interface GridCounts {
   total:       number;
   answered:    number;
   unanswered:  number;
-  marked:      number;
+  flagged:     number;
   wrong:       number;
 }
 
 export function gridCounts(
   itemIds:           string[],
   answers:           Map<string, AnswerRow>,
-  marked:            Set<string>,
+  flagged:           Set<string>,
   revealCorrectness: boolean = true,
 ): GridCounts {
-  const c: GridCounts = { total: itemIds.length, answered: 0, unanswered: 0, marked: 0, wrong: 0 };
+  const c: GridCounts = { total: itemIds.length, answered: 0, unanswered: 0, flagged: 0, wrong: 0 };
   for (const id of itemIds) {
     const fill = deriveCellFill(answers.get(id), revealCorrectness);
     if (fill === 'unanswered' || fill === 'skipped') c.unanswered += 1;
     else c.answered += 1;
     if (fill === 'wrong') c.wrong += 1;
-    if (marked.has(id))   c.marked += 1;
+    if (flagged.has(id))  c.flagged += 1;
   }
   return c;
 }
 
-export type GridFilter = 'all' | 'marked' | 'unanswered' | 'wrong';
+export type GridFilter = 'all' | 'flagged' | 'unanswered' | 'wrong';
 
 export function isVisibleUnderFilter(
-  fill:     CellFill,
-  isMarked: boolean,
-  filter:   GridFilter,
+  fill:      CellFill,
+  isFlagged: boolean,
+  filter:    GridFilter,
 ): boolean {
   switch (filter) {
     case 'all':        return true;
-    case 'marked':     return isMarked;
+    case 'flagged':    return isFlagged;
     case 'unanswered': return fill === 'unanswered' || fill === 'skipped';
     case 'wrong':      return fill === 'wrong';
   }

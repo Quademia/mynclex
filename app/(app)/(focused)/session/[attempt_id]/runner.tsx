@@ -74,7 +74,10 @@ import { Calculator } from '@/lib/calculator/calculator';
 import { SandboxCoach } from '@/lib/practice/tutorial/coach/coach';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
 import { Preflight }          from './preflight';
-import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction, recordEngagedTimeAction } from './actions';
+import { submitAnswerAction, completeAttemptAction, saveProgressAction, expireAttemptAction, recordQuestionTimeAction, recordEngagedTimeAction, toggleFlagAction } from './actions';
+import { applyBookmarkToggle } from '@/lib/practice/runner/bookmarks';
+import { toggleBookmarkAction } from '@/lib/practice/runner/bookmark-actions';
+import { flaggingOffered, flagEditable, initialFlagSet, applyFlagToggle } from '@/lib/practice/runner/flags';
 import { useEngagementClock } from './use-engagement-clock';
 import { catTurnAction } from '@/lib/practice/cat/turn-action';
 import { useQuestionTimer } from './use-question-timer';
@@ -395,9 +398,28 @@ function RunnerShell({ data }: Props) {
     return m;
   }, [data.answers, clientAnswers]);
 
-  // Mark-for-review wires up in slice 4.7 — empty Set keeps the channel
-  // available without changing the chrome contract.
-  const marked = useMemo(() => new Set<string>(), []);
+  // Flags (§2) — "come back to this before I submit". Keyed by
+  // ATTEMPT_ITEM_ID, so this set belongs to THIS sitting and starts empty
+  // every time; a question flagged in an earlier sitting is not flagged
+  // here. Seeded straight from the item rows — is_flagged rides along, so
+  // there is no second query.
+  //
+  // ⚠ The opposite of `bookmarkedItemIds` below in every respect. Both are
+  // Set<string>; only the names stop them being swapped (§3.8).
+  const [flaggedAttemptItemIds, setFlaggedAttemptItemIds] = useState<Set<string>>(
+    () => initialFlagSet(data.items),
+  );
+  const [flagBusy, setFlagBusy] = useState(false);
+
+  // Bookmarks (§3) — "save this question so I can study it again". Seeded
+  // from the server with the bookmarks this student ALREADY holds among this
+  // sitting's questions (§3.7): a bookmark is (student, question), so one met
+  // in an earlier sitting arrives already on. Empty when bookmarking is not
+  // offered here (CAT / readiness / tutor quiz).
+  const [bookmarkedItemIds, setBookmarkedItemIds] = useState<Set<string>>(
+    () => new Set(data.bookmarkedItemIds),
+  );
+  const [bookmarkBusy, setBookmarkBusy] = useState(false);
 
   const total       = data.items.length;
   // A live CAT hides its total (length unknowable mid-exam → "Adaptive
@@ -411,6 +433,87 @@ function RunnerShell({ data }: Props) {
   // singular to match the mode-label cleanup that dropped "Exams". Applies
   // in review too: a reviewed exam is still an exam session.
   const sessionTitle = data.attempt.intent === 'EXAM' ? 'Exam session' : 'Study session';
+
+  // Bookmark toggle for the question on screen. Optimistic: flip locally,
+  // then write. A bookmark is one row with nothing downstream of it, so an
+  // optimistic flip that loses costs a revert and a toast — much better than
+  // a control that stalls mid-sitting while a clock runs.
+  //
+  // ⚠ setError is called OUTSIDE the state updater. Calling it inside one and
+  // returning the state unchanged makes React bail out of the re-render, so
+  // the toast never appears — the exact defect found in the case bank's
+  // third-case refusal.
+  const currentBookmarkId = currentItem?.item_id ?? null;
+  const onToggleBookmark = useCallback(() => {
+    if (!currentBookmarkId) return;
+
+    const next = !bookmarkedItemIds.has(currentBookmarkId);
+    setBookmarkedItemIds((prev) => applyBookmarkToggle(prev, currentBookmarkId, next));
+
+    // The tutorial's runner is the REAL runner in a no-writes mode, so the
+    // control toggles for real and simply never reaches the server. Hiding
+    // it there was the alternative, and it would have meant the walkthrough
+    // could not teach the control at all — against the whole principle of
+    // this tutorial: ONE runner in a sandbox mode, never a copy. There is
+    // no attempt row for a write to belong to.
+    if (isSandbox) return;
+
+    setBookmarkBusy(true);
+
+    void toggleBookmarkAction(data.attempt.attempt_id, currentBookmarkId, next)
+      .then((r) => {
+        if (!r.ok) {
+          setBookmarkedItemIds((prev) =>
+            applyBookmarkToggle(prev, currentBookmarkId, !next),
+          );
+          setError(r.error);
+        }
+      })
+      .catch(() => {
+        setBookmarkedItemIds((prev) =>
+          applyBookmarkToggle(prev, currentBookmarkId, !next),
+        );
+        setError('Could not save that bookmark. Please try again.');
+      })
+      .finally(() => setBookmarkBusy(false));
+  }, [currentBookmarkId, bookmarkedItemIds, data.attempt.attempt_id, isSandbox]);
+
+
+  // Flag toggle for the question on screen. Optimistic like the bookmark,
+  // and for a stronger reason: this fires mid-sitting with a clock running,
+  // so a control that waits on the network before responding is worse than
+  // one that occasionally has to revert.
+  //
+  // ⚠ setError lives OUTSIDE the state updater — see the note on the
+  // bookmark handler above.
+  const currentFlagId = currentItem?.attempt_item_id ?? null;
+  // Editable in the sandbox too — the tutorial gates a step on actually
+  // flagging something, so a frozen control there would deadlock the
+  // walkthrough. The write is what is skipped, not the interaction.
+  const canEditFlag   = flagEditable(data.attempt, isLive);
+  const onToggleFlag = useCallback(() => {
+    if (!currentFlagId || !canEditFlag) return;
+
+    const next = !flaggedAttemptItemIds.has(currentFlagId);
+    setFlaggedAttemptItemIds((prev) => applyFlagToggle(prev, currentFlagId, next));
+
+    if (isSandbox) return;   // see the bookmark handler above
+
+    setFlagBusy(true);
+
+    void toggleFlagAction(currentFlagId, next)
+      .then((r) => {
+        if (!r.ok) {
+          setFlaggedAttemptItemIds((prev) => applyFlagToggle(prev, currentFlagId, !next));
+          setError(r.error);
+        }
+      })
+      .catch(() => {
+        setFlaggedAttemptItemIds((prev) => applyFlagToggle(prev, currentFlagId, !next));
+        setError('Could not save that flag. Please try again.');
+      })
+      .finally(() => setFlagBusy(false));
+  }, [currentFlagId, canEditFlag, flaggedAttemptItemIds, isSandbox]);
 
   const archetype = archetypeFor(data.attempt.mode);
 
@@ -1187,6 +1290,9 @@ function RunnerShell({ data }: Props) {
           currentSubmitted={
             currentItem ? answersByItem.has(currentItem.attempt_item_id) : false
           }
+          currentFlagged={
+            currentItem ? flaggedAttemptItemIds.has(currentItem.attempt_item_id) : false
+          }
         />
       )}
 
@@ -1195,7 +1301,33 @@ function RunnerShell({ data }: Props) {
         modeLabel={modeLabel}
         current={current + 1}
         total={displayTotal}
-        marked={marked.has(currentItem?.attempt_item_id ?? '')}
+        // Shown wherever flagging is offered — including in REVIEW, where it
+        // renders the state but does not respond (§2.4). Hidden entirely in
+        // the two forward-only modes, and in the sandbox (no attempt row).
+        flag={
+          flaggingOffered(data.attempt) && currentFlagId
+            ? {
+                on:       flaggedAttemptItemIds.has(currentFlagId),
+                busy:     flagBusy,
+                editable: canEditFlag,
+                onToggle: onToggleFlag,
+              }
+            : null
+        }
+        // Hidden entirely (null) rather than disabled when bookmarking is not
+        // offered — a greyed control invites a "why?" whose honest answer
+        // would name the reservation mechanism (§3.4). Also hidden in the
+        // sandbox: the tutorial creates no attempt row, so there is nothing
+        // to write against; its own steps land with slice 5.
+        bookmark={
+          data.canBookmark && currentBookmarkId
+            ? {
+                on:       bookmarkedItemIds.has(currentBookmarkId),
+                busy:     bookmarkBusy,
+                onToggle: onToggleBookmark,
+              }
+            : null
+        }
         statusLabel={statusLabel}
         caseMeta={hideExamScaffold ? undefined : caseMeta}
         clock={clockProps}
@@ -1246,7 +1378,7 @@ function RunnerShell({ data }: Props) {
           <RunnerGrid
             items={data.items}
             answers={answersByItem}
-            marked={marked}
+            flagged={flaggedAttemptItemIds}
             current={current}
             filter={filter}
             caseGroups={caseGroups}

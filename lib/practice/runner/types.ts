@@ -56,6 +56,24 @@ export interface AttemptHeader {
 
 export interface SealedItem {
   attempt_item_id:         string;
+  /** The SOURCE question this row snapshotted, and where it came from.
+   *  Distinct from attempt_item_id: that identifies this question *in
+   *  this sitting*, this identifies the question itself, across every
+   *  sitting it has ever appeared in.
+   *
+   *  ⚠ The two are the keys of the two different features, and mixing
+   *  them compiles cleanly (both are strings) while being wrong — see
+   *  docs/product-plan/flag-and-bookmark.md §3.8:
+   *    • flag      → attempt_item_id (per sitting, starts empty)
+   *    • bookmark  → item_id         (per student, arrives pre-set)
+   *  Added by the bookmark slice; nothing else reads it yet. */
+  item_id:                 string;
+  item_source:             'BANK' | 'TUTOR';
+  /** Flagged for review DURING this sitting. Rides on the item row, so
+   *  the runner needs no extra query to seed its flag set. Never
+   *  deleted — it becomes attempt history and stops being *actionable*
+   *  at submit, rather than being cleared. */
+  is_flagged:              boolean;
   position:                number;
   question_type:           QuestionType;
   stem_snapshot:           string;
@@ -142,6 +160,19 @@ export interface LiveData {
    *  router.push with no spinner. Same resolver feeds the results
    *  popup's Exit button. */
   exitHref: string;
+  /** Bookmarks (flag-and-bookmark.md §3). Keyed by ITEM_ID, not
+   *  attempt_item_id — a bookmark is (student, question), so a question
+   *  met again in a later sitting ARRIVES ALREADY BOOKMARKED. §3.7: this
+   *  is a load to perform, not a rule to enforce; without it the control
+   *  renders "off" for a bookmarked question and the student's tap hits
+   *  the unique index. Contains only this attempt's items, not the
+   *  student's whole bookmark set. */
+  bookmarkedItemIds: string[];
+  /** Whether the bookmark control is offered at all (§3.4). False for
+   *  CAT and readiness packs, because reserved stock can never re-enter
+   *  the practice pool — the control would promise a re-quiz the
+   *  architecture is committed to refusing. */
+  canBookmark: boolean;
   /** Runner tutorial Slice 3c — has this student dismissed the pre-exam
    *  walkthrough offer ("Don't show again")? Read server-side only for a
    *  live, not-yet-started attempt (the preflight is the only place it's
@@ -169,6 +200,13 @@ export interface ReviewData {
   answers: AnswerRow[];
   /** Slice 3a — see LiveData.exitHref. */
   exitHref: string;
+  /** See LiveData. Bookmarking stays editable in review — unlike the
+   *  flag, which freezes at submit (§2.4). Review is where a student has
+   *  just seen the rationale, which is the moment they know whether they
+   *  understood it or guessed. */
+  bookmarkedItemIds: string[];
+  /** See LiveData. */
+  canBookmark: boolean;
 }
 export type RunnerData = LiveData | ReviewData;
 
