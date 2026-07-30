@@ -206,7 +206,7 @@ export function SessionReportView({ report }: { report: SessionReport }) {
             <FixList items={fixes} />
           </div>
           <div id="questions">
-            <EveryQuestion rows={rows} changes={changes} />
+            <EveryQuestion rows={rows} changes={changes} attemptId={report.attemptId} />
           </div>
         </div>
       </div>

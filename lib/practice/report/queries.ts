@@ -118,6 +118,28 @@ export async function getSessionReport(
     answerFor.set(a.attempt_item_id as string, a);
   }
 
+  // Which of this sitting's questions are STILL in the student's study
+  // list. Read now, not frozen at submit — see ReportQuestion.isBookmarked.
+  // Scoped to this sitting's item ids rather than fetching every bookmark
+  // the student holds: an unbounded IN-list is how the 1,000-row cap bites.
+  const itemIds = ((items ?? []) as unknown as Array<Record<string, unknown>>)
+    .map((it) => it.item_id as string)
+    .filter(Boolean);
+
+  const bookmarked = new Set<string>();
+  if (itemIds.length > 0) {
+    const { data: marks } = await supabase
+      .from('nclex_question_marks')
+      .select('target_id')
+      .eq('student_id',    attempt.student_id as string)
+      .eq('target_kind',   'QUESTION')
+      .eq('target_source', 'BANK')
+      .in('target_id',     itemIds);
+    for (const m of (marks ?? []) as unknown as Array<Record<string, unknown>>) {
+      bookmarked.add(m.target_id as string);
+    }
+  }
+
   const questions: ReportQuestion[] = (
     (items ?? []) as unknown as Array<Record<string, unknown>>
   ).map(
@@ -143,6 +165,7 @@ export async function getSessionReport(
           typeof classification.difficulty_irt === 'number'
             ? classification.difficulty_irt
             : null,
+        isBookmarked: bookmarked.has(it.item_id as string),
       };
     },
   );

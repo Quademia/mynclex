@@ -35,6 +35,7 @@ function q(over: Partial<ReportQuestion> = {}): ReportQuestion {
     marks: 1,
     scoreAwarded: 1,
     submissionStatus: 'SUBMITTED',
+    isBookmarked: false,
     timeSpentSec: 30,
     changeLog: [],
     correct: { answer: 'A' },
@@ -368,6 +369,64 @@ describe('axisRows — weakest first, and difficulty comes from the NUMBER', () 
       'subject',
     );
     expect(rows[0].value).toBe('Big');
+  });
+});
+
+describe('fixList — still-bookmarked', () => {
+  const weakSet = () =>
+    Array.from({ length: 3 }, (_, i) =>
+      q({ classification: { nursing_subject: 'Pharmacology' }, marks: 1, scoreAwarded: i === 0 ? 1 : 0 }),
+    );
+
+  it('says nothing when nothing is bookmarked', () => {
+    const list = fixList(weakSet(), 'att1');
+    expect(list.some((f) => f.kind === 'Your study list')).toBe(false);
+  });
+
+  it('⭐ ranks the study list ABOVE measured weaknesses', () => {
+    // The rule: the student's own stated intent outranks our inference
+    // about them. A 0%-subject recommendation is still only a guess.
+    const set = weakSet();
+    set[0] = { ...set[0], isBookmarked: true };
+    const list = fixList(set, 'att1');
+    expect(list[0].kind).toBe('Your study list');
+    expect(list[1].kind).toBe('Weakest subject');
+  });
+
+  it('counts only the bookmarked ones, and links to the Bookmarked pool', () => {
+    const set = weakSet().map((x, i) => (i < 2 ? { ...x, isBookmarked: true } : x));
+    const [first] = fixList(set, 'att1');
+    expect(first.title).toBe('2 of these are still bookmarked');
+    expect(first.href).toBe('/student/bank/practice?pool=marked');
+  });
+
+  it('singularises at one', () => {
+    const set = weakSet();
+    set[0] = { ...set[0], isBookmarked: true };
+    expect(fixList(set, 'att1')[0].title).toBe('1 of these is still bookmarked');
+  });
+
+  // ⚠ Bookmarks are (student, question) with no attempt scoping, so one of
+  // these may have been set months ago in a different sitting. The copy has
+  // to survive that being true — "still bookmarked", never "you bookmarked
+  // these here". This is the same class of over-claim that the flag was
+  // rejected from this page for.
+  it('⭐ never claims the bookmark was made during this sitting', () => {
+    const set = weakSet();
+    set[0] = { ...set[0], isBookmarked: true };
+    const [first] = fixList(set, 'att1');
+    const copy = `${first.title} ${first.detail}`.toLowerCase();
+    expect(copy).toContain('still bookmarked');
+    expect(copy).not.toContain('you bookmarked');
+    expect(copy).not.toMatch(/in this sitting|during this/);
+  });
+});
+
+describe('questionRows — carries the bookmark key', () => {
+  it('exposes itemId and the live bookmark state', () => {
+    const [row] = questionRows([q({ itemId: 'Q_00042', isBookmarked: true })], 'att1');
+    expect(row.itemId).toBe('Q_00042');
+    expect(row.isBookmarked).toBe(true);
   });
 });
 

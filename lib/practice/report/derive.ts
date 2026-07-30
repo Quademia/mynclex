@@ -164,6 +164,13 @@ export interface QuestionRow {
   changes: number;
   /** Where this question opens for review. */
   href: string;
+  /** The bookmark key. Safe to send to the client: it identifies a
+   *  question the student has just been shown in full, and the toggle
+   *  needs it. ⚠ Not attempt_item_id — bookmarks are (student, question)
+   *  and outlive the sitting (flag-and-bookmark.md §3.8). */
+  itemId: string;
+  /** Still in the study list, as of loading this page. */
+  isBookmarked: boolean;
 }
 
 /**
@@ -194,6 +201,8 @@ export function questionRows(
     // yet (the same gap the case bank recorded). One destination for every
     // row is honest; a link that silently lands elsewhere is not.
     href: `/session/${attemptId}`,
+    itemId: q.itemId,
+    isBookmarked: q.isBookmarked,
   }));
 }
 
@@ -494,10 +503,22 @@ const MIN_SAMPLE_FOR_ADVICE = 3;
  * via the same deep link the readiness report uses — so the questions served
  * are fresh, per the builder's own rule.
  *
- * ⚠ The design's third item ("3 questions you marked") is deliberately absent:
- * nothing in the product writes a mark. `nclex_question_marks` has zero rows
- * and no write path exists anywhere in the codebase, so the card would be
- * permanently empty. It returns when marking is built.
+ * ⚠ The design's third item was "3 questions you marked". It arrives here as
+ * "still bookmarked" instead, and the difference is not cosmetic:
+ *
+ *   • The FLAG was rejected for this page entirely (Sam, 2026-07-30). It is a
+ *     live working state, so what survives to submit conflates "unresolved
+ *     doubt" with "forgot to unflag", and a student who tidily unflags
+ *     everything leaves no trace at all. Worse, unflagging DELETES the state,
+ *     so the report can only ever see the position at submit — "you flagged 6
+ *     during this sitting" is a claim the data cannot support.
+ *   • A BOOKMARK is deliberate and durable, so one still present when the
+ *     report is opened is a current fact. It is also the only signal here that
+ *     is actionable: it feeds the Builder's Bookmarked pool, so the action can
+ *     actually serve those questions back.
+ *
+ * ⚠ It ranks FIRST, above the measured weaknesses, and that is the rule: the
+ * student's own stated intent outranks our inference about them.
  *
  * Also absent, and worth a decision rather than a silent workaround: a
  * "re-quiz what you got wrong" action. The Builder HAS an INCORRECT pool
@@ -556,6 +577,29 @@ export function fixList(
   const items: FixItem[] = axisCandidates
     .sort((a, b) => a.pct - b.pct)
     .map((c) => c.item);
+
+  // 0 · Still bookmarked — FIRST, ahead of the measured weaknesses,
+  // because the student's own stated intent outranks our inference about
+  // them. Hidden entirely at zero: an empty study list is not advice.
+  //
+  // ⚠ "Still bookmarked", never "you bookmarked these here". Bookmarks are
+  // (student, question) with no attempt scoping, so one of these may have
+  // been set months ago in another sitting. The wording has to survive
+  // that being true.
+  const stillBookmarked = questions.filter((q) => q.isBookmarked).length;
+  if (stillBookmarked > 0) {
+    items.unshift({
+      kind: 'Your study list',
+      title:
+        stillBookmarked === 1
+          ? '1 of these is still bookmarked'
+          : `${stillBookmarked} of these are still bookmarked`,
+      detail:
+        'You saved these to come back to. This opens the Builder with your bookmarks selected.',
+      actionLabel: 'Practise these',
+      href: '/student/bank/practice?pool=marked',
+    });
+  }
 
   // 3 · unanswered questions are the cheapest thing to fix, and they need no
   // new build at all — they are already sitting in this attempt.

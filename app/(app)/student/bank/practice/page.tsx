@@ -44,8 +44,26 @@ function initialFiltersFromParams(
     subtopic: arr(sp.subtopic),
     tags: arr(sp.tag),
     question_type: arr(sp.qtype),
+
+    // ⭐ THE ONE POOL A DEEP LINK MAY SET, and only this one.
+    //
+    // The rule above — pools stay UNSEEN so practice serves fresh
+    // questions — exists because re-running a sitting's own 25 items is a
+    // memory test, not practice. A bookmark is the student saying the
+    // opposite in as many words: serve me THIS question again. Forcing
+    // UNSEEN here would not protect them from anything, it would just
+    // make the link silently do nothing it promised.
+    //
+    // Deliberately narrow: `pool=marked` and nothing else. INCORRECT is
+    // still off-limits from a link (flag-and-bookmark.md and
+    // session-report.md both record that as a decision, not a detail),
+    // and content axes are NOT combined with it — the student asked for
+    // their study list, not for this sitting's subject within it.
+    pool_marked: sp.pool === 'marked' ? true : undefined,
   };
-  const any = Object.values(payload).some((v) => v && v.length);
+  const any = Object.values(payload).some((v) =>
+    typeof v === 'boolean' ? v : v && v.length,
+  );
   return any ? payload : undefined;
 }
 

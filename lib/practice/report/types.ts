@@ -63,6 +63,20 @@ export interface ReportQuestion {
    *  NUMBER, not the curator's word (slice 10d) — the difficulty axis has to
    *  band it through displayBand() rather than look for a label. */
   difficultyIrt: number | null;
+  /** Is this question in the student's study list **right now**?
+   *
+   *  ⚠ Read LIVE at report-view time, not frozen at submit — which is
+   *  exactly what makes it honest. A bookmark is a deliberate, durable
+   *  statement, so one that is still there when you open the report is a
+   *  current fact rather than a stale artefact. (The flag was considered
+   *  for this and rejected: it decays into noise in both directions —
+   *  flagged-but-resolved, and unflagged-but-still-lost.)
+   *
+   *  ⚠ It does NOT mean "bookmarked during this sitting". Bookmarks are
+   *  (student, question) with no attempt scoping, so this may have been
+   *  set months ago in a different sitting. Copy must say "still
+   *  bookmarked", never "you bookmarked these here". */
+  isBookmarked: boolean;
 }
 
 export interface SessionReport {
