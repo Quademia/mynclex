@@ -285,6 +285,40 @@
   50%      { box-shadow: 0 0 0 4px  rgba(185, 28, 28, 0.14); }
 }
 
+/* Flag-for-review toggle (flag-and-bookmark.md §2).
+ *
+ * Active state is --rn-mark-border, the SAME amber the grid uses for a
+ * flagged cell's border — deliberately, because they are the same fact
+ * shown twice. The bookmark beside it uses accent for the same reason in
+ * reverse: it must not look like this. */
+.rn-flag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rn-flag-btn:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+.rn-flag-btn:disabled { cursor: default; }
+.rn-flag-btn.on {
+  color: var(--rn-mark-border);
+  border-color: var(--rn-mark-border);
+  background: rgba(217, 119, 6, 0.08);
+}
+/* Review: the flag is a record of what happened, not a control. It keeps
+ * full contrast — dimming it would read as "broken" when the honest
+ * message is "this is history". The tooltip says why it will not move. */
+.rn-flag-btn.frozen { cursor: default; opacity: 1; }
+.rn-flag-btn.frozen:hover { border-color: var(--border); color: var(--text-muted); }
+.rn-flag-btn.on.frozen:hover { border-color: var(--rn-mark-border); color: var(--rn-mark-border); }
+
 /* Bookmark toggle (docs/product-plan/flag-and-bookmark.md §5). Replaces the
  * old .rn-mark-btn, which was disabled from the day it shipped.
  *
@@ -391,11 +425,18 @@
   .rn-grid-toggle-label { display: none; }
   .rn-calc-btn,
   .rn-grid-toggle-btn,
+  .rn-flag-btn,
   .rn-bookmark-btn { padding: 5px 8px; gap: 0; }
+  /* Flag and bookmark keep their words longest: they are the two whose
+   * state is a fact about the student rather than a panel they can see,
+   * and they are the two most easily confused with each other. */
+  .rn-flag-btn,
   .rn-bookmark-btn { gap: 6px; }
 }
 @media (max-width: 480px) {
+  .rn-flag-btn-label,
   .rn-bookmark-btn-label { display: none; }
+  .rn-flag-btn,
   .rn-bookmark-btn { gap: 0; }
 }
 

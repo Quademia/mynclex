@@ -64,8 +64,12 @@ export const COACH_STEPS: CoachStep[] = [
   { title: 'The clock', body: 'Untimed sittings count up; timed sittings count down and warn you at 30, 15, 5 and 1 minute. Use the button to hide the clock if it distracts you — once a warning fires, the clock locks visible.', target: 'clock' },
   { title: 'The calculator', body: 'An on-screen calculator is available on every question, in every mode — the same tool you get in the real exam. Open and close it from here.', target: 'calc', gate: 'calc', gateMsg: 'Open the calculator to continue.' },
   { title: 'The question grid', body: 'Every question in the sitting, colour-coded. Click any cell to jump to it — where the mode allows going back.', target: 'grid', grid: true },
-  { title: 'Filtering the grid', body: 'Narrow the grid to what you still owe: All, Marked, Unanswered, and — where feedback is available — Wrong.', target: 'gridfilters' },
-  { title: 'Reading the colours', body: 'White is unanswered, blue is answered, green correct, dark red wrong, amber skipped. An amber border means marked; a teal ring means you are here now.', target: 'legend' },
+  // Copy tracks the grid's real labels. Updated when "Marked" became
+  // "Flagged" — the tutorial is public and on prod, so leaving it naming
+  // a chip that no longer exists would be a live inaccuracy, not a
+  // tidy-up to defer. The tutorial's own FLAG STEPS are still to come.
+  { title: 'Filtering the grid', body: 'Narrow the grid to what you still owe: All, Flagged, Unanswered, and — where feedback is available — Wrong.', target: 'gridfilters' },
+  { title: 'Reading the colours', body: 'White is unanswered, blue is answered, green correct, dark red wrong, amber skipped. An amber border means flagged for review; a teal ring means you are here now.', target: 'legend' },
   { title: 'The footer', body: 'Previous on the left, the mode reminder in the middle, and the action button on the right. The action button is disabled until your answer is complete — hover it to see what is missing.', target: 'footer' },
 
   // ── Every question type ──────────────────────────────────────────

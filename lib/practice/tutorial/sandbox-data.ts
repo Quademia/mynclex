@@ -89,6 +89,10 @@ export function buildSandboxData(returnTo?: string): LiveData {
       // write against), and its tutorial steps land with slice 5.
       item_id:                 q.key,
       item_source:             'BANK',
+      // Nothing is flagged at the start of the walkthrough, and the
+      // sandbox writes nowhere, so the runner hides the control. Its
+      // teaching steps land with the tutorial slice.
+      is_flagged:              false,
       position:                i + 1,
       question_type:           q.question_type,
       stem_snapshot:           q.stem,

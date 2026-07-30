@@ -69,6 +69,11 @@ export interface SealedItem {
    *  Added by the bookmark slice; nothing else reads it yet. */
   item_id:                 string;
   item_source:             'BANK' | 'TUTOR';
+  /** Flagged for review DURING this sitting. Rides on the item row, so
+   *  the runner needs no extra query to seed its flag set. Never
+   *  deleted — it becomes attempt history and stops being *actionable*
+   *  at submit, rather than being cleared. */
+  is_flagged:              boolean;
   position:                number;
   question_type:           QuestionType;
   stem_snapshot:           string;

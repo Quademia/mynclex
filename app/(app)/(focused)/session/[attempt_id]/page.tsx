@@ -45,6 +45,9 @@ const SEALED_ITEM_COLUMNS = [
   // the student is already being served the question itself.
   'item_id',
   'item_source',
+  // Per-sitting flag. Comes along on the item row, so seeding the
+  // runner's flag set costs no second query.
+  'is_flagged',
   'position',
   'question_type',
   'stem_snapshot',

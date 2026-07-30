@@ -67,6 +67,20 @@ interface Props {
    * persists across sittings, so a question met before arrives already on.
    */
   bookmark?:   { on: boolean; busy: boolean; onToggle: () => void } | null;
+  /**
+   * Flag-for-review for the CURRENT question, or null where flagging is
+   * not offered — the two forward-only modes (CAT, Timed Sequential),
+   * where you could never come back to the question anyway.
+   *
+   * `editable: false` renders the state without responding: in review
+   * the flag is part of the attempt record, and unflagging afterwards
+   * would make the report's "you flagged 6" retroactively untrue (§2.4).
+   *
+   * ⚠ `on` is keyed by ATTEMPT_ITEM_ID upstream, not item_id. The flag
+   * belongs to this sitting and starts empty every time — the opposite
+   * of the bookmark directly below it.
+   */
+  flag?:       { on: boolean; busy: boolean; editable: boolean; onToggle: () => void } | null;
   statusLabel: string;          // "Score · 67%" in review (live ignores)
   caseMeta?:   CaseMeta;
   // Live-mode clock state. Null in review mode (statusLabel renders
@@ -101,6 +115,7 @@ export function RunnerTopbar({
   current,
   total,
   bookmark,
+  flag,
   statusLabel,
   caseMeta,
   clock,
@@ -180,6 +195,32 @@ export function RunnerTopbar({
         ) : clockNode;
       })()}
 
+      {flag && (
+        <button
+          type="button"
+          className={'rn-flag-btn' + (flag.on ? ' on' : '') + (flag.editable ? '' : ' frozen')}
+          onClick={flag.editable ? flag.onToggle : undefined}
+          disabled={flag.busy || !flag.editable}
+          data-coach={sandbox ? 'flag' : undefined}
+          aria-pressed={flag.on}
+          aria-label={
+            !flag.editable
+              ? (flag.on ? 'Flagged for review during this sitting' : 'Not flagged')
+              : (flag.on ? 'Remove flag' : 'Flag this question for review')
+          }
+          // In review the tooltip explains the frozen state rather than
+          // leaving a dead-looking control unexplained.
+          title={
+            !flag.editable
+              ? 'Flags cannot be changed after a sitting ends'
+              : (flag.on ? 'Remove flag' : 'Flag to come back to')
+          }
+        >
+          <FlagIcon filled={flag.on} />
+          <span className="rn-flag-btn-label">{flag.on ? 'Flagged' : 'Flag'}</span>
+        </button>
+      )}
+
       {bookmark && (
         <button
           type="button"
@@ -227,6 +268,20 @@ export function RunnerTopbar({
         </button>
       )}
     </header>
+  );
+}
+
+// Flag glyph — a pennant on a staff. Deliberately a DIFFERENT shape from
+// the bookmark ribbon beside it: the two controls sit together, mean
+// different things (one dies with the sitting, one outlives it), and a
+// mis-tap on either is silent. Shape carries that difference where
+// colour alone would not.
+function FlagIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="4" y1="2" x2="4" y2="14.5" />
+      <path d="M4 2.6h7.6l-1.9 3.1 1.9 3.1H4Z" fill={filled ? 'currentColor' : 'none'} />
+    </svg>
   );
 }
 
