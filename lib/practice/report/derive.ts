@@ -10,6 +10,8 @@
 // disagree with the runner, the History row and the dashboard, and there
 // would be no way to tell which was right.
 
+import { pointsDetail } from '@/lib/scoring/detail';
+import { displayBand } from '@/lib/bank/difficulty';
 import type { FilterPayload } from '@/lib/practice/builder/types';
 import type { QuestionOutcome, ReportQuestion } from './types';
 
@@ -203,6 +205,253 @@ export function countMindChanges(log: unknown): number {
   }
 
   return changes;
+}
+
+// ── Answer points: found / missed / wrong-picked ──────────────
+
+export interface PointsSplit {
+  found: number;
+  missed: number;
+  wrongPicked: number;
+  max: number;
+  /** Questions whose key or answer couldn't be read, so they contributed
+   *  their stored score instead of a split. Surfaced so a partial reading is
+   *  never presented as a complete one. */
+  unreadable: number;
+}
+
+/**
+ * The finer split behind "41 of 52": how many correct answer-slots the
+ * student found, how many they missed, and how many wrong options they
+ * picked.
+ *
+ * Reuses `pointsDetail` from lib/scoring — written for the readiness report,
+ * and NOT a re-score: it derives the split from the frozen key and answer
+ * while the grade stays whatever the submit RPC wrote. Sharing it means the
+ * two reports cannot describe one answer two ways.
+ *
+ * When it can't read a shape it returns null; that question then contributes
+ * its stored `score_awarded` as `found`, and is counted in `unreadable` so
+ * the caller can stay honest about the gap.
+ */
+export function pointsSplit(questions: readonly ReportQuestion[]): PointsSplit {
+  let found = 0, missed = 0, wrongPicked = 0, max = 0, unreadable = 0;
+
+  for (const q of questions) {
+    max += q.marks;
+    const detail = q.correct
+      ? pointsDetail(
+          q.questionType as Parameters<typeof pointsDetail>[0],
+          q.correct as Parameters<typeof pointsDetail>[1],
+          (q.answer ?? null) as Parameters<typeof pointsDetail>[2],
+        )
+      : null;
+
+    if (!detail) {
+      unreadable++;
+      const scored = q.scoreAwarded ?? 0;
+      found += scored;
+      missed += Math.max(0, q.marks - scored);
+      continue;
+    }
+
+    found += detail.found;
+    missed += detail.missed;
+    wrongPicked += detail.wrongPicked;
+  }
+
+  return { found, missed, wrongPicked, max, unreadable };
+}
+
+// ── Where you slipped: per-axis breakdown ─────────────────────
+
+export type AxisKey = 'client_needs' | 'subject' | 'difficulty' | 'question_type';
+
+export const AXIS_LABEL: Record<AxisKey, string> = {
+  client_needs: 'Client needs',
+  subject: 'Subject',
+  difficulty: 'Difficulty',
+  question_type: 'Question type',
+};
+
+export interface AxisRow {
+  value: string;
+  /** Questions fully landed. */
+  full: number;
+  /** Questions in this sitting carrying this value. */
+  total: number;
+  /** 0–100. */
+  pct: number;
+}
+
+/**
+ * The value a question carries on one axis.
+ *
+ * ⚠ Difficulty is the awkward one. The snapshot freezes `difficulty_irt` —
+ * the measured NUMBER — not the curator's word, which is the whole point of
+ * slice 10d: the word goes stale when recalibration moves the number, so the
+ * shown band is derived from the number instead. Looking for a `difficulty`
+ * key here would find nothing at all and the axis would render empty.
+ */
+function axisValue(q: ReportQuestion, axis: AxisKey): string | null {
+  switch (axis) {
+    case 'client_needs':
+      return (q.classification.client_needs_category as string | null) ?? null;
+    case 'subject':
+      return (q.classification.nursing_subject as string | null) ?? null;
+    case 'question_type':
+      return q.questionType || null;
+    case 'difficulty':
+      return displayBand(q.difficultyIrt);
+  }
+}
+
+/**
+ * Per-value performance on one axis, WEAKEST FIRST.
+ *
+ * Ties break on the larger sample, so "2 of 7" is listed above "0 of 1" —
+ * both are 0–29%, but one is worth acting on and the other is noise. The
+ * page carries the small-sample caveat for the same reason: with 25
+ * questions spread over five categories, these are pointers, not
+ * measurements, and the design's own wording says so.
+ */
+export function axisRows(
+  questions: readonly ReportQuestion[],
+  axis: AxisKey,
+): AxisRow[] {
+  const buckets = new Map<string, { full: number; total: number }>();
+
+  for (const q of questions) {
+    const value = axisValue(q, axis);
+    if (!value) continue;
+    const b = buckets.get(value) ?? { full: 0, total: 0 };
+    b.total++;
+    if (questionOutcome(q) === 'FULL') b.full++;
+    buckets.set(value, b);
+  }
+
+  return [...buckets.entries()]
+    .map(([value, b]) => ({
+      value,
+      full: b.full,
+      total: b.total,
+      pct: b.total > 0 ? Math.round((b.full / b.total) * 100) : 0,
+    }))
+    .sort((a, b) => a.pct - b.pct || b.total - a.total || a.value.localeCompare(b.value));
+}
+
+export function allAxisRows(
+  questions: readonly ReportQuestion[],
+): Record<AxisKey, AxisRow[]> {
+  return {
+    client_needs: axisRows(questions, 'client_needs'),
+    subject: axisRows(questions, 'subject'),
+    difficulty: axisRows(questions, 'difficulty'),
+    question_type: axisRows(questions, 'question_type'),
+  };
+}
+
+// ── The fix list ──────────────────────────────────────────────
+
+export interface FixItem {
+  /** Short kind, for the eyebrow. */
+  kind: string;
+  title: string;
+  detail: string;
+  actionLabel: string;
+  href: string;
+}
+
+/** Below this, a bucket is one or two questions and its percentage means
+ *  nothing — recommending study off it would be inventing a weakness. */
+const MIN_SAMPLE_FOR_ADVICE = 3;
+
+/**
+ * Up to three things worth doing next, in the order worth doing them.
+ *
+ * Each build action goes to the Builder pre-seeded with CONTENT filters only,
+ * via the same deep link the readiness report uses — so the questions served
+ * are fresh, per the builder's own rule.
+ *
+ * ⚠ The design's third item ("3 questions you marked") is deliberately absent:
+ * nothing in the product writes a mark. `nclex_question_marks` has zero rows
+ * and no write path exists anywhere in the codebase, so the card would be
+ * permanently empty. It returns when marking is built.
+ *
+ * Also absent, and worth a decision rather than a silent workaround: a
+ * "re-quiz what you got wrong" action. The Builder HAS an INCORRECT pool
+ * chip, but its deep-link prefill deliberately honours content axes only and
+ * forces the pool to UNSEEN. Bending that here would contradict a considered
+ * rule from one call site.
+ */
+export function fixList(
+  questions: readonly ReportQuestion[],
+  attemptId: string,
+): FixItem[] {
+  const counts = outcomeCounts(questions);
+
+  // 1–2 · the weakest content axes with a sample worth acting on. Subject and
+  // client-needs are both offered because a student thinks in subjects while
+  // the exam blueprint is written in client needs.
+  //
+  // ⭐ SORTED BY HOW WEAK THEY ARE, not by which axis they came from. Seen
+  // live on a real report: a 75% subject was listed as item 1 above a 0%
+  // category as item 2, under the words "in that order" — the numbering IS
+  // the recommendation, so a fixed axis precedence gets it exactly backwards
+  // whenever the second axis is the worse one.
+  const weakSubject = axisRows(questions, 'subject').find(
+    (r) => r.total >= MIN_SAMPLE_FOR_ADVICE && r.pct < 100,
+  );
+  const weakCnc = axisRows(questions, 'client_needs').find(
+    (r) => r.total >= MIN_SAMPLE_FOR_ADVICE && r.pct < 100,
+  );
+
+  const axisCandidates: Array<{ pct: number; item: FixItem }> = [];
+  if (weakSubject) {
+    axisCandidates.push({
+      pct: weakSubject.pct,
+      item: {
+        kind: 'Weakest subject',
+        title: weakSubject.value,
+        detail: `${weakSubject.full} of ${weakSubject.total} landed — the subject with most room in this build.`,
+        actionLabel: 'Build more of this',
+        href: rebuildHref({ nursing_subject: [weakSubject.value] }),
+      },
+    });
+  }
+  if (weakCnc) {
+    axisCandidates.push({
+      pct: weakCnc.pct,
+      item: {
+        kind: 'Weakest category',
+        title: weakCnc.value,
+        detail: `${weakCnc.full} of ${weakCnc.total} landed. This is an exam blueprint category, so it is worth balancing.`,
+        actionLabel: 'Build more of this',
+        href: rebuildHref({ client_needs_category: [weakCnc.value] }),
+      },
+    });
+  }
+
+  const items: FixItem[] = axisCandidates
+    .sort((a, b) => a.pct - b.pct)
+    .map((c) => c.item);
+
+  // 3 · unanswered questions are the cheapest thing to fix, and they need no
+  // new build at all — they are already sitting in this attempt.
+  if (counts.notAnswered > 0) {
+    items.push({
+      kind: 'Left blank',
+      title: `${counts.notAnswered} you didn't answer`,
+      detail:
+        counts.notAnswered === counts.total
+          ? 'Nothing in this sitting was answered, so there is no score to read yet.'
+          : 'These scored nothing because they were skipped, not because they were wrong.',
+      actionLabel: 'Open in review',
+      href: `/session/${attemptId}`,
+    });
+  }
+
+  return items;
 }
 
 /** "You landed 15 of 25." Factual, and nothing else.

@@ -45,6 +45,21 @@ export interface ReportQuestion {
   timeSpentSec: number | null;
   /** How many times the answer was changed before submitting. */
   answerChanges: number;
+
+  // ── For the answer-points split (slice 2) ────────────────
+  // The frozen key and the frozen answer, fed to pointsDetail() to derive
+  // found / missed / wrong-picked.
+  //
+  // ⚠ These stay SERVER-SIDE. The loader only ever runs for a terminal
+  // attempt — review mode already shows the student their own key — but the
+  // split is computed in the view and only NUMBERS are handed to the client
+  // islands, so the key itself never crosses into the browser bundle.
+  correct: unknown;
+  answer: unknown;
+  /** Measured difficulty, frozen at attempt time. ⚠ The snapshot stores the
+   *  NUMBER, not the curator's word (slice 10d) — the difficulty axis has to
+   *  band it through displayBand() rather than look for a label. */
+  difficultyIrt: number | null;
 }
 
 export interface SessionReport {

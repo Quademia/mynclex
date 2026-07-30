@@ -98,20 +98,23 @@ export async function getSessionReport(
       .from('nclex_attempt_items')
       .select(
         'attempt_item_id, position, item_id, question_type, classification_snapshot, ' +
-          'stem_snapshot, marks_snapshot',
+          'stem_snapshot, marks_snapshot, correct_answer_snapshot_json',
       )
       .eq('attempt_id', attemptId)
       .order('position', { ascending: true })
       .limit(MAX_QUESTIONS),
     supabase
       .from('nclex_attempt_answers')
-      .select('attempt_item_id, submission_status, score_awarded, time_spent_sec, answer_changes_json')
+      .select(
+        'attempt_item_id, submission_status, score_awarded, time_spent_sec, ' +
+          'answer_changes_json, answer_json',
+      )
       .eq('attempt_id', attemptId)
       .limit(MAX_QUESTIONS),
   ]);
 
   const answerFor = new Map<string, Record<string, unknown>>();
-  for (const a of (answers ?? []) as Array<Record<string, unknown>>) {
+  for (const a of (answers ?? []) as unknown as Array<Record<string, unknown>>) {
     answerFor.set(a.attempt_item_id as string, a);
   }
 
@@ -120,19 +123,26 @@ export async function getSessionReport(
   ).map(
     (it, idx) => {
       const a = answerFor.get(it.attempt_item_id as string);
+      const classification = (it.classification_snapshot ?? {}) as Record<string, unknown>;
       return {
         // `position` is authoritative, but fall back to the read order rather
         // than emit a 0 — a report row numbered 0 reads like a bug.
         position: (it.position as number | null) ?? idx + 1,
         itemId: it.item_id as string,
         questionType: (it.question_type as string) ?? 'MCQ',
-        classification: (it.classification_snapshot ?? {}) as Record<string, unknown>,
+        classification,
         stem: (it.stem_snapshot as string | null) ?? null,
         marks: (it.marks_snapshot as number | null) ?? 0,
         scoreAwarded: a ? ((a.score_awarded as number | null) ?? null) : null,
         submissionStatus: a ? ((a.submission_status as string | null) ?? null) : null,
         timeSpentSec: a ? ((a.time_spent_sec as number | null) ?? null) : null,
         answerChanges: a ? countMindChanges(a.answer_changes_json) : 0,
+        correct: it.correct_answer_snapshot_json ?? null,
+        answer: a ? (a.answer_json ?? null) : null,
+        difficultyIrt:
+          typeof classification.difficulty_irt === 'number'
+            ? classification.difficulty_irt
+            : null,
       };
     },
   );

@@ -7,13 +7,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   answerPoints,
+  axisRows,
   changeSummary,
   countMindChanges,
+  fixList,
   hasRebuildableFilters,
   isAnswered,
   landedLine,
   outcomeCounts,
   paceSeconds,
+  pointsSplit,
   questionOutcome,
   rebuildHref,
   totalEngagedSeconds,
@@ -32,6 +35,9 @@ function q(over: Partial<ReportQuestion> = {}): ReportQuestion {
     submissionStatus: 'SUBMITTED',
     timeSpentSec: 30,
     answerChanges: 0,
+    correct: { answer: 'A' },
+    answer: 'A',
+    difficultyIrt: 0,
     ...over,
   };
 }
@@ -204,6 +210,139 @@ describe('changeSummary', () => {
   it('counts questions whose answer was changed at least once', () => {
     expect(changeSummary([q({ answerChanges: 3 }), q({ answerChanges: 0 }), q({ answerChanges: 1 })]))
       .toEqual({ changed: 2, total: 3 });
+  });
+});
+
+describe('pointsSplit — reuses the readiness scorer, never re-scores', () => {
+  it('splits a SATA into found / missed / wrong-picked', () => {
+    const split = pointsSplit([
+      q({
+        questionType: 'SATA',
+        marks: 3,
+        scoreAwarded: 1,
+        correct: { answers: ['A', 'B', 'C'] },
+        answer: ['A', 'B', 'Z'],
+      }),
+    ]);
+    expect(split).toMatchObject({ found: 2, missed: 1, wrongPicked: 1, max: 3, unreadable: 0 });
+  });
+
+  it('falls back to the stored score on a shape it cannot read', () => {
+    // Better a slightly coarser reading than a wrong one — and the count is
+    // surfaced so a partial reading is never shown as a complete one.
+    const split = pointsSplit([
+      q({ questionType: 'MYSTERY_TYPE', marks: 4, scoreAwarded: 3, correct: null, answer: null }),
+    ]);
+    expect(split).toMatchObject({ found: 3, missed: 1, max: 4, unreadable: 1 });
+  });
+});
+
+describe('axisRows — weakest first, and difficulty comes from the NUMBER', () => {
+  const set = [
+    q({ classification: { nursing_subject: 'Pharmacology' }, marks: 1, scoreAwarded: 0 }),
+    q({ classification: { nursing_subject: 'Pharmacology' }, marks: 1, scoreAwarded: 1 }),
+    q({ classification: { nursing_subject: 'Med-Surg' }, marks: 1, scoreAwarded: 1 }),
+  ];
+
+  it('reports landed of total per value, weakest first', () => {
+    const rows = axisRows(set, 'subject');
+    expect(rows[0]).toEqual({ value: 'Pharmacology', full: 1, total: 2, pct: 50 });
+    expect(rows[1]).toEqual({ value: 'Med-Surg', full: 1, total: 1, pct: 100 });
+  });
+
+  it('⭐ bands difficulty from difficulty_irt, not from a stored word', () => {
+    // The snapshot freezes the NUMBER (slice 10d) precisely so the shown band
+    // can't go stale. Looking for a `difficulty` key would find nothing and
+    // the axis would render empty.
+    const rows = axisRows(
+      [q({ difficultyIrt: -2, marks: 1, scoreAwarded: 1 }), q({ difficultyIrt: 2, marks: 1, scoreAwarded: 0 })],
+      'difficulty',
+    );
+    expect(rows.map((r) => r.value)).toEqual(['Very hard', 'Very easy']);
+    expect(rows[0]).toMatchObject({ full: 0, total: 1, pct: 0 });
+  });
+
+  it('ignores questions with no value on that axis', () => {
+    expect(axisRows([q({ classification: {} })], 'subject')).toEqual([]);
+  });
+
+  it('breaks a tie on the larger sample, so noise sinks below signal', () => {
+    // 0 of 1 and 2 of 7 are both weak percentages; only one is worth acting
+    // on, so the bigger sample is listed first.
+    const rows = axisRows(
+      [
+        q({ classification: { nursing_subject: 'Tiny' }, marks: 1, scoreAwarded: 0 }),
+        ...Array.from({ length: 3 }, () =>
+          q({ classification: { nursing_subject: 'Big' }, marks: 1, scoreAwarded: 0 }),
+        ),
+      ],
+      'subject',
+    );
+    expect(rows[0].value).toBe('Big');
+  });
+});
+
+describe('fixList — advice only where there is a sample to advise from', () => {
+  it('names the weakest subject once it has three questions', () => {
+    const set = Array.from({ length: 3 }, (_, i) =>
+      q({ classification: { nursing_subject: 'Pharmacology' }, marks: 1, scoreAwarded: i === 0 ? 1 : 0 }),
+    );
+    const list = fixList(set, 'att1');
+    expect(list[0]).toMatchObject({ title: 'Pharmacology', actionLabel: 'Build more of this' });
+    expect(list[0].href).toContain('subject=Pharmacology');
+  });
+
+  it('⭐ leads with whichever axis is WEAKER, not with a fixed precedence', () => {
+    // Seen live: a 75% subject was numbered 1 above a 0% category numbered 2,
+    // under the words "in that order". The numbering is the recommendation.
+    const set = [
+      // Med-Surg: 3 of 4 landed (75%)
+      ...Array.from({ length: 4 }, (_, i) =>
+        q({
+          classification: {
+            nursing_subject: 'Med-Surg',
+            client_needs_category: i === 3 ? 'Safe and Effective Care Environment' : 'Physiological Integrity',
+          },
+          marks: 1,
+          scoreAwarded: i === 3 ? 0 : 1,
+        }),
+      ),
+      // Safe and Effective: 0 of 3 landed (0%)
+      ...Array.from({ length: 2 }, () =>
+        q({
+          classification: {
+            nursing_subject: 'Fundamentals',
+            client_needs_category: 'Safe and Effective Care Environment',
+          },
+          marks: 1,
+          scoreAwarded: 0,
+        }),
+      ),
+    ];
+    const list = fixList(set, 'att1');
+    expect(list[0].kind).toBe('Weakest category');
+    expect(list[0].title).toBe('Safe and Effective Care Environment');
+    expect(list[1].kind).toBe('Weakest subject');
+  });
+
+  it('stays silent on a one-question axis rather than inventing a weakness', () => {
+    const list = fixList([q({ classification: { nursing_subject: 'Pharmacology' }, marks: 1, scoreAwarded: 0 })], 'att1');
+    expect(list.some((i) => i.title === 'Pharmacology')).toBe(false);
+  });
+
+  it('offers review for unanswered questions, needing no new build', () => {
+    const list = fixList([q({ submissionStatus: 'SKIPPED', scoreAwarded: null })], 'att9');
+    expect(list.at(-1)).toMatchObject({ actionLabel: 'Open in review', href: '/session/att9' });
+  });
+
+  it("says so plainly when nothing at all was answered", () => {
+    const list = fixList([q({ submissionStatus: 'SKIPPED', scoreAwarded: null })], 'att9');
+    expect(list.at(-1)?.detail).toMatch(/Nothing in this sitting was answered/);
+  });
+
+  it('never offers a "marked" action — nothing writes a mark', () => {
+    const list = fixList([q({ marks: 1, scoreAwarded: 0 })], 'att1');
+    expect(JSON.stringify(list)).not.toMatch(/mark/i);
   });
 });
 

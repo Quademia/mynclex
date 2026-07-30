@@ -16,16 +16,23 @@
 
 import Link from 'next/link';
 import {
+  allAxisRows,
   answerPoints,
+  fixList,
   hasRebuildableFilters,
   landedLine,
   outcomeCounts,
   paceSeconds,
+  pointsSplit,
   rebuildHref,
   totalEngagedSeconds,
 } from '@/lib/practice/report/derive';
 import { formatDuration } from '@/lib/practice/history/format';
 import type { SessionReport } from '@/lib/practice/report/types';
+import { OutcomesCard } from './outcomes-card';
+import { AnswerPointsCard } from './answer-points-card';
+import { WhereYouSlipped } from './where-you-slipped';
+import { FixList } from './fix-list';
 
 function sittingDate(iso: string): string {
   return new Date(iso).toLocaleString('en-GB', {
@@ -48,6 +55,9 @@ export function SessionReportView({ report }: { report: SessionReport }) {
 
   const rebuild = rebuildHref(report.filters);
   const sameAgain = hasRebuildableFilters(report.filters);
+  const split = pointsSplit(report.questions);
+  const axes = allAxisRows(report.questions);
+  const fixes = fixList(report.questions, report.attemptId);
 
   // Time facts are omitted entirely when nothing was recorded. Per-question
   // timing arrived late in the product's life, so most older sittings have
@@ -142,14 +152,23 @@ export function SessionReportView({ report }: { report: SessionReport }) {
         </aside>
 
         <div className="bsr-sections">
-          {/* Slices 2 and 3 fill this column: Question outcomes, Answer
-              points, Where you slipped, the fix list, and Every question. */}
+          <div className="bsr-pair">
+            <OutcomesCard counts={counts} />
+            <AnswerPointsCard split={split} totalQuestions={counts.total} />
+          </div>
+          {/* Only the axis switcher is a client island — the four breakdowns
+              are computed here, so the frozen answer keys they derive from
+              never reach the browser. */}
+          <WhereYouSlipped axes={axes} />
+          <FixList items={fixes} />
+
+          {/* Slice 3 fills this: the per-question table and the
+              answers-you-changed line. */}
           <section className="bsr-card bsr-pending">
-            <h2 className="bsr-card-h">The rest of this report is coming next</h2>
+            <h2 className="bsr-card-h">Every question — coming next</h2>
             <p className="bsr-card-sub">
-              Your score and the two actions above are live. The breakdown of
-              which questions went wrong, and where to practise next, land in
-              the next build.
+              The question-by-question table, with what you answered and how
+              long each one took, lands in the next build.
             </p>
           </section>
         </div>
