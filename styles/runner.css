@@ -2183,8 +2183,12 @@
   letter-spacing: 0.05em;
   color: var(--text-muted);
 }
-.rn-rationale-head .verdict.ok { color: #15803d; }
-.rn-rationale-head .verdict.no { color: #b91c1c; }
+.rn-rationale-head .verdict.ok   { color: #15803d; }
+/* Partial credit — amber, the same hue the option rows already use for
+ * ".missed" (a correct answer the student didn't pick), which is what a
+ * partial score is made of. Never red: a partial answer is not wrong. */
+.rn-rationale-head .verdict.part { color: #b45309; }
+.rn-rationale-head .verdict.no   { color: #b91c1c; }
 .rn-rationale-head .score {
   font-size: 11.5px;
   color: var(--text-muted);

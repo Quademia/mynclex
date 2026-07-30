@@ -7,32 +7,48 @@
 // rationale text + image.
 //
 // Type-agnostic — every per-type runner shares it.
+//
+// ⚠ The header verdict does NOT come from `is_correct`. That column is
+// full-credit-only (bank-marks-and-scoring.html §5.5), so a student who
+// scored 1 of 3 was shown the word "wrong" beside the number "1 / 3" —
+// two contradicting statements on one line, on 28% of submitted answers.
+// It now derives all three states from the score, via the shared
+// verdictFor(); see lib/scoring/verdict.ts for why that is derived
+// rather than stored.
 
 'use client';
 
 import { RichRender } from '@/lib/authoring/rich-render';
 import { parseRichDoc, isEmptyRichDoc } from '@/lib/authoring/rich-doc';
+import { verdictFor, VERDICT_LABEL } from '@/lib/scoring';
 
 interface Props {
-  isCorrect:    boolean;
   scoreAwarded: number;
   marksMax:     number;
   rationale:    string | null;
   rationaleImg: string | null;
 }
 
+/** Verdict → the CSS modifier carrying its colour. */
+const VERDICT_CLASS = {
+  CORRECT: 'ok',
+  PARTIAL: 'part',
+  WRONG:   'no',
+} as const;
+
 export function RationaleBlock({
-  isCorrect,
   scoreAwarded,
   marksMax,
   rationale,
   rationaleImg,
 }: Props) {
+  const verdict = verdictFor(scoreAwarded, marksMax);
+
   return (
     <div className="rn-rationale">
       <div className="rn-rationale-head">
-        <span className={'verdict ' + (isCorrect ? 'ok' : 'no')}>
-          Rationale · {isCorrect ? 'correct' : 'wrong'}
+        <span className={'verdict ' + VERDICT_CLASS[verdict]}>
+          Rationale · {VERDICT_LABEL[verdict].toLowerCase()}
         </span>
         <span className="score">
           {formatScore(scoreAwarded)} / {marksMax}

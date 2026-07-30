@@ -432,7 +432,6 @@ function EmbedPlayerRun({
 
         {review && (
           <RationaleBlock
-            isCorrect={review.isCorrect}
             scoreAwarded={review.scoreAwarded}
             marksMax={review.marks}
             rationale={review.rationale}
@@ -539,7 +538,6 @@ function ReviewPlay({
         />
 
         <RationaleBlock
-          isCorrect={rq.isCorrect}
           scoreAwarded={rq.scoreAwarded}
           marksMax={rq.marks}
           rationale={rq.rationale}

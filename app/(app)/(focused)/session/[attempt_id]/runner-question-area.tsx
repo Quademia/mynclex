@@ -230,7 +230,6 @@ export function RunnerQuestionArea(props: Props) {
 
       {props.itemMode === 'review' && (
         <RationaleBlock
-          isCorrect={props.answerRow.is_correct ?? false}
           scoreAwarded={props.answerRow.score_awarded ?? 0}
           marksMax={props.unseal.marksMax}
           rationale={props.unseal.rationale}
