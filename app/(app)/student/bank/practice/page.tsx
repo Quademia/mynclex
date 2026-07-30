@@ -35,6 +35,15 @@ function initialFiltersFromParams(
     client_needs_subcategory: arr(sp.subcat),
     body_system: arr(sp.body),
     difficulty: arr(sp.diff),
+    // Added for the Session Report's "Build the same again" (and its fix
+    // list). Without these five, rebuilding a sitting that was built by
+    // SUBJECT or by TAG silently dropped the very axis that defined it — the
+    // button would promise sameness and quietly hand back the whole bank.
+    nursing_subject: arr(sp.subject),
+    topic: arr(sp.topic),
+    subtopic: arr(sp.subtopic),
+    tags: arr(sp.tag),
+    question_type: arr(sp.qtype),
   };
   const any = Object.values(payload).some((v) => v && v.length);
   return any ? payload : undefined;

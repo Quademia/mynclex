@@ -63,9 +63,12 @@ function titleFor(row: HistoryAttempt): string {
 function hrefFor(row: HistoryAttempt): string | null {
   if (row.mode === 'CAT') return `/student/bank/cat/result/${row.attempt_id}`;
   if (row.source === 'READINESS_PACK') return `/student/bank/packs/report/${row.attempt_id}`;
-  // A finished practice quiz has no standalone report surface today —
-  // History is where it is reviewed.
-  return '/student/bank/history';
+  // A finished practice quiz now HAS a standalone report, so the chip points
+  // at the sitting itself rather than at the index — and a report is a safer
+  // landing than dropping the student into question 1. An unfinished one
+  // still has nothing to report, so it goes to the runner to be resumed.
+  if (row.status === 'IN_PROGRESS') return `/session/${row.attempt_id}`;
+  return `/student/bank/session/report/${row.attempt_id}`;
 }
 
 /**

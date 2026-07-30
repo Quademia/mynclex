@@ -176,6 +176,27 @@ export function attemptHref(row: HistoryAttempt): string | null {
   }
 }
 
+/**
+ * The permanent REPORT for this sitting, when it has one.
+ *
+ * All three kinds now do — a practice quiz got its own report page, so the
+ * Result cell can be a link to a debrief instead of dead text. Null while a
+ * sitting is unfinished or discarded: there is nothing to report yet.
+ *
+ * Distinct from attemptHref(), which is the "open it" action: for a practice
+ * quiz the report and the runner are two different destinations, and the row
+ * offers both (Result → report, Review → the runner).
+ */
+export function reportHref(row: HistoryAttempt): string | null {
+  if (row.status === 'ABANDONED' || row.status === 'IN_PROGRESS') return null;
+
+  switch (sittingKind(row)) {
+    case 'CAT':      return `/student/bank/cat/result/${row.attempt_id}`;
+    case 'PACK':     return `/student/bank/packs/report/${row.attempt_id}`;
+    case 'PRACTICE': return `/student/bank/session/report/${row.attempt_id}`;
+  }
+}
+
 /** What that destination is, so the link doesn't promise the wrong thing. */
 export function attemptLinkLabel(row: HistoryAttempt): string | null {
   if (row.status === 'ABANDONED') return null;

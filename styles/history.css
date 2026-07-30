@@ -394,6 +394,17 @@
 /* An absent value, not a zero. */
 .hist-bank .hist-result-none { color: var(--text-faint); font-weight: 400; }
 
+/* The result is a link to the sitting's own report. Styled as text, not as a
+ * link — the cell's job is to state the outcome; being clickable is a bonus
+ * the underline-on-hover reveals. Colouring it accent would fight the
+ * outcome tone, which is the thing carrying meaning here. */
+.hist-bank .hist-result-link {
+  color: inherit;
+  text-decoration: none;
+  display: inline-block;
+}
+.hist-bank .hist-result-link:hover .hist-outcome { text-decoration: underline; }
+
 .hist-bank .hist-time {
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);

@@ -1,0 +1,297 @@
+/* mynclex/styles/session-report.css
+ *
+ * The Session Report — the permanent report for a Builder-built practice
+ * sitting. Built from the Claude Design "1c" direction in our own tokens.
+ *
+ * Prefix is `bsr-` (Builder Session Report), NOT `sr-`: `.sr-only` already
+ * exists as the screen-reader utility, and a report page sharing a prefix
+ * with an accessibility helper is a collision waiting to happen.
+ *
+ * Slice 1 styles the spine (crumb, headline, rail, actions). Slices 2 and 3
+ * add the reading cards and the per-question table.
+ */
+
+.bsr {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ─── Breadcrumb ─────────────────────────────────────── */
+
+.bsr-crumb {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.bsr-back {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.bsr-back:hover { text-decoration: underline; }
+
+.bsr-crumb-trail {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bsr-crumb-kind {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+
+/* ─── Headline ───────────────────────────────────────── */
+
+.bsr-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bsr-h1 {
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--text);
+  /* The build summary can be long ("3 subjects · Hard · Unseen · 25 Q"), and
+   * it reads as a phrase rather than a paragraph, so it wraps at a sensible
+   * measure instead of running the full page width. */
+  max-width: 34ch;
+  text-wrap: pretty;
+}
+
+.bsr-landed {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 62ch;
+}
+
+/* ─── Two-column body ────────────────────────────────── */
+
+.bsr-body {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.bsr-rail {
+  position: sticky;
+  /* Clears the app topbar so the rail doesn't slide under it. */
+  top: 78px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.bsr-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* minmax(0,1fr) above plus this stops a wide child (the slice-3 table)
+   * from pushing the grid past the viewport instead of scrolling itself. */
+  min-width: 0;
+}
+
+/* ─── Score ring ─────────────────────────────────────── */
+
+.bsr-score {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* A conic-gradient ring rather than an SVG: one element, no viewBox maths,
+ * and the percentage arrives as a custom property so the markup carries no
+ * presentation. --bsr-pct is 0–100. */
+.bsr-ring {
+  --bsr-pct: 0;
+  position: relative;
+  flex: none;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      var(--success) calc(var(--bsr-pct) * 1%),
+      color-mix(in srgb, var(--border) 70%, transparent) 0
+    );
+  display: grid;
+  place-items: center;
+}
+.bsr-ring::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: var(--white);
+}
+
+.bsr-ring-value {
+  position: relative;
+  z-index: 1;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.bsr-score-note { display: flex; flex-direction: column; gap: 2px; }
+
+.bsr-score-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.bsr-score-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* The no-banding rule. Quiet, but present next to the number it qualifies. */
+.bsr-score-rule {
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+/* ─── Facts ──────────────────────────────────────────── */
+
+.bsr-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.bsr-fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+.bsr-fact dt { color: var(--text-muted); }
+.bsr-fact dd {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Actions ────────────────────────────────────────── */
+
+.bsr-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bsr-btn {
+  display: block;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.bsr-btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--white);
+}
+.bsr-btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+
+.bsr-btn-ghost {
+  background: var(--white);
+  border-color: var(--border);
+  color: var(--text);
+}
+.bsr-btn-ghost:hover { background: var(--bg); }
+
+/* ─── Section cards ──────────────────────────────────── */
+
+.bsr-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+}
+
+.bsr-card-h {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.bsr-card-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 62ch;
+}
+
+/* The slice-1 placeholder reads as deliberately unfinished rather than as a
+ * broken card — dashed, not shadowed. */
+.bsr-pending {
+  border-style: dashed;
+  box-shadow: none;
+  background: var(--bg);
+}
+
+/* ─── Phone (≤768px) ─────────────────────────────────
+ * The rail becomes the TOP BLOCK above the sections, exactly as the
+ * readiness report does — ring and facts side by side, then both actions
+ * full width. Pure CSS, one markup tree, so the two layouts cannot drift.
+ */
+@media (max-width: 768px) {
+  .bsr-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bsr-rail {
+    position: static;
+    /* Unstacked: score across the top, facts in two columns beneath. */
+    gap: 12px;
+  }
+
+  .bsr-h1 { font-size: 21px; max-width: none; }
+
+  .bsr-facts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 16px;
+  }
+
+  /* Full-width tap targets, per the design's 44px note. */
+  .bsr-btn { padding: 13px 14px; font-size: 14px; }
+
+  .bsr-crumb-trail { font-size: 10px; gap: 8px; }
+}

@@ -117,6 +117,19 @@ async function getAnswerStats(
   const servedFor = new Map(
     attempts.map((a) => [a.attempt_id, a.actual_count ?? a.requested_count ?? 0]),
   );
+  // ⚠ `actual_question_count` is not reliable: on dev it disagrees with the
+  // real item rows on 7 of 69 practice attempts, overstating by up to 6.
+  // For a FINISHED sitting the answer rows ARE the served questions —
+  // verified across the corpus, 26 of 26 completed and 7 of 7 timed-out
+  // attempts have exactly one answer row per item. So a terminal row counts
+  // what it fetched and only an unfinished one falls back to the column
+  // (where answers legitimately cover just the questions reached).
+  const finished = new Set(
+    attempts
+      .filter((a) => a.status === 'COMPLETED' || a.status === 'TIMED_OUT')
+      .map((a) => a.attempt_id),
+  );
+  const rowsSeen = new Map<string, number>();
   const ids = attempts.map((a) => a.attempt_id);
 
   for (let i = 0; i < ids.length; i += STATS_CHUNK) {
@@ -140,6 +153,7 @@ async function getAnswerStats(
 
     for (const r of data as Array<Record<string, unknown>>) {
       const id = r.attempt_id as string;
+      rowsSeen.set(id, (rowsSeen.get(id) ?? 0) + 1);
       const prev =
         out.get(id) ??
         { answered: 0, served: servedFor.get(id) ?? 0, engagedSeconds: null };
@@ -159,6 +173,14 @@ async function getAnswerStats(
           : (prev.engagedSeconds ?? 0) + secs;
 
       out.set(id, { answered, served: prev.served, engagedSeconds });
+    }
+  }
+
+  // Replace `served` with the counted rows on finished sittings, now that
+  // every chunk has been read.
+  for (const [id, stats] of out) {
+    if (finished.has(id)) {
+      out.set(id, { ...stats, served: rowsSeen.get(id) ?? stats.served });
     }
   }
 

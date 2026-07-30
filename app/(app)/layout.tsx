@@ -24,6 +24,9 @@ import '@/styles/builder.css';
 import '@/styles/runner.css';
 import '@/styles/tutorial.css';
 import '@/styles/history.css';
+// The permanent report for a Builder-built practice sitting — the third
+// per-sitting report, beside the readiness pack's and CAT's.
+import '@/styles/session-report.css';
 import '@/styles/programmes.css';
 import '@/styles/cohorts.css';
 import '@/styles/strategies.css';

@@ -32,6 +32,7 @@ import {
   attemptLinkLabel,
   canDiscard,
   describeOutcome,
+  reportHref,
   sittingKind,
   sittingKindLabel,
   sittingSummary,
@@ -88,13 +89,24 @@ function ResultCell({ row }: { row: HistoryRow }) {
 
   if (!outcome) return <span className="hist-result-none">—</span>;
 
-  return (
+  // The result is the way IN to the sitting's own report — every kind has one
+  // now that a practice quiz does. The Review link stays as the second
+  // action, so the row offers the debrief and the answers separately.
+  const href = reportHref(row.attempt);
+  const label = (
     <>
       <span className={`hist-outcome hist-outcome-${outcome.tone}`}>
         {outcome.label}
       </span>
       {detail && <span className="hist-result-detail">{detail}</span>}
     </>
+  );
+
+  if (!href) return label;
+  return (
+    <Link className="hist-result-link" href={href}>
+      {label}
+    </Link>
   );
 }
 

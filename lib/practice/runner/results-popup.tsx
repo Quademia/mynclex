@@ -248,9 +248,26 @@ export function ResultsPopup({
               </button>
             ) : (
               <>
+                {/* A Builder sitting now has a permanent report, so it leads
+                    — a report is a safer landing than dropping straight back
+                    into question 1. Unlike readiness, it does NOT replace the
+                    other two: a practice quiz is repeatable and low-stakes,
+                    so review stays reachable in one tap and "Build another"
+                    stays put. This branch previously ignored `reportHref`
+                    entirely, which is why the field alone wasn't enough. */}
+                {ctx?.reportHref && (
+                  <button
+                    type="button"
+                    className="btn primary"
+                    onClick={() => router.push(ctx.reportHref!)}
+                  >
+                    See your session report
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  className="btn primary"
+                  className={ctx?.reportHref ? 'btn secondary' : 'btn primary'}
                   onClick={onReview}
                 >
                   Review attempt
