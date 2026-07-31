@@ -1,6 +1,6 @@
 # Runner — mobile compatibility
 
-Last updated: 2026-07-31 (slice 1 built + verified on dev; slices 2–8 open)
+Last updated: 2026-07-31 (slices 1–2 built + verified on dev; 3–8 open)
 
 ## What this is
 
@@ -161,10 +161,8 @@ lint or reading:
    the navigation call sites in slice 2, where something actually
    navigates from a sheet.
 
-⚠ **Known and deliberate until slice 2:** the grid is unreachable on a
-phone. Hiding the rail is what gives the question its width back, and the
-footer button that reopens it lands with the grid sheet. Previous/Next
-still navigate meanwhile.
+~~⚠ Known and deliberate until slice 2: the grid is unreachable on a
+phone.~~ **Closed by slice 2** — the footer button now opens it.
 
 ⚠ **The tutorial coach is visibly broken at 390px** — its panel hangs off
 the left edge and its avatar sits on top of the Previous button. Confirms
@@ -186,7 +184,42 @@ never be confused with the flag — in the sheet both get words.
 
 Also lands the **`--surface` one-liner in `tokens.css`** (see Gotchas).
 
-### ⬜ Slice 2 — Grid sheet
+### ✅ Slice 2 — Grid sheet  *(built 2026-07-31)*
+
+The same `<RunnerGrid>`, same props, same filter state — rendered inside
+the sheet instead of the rail, reached from the footer button. The only
+new prop is `compact`, and it exists solely to switch the band geometry.
+
+⚠ **The handoff's warning was right, but about the wrong cause — and the
+real cause was in its own CSS.** The constants were fine; what broke
+alignment was `justify-content: center` on `.rn-sheet .rn-cells`. That
+centres the six *tracks* inside a full-width grid, but the case bands are
+absolutely-positioned siblings whose coordinates come from
+`runner-grid.tsx`'s arithmetic, measured from the element's padding edge.
+The tracks move, the bands do not.
+
+Measured on the page: cells started at x=23, band 1 sat at x=266 for a
+cell at x=293. **Band 1 covered no cells at all**, and the six-question
+case band covered four of the wrong ones. Fixed by centring the *box*
+(`width: max-content` + auto margins) so column 0 stays at x=0, which is
+the coordinate space the bands assume.
+
+**Proven both ways.** The same case now bands as **12–17 contiguous** in
+each geometry — split `12 | 13–17` at 6×46 on the phone, and
+`12–15 | 16–17` at 5×36 on the desktop. Two different row splits of one
+correct case is what tells you the parameterisation actually works, rather
+than one number happening to look right.
+
+Also verified: desktop still 36/5/5 with no sheet and no footer button;
+tapping a cell navigates, dismisses the sheet, releases the scroll lock
+and leaves no scrim; the topbar and footer counters agree. Console clean,
+tsc at the 2 known errors, `runner.tsx` lint level with baseline.
+
+The desktop rail stays **mounted** on compact (hidden by CSS) rather than
+being swapped out, so `gridOpen` and the filter survive a resize across
+the breakpoint.
+
+#### What it covers
 
 `<RunnerGrid>` rendered inside the sheet, the `CELL / GAP / COLS`
 change, and the colour key as a two-column grid of 44px rows.

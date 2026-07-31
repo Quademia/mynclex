@@ -63,15 +63,33 @@ interface Props {
   onPick:           (index: number) => void;
   onFilterChange:   (filter: GridFilter) => void;
   onCollapse?:      () => void;
+  /**
+   * Rendered inside the phone bottom sheet rather than as the desktop rail
+   * (docs/product-plan/runner-mobile.md, slice 2). Switches the band
+   * geometry to match what `.rn-sheet .rn-grid` lays out — 6 columns of
+   * 46px instead of 5 of 36 — and drops the collapse control, which the
+   * sheet's own ✕ replaces.
+   */
+  compact?: boolean;
 }
 
-// Grid layout constants — kept in sync with --rn-cell / --rn-cell-gap
-// in styles/runner.css. Hard-coded here so band geometry is computed
-// without a layout-effect read-back. If those tokens change, update
-// these too.
-const CELL = 36;
-const GAP  = 5;
-const COLS = 5;
+// Grid layout constants — kept in sync with --rn-cell / --rn-cell-gap in
+// styles/runner.css (desktop) and styles/runner-mobile.css (phone, inside
+// `.rn-sheet .rn-grid`). Hard-coded here so band geometry is computed
+// without a layout-effect read-back. If those tokens change, update these
+// too.
+//
+// ⚠ TWO geometries, and the phone one is not cosmetic. The case bands are
+// absolutely-positioned rectangles whose left/top are computed from CELL,
+// GAP and COLS — so if the CSS renders 6 columns of 46px while this file
+// still believes in 5 of 36, every band lands behind the wrong cells. The
+// bug would be silent: the grid still works, it just draws the case
+// boundaries in the wrong place. Hence `compact` is passed in rather than
+// inferred (docs/product-plan/runner-mobile.md, slice 2).
+const DESKTOP_GEOM = { CELL: 36, GAP: 5, COLS: 5 } as const;
+const COMPACT_GEOM = { CELL: 46, GAP: 8, COLS: 6 } as const;
+type Geom = typeof DESKTOP_GEOM | typeof COMPACT_GEOM;
+
 const PAD  = 4;   // visual breathing room around the band edge
 
 interface BandRect {
@@ -85,7 +103,8 @@ interface BandRect {
 // Split a contiguous case run into one rectangle per grid row it
 // touches. A 6-cell case starting at column 3 of a 5-col grid spans
 // row 0 (cols 3-4) + row 1 (cols 0-3) → two rects.
-function bandsFor(group: CaseGroup): BandRect[] {
+function bandsFor(group: CaseGroup, geom: Geom): BandRect[] {
+  const { CELL, GAP, COLS } = geom;
   const rects: BandRect[] = [];
   let i = group.from;
   let n = 0;
@@ -119,7 +138,9 @@ export function RunnerGrid({
   onPick,
   onFilterChange,
   onCollapse,
+  compact = false,
 }: Props) {
+  const geom = compact ? COMPACT_GEOM : DESKTOP_GEOM;
   // One count per filter, refreshed on every render; cheap for ≤75 cells.
   //
   // Derived from isVisibleUnderFilter rather than counted by hand, so a
@@ -208,7 +229,7 @@ export function RunnerGrid({
           {/* Case bands — absolute-positioned rectangles behind the
               cells. Render before the cells so they sit underneath in
               source order; .rn-cell { z-index: 1 } keeps them above. */}
-          {caseGroups?.flatMap((g) => bandsFor(g)).map((b) => (
+          {caseGroups?.flatMap((g) => bandsFor(g, geom)).map((b) => (
             <div
               key={b.key}
               className="rn-case-band"

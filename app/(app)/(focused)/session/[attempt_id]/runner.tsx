@@ -1410,6 +1410,11 @@ function RunnerShell({ data }: Props) {
           </div>
         </main>
 
+        {/* The desktop rail. On compact this whole branch is hidden by CSS
+            and the grid renders inside the sheet instead — see below. It is
+            still MOUNTED there, which is deliberate: `gridOpen` and the
+            filter stay exactly where they were if the window is resized
+            across the breakpoint. */}
         {gridAvailable && (gridOpen ? (
           <RunnerGrid
             items={data.items}
@@ -1447,6 +1452,9 @@ function RunnerShell({ data }: Props) {
         // the SEQUENTIAL archetype, and in those two the student can neither
         // go back nor open a grid. Phone-only effect — see runner-mobile.css.
         forwardOnly={!gridAvailable}
+        // Undefined in the modes with no grid, so the button never renders
+        // there — same condition as the topbar's grid toggle.
+        onOpenGrid={gridAvailable ? () => setSheet('grid') : undefined}
       />
 
       {/* ── Phone sheets (docs/product-plan/runner-mobile.md) ─────────────
@@ -1454,6 +1462,29 @@ function RunnerShell({ data }: Props) {
           one open, and so the whole subtree is absent from the server
           render. SLICE 1 implements 'menu'; 'grid' | 'chart' | 'calc' |
           'results' arrive with slices 2, 4 and 6. */}
+      {compact && sheet === 'grid' && gridAvailable && (
+        <RunnerSheet title="Question grid" onClose={closeSheet}>
+          {/* The same <RunnerGrid>, same props, same filter state — only
+              `compact` differs, and it exists solely so the case-band
+              geometry matches the 6×46 layout the sheet CSS renders. */}
+          <RunnerGrid
+            compact
+            items={data.items}
+            answers={answersByItem}
+            flagged={flaggedAttemptItemIds}
+            current={current}
+            filter={filter}
+            caseGroups={caseGroups}
+            revealCorrectness={data.mode === 'review' || archetype === 'UL'}
+            // Picking a question navigates, so the sheet has to go with it —
+            // this is the call site slice 1's comment promised, rather than
+            // an effect on `current` that would fire on every Next.
+            onPick={(i) => { closeSheet(); onPickGuarded(i); }}
+            onFilterChange={setFilter}
+          />
+        </RunnerSheet>
+      )}
+
       {compact && sheet === 'menu' && (
         <RunnerSheet title="Session" onClose={closeSheet}>
           <RunnerSessionMenu

@@ -18,7 +18,7 @@
  *
  *   ✅ SLICE 1 — base, .rn container context, topbar, scroll region,
  *                footer, sheet shell, session menu
- *   ⬜ SLICE 2 — the grid inside the sheet
+ *   ✅ SLICE 2 — the grid inside the sheet
  *   ⬜ SLICE 3 — answers: indent, caps, tap targets, sticky count
  *   ⬜ SLICE 4 — case / trend stack + summary card + chart sheet
  *   ⬜ SLICE 5 — matrix row-cards, bow-tie stack
@@ -167,14 +167,63 @@
   .rn-q-wrap { max-width: none; }
   .rn-stem { font-size: 15.5px; margin-bottom: 14px; }
 
-  /* ── The desktop grid rail ────────────────────────────────────────────
-   * Pulled forward from the slice-2 section on purpose. `.rn-grid` is a
-   * fixed 240px with flex-shrink:0, so leaving it in place would hand a
-   * 390px phone roughly 150px of question column — the whole bug slice 1
-   * exists to fix. The grid becomes reachable again via the footer button
-   * in SLICE 2; until then Previous/Next still navigate. */
+  /* ── The grid: out of the rail, into the sheet ────────────────────────
+   * `.rn-grid` is a fixed 240px with flex-shrink:0, so leaving it in the
+   * body would hand a 390px phone roughly 150px of question column — the
+   * bug this whole layer exists to fix. It reappears inside the bottom
+   * sheet, reached from the footer button. */
   .rn-body > .rn-grid,
   .rn-grid-handle { display: none; }
+
+  .rn-sheet .rn-grid {
+    width: 100%;
+    border-left: none;
+    /* 6 columns at 46px. ⚠ runner-grid.tsx computes the case-band
+     * rectangles from the SAME three numbers (COMPACT_GEOM) — change one
+     * without the other and the bands sit behind the wrong cells, silently. */
+    --rn-cell: 46px;
+    --rn-cell-gap: 8px;
+  }
+  /* ⚠ Centre the BOX, not the tracks inside it.
+   *
+   * The handoff had `justify-content: center` here. That centres the six
+   * columns within a full-width grid — but the case bands are absolutely
+   * positioned siblings whose left/top come from runner-grid.tsx's own
+   * arithmetic, measured from this element's padding edge. The tracks move;
+   * the bands do not. Measured on the rendered page: cells started at x=23
+   * while band 1 sat at x=266 for a cell at x=293, so it covered no cells
+   * at all and the six-question case band pointed at five of the wrong ones.
+   *
+   * Shrinking to `max-content` and centring with auto margins keeps column 0
+   * at x=0 inside this box, which is the coordinate space the bands assume,
+   * and centres the whole grid in the sheet as intended. */
+  .rn-sheet .rn-cells {
+    grid-template-columns: repeat(6, var(--rn-cell));
+    width: max-content;
+    margin-inline: auto;
+  }
+  .rn-sheet .rn-cell { font-size: 13px; }
+  .rn-sheet .rn-grid-head { border-bottom: none; padding: 0 16px 12px; }
+  .rn-sheet .rn-grid-filters { overflow-x: auto; }
+  .rn-sheet .rn-grid-filter { min-height: 44px; padding: 0 13px; font-size: 12.5px; }
+  .rn-sheet .rn-grid-title-row { display: none; }   /* the sheet head says it */
+
+  /* ⚠ Since 2026-07-30 the colour key IS the outcome filter — every row is
+   * a real button with a count (runner-grid.tsx). So it cannot collapse to
+   * a wrapped one-line caption on a phone: you cannot shrink a control to a
+   * label. Two columns of 44px rows keeps the eight controls from pushing
+   * the cells off the sheet. */
+  .rn-sheet .rn-grid-legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 8px;
+    font-size: 12px;
+    padding: 12px 16px 8px;
+  }
+  .rn-sheet .rn-grid-legend-head { grid-column: 1 / -1; }
+  .rn-sheet .rn-grid-legend .row { min-height: 44px; }
+  .rn-sheet .rn-grid-legend .row.act { padding: 0 8px; margin: 0; }
+  .rn-sheet .rn-grid-legend .row.inert { padding: 0 8px; margin: 0; }
 
   /* ── Footer: back · primary · grid ────────────────────────────────── */
   .rn-foot {
