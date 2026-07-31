@@ -141,8 +141,21 @@ without an attempt.
 - Menu action proven end-to-end: tapping *Flag for review* toggled the
   flag, closed the sheet, and the topbar button came back
   `aria-pressed="true"`.
-- No horizontal overflow; console clean. `tsc` at the 2 known errors;
-  `runner.tsx` lint identical to baseline (13, all pre-existing).
+- Console clean. `tsc` at the 2 known errors; `runner.tsx` lint identical
+  to baseline (13, all pre-existing).
+
+⚠ **Correction to this entry as first written.** It claimed "no horizontal
+overflow" flat. That was measured on **question 1, an MCQ** — not on the
+eleven types and two wrappers the acceptance check actually names. On the
+tutorial's own case study (Q13) the question column measures **956px
+against a 390px viewport**: you get the scenario, and the question itself
+sits 566px off-screen to the right behind a horizontal scrollbar.
+
+Not a regression — `.rn-split` has always needed 924px and was worse
+before, when the rail left the column 150px — and it is exactly what slice
+4 exists to fix. But "no horizontal overflow" was an unqualified claim
+built on one question, and the honest form is: **MCQ is clean; case and
+trend overflow until slice 4.**
 
 ⚠ **Three defects found only by using the rendered page** — none by tsc,
 lint or reading:
@@ -282,6 +295,32 @@ when the sandbox hid controls the coach pointed at.
 
 Until this lands, assume the tutorial is broken-or-lying at phone
 widths. See `runner-tutorial.md`.
+
+## ⚠ What the verification does NOT cover
+
+Everything checked so far has been **`/tutorial/exam`**. It mounts the real
+`<Runner>` with the real stylesheets and needs no login, which makes it the
+only way to see this surface without an attempt — but it is exactly **one**
+configuration (`sandbox-data.ts`): `intent: STUDY`, `mode:
+UNTIMED_LEARNING`, `live`. So these paths have never rendered:
+
+- **Forward-only modes (CAT, live Timed Sequential).** `gridAvailable` is
+  always true in the tutorial, so `forwardOnly` is always false and
+  `.rn-foot-fwd` has never been applied by the app. *Partially closed:* the
+  class was applied by hand at 390px and does the right thing — Previous
+  goes `display:none`, the primary grows 250px → 298px. So the CSS is
+  proven and only the prop wiring is unexercised.
+- **Review mode** — no clock (the menu's clock row should disappear), the
+  frozen flag and its "cannot be changed after a sitting ends" copy, and
+  the status pill becoming a button.
+- **Timed modes** — clock tiers, the escalation tones, hide-clock locking
+  once a warning fires.
+- **Bookmark-absent modes** (CAT, packs, tutor quizzes) — that menu row
+  should not render at all.
+- **The real `/session/[attempt_id]` route** — auth, real attempt data.
+
+None of this needs new design; it needs a signed-in student on dev. Worth
+doing before this arc merges, not after.
 
 ## Gaps and risks
 
