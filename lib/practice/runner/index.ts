@@ -23,6 +23,7 @@ export {
   deriveCellFill,
   FILL_LABEL,
   isVisibleUnderFilter,
+  OUTCOME_FILTERS,
 } from './cell-state';
 
 export type {

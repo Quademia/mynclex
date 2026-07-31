@@ -66,7 +66,35 @@ export const FILL_LABEL: Record<CellFill, string> = {
   skipped:    'skipped',
 };
 
-export type GridFilter = 'all' | 'flagged' | 'unanswered' | 'wrong';
+/**
+ * Everything the grid can be narrowed to.
+ *
+ * Two groups, and the split is the point:
+ *
+ *   • PROGRESS — `all`, `flagged`, `todo`. What the student still has to
+ *     deal with. True in every mode, which is why none of them needs a
+ *     correctness condition.
+ *   • OUTCOME — `dropped` plus one per fill. Only offered once results
+ *     are visible.
+ *
+ * `wrong` used to live in the progress rail, and was the single
+ * correctness idea in a control about progress — which is exactly why it
+ * alone needed gating. Moving it out let the rail become three buttons
+ * that mean the same thing everywhere.
+ */
+export type GridFilter =
+  // progress
+  | 'all'
+  | 'flagged'
+  | 'todo'
+  // outcome
+  | 'dropped'
+  | 'right'
+  | 'partial'
+  | 'wrong'
+  | 'skipped'
+  | 'unanswered'
+  | 'answered';
 
 export function isVisibleUnderFilter(
   fill:      CellFill,
@@ -74,13 +102,35 @@ export function isVisibleUnderFilter(
   filter:    GridFilter,
 ): boolean {
   switch (filter) {
-    case 'all':        return true;
-    case 'flagged':    return isFlagged;
-    case 'unanswered': return fill === 'unanswered' || fill === 'skipped';
-    // Wrong means WRONG, not "less than full marks". A partial answer is
-    // deliberately not swept in here: calling it wrong in the filter is
-    // the same conflation the three-state verdict exists to remove.
-    // Partial gets its own row when the legend becomes the filter.
+    case 'all':     return true;
+    case 'flagged': return isFlagged;
+
+    // "Still to do" covers never-reached AND deliberately passed over.
+    // Two different states, one question: what do I still owe? Kept
+    // together because that is how a student asks it mid-sitting.
+    case 'todo':    return fill === 'unanswered' || fill === 'skipped';
+
+    // "Dropped marks" — wrong AND partial. The most common thing a
+    // student wants after a sitting, and unreachable without it: the two
+    // are separate states now, and single-select cannot union them.
+    // ⚠ NOT a way to call partial answers wrong again. The two keep
+    // their own rows, their own colours and their own counts; this is a
+    // third question asked over both, named for what it actually means.
+    case 'dropped': return fill === 'wrong' || fill === 'partial';
+
+    // One per fill. `wrong` means WRONG, not "less than full marks" —
+    // calling a partial answer wrong is the conflation the three-state
+    // verdict exists to remove.
+    case 'right':      return fill === 'right';
+    case 'partial':    return fill === 'partial';
     case 'wrong':      return fill === 'wrong';
+    case 'skipped':    return fill === 'skipped';
+    case 'unanswered': return fill === 'unanswered';
+    case 'answered':   return fill === 'answered';
   }
 }
+
+/** Filters that describe an OUTCOME, so are hidden until results show. */
+export const OUTCOME_FILTERS: ReadonlySet<GridFilter> = new Set<GridFilter>([
+  'dropped', 'right', 'partial', 'wrong', 'skipped',
+]);

@@ -79,13 +79,17 @@ export const COACH_STEPS: CoachStep[] = [
   // "Flagged" — the tutorial is public and on prod, so leaving it naming
   // a chip that no longer exists would be a live inaccuracy, not a
   // tidy-up to defer. The tutorial's own FLAG STEPS are still to come.
-  { title: 'Filtering the grid', body: 'Narrow the grid to what you still owe: All, Flagged, Unanswered, and — where feedback is available — Wrong.', target: 'gridfilters' },
+  // These two steps kept their own anchors when the colour key became a
+  // filter (2026-07-31): the rail and the key stayed SEPARATE elements,
+  // so neither target was orphaned. Only the copy moved — the rail lost
+  // "Wrong" to the key below, where outcome belongs.
+  { title: 'Filtering the grid', body: 'Narrow the grid to what you still have to deal with: All, Flagged, and To do — the questions you have not answered, plus any you chose to skip.', target: 'gridfilters' },
   // ⚠ This step TEACHES the colour key, so it is wrong the moment a fill
   // changes — not merely dated. Amber moved from Skipped to Partial
   // credit on 2026-07-30 when the grid gained a sixth fill; leaving the
   // old sentence would have had the public walkthrough naming a key the
   // grid no longer uses.
-  { title: 'Reading the colours', body: 'White is unanswered, blue is answered, green is fully correct, amber is partial credit, and dark red is wrong. A dashed grey cell was skipped. An orange border means flagged for review; a teal ring means you are here now.', target: 'legend' },
+  { title: 'Reading the colours', body: 'White is unanswered, blue is answered, green is fully correct, amber is partial credit, and dark red is wrong. A dashed grey cell was skipped. An orange border means flagged for review; a teal ring means you are here now. Tap any line to see only those questions — including “Dropped marks”, which shows everywhere you lost a mark, wrong and partial together.', target: 'legend' },
   { title: 'The footer', body: 'Previous on the left, the mode reminder in the middle, and the action button on the right. The action button is disabled until your answer is complete — hover it to see what is missing.', target: 'footer' },
 
   // ── Every question type ──────────────────────────────────────────

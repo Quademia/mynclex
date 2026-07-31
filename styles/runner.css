@@ -2556,7 +2556,72 @@
   font-size: 11px;
   color: var(--text-muted);
 }
-.rn-grid-legend .row { display: flex; align-items: center; gap: 7px; }
+.rn-grid-legend-head {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  opacity: 0.75;
+  margin-bottom: 2px;
+}
+
+.rn-grid-legend .row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  text-align: left;
+}
+
+/* Rows that filter. The key stopped being decoration when it became a
+ * control, so these are real buttons — reset the UA styling rather than
+ * dressing a div up as one. */
+.rn-grid-legend .row.act {
+  border: 1px solid transparent;
+  background: none;
+  font: inherit;
+  color: inherit;
+  padding: 3px 6px;
+  margin: 0 -6px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.rn-grid-legend .row.act:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+.rn-grid-legend .row.act:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* Pressed, not merely hovered — a filter that is ON must stay obvious
+ * after the pointer leaves, or the grid looks broken rather than
+ * filtered. */
+.rn-grid-legend .row.act[aria-pressed='true'] {
+  background: var(--bg);
+  border-color: var(--border-strong);
+  color: var(--text);
+  font-weight: 600;
+}
+/* The one row that is not a control — no hover, no pointer. */
+.rn-grid-legend .row.inert { padding: 3px 6px; margin: 0 -6px; }
+
+.rn-grid-legend .lbl { flex: 1; min-width: 0; }
+.rn-grid-legend .n {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.rn-grid-legend .row.act[aria-pressed='true'] .n { color: var(--text); }
+
+/* Two swatches for "Dropped marks", which covers two states. */
+.rn-grid-legend .swatch-pair {
+  display: inline-flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.rn-grid-legend .swatch-pair .swatch { width: 7px; border-radius: 2px; }
 .rn-grid-legend .swatch {
   width: 14px;
   height: 14px;

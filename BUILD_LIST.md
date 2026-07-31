@@ -43,12 +43,20 @@
 > - ⚠ **The figure cannot be seen on dev naturally** — the most-answered
 >   question has **3** answers against a threshold of 30. Staged data was
 >   left in place on Sam's call and self-clears at the next cron run.
+> - **⭐ Slice 3b — the colour key became the filter.** It closes a gap
+>   slice 3 opened: once partial credit had its own fill, **no filter
+>   could reach it**. Sam's cut was sharper than either option I put up —
+>   **the rail is progress, the key is outcome** — so "Wrong" simply
+>   *left* the rail instead of moving. ⚠ His suggested replacement,
+>   "Answered", was checked against the data and dropped: that fill occurs
+>   **zero** times in review. **"Dropped marks"** covers wrong + partial,
+>   the union a single-select filter cannot express. The key was
+>   decoration (`aria-hidden`) and is now real buttons with spoken names.
 > - ⬜ **Not built:** a skipped question still reads **WRONG** in the strip
 >   (already settled the other way in the session report: *"Not
->   answered"*, grey not red) · **slice 3b**, the legend becoming the
->   filter · tap-to-reveal on phones · the session report, readiness
->   report and curator "hardest questions" views, all cheap now the table
->   exists.
+>   answered"*, grey not red) · tap-to-reveal on phones · multi-select
+>   filtering · the session report, readiness report and curator "hardest
+>   questions" views, all cheap now the table exists.
 > - ⚠ **The runner is badly broken at phone widths** — `.rn-grid` is a
 >   fixed 240px with no rule below 768px. Pre-existing, confirmed by
 >   experiment, and left for its own session.

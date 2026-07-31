@@ -49,7 +49,11 @@ export function archetypeFor(mode: ModeId): Archetype {
  */
 export function footerBrief(intent: Intent, mode: ModeId, isReview: boolean): string {
   if (isReview) {
-    return 'Review · use the grid to filter Wrong / Flagged / Unanswered, or step in order';
+    // ⚠ Names real controls, so it goes stale the moment they change.
+    // Was "Wrong / Flagged / Unanswered" until the colour key became the
+    // filter (2026-07-31) and "Wrong" left the rail — at which point this
+    // line was naming a button that is no longer there.
+    return 'Review · tap a colour to filter, or step through in order';
   }
 
   const label = modeLabelFor(intent, mode);

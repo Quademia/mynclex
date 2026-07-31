@@ -22,6 +22,12 @@ import type { AnswerRow } from '@/lib/practice/runner';
 import { deriveCellFill, FILL_LABEL, isVisibleUnderFilter } from '@/lib/practice/runner';
 import type { GridFilter } from '@/lib/practice/runner';
 
+/** Every filter, so counts are derived from one list rather than by hand. */
+const ALL_FILTERS = [
+  'all', 'flagged', 'todo', 'dropped',
+  'right', 'partial', 'wrong', 'skipped', 'unanswered', 'answered',
+] as const satisfies readonly GridFilter[];
+
 interface CellSummary {
   attempt_item_id: string;
   position:        number;
@@ -114,25 +120,45 @@ export function RunnerGrid({
   onFilterChange,
   onCollapse,
 }: Props) {
-  // Filter row counts — refreshed on every render; cheap for ≤75 cells.
-  const filterCounts = {
-    all:        items.length,
-    flagged:    0,
-    unanswered: 0,
-    wrong:      0,
-  };
+  // One count per filter, refreshed on every render; cheap for ≤75 cells.
+  //
+  // Derived from isVisibleUnderFilter rather than counted by hand, so a
+  // count can never disagree with what clicking it actually shows. The
+  // old version tallied each filter with its own `if`, which is how a
+  // tab comes to say 7 and then reveal 3.
+  const counts = {} as Record<GridFilter, number>;
+  for (const f of ALL_FILTERS) counts[f] = 0;
   for (const item of items) {
     const fill = deriveCellFill(
       answers.get(item.attempt_item_id),
       item.marks_snapshot,
       revealCorrectness,
     );
-    if (flagged.has(item.attempt_item_id)) filterCounts.flagged += 1;
-    if (fill === 'unanswered' || fill === 'skipped') filterCounts.unanswered += 1;
-    // Counts WRONG only — a partial answer is not swept in here. See
-    // isVisibleUnderFilter for why.
-    if (fill === 'wrong') filterCounts.wrong += 1;
+    const isFlg = flagged.has(item.attempt_item_id);
+    for (const f of ALL_FILTERS) {
+      if (isVisibleUnderFilter(fill, isFlg, f)) counts[f] += 1;
+    }
   }
+
+  // Clicking the active filter again clears it — the only way back to
+  // "All" without hunting for the All button, and what a pressed control
+  // is expected to do.
+  const pick = (f: GridFilter) => onFilterChange(filter === f ? 'all' : f);
+
+  const showOutcome = revealCorrectness;
+
+  /**
+   * Spoken name for a key row.
+   *
+   * ⚠ Explicit rather than left to name-from-content. The label and the
+   * count are two nested spans with no whitespace between them, so the
+   * computed name would be "Correct3" — and whether a browser inserts a
+   * separator there is exactly the kind of thing that differs between
+   * them. Saying it outright also lets the count be a phrase ("3
+   * questions") instead of a loose digit.
+   */
+  const rowLabel = (label: string, n: number) =>
+    `${label} — ${n} ${n === 1 ? 'question' : 'questions'}`;
 
   return (
     <aside className="rn-grid" aria-label="Question grid" data-coach="grid">
@@ -150,29 +176,28 @@ export function RunnerGrid({
             </button>
           )}
         </div>
-        <div className="rn-grid-filters" role="tablist" data-coach="gridfilters">
-          {(
-            [
-              { id: 'all',        label: 'All',    n: filterCounts.all,        show: true },
-              // "Flagged", not "Marked" — this is the per-sitting flag, and
-              // "marks" already means points elsewhere in the product (§4).
-              { id: 'flagged',    label: 'Flagged', n: filterCounts.flagged,   show: true },
-              { id: 'unanswered', label: 'Unans',  n: filterCounts.unanswered, show: true },
-              // Wrong filter only meaningful when correctness is revealed
-              // (UL live, or any review state). In batched live modes the
-              // count would always be 0 and clicking it would empty the grid.
-              { id: 'wrong',      label: 'Wrong',  n: filterCounts.wrong,      show: revealCorrectness },
-            ] as const
-          ).filter((f) => f.show).map((f) => (
+        {/* Progress rail. Three buttons that mean the same thing in every
+         *  mode — no correctness here, so nothing needs gating. "Wrong"
+         *  used to sit in this row and was the one exception; it moved to
+         *  the key below, where outcome belongs. */}
+        <div className="rn-grid-filters" data-coach="gridfilters">
+          {([
+            { id: 'all',     label: 'All' },
+            // "Flagged", not "Marked" — this is the per-sitting flag, and
+            // "marks" already means points elsewhere in the product (§4).
+            { id: 'flagged', label: 'Flagged' },
+            // Never-reached AND deliberately passed over. One question:
+            // what do I still owe?
+            { id: 'todo',    label: 'To do' },
+          ] as const).map((f) => (
             <button
               key={f.id}
               type="button"
-              role="tab"
-              aria-selected={filter === f.id}
+              aria-pressed={filter === f.id}
               className={'rn-grid-filter' + (filter === f.id ? ' on' : '')}
-              onClick={() => onFilterChange(f.id)}
+              onClick={() => pick(f.id)}
             >
-              {f.label} {f.n}
+              {f.label} {counts[f.id]}
             </button>
           ))}
         </div>
@@ -239,19 +264,71 @@ export function RunnerGrid({
         </div>
       </div>
 
-      <div className="rn-grid-legend" aria-hidden="true" data-coach="legend">
-        <div className="row"><span className="swatch" /> Unanswered</div>
-        <div className="row"><span className="swatch f-answered" /> Answered</div>
-        {revealCorrectness && (
-          <>
-            <div className="row"><span className="swatch f-right" /> Correct</div>
-            <div className="row"><span className="swatch f-partial" /> Partial credit</div>
-            <div className="row"><span className="swatch f-wrong" /> Wrong</div>
-            <div className="row"><span className="swatch f-skipped" /> Skipped</div>
-          </>
+      {/* The colour key IS the outcome filter. It used to be decorative
+       *  (aria-hidden) and sat beside a tab rail listing the same words —
+       *  one vocabulary rendered twice, of which only some was clickable.
+       *  Now each row explains a colour AND shows you those questions,
+       *  which is what finally gives partial credit a filter of its own.
+       *
+       *  ⚠ Every row is a real <button> with aria-pressed. The old block
+       *  was hidden from screen readers on purpose, being decoration; a
+       *  control cannot be. */}
+      <div className="rn-grid-legend" data-coach="legend">
+        <div className="rn-grid-legend-head" id="rn-grid-legend-head">
+          What the colours mean — tap one to filter
+        </div>
+
+        {showOutcome && (
+          /* Two swatches, because it covers two states. Keeps the row a
+           * colour key rather than a query bolted onto one — and says
+           * what it means by showing it. */
+          <button
+            type="button"
+            aria-pressed={filter === 'dropped'}
+            aria-label={rowLabel('Dropped marks, wrong and partial together', counts.dropped)}
+            className={'row act' + (filter === 'dropped' ? ' on' : '')}
+            onClick={() => pick('dropped')}
+          >
+            <span className="swatch-pair" aria-hidden="true">
+              <span className="swatch f-partial" />
+              <span className="swatch f-wrong" />
+            </span>
+            <span className="lbl">Dropped marks</span>
+            <span className="n">{counts.dropped}</span>
+          </button>
         )}
-        <div className="row"><span className="swatch marked" /> Flagged for review</div>
-        <div className="row"><span className="swatch current" /> Current</div>
+
+        {([
+          { id: 'unanswered', cls: '',           label: 'Unanswered', show: true },
+          { id: 'answered',   cls: 'f-answered', label: 'Answered',   show: !showOutcome },
+          { id: 'right',      cls: 'f-right',    label: 'Correct',        show: showOutcome },
+          { id: 'partial',    cls: 'f-partial',  label: 'Partial credit', show: showOutcome },
+          { id: 'wrong',      cls: 'f-wrong',    label: 'Wrong',          show: showOutcome },
+          { id: 'skipped',    cls: 'f-skipped',  label: 'Skipped',        show: showOutcome },
+          { id: 'flagged',    cls: 'marked',     label: 'Flagged for review', show: true },
+        ] as const).filter((r) => r.show).map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            aria-pressed={filter === r.id}
+            aria-label={rowLabel(r.label, counts[r.id])}
+            className={'row act' + (filter === r.id ? ' on' : '')}
+            onClick={() => pick(r.id)}
+          >
+            <span className={'swatch ' + r.cls} aria-hidden="true" />
+            <span className="lbl">{r.label}</span>
+            <span className="n">{counts[r.id]}</span>
+          </button>
+        ))}
+
+        {/* Not a button: "current" is a POSITION, not a result, so there
+         *  is nothing to filter to. It stays because the teal ring is a
+         *  real signal on screen and dropping the row would leave it
+         *  unexplained — a plain line costs less than that. */}
+        <div className="row inert">
+          <span className="swatch current" aria-hidden="true" />
+          <span className="lbl">Current</span>
+        </div>
       </div>
     </aside>
   );

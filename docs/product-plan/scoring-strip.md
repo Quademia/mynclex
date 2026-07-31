@@ -1,6 +1,6 @@
 # The review scoring strip
 
-**Status:** built, on `main`, not yet on prod. 2026-07-30.
+**Status:** built and released to prod. 2026-07-30 / 07-31.
 **Origin:** a Claude Design prototype — *"Runner Review Scoring Line"* — built
 by Sam against the real runner code.
 
@@ -271,7 +271,63 @@ labelled "Wrong" listing partial answers is the same conflation removed
 from the header. Partial gets its own row when the legend becomes the
 filter (§8).
 
-## 7. Defects found by looking at the rendered page
+## 7. The filter — the colour key does two jobs
+
+**Slice 3b, and it closes a gap slice 3 opened.** Once partial credit had
+its own fill, **no filter could reach it**: before, "Wrong" caught partial
+answers because partial *was* painted wrong. The count visibly dropped
+from 7 to 3 the moment that was fixed.
+
+**⭐ The shape is Sam's, and it is sharper than the two I proposed.** I
+offered a fifth tab, then a merged block. He asked why "Wrong" is in the
+top rail at all — *you do not filter for wrong answers mid-sitting*.
+That splits the two controls by what they are *for*:
+
+```
+Rail    All 10 · Flagged 0 · To do 0          progress — every mode
+Key     Dropped marks 7
+        Correct 3 · Partial credit 4 · Wrong 3 · Skipped 0 · Flagged 0
+        Current
+```
+
+The rail is **what I still have to deal with**; the key is **how it went**.
+"Wrong" was the single correctness idea in a progress control, which is
+exactly why it alone needed a `revealCorrectness` condition. Removing it
+made the rail three buttons that mean the same thing everywhere.
+
+⚠ **Sam's suggested replacement — "Answered" in the rail — was checked
+against the data and dropped.** Across every finished sitting on dev the
+`answered` fill occurs **zero** times, because in review every submitted
+question resolves to correct, partial or wrong; `answered` is the neutral
+fill used only while correctness is hidden. It would have been a button
+reading **0** on every review screen. So "Wrong" *leaves* the rail rather
+than being replaced.
+
+**"Dropped marks" = wrong + partial.** Single-select cannot union two
+states, and that union is the thing a student actually wants after a
+sitting. ⚠ It is **not** calling partial answers wrong again — both keep
+their own row, colour and count; this is a third question asked over
+both. The row carries **two swatches**, so it stays a colour key rather
+than a query bolted onto one.
+
+**Counts are derived from `isVisibleUnderFilter`** over one list of
+filters, rather than tallied per tab by hand. A count can no longer
+disagree with what clicking it shows.
+
+⚠ **The key was `aria-hidden`, being decoration. A control cannot be.**
+Real buttons, `aria-pressed`, focus-visible, and **explicit** `aria-label`s
+rather than name-from-content — the label and count are adjacent spans and
+would have computed as `"Correct3"`. Clicking the active row clears back
+to All.
+
+**"Current" stays a plain line.** It is a *position*, not a result, so
+there is nothing to filter to — but dropping it would leave the teal ring
+unexplained, which costs more than one inert row.
+
+⚠ **Both coach anchors survived.** The rail and the key stayed *separate*
+elements, so no walkthrough step was orphaned — only copy changed.
+
+## 8. Defects found by looking at the rendered page
 
 None of these were caught by tsc, tests or lint. All were found by
 reading what was actually on screen.
@@ -295,25 +351,23 @@ reading what was actually on screen.
    feature's own word for the chip two inches to the left. One word, two
    meanings, on one screen: exactly what "cohort" had just taught us.
 
-## 8. Not built
+## 9. Not built
 
 - **A skipped question still reads `WRONG` in the strip.** Pre-existing,
   but the same conflation this arc removes — and already settled
   elsewhere: the session report shows *"Not answered"*, grey not red.
-- **Slice 3b — the legend becomes the filter.** Sam's idea, and better
-  than adding a fifth tab: the legend and the filter rail are the same
-  vocabulary rendered twice. Needs real buttons (the legend is
-  `aria-hidden` today), a merge of two tutorial coach steps, and a
-  decision on how "All" resets.
 - **Tap-to-reveal on phones.** There is no hover on touch, so the tooltip
   is unreachable for the audience that matters most.
+- **Multi-select filtering.** Single-select throughout; "Dropped marks"
+  covers the one union worth having. Revisit only if a second one turns
+  up.
 - **Other surfaces.** The table feeds only the strip; the session report,
   readiness report and a curator "hardest questions" view are all cheap
   now and none are built.
 - **Cohort-scoped tutor statistics** — *"how did MY students do on this
   BANK question"* — a different aggregate over the same data.
 
-## 9. Files
+## 10. Files
 
 | | |
 |---|---|
