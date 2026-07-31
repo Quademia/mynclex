@@ -70,6 +70,9 @@ import { ResultsPopup } from '@/lib/practice/runner/results-popup';
 import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
+import { RunnerSheet }        from './runner-sheet';
+import { RunnerSessionMenu }  from './runner-session-menu';
+import { useIsCompact }       from './use-is-compact';
 import { Calculator } from '@/lib/calculator/calculator';
 import { SandboxCoach } from '@/lib/practice/tutorial/coach/coach';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
@@ -187,6 +190,24 @@ function RunnerShell({ data }: Props) {
   // The on-screen calculator (BUILD_LIST #16) — a real NCLEX tool, so it is
   // available in every mode; closed by default, toggled from the topbar.
   const [calcOpen, setCalcOpen] = useState(false);
+
+  // ── Phone layout (docs/product-plan/runner-mobile.md) ──────────────────
+  // One sheet at a time; opening another replaces it. `compact` is only
+  // consulted for decisions CSS cannot make — i.e. where a component
+  // RENDERS in the tree, not how it looks.
+  //   SLICE 1 → 'menu'.   SLICE 2 → 'grid'.   SLICE 4 → 'chart'.
+  //   SLICE 6 → 'calc' + 'results'.
+  const compact = useIsCompact();
+  const [sheet, setSheet] = useState<null | 'grid' | 'chart' | 'calc' | 'menu' | 'results'>(null);
+  const closeSheet = useCallback(() => setSheet(null), []);
+  // ⚠ A sheet must never outlive the question it was opened over — a grid
+  // still up after picking a question would be describing the wrong one.
+  // Closed at the NAVIGATION call sites rather than by an effect on
+  // `current`: a setState fired synchronously from an effect cascades an
+  // extra render on every question change, and eslint's react-hooks rules
+  // reject it. Nothing in SLICE 1 navigates from a sheet (the menu only
+  // toggles); SLICE 2's grid is the first that will, and onPick is where it
+  // belongs.
 
   // pendingAnswers seeds from any DRAFT rows already on the server. With
   // universal save-on-tap (slice 4.5a §9.1), every material answer change
@@ -1279,6 +1300,44 @@ function RunnerShell({ data }: Props) {
       }
     : undefined;
 
+  // ── Shared by the topbar and the ⋯ session menu ───────────────────────
+  // Hoisted so the two surfaces cannot drift: on a phone the same flag and
+  // bookmark are reachable from both, and a second inline copy of these
+  // conditions is how one of them ends up offering a control the other has
+  // correctly hidden.
+  const flagProps =
+    flaggingOffered(data.attempt) && currentFlagId
+      ? {
+          on:       flaggedAttemptItemIds.has(currentFlagId),
+          busy:     flagBusy,
+          editable: canEditFlag,
+          onToggle: onToggleFlag,
+        }
+      : null;
+
+  const bookmarkProps =
+    data.canBookmark && currentBookmarkId
+      ? {
+          on:       bookmarkedItemIds.has(currentBookmarkId),
+          busy:     bookmarkBusy,
+          onToggle: onToggleBookmark,
+        }
+      : null;
+
+  // Live (mid-flight) → confirm first. Review → leave directly. A CAT review
+  // came from its summary page (§14.3), so Exit returns THERE — the richer
+  // CAT surface — rather than the resolver's CAT-home default (which is
+  // right for a live exam, that has no summary yet). Every other review
+  // keeps data.exitHref.
+  const onExitAction =
+    data.mode === 'live'
+      ? () => setShowExitConfirm(true)
+      : () => router.push(
+          isCat
+            ? `/student/bank/cat/result/${data.attempt.attempt_id}`
+            : data.exitHref,
+        );
+
   return (
     <div className="rn">
       <ErrorToast error={error} onDismiss={() => setError(null)} />
@@ -1311,30 +1370,13 @@ function RunnerShell({ data }: Props) {
         // Shown wherever flagging is offered — including in REVIEW, where it
         // renders the state but does not respond (§2.4). Hidden entirely in
         // the two forward-only modes, and in the sandbox (no attempt row).
-        flag={
-          flaggingOffered(data.attempt) && currentFlagId
-            ? {
-                on:       flaggedAttemptItemIds.has(currentFlagId),
-                busy:     flagBusy,
-                editable: canEditFlag,
-                onToggle: onToggleFlag,
-              }
-            : null
-        }
+        flag={flagProps}
         // Hidden entirely (null) rather than disabled when bookmarking is not
         // offered — a greyed control invites a "why?" whose honest answer
         // would name the reservation mechanism (§3.4). Also hidden in the
         // sandbox: the tutorial creates no attempt row, so there is nothing
         // to write against; its own steps land with slice 5.
-        bookmark={
-          data.canBookmark && currentBookmarkId
-            ? {
-                on:       bookmarkedItemIds.has(currentBookmarkId),
-                busy:     bookmarkBusy,
-                onToggle: onToggleBookmark,
-              }
-            : null
-        }
+        bookmark={bookmarkProps}
         statusLabel={statusLabel}
         caseMeta={hideExamScaffold ? undefined : caseMeta}
         clock={clockProps}
@@ -1345,21 +1387,8 @@ function RunnerShell({ data }: Props) {
         }
         calcToggle={{ open: calcOpen, onToggle: () => setCalcOpen((o) => !o) }}
         sandbox={isSandbox}
-        onExit={
-          // Live (mid-flight) → confirm first. Review → leave directly.
-          // A CAT review came from its summary page (§14.3: review is a
-          // sub-action of the summary, reached History → summary → Review),
-          // so Exit returns THERE — the richer CAT surface — rather than the
-          // resolver's CAT-home default (which is right for a live exam, that
-          // has no summary yet). Every other review keeps data.exitHref.
-          data.mode === 'live'
-            ? () => setShowExitConfirm(true)
-            : () => router.push(
-                isCat
-                  ? `/student/bank/cat/result/${data.attempt.attempt_id}`
-                  : data.exitHref,
-              )
-        }
+        onOpenMenu={() => setSheet('menu')}
+        onExit={onExitAction}
         onPillClick={
           data.mode === 'review' && data.attempt.final_score !== null
             ? () => setShowResults(true)
@@ -1414,7 +1443,39 @@ function RunnerShell({ data }: Props) {
         prevHint={archetype === 'SEQUENTIAL' ? 'Sequential mode — no going back' : undefined}
         onPrev={onPrevGuarded}
         onPrimary={onPrimary}
+        // Exactly `!gridAvailable`: both CAT and live Timed Sequential map to
+        // the SEQUENTIAL archetype, and in those two the student can neither
+        // go back nor open a grid. Phone-only effect — see runner-mobile.css.
+        forwardOnly={!gridAvailable}
       />
+
+      {/* ── Phone sheets (docs/product-plan/runner-mobile.md) ─────────────
+          Gated on `compact` as well as `sheet` so a desktop can never hold
+          one open, and so the whole subtree is absent from the server
+          render. SLICE 1 implements 'menu'; 'grid' | 'chart' | 'calc' |
+          'results' arrive with slices 2, 4 and 6. */}
+      {compact && sheet === 'menu' && (
+        <RunnerSheet title="Session" onClose={closeSheet}>
+          <RunnerSessionMenu
+            sessionTitle={sessionTitle}
+            modeLabel={modeLabel}
+            // The footer's own line, evicted from the bar on a phone —
+            // relocated here, not dropped.
+            brief={modeMsg}
+            flag={flagProps}
+            bookmark={bookmarkProps}
+            calc={{ on: calcOpen, onToggle: () => setCalcOpen((o) => !o) }}
+            // Passed as the bare identifier, not destructured and not
+            // `?? null` — see the prop's comment. This object is built from
+            // refs, so any EXPRESSION over it here trips react-hooks/refs,
+            // while reading its fields inside the child does not. It is
+            // already `… | null`, so it needs no coalescing.
+            clock={clockProps}
+            onExit={onExitAction}
+            onClose={closeSheet}
+          />
+        </RunnerSheet>
+      )}
 
       {showBlanksConfirm && (
         <FinishWithBlanksConfirm

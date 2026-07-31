@@ -22,6 +22,9 @@ import '@/styles/nav.css';
 import '@/styles/authoring.css';
 import '@/styles/builder.css';
 import '@/styles/runner.css';
+// MUST follow runner.css — it is an override layer, not a peer
+// (docs/product-plan/runner-mobile.md).
+import '@/styles/runner-mobile.css';
 import '@/styles/tutorial.css';
 import '@/styles/history.css';
 // The permanent report for a Builder-built practice sitting — the third

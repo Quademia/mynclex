@@ -109,13 +109,36 @@ side-by-side (CD's mock used a cramped horizontal week-strip — rejected):
 
 Reuse this drill-in for future two-pane surfaces.
 
+## The runner — its own doc
+
+The session runner (`/session/[attempt_id]`) is the `(focused)` entry that
+sat in *Not done* below from 2026-06-21. It is now an arc of its own:
+**`docs/product-plan/runner-mobile.md`**.
+
+It does not follow this doc's conventions, and deliberately:
+
+- **Breakpoint 899px, not 768px.** The runner's case/trend split needs
+  924px before it can lay out honestly, so it has to switch earlier than
+  every other surface.
+- **Container queries, not `@media`** — keyed off `.rn` rather than the
+  viewport, so the phone layout also renders truthfully inside a frame
+  (the tutorial sandbox, design review).
+- **Sheets, not a drill-in.** The drill-in below is right for a rail +
+  detail where the detail is a destination. The runner's panels (grid,
+  chart, calculator) are things you consult and dismiss without leaving
+  the question, which is a sheet.
+
+Everything else — 44px targets, reflow rather than overflow, per-surface
+stylesheet — is this doc's rules.
+
 ## Not done (future)
 
 - Tutor/admin bottom tabs (deferred by design).
 - Remaining non-nav content surfaces (bank tables, editors, dashboards)
   still need their own per-surface `@media (max-width: 768px)` passes —
   the curriculum two-panes are done; the rest are pending.
-- Picker + `(focused)` mobile treatment.
+- Picker mobile treatment. (`(focused)` — i.e. the runner — is now
+  in progress; see *The runner* above.)
 - Full focus-trap (Tab cycling) in the drawer/sheet — currently
   focus-on-open only.
 - Programme-name drawer header.

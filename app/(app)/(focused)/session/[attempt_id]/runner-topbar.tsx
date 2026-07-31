@@ -107,6 +107,13 @@ interface Props {
   // and the data-coach anchor markers the coach overlay points at. Off (and
   // absent) for every real attempt.
   sandbox?:    boolean;
+  // Opens the ⋯ session menu. The button is ALWAYS rendered and hidden by
+  // CSS above 900px, so the desktop topbar is untouched — see
+  // docs/product-plan/runner-mobile.md. Below 900px it is where bookmark,
+  // calculator, grid, the clock toggle, the session name and the mode brief
+  // all go, since a phone bar holds five controls and has no hover to
+  // explain them with.
+  onOpenMenu:  () => void;
 }
 
 export function RunnerTopbar({
@@ -124,6 +131,7 @@ export function RunnerTopbar({
   gridToggle,
   calcToggle,
   sandbox,
+  onOpenMenu,
 }: Props) {
   return (
     <header className="rn-top">
@@ -133,11 +141,16 @@ export function RunnerTopbar({
         onClick={onExit}
         data-coach={sandbox ? 'exit' : undefined}
       >
-        ← Exit
+        ← <span className="rn-top-exit-label">Exit</span>
       </button>
 
       <div className="rn-top-divider" />
 
+      {/* `.rn-top-ident` is `display: contents` above 900px, so the desktop
+          flex row is byte-for-byte unchanged. Below it, the wrapper becomes
+          a column-reverse stack — counter on top, mode meta beneath — which
+          is what frees the topbar down to five controls. */}
+      <div className="rn-top-ident">
       <div className="rn-top-title" data-coach={sandbox ? 'title' : undefined}>
         <div className="name">{sessionTitle}</div>
         <div className="meta">
@@ -172,6 +185,7 @@ export function RunnerTopbar({
           </>
         )}
       </div>
+      </div>{/* /.rn-top-ident */}
 
       {(() => {
         const clockNode = clock ? (
@@ -267,6 +281,18 @@ export function RunnerTopbar({
           <span className="rn-grid-toggle-label">Grid</span>
         </button>
       )}
+
+      {/* Compact only (CSS hides it ≥900px). Rendered unconditionally rather
+          than behind the compact flag so it never depends on a hydration
+          pass to exist. */}
+      <button
+        type="button"
+        className="rn-top-more"
+        onClick={onOpenMenu}
+        aria-label="Session menu"
+      >
+        ⋯
+      </button>
     </header>
   );
 }
@@ -276,7 +302,7 @@ export function RunnerTopbar({
 // different things (one dies with the sitting, one outlives it), and a
 // mis-tap on either is silent. Shape carries that difference where
 // colour alone would not.
-function FlagIcon({ filled }: { filled: boolean }) {
+export function FlagIcon({ filled }: { filled: boolean }) {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <line x1="4" y1="2" x2="4" y2="14.5" />
@@ -292,7 +318,7 @@ function FlagIcon({ filled }: { filled: boolean }) {
 //
 // A ribbon deliberately, not a flag: the per-sitting flag control lands
 // later and the two must never be mistaken for one another (§5).
-function BookmarkIcon({ filled }: { filled: boolean }) {
+export function BookmarkIcon({ filled }: { filled: boolean }) {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M4 2.2h8a.8.8 0 0 1 .8.8v10.6L8 11.1l-4.8 2.5V3a.8.8 0 0 1 .8-.8Z" />
@@ -303,7 +329,7 @@ function BookmarkIcon({ filled }: { filled: boolean }) {
 // A compact calculator glyph for the topbar toggle — a rounded body, a
 // display strip, and a 3×… key grid, drawn in the same stroke style as the
 // grid/clock icons so the three topbar toggles read as one family.
-function CalcIcon() {
+export function CalcIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="3" y="1.5" width="10" height="13" rx="1.6" />
@@ -346,7 +372,7 @@ function GridOffIcon() {
 // Clock visibility toggle — a clock face when the clock is showing, the
 // same face with a slash when it's hidden. Names the subject (the clock),
 // which a bare eye did not. Replaces the old ◉/◌ glyphs.
-function ClockIcon() {
+export function ClockIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="9" />
@@ -355,7 +381,7 @@ function ClockIcon() {
   );
 }
 
-function ClockOffIcon() {
+export function ClockOffIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="9" />

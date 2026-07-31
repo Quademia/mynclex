@@ -1,0 +1,3147 @@
+/* mynclex/styles/runner.css
+ *
+ * Runner-specific tokens + selectors for /session/[attempt_id]. Ported
+ * from the bank-consumption design handoff (runner-v2). Differences vs
+ * the prototype:
+ *   • dropped the `.mn` namespace — repo uses bare prefixed selectors.
+ *   • shared tokens (--accent, --primary, --border, --text*, --bg, --white)
+ *     come from styles/tokens.css; only --rn-* additions live here.
+ *   • case panel, CJMM stepper, trend dataset panel, mobile sheet, and
+ *     review banner are deliberately deferred — they land with slices
+ *     4.3 (cases), 4.4 (trends), 4.9 (review polish), and the mobile
+ *     5.1e/runner-mobile slice.
+ *
+ * Three-channel cell encoding (runner.html §16.4):
+ *   Fill  — 5 states encoding answer state
+ *   Border — marked-for-review (independent flag)
+ *   Outer ring — current cell
+ * Tones picked for CVD safety: light green (right) vs dark red (wrong)
+ * differ in BRIGHTNESS as well as hue.
+ */
+
+:root {
+  --rn-shell-bg:        #f4f6f8;
+  --rn-pane-bg:         #ffffff;
+  --rn-pane-border:     #e5e7eb;
+
+  --rn-topbar-h:        56px;
+  --rn-foot-h:          64px;
+  --rn-grid-w:          240px;
+  --rn-grid-w-collapsed: 32px;
+  --rn-cell:            36px;
+  --rn-cell-gap:        5px;
+
+  /* Fill states */
+  --rn-fill-unanswered:        #ffffff;
+  --rn-fill-unanswered-border: #d6dae0;
+  --rn-fill-answered:          #dbe6f1;
+  --rn-fill-answered-text:     #1e3a5f;
+  --rn-fill-right:             #c8ecd1;
+  --rn-fill-right-text:        #14532d;
+  --rn-fill-wrong:             #5b1d1d;
+  --rn-fill-wrong-text:        #fde8e8;
+  /* Amber belongs to PARTIAL CREDIT, matching the review scoring strip
+   * and the ".missed" option rows a partial score is made of. It used to
+   * be Skipped's — moved 2026-07-30, because the grid and the strip
+   * saying the same thing in two colours was the whole defect. */
+  --rn-fill-partial:           #f6d99c;
+  --rn-fill-partial-text:      #7c4a03;
+  /* Skipped is not a score — it is the ABSENCE of an answer, and it sits
+   * next to Unanswered in the legend for that reason. So it reads as a
+   * neutral, marked out by a dashed edge rather than a fill. */
+  --rn-fill-skipped:           #eef0f3;
+  --rn-fill-skipped-text:      #6b7280;
+  --rn-fill-skipped-border:    #9ca3af;
+
+  /* Channel overlays */
+  --rn-mark-border:     #d97706;
+  --rn-current-ring:    #2d7d72;
+
+  /* Case bands — subtle tinted grouping for case-clustered grid cells. */
+  --rn-case-band:       rgba(45, 125, 114, 0.08);
+  --rn-case-band-edge:  rgba(45, 125, 114, 0.20);
+
+  /* Timer warnings (4.5 wires real countdowns; 4.1 keeps tokens) */
+  --rn-timer-warn:      #d97706;
+  --rn-timer-crit:      #b91c1c;
+}
+
+/* ────────────────────────────────────────────────────────────
+ *  Shell
+ * ──────────────────────────────────────────────────────────── */
+.rn {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--rn-shell-bg);
+  color: var(--text);
+}
+
+.rn-top {
+  height: var(--rn-topbar-h);
+  background: var(--rn-pane-bg);
+  border-bottom: 1px solid var(--rn-pane-border);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.rn-top-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  padding: 6px 11px 6px 9px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rn-top-exit:hover { color: var(--text); border-color: var(--border-strong); }
+
+.rn-top-divider { width: 1px; height: 24px; background: var(--border); }
+
+.rn-top-title { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.rn-top-title .name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+.rn-top-title .meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.rn-top-title .meta .dot {
+  width: 3px;
+  height: 3px;
+  background: var(--text-faint);
+  border-radius: 50%;
+}
+
+.rn-top-spacer { flex: 1; }
+
+.rn-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.rn-counter strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.rn-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.rn-timer.untimed { color: var(--text-muted); }
+.rn-timer.warn {
+  color: var(--rn-timer-warn);
+  background: rgba(217, 119, 6, 0.08);
+  border-color: rgba(217, 119, 6, 0.30);
+}
+.rn-timer.crit {
+  color: var(--rn-timer-crit);
+  background: rgba(185, 28, 28, 0.08);
+  border-color: rgba(185, 28, 28, 0.30);
+  animation: rn-timer-pulse 1.6s ease-in-out infinite;
+}
+@keyframes rn-timer-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(185, 28, 28, 0); }
+  50%      { box-shadow: 0 0 0 4px rgba(185, 28, 28, 0.10); }
+}
+
+/* ────────────────────────────────────────────────────────────
+ *  Live clock (slice 4.5a — runner.html §8)
+ *
+ *  Stopwatch (untimed) and countdown (timed) share the same pill chrome —
+ *  only the tone progression differs. Stopwatch stays neutral forever;
+ *  countdown escalates through tiers 30 / 15 / 5 / 1. Tone never reverts
+ *  (sticky max-tier-fired ref in runner.tsx). At tier-1, an additional
+ *  "1 min left" sub-label sits beside the time.
+ *
+ *  The eye-icon button on the left toggles visibility per-attempt.
+ *  Locked once the first warning tier fires (`.locked`) — the disable
+ *  state from React's `disabled` attribute is the source of truth; the
+ *  class is for visual styling only.
+ * ──────────────────────────────────────────────────────────── */
+.rn-clock-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rn-clock-eye {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+.rn-clock-eye:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.rn-clock-eye:disabled,
+.rn-clock-eye.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rn-clock-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  transition: color 200ms ease, background 200ms ease, border-color 200ms ease;
+}
+.rn-clock-pill .time { font-weight: 700; }
+.rn-clock-pill .label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+/* Stopwatch — permanently neutral, no animations, no warnings (§8.3). */
+.rn-clock-pill.stopwatch {
+  color: var(--text-muted);
+}
+
+/* Countdown — escalating tiers. Each tier triggers a one-pulse animation
+ * on initial appearance via the .pulse keyframe. The escalates-only rule
+ * lives in runner.tsx via the sticky max-tier-fired ref. */
+.rn-clock-pill.countdown {
+  color: var(--text);
+}
+.rn-clock-pill.countdown.tier-30 {
+  color: #92400e;                        /* subtle amber */
+  background: rgba(217, 119, 6, 0.05);
+  border-color: rgba(217, 119, 6, 0.22);
+  animation: rn-clock-pulse-once 800ms ease-out;
+}
+.rn-clock-pill.countdown.tier-15 {
+  color: #7c2d12;                        /* medium amber */
+  background: rgba(217, 119, 6, 0.10);
+  border-color: rgba(217, 119, 6, 0.35);
+  animation: rn-clock-pulse-once 800ms ease-out;
+}
+.rn-clock-pill.countdown.tier-5 {
+  color: var(--rn-timer-warn);          /* strong amber */
+  background: rgba(217, 119, 6, 0.14);
+  border-color: rgba(217, 119, 6, 0.50);
+  animation: rn-clock-pulse-once 800ms ease-out;
+}
+.rn-clock-pill.countdown.tier-1 {
+  color: var(--rn-timer-crit);
+  background: rgba(185, 28, 28, 0.10);
+  border-color: rgba(185, 28, 28, 0.45);
+  animation: rn-clock-pulse-loop 1.6s ease-in-out infinite;
+}
+.rn-clock-pill.countdown.tier-1 .label {
+  color: var(--rn-timer-crit);
+  opacity: 1;
+}
+
+@keyframes rn-clock-pulse-once {
+  0%   { box-shadow: 0 0 0 0    rgba(217, 119, 6, 0.45); }
+  60%  { box-shadow: 0 0 0 6px  rgba(217, 119, 6, 0.00); }
+  100% { box-shadow: 0 0 0 0    rgba(217, 119, 6, 0.00); }
+}
+@keyframes rn-clock-pulse-loop {
+  0%, 100% { box-shadow: 0 0 0 0    rgba(185, 28, 28, 0.00); }
+  50%      { box-shadow: 0 0 0 4px  rgba(185, 28, 28, 0.14); }
+}
+
+/* Flag-for-review toggle (flag-and-bookmark.md §2).
+ *
+ * Active state is --rn-mark-border, the SAME amber the grid uses for a
+ * flagged cell's border — deliberately, because they are the same fact
+ * shown twice. The bookmark beside it uses accent for the same reason in
+ * reverse: it must not look like this. */
+.rn-flag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rn-flag-btn:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+.rn-flag-btn:disabled { cursor: default; }
+.rn-flag-btn.on {
+  color: var(--rn-mark-border);
+  border-color: var(--rn-mark-border);
+  background: rgba(217, 119, 6, 0.08);
+}
+/* Review: the flag is a record of what happened, not a control. It keeps
+ * full contrast — dimming it would read as "broken" when the honest
+ * message is "this is history". The tooltip says why it will not move. */
+.rn-flag-btn.frozen { cursor: default; opacity: 1; }
+.rn-flag-btn.frozen:hover { border-color: var(--border); color: var(--text-muted); }
+.rn-flag-btn.on.frozen:hover { border-color: var(--rn-mark-border); color: var(--rn-mark-border); }
+
+/* Bookmark toggle (docs/product-plan/flag-and-bookmark.md §5). Replaces the
+ * old .rn-mark-btn, which was disabled from the day it shipped.
+ *
+ * ⚠ The active state is deliberately ACCENT, not --rn-mark-border. That amber
+ * is the grid's flagged-cell colour and belongs to the per-sitting FLAG. The
+ * two controls sit near each other and mean different things — one ephemeral,
+ * one permanent — so they must not share a colour. The filled-vs-outlined
+ * glyph carries the state as well, since colour alone fails a glance on a
+ * phone in sunlight. */
+.rn-bookmark-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rn-bookmark-btn:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+/* Busy = mid-write. Dim it, but keep the cursor honest: this is a moment,
+ * not a permanently unavailable control. */
+.rn-bookmark-btn:disabled { opacity: 0.55; cursor: wait; }
+/* SOLID when saved, not a pale tint — and that difference is meaningful.
+ * The calc and grid toggles tint to say "a panel is open", a transient bit
+ * of UI state. A bookmark is a stored fact about the question that outlives
+ * the sitting, so it reads as filled rather than tinted. It also keeps it
+ * clear of .rn-calc-btn.on, which tints to the same accent. */
+.rn-bookmark-btn.on {
+  color: var(--white);
+  border-color: var(--accent, #2d7d72);
+  background: var(--accent, #2d7d72);
+}
+.rn-bookmark-btn.on:hover:not(:disabled) {
+  color: var(--white);
+  border-color: var(--accent-dark, #1f5a52);
+  background: var(--accent-dark, #1f5a52);
+}
+
+/* Grid show/hide toggle — matches the bookmark button's look. Active state
+ * tints toward the grid panel it controls. */
+.rn-grid-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rn-grid-toggle-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.rn-grid-toggle-btn.on {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--rn-pane-bg);
+}
+
+/* Calculator toggle — sits between Mark and Grid, same look. Always present
+ * (the calculator is a real NCLEX tool in every mode). Active state tints to
+ * the accent, distinct from the grid toggle's primary tint. */
+.rn-calc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rn-calc-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.rn-calc-btn.on {
+  color: var(--accent-dark);
+  border-color: var(--accent);
+  background: #f2f8f7;
+}
+
+/* Phone topbar (CLAUDE.md UI #3 — students are phone-first).
+ *
+ * The bar had no mobile rules at all, and the bookmark button makes it a
+ * fourth control competing with the title, counter and clock at 375px. The
+ * label spans were pre-wired for exactly this: drop the words, keep the
+ * icons, and every control stays reachable without a menu.
+ *
+ * ⚠ The bookmark keeps a visible label longer than the others would deserve
+ * on size alone — it is the only one of the three whose state is a fact
+ * about the student's data rather than a panel they can see for themselves.
+ * Below 480px even that goes; the filled glyph and aria-label carry it. */
+@media (max-width: 768px) {
+  .rn-calc-btn-label,
+  .rn-grid-toggle-label { display: none; }
+  .rn-calc-btn,
+  .rn-grid-toggle-btn,
+  .rn-flag-btn,
+  .rn-bookmark-btn { padding: 5px 8px; gap: 0; }
+  /* Flag and bookmark keep their words longest: they are the two whose
+   * state is a fact about the student rather than a panel they can see,
+   * and they are the two most easily confused with each other. */
+  .rn-flag-btn,
+  .rn-bookmark-btn { gap: 6px; }
+}
+@media (max-width: 480px) {
+  .rn-flag-btn-label,
+  .rn-bookmark-btn-label { display: none; }
+  .rn-flag-btn,
+  .rn-bookmark-btn { gap: 0; }
+}
+
+/* ────────────────────────────────────────────────────────────
+ *  Body — main + grid
+ * ──────────────────────────────────────────────────────────── */
+.rn-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  position: relative;
+}
+
+.rn-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rn-main-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 28px 36px 24px;
+}
+
+/* Standalone-question wrapper (default — focused 720px column).
+ * On case-child items the same wrapper is the right-hand column of
+ * .rn-split (the column's minmax(520px, 720px) clamps the wrap, so
+ * its max-width / margin auto are no-ops inside a case). */
+.rn-q-wrap { max-width: 720px; margin: 0 auto; }
+
+/* ────────────────────────────────────────────────────────────
+ *  Case-block layout (slice 4.3)
+ *
+ *  Two-column split when current item has parent_case_id:
+ *    [ Case panel (sticky)  |  Question column ]
+ *
+ *  Layout C (wrapper-protected): wrapper has 380px floor, question
+ *  floats 520→720 depending on viewport. Cap total width at 1240px
+ *  so 27"+ monitors don't stretch the row past readable widths.
+ * ──────────────────────────────────────────────────────────── */
+.rn-split {
+  display: grid;
+  grid-template-columns: minmax(380px, 1fr) minmax(520px, 720px);
+  gap: 24px;
+  max-width: 1240px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+/* Case panel — sticky on the left so the chart stays visible while
+ * the question column scrolls. Column flex chain prevents the body
+ * from spilling out — internal scroll on .rn-case-body. */
+.rn-case {
+  background: var(--rn-pane-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - var(--rn-topbar-h) - var(--rn-foot-h) - 56px);
+  display: flex;
+  flex-direction: column;
+}
+.rn-case-head {
+  padding: 12px 14px;
+  background: linear-gradient(180deg, rgba(45,125,114,0.06) 0%, rgba(45,125,114,0) 100%);
+  border-bottom: 1px solid var(--border);
+}
+.rn-case-head .label {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent-dark, #1f5a52);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rn-case-head .label .pill {
+  background: rgba(45,125,114,0.14);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--accent, #2d7d72);
+  font-weight: 700;
+}
+.rn-case-head .title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* Scenario block — sits between the head and the tab row. Always
+ * visible (doesn't scroll with the tab body), so the case's narrative
+ * anchor stays in front of the student no matter which tab they pick. */
+.rn-case-scenario {
+  padding: 10px 14px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+}
+.rn-case-scenario .label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.rn-case-scenario .body {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.rn-case-tabs {
+  display: flex;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 6px;
+  overflow-x: auto;
+}
+.rn-case-tab {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.rn-case-tab:hover { color: var(--text); }
+.rn-case-tab.on {
+  color: var(--primary, #1f4f48);
+  border-bottom-color: var(--accent, #2d7d72);
+  background: var(--white);
+}
+
+.rn-case-body {
+  padding: 14px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+/* Free-text / built-in narrative entries — stacked cards. */
+.rn-case-entry {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+}
+.rn-case-entry:first-child { padding-top: 2px; }
+.rn-case-entry:last-child  { border-bottom: none; padding-bottom: 2px; }
+.rn-case-entry .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+  font-weight: 700;
+}
+.rn-case-entry .meta .chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.rn-case-entry .body {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Structured / rows_cols entries — table. */
+.rn-case-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.rn-case-body th,
+.rn-case-body td {
+  text-align: left;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.rn-case-body th {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg);
+  font-weight: 700;
+}
+.rn-case-body tr:last-child td { border-bottom: none; }
+
+.rn-case-body .empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 6px 0;
+}
+
+/* CJMM strip — 6-step horizontal stepper above the question. */
+.rn-cjmm-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(45,125,114,0.05);
+  border: 1px solid rgba(45,125,114,0.15);
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 11px;
+}
+.rn-cjmm-step {
+  flex: 1;
+  padding: 5px 6px;
+  border-radius: 5px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+}
+.rn-cjmm-step.done    { color: var(--accent-dark, #1f5a52); }
+.rn-cjmm-step.current {
+  background: var(--accent, #2d7d72);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(45,125,114,0.30);
+}
+.rn-cjmm-step .num {
+  font-size: 9.5px;
+  opacity: 0.7;
+  margin-right: 4px;
+}
+.rn-cjmm-arrow {
+  color: var(--text-faint, #93a0a0);
+  font-size: 9px;
+}
+
+/* CJMM pill in the q-meta strip — same family as .rn-type-pill but
+ * accent-toned because it carries the case's pedagogical label. */
+.rn-cjmm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(45,125,114,0.14);
+  color: var(--accent-dark, #1f5a52);
+}
+.rn-cjmm-pill .step { font-weight: 800; }
+
+/* Case-entry banner (lib/hints/practice/case-entry-banner.tsx).
+ * Non-modal — sits above the .rn-split, fades after a few seconds.
+ * The banner explains that the chart panel applies to N questions. */
+.rn-case-banner {
+  max-width: 1240px;
+  margin: 0 auto 16px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: rgba(45,125,114,0.08);
+  border: 1px solid rgba(45,125,114,0.25);
+  border-radius: 10px;
+  color: var(--text);
+  animation: rn-case-banner-in 240ms ease-out;
+}
+.rn-case-banner.fading {
+  animation: rn-case-banner-out 360ms ease-in forwards;
+}
+.rn-case-banner .icon {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(45,125,114,0.18);
+  color: var(--accent-dark, #1f5a52);
+  font-weight: 800;
+  font-size: 12px;
+}
+.rn-case-banner .body {
+  flex: 1;
+  min-width: 0;
+}
+.rn-case-banner .body strong {
+  font-weight: 700;
+  color: var(--accent-dark, #1f5a52);
+}
+.rn-case-banner .dismiss {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1;
+}
+.rn-case-banner .dismiss:hover {
+  background: rgba(0,0,0,0.04);
+  color: var(--text);
+}
+@keyframes rn-case-banner-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes rn-case-banner-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+
+/* ────────────────────────────────────────────────────────────
+ *  Trend dataset panel (slice 4.4)
+ *
+ *  Wrapper for trend questions. Reuses the .rn-split layout from
+ *  slice 4.3 (Layout C: wrapper-protected at 380px floor, question
+ *  column floats 520→720). Differences vs the case panel:
+ *    - No "X of N answered" pill in the head (trends are scattered
+ *      standalones, not chained).
+ *    - No tab row, no progressive disclosure — full dataset visible
+ *      from question 1.
+ *    - No CJMM strip in the question column (no clinical-judgment
+ *      phase to map).
+ *    - No grid bands behind clustered cells (trends scatter).
+ *    - No entry banner (the dataset is right there beside the
+ *      question; the layout reshuffle is self-explanatory).
+ * ──────────────────────────────────────────────────────────── */
+.rn-trend {
+  background: var(--rn-pane-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - var(--rn-topbar-h) - var(--rn-foot-h) - 56px);
+  display: flex;
+  flex-direction: column;
+}
+.rn-trend-head {
+  padding: 12px 14px;
+  background: linear-gradient(180deg, rgba(45,125,114,0.06) 0%, rgba(45,125,114,0) 100%);
+  border-bottom: 1px solid var(--border);
+}
+.rn-trend-head .label {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent-dark, #1f5a52);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rn-trend-head .label .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent, #2d7d72);
+}
+.rn-trend-head .title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* Scenario sits between the head and the table. Always visible. */
+.rn-trend-scenario {
+  padding: 10px 14px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+}
+.rn-trend-scenario .label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.rn-trend-scenario .body {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+/* Scrollable body — keeps the table from spilling out of the
+ * sticky aside if the dataset has many rows or long-text cells. */
+.rn-trend-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 14px 14px;
+}
+.rn-trend-body .empty {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 12px 4px;
+}
+
+/* Read-only sibling of the curator's tr-table (lib/bank/wrappers/trend
+ * /data-table.tsx). Same row × timepoint shape minus the input/buttons. */
+.rn-trend-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.rn-trend-table th,
+.rn-trend-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.rn-trend-table tbody tr:last-child td { border-bottom: 0; }
+.rn-trend-table th {
+  background: #fafbfc;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border);
+}
+.rn-trend-table th.metric-col,
+.rn-trend-table td.metric-col {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.rn-trend-table td.tp { font-variant-numeric: tabular-nums; }
+.rn-trend-table th.refrange-col,
+.rn-trend-table td.refrange {
+  background: #fafbfc;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* Trend pill in the q-meta strip — same family as .rn-cjmm-pill,
+ * accent-toned because it identifies the question as trend-linked.
+ * Lives only on trend-question cards (runner.tsx passes trendBadge
+ * to RunnerQuestionArea when currentItem.trend_id resolves to a
+ * snapshot). */
+.rn-trend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(45,125,114,0.14);
+  color: var(--accent-dark, #1f5a52);
+}
+.rn-trend-pill .glyph {
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.rn-q-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  align-items: center;
+}
+.rn-type-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.rn-stem {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--text);
+  margin-bottom: 18px;
+}
+.rn-stem strong { font-weight: 600; }
+
+.rn-instruction {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 14px;
+}
+
+/* SELECT_N count header — small line above the options showing the
+ * required pick-count and the student's progress. Indented + width-
+ * constrained to align with the option list below. Hidden in review
+ * mode (the per-option verdict states already tell the story). */
+.rn-opt-count {
+  margin-left: 32px;
+  max-width: 460px;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.rn-opt-count strong { color: var(--text); font-weight: 700; }
+.rn-opt-count .sep   { color: var(--text-faint); }
+.rn-opt-count .hint     { font-style: italic; }
+.rn-opt-count .hint.met { color: var(--accent); font-weight: 600; font-style: normal; }
+
+/* MCQ / SATA / Select-N option list — academic / paper-exam treatment.
+ * Settled in mockup review (2026-05-07): plain "A." letter prefixing
+ * each line, fixed 22x22 letter slot to prevent text jiggle when state
+ * changes (selected / correct / wrong-pick fill the slot with a coloured
+ * circle + drop the period). No tinted backgrounds — state is signalled
+ * by a 3px left-border accent + the letter circle. Options sit indented
+ * (margin-left: 32px) and constrained (max-width: 460px) to read as a
+ * narrow indented list rather than full-width cards. */
+.rn-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: 32px;
+  max-width: 460px;
+}
+.rn-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 3px;
+  background: var(--white);
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  text-align: left;
+  transition: border-color .12s;
+}
+.rn-opt:hover:not(.locked) { border-color: var(--border-strong); }
+.rn-opt:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.rn-opt.sel {
+  border-color: var(--accent);
+  border-left-color: var(--accent);
+}
+.rn-opt.right  { border-left-color: #16a34a; }
+.rn-opt.wrong  { border-left-color: #b91c1c; }
+.rn-opt.missed { border-left-color: #d97706; }   /* amber — SATA "should have picked" */
+.rn-opt.locked { cursor: default; }
+.rn-opt.dim    { opacity: 0.6; }
+
+/* Letter slot — fixed 22x22 in every state. Default: bold "A." with the
+ * period right-aligned so its right edge matches the circle's right edge
+ * across states (zero horizontal layout shift on state change). */
+.rn-opt-letter {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text);
+}
+.rn-opt-letter::after { content: "."; }
+
+/* Marked states — circle replaces the plain letter in the same slot.
+ * Four classes: .sel (answering pick), .right / .wrong / .missed (review). */
+.rn-opt.sel    .rn-opt-letter,
+.rn-opt.right  .rn-opt-letter,
+.rn-opt.wrong  .rn-opt-letter,
+.rn-opt.missed .rn-opt-letter {
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+}
+.rn-opt.sel    .rn-opt-letter { background: var(--accent); }
+.rn-opt.right  .rn-opt-letter { background: #16a34a; }
+.rn-opt.wrong  .rn-opt-letter { background: #b91c1c; }
+.rn-opt.missed .rn-opt-letter { background: #d97706; }
+.rn-opt.sel    .rn-opt-letter::after,
+.rn-opt.right  .rn-opt-letter::after,
+.rn-opt.wrong  .rn-opt-letter::after,
+.rn-opt.missed .rn-opt-letter::after { content: ""; }
+
+.rn-opt-body { flex: 1; min-width: 0; }
+
+/* MATRIX — rows × columns grid (one row, one pick).
+ * Each row is its own CSS Grid (template applied inline so the
+ * column count varies per question). Cells are clickable buttons
+ * with a radio-style ○/● glyph. Per-row feedback line in review.
+ *
+ * Visual hierarchy (settled in mockup review 2026-05-08):
+ *   • outer 2px border + radius + padding wraps the whole matrix
+ *     as one contained unit
+ *   • each body row sits inside a 1.5px-bordered .row-block, so
+ *     rows read as discrete units the eye can scan
+ *   • header row uses just a bottom divider (no all-sides border)
+ *     so it frames the body rather than competing with them
+ *   • cell radio glyphs are 20px so they read clearly at a glance
+ */
+.rn-matrix {
+  margin-left: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 10px;
+  background: var(--white);
+}
+.rn-matrix-row,
+.rn-matrix-row.head {
+  display: grid;
+  gap: 4px;
+}
+.rn-matrix-row-block {
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--white);
+  padding: 4px;
+}
+.rn-matrix-row.head {
+  border-bottom: 2px solid var(--border-strong);
+  padding: 0 4px 8px;
+  margin-bottom: 6px;
+}
+.rn-matrix-row-label-head,
+.rn-matrix-col-head {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 6px 10px;
+}
+.rn-matrix-col-head { text-align: center; }
+.rn-matrix-row-label {
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--bg);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+}
+.rn-matrix-cell {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  min-height: 44px;
+  transition: border-color .12s, background .12s;
+}
+.rn-matrix-cell::before {
+  content: '○';
+  color: var(--text-faint);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+.rn-matrix-cell:hover:not(.locked) { border-color: var(--border-strong); }
+.rn-matrix-cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.rn-matrix-cell.sel {
+  background: rgba(45, 125, 114, 0.07);
+  border-color: var(--accent);
+}
+.rn-matrix-cell.sel::before    { content: '●'; color: var(--accent); }
+.rn-matrix-cell.right {
+  background: rgba(22, 163, 74, 0.08);
+  border-color: #16a34a;
+}
+.rn-matrix-cell.right::before  { content: '●'; color: #15803d; }
+.rn-matrix-cell.wrong {
+  background: rgba(185, 28, 28, 0.06);
+  border-color: #b91c1c;
+}
+.rn-matrix-cell.wrong::before  { content: '●'; color: #b91c1c; }
+.rn-matrix-cell.missed {
+  border-color: #d97706;
+  border-style: dashed;
+}
+.rn-matrix-cell.missed::before { content: '✓'; color: #b45309; font-size: 18px; }
+.rn-matrix-cell.locked { cursor: default; }
+
+/* MATRIX_MR (.multi) — checkbox affordance: square glyphs instead of the
+   radio circle. One or more cells per row can be picked. */
+.rn-matrix.multi .rn-matrix-cell::before        { content: '☐'; }
+.rn-matrix.multi .rn-matrix-cell.sel::before    { content: '☑'; color: var(--accent); }
+.rn-matrix.multi .rn-matrix-cell.right::before  { content: '☑'; color: #15803d; }
+.rn-matrix.multi .rn-matrix-cell.wrong::before  { content: '☒'; color: #b91c1c; }
+.rn-matrix.multi .rn-matrix-cell.missed::before { content: '☑'; color: #b45309; }
+
+.rn-matrix-row-foot {
+  padding: 4px 12px 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* HIGHLIGHT — passage with [[bracketed]] clickable chunks.
+ * Each chunk renders as an inline button with a "highlightable"
+ * affordance (blue tint + dashed underline). State styles signal
+ * correctness in review mode. Visual palette mirrors the highlight
+ * editor's preview (auth-hl-preview-chunk) so curators recognise
+ * roughly the same render the student sees. */
+.rn-highlight-stem {
+  font-size: 15.5px;
+  line-height: 1.85;     /* extra leading so chunk padding doesn't crowd */
+  color: var(--text);
+  margin-bottom: 18px;
+}
+/* Orientation hint above the passage (answering mode only).
+ * Persistent — not a one-time onboarding — so repeat users still
+ * see it as state info ("X highlighted") once they engage. Pattern
+ * mirrors SELECT_N's count line. */
+.rn-highlight-hint {
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.rn-highlight-hint strong { color: var(--text); font-weight: 700; }
+.rn-highlight-hint .sep   { color: var(--text-faint); }
+.rn-highlight-hint .hint  { font-style: italic; }
+
+/* Universal no-hint default — chunks look like ordinary passage text
+ * until tapped. Per design discussion 2026-05-08: the cognitive work
+ * IS the search; pre-marking chunks would telegraph the answer space
+ * and shortcut the clinical reasoning the student is meant to do.
+ * The 2x6 padding extends the tap target invisibly without visible
+ * effect; the 1px transparent border reserves space so state changes
+ * don't shift the passage layout when a chunk is selected. */
+.rn-highlight-chunk {
+  display: inline;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-decoration: none;
+  transition: background-color .12s, border-color .12s;
+}
+.rn-highlight-chunk:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.rn-highlight-chunk.sel {
+  background: #fef9c3;       /* highlighter yellow */
+  border-color: #facc15;
+  color: #713f12;
+  font-weight: 600;
+}
+.rn-highlight-chunk.locked {
+  cursor: default;
+}
+.rn-highlight-chunk.right {
+  background: #dcfce7;
+  border-color: #16a34a;
+  color: #14532d;
+  font-weight: 700;
+}
+.rn-highlight-chunk.wrong {
+  background: #fee2e2;
+  border-color: #b91c1c;
+  color: #7f1d1d;
+  font-weight: 600;
+  text-decoration: line-through;
+  text-decoration-color: #b91c1c;
+  text-decoration-thickness: 1.5px;
+}
+.rn-highlight-chunk.missed {
+  background: transparent;
+  border-color: #d97706;
+  border-style: dashed;
+  color: #b45309;
+  font-weight: 600;
+}
+
+/* Per-chunk feedback list (review mode). Shows only chunks involved
+ * in the student's answer story (picked or should-have-been-picked). */
+.rn-highlight-feedback {
+  margin-top: 16px;
+  background: var(--bg);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  padding: 6px 14px;
+}
+.rn-highlight-feedback-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.rn-highlight-feedback-item:last-child { border-bottom: 0; }
+.rn-highlight-feedback-icon {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 13px;
+  width: 16px;
+  text-align: center;
+}
+.rn-highlight-feedback-icon.right  { color: #15803d; }
+.rn-highlight-feedback-icon.wrong  { color: #b91c1c; }
+.rn-highlight-feedback-icon.missed { color: #b45309; }
+.rn-highlight-feedback-text {
+  flex: 1;
+  color: var(--text-muted);
+}
+.rn-highlight-feedback-text strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* CLOZE — sentence with inline {N} markers, native <select> per blank.
+ * Like HIGHLIGHT, the per-type runner takes over stem rendering. The
+ * stem reads as a sentence with dropdowns flowing inline; spacing
+ * mirrors the highlight stem (line-height 1.85) so dropdown chrome
+ * doesn't crowd the surrounding text. Native <select> keeps a11y +
+ * mobile + zero custom dropdown infrastructure. */
+.rn-cloze-stem {
+  font-size: 15.5px;
+  line-height: 1.85;
+  color: var(--text);
+  margin-bottom: 18px;
+}
+.rn-cloze-hint {
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.rn-cloze-hint strong { color: var(--text); font-weight: 700; }
+.rn-cloze-hint .sep   { color: var(--text-faint); }
+.rn-cloze-hint .hint  { font-style: italic; }
+
+/* Wrapper around each blank's number + dropdown/pill so they stay
+ * grouped on the same line when the line wraps. The wrapper itself is
+ * inline so the segment continues to flow with the surrounding stem
+ * prose. */
+.rn-cloze-blank-wrap {
+  display: inline;
+  white-space: nowrap;
+}
+/* Persistent number marker — small superscript before every blank.
+ * Faint enough not to compete with the surrounding stem prose; matches
+ * the "Blank N" headers in the post-answer feedback list so the
+ * student can map dropdown ↔ rationale by index. */
+.rn-cloze-blank-num {
+  display: inline-block;
+  margin-right: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  vertical-align: super;
+  line-height: 1;
+}
+
+/* Inline dropdown — sized to its content with a max cap so a long
+ * choice doesn't stretch a line off the column. Default border picks
+ * up the same dashed-affordance feel HIGHLIGHT uses (clickable). When
+ * a value is picked, border firms up + faint accent tint signals the
+ * blank is filled without screaming. */
+.rn-cloze-select {
+  display: inline-block;
+  vertical-align: baseline;
+  margin: 0 2px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  max-width: 22ch;
+  cursor: pointer;
+  transition: background-color .12s, border-color .12s;
+}
+.rn-cloze-select:hover  { border-color: var(--accent); }
+.rn-cloze-select:focus  { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rn-cloze-select.sel {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+/* Review pills — inline, sized to their picked text. Three states match
+ * the HIGHLIGHT palette so the visual language stays consistent across
+ * stem-takeover types. */
+.rn-cloze-pill {
+  display: inline;
+  padding: 2px 6px;
+  margin: 0 2px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.rn-cloze-pill-mark {
+  margin-right: 4px;
+  font-weight: 700;
+}
+.rn-cloze-pill.right {
+  background: #dcfce7;
+  border-color: #16a34a;
+  color: #14532d;
+  font-weight: 700;
+}
+.rn-cloze-pill.wrong {
+  background: #fee2e2;
+  border-color: #b91c1c;
+  color: #7f1d1d;
+}
+.rn-cloze-pill.skipped {
+  background: transparent;
+  border-color: #d97706;
+  border-style: dashed;
+  color: #b45309;
+  font-style: italic;
+}
+
+/* Per-blank feedback (review mode). Flowing prose, not boxed options.
+ * Per blank: a left-accented "Blank N" header followed by a paragraph
+ * where every option label runs inline with its per-choice rationale.
+ * Correct label is green, wrong labels are a softened red so multiple
+ * wrong distractors don't shout — the single green label still pops as
+ * the answer key. The pill row was dropped because the colour-coded
+ * labels in the prose already encode the answer-key signal. The
+ * student's pick stays in the stem pill, not duplicated in this block.
+ * Settled in design mock B′, 2026-05-08. */
+.rn-cloze-feedback {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.rn-cloze-feedback-blank {
+  border-left: 3px solid var(--accent);
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+/* Per-blank header — "<num> CORRECT" / "<num> WRONG" / "<num> SKIPPED".
+ * The verdict colour mirrors the stem pill (green / red / amber) so the
+ * student can tell at a glance how they did on each blank before
+ * reading the rationale. The number ties back to the superscript marker
+ * in the stem above. */
+.rn-cloze-feedback-blank-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.rn-cloze-feedback-blank-label .num {
+  opacity: 0.7;
+}
+.rn-cloze-feedback-blank-label.right    { color: #15803d; }
+.rn-cloze-feedback-blank-label.wrong    { color: #9b2c2c; }
+.rn-cloze-feedback-blank-label.skipped  { color: #b45309; }
+.rn-cloze-feedback-rationales {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+.rn-cloze-feedback-item + .rn-cloze-feedback-item::before {
+  content: ' ';
+}
+.rn-cloze-feedback-label {
+  font-weight: 600;
+  color: #9b2c2c;
+}
+.rn-cloze-feedback-item.right .rn-cloze-feedback-label {
+  color: #15803d;
+}
+
+/* DRAG_DROP — click-to-place interaction (not real HTML5 drag-and-drop).
+ * Two subtypes share one component:
+ *   ORDERED  : numbered slot list below the stem with target_text labels.
+ *   SENTENCE : stem-takeover; inline drop boxes flow within the prose.
+ * Both show a token pool below; tokens leave the pool on placement. */
+.rn-dd-hint {
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* SENTENCE — stem with inline drop boxes (mirrors HIGHLIGHT / CLOZE
+ * stem typography for consistency across stem-takeover types). */
+.rn-dd-stem {
+  font-size: 15.5px;
+  line-height: 1.95;
+  color: var(--text);
+  margin-bottom: 18px;
+}
+.rn-dd-inline-box {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 0 2px;
+  padding: 3px 8px;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-faint);
+  font-family: inherit;
+  font-size: inherit;
+  font-style: italic;
+  font-weight: 500;
+  cursor: pointer;
+  vertical-align: baseline;
+  transition: background-color .12s, border-color .12s;
+}
+.rn-dd-inline-box:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rn-dd-inline-box.filled {
+  background: var(--surface);
+  border-style: solid;
+  border-color: var(--border);
+  color: var(--text);
+  font-style: normal;
+  font-weight: 600;
+}
+.rn-dd-inline-box.armed-target {
+  border-color: var(--accent);
+  border-style: solid;
+  background: #eff6ff;
+}
+.rn-dd-inline-box.locked { cursor: default; }
+.rn-dd-inline-box.right {
+  background: #dcfce7;
+  border-color: #16a34a;
+  border-style: solid;
+  color: #14532d;
+  font-weight: 700;
+}
+.rn-dd-inline-box.wrong {
+  background: #fee2e2;
+  border-color: #b91c1c;
+  border-style: solid;
+  color: #7f1d1d;
+}
+.rn-dd-inline-box.skipped {
+  background: transparent;
+  border-color: #d97706;
+  border-style: dashed;
+  color: #b45309;
+}
+.rn-dd-inline-num {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  vertical-align: super;
+  line-height: 1;
+}
+.rn-dd-inline-box.right    .rn-dd-inline-num,
+.rn-dd-inline-box.wrong    .rn-dd-inline-num,
+.rn-dd-inline-box.skipped  .rn-dd-inline-num { color: currentColor; opacity: 0.65; }
+.rn-dd-inline-mark { font-weight: 700; }
+.rn-dd-inline-text { }
+
+/* ORDERED — numbered slot list. Each row is a tap target with a
+ * number chip on the left, optional target_text label, and a drop
+ * region on the right that fills with the placed token's text. */
+.rn-dd-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+.rn-dd-slot-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color .12s, border-color .12s;
+}
+.rn-dd-slot-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rn-dd-slot-row.filled  { border-style: solid; }
+.rn-dd-slot-row.armed-target {
+  border-style: solid;
+  border-color: var(--accent);
+  background: #eff6ff;
+}
+.rn-dd-slot-row.locked { cursor: default; }
+.rn-dd-slot-row.right {
+  background: #dcfce7;
+  border-color: #16a34a;
+  border-style: solid;
+  color: #14532d;
+}
+.rn-dd-slot-row.wrong {
+  background: #fee2e2;
+  border-color: #b91c1c;
+  border-style: solid;
+  color: #7f1d1d;
+}
+.rn-dd-slot-row.skipped {
+  background: transparent;
+  border-color: #d97706;
+  border-style: dashed;
+  color: #b45309;
+}
+.rn-dd-slot-num {
+  flex: 0 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.rn-dd-slot-row.right    .rn-dd-slot-num,
+.rn-dd-slot-row.wrong    .rn-dd-slot-num,
+.rn-dd-slot-row.skipped  .rn-dd-slot-num { background: rgba(255,255,255,0.5); color: currentColor; }
+.rn-dd-slot-label {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.rn-dd-slot-row.right    .rn-dd-slot-label,
+.rn-dd-slot-row.wrong    .rn-dd-slot-label,
+.rn-dd-slot-row.skipped  .rn-dd-slot-label { color: currentColor; opacity: 0.85; }
+.rn-dd-slot-drop {
+  flex: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text);
+}
+.rn-dd-slot-row:not(.filled):not(.right):not(.wrong):not(.skipped) .rn-dd-slot-drop {
+  color: var(--text-faint);
+  font-style: italic;
+  font-weight: 500;
+}
+.rn-dd-slot-row.right    .rn-dd-slot-drop,
+.rn-dd-slot-row.wrong    .rn-dd-slot-drop,
+.rn-dd-slot-row.skipped  .rn-dd-slot-drop { color: currentColor; }
+.rn-dd-slot-mark { font-weight: 700; }
+
+/* Token pool — tap to arm, tap a slot to place. Tokens leave the pool
+ * once placed; tap a filled slot to return them. */
+.rn-dd-pool {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.rn-dd-pool-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.rn-dd-pool-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rn-dd-token {
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform .08s, box-shadow .12s, border-color .12s;
+}
+.rn-dd-token:hover         { border-color: var(--accent); }
+.rn-dd-token:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rn-dd-token.armed {
+  background: #eff6ff;
+  border-color: var(--accent);
+  color: #1e3a8a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18);
+}
+
+/* Per-slot feedback prose (review mode) — same shape as CLOZE: per
+ * slot, a coloured "<num> CORRECT/WRONG/SKIPPED" header followed by a
+ * single rationale paragraph. Unlike CLOZE we don't have per-token
+ * rationales, so for wrong/skipped slots we prepend "Correct answer:
+ * <token text>." so the answer key reaches the student even when the
+ * curator left feedback empty for that slot. */
+.rn-dd-feedback {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.rn-dd-feedback.ordered {
+  gap: 8px;
+}
+.rn-dd-feedback-blank {
+  border-left: 3px solid var(--accent);
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rn-dd-feedback-blank-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.rn-dd-feedback-blank-label .num { opacity: 0.7; }
+.rn-dd-feedback-blank-label.right    { color: #15803d; }
+.rn-dd-feedback-blank-label.wrong    { color: #9b2c2c; }
+.rn-dd-feedback-blank-label.skipped  { color: #b45309; }
+.rn-dd-feedback-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+.rn-dd-feedback-correct-label {
+  font-weight: 600;
+  color: #15803d;
+}
+
+/* ORDERED feedback — unified per-slot block. Each row is a green
+ * answer-key card (number + target_text + correct token) with the
+ * rationale stacked beneath it. The student's own pick verdict lives
+ * in the stem slot rows above, so this strip is purely the answer key
+ * + rationale, not a "you got X right" recap. */
+.rn-dd-feedback-heading {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.rn-dd-feedback-row-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: #dcfce7;
+  border: 1px solid #16a34a;
+  border-radius: 6px;
+  color: #14532d;
+  font-size: 13px;
+}
+.rn-dd-feedback-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rn-dd-feedback-row-num {
+  flex: 0 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  color: currentColor;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.rn-dd-feedback-row-label {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+.rn-dd-feedback-row-token {
+  flex: 1;
+  font-weight: 700;
+}
+.rn-dd-feedback-row-rationale {
+  margin: 0;
+  padding-left: 30px;       /* aligns with the start of the token text past the num chip + gap */
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.5;
+  color: rgba(20, 83, 45, 0.82);
+}
+
+/* Distractors strip — bottom of the feedback area for both subtypes.
+ * Lists tokens that weren't the rubric answer for any slot, so students
+ * can name what was a "trap" option even if they correctly left it in
+ * the pool. Visual treatment is a soft red — clearly "not correct" but
+ * less aggressive than the wrong-pill in the stem (which signals "your
+ * pick was wrong", a different message). */
+.rn-dd-feedback-distractors {
+  margin-top: 4px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border-left: 3px solid #c0392b;
+  border-radius: 0 6px 6px 0;
+}
+.rn-dd-feedback-distractors-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9b2c2c;
+  margin-bottom: 8px;
+}
+.rn-dd-feedback-distractors-tokens {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rn-dd-feedback-distractor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* The trap token's label keeps the red pill look; its rationale (if the
+   curator authored one) stacks beneath it. */
+.rn-dd-feedback-distractor-text {
+  align-self: flex-start;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid #c0392b;
+  background: transparent;
+  color: #9b2c2c;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.rn-dd-feedback-distractor-rationale {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  padding-left: 2px;
+}
+
+/* BOWTIE — literal bow-tie shape with click-to-place tokens. Five
+ * empty drop slots laid out as 3-column grid (left top + bottom on
+ * the sides, centre in the middle row, right top + bottom on the
+ * sides). Token pool below mirrors the three wings as separate
+ * bordered columns. Settled in the bow-tie design mock 2026-05-08. */
+.rn-bt-hint {
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+/* The bow-tie shape itself — 3 columns × 3 rows. Wing labels in row 1,
+ * top side slots + centre in row 2, bottom side slots in row 3. */
+.rn-bt-shape {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 4px 14px;
+  align-items: center;
+  max-width: 600px;
+  margin: 0 auto 12px;
+  padding: 8px 4px;
+}
+.rn-bt-shape-label {
+  grid-row: 1;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-align: center;
+  padding-bottom: 2px;
+}
+.rn-bt-shape-label.left   { grid-column: 1; }
+.rn-bt-shape-label.centre { grid-column: 2; color: var(--accent); }
+.rn-bt-shape-label.right  { grid-column: 3; }
+
+/* Slot drop targets. Side slots in column 1 / 3, centre slot spans
+ * the middle row (column 2, row 2). */
+.rn-bt-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 36px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1.5px dashed var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text-faint);
+  font-family: inherit;
+  font-size: 12px;
+  font-style: italic;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color .12s, border-color .12s, box-shadow .12s;
+}
+.rn-bt-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rn-bt-slot.left-top  { grid-column: 1; grid-row: 2; }
+.rn-bt-slot.left-bot  { grid-column: 1; grid-row: 3; }
+.rn-bt-slot.right-top { grid-column: 3; grid-row: 2; }
+.rn-bt-slot.right-bot { grid-column: 3; grid-row: 3; }
+.rn-bt-slot.centre {
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 56px;
+  border-color: var(--accent);
+  font-size: 13px;
+}
+.rn-bt-slot.filled {
+  background: #eff6ff;
+  border-style: solid;
+  border-color: var(--accent);
+  color: #1e3a8a;
+  font-style: normal;
+  font-weight: 600;
+}
+.rn-bt-slot.armed-target {
+  border-color: var(--accent);
+  background: #dbeafe;
+  animation: rn-bt-pulse 1.4s ease-in-out infinite;
+}
+@keyframes rn-bt-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.0); }
+  50%      { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18); }
+}
+.rn-bt-slot.locked  { cursor: default; }
+.rn-bt-slot.right {
+  background: #dcfce7;
+  border-color: #16a34a;
+  border-style: solid;
+  color: #14532d;
+  font-style: normal;
+  font-weight: 700;
+}
+.rn-bt-slot.wrong {
+  background: #fee2e2;
+  border-color: #b91c1c;
+  border-style: solid;
+  color: #7f1d1d;
+  font-style: normal;
+  font-weight: 600;
+}
+.rn-bt-slot.skipped {
+  background: transparent;
+  border-color: #d97706;
+  border-style: dashed;
+  color: #b45309;
+}
+.rn-bt-slot-mark { font-weight: 700; }
+.rn-bt-slot-text { display: inline; }
+
+/* Subtle connector lines from centre slot edges suggest the bow-tie
+ * wings flaring out. Pure CSS, no SVG. */
+.rn-bt-slot.centre::before,
+.rn-bt-slot.centre::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 1px;
+  background: var(--border);
+  top: 50%;
+  pointer-events: none;
+}
+.rn-bt-slot.centre::before { right: 100%; transform: translateX(2px); }
+.rn-bt-slot.centre::after  { left: 100%;  transform: translateX(-2px); }
+
+/* Token pool below the bow-tie — 3 separate bordered cards, one per
+ * wing, mirroring the bow-tie's column structure for spatial mapping. */
+.rn-bt-pool {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 720px) {
+  .rn-bt-pool { grid-template-columns: 1fr; }
+}
+.rn-bt-pool-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.rn-bt-pool-col.centre { border-color: var(--accent); }
+.rn-bt-pool-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.rn-bt-pool-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.rn-bt-pool-col.centre .rn-bt-pool-label { color: var(--accent); }
+.rn-bt-pool-count {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.rn-bt-pool-count.full { color: #15803d; }
+.rn-bt-pool-tokens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Pool token (answering) — tap to arm. */
+.rn-bt-pool-token {
+  width: 100%;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: transform .08s, border-color .12s, box-shadow .12s;
+}
+.rn-bt-pool-token:hover         { border-color: var(--accent); }
+.rn-bt-pool-token:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rn-bt-pool-token.armed {
+  border-color: var(--accent);
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-weight: 600;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+}
+
+/* Review-mode feedback items — every token shown with 4-state palette
+ * + per-token rationale. Same column shell as the answering pool. */
+.rn-bt-fb-item { list-style: none; }
+.rn-bt-fb-pill {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.rn-bt-fb-pill.right {
+  background: #dcfce7;
+  border-color: #16a34a;
+  color: #14532d;
+  font-weight: 700;
+}
+.rn-bt-fb-pill.wrong {
+  background: #fee2e2;
+  border-color: #b91c1c;
+  color: #7f1d1d;
+  font-weight: 600;
+}
+.rn-bt-fb-pill.missed {
+  background: transparent;
+  border-color: #d97706;
+  border-style: dashed;
+  color: #b45309;
+  font-weight: 600;
+}
+.rn-bt-fb-pill.dim {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.rn-bt-fb-text { flex: 1; }
+.rn-bt-fb-verdict {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.rn-bt-fb-pill.right  .rn-bt-fb-verdict { color: #15803d; }
+.rn-bt-fb-pill.wrong  .rn-bt-fb-verdict { color: #b91c1c; }
+.rn-bt-fb-pill.missed .rn-bt-fb-verdict { color: #b45309; }
+.rn-bt-fb-rationale {
+  margin: 3px 0 6px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* Per-option feedback (review mode) — italic muted line directly under
+ * the option text. No top border, no top padding — keeps the option
+ * card compact. */
+.rn-opt-fb {
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.rn-opt-fb strong { color: var(--text); font-weight: 600; }
+
+/* Verdict label (review mode) — plain inline text coloured by the
+ * parent option's state. The ✓ / ✕ glyph is in the markup so screen
+ * readers get a meaningful spoken cue alongside the text. */
+.rn-opt-verdict {
+  flex-shrink: 0;
+  align-self: baseline;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.rn-opt.right  .rn-opt-verdict { color: #15803d; }
+.rn-opt.wrong  .rn-opt-verdict { color: #b91c1c; }
+.rn-opt.missed .rn-opt-verdict { color: #b45309; }
+
+/* Review scoring strip — the line above the rationale carrying how the
+ * question was marked: verdict chip · score + breakdown | rule … time.
+ * A bordered card rather than the rationale's accent block, so the two
+ * read as separate statements (how it was marked / why).
+ *
+ * Wraps rather than truncates: the rule sentence is the longest piece
+ * and a phone will not hold it on one line. Nothing here is decorative,
+ * so nothing may be clipped away. */
+.rn-strip {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 9px 13px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+/* The strip states the verdict, so the rationale under it follows on
+ * closely rather than restarting at a full block gap. */
+.rn-strip + .rn-rationale { margin-top: 10px; }
+.rn-strip-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  border: 1px solid;
+}
+.rn-strip-verdict .glyph { font-size: 11px; line-height: 1; }
+.rn-strip-verdict.ok {
+  color: #15803d;
+  background: rgba(22, 163, 74, 0.08);
+  border-color: rgba(22, 163, 74, 0.35);
+}
+/* Amber, matching the ".missed" option rows a partial score is made of.
+ * Never red — a partial answer is not a wrong one. */
+.rn-strip-verdict.part {
+  color: #b45309;
+  background: rgba(217, 119, 6, 0.08);
+  border-color: rgba(217, 119, 6, 0.35);
+}
+.rn-strip-verdict.no {
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.07);
+  border-color: rgba(185, 28, 28, 0.30);
+}
+.rn-strip-score {
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+.rn-strip-score .sub {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.rn-strip-sep {
+  width: 1px;
+  height: 13px;
+  flex-shrink: 0;
+  background: var(--border);
+}
+.rn-strip-rule {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  /* Keeps the rule from wrapping to a single orphaned word — "never
+   * below" / "0" on its own line reads as a broken sentence. */
+  text-wrap: pretty;
+}
+/* Pushed right on a wide row; falls in line naturally once wrapped. */
+.rn-strip-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.rn-strip-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.rn-strip-time .glyph { color: var(--text-muted); }
+/* How other students did. Dotted underline + help cursor because the
+ * hover sentence is where the population is named — the visible text is
+ * two numbers and cannot say who they are of. */
+.rn-strip-others {
+  border-bottom: 1px dotted var(--text-muted);
+  cursor: help;
+  font-variant-numeric: tabular-nums;
+}
+.rn-strip-others strong { color: var(--text); font-weight: 700; }
+
+@media (max-width: 768px) {
+  /* margin-left:auto strands the time on its own line once the row has
+   * wrapped; on a phone it should simply follow the rule text. */
+  .rn-strip { gap: 7px 10px; padding: 9px 11px; }
+  .rn-strip-meta { margin-left: 0; }
+  .rn-strip-sep { display: none; }
+}
+
+/* Rationale block (UL post-submit + Review) — left-border accent on a
+ * soft grey block. Replaces the bordered card to match the academic
+ * option treatment (no boxed chrome, no chip backgrounds). Verdict is
+ * coloured uppercase text; score sits next to it muted. */
+.rn-rationale {
+  margin-top: 16px;
+  background: var(--bg);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  padding: 12px 14px;
+}
+.rn-rationale-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.rn-rationale-head .verdict {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.rn-rationale-head .verdict.ok   { color: #15803d; }
+/* Partial credit — amber, the same hue the option rows already use for
+ * ".missed" (a correct answer the student didn't pick), which is what a
+ * partial score is made of. Never red: a partial answer is not wrong. */
+.rn-rationale-head .verdict.part { color: #b45309; }
+.rn-rationale-head .verdict.no   { color: #b91c1c; }
+.rn-rationale-head .score {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.rn-rationale-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.rn-rationale-body p { margin: 0 0 8px; }
+.rn-rationale-body p:last-child { margin-bottom: 0; }
+.rn-rationale-img {
+  display: block;
+  margin-top: 10px;
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+/* Slot placeholder used until 4.1.4 wires the per-type runner. */
+.rn-stub {
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  padding: 18px 16px;
+  background: var(--bg);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  text-align: center;
+  font-style: italic;
+}
+
+/* Footer (prev / status msg / submit). */
+.rn-foot {
+  height: var(--rn-foot-h);
+  flex-shrink: 0;
+  background: var(--rn-pane-bg);
+  border-top: 1px solid var(--rn-pane-border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 14px;
+}
+.rn-foot-msg {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.rn-foot-side {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 110px;
+}
+.rn-foot-side.right { justify-content: flex-end; }
+
+/* ────────────────────────────────────────────────────────────
+ *  Question grid (right-edge sticky panel)
+ * ──────────────────────────────────────────────────────────── */
+.rn-grid {
+  width: var(--rn-grid-w);
+  background: var(--rn-pane-bg);
+  border-left: 1px solid var(--rn-pane-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.rn-grid-head {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--rn-pane-border);
+}
+.rn-grid-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.rn-grid-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.rn-grid-collapse {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rn-grid-collapse:hover { color: var(--text); background: var(--bg); }
+
+.rn-grid-filters {
+  display: flex;
+  gap: 4px;
+  background: var(--bg);
+  padding: 3px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+}
+.rn-grid-filter {
+  flex: 1;
+  padding: 4px 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rn-grid-filter.on {
+  background: var(--white);
+  color: var(--primary);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.rn-grid-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 14px 14px;
+  position: relative;
+}
+
+.rn-cells {
+  display: grid;
+  grid-template-columns: repeat(5, var(--rn-cell));
+  gap: var(--rn-cell-gap);
+  position: relative;
+  justify-content: start;
+}
+
+/* Case-band — subtle tinted rectangle behind a cluster of case-child
+ * cells. Absolute-positioned by JS-computed offsets relative to .rn-cells.
+ * Sits behind the cells (z-index 0) so cell hover/focus rings still read.
+ * No label per spec §16.4 — visual grouping only. */
+.rn-case-band {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--rn-case-band);
+  border: 1px solid var(--rn-case-band-edge);
+  border-radius: 6px;
+}
+.rn-cell { z-index: 1; }
+
+.rn-cell {
+  width: var(--rn-cell);
+  height: var(--rn-cell);
+  border-radius: 6px;
+  border: 1px solid var(--rn-fill-unanswered-border);
+  background: var(--rn-fill-unanswered);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  font-variant-numeric: tabular-nums;
+  transition: transform .12s, box-shadow .12s;
+  padding: 0;
+}
+.rn-cell:hover { transform: translateY(-1px); }
+
+/* Fill (background) — 6 states */
+.rn-cell.f-answered {
+  background: var(--rn-fill-answered);
+  border-color: #b8c8dc;
+  color: var(--rn-fill-answered-text);
+}
+.rn-cell.f-right {
+  background: var(--rn-fill-right);
+  border-color: #84c193;
+  color: var(--rn-fill-right-text);
+}
+.rn-cell.f-partial {
+  background: var(--rn-fill-partial);
+  border-color: #d6a85a;
+  color: var(--rn-fill-partial-text);
+}
+.rn-cell.f-wrong {
+  background: var(--rn-fill-wrong);
+  border-color: #3d0e0e;
+  color: var(--rn-fill-wrong-text);
+}
+/* Dashed edge carries "skipped" without a hue, so the state stays
+ * legible to anyone who cannot separate amber from grey — and so that
+ * the six fills are not six flat colours competing at 36px. */
+.rn-cell.f-skipped {
+  background: var(--rn-fill-skipped);
+  border-style: dashed;
+  border-color: var(--rn-fill-skipped-border);
+  color: var(--rn-fill-skipped-text);
+}
+
+/* Border (marked) — overrides default border, not the fill */
+.rn-cell.marked { border: 2px solid var(--rn-mark-border); }
+
+/* Outer ring (current) */
+.rn-cell.current {
+  box-shadow: 0 0 0 2px var(--rn-current-ring);
+  z-index: 2;
+}
+.rn-cell.current::after {
+  content: '';
+  position: absolute;
+  inset: auto auto 3px 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--rn-current-ring);
+  transform: translateX(-50%);
+}
+
+.rn-cell.hidden { visibility: hidden; }
+
+/* Legend */
+.rn-grid-legend {
+  border-top: 1px solid var(--rn-pane-border);
+  padding: 10px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.rn-grid-legend-head {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  opacity: 0.75;
+  margin-bottom: 2px;
+}
+
+.rn-grid-legend .row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  text-align: left;
+}
+
+/* Rows that filter. The key stopped being decoration when it became a
+ * control, so these are real buttons — reset the UA styling rather than
+ * dressing a div up as one. */
+.rn-grid-legend .row.act {
+  border: 1px solid transparent;
+  background: none;
+  font: inherit;
+  color: inherit;
+  padding: 3px 6px;
+  margin: 0 -6px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.rn-grid-legend .row.act:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+.rn-grid-legend .row.act:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* Pressed, not merely hovered — a filter that is ON must stay obvious
+ * after the pointer leaves, or the grid looks broken rather than
+ * filtered. */
+.rn-grid-legend .row.act[aria-pressed='true'] {
+  background: var(--bg);
+  border-color: var(--border-strong);
+  color: var(--text);
+  font-weight: 600;
+}
+/* The one row that is not a control — no hover, no pointer. */
+.rn-grid-legend .row.inert { padding: 3px 6px; margin: 0 -6px; }
+
+.rn-grid-legend .lbl { flex: 1; min-width: 0; }
+.rn-grid-legend .n {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.rn-grid-legend .row.act[aria-pressed='true'] .n { color: var(--text); }
+
+/* Two swatches for "Dropped marks", which covers two states. */
+.rn-grid-legend .swatch-pair {
+  display: inline-flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.rn-grid-legend .swatch-pair .swatch { width: 7px; border-radius: 2px; }
+.rn-grid-legend .swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--rn-fill-unanswered-border);
+  flex-shrink: 0;
+}
+.rn-grid-legend .swatch.f-answered { background: var(--rn-fill-answered); border-color: #b8c8dc; }
+.rn-grid-legend .swatch.f-right    { background: var(--rn-fill-right);    border-color: #84c193; }
+.rn-grid-legend .swatch.f-partial  { background: var(--rn-fill-partial);  border-color: #d6a85a; }
+.rn-grid-legend .swatch.f-wrong    { background: var(--rn-fill-wrong);    border-color: #3d0e0e; }
+.rn-grid-legend .swatch.f-skipped  {
+  background: var(--rn-fill-skipped);
+  border-style: dashed;
+  border-color: var(--rn-fill-skipped-border);
+}
+.rn-grid-legend .swatch.marked     {
+  border: 2px solid var(--rn-mark-border);
+  background: var(--white);
+}
+.rn-grid-legend .swatch.current {
+  background: var(--white);
+  box-shadow: 0 0 0 2px var(--rn-current-ring);
+  border-color: transparent;
+  width: 12px;
+  height: 12px;
+  margin: 1px;
+}
+
+/* Collapsed handle */
+.rn-grid-handle {
+  width: var(--rn-grid-w-collapsed);
+  background: var(--rn-pane-bg);
+  border-left: 1px solid var(--rn-pane-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0;
+  flex-shrink: 0;
+  gap: 10px;
+}
+.rn-grid-handle button {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rn-grid-handle button:hover { color: var(--text); }
+.rn-grid-handle .vertical-counter {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.rn-grid-handle .vertical-counter strong { color: var(--text); }
+
+/* ────────────────────────────────────────────────────────────
+ *  Preflight (slice 4.1.3)
+ *  Pre-Q1 confirmation card. Shown when attempt.started_at is null;
+ *  Start button calls nclex_mark_attempt_started + router.refresh().
+ * ──────────────────────────────────────────────────────────── */
+.rn-preflight {
+  min-height: 100vh;
+  background: var(--rn-shell-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+.rn-preflight-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--rn-pane-bg);
+  border: 1px solid var(--rn-pane-border);
+  border-radius: 12px;
+  padding: 28px 30px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+.rn-preflight-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0 0 6px;
+}
+.rn-preflight-sub {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin: 0 0 18px;
+}
+.rn-preflight-summary {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.rn-preflight-summary dt { color: var(--text-muted); font-weight: 600; }
+.rn-preflight-summary dd { color: var(--text); }
+.rn-preflight-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0 0 20px;
+  padding: 10px 12px;
+  background: rgba(45, 125, 114, 0.06);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+}
+.rn-preflight-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ── Readiness pack: the full-stop one-shot preflight ──────────── */
+.rn-preflight-oneshot {
+  max-width: 520px;
+  border-top: 4px solid var(--danger, #c0392b);
+}
+.rn-oneshot-flag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--danger, #c0392b);
+  background: rgba(192, 57, 43, 0.09);
+  padding: 3px 9px;
+  border-radius: 999px;
+  margin: 0 0 10px;
+}
+.rn-oneshot-list {
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.rn-oneshot-list li {
+  position: relative;
+  padding: 11px 13px 11px 14px;
+  background: var(--bg);
+  border-left: 3px solid var(--danger, #c0392b);
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.rn-oneshot-list li strong { color: var(--text); font-weight: 700; }
+.rn-oneshot-start {
+  background: var(--danger, #c0392b);
+  color: #fff;
+  border: 1px solid var(--danger, #c0392b);
+}
+.rn-oneshot-start:hover:not(:disabled) { filter: brightness(0.94); }
+.rn-oneshot-start:disabled { opacity: 0.6; cursor: default; }
+
+/* Readiness exit confirm — three stacked full-width choices (End & submit /
+ * Leave / Keep going), most-consequential first. */
+.rn-readiness-exit-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.rn-readiness-exit-actions .auth-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ────────────────────────────────────────────────────────────
+ *  Slice 3a — End-of-quiz results popup
+ *
+ *  Sits inside the shared <ViewerModalShell> (narrow). The shell
+ *  owns backdrop + panel + close ✕; these styles fill the panel body.
+ *  Topbar score pill becomes a button in review mode so the student
+ *  can reopen the popup after dismiss — .rn-timer-btn overrides the
+ *  default button chrome to match the static pill it replaces.
+ * ──────────────────────────────────────────────────────────── */
+.rn-timer-btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+}
+.rn-timer-btn:hover { background: var(--bg-soft, #f5f5f7); color: var(--text); }
+.rn-timer-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.results-popup {
+  padding-top: 4px;
+}
+.results-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 6px;
+}
+/* CAT variant — no score block, so the type carries the whole surface.
+   The headline takes the visual weight the percentage holds elsewhere,
+   which keeps the popup from reading as an error dialog. */
+.results-cat {
+  text-align: center;
+}
+.results-cat-head {
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--text);
+  margin: 8px 0 10px;
+}
+.results-cat-reason {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0 0 12px;
+  /* Holds the line while the reason loads, so nothing below shifts. */
+  min-height: 1.5em;
+}
+.results-cat-note {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0 auto 18px;
+  max-width: 40ch;
+}
+
+.results-score {
+  text-align: center;
+  margin: 4px 0 2px;
+}
+.results-score .num {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--text);
+}
+.results-score .pct {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+.results-score .frac {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-top: 2px;
+}
+.results-verdict {
+  display: block;
+  text-align: center;
+  margin: 6px auto 4px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  width: fit-content;
+  font-size: 13px;
+  font-weight: 600;
+}
+.results-verdict.pass {
+  background: #e7f6ee;
+  color: #168f4d;
+}
+.results-verdict.fail {
+  background: #fbe9e7;
+  color: #b3261e;
+}
+.results-facts {
+  margin: 14px 0 18px;
+  padding: 10px 12px;
+  background: var(--bg-soft, #fafafa);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: grid;
+  gap: 4px;
+}
+.results-facts .row {
+  display: flex;
+  justify-content: space-between;
+}
+.results-facts .row .v {
+  color: var(--text);
+  font-weight: 500;
+}
+.results-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.results-actions .btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 11px 16px;
+  border-radius: 10px;
+  border: 0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.results-actions .btn.primary {
+  background: var(--text);
+  color: white;
+}
+.results-actions .btn.primary:hover { opacity: 0.92; }
+.results-actions .btn.secondary {
+  background: rgba(45, 125, 114, 0.10);
+  color: var(--accent);
+}
+.results-actions .btn.secondary:hover { background: rgba(45, 125, 114, 0.18); }
+.results-actions .btn.secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.results-actions .btn.tertiary {
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 8px;
+}
+.results-actions .btn.tertiary:hover { color: var(--text); }
+.results-actions .btn.tertiary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── CAT between-question wait (§10.1 + slice 6c) ────────────────────
+ * The question just answered stays on screen while the next is fetched,
+ * rather than blanking. It has to LOOK finished though, or it reads as a
+ * live question that has stopped responding.
+ *
+ * Dim first — no spinner under ~300ms (§10.1): a spinner that quick is
+ * noise, and that is the happy path almost every time. Past the thresholds
+ * the overlay below escalates spinner → "Still loading…" → Retry.
+ *
+ * `inert` on the wrapper is what disables interaction (including keyboard);
+ * this rule is purely the visual half.
+ */
+.rn-cat-tx {
+  position: relative;
+}
+
+.rn-cat-waiting {
+  opacity: 0.45;
+  transition: opacity 140ms ease;
+}
+
+/* The escalation overlay — ON TOP of the dimmed question, itself NOT dimmed
+ * and NOT inert (Retry must be clickable). Centred over the question area. */
+.rn-cat-tx-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  pointer-events: none;   /* let the dim show through; the panel re-enables */
+}
+
+/* The contained card the escalation content sits in — reads clearly over the
+ * dimmed question rather than colliding with its text. */
+.rn-cat-tx-panel {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 28px;
+  background: var(--rn-pane-bg, #fff);
+  border: 1px solid var(--rn-pane-border, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.12);
+  max-width: 300px;
+}
+
+.rn-cat-tx-spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid var(--rn-pane-border, #e5e7eb);
+  border-top-color: var(--accent, #2d7d72);
+  animation: rn-cat-tx-spin 0.7s linear infinite;
+}
+
+.rn-cat-tx-msg {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted, #64748b);
+}
+
+.rn-cat-tx-retry {
+  appearance: none;
+  border: 1px solid var(--primary, #1e3a5f);
+  background: var(--primary, #1e3a5f);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 22px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.rn-cat-tx-retry:hover { background: var(--primary-dark, #142d4c); }
+.rn-cat-tx-retry:focus-visible {
+  outline: 2px solid var(--accent, #2d7d72);
+  outline-offset: 2px;
+}
+
+@keyframes rn-cat-tx-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rn-cat-waiting { transition: none; }
+  /* No spin — a static ring still reads as "working" without motion. */
+  .rn-cat-tx-spinner { animation: none; border-top-color: var(--accent, #2d7d72); }
+}
+
+/* ─────────────────────────────────────────────────────
+ * Pre-exam tutorial offer (runner-tutorial Slice 3c)
+ * A calm, NEUTRAL modal offering the walkthrough before an exam Start —
+ * deliberately not the amber auth-discard/warning chrome. Shown over the
+ * session preflight and (3c-ii-b) the CAT preflight; z sits above both.
+ * ───────────────────────────────────────────────────── */
+.pre-exam-offer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 90;
+}
+.pre-exam-offer-card {
+  position: relative;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: var(--shadow-lg);
+}
+.pre-exam-offer-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  opacity: 0.5;
+  cursor: pointer;
+}
+.pre-exam-offer-close:hover {
+  opacity: 0.9;
+  background: rgba(15, 23, 42, 0.06);
+}
+.pre-exam-offer-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+  margin: 0;
+  padding-right: 24px; /* clear the × */
+}
+.pre-exam-offer-hint {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  opacity: 0.8;
+  margin: 0;
+}
+.pre-exam-offer-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.85;
+  cursor: pointer;
+  user-select: none;
+}
+.pre-exam-offer-check input {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+.pre-exam-offer-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}

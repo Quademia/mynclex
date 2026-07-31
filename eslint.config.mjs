@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Claude Design handoff bundles. These are reference artefacts kept
+    // verbatim so a future slice can copy from the original — a vendor
+    // prototype runtime and read-only snapshots of our own stylesheets.
+    // None of it ships, none of it is imported, and linting it only ever
+    // reports on code we must not "fix" without breaking the reference.
+    "docs/product-plan/design-handoff/**",
   ]),
 ]);
 

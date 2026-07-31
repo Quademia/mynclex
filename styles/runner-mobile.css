@@ -1,0 +1,366 @@
+/* mynclex/styles/runner-mobile.css
+ *
+ * Phone/tablet-portrait layer for the session runner. Import AFTER
+ * runner.css. Nothing here changes the desktop layout.
+ *
+ * ⚠ THIS FILE LANDS SLICE BY SLICE — see docs/product-plan/runner-mobile.md
+ * ────────────────────────────────────────────────────────────────────────
+ * The CD deliverable is one ~670-line stylesheet covering the whole arc.
+ * It CANNOT be copied in wholesale, because several of its sections hide
+ * a desktop element and rely on a component that replaces it — most
+ * sharply `.rn-split > .rn-case { display: none }`, which without the
+ * chart sheet (slice 4) would leave a case question on a phone with no
+ * scenario at all. Worse than today, not better.
+ *
+ * So each slice copies its own section across from the bundle at
+ * docs/product-plan/design-handoff/runner-mobile/runner-mobile.css, which
+ * is the verbatim original. Landed so far:
+ *
+ *   ✅ SLICE 1 — base, .rn container context, topbar, scroll region,
+ *                footer, sheet shell, session menu
+ *   ⬜ SLICE 2 — the grid inside the sheet
+ *   ⬜ SLICE 3 — answers: indent, caps, tap targets, sticky count
+ *   ⬜ SLICE 4 — case / trend stack + summary card + chart sheet
+ *   ⬜ SLICE 5 — matrix row-cards, bow-tie stack
+ *   ⬜ SLICE 6 — calculator docked
+ *   ⬜ SLICE 7 — landscape drawers
+ *
+ * WHY CONTAINER QUERIES, NOT @media
+ * ─────────────────────────────────
+ * Every rule below keys off the width of `.rn` itself rather than the
+ * viewport. In production `.rn` IS the viewport, so the two are the same
+ * thing — but it also means the whole mobile layout can be rendered inside
+ * a 390px frame (design review, the runner tutorial sandbox, screenshots)
+ * without lying about what students get. One source of truth, provable.
+ *
+ * THE BREAKPOINT — 899px
+ * ──────────────────────
+ * `.rn-split` (case + trend questions) needs minmax(380px,1fr) +
+ * minmax(520px,720px) + 24px gap = 924px before it can lay out honestly.
+ * Below that it overflows, so 899px is where the phone layout has to take
+ * over. Tablets in portrait get the phone layout rather than a broken
+ * desktop one.
+ *
+ * COMPONENT CHANGES THIS LAYER ASSUMES  (all additive, all no-ops ≥900px)
+ * ──────────────────────────────────────────────────────────────────────
+ *   runner-topbar.tsx   · wrap title + spacer + counter in `.rn-top-ident`
+ *                         (display:contents ≥900, so desktop is untouched)
+ *                       · exit label in `<span class="rn-top-exit-label">`
+ *                       · new `.rn-top-more` (⋯) button, always rendered
+ *   runner-footer.tsx   · new `.rn-foot-grid` button (slice 2 renders it)
+ *                       · `.rn-foot-fwd` class in forward-only modes
+ *   runner.tsx          · useIsCompact() decides grid → sheet, case/trend
+ *                         panel → sheet, and which buttons go to the ⋯ menu
+ *   NEW runner-sheet.tsx, runner-session-menu.tsx
+ */
+
+/* ── Base (≥900px): the new nodes are inert ─────────────────────────── */
+/* .rn-top-ident is a passthrough on desktop, so the topbar's flex row is
+ * byte-for-byte what it is today. */
+.rn-top-ident        { display: contents; }
+.rn-top-more,
+.rn-foot-grid,
+.rn-case-summary,
+.rn-matrix-cell-label { display: none; }
+
+/* ── Real viewport height + the container context ───────────────────── */
+/* NOTE — the `--surface` gap this originally patched is now fixed properly
+ * in tokens.css (it was undefined repo-wide and rendered three runner
+ * surfaces transparent on DESKTOP too). Kept out of here deliberately: a
+ * mobile layer is the wrong home for a global token. */
+.rn {
+  /* "size", not "inline-size": the landscape rules (slice 7) query height. */
+  container-type: size;
+  container-name: rn;
+  position: relative;      /* containing block for the sheets */
+  /* 100vh is a lie on iOS Safari — the footer hides under the URL bar,
+   * which is exactly where Submit lives. */
+  height: 100dvh;
+}
+
+@container rn (max-width: 899px) {
+
+  /* ── Topbar: five controls ─────────────────────────────────────────
+   * exit · position stack · clock · flag · ⋯
+   * Bookmark, calculator and grid move to the session menu; the mode
+   * meta line moves under the counter. */
+  .rn-top {
+    height: 52px;
+    padding: 0 8px 0 4px;
+    gap: 6px;
+    padding-top: env(safe-area-inset-top);
+    height: calc(52px + env(safe-area-inset-top));
+  }
+  .rn-top-divider { display: none; }
+
+  .rn-top-ident {
+    display: flex;
+    flex-direction: column-reverse;   /* counter above, meta below */
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+  }
+  .rn-top-spacer { display: none; }
+
+  .rn-top-title { display: block; min-width: 0; max-width: 100%; }
+  .rn-top-title .name { display: none; }      /* lives in the ⋯ sheet */
+  .rn-top-title .meta {
+    font-size: 10.5px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .rn-counter { font-size: 14px; gap: 3px; }
+  .rn-counter strong { font-size: 14px; font-weight: 800; }
+
+  .rn-top-exit {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    font-size: 18px;
+  }
+  .rn-top-exit-label { display: none; }
+
+  /* Icon buttons: 40px targets, no labels, no hover-only meaning. */
+  .rn-flag-btn,
+  .rn-top-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    gap: 0;
+    border-radius: 9px;
+  }
+  .rn-flag-btn-label { display: none; }
+
+  /* Moved into the session menu, where they get words back. */
+  .rn-bookmark-btn,
+  .rn-calc-btn,
+  .rn-grid-toggle-btn { display: none; }
+
+  .rn-clock-eye { display: none; }            /* → session menu */
+  .rn-clock-pill { padding: 5px 10px; }
+
+  /* ── Scroll region ────────────────────────────────────────────────── */
+  .rn-main-scroll {
+    padding: 14px 16px 16px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .rn-q-wrap { max-width: none; }
+  .rn-stem { font-size: 15.5px; margin-bottom: 14px; }
+
+  /* ── The desktop grid rail ────────────────────────────────────────────
+   * Pulled forward from the slice-2 section on purpose. `.rn-grid` is a
+   * fixed 240px with flex-shrink:0, so leaving it in place would hand a
+   * 390px phone roughly 150px of question column — the whole bug slice 1
+   * exists to fix. The grid becomes reachable again via the footer button
+   * in SLICE 2; until then Previous/Next still navigate. */
+  .rn-body > .rn-grid,
+  .rn-grid-handle { display: none; }
+
+  /* ── Footer: back · primary · grid ────────────────────────────────── */
+  .rn-foot {
+    height: auto;
+    padding: 10px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    gap: 10px;
+  }
+  /* The mode brief is orientation copy, not per-tap copy — it reads in
+   * full in the session menu instead of being crushed between buttons. */
+  .rn-foot-msg { display: none; }
+  .rn-foot-side { min-width: 0; }
+  .rn-foot-side.right { flex: 1; }
+  .rn-foot .btn-ghost {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    font-size: 0;                  /* "← Previous" → "←" */
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--white);
+  }
+  .rn-foot .btn-ghost::before { content: '←'; font-size: 17px; }
+  .rn-foot .btn-accent {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+  /* Forward-only modes (live Sequential + CAT) have no Previous and no
+   * grid, so the primary takes the whole bar rather than sitting beside a
+   * dead 48px box (Sam, 2026-07-31). Compact only — desktop keeps the
+   * disabled button and its explaining tooltip. */
+  .rn-foot-fwd .btn-ghost { display: none; }
+
+  .rn-foot-grid {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--white);
+    color: var(--text);
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .rn-foot-grid .n { font-size: 9px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+}
+
+/* ── Bottom sheet — the one pattern, five uses ──────────────────────────
+ * grid · chart (case/trend) · calculator · session menu · results.
+ * Outside the container query because the sheet is only ever rendered by
+ * the compact branch anyway. */
+.rn-sheet-scrim {
+  /* Absolute, not fixed: `.rn` is the full viewport in production, so the two
+   * are identical there — but absolute also keeps the sheet inside the shell
+   * when the runner is rendered in a frame (design review, tutorial sandbox). */
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: rgba(17, 24, 39, 0.42);
+  animation: rn-sheet-fade 160ms ease-out;
+}
+.rn-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  max-height: 85dvh;
+  background: var(--rn-pane-bg);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+  animation: rn-sheet-up 220ms cubic-bezier(.22,.9,.3,1);
+}
+.rn-sheet-grab {
+  flex-shrink: 0;
+  align-self: center;
+  width: 38px;
+  height: 4px;
+  margin: 9px 0 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+.rn-sheet-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 16px 12px;
+}
+.rn-sheet-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.rn-sheet-close {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+}
+.rn-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+}
+@keyframes rn-sheet-up   { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes rn-sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .rn-sheet, .rn-sheet-scrim { animation: none; }
+}
+
+/* ── Session menu (⋯) — everything the topbar dropped, with its words ── */
+.rn-menu-head { padding: 0 16px 12px; border-bottom: 1px solid var(--border); }
+.rn-menu-head .name { font-size: 14.5px; font-weight: 800; color: var(--primary); }
+.rn-menu-head .meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.rn-menu-brief {
+  margin-top: 9px;
+  padding: 9px 11px;
+  border-radius: 7px;
+  background: var(--bg);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.rn-menu-list { display: flex; flex-direction: column; padding: 6px 8px; }
+.rn-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rn-menu-item:active { background: var(--bg); }
+.rn-menu-item:disabled { opacity: 0.55; cursor: not-allowed; }
+/* Holds the topbar's own inline SVGs, not text — so it centres as a flex
+ * box rather than relying on text-align + a baseline. */
+.rn-menu-item .glyph {
+  flex: 0 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+.rn-menu-item .body { flex: 1; min-width: 0; }
+.rn-menu-item .label { font-size: 14.5px; font-weight: 600; color: var(--text); }
+/* The sentence a desktop tooltip used to carry. Touch has no hover. */
+.rn-menu-item .sub { display: block; margin-top: 1px; font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.rn-menu-item .state { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--text-faint); }
+.rn-menu-item.on .glyph,
+.rn-menu-item.on .state { color: var(--rn-mark-border); }
+.rn-menu-foot { padding: 8px 16px 0; border-top: 1px solid var(--border); margin-top: 4px; }
+.rn-menu-exit {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  color: #b91c1c;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+}

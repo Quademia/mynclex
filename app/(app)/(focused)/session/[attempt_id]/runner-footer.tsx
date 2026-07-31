@@ -24,6 +24,24 @@ interface Props {
   prevHint?:     string;  // tooltip when prevDisabled && !atFirst
   onPrev: () => void;
   onPrimary?: () => void;
+  /**
+   * Live Sequential + CAT: there is no Previous and no grid, ever. On a
+   * PHONE the primary then takes the whole bar rather than sitting beside a
+   * permanently dead 48px box (Sam, 2026-07-31 — a student is only in one
+   * mode per sitting, so nothing ever "shifts" in front of them, and a
+   * bigger Submit target matters most in exactly these modes).
+   *
+   * Desktop is untouched: it keeps the disabled button and the tooltip that
+   * explains why. See docs/product-plan/runner-mobile.md.
+   */
+  forwardOnly?: boolean;
+  /**
+   * Opens the question grid sheet on compact. Omitted → no grid button,
+   * which is both the desktop case and the forward-only case. Wired in
+   * SLICE 2; until then nothing passes it and the button never renders,
+   * so there is no dead control on the bar.
+   */
+  onOpenGrid?: () => void;
 }
 
 export function RunnerFooter({
@@ -40,6 +58,8 @@ export function RunnerFooter({
   prevHint,
   onPrev,
   onPrimary,
+  forwardOnly     = false,
+  onOpenGrid,
 }: Props) {
   const atFirst = current <= 1;
   const atLast  = total !== null && current >= total;
@@ -53,7 +73,10 @@ export function RunnerFooter({
     : undefined;
 
   return (
-    <footer className="rn-foot" data-coach="footer">
+    <footer
+      className={'rn-foot' + (forwardOnly ? ' rn-foot-fwd' : '')}
+      data-coach="footer"
+    >
       <div className="rn-foot-side">
         <button
           type="button"
@@ -84,6 +107,35 @@ export function RunnerFooter({
           {primaryLabel}{atLast && !primaryDisabled ? '' : ' →'}
         </button>
       </div>
+
+      {/* Compact only — CSS hides it ≥900px, and it is rendered at all only
+          where a grid exists. Lands wired in SLICE 2. */}
+      {onOpenGrid && (
+        <button
+          type="button"
+          className="rn-foot-grid"
+          onClick={onOpenGrid}
+          aria-label="Question grid"
+        >
+          <GridGlyph />
+          <span className="n">{current}/{total ?? '–'}</span>
+        </button>
+      )}
     </footer>
+  );
+}
+
+// Same four-square grid as the topbar's GridIcon, redrawn here rather than
+// exported across files — the topbar's is one of a family of 14px stroke
+// glyphs sized for that bar; this one sits above a counter in a 48px
+// button. Keep them visually identical if either changes.
+function GridGlyph() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+      <rect x="2" y="2" width="5" height="5" rx="1" />
+      <rect x="9" y="2" width="5" height="5" rx="1" />
+      <rect x="2" y="9" width="5" height="5" rx="1" />
+      <rect x="9" y="9" width="5" height="5" rx="1" />
+    </svg>
   );
 }
