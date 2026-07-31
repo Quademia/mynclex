@@ -1,7 +1,7 @@
 # Runner — mobile compatibility
 
-Last updated: 2026-07-31 (slices 1–3 built + verified on dev, incl. the real
-/session route; 4–8 open)
+Last updated: 2026-07-31 (slices 1–4 built + verified on dev, incl. the real
+/session route; 5–8 open)
 
 ## What this is
 
@@ -298,7 +298,50 @@ count line. **This one slice fixes eight of the eleven question types.**
 The 32px academic indent costs 8% of a phone screen for no reading
 benefit, and the 460px cap is wider than the viewport anyway.
 
-### ⬜ Slice 4 — Case & trend wrappers
+### ✅ Slice 4 — Case & trend wrappers  *(built 2026-07-31)*
+
+`.rn-split` stacks, the panel moves into the chart sheet, and a new
+`case-summary-card.tsx` holds the question's place in the flow.
+
+**The overflow is gone.** Every case child and the trend question now
+measure a question column of exactly **358px** inside a 390px viewport,
+against **940–956px** before. Verified across the whole case block
+(Q12, 14, 15, 16, 17) and the trend (Q18).
+
+⚠ **One case child still overflows — Q13, at 422px — and it is not this
+slice's.** Chased it down rather than assuming: the culprit is
+`.rn-matrix` inside the case, whose column track has a min-content floor.
+A standalone matrix overflows identically (456px). It belongs to slice 5.
+Two theories were tested and discarded first — the CJMM dots (hiding them
+changed nothing) and `.rn-q-wrap`'s `margin: 0 auto` defeating flex
+stretch (the auto margin already computes to 0).
+
+**The panel is built once and rendered in exactly one place** — beside the
+question on desktop, in the sheet on a phone; never both. `<CasePanel>`
+resolves its images through a Server Action, so a second mounted copy
+would fetch every chart image twice. The handoff's approach (render both,
+hide one with CSS) would have done exactly that.
+
+The CSS hide rule is kept anyway, and it is load-bearing rather than
+redundant: `useIsCompact()` is false for the first paint, so without it a
+phone flashes the 924px panel before the effect flips.
+
+⚠ **The CJMM step name is gated on `hideExamScaffold`,** exactly as the
+desktop strip is (§16.6). The strip collapses to six 8px dots on a phone —
+six clinical-judgment step names cannot fit a phone row — and the current
+step is named in words in the summary card instead. Without the gate, the
+phone would name the step in a live exam where the desktop deliberately
+hides it.
+
+**Verified:** summary card content reads *"CASE STUDY · 0 of 6 answered ·
+Madam Efua Mensah, 68 — post-operative day 2 · Analyse cues · View chart ·
+2 tabs"*; both sheets open with the panel intact, tabs preserved
+(*History & Physical*, *Vital Signs*) and no internal overflow; sheet
+titles read `Case study · 0 of 6 answered` and `Trend dataset`. Desktop
+unchanged — split still `grid` at `380px 564px`, panel beside the
+question, no summary card, CJMM steps 72px of words. Console clean.
+
+#### What it covers
 
 `.rn-split` to a single column, `case-summary-card.tsx` in the question
 column, both panels into the chart sheet with tabs and `visible_from`

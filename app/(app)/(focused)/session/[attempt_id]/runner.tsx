@@ -72,6 +72,7 @@ import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
 import { RunnerSheet }        from './runner-sheet';
 import { RunnerSessionMenu }  from './runner-session-menu';
+import { CaseSummaryCard }    from './case-summary-card';
 import { useIsCompact }       from './use-is-compact';
 import { Calculator } from '@/lib/calculator/calculator';
 import { SandboxCoach } from '@/lib/practice/tutorial/coach/coach';
@@ -1234,32 +1235,66 @@ function RunnerShell({ data }: Props) {
   // persists across siblings of the same case (and resets when the
   // student crosses into a different case). The TrendPanel needs no
   // key because it carries no internal state.
+  // The panel is built ONCE and rendered in exactly one place — beside the
+  // question on desktop, inside the chart sheet on a phone. Never both:
+  // <CasePanel> resolves its images through a Server Action, so a second
+  // mounted copy would fetch every chart image twice (slice 4 of
+  // docs/product-plan/runner-mobile.md).
+  const chartPanel: React.ReactNode =
+    inCase && caseSnap ? (
+      <CasePanel
+        key={caseSnap.case_id}
+        caseSnap={caseSnap}
+        currentPosition={currentItem?.case_position ?? 1}
+        totalChildren={caseChildIds.length}
+        answeredCount={answeredInCase}
+        resolveImageUrl={(id) => getAttemptImageUrlAction(data.attempt.attempt_id, id)}
+      />
+    ) : inTrend && trendSnap ? (
+      <TrendPanel
+        trendSnap={trendSnap}
+        resolveImageUrl={(id) => getAttemptImageUrlAction(data.attempt.attempt_id, id)}
+      />
+    ) : null;
+
   let questionArea: React.ReactNode;
   if (inCase && caseSnap) {
     questionArea = (
       <div className="rn-split">
-        <CasePanel
-          key={caseSnap.case_id}
-          caseSnap={caseSnap}
-          currentPosition={currentItem?.case_position ?? 1}
-          totalChildren={caseChildIds.length}
-          answeredCount={answeredInCase}
-          resolveImageUrl={(id) =>
-            getAttemptImageUrlAction(data.attempt.attempt_id, id)
-          }
-        />
+        {compact ? (
+          <CaseSummaryCard
+            kind="case"
+            title={caseSnap.title_snapshot}
+            tabCount={caseSnap.tabs_snapshot_json.length}
+            answered={answeredInCase}
+            total={caseChildIds.length}
+            // ⚠ Gated on hideExamScaffold exactly as the desktop CJMM strip
+            // is (§16.6): the step name is teaching scaffolding, hidden in a
+            // live exam. Without this the phone would name the clinical-
+            // judgment step in a sitting where the desktop deliberately
+            // does not.
+            cjmmStepLabel={!hideExamScaffold ? cjmmStep ?? undefined : undefined}
+            onOpen={() => setSheet('chart')}
+          />
+        ) : (
+          chartPanel
+        )}
         {questionAreaInner}
       </div>
     );
   } else if (inTrend && trendSnap) {
     questionArea = (
       <div className="rn-split">
-        <TrendPanel
-          trendSnap={trendSnap}
-          resolveImageUrl={(id) =>
-            getAttemptImageUrlAction(data.attempt.attempt_id, id)
-          }
-        />
+        {compact ? (
+          <CaseSummaryCard
+            kind="trend"
+            title={trendSnap.title_snapshot}
+            tabCount={trendSnap.tabs_snapshot_json.length}
+            onOpen={() => setSheet('chart')}
+          />
+        ) : (
+          chartPanel
+        )}
         {questionAreaInner}
       </div>
     );
@@ -1482,6 +1517,21 @@ function RunnerShell({ data }: Props) {
             onPick={(i) => { closeSheet(); onPickGuarded(i); }}
             onFilterChange={setFilter}
           />
+        </RunnerSheet>
+      )}
+
+      {/* The case/trend panel, unchanged — same tabs, same visible_from
+          reveal rules, same scenario block. Only its container moves. */}
+      {compact && sheet === 'chart' && chartPanel && (
+        <RunnerSheet
+          title={
+            inCase && caseSnap
+              ? `Case study · ${answeredInCase} of ${caseChildIds.length} answered`
+              : 'Trend dataset'
+          }
+          onClose={closeSheet}
+        >
+          {chartPanel}
         </RunnerSheet>
       )}
 

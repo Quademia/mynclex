@@ -20,7 +20,7 @@
  *                footer, sheet shell, session menu
  *   ✅ SLICE 2 — the grid inside the sheet
  *   ✅ SLICE 3 — answers: indent, caps, tap targets, sticky count
- *   ⬜ SLICE 4 — case / trend stack + summary card + chart sheet
+ *   ✅ SLICE 4 — case / trend stack + summary card + chart sheet
  *   ⬜ SLICE 5 — matrix row-cards, bow-tie stack
  *   ⬜ SLICE 6 — calculator docked
  *   ⬜ SLICE 7 — landscape drawers
@@ -288,6 +288,124 @@
   .rn-sheet .rn-grid-legend .row { min-height: 44px; }
   .rn-sheet .rn-grid-legend .row.act { padding: 0 8px; margin: 0; }
   .rn-sheet .rn-grid-legend .row.inert { padding: 0 8px; margin: 0; }
+
+  /* ── Case / trend: split becomes a stack, panel becomes a sheet ─────
+   * `.rn-split` needs 924px to lay out honestly, so on a phone it stacks
+   * and the panel itself moves into the chart sheet. */
+  .rn-split {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: none;
+  }
+  /* runner.tsx already renders the panel into the sheet instead of the
+   * split on compact, so this is a belt-and-braces rule — but a load-
+   * bearing one: useIsCompact() is false for the first paint (SSR-safe
+   * default), so without it a phone would flash the 924px panel before
+   * the effect flips. */
+  .rn-split > .rn-case,
+  .rn-split > .rn-trend { display: none; }
+  .rn-case-banner { margin-bottom: 12px; }
+
+  /* The stand-in that keeps the question anchored to its case. */
+  .rn-case-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 11px 12px;
+    border: 1px solid rgba(45, 125, 114, 0.30);
+    background: rgba(45, 125, 114, 0.06);
+    border-radius: 10px;
+  }
+  .rn-case-summary .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .rn-case-summary .eyebrow {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--accent-dark);
+  }
+  .rn-case-summary .count {
+    flex: none;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .rn-case-summary .title {
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1.45;
+    color: var(--text);
+  }
+  /* The one CJMM step this question tests, in words — see the dots below. */
+  .rn-case-summary .step { font-size: 12px; color: var(--text-muted); }
+  .rn-case-summary .actions { display: flex; align-items: center; gap: 8px; }
+  .rn-case-summary .open {
+    flex: 1;
+    min-height: 40px;
+    border: 1px solid var(--accent);
+    border-radius: 9px;
+    background: var(--white);
+    color: var(--accent-dark);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .rn-case-summary .tabs { flex: none; font-size: 11.5px; color: var(--text-muted); }
+
+  /* CJMM: six steps of clinical judgment do not fit as six words, so the
+   * strip becomes position-only dots and the current step is named once,
+   * in the summary card above. */
+  .rn-cjmm-strip {
+    gap: 5px;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+  }
+  .rn-cjmm-arrow { display: none; }
+  .rn-cjmm-step {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--border-strong);
+    text-indent: -9999px;
+    overflow: hidden;
+  }
+  .rn-cjmm-step.done { background: var(--accent); }
+  .rn-cjmm-step.current {
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45, 125, 114, 0.22);
+  }
+
+  /* The panel, inside the sheet: no card chrome, no height cap — the
+   * sheet supplies both. */
+  .rn-sheet .rn-case,
+  .rn-sheet .rn-trend {
+    position: static;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+  }
+
+  /* Wide chart/trend tables scroll sideways instead of crushing. */
+  .rn-case-body,
+  .rn-trend-body { -webkit-overflow-scrolling: touch; }
+  .rn-trend-table { min-width: 460px; }
+  .rn-table-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
 
   /* ── Footer: back · primary · grid ────────────────────────────────── */
   .rn-foot {
