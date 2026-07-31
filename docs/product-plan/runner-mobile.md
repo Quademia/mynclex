@@ -120,6 +120,42 @@ sheet shell and the mode brief does not move, it *disappears* on phones.
 **Fix: `runner-sheet.tsx` lands in slice 1.** The slicing below reflects
 that.
 
+## ▶ NEXT SESSION — start here
+
+**State: slices 1–5 are built, verified and MERGED to `main`
+(2026-07-31). Not on prod.** Slices 6–8 are open.
+
+Pick up with **slice 6**, and do the two things in this order:
+
+1. **Settle the results sheet before writing any of it.** `runner.tsx`
+   already types `sheet` as `'grid' | 'chart' | 'calc' | 'menu' |
+   'results'`, and `'results'` is the only one never implemented or
+   specified. Ask Sam what it is: almost certainly "the end-of-sitting
+   results popup becomes a sheet on compact", but that is an inference.
+   The popup today is `showResults` in `runner.tsx`, reopened from the
+   topbar pill in review.
+2. **Then the calculator.** The section is waiting verbatim in
+   `docs/product-plan/design-handoff/runner-mobile/runner-mobile.css`
+   under *Calculator, docked*, plus the remaining ⋯ menu rows.
+
+**How to work this arc** (it paid off five times, so keep doing it):
+
+- Copy each slice's section **from the bundle**, never from memory — the
+  bundle is the verbatim original and this repo's copy is deliberately
+  partial.
+- Verify on the **rendered page**, not on tsc/lint. Every defect in
+  slices 1–5 was invisible to types, lint and tests; four of them were in
+  the handoff itself.
+- `/tutorial/exam` mounts the real `<Runner>` with no login and carries
+  all 11 types + both wrappers — best surface for **types**. The real
+  `/session/[attempt_id]` (Sam signs in) is the only surface for
+  **modes**. Use both; say which one a claim came from.
+- ⚠ **Do not drive a live CAT or timed exam to test layout.** Opening one
+  resumes a real sitting and `catTurnAction` fires on submit. Use review
+  or the tutorial.
+- Measure, don't eyeball: `scrollWidth > clientWidth`, computed styles,
+  element rects. Several "fixes" looked right and were inert.
+
 ## The slices
 
 Each is independently shippable. Slice 1 is the gate — nothing else works
@@ -392,7 +428,13 @@ Bow-tie to a vertical stack via `order`, connectors hidden.
 
 ### ⬜ Slice 6 — Calculator sheet + remaining ⋯ rows
 
-⚠ **Also the slice that must pin down the results sheet** — see Gaps.
+The calculator currently opens as its desktop floating `.calc-panel` even
+on a phone — usable, but not docked. The bundle's *Calculator, docked*
+section re-homes it into the sheet with thumb-sized keys, same engine and
+markup.
+
+⚠ **This slice must also pin down the results sheet** — see Gaps. Settle
+what it is with Sam before building either.
 
 ### ⬜ Slice 7 — Landscape layer
 
@@ -449,6 +491,44 @@ Still unexercised:
 (`.rn-split` at 940px against 390px), on a *paid, one-shot* exam. A
 student sitting a CAT on a phone currently meets a case study with the
 question off-screen. That is the argument for slice 4 next.
+
+## ⬜ NOT BUILT — the complete list
+
+Everything below is knowingly absent as of 2026-07-31. Nothing here is a
+regression; each is either a later slice or a pre-existing condition.
+
+**Slices**
+- **6** — calculator docked in a sheet (it still opens as the desktop
+  floating panel on a phone) + the remaining ⋯ rows + the results sheet.
+- **7** — the landscape layer. At ≤520px height the phone layout applies
+  unchanged, so a bottom sheet eats most of the screen. No drawers, no
+  split/matrix/bow-tie restoration above 700px wide.
+- **8** — the runner tutorial pass. **The coach is visibly broken at
+  390px**: its panel hangs off the left edge and its avatar sits on top of
+  the Previous button. Its steps also narrate a nine-control topbar that
+  now shows five. Pre-existing (the coach never had a phone layout), but
+  easy to hit — `/tutorial/exam` is a public page.
+
+**Verification not done**
+- **Timed modes** — clock tiers, escalation tones, and hide-clock locking
+  once a warning fires, all at phone width.
+- **The bookmark row's absence** in CAT / packs / tutor quizzes
+  specifically (flag and grid were checked there; bookmark was not).
+- **A real device.** Everything is a resized desktop browser, so
+  `env(safe-area-inset-*)`, the iOS URL bar and the on-screen keyboard
+  over a CLOZE `<select>` are all untested in the flesh.
+
+**Known and accepted**
+- **First-paint flash.** `useIsCompact()` is `false` on the server, so a
+  phone paints the desktop tree for one frame. The CSS masks nearly all of
+  it; the case panel is explicitly covered by a hide rule.
+- **`--surface` changes desktop.** `tokens.css` now defines it, so three
+  runner controls that have been rendering *transparent* — on desktop too
+  — become white. A fix, but a desktop-visible one riding in a mobile arc.
+  **Look at it before this ships to prod.**
+- **A pre-existing hydration mismatch in `ClockGroup`** surfaces as "1
+  Issue" in the dev overlay: the clock renders `1:42:6` server-side and
+  `1:42:7` client-side. Untouched by this arc, and unrelated to it.
 
 ## Gaps and risks
 
