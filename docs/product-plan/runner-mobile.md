@@ -1,6 +1,7 @@
 # Runner — mobile compatibility
 
-Last updated: 2026-07-31 (slices 1–2 built + verified on dev; 3–8 open)
+Last updated: 2026-07-31 (slices 1–3 built + verified on dev, incl. the real
+/session route; 4–8 open)
 
 ## What this is
 
@@ -250,7 +251,46 @@ Counts stay derived from `isVisibleUnderFilter`, never re-tallied.
 **This is the only slice coupled to a file that moved during the design
 work.** Re-check it against `runner-grid.tsx` before building.
 
-### ⬜ Slice 3 — Answers  ← *the value concentration*
+### ✅ Slice 3 — Answers  *(built 2026-07-31)*
+
+CSS only — no component changed. Verified by walking **every question type**
+at 390px and measuring, not by looking:
+
+| Type | Result |
+| --- | --- |
+| MCQ · True/False | indent 32px → **0**, option 71px / 48px |
+| SATA | indent 0, option 48px |
+| SELECT_N | indent 0, option 71px, count line sticky |
+| CLOZE | select **36px** — the documented exception |
+| HIGHLIGHT | chunk **45px** (was ~33) |
+| DRAG_CLOZE | inline box **48px** (was **29** — the smallest target in the runner), token 44px |
+| DRAG_ORDER | token 59px, slot row 50px |
+
+No horizontal overflow on any of them. The only overflows left are
+**MATRIX 456px, MATRIX_MR 629px, BOWTIE 412px** (slice 5) and the
+**case/trend `.rn-split` at 940px** (slice 4) — all unbuilt, none touched
+by this slice.
+
+⚠ **The handoff's sticky count rule was inert, and I proved it before
+replacing it.** It specified `position: sticky; bottom: 0` so the
+"N of M chosen" line survives a long list. But `bottom` pins an element
+that would fall *below* the scrollport — and `.rn-opt-count` renders
+**before** `.rn-options` (`select-n.tsx:86`), so it starts above the fold
+and leaves via the top, where a bottom inset never engages. Measured: the
+line moved **152px while the container scrolled 152px**, exactly 1:1.
+
+Fixed with `top: 0` and the gradient flipped (solid at the top, fading
+down, so options pass out of view beneath it). Re-measured with enough
+scroll to be conclusive — the first test was inconclusive because the
+container only scrolled 152px while the line sat 176px down, so it never
+reached the edge. With 312px of scroll it **holds at 14px**, the scroll
+container's own padding edge.
+
+ⓘ **SATA has no count line at all.** Only `select-n.tsx` renders
+`.rn-opt-count` — it is the type with a cap to report against. The handoff
+lists both types; the code has one.
+
+#### The rules
 
 Indent and max-width off, 44/48px tap targets, sticky "N of M selected"
 count line. **This one slice fixes eight of the eleven question types.**
@@ -304,23 +344,32 @@ only way to see this surface without an attempt — but it is exactly **one**
 configuration (`sandbox-data.ts`): `intent: STUDY`, `mode:
 UNTIMED_LEARNING`, `live`. So these paths have never rendered:
 
-- **Forward-only modes (CAT, live Timed Sequential).** `gridAvailable` is
-  always true in the tutorial, so `forwardOnly` is always false and
-  `.rn-foot-fwd` has never been applied by the app. *Partially closed:* the
-  class was applied by hand at 390px and does the right thing — Previous
-  goes `display:none`, the primary grows 250px → 298px. So the CSS is
-  proven and only the prop wiring is unexercised.
-- **Review mode** — no clock (the menu's clock row should disappear), the
-  frozen flag and its "cannot be changed after a sitting ends" copy, and
-  the status pill becoming a button.
-- **Timed modes** — clock tiers, the escalation tones, hide-clock locking
-  once a warning fires.
-- **Bookmark-absent modes** (CAT, packs, tutor quizzes) — that menu row
-  should not render at all.
-- **The real `/session/[attempt_id]` route** — auth, real attempt data.
+**✅ Largely closed 2026-07-31** — Sam signed in on dev, so the real
+`/session/[attempt_id]` route was driven with real attempt data:
 
-None of this needs new design; it needs a signed-in student on dev. Worth
-doing before this arc merges, not after.
+- **Review mode** — a finished Free-Navigation sitting. The ⋯ sheet is
+  right: the session name and `Review · tap a colour to filter…` brief
+  both present, **no clock row at all**, and the flag row **disabled and
+  greyed with "Flags cannot be changed after a sitting ends"**. The
+  topbar's `Score · 64%` pill renders in place of the clock.
+- **Forward-only** — a live CAT sitting at Q70. `.rn-foot-fwd` applied,
+  Previous `display: none`, the primary spanning **356px of a 390px**
+  viewport, and both the grid and flag buttons correctly absent. The
+  counter reads `Q 70` with no total, as CAT requires. **Sam's decision 3
+  is proven on real data, not just by injecting the class.**
+- **The real route** — loads, renders and is usable at 390px.
+
+Still unexercised:
+
+- **Timed modes** — clock tiers, escalation tones, hide-clock locking once
+  a warning fires.
+- **Bookmark-absent modes** — CAT hides bookmark, and the CAT above was
+  checked for flag/grid but not specifically for the bookmark row.
+
+⚠ The live CAT also confirmed the **case/trend overflow on real data**
+(`.rn-split` at 940px against 390px), on a *paid, one-shot* exam. A
+student sitting a CAT on a phone currently meets a case study with the
+question off-screen. That is the argument for slice 4 next.
 
 ## Gaps and risks
 

@@ -19,7 +19,7 @@
  *   ✅ SLICE 1 — base, .rn container context, topbar, scroll region,
  *                footer, sheet shell, session menu
  *   ✅ SLICE 2 — the grid inside the sheet
- *   ⬜ SLICE 3 — answers: indent, caps, tap targets, sticky count
+ *   ✅ SLICE 3 — answers: indent, caps, tap targets, sticky count
  *   ⬜ SLICE 4 — case / trend stack + summary card + chart sheet
  *   ⬜ SLICE 5 — matrix row-cards, bow-tie stack
  *   ⬜ SLICE 6 — calculator docked
@@ -166,6 +166,70 @@
   }
   .rn-q-wrap { max-width: none; }
   .rn-stem { font-size: 15.5px; margin-bottom: 14px; }
+
+  /* ── Answers: full width, real tap targets ────────────────────────────
+   * The 32px academic indent costs 8% of a phone screen for no reading
+   * benefit, and the 460px cap is wider than the viewport anyway — so both
+   * come off. `.rn-matrix` is in here for the indent only; its row-card
+   * reflow is slice 5. */
+  .rn-options,
+  .rn-opt-count,
+  .rn-matrix {
+    margin-left: 0;
+    max-width: none;
+  }
+  .rn-opt {
+    min-height: 48px;
+    padding: 12px 13px;
+    gap: 10px;
+    font-size: 14.5px;
+  }
+  /* The three-channel state encoding (left border + letter circle + fill)
+   * is untouched; only the box around it grows. */
+  .rn-opt-verdict { align-self: flex-start; }
+
+  /* SELECT_N's count line stays visible while you scroll a list longer than
+   * the screen — on a phone, most of them.
+   *
+   * ⚠ `top`, not the handoff's `bottom`. A sticky `bottom: 0` holds an
+   * element that would fall BELOW the scrollport, pinning it as you scroll
+   * down TOWARD it. This one renders BEFORE `.rn-options` (select-n.tsx:86),
+   * so it starts above the fold and leaves via the top — the bottom
+   * constraint never engages. Measured before changing it: the line moved
+   * 152px while the container scrolled 152px, exactly 1:1, i.e. the rule was
+   * inert and the count scrolled away like any other text.
+   *
+   * Gradient flipped to match: solid at the top fading down, so the options
+   * pass out of view underneath it rather than into view above it.
+   *
+   * ⓘ SATA has no count line at all — only SELECT_N renders `.rn-opt-count`
+   * (it is the type with a cap to report against). The handoff lists both. */
+  .rn-opt-count {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    margin: 0 -16px 8px;
+    padding: 8px 16px;
+    background: linear-gradient(180deg, var(--rn-shell-bg) 60%, rgba(244,246,248,0));
+  }
+
+  /* ── Tap targets on the remaining types ───────────────────────────── */
+  .rn-dd-token,
+  .rn-dd-slot-row { min-height: 44px; }
+  /* The inline drop boxes are DRAG_CLOZE's whole interaction and were the
+   * smallest target in the runner at 29px. They sit inline in 15.5px/1.95
+   * prose, so a mis-tap landed on the sentence rather than on nothing. */
+  .rn-dd-inline-box { min-height: 44px; padding: 8px 10px; }
+  /* 44px exactly: 15.5 × 1.85 = 28.7 line box + 2 × 7 padding + 2 × 1 border.
+   * HIGHLIGHT's deliberate no-affordance default is preserved — the chunk
+   * still looks like prose until you tap it. */
+  .rn-highlight-chunk { padding: 7px 6px; }
+  /* The one deliberate exception to the 44px floor. A native <select> is
+   * not a box you tap — iOS gives it its own hit slop and opens a
+   * full-width wheel picker, and forcing it to 44px would break the
+   * baseline of the sentence it sits inside. 36px is the tallest it can
+   * be and still read as a word in prose. */
+  .rn-cloze-select { min-height: 36px; max-width: 14ch; }
 
   /* ── The grid: out of the rail, into the sheet ────────────────────────
    * `.rn-grid` is a fixed 240px with flex-shrink:0, so leaving it in the
