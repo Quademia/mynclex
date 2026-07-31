@@ -1,7 +1,7 @@
 # Runner — mobile compatibility
 
-Last updated: 2026-07-31 (slices 1–4 built + verified on dev, incl. the real
-/session route; 5–8 open)
+Last updated: 2026-07-31 (slices 1–5 built + verified on dev, incl. the real
+/session route; 6–8 open)
 
 ## What this is
 
@@ -348,7 +348,43 @@ column, both panels into the chart sheet with tabs and `visible_from`
 reveal rules unchanged, CJMM strip to six dots, wide tables wrapped in
 `.rn-table-scroll`.
 
-### ⬜ Slice 5 — Matrix & bow-tie reflows
+### ✅ Slice 5 — Matrix & bow-tie reflows  *(built 2026-07-31)*
+
+**Every overflow in the runner is now closed.** Swept all 18 tutorial
+questions at 390px — all eleven types and both wrappers — and
+`.rn-main-scroll` fits on every one. This is the acceptance check slice 1
+claimed prematurely; it is now true and measured rather than asserted.
+
+| Was | Now |
+| --- | --- |
+| MATRIX 456px | fits |
+| MATRIX_MR 629px | fits |
+| BOWTIE 412px | fits |
+| MATRIX inside a case (Q13) 422px | fits |
+
+**Matrix → one card per row.** The row's statement becomes a full-width
+sentence and each option a full-width 44px chip. ⚠ The `display: flex`
+needs `!important` and that is load-bearing, not sloppiness: `matrix.tsx`
+sets `grid-template-columns` **inline** (the column count is per-question)
+and an inline style beats any stylesheet selector.
+
+⚠ **The column name had to move into the cell.** Matrix cells are empty
+`<button>`s — the column is named once, in a header row the phone layout
+hides. So `matrix.tsx` and `matrix-mr.tsx` now render
+`.rn-matrix-cell-label` inside each cell, hidden ≥900px. Plain text via
+`richTextToPlain`, not `RichRender`: this is a 44px chip label, not a
+content slot. Verified live — "Appropriate", "Cardiovascular",
+"Consistent with sepsis".
+
+**Bow-tie → a vertical stack ordered clinically** (condition, then what
+led to it, then what to do), with the flare connectors hidden since they
+point at columns that no longer exist. Slots 48px.
+
+Desktop confirmed unchanged: matrix rows still `grid`, header row visible,
+the new cell labels `display: none`, bow-tie still its `grid` shape.
+Console clean, `tsc` at the 2 known errors.
+
+#### What it covers
 
 Matrix to a row-card stack (needs the per-cell `.rn-matrix-cell-label`,
 since the phone layout hides the header row that names the column).

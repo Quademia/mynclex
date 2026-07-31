@@ -123,7 +123,13 @@ export function MatrixMrRunner(props: MatrixMrRunnerProps) {
                     aria-label={`${richTextToPlain(row.text)} — ${richTextToPlain(col.text)}`}
                     disabled={isReview}
                     onClick={isReview ? undefined : () => toggle(row.id, col.id)}
-                  />
+                  >
+                    {/* See matrix.tsx — the phone layout stacks each row into
+                        a card and hides the header row, so every cell has to
+                        carry its own column name. The `.multi` checkbox glyph
+                        is drawn by CSS and is unaffected. */}
+                    <span className="rn-matrix-cell-label">{richTextToPlain(col.text)}</span>
+                  </button>
                 );
               })}
             </div>

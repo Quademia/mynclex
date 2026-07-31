@@ -21,7 +21,7 @@
  *   ✅ SLICE 2 — the grid inside the sheet
  *   ✅ SLICE 3 — answers: indent, caps, tap targets, sticky count
  *   ✅ SLICE 4 — case / trend stack + summary card + chart sheet
- *   ⬜ SLICE 5 — matrix row-cards, bow-tie stack
+ *   ✅ SLICE 5 — matrix row-cards, bow-tie stack
  *   ⬜ SLICE 6 — calculator docked
  *   ⬜ SLICE 7 — landscape drawers
  *
@@ -212,6 +212,78 @@
     padding: 8px 16px;
     background: linear-gradient(180deg, var(--rn-shell-bg) 60%, rgba(244,246,248,0));
   }
+
+  /* ── MATRIX / MATRIX_MR: one card per row ─────────────────────────────
+   * A matrix is a table, and a table with three columns of prose cannot be
+   * read at 390px — measured at 456px wide before this, and 629px for the
+   * multi-response variant. Each row becomes a card: the row's statement as
+   * a full-width sentence, then its options as full-width chips. */
+  .rn-matrix { padding: 0; border: none; background: transparent; gap: 10px; }
+  .rn-matrix-row.head { display: none; }      /* labels move into the cells */
+  .rn-matrix-row-block { padding: 11px 12px; border-radius: 8px; }
+  /* ⚠ !important is load-bearing: matrix.tsx sets grid-template-columns
+   * INLINE per question (the column count varies), and an inline style beats
+   * any stylesheet selector. Without it the row stays a grid. */
+  .rn-matrix-row:not(.head) {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .rn-matrix-row-label {
+    display: block;
+    padding: 0 0 2px;
+    background: transparent;
+    font-size: 14.5px;
+    line-height: 1.45;
+  }
+  .rn-matrix-cell {
+    justify-content: flex-start;
+    gap: 9px;
+    padding: 0 12px;
+    min-height: 44px;
+    border-radius: 7px;
+  }
+  /* Hidden ≥900px (base rule at the top of this file) — there the header
+   * row names each column once. */
+  .rn-matrix-cell-label {
+    display: inline;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .rn-matrix-cell.sel .rn-matrix-cell-label { color: var(--accent-dark); font-weight: 700; }
+  .rn-matrix-row-foot { padding: 8px 0 0; }
+
+  /* ── BOWTIE: stacked wings, condition first ───────────────────────────
+   * The desktop shape is three columns joined by drawn connectors. Stacked,
+   * the reading order becomes the clinical one — the condition first, then
+   * what led to it, then what you do about it. */
+  .rn-bt-shape {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: none;
+    padding: 0;
+  }
+  .rn-bt-shape-label.centre  { order: 1; text-align: left; }
+  .rn-bt-slot.centre         { order: 2; min-height: 52px; }
+  .rn-bt-shape-label.left    { order: 3; text-align: left; padding-top: 8px; }
+  .rn-bt-slot.left-top       { order: 4; }
+  .rn-bt-slot.left-bot       { order: 5; }
+  .rn-bt-shape-label.right   { order: 6; text-align: left; padding-top: 8px; }
+  .rn-bt-slot.right-top      { order: 7; }
+  .rn-bt-slot.right-bot      { order: 8; }
+  .rn-bt-slot {
+    min-height: 48px;
+    justify-content: flex-start;
+    text-align: left;
+    font-size: 13.5px;
+  }
+  /* The flare connectors point at columns that no longer exist. */
+  .rn-bt-slot.centre::before,
+  .rn-bt-slot.centre::after { display: none; }
+  .rn-bt-pool { grid-template-columns: 1fr; }
+  .rn-bt-pool-token { min-height: 44px; }
 
   /* ── Tap targets on the remaining types ───────────────────────────── */
   .rn-dd-token,

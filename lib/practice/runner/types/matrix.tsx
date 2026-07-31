@@ -114,7 +114,16 @@ export function MatrixRunner(props: MatrixRunnerProps) {
                     aria-label={`${richTextToPlain(row.text)} — ${richTextToPlain(col.text)}`}
                     disabled={isReview}
                     onClick={isReview ? undefined : () => pick(row.id, col.id)}
-                  />
+                  >
+                    {/* The column name, repeated inside every cell. Hidden
+                        above 900px, where the header row names it once —
+                        but the phone layout stacks each row into a card and
+                        drops that header, so without this the cells would be
+                        unlabelled buttons. Plain text, not RichRender: this
+                        is a 44px chip label, not a content slot.
+                        (docs/product-plan/runner-mobile.md, slice 5) */}
+                    <span className="rn-matrix-cell-label">{richTextToPlain(col.text)}</span>
+                  </button>
                 );
               })}
             </div>
