@@ -218,6 +218,15 @@ function RunnerShell({ data }: Props) {
   // tear the sheet down and re-run it — snatching focus back to the top of
   // the calculator on every keystroke.
   const closeCalc = useCallback(() => setCalcOpen(false), []);
+  // The tutorial coach's handle on the phone sheets. On a phone several of
+  // the controls the walkthrough teaches are inside a sheet, so a step has
+  // to be able to open one — and to close it again (null) so it cannot sit
+  // over the next step. Sandbox-only in practice; the prop is ignored on
+  // desktop, where the coach anchors to the real topbar.
+  const openCoachSheet = useCallback(
+    (kind: 'menu' | 'grid' | 'chart' | null) => setSheet(kind),
+    [],
+  );
   // ⚠ A sheet must never outlive the question it was opened over — a grid
   // still up after picking a question would be describing the wrong one.
   // Closed at the NAVIGATION call sites rather than by an effect on
@@ -1409,6 +1418,11 @@ function RunnerShell({ data }: Props) {
           setGridOpen={setGridOpen}
           onEnd={() => router.push(data.exitHref)}
           calcOpen={calcOpen}
+          // The phone layout moved several of the controls the walkthrough
+          // teaches into sheets, so the coach has to be able to open them —
+          // the same way it already opens the desktop grid rail above.
+          compact={compact}
+          onOpenSheet={openCoachSheet}
           currentSubmitted={
             currentItem ? answersByItem.has(currentItem.attempt_item_id) : false
           }

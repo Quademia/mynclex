@@ -115,6 +115,7 @@ export function RunnerSessionMenu({
             on={bookmark.on}
             state={bookmark.on ? 'Saved' : undefined}
             disabled={bookmark.busy}
+            coach="bookmark"
             onClick={() => { bookmark.onToggle(); onClose(); }}
           />
         )}
@@ -125,6 +126,7 @@ export function RunnerSessionMenu({
           sub="The on-screen calculator you get in the exam"
           on={calc.on}
           state={calc.on ? 'Open' : undefined}
+          coach="calc"
           onClick={() => { calc.onToggle(); onClose(); }}
         />
 
@@ -165,6 +167,7 @@ function MenuItem({
   on,
   state,
   disabled,
+  coach,
   onClick,
 }: {
   glyph: React.ReactNode;
@@ -173,6 +176,12 @@ function MenuItem({
   on?: boolean;
   state?: string;
   disabled?: boolean;
+  /** Tutorial-coach anchor name. Deliberately the SAME name the equivalent
+   *  topbar button carries: on a phone that button is `display: none` and
+   *  this row is what the student can see, and the coach anchors to
+   *  whichever copy is visible. Two markers, one name, never both on
+   *  screen at once. (docs/product-plan/runner-mobile.md, slice 8) */
+  coach?: string;
   onClick: () => void;
 }) {
   return (
@@ -181,6 +190,7 @@ function MenuItem({
       className={'rn-menu-item' + (on ? ' on' : '')}
       onClick={onClick}
       disabled={disabled}
+      data-coach={coach}
       aria-pressed={on === undefined ? undefined : on}
     >
       <span className="glyph">{glyph}</span>

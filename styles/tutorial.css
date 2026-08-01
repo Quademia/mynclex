@@ -282,10 +282,40 @@
 @keyframes tc-pop  { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .tc-card.tc-centered { animation: none; }
 
-@media (max-width: 768px) {
+/* ── Phone (slice 8) ─────────────────────────────────────────────────────
+ * ⚠ 899px, NOT 768px. The runner switches to its phone layout at 899
+ * (`use-is-compact.ts` — the case/trend split needs 924px, so the runner
+ * has to break earlier than the rest of the app). At 768 the coach kept
+ * its desktop shape for a 131px band in which the runner was already a
+ * phone. Keep this number in step with RN_COMPACT_QUERY.
+ *
+ * ⚠ The old rule here was `left: 8px !important`, which was the whole
+ * off-screen bug: `.tc-centered` still applied `translate(-50%, -50%)`,
+ * so the card was placed at 8px and then dragged back by half its own
+ * width — measured at −179px on a 390px screen, on a page that needs no
+ * login. Positioning now belongs entirely to place() in coach.tsx; this
+ * block only SIZES the card. Nothing here may set left/top/transform.
+ */
+@media (max-width: 899px) {
   .tc-card {
     width: calc(100vw - 16px);
-    left: 8px !important;
-    right: 8px;
+    max-width: none;
+    padding: 14px 15px 12px;
+  }
+
+  /* ⚠ Above the sheets. The coach opens a sheet (z 61) to reach a control
+   * that moved into one, and a card at z 55 would be *behind* the thing it
+   * just opened — pointing at a row the student cannot see past it. The
+   * scrim rises too, so the spotlight ring can land on a row INSIDE the
+   * sheet; it stays pointer-events: none, so the sheet is still tappable. */
+  .tc-scrim { z-index: 62; }
+  .tc-card,
+  .tc-strip { z-index: 70; }
+
+  /* A sheet occupies the bottom of the screen, so the collapsed strip has
+   * to sit clear of it rather than 72px up from the bottom. */
+  .tc-strip {
+    bottom: auto;
+    top: calc(52px + env(safe-area-inset-top) + 8px);
   }
 }
