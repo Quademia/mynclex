@@ -1,32 +1,55 @@
-# Pitch seed — the demo tutor account
+# Pitch seed — the demo accounts
 
 Everything a prospective tutor sees when they log in and explore. **Dev
 only.** These are seeds, not migrations: they live under `db/seed/`, and
 `migrate-prod.yml` only reads `db/migrations/`, so nothing here can reach
 prod by itself.
 
-## The account
+Two logins, one per side of the platform.
+
+## The tutor — Steven Harris
 
 | | |
 |---|---|
 | Login | `mybackpacc+steven@gmail.com` |
 | Password | `StevenHarris2026!` |
 | Name | Steven Harris — *NCLEX ProSolutions* |
-| Roles | `TUTOR` + `STUDENT` |
 
-One login, both sides. The account carries both roles, so the in-app
-switcher moves between the tutor workspace and the student view without
-signing out — which is the point: a prospect can build a programme and
-then see what their students see, in one session.
+Owns every programme, note, quiz and question in the demo. This is the
+account a prospect is handed.
 
-The password is deliberately not a secret; it is handed to strangers by
-design. Change it in the UI whenever you like — nothing here depends on
-the value except a re-run of `06`.
+Its password is deliberately not a secret — it goes to strangers by
+design. Change it in the UI whenever you like; nothing depends on the
+value except a re-run of `06`.
 
-The email stays on an alias Sam controls rather than an unroutable
+Its email stays on an alias Sam controls rather than an unroutable
 address, so password reset works **and** the account actually receives
-the enquiry and waitlist notifications the entry-path programmes exist to
-demonstrate.
+the enquiry and waitlist notifications the entry-path programmes exist
+to demonstrate.
+
+## The student — Miss Claudia Harris
+
+| | |
+|---|---|
+| Login | `mybackpacc+claudia@gmail.com` |
+| Password | unchanged — Sam's existing one for this account |
+| Name | Miss Claudia Harris |
+| Roles | `STUDENT` only |
+
+Steven briefly stood on both sides via the role switcher. It worked, but
+the tutor then appeared in his own Students roster and every screen had
+to be qualified — "am I seeing this as the tutor or the student?".
+Separate logins are simply easier to show.
+
+Claudia being STUDENT-only also matters: the dual-role listing bug fixed
+in `lib/programmes/student-actions.ts` only affects accounts that are
+also tutors, so she behaves correctly on dev even before that fix
+merges.
+
+She is deliberately the weaker of the two enrolled students — 66% across
+three weeks, two of four sessions missed, on the four-instalment plan —
+so the tutor screens have someone worth chasing rather than a roster of
+high achievers.
 
 ## Restoring the demo between pitches
 
@@ -40,7 +63,8 @@ them in order against dev to reset to a known state:
 03-crash-course.sql          self-paced, 5 modules, 43 questions, 6 quizzes
 04-entry-paths.sql           the enrol / waitlist / enquiry programmes
 05-demo-students.sql         18 students + enrolments, results, attendance
-06-demo-tutor.sql            the Steven Harris identity + his student side
+06-demo-tutor.sql            the Steven Harris tutor identity
+07-demo-student.sql          the Miss Claudia Harris student login
 ```
 
 Re-running is safe at any time: every statement is an upsert or an
