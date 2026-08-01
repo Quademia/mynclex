@@ -73,13 +73,28 @@ WHERE id = '4ed777d7-e4f7-403b-88f4-63ce5432d65e';
 --     joining through the activity shows it as programme-less; it is
 --     not orphaned, just stale.
 --
--- COMPLETED and TIMED_OUT bank sittings are KEPT — 23 and 10 of them.
--- They are finished work and read as an active student, which is what
--- a demo account should look like.
+-- Sam's call: clear ALL of the account's pre-existing student history,
+-- not just the half-finished sessions. The demo student's record should
+-- be about the two pitch programmes and nothing else — 33 unrelated bank
+-- sittings and a handful of readiness packs are noise a prospect has to
+-- read past.
+--
+-- The ONE exception is enforced by the database, not by choice:
+-- nclex_readiness_credits.attempt_id is ON DELETE RESTRICT, so a sitting
+-- with a claimed credit behind it cannot be deleted. That guard exists
+-- to stop a purchased pack losing the attempt that consumed it, and
+-- routing around it would mean destroying the credit record too. Two
+-- readiness sittings are held back by it and stay.
 
 DELETE FROM nclex_attempts
 WHERE student_id = '4ed777d7-e4f7-403b-88f4-63ce5432d65e'
   AND status IN ('IN_PROGRESS', 'ABANDONED');
+
+DELETE FROM nclex_attempts a
+WHERE a.student_id = '4ed777d7-e4f7-403b-88f4-63ce5432d65e'
+  AND a.source <> 'PROGRAMME_ASSIGNED'
+  AND NOT EXISTS (
+    SELECT 1 FROM nclex_readiness_credits c WHERE c.attempt_id = a.attempt_id);
 
 DELETE FROM nclex_attempts a
 WHERE a.student_id = '4ed777d7-e4f7-403b-88f4-63ce5432d65e'
