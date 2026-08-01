@@ -543,16 +543,83 @@ Explicitly **not** a scaled-down desktop: fitting 924px into 844 means
 `zoom ≈ 0.62`, which drops body copy to 9.6px and overrides the
 student's own iOS text-size setting.
 
-### ⬜ Slice 8 — Runner tutorial pass  *(added here; not in the handoff)*
+### ✅ Slice 8 — Runner tutorial pass  *(built 2026-08-01; not in the handoff)*
 
-The public walkthrough anchors coach steps to real runner controls, and
-on compact three of those (bookmark, calculator, grid toggle) become
-`display: none` and move into the ⋯ sheet. **An anchor pointing at a
-hidden element is the exact failure the flag/bookmark arc already hit**
-when the sandbox hid controls the coach pointed at.
+The prediction was right and understated. Measured at 390px, **9 of the
+coach's 17 anchors were not on screen**: five hidden by the phone layout
+(`bookmark`, `calc`, `grid`, `gridfilters`, `legend`) and four more
+(`casepanel`, `casetabs`, `trendpanel`, plus the grid's own children)
+reachable only inside a sheet. `/tutorial/exam` is **public and needs no
+login**, so this was the one broken surface in the whole arc that a
+prospective student could reach before paying anything.
 
-Until this lands, assume the tutorial is broken-or-lying at phone
-widths. See `runner-tutorial.md`.
+**The fix follows the controls rather than hiding the steps.** Nothing
+was deleted by the phone layout — bookmark, calculator and hide-clock
+moved into the ⋯ menu, the grid rail became a sheet, the chart became a
+sheet behind the summary card. So a step now declares `phoneSheet`, the
+coach opens it, and the ⋯ menu rows carry **the same `data-coach` names
+as the topbar buttons they stand in for**.
+
+**⚠ Anchoring is now "first VISIBLE match", and that is doing two jobs.**
+A hidden button is skipped — but so is a **duplicate**: the grid rail
+keeps its marker in the DOM while hidden on compact *and* the grid sheet
+renders the same component, so a plain `querySelector` found the rail the
+student cannot see. One rule settles both, and the coach never has to
+know which layout it is in.
+
+#### ⚠ Three findings, none from tsc, lint or the suite
+
+1. **The off-screen card was our own CSS.** The phone block forced
+   `left: 8px !important` while `.tc-centered` still applied
+   `translate(-50%, -50%)` — placing the card at 8px and then dragging it
+   back by half its own width. **Measured at −179px on a 390px screen.**
+   Positioning now belongs entirely to `place()`; the stylesheet only
+   sizes, and may never again set left/top/transform. The breakpoint also
+   moved **768 → 899** to match `RN_COMPACT_QUERY`: they disagreed by
+   131px, a band in which a phone-shaped runner got a desktop-shaped coach.
+2. **The ring took the sheet's mid-animation position** — correctly
+   sized, **370px low**, spotlighting nothing. Both existing measurements
+   (a rAF and a 90ms timeout) land inside the sheet's 220ms slide-up.
+   Fixed by re-placing on `animationend`, **not** a third hard-coded
+   delay: the sheet's duration is not the coach's to know and is disabled
+   under `prefers-reduced-motion`. ⚠ This one was introduced by the slice
+   itself and caught only by measuring the rendered page.
+3. **⚠ THE "AVATAR" DEFECT NEVER EXISTED.** This document recorded that
+   the coach's avatar sits on the Previous button. That element is
+   `NEXTJS-PORTAL` — the Next.js **dev toolbar** — absent from
+   production. One of slice 8's three stated defects was a development
+   artefact mistaken for a product bug, and it survived here because it
+   was seen in a screenshot and never identified.
+
+**⚠ Layering:** the coach card sits at z 55 and sheets at 61, so a sheet
+the coach opened would have covered the coach. Raised above the sheet
+layer **on compact only**; the scrim rises too (so the ring can land on a
+row *inside* a sheet) and stays `pointer-events: none`.
+
+**Copy.** Steps whose desktop sentence names something a phone lacks now
+carry a `phoneBody` — the clock's "use the button" (that button is in the
+⋯ menu), the case study's "the chart stays **beside** the question"
+(there is no second column), the trend and grid steps. The closing recap
+gained a phone variant: the desktop one recites a **nine-control topbar**
+to someone looking at **five**. Only the two lines that describe *where* a
+control lives differ; the rest is reused, because a second full copy is a
+second thing to keep true.
+
+**Verified at 390px on the rendered page:** card fully on screen at every
+step checked, ring on a visible target every time, ⋯ sheet for
+bookmark/calculator, grid sheet for grid/filters/colours, chart sheet for
+case/trend — **and closed again for the footer step**, so no sheet
+outlives the step that opened it. Desktop proven unchanged: 340px card,
+z 55, anchored to `.rn-calc-btn`, **zero sheets opened**, desktop copy.
+Console clean. **855 → 870 tests**, and the new phone-sheet guard was
+**proven to bite** by deleting one `phoneSheet` — it failed naming the
+step.
+
+⚠ **Not covered:** the steps between section starts were not each walked
+(the jump menu reaches 20 of 33, and gates block the rest without
+answering questions); `cjmm` was reasoned to stay in the question column
+rather than measured on a case question; and none of this has been seen
+on a real device. See `runner-tutorial.md`.
 
 ## ⚠ What the verification does NOT cover
 
@@ -602,11 +669,21 @@ regression; each is either a later slice or a pre-existing condition.
 - **7** — the landscape layer. At ≤520px height the phone layout applies
   unchanged, so a bottom sheet eats most of the screen. No drawers, no
   split/matrix/bow-tie restoration above 700px wide.
-- **8** — the runner tutorial pass. **The coach is visibly broken at
-  390px**: its panel hangs off the left edge and its avatar sits on top of
-  the Previous button. Its steps also narrate a nine-control topbar that
-  now shows five. Pre-existing (the coach never had a phone layout), but
-  easy to hit — `/tutorial/exam` is a public page.
+
+  ⚠ **Bigger than "one more block of CSS", established 2026-08-01.**
+  Every rule in this arc keys off WIDTH; landscape adds HEIGHT as a second
+  axis, and above 700px wide it *partly reverses* slices 3–5 (split,
+  matrix table and bow-tie shape return). One part **cannot be done in CSS
+  at all**: on compact the case/trend panel is not rendered beside the
+  question — `runner.tsx` renders a `<CaseSummaryCard>` in its place, a JS
+  decision made on width alone. Restoring the split therefore forces
+  `useIsCompact` to become two-dimensional, touching the three structural
+  decisions the whole arc rests on. A fair smaller cut: take only the
+  cheap half (chrome shrink + sheets as right-edge drawers) and leave the
+  split restoration alone.
+- ~~**8** — the runner tutorial pass.~~ ✅ **Built 2026-08-01.** ⚠ And one
+  of its three stated defects — the avatar over the Previous button — was
+  **never real**; it was the Next.js dev toolbar. See slice 8 above.
 
 **Verification not done**
 - **Timed modes** — clock tiers, escalation tones, and hide-clock locking
