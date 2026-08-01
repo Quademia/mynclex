@@ -4,14 +4,16 @@
 // <ProgrammeSwitcherOverlay>. Returns the student's accessible
 // programmes + cohorts, lazily fetched when the overlay opens.
 //
-// Enrolment-gated since the access-gating step: metadata-tier RLS
-// (nclex_has_programme_enrolment / nclex_has_cohort_enrolment) returns
-// only programmes + cohorts the student holds an enrolment row in (any
-// status). So this list narrows to enrolled-only automatically — no
-// EXISTS in the query body — and a row's `status` is the pill the
-// overlay shows. ENROLLED rows are enterable; the rest are shown
-// non-clickable (the overlay gates entry; require-*-access is the
+// Enrolment-gated since the access-gating step. A row's `status` is the
+// pill the overlay shows: ENROLLED rows are enterable; the rest are
+// shown non-clickable (the overlay gates entry; require-*-access is the
 // server-side safety net for direct URLs).
+//
+// The enrolment gate is applied HERE, in this file. It used to be left
+// to metadata-tier RLS (nclex_has_programme_enrolment), on the
+// assumption that RLS narrowed the list to enrolled-only by itself. It
+// does not, for anyone who is both a tutor and a student — see the note
+// above `enrolledProgrammeIds` below.
 
 'use server';
 
@@ -159,6 +161,27 @@ export async function getMyAccessibleProgrammesAction(): Promise<{
     }
   }
 
+  // The programmes the student actually holds an enrolment row on.
+  //
+  // RLS is a SECURITY boundary, not a view filter, and Postgres ORs the
+  // SELECT policies on a table together. nclex_programmes carries two:
+  //   nclex_programmes_student_select → nclex_has_programme_enrolment(id)
+  //   nclex_programmes_self_select    → tutor_id = auth.uid()
+  // A user who is BOTH a tutor and a student passes the ownership branch
+  // on every programme they authored, so this list quietly became
+  // "everything I teach" alongside "everything I study" — and correcting
+  // their enrolments does not help, because enrolments are not what let
+  // those rows through.
+  //
+  // Rare in v1 but not hypothetical: it is exactly the shape of the demo
+  // tutor account, and of any real tutor who also studies. State the
+  // view's own intent here rather than leaning on RLS to mean something
+  // it does not.
+  //
+  // Listing only — entry was never open. require-programme-access and
+  // require-cohort-access still gate the routes themselves.
+  const enrolledProgrammeIds = new Set(enrolments.map((e) => e.programme_id));
+
   const canPayByProgramme = new Map<string, boolean>(
     programmes.map((p) => [p.programme_id, p.payment_collection_mode === 'ON_PLATFORM'])
   );
@@ -176,14 +199,14 @@ export async function getMyAccessibleProgrammesAction(): Promise<{
   }
 
   return {
-    programmes: programmes.map(
-      ({ price_currency: _drop, payment_collection_mode, ...p }) => ({
+    programmes: programmes
+      .filter((p) => enrolledProgrammeIds.has(p.programme_id))
+      .map(({ price_currency: _drop, payment_collection_mode, ...p }) => ({
         ...p,
         cohorts: cohortsByProgramme.get(p.programme_id) ?? [],
         status: statusByKey.get(`prog:${p.programme_id}`) ?? null,
         nextPayment: nextPaymentByKey.get(`prog:${p.programme_id}`) ?? null,
         canPayOnline: payment_collection_mode === 'ON_PLATFORM',
-      })
-    ),
+      })),
   };
 }
