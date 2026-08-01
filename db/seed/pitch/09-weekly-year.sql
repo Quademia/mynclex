@@ -803,4 +803,53 @@ ON CONFLICT (cohort_id, marker_activity_id) DO UPDATE SET
   recording_url = EXCLUDED.recording_url,
   updated_at = NOW();
 
+-- ====================================================================
+-- 9. Claudia, enrolled
+-- ====================================================================
+-- TUTOR_ADDED rather than SELF_PAID, and not for flavour: a student
+-- CANNOT self-join this programme today. Both public surfaces gate
+-- enrolment on headline_price_minor > 0 —
+--   app/(public)/programmes/[id]/page.tsx        (canEnrol)
+--   app/(public)/checkout/programme/[id]/page.tsx (enrollable, then
+--                                                  redirects away)
+-- so a free programme shows 'Message the tutor' and a hand-typed
+-- checkout URL bounces. The tutor adding them from the roster
+-- (lib/enrolments/actions.ts) is the only path that exists, so that
+-- is the one the seed uses. If free self-serve is ever built, this
+-- becomes SELF_PAID with enrolled_by_user_id NULL.
+--
+-- enrolled_at is NOW(): she joins in week 9 and inherits the back
+-- catalogue, which is the whole argument for allow_late_join. No
+-- attendance rows — she has not sat a session yet, and inventing
+-- history she did not have is how the register stopped matching the
+-- enrolments last time.
+--
+-- ⚠ 07-demo-student.sql OPENS by deleting every enrolment this user
+-- has. Re-running 07 after this file drops the row; re-run this file
+-- afterwards. Guarded on the user existing so 09 does not hard-
+-- depend on 07 having run at all.
+
+INSERT INTO nclex_enrolments (
+  enrolment_id, user_id, programme_id, cohort_id, status,
+  enrolment_source, enrolled_by_user_id, enrolled_at,
+  approved_at, approved_by_user_id, strategy_id, access_expires_at
+)
+SELECT
+  '71000000-0000-4000-8000-000000000912'::uuid,
+  u.id, '80000000-0000-4000-8000-000000000004', '86000000-0000-4000-8000-000000000004', 'ENROLLED',
+  'TUTOR_ADDED', '4ed777d7-e4f7-403b-88f4-63ce5432d65e', NOW(),
+  NOW(), '4ed777d7-e4f7-403b-88f4-63ce5432d65e',
+  '88000000-0000-4000-8000-000000000004', NULL
+FROM   nclex_users u
+WHERE  u.id = '385acbf4-fa50-4924-98f4-e1c46635ee1d'
+ON CONFLICT (enrolment_id) DO UPDATE SET
+  cohort_id = EXCLUDED.cohort_id, status = 'ENROLLED',
+  enrolment_source = EXCLUDED.enrolment_source,
+  enrolled_by_user_id = EXCLUDED.enrolled_by_user_id,
+  approved_at = EXCLUDED.approved_at,
+  approved_by_user_id = EXCLUDED.approved_by_user_id,
+  strategy_id = EXCLUDED.strategy_id,
+  access_expires_at = NULL, terminal_at = NULL,
+  paused_at = NULL, paused_reason = NULL, updated_at = NOW();
+
 COMMIT;
