@@ -57,7 +57,43 @@ WHERE id = '4ed777d7-e4f7-403b-88f4-63ce5432d65e';
 
 
 -- =====================================================================
--- 2. The same account as a student
+-- 2. Clear the account's old student history
+-- =====================================================================
+-- This was a working test login for months, and the leftovers demo
+-- badly on the student side:
+--
+--   • 35 IN_PROGRESS sittings. Each one renders a "resume" prompt, so
+--     the student dashboard opened onto a wall of half-finished
+--     sessions.
+--   • 1 ABANDONED sitting.
+--   • A PROGRAMME_ASSIGNED sitting against "NCLEX 4-Week Tutor-Led
+--     Bootcamp" — one of the old test programmes, which the account is
+--     not enrolled in. It uses the STANDALONE attempt shape
+--     (programme_id + quiz_id, programme_activity_id NULL), so a query
+--     joining through the activity shows it as programme-less; it is
+--     not orphaned, just stale.
+--
+-- COMPLETED and TIMED_OUT bank sittings are KEPT — 23 and 10 of them.
+-- They are finished work and read as an active student, which is what
+-- a demo account should look like.
+
+DELETE FROM nclex_attempts
+WHERE student_id = '4ed777d7-e4f7-403b-88f4-63ce5432d65e'
+  AND status IN ('IN_PROGRESS', 'ABANDONED');
+
+DELETE FROM nclex_attempts a
+WHERE a.student_id = '4ed777d7-e4f7-403b-88f4-63ce5432d65e'
+  AND a.source = 'PROGRAMME_ASSIGNED'
+  AND a.programme_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM nclex_enrolments e
+    WHERE e.user_id = a.student_id
+      AND e.programme_id = a.programme_id
+      AND e.status IN ('ENROLLED', 'PAUSED'));
+
+
+-- =====================================================================
+-- 3. The same account as a student
 -- =====================================================================
 -- The account already carries BOTH roles, so the in-app switcher works
 -- without signing out — which is the whole reason for using one login.
@@ -97,7 +133,7 @@ ON CONFLICT (enrolment_id) DO UPDATE SET
 
 
 -- =====================================================================
--- 3. Enough history to look used, and enough left to demo
+-- 4. Enough history to look used, and enough left to demo
 -- =====================================================================
 -- Weeks 1 and 2 sat, weeks 3 and 4 released but NOT sat. A dashboard
 -- that is entirely finished is as useless to show as an empty one —
@@ -105,7 +141,7 @@ ON CONFLICT (enrolment_id) DO UPDATE SET
 -- to catch up on, progress bars part-filled.
 --
 -- Same insert-then-flip order as 05: the progress writeback fires on the
--- status UPDATE, so §4 is what creates the progress rows.
+-- status UPDATE, so §6 is what creates the progress rows.
 
 INSERT INTO nclex_attempts (
   attempt_id, student_id, source, programme_activity_id, intent, mode,
@@ -229,11 +265,64 @@ ON CONFLICT (attempt_item_id) DO UPDATE SET
 
 
 -- =====================================================================
--- 4. Complete the sittings — this writes the progress rows
+-- 5. No perfect papers
+-- =====================================================================
+-- The flat 78% roll can still pass every item on a five-question quiz,
+-- and it did on both weekly sittings the first time this ran. A demo
+-- student with a perfect record has nothing to open on the review
+-- screen — no rationale worth reading, no scoring strip worth showing.
+--
+-- So: any all-correct programme sitting has its LAST item flipped to
+-- wrong. Deterministic, and it guarantees at least one thing to review
+-- in every sitting.
+
+WITH perfect AS (
+  SELECT a.attempt_id
+  FROM   nclex_attempts a
+  WHERE  a.student_id = '4ed777d7-e4f7-403b-88f4-63ce5432d65e'
+    AND  a.source = 'PROGRAMME_ASSIGNED'
+  GROUP  BY a.attempt_id
+  HAVING NOT EXISTS (
+    SELECT 1 FROM nclex_attempt_items ai
+    JOIN   nclex_attempt_answers an ON an.attempt_item_id = ai.attempt_item_id
+    WHERE  ai.attempt_id = a.attempt_id AND an.is_correct IS NOT TRUE)
+), target AS (
+  SELECT DISTINCT ON (ai.attempt_id) ai.attempt_item_id
+  FROM   nclex_attempt_items ai JOIN perfect p ON p.attempt_id = ai.attempt_id
+  ORDER  BY ai.attempt_id, ai.position DESC
+)
+UPDATE nclex_attempt_answers an SET
+  is_correct = FALSE,
+  score_awarded = CASE WHEN ai.question_type IN ('SATA','SELECT_N','CLOZE','HIGHLIGHT')
+                       THEN greatest(ai.marks_snapshot - 1, 0) ELSE 0 END,
+  answer_json = CASE
+    WHEN ai.question_type = 'CLOZE'
+      THEN (ai.correct_answer_snapshot_json->'answers')
+           - (SELECT min(k) FROM jsonb_object_keys(ai.correct_answer_snapshot_json->'answers') k)
+    WHEN ai.question_type = 'HIGHLIGHT'
+      THEN COALESCE((SELECT jsonb_agg(e.val ORDER BY e.ord)
+        FROM jsonb_array_elements(ai.correct_answer_snapshot_json->'correct_ids') WITH ORDINALITY AS e(val, ord)
+        WHERE e.ord < jsonb_array_length(ai.correct_answer_snapshot_json->'correct_ids')), '[]'::jsonb)
+    WHEN ai.question_type IN ('SATA','SELECT_N')
+      THEN COALESCE((SELECT jsonb_agg(e.val ORDER BY e.ord)
+        FROM jsonb_array_elements(ai.correct_answer_snapshot_json->'answers') WITH ORDINALITY AS e(val, ord)
+        WHERE e.ord < jsonb_array_length(ai.correct_answer_snapshot_json->'answers')), '[]'::jsonb)
+    ELSE to_jsonb((SELECT o->>'id' FROM jsonb_array_elements(ai.content_snapshot_json->'options') o
+      WHERE o->>'id' <> ai.correct_answer_snapshot_json->>'answer' ORDER BY o->>'id' LIMIT 1))
+  END
+FROM nclex_attempt_items ai, target t
+WHERE ai.attempt_item_id = an.attempt_item_id
+  AND t.attempt_item_id = an.attempt_item_id;
+
+
+-- =====================================================================
+-- 6. Score and complete — this writes the progress rows
 -- =====================================================================
 
 UPDATE nclex_attempts a SET
-  final_score = t.score, status = 'COMPLETED', updated_at = NOW()
+  final_score = t.score,
+  status = CASE WHEN a.status = 'IN_PROGRESS' THEN 'COMPLETED' ELSE a.status END,
+  updated_at = NOW()
 FROM (
   SELECT ai.attempt_id,
          round(sum(an.score_awarded) / nullif(sum(ai.marks_snapshot), 0), 4) AS score
@@ -243,12 +332,11 @@ FROM (
 ) AS t
 WHERE a.attempt_id = t.attempt_id
   AND a.student_id = '4ed777d7-e4f7-403b-88f4-63ce5432d65e'
-  AND a.source = 'PROGRAMME_ASSIGNED'
-  AND a.status = 'IN_PROGRESS';
+  AND a.source = 'PROGRAMME_ASSIGNED';
 
 
 -- =====================================================================
--- 5. Attendance for the sessions that have aired
+-- 7. Attendance for the sessions that have aired
 -- =====================================================================
 -- Present for weeks 1–3, absent for week 4 — so there is a recording to
 -- catch up on rather than a spotless record.
