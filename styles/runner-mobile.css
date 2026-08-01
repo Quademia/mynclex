@@ -22,7 +22,7 @@
  *   ✅ SLICE 3 — answers: indent, caps, tap targets, sticky count
  *   ✅ SLICE 4 — case / trend stack + summary card + chart sheet
  *   ✅ SLICE 5 — matrix row-cards, bow-tie stack
- *   ⬜ SLICE 6 — calculator docked
+ *   ✅ SLICE 6 — calculator docked
  *   ⬜ SLICE 7 — landscape drawers
  *
  * WHY CONTAINER QUERIES, NOT @media
@@ -667,3 +667,41 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+/* ── Calculator, docked (SLICE 6) ───────────────────────────────────────
+ * Same engine and markup; the sheet re-homes the panel and the keys grow
+ * to a thumb.
+ *
+ * ⚠ Scoped to `.rn-sheet`, not to the container query the handoff used.
+ * On compact runner.tsx renders the sheet INSTEAD of the floating panel
+ * (never both), so the only `.calc-panel` that can exist inside `.rn-sheet`
+ * is the docked one — and scoping this way leaves the widget's own phone
+ * rules (calculator.css, ≤768px) untouched for any other surface that
+ * mounts <Calculator> later. Specificity carries it: every selector here
+ * is one class deeper than the rule it overrides, so import order between
+ * runner-mobile.css and calculator.css does not matter.
+ *
+ * ⚠ The handoff's block re-homes the panel and grows the keys but leaves
+ * `.calc-head` standing — while the sheet already draws a head reading
+ * "Calculator" with its own ✕. Rendered, that is two identical titles and
+ * two close buttons stacked on top of each other. The sheet owns the
+ * frame, so the panel's own head goes.
+ */
+.rn-sheet .calc-panel {
+  position: static;
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  /* The drag handle is hidden below, so the panel must stop claiming touch
+   * gestures — `touch-action: none` exists to let the header own the drag,
+   * and left in place it would swallow a scroll started over the keys. */
+  touch-action: auto;
+}
+.rn-sheet .calc-head { display: none; }
+/* 52px keys: the 44px floor plus room, since this is a numeric pad used
+ * under time pressure and a mis-tap costs a re-entry, not just a re-tap. */
+.rn-sheet .calc-btn { min-height: 52px; font-size: 17px; border-radius: 10px; }
+/* The memory strip stays the shorter, quieter row it is on desktop — but
+ * not 30px, which is below anything a thumb can hit. */
+.rn-sheet .calc-mem-row .calc-btn { min-height: 40px; font-size: 13px; }

@@ -197,10 +197,27 @@ function RunnerShell({ data }: Props) {
   // consulted for decisions CSS cannot make — i.e. where a component
   // RENDERS in the tree, not how it looks.
   //   SLICE 1 → 'menu'.   SLICE 2 → 'grid'.   SLICE 4 → 'chart'.
-  //   SLICE 6 → 'calc' + 'results'.
+  //
+  // ⚠ SLICE 6 removed the two members that were never reachable, rather
+  // than leaving them as a to-do that reads like a feature:
+  //   • 'calc' — the calculator IS a sheet on compact, but `calcOpen`
+  //     drives it, not this union. See its render below for why.
+  //   • 'results' — settled with Sam 2026-08-01: the end-of-sitting popup
+  //     stays a centred modal on every width. It is the one floating thing
+  //     in the runner that is NOT a peek-and-return tool — the sitting is
+  //     over and it is where the student picks what to do next — and a
+  //     sheet's grammar is swipe-to-dismiss. It also already fits a phone
+  //     (ViewerModalShell is width:100%/max-width:460px, not fixed-width),
+  //     so nothing was broken to fix. The handoff named it in a list of
+  //     five and never specified it; this is the specification.
   const compact = useIsCompact();
-  const [sheet, setSheet] = useState<null | 'grid' | 'chart' | 'calc' | 'menu' | 'results'>(null);
+  const [sheet, setSheet] = useState<null | 'grid' | 'chart' | 'menu'>(null);
   const closeSheet = useCallback(() => setSheet(null), []);
+  // Stable, not an inline arrow: <RunnerSheet>'s focus/scroll-lock effect
+  // depends on its `onClose` identity, so a fresh closure each render would
+  // tear the sheet down and re-run it — snatching focus back to the top of
+  // the calculator on every keystroke.
+  const closeCalc = useCallback(() => setCalcOpen(false), []);
   // ⚠ A sheet must never outlive the question it was opened over — a grid
   // still up after picking a question would be describing the wrong one.
   // Closed at the NAVIGATION call sites rather than by an effect on
@@ -1377,7 +1394,11 @@ function RunnerShell({ data }: Props) {
     <div className="rn">
       <ErrorToast error={error} onDismiss={() => setError(null)} />
 
-      <Calculator open={calcOpen} onClose={() => setCalcOpen(false)} />
+      {/* Desktop only. On compact the SAME component renders inside a sheet
+          instead — see the calculator sheet below. Rendering one or the
+          other (never both) is what keeps `.calc-panel`'s fixed position
+          and 264px width off the phone layout without a single !important. */}
+      {!compact && <Calculator open={calcOpen} onClose={closeCalc} />}
 
       {isSandbox && (
         <SandboxCoach
@@ -1495,8 +1516,9 @@ function RunnerShell({ data }: Props) {
       {/* ── Phone sheets (docs/product-plan/runner-mobile.md) ─────────────
           Gated on `compact` as well as `sheet` so a desktop can never hold
           one open, and so the whole subtree is absent from the server
-          render. SLICE 1 implements 'menu'; 'grid' | 'chart' | 'calc' |
-          'results' arrive with slices 2, 4 and 6. */}
+          render. Slices 1, 2 and 4 built 'menu', 'grid' and 'chart'; slice
+          6 added the calculator, which hangs off `calcOpen` rather than
+          this union (see below). */}
       {compact && sheet === 'grid' && gridAvailable && (
         <RunnerSheet title="Question grid" onClose={closeSheet}>
           {/* The same <RunnerGrid>, same props, same filter state — only
@@ -1555,6 +1577,35 @@ function RunnerShell({ data }: Props) {
             onExit={onExitAction}
             onClose={closeSheet}
           />
+        </RunnerSheet>
+      )}
+
+      {/* ── The calculator, docked (SLICE 6) ───────────────────────────────
+          Same component, same engine, same markup — only its frame changes.
+          A 264px window you drag by its title bar is a desktop object; on a
+          phone it becomes the sheet every other floating thing in the
+          runner already became.
+
+          ⚠ It hangs off `calcOpen`, NOT off `sheet === 'calc'` as the
+          handoff proposed. Two reasons, both load-bearing:
+
+          • SandboxCoach reads `calcOpen` (see its prop above). Moving the
+            compact truth into `sheet` would leave the tutorial's calculator
+            step watching a flag that no longer flips on a phone — silently,
+            with types and tests clean. Exactly the breakage the flag arc hit
+            when the sandbox hid controls the coach pointed at.
+          • <RunnerSessionMenu>'s rows call `onToggle()` and then
+            `onClose()` — and `onClose` is `closeSheet`. A row that set
+            sheet='calc' would be cancelled by the very next statement, so
+            the calculator would never open at all.
+
+          Mutual exclusion (the handoff's actual concern) holds anyway: only
+          one sheet renders at a time, and `.rn-sheet-scrim` covers all of
+          `.rn`, so nothing that opens another sheet is reachable while this
+          one is up. */}
+      {compact && calcOpen && (
+        <RunnerSheet title="Calculator" onClose={closeCalc}>
+          <Calculator open onClose={closeCalc} />
         </RunnerSheet>
       )}
 
