@@ -588,4 +588,23 @@ ON CONFLICT (cohort_id, marker_activity_id) DO UPDATE SET
   recording_url = EXCLUDED.recording_url,
   updated_at = NOW();
 
+
+-- =====================================================================
+-- 10. Programme-level quiz membership
+-- =====================================================================
+-- Normally written by the activity-save auto-mirror: saving an activity
+-- with a non-null quiz_id upserts a row here too. Seeding the activities
+-- directly in section 5 bypasses that action, so the rows are written
+-- here. Without them the programme's Quizzes tab is empty and the
+-- student read path keyed on quiz_id (slice 6) finds nothing, even
+-- though the activities themselves resolve fine.
+
+INSERT INTO nclex_programme_quizzes (programme_id, quiz_id)
+SELECT DISTINCT u.programme_id, (a.payload->>'quiz_id')::uuid
+FROM   nclex_programme_activities a
+JOIN   nclex_programme_units u ON u.unit_id = a.unit_id
+WHERE  u.programme_id = '50000000-0000-4000-8000-000000000001'
+  AND  a.payload->>'quiz_id' IS NOT NULL
+ON CONFLICT (programme_id, quiz_id) DO NOTHING;
+
 COMMIT;
