@@ -532,8 +532,10 @@
   .rn-foot-grid .n { font-size: 9px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
 }
 
-/* ── Bottom sheet — the one pattern, five uses ──────────────────────────
- * grid · chart (case/trend) · calculator · session menu · results.
+/* ── Bottom sheet — the one pattern, four uses ──────────────────────────
+ * grid · chart (case/trend) · calculator · session menu.
+ * (The handoff said five and listed `results` — settled 2026-08-01 as a
+ * centred modal instead, so it never became a sheet.)
  * Outside the container query because the sheet is only ever rendered by
  * the compact branch anyway. */
 .rn-sheet-scrim {

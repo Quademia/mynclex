@@ -426,15 +426,112 @@ Matrix to a row-card stack (needs the per-cell `.rn-matrix-cell-label`,
 since the phone layout hides the header row that names the column).
 Bow-tie to a vertical stack via `order`, connectors hidden.
 
-### ⬜ Slice 6 — Calculator sheet + remaining ⋯ rows
+### ✅ Slice 6 — Calculator docked  *(built 2026-08-01)*
 
-The calculator currently opens as its desktop floating `.calc-panel` even
-on a phone — usable, but not docked. The bundle's *Calculator, docked*
-section re-homes it into the sheet with thumb-sized keys, same engine and
-markup.
+The calculator opened as its desktop floating `.calc-panel` on a phone
+too — a 264px window you drag by its title bar, over the question.
+It is now the sheet every other floating thing in the runner became:
+`position: static`, full width, no border or shadow, 52px keys (40px on
+the memory strip). Same component, same engine, same markup.
 
-⚠ **This slice must also pin down the results sheet** — see Gaps. Settle
-what it is with Sam before building either.
+**⚠ The slice was smaller than its title.** "Remaining ⋯ rows" was
+already done — the handoff's row list (flag · bookmark · calculator ·
+hide-clock · Exit, plus session name, mode and brief) is exactly what
+`runner-session-menu.tsx` shipped in slice 1. Nothing was left.
+
+**⚠ The handoff's wiring could not have worked.** It routes the compact
+calculator through `sheet === 'calc'`. Two independent reasons it cannot:
+
+- **`SandboxCoach` reads `calcOpen`.** Moving the compact truth into
+  `sheet` leaves the tutorial's calculator step watching a flag that no
+  longer flips on a phone — silently, with `tsc` and the whole suite
+  clean. The same class of breakage as the flag arc's coach anchors
+  pointing at controls the sandbox hid.
+- **`<RunnerSessionMenu>`'s rows call `onToggle()` and then `onClose()`,
+  and `onClose` is `closeSheet`.** A row that set `sheet='calc'` would be
+  nulled by its own next statement. The calculator would never open at
+  all — the failure is total, not subtle.
+
+So **`calcOpen` stays the single source of truth** and the sheet hangs
+off it: `{compact && calcOpen && <RunnerSheet title="Calculator">}`, with
+the floating panel gated `{!compact && …}`. One renders or the other,
+never both, which is what keeps `fixed`/264px off the phone without an
+`!important`. The handoff's actual concern — calculator and sheet stack
+both open — holds anyway: `.rn-sheet-scrim` covers all of `.rn`, so
+nothing that opens another sheet is reachable while this one is up.
+
+**⚠ The handoff's CSS leaves `.calc-head` standing** while the sheet
+draws its own head. Rendered, that is two "Calculator" titles and two
+close buttons stacked. Hidden here; the sheet owns the frame. ⚠ The
+block is scoped to `.rn-sheet`, **not** to the container query the bundle
+used — on compact the floating panel is not rendered at all, so the only
+`.calc-panel` inside a sheet is the docked one, and scoping this way
+leaves `calculator.css`'s own ≤768px rules intact for any surface that
+mounts `<Calculator>` later. Every selector is one class deeper than what
+it overrides, so import order between the two stylesheets is irrelevant.
+
+**⚠ `onClose` must be a stable callback**, not an inline arrow.
+`<RunnerSheet>`'s focus/scroll-lock effect depends on its identity, so a
+fresh closure each render tears the sheet down and re-runs it — snatching
+focus back to the top on every keystroke. `closeCalc` is a `useCallback`.
+Proven: focus stayed on `=` across four re-renders.
+
+**The sheet union lost both unreachable members.** `'calc'` never was one
+(see above), and `'results'` is settled below.
+
+**Verified at 390px on `/tutorial/exam`:** exactly one `.calc-panel` in
+the DOM, `position: static`, 390px wide, border `0px`, shadow `none`,
+`touch-action: auto`, `.calc-head` `display: none`, one visible title,
+keys 52/40px. **7 × 8 = 56** computed inside the sheet. Escape and the
+scrim both close it, scroll lock released, focus returned to
+`.rn-top-more`, and the scrim tap does **not** select the answer
+underneath. Reopening shows `aria-pressed="false"` — the toggle
+round-trips with no stuck state. A calculator open on desktop becomes a
+docked sheet on resize to 390px. No horizontal overflow, console clean.
+**Desktop proven unchanged by computed style:** `fixed`, 264px, top 76,
+1px border, shadow present, `touch-action: none` (drag intact), head
+visible at 38px, keys 42px, zero sheets. 855 tests pass; lint unchanged
+at its 13 pre-existing `react-hooks` problems.
+
+#### ⓘ Not done here — the nested dialog
+
+`.calc-panel` carries `role="dialog" aria-label="Calculator"`, so inside
+the sheet (itself `role="dialog" aria-modal="true"`) there are two nested
+dialogs. Invisible, wrong, and deliberately left: fixing it means editing
+`lib/calculator/calculator.tsx`, which is the app-wide widget, and the
+visual work needed no change there. Its own `.calc-close` also survives
+in the DOM inside the hidden head — harmless (`display: none` is out of
+tab order, and it is neither the first nor last node in the focus trap).
+Worth its own small job.
+
+### ✅ The results sheet — settled 2026-08-01, it stays a modal
+
+State listed five sheet uses and four had a spec; **"results" was a word
+in a list**. Confirmed independently before asking: across the whole
+bundle it appears **exactly twice** — `README.md` §6 ("used five ways…")
+and the state union it hands over. Neither says what opens it or what is
+in it.
+
+**Sam's decision: the end-of-sitting popup stays a centred modal at every
+width.** Two reasons:
+
+- **It is the one floating thing in the runner that is not a
+  peek-and-return tool.** Grid, chart, calculator and menu are all "check
+  something, go back to the question". `ResultsPopup` is terminal — the
+  sitting is over and it is where the student picks what happens next
+  (report / review / retake). A sheet's grammar is swipe-to-dismiss, and
+  dismissing is the least useful thing available there.
+- **Nothing is broken.** Unlike every fixed-width element slices 1–5
+  fixed, `ViewerModalShell` is already fluid — `width: 100%`,
+  `max-width: 460px`, 24px backdrop padding, `max-height: 80vh`,
+  scrolling body — so at 390px it is a centred ~342px card.
+
+⚠ **It has still not been seen at phone width.** `ResultsPopup` is
+mounted only in the real `/session/[attempt_id]` route, never in the
+sandbox, so it cannot be reached from `/tutorial/exam` — the same
+verification limit this document already records. The decision rests on
+computed CSS plus what the element is for, not on the rendered page.
+Look at it during the next signed-in pass.
 
 ### ⬜ Slice 7 — Landscape layer
 
@@ -498,8 +595,10 @@ Everything below is knowingly absent as of 2026-07-31. Nothing here is a
 regression; each is either a later slice or a pre-existing condition.
 
 **Slices**
-- **6** — calculator docked in a sheet (it still opens as the desktop
-  floating panel on a phone) + the remaining ⋯ rows + the results sheet.
+- ~~**6** — calculator docked.~~ ✅ **Built 2026-08-01.** The remaining ⋯
+  rows turned out to be already done, and the results sheet is settled as
+  a modal rather than built. Left behind: the nested `role="dialog"`
+  inside the calculator sheet (see slice 6).
 - **7** — the landscape layer. At ≤520px height the phone layout applies
   unchanged, so a bottom sheet eats most of the screen. No drawers, no
   split/matrix/bow-tie restoration above 700px wide.
@@ -532,12 +631,18 @@ regression; each is either a later slice or a pre-existing condition.
 
 ## Gaps and risks
 
-- **⚠ The results sheet is named and never specified.** State lists five
-  sheet uses — `grid | chart | calc | menu | results` — and four get a
-  full spec. "Results" is a word: nothing says what opens it, what is in
-  it, or how the end-of-sitting popup relates to it. Probably "the
-  existing popup becomes a sheet on compact", but that is an inference,
-  not an instruction. Settle it in slice 6.
+- ~~**⚠ The results sheet is named and never specified.**~~ ✅ **Closed
+  2026-08-01** — settled with Sam as *stays a modal*, and the inference
+  recorded here ("probably the existing popup becomes a sheet") was
+  **wrong**. See *The results sheet* above.
+
+  ⚠ **Two counts follow from this and are now stale in code.**
+  `<RunnerSheet>` has **four** uses, not five — grid · chart · calculator
+  · session menu — while the `sheet` union has **three** members, because
+  the calculator hangs off `calcOpen` instead. The two numbers differ on
+  purpose and neither is five. `runner-sheet.tsx`'s header comment and
+  `runner-mobile.css`'s sheet-section comment both still say *"five uses"*
+  and both still list *results*.
 - **⚠ Repo gap, pre-existing, not a mobile issue:** `runner.css` uses
   `var(--surface)` **seven times** (`.rn-dd-slot-row`, `.rn-cloze-select`,
   `.rn-bt-slot.filled` and others) and **no file in `styles/` defines
