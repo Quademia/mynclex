@@ -1,7 +1,12 @@
 /* mynclex/styles/runner-mobile.css
  *
- * Phone/tablet-portrait layer for the session runner. Import AFTER
- * runner.css. Nothing here changes the desktop layout.
+ * Phone/tablet layer for the session runner. Import AFTER runner.css.
+ *
+ * ⚠ Two bands live here, and only the first is "the phone layout":
+ *   ≤899px       — the phone layout (slices 1–6). Structural.
+ *   900–1300px   — tablet LANDSCAPE. Keeps the desktop layout and only
+ *                  stops it clipping. Added 2026-08-03; see that block
+ *                  for why. Above 1300px nothing here applies.
  *
  * ⚠ THIS FILE LANDS SLICE BY SLICE — see docs/product-plan/runner-mobile.md
  * ────────────────────────────────────────────────────────────────────────
@@ -28,10 +33,19 @@
  * WHY CONTAINER QUERIES, NOT @media
  * ─────────────────────────────────
  * Every rule below keys off the width of `.rn` itself rather than the
- * viewport. In production `.rn` IS the viewport, so the two are the same
- * thing — but it also means the whole mobile layout can be rendered inside
- * a 390px frame (design review, the runner tutorial sandbox, screenshots)
+ * viewport, which means the whole mobile layout can be rendered inside a
+ * 390px frame (design review, the runner tutorial sandbox, screenshots)
  * without lying about what students get. One source of truth, provable.
+ *
+ * ⚠ This block used to claim "in production `.rn` IS the viewport, so the
+ * two are the same thing". That is FALSE and it cost us a bug. A classic
+ * scrollbar sits between them: measured at a 900px viewport, `.rn` is
+ * 885px. The container query fired and hid the case panel while
+ * useIsCompact() — then reading the VIEWPORT via matchMedia — stayed
+ * false and never rendered the summary card that replaces it, so a case
+ * question showed no scenario at all. use-is-compact.ts now observes this
+ * element instead, so the two cannot disagree. Don't reintroduce a
+ * viewport measurement anywhere in this layer.
  *
  * THE BREAKPOINT — 899px
  * ──────────────────────
@@ -76,6 +90,68 @@
   /* 100vh is a lie on iOS Safari — the footer hides under the URL bar,
    * which is exactly where Submit lives. */
   height: 100dvh;
+}
+
+/* ── Tablet landscape (900–1300px): the split stops clipping ──────────
+ * NOT the phone layout. The desktop layout stays exactly as it is; these
+ * four rules only stop it overflowing. Found 2026-08-03 by testing a real
+ * tablet: in portrait a tablet is ≤899px and gets the phone layout, but
+ * ROTATE it and the desktop layout takes over at a width it cannot honour.
+ * The question was cut off with no page scrollbar — the hidden part was
+ * reachable only via a sub-region scrollbar a student will never find.
+ * Case study and trend only; all 11 standalone types measured clean.
+ *
+ * The cause is NOT the 520px column floor everyone (including this file's
+ * own header) assumes. Measured, it is two things:
+ *
+ *   1. `.rn-cjmm-strip` — the 6-step stepper is a nowrap flex row that
+ *      demands 534px and single-handedly holds the question column at
+ *      536px. With it removed the whole rest of the question — stem,
+ *      options, matrix — fits in 180px. It is within 2px of the 520px
+ *      floor by coincidence, which is what made this look like a column
+ *      problem. Wrapping costs no height until it actually wraps.
+ *   2. `.rn-matrix` spilled out of its track because `.rn-q-wrap` had no
+ *      `min-width: 0`, so `overflow-x` had nothing to bite on.
+ *
+ * The case column keeps `1fr`, so its floor only binds in the tightest
+ * configuration (narrow screen AND grid rail open); with the rail closed
+ * the panel still grows past 400px.
+ *
+ * ⚠ 1300, not 1250: at 1251 the desktop floors land on exactly the width
+ * available (939 vs 939), i.e. zero margin. The band needs to end where
+ * the desktop layout has room to spare, not where it just fits.
+ *
+ * ⚠ The grid rail is deliberately untouched. Narrowing it to 180px works
+ * for the split but overflows `.rn-cells` (needs 204px, fixed 5-column
+ * grid) — and the case bands are absolute-positioned from JS-computed
+ * offsets against those cells (runner.css §"Case band"), which the
+ * 2026-07-31 slice already broke once. Not worth it for 60px.
+ *
+ * ⚠ MEASURED, NOT STRUCTURAL. Verified 0px clipped on all 7 wrapper
+ * questions in the tutorial across 1024–1300, grid rail OPEN (the worst
+ * case). A matrix substantially wider than the tutorial's could still
+ * clip; the general answer is the phone's row-card treatment, which is
+ * deliberately not pulled into this band. Below 1024 with the rail open
+ * it still clips — that is landscape PHONES, and it belongs to slice 7.
+ * ─────────────────────────────────────────────────────────────────── */
+@container rn (min-width: 900px) and (max-width: 1300px) {
+  .rn-split      { grid-template-columns: minmax(250px, 1fr) minmax(400px, 720px); }
+  .rn-cjmm-strip { flex-wrap: wrap; }
+  .rn-q-wrap     { min-width: 0; }
+  .rn-matrix     { max-width: 100%; overflow-x: auto; }
+
+  /* ⚠ Load-bearing, and the least obvious rule in this block.
+   * `.rn-q-wrap` carries `margin: 0 auto` (runner.css) to centre a
+   * STANDALONE question. On a grid item, auto margins suppress stretch:
+   * the item is sized shrink-to-fit — i.e. to its own min-content — and
+   * overflows its track instead of filling it. That is why the question
+   * column measured 438px inside a 423px track, and why `max-width: 100%`
+   * on `.rn-matrix` above did nothing: 100% resolved against a parent
+   * that was itself sized by that same content.
+   * ⚠ runner.css's comment above `.rn-q-wrap` claims its `margin: 0 auto`
+   * is "a no-op inside a case". It is not — it is what defeats the clamp.
+   * Scoped to `.rn-split >` so standalone questions stay centred. */
+  .rn-split > .rn-q-wrap { margin-inline: 0; }
 }
 
 @container rn (max-width: 899px) {
