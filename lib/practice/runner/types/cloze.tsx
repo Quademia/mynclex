@@ -21,14 +21,30 @@
 //   wrong    — red pill with ✕ + picked text (review, picked & wrong)
 //   skipped  — dashed amber pill with "(skipped)" (review, no pick)
 //
-// Per-blank feedback below the stem renders as flowing prose: per
-// blank, a left-accented "Blank N" header followed by a paragraph
-// where every option label flows inline with its per-choice rationale.
-// The correct option's label is green, wrong options' labels are a
-// softened red (#9b2c2c — clearly red, less alarmist than the stem
-// pill so multiple wrong labels don't shout). The student's actual
-// pick is NOT marked in the feedback prose — the stem pill already
-// shows it (Sam, 2026-05-08, design mock B′).
+// Per-blank feedback below the stem: a left-accented "Blank N" header
+// followed by every option for that blank. The student's actual pick is
+// NOT marked here — the stem pill already shows it (Sam, 2026-05-08,
+// design mock B′).
+//
+// ⚠ ONLY THE CORRECT OPTION IS COLOURED (Sam, 2026-08-03). It was green
+// for correct and a softened red (#9b2c2c) for every other option; the
+// rest are now ordinary body text. Red was marking DISTRACTORS, not
+// mistakes — a student who answered the blank correctly still saw two or
+// three red options under a header reading CORRECT, which is the same
+// defect class as the review strip telling a partial scorer "wrong".
+// ⓘ `drag-cloze` keeps its red deliberately: its distractors sit inside a
+// box captioned DISTRACTORS, so the colour is explained. This list has no
+// caption, so the same red reads as "you got these wrong".
+//
+// ⚠ THE SEPARATOR FOLLOWS THE CONTENT, and it has to. The original design
+// assumed every choice carried a rationale, so the options read as prose
+// ("low — Correct. In shock… high — A high blood pressure…"). Measured
+// against the real bank: only 68 of 1,557 choices (4.4%) have a rationale
+// and 455 of 473 blanks (96%) have none at all — so what students
+// actually saw was "low high unchanged", three terms separated by one
+// space. Bare labels are therefore comma-joined, while a blank whose
+// choices DO carry rationales puts one option per line (a comma there
+// would collide with the rationale's own sentence punctuation).
 //
 // Submit gate — CLOZE requires every blank filled. Unlike SATA /
 // HIGHLIGHT (where "zero" is a deliberate "nothing applies" answer), an
@@ -214,6 +230,51 @@ interface FeedbackListProps {
   correct:       ClozeCorrect;
 }
 
+export interface ClozeFeedbackEntry {
+  choice:    ClozeBlank['choices'][number];
+  isCorrect: boolean;
+  fbDoc:     ReturnType<typeof parseRichDoc> | null;
+  hasFb:     boolean;
+}
+
+/**
+ * Build one blank's feedback entries, and decide how the paragraph reads.
+ *
+ * Parses each choice's rationale ONCE (it is a rich doc since Slice 6d-ii,
+ * read-coerced so legacy plain feedback still renders) and derives the
+ * blank's shape from what actually came back:
+ *
+ *   'terms' — no choice carries a rationale. 455 of 473 blanks in the
+ *             bank (96%). Bare labels, comma-joined by CSS.
+ *   'prose' — at least one does. One option per line, because a comma
+ *             would run straight into the rationale's own full stop.
+ *
+ * ⚠ Decided per BLANK, never per choice: a half-authored blank would
+ * otherwise mix commas and line breaks inside a single paragraph.
+ *
+ * ⚠ An EMPTY rich doc counts as no rationale. A curator who opens the
+ * feedback field and saves without typing leaves `{"type":"doc"...}` with
+ * no content — truthy, so a bare `if (fbRaw)` would call that blank
+ * 'prose' and give it one-per-line layout with nothing on the lines.
+ */
+export function clozeFeedbackEntries(
+  choices:       ClozeBlank['choices'],
+  correctId:     string | undefined,
+  blankFeedback: Record<string, string> | undefined,
+): { entries: ClozeFeedbackEntry[]; shape: 'prose' | 'terms' } {
+  const entries: ClozeFeedbackEntry[] = choices.map((choice) => {
+    const fbRaw = blankFeedback?.[choice.id];
+    const fbDoc = fbRaw ? parseRichDoc(fbRaw) : null;
+    return {
+      choice,
+      isCorrect: choice.id === correctId,
+      fbDoc,
+      hasFb: fbDoc !== null && !isEmptyRichDoc(fbDoc),
+    };
+  });
+  return { entries, shape: entries.some((e) => e.hasFb) ? 'prose' : 'terms' };
+}
+
 function ClozeFeedbackList({ blanks, studentAnswer, correct }: FeedbackListProps) {
   if (blanks.length === 0) return null;
 
@@ -234,30 +295,28 @@ function ClozeFeedbackList({ blanks, studentAnswer, correct }: FeedbackListProps
         else if (pickedId === correctId) { verdict = 'right';   verdictTxt = 'CORRECT'; }
         else                             { verdict = 'wrong';   verdictTxt = 'WRONG'; }
 
+        const { entries: rendered, shape } = clozeFeedbackEntries(
+          b.choices,
+          correctId,
+          blankFeedback,
+        );
+
         return (
           <div key={b.id} className="rn-cloze-feedback-blank">
             <div className={`rn-cloze-feedback-blank-label ${verdict}`}>
               <span className="num">{idx + 1}</span>
               <span className="verdict">{verdictTxt}</span>
             </div>
-            <p className="rn-cloze-feedback-rationales">
-              {b.choices.map((c) => {
-                const isCorrect = c.id === correctId;
-                // Feedback is a rich doc (Slice 6d-ii), read-coerced so legacy
-                // plain feedback still renders. Choice label stays plain.
-                const fbRaw = blankFeedback?.[c.id];
-                const fbDoc = fbRaw ? parseRichDoc(fbRaw) : null;
-                const hasFb = fbDoc !== null && !isEmptyRichDoc(fbDoc);
-                return (
-                  <span
-                    key={c.id}
-                    className={`rn-cloze-feedback-item${isCorrect ? ' right' : ''}`}
-                  >
-                    <span className="rn-cloze-feedback-label">{c.text}</span>
-                    {hasFb && <> — <RichRender doc={fbDoc} inline /></>}
-                  </span>
-                );
-              })}
+            <p className={`rn-cloze-feedback-rationales ${shape}`}>
+              {rendered.map(({ choice, isCorrect, fbDoc, hasFb }) => (
+                <span
+                  key={choice.id}
+                  className={`rn-cloze-feedback-item${isCorrect ? ' right' : ''}`}
+                >
+                  <span className="rn-cloze-feedback-label">{choice.text}</span>
+                  {hasFb && <> — <RichRender doc={fbDoc!} inline /></>}
+                </span>
+              ))}
             </p>
           </div>
         );

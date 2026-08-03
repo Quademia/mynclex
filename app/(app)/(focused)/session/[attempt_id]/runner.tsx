@@ -70,6 +70,10 @@ import { ResultsPopup } from '@/lib/practice/runner/results-popup';
 import { RunnerTopbar }       from './runner-topbar';
 import { RunnerFooter }       from './runner-footer';
 import { RunnerGrid, RunnerGridHandle, type CaseGroup } from './runner-grid';
+import { RunnerSheet }        from './runner-sheet';
+import { RunnerSessionMenu }  from './runner-session-menu';
+import { CaseSummaryCard }    from './case-summary-card';
+import { useIsCompact }       from './use-is-compact';
 import { Calculator } from '@/lib/calculator/calculator';
 import { SandboxCoach } from '@/lib/practice/tutorial/coach/coach';
 import { RunnerQuestionArea, type PerItemUnseal } from './runner-question-area';
@@ -187,6 +191,50 @@ function RunnerShell({ data }: Props) {
   // The on-screen calculator (BUILD_LIST #16) — a real NCLEX tool, so it is
   // available in every mode; closed by default, toggled from the topbar.
   const [calcOpen, setCalcOpen] = useState(false);
+
+  // ── Phone layout (docs/product-plan/runner-mobile.md) ──────────────────
+  // One sheet at a time; opening another replaces it. `compact` is only
+  // consulted for decisions CSS cannot make — i.e. where a component
+  // RENDERS in the tree, not how it looks.
+  //   SLICE 1 → 'menu'.   SLICE 2 → 'grid'.   SLICE 4 → 'chart'.
+  //
+  // ⚠ SLICE 6 removed the two members that were never reachable, rather
+  // than leaving them as a to-do that reads like a feature:
+  //   • 'calc' — the calculator IS a sheet on compact, but `calcOpen`
+  //     drives it, not this union. See its render below for why.
+  //   • 'results' — settled with Sam 2026-08-01: the end-of-sitting popup
+  //     stays a centred modal on every width. It is the one floating thing
+  //     in the runner that is NOT a peek-and-return tool — the sitting is
+  //     over and it is where the student picks what to do next — and a
+  //     sheet's grammar is swipe-to-dismiss. It also already fits a phone
+  //     (ViewerModalShell is width:100%/max-width:460px, not fixed-width),
+  //     so nothing was broken to fix. The handoff named it in a list of
+  //     five and never specified it; this is the specification.
+  const compact = useIsCompact();
+  const [sheet, setSheet] = useState<null | 'grid' | 'chart' | 'menu'>(null);
+  const closeSheet = useCallback(() => setSheet(null), []);
+  // Stable, not an inline arrow: <RunnerSheet>'s focus/scroll-lock effect
+  // depends on its `onClose` identity, so a fresh closure each render would
+  // tear the sheet down and re-run it — snatching focus back to the top of
+  // the calculator on every keystroke.
+  const closeCalc = useCallback(() => setCalcOpen(false), []);
+  // The tutorial coach's handle on the phone sheets. On a phone several of
+  // the controls the walkthrough teaches are inside a sheet, so a step has
+  // to be able to open one — and to close it again (null) so it cannot sit
+  // over the next step. Sandbox-only in practice; the prop is ignored on
+  // desktop, where the coach anchors to the real topbar.
+  const openCoachSheet = useCallback(
+    (kind: 'menu' | 'grid' | 'chart' | null) => setSheet(kind),
+    [],
+  );
+  // ⚠ A sheet must never outlive the question it was opened over — a grid
+  // still up after picking a question would be describing the wrong one.
+  // Closed at the NAVIGATION call sites rather than by an effect on
+  // `current`: a setState fired synchronously from an effect cascades an
+  // extra render on every question change, and eslint's react-hooks rules
+  // reject it. Nothing in SLICE 1 navigates from a sheet (the menu only
+  // toggles); SLICE 2's grid is the first that will, and onPick is where it
+  // belongs.
 
   // pendingAnswers seeds from any DRAFT rows already on the server. With
   // universal save-on-tap (slice 4.5a §9.1), every material answer change
@@ -1213,32 +1261,66 @@ function RunnerShell({ data }: Props) {
   // persists across siblings of the same case (and resets when the
   // student crosses into a different case). The TrendPanel needs no
   // key because it carries no internal state.
+  // The panel is built ONCE and rendered in exactly one place — beside the
+  // question on desktop, inside the chart sheet on a phone. Never both:
+  // <CasePanel> resolves its images through a Server Action, so a second
+  // mounted copy would fetch every chart image twice (slice 4 of
+  // docs/product-plan/runner-mobile.md).
+  const chartPanel: React.ReactNode =
+    inCase && caseSnap ? (
+      <CasePanel
+        key={caseSnap.case_id}
+        caseSnap={caseSnap}
+        currentPosition={currentItem?.case_position ?? 1}
+        totalChildren={caseChildIds.length}
+        answeredCount={answeredInCase}
+        resolveImageUrl={(id) => getAttemptImageUrlAction(data.attempt.attempt_id, id)}
+      />
+    ) : inTrend && trendSnap ? (
+      <TrendPanel
+        trendSnap={trendSnap}
+        resolveImageUrl={(id) => getAttemptImageUrlAction(data.attempt.attempt_id, id)}
+      />
+    ) : null;
+
   let questionArea: React.ReactNode;
   if (inCase && caseSnap) {
     questionArea = (
       <div className="rn-split">
-        <CasePanel
-          key={caseSnap.case_id}
-          caseSnap={caseSnap}
-          currentPosition={currentItem?.case_position ?? 1}
-          totalChildren={caseChildIds.length}
-          answeredCount={answeredInCase}
-          resolveImageUrl={(id) =>
-            getAttemptImageUrlAction(data.attempt.attempt_id, id)
-          }
-        />
+        {compact ? (
+          <CaseSummaryCard
+            kind="case"
+            title={caseSnap.title_snapshot}
+            tabCount={caseSnap.tabs_snapshot_json.length}
+            answered={answeredInCase}
+            total={caseChildIds.length}
+            // ⚠ Gated on hideExamScaffold exactly as the desktop CJMM strip
+            // is (§16.6): the step name is teaching scaffolding, hidden in a
+            // live exam. Without this the phone would name the clinical-
+            // judgment step in a sitting where the desktop deliberately
+            // does not.
+            cjmmStepLabel={!hideExamScaffold ? cjmmStep ?? undefined : undefined}
+            onOpen={() => setSheet('chart')}
+          />
+        ) : (
+          chartPanel
+        )}
         {questionAreaInner}
       </div>
     );
   } else if (inTrend && trendSnap) {
     questionArea = (
       <div className="rn-split">
-        <TrendPanel
-          trendSnap={trendSnap}
-          resolveImageUrl={(id) =>
-            getAttemptImageUrlAction(data.attempt.attempt_id, id)
-          }
-        />
+        {compact ? (
+          <CaseSummaryCard
+            kind="trend"
+            title={trendSnap.title_snapshot}
+            tabCount={trendSnap.tabs_snapshot_json.length}
+            onOpen={() => setSheet('chart')}
+          />
+        ) : (
+          chartPanel
+        )}
         {questionAreaInner}
       </div>
     );
@@ -1279,11 +1361,53 @@ function RunnerShell({ data }: Props) {
       }
     : undefined;
 
+  // ── Shared by the topbar and the ⋯ session menu ───────────────────────
+  // Hoisted so the two surfaces cannot drift: on a phone the same flag and
+  // bookmark are reachable from both, and a second inline copy of these
+  // conditions is how one of them ends up offering a control the other has
+  // correctly hidden.
+  const flagProps =
+    flaggingOffered(data.attempt) && currentFlagId
+      ? {
+          on:       flaggedAttemptItemIds.has(currentFlagId),
+          busy:     flagBusy,
+          editable: canEditFlag,
+          onToggle: onToggleFlag,
+        }
+      : null;
+
+  const bookmarkProps =
+    data.canBookmark && currentBookmarkId
+      ? {
+          on:       bookmarkedItemIds.has(currentBookmarkId),
+          busy:     bookmarkBusy,
+          onToggle: onToggleBookmark,
+        }
+      : null;
+
+  // Live (mid-flight) → confirm first. Review → leave directly. A CAT review
+  // came from its summary page (§14.3), so Exit returns THERE — the richer
+  // CAT surface — rather than the resolver's CAT-home default (which is
+  // right for a live exam, that has no summary yet). Every other review
+  // keeps data.exitHref.
+  const onExitAction =
+    data.mode === 'live'
+      ? () => setShowExitConfirm(true)
+      : () => router.push(
+          isCat
+            ? `/student/bank/cat/result/${data.attempt.attempt_id}`
+            : data.exitHref,
+        );
+
   return (
     <div className="rn">
       <ErrorToast error={error} onDismiss={() => setError(null)} />
 
-      <Calculator open={calcOpen} onClose={() => setCalcOpen(false)} />
+      {/* Desktop only. On compact the SAME component renders inside a sheet
+          instead — see the calculator sheet below. Rendering one or the
+          other (never both) is what keeps `.calc-panel`'s fixed position
+          and 264px width off the phone layout without a single !important. */}
+      {!compact && <Calculator open={calcOpen} onClose={closeCalc} />}
 
       {isSandbox && (
         <SandboxCoach
@@ -1294,6 +1418,11 @@ function RunnerShell({ data }: Props) {
           setGridOpen={setGridOpen}
           onEnd={() => router.push(data.exitHref)}
           calcOpen={calcOpen}
+          // The phone layout moved several of the controls the walkthrough
+          // teaches into sheets, so the coach has to be able to open them —
+          // the same way it already opens the desktop grid rail above.
+          compact={compact}
+          onOpenSheet={openCoachSheet}
           currentSubmitted={
             currentItem ? answersByItem.has(currentItem.attempt_item_id) : false
           }
@@ -1311,30 +1440,13 @@ function RunnerShell({ data }: Props) {
         // Shown wherever flagging is offered — including in REVIEW, where it
         // renders the state but does not respond (§2.4). Hidden entirely in
         // the two forward-only modes, and in the sandbox (no attempt row).
-        flag={
-          flaggingOffered(data.attempt) && currentFlagId
-            ? {
-                on:       flaggedAttemptItemIds.has(currentFlagId),
-                busy:     flagBusy,
-                editable: canEditFlag,
-                onToggle: onToggleFlag,
-              }
-            : null
-        }
+        flag={flagProps}
         // Hidden entirely (null) rather than disabled when bookmarking is not
         // offered — a greyed control invites a "why?" whose honest answer
         // would name the reservation mechanism (§3.4). Also hidden in the
         // sandbox: the tutorial creates no attempt row, so there is nothing
         // to write against; its own steps land with slice 5.
-        bookmark={
-          data.canBookmark && currentBookmarkId
-            ? {
-                on:       bookmarkedItemIds.has(currentBookmarkId),
-                busy:     bookmarkBusy,
-                onToggle: onToggleBookmark,
-              }
-            : null
-        }
+        bookmark={bookmarkProps}
         statusLabel={statusLabel}
         caseMeta={hideExamScaffold ? undefined : caseMeta}
         clock={clockProps}
@@ -1345,21 +1457,8 @@ function RunnerShell({ data }: Props) {
         }
         calcToggle={{ open: calcOpen, onToggle: () => setCalcOpen((o) => !o) }}
         sandbox={isSandbox}
-        onExit={
-          // Live (mid-flight) → confirm first. Review → leave directly.
-          // A CAT review came from its summary page (§14.3: review is a
-          // sub-action of the summary, reached History → summary → Review),
-          // so Exit returns THERE — the richer CAT surface — rather than the
-          // resolver's CAT-home default (which is right for a live exam, that
-          // has no summary yet). Every other review keeps data.exitHref.
-          data.mode === 'live'
-            ? () => setShowExitConfirm(true)
-            : () => router.push(
-                isCat
-                  ? `/student/bank/cat/result/${data.attempt.attempt_id}`
-                  : data.exitHref,
-              )
-        }
+        onOpenMenu={() => setSheet('menu')}
+        onExit={onExitAction}
         onPillClick={
           data.mode === 'review' && data.attempt.final_score !== null
             ? () => setShowResults(true)
@@ -1381,6 +1480,11 @@ function RunnerShell({ data }: Props) {
           </div>
         </main>
 
+        {/* The desktop rail. On compact this whole branch is hidden by CSS
+            and the grid renders inside the sheet instead — see below. It is
+            still MOUNTED there, which is deliberate: `gridOpen` and the
+            filter stay exactly where they were if the window is resized
+            across the breakpoint. */}
         {gridAvailable && (gridOpen ? (
           <RunnerGrid
             items={data.items}
@@ -1414,7 +1518,110 @@ function RunnerShell({ data }: Props) {
         prevHint={archetype === 'SEQUENTIAL' ? 'Sequential mode — no going back' : undefined}
         onPrev={onPrevGuarded}
         onPrimary={onPrimary}
+        // Exactly `!gridAvailable`: both CAT and live Timed Sequential map to
+        // the SEQUENTIAL archetype, and in those two the student can neither
+        // go back nor open a grid. Phone-only effect — see runner-mobile.css.
+        forwardOnly={!gridAvailable}
+        // Undefined in the modes with no grid, so the button never renders
+        // there — same condition as the topbar's grid toggle.
+        onOpenGrid={gridAvailable ? () => setSheet('grid') : undefined}
       />
+
+      {/* ── Phone sheets (docs/product-plan/runner-mobile.md) ─────────────
+          Gated on `compact` as well as `sheet` so a desktop can never hold
+          one open, and so the whole subtree is absent from the server
+          render. Slices 1, 2 and 4 built 'menu', 'grid' and 'chart'; slice
+          6 added the calculator, which hangs off `calcOpen` rather than
+          this union (see below). */}
+      {compact && sheet === 'grid' && gridAvailable && (
+        <RunnerSheet title="Question grid" onClose={closeSheet}>
+          {/* The same <RunnerGrid>, same props, same filter state — only
+              `compact` differs, and it exists solely so the case-band
+              geometry matches the 6×46 layout the sheet CSS renders. */}
+          <RunnerGrid
+            compact
+            items={data.items}
+            answers={answersByItem}
+            flagged={flaggedAttemptItemIds}
+            current={current}
+            filter={filter}
+            caseGroups={caseGroups}
+            revealCorrectness={data.mode === 'review' || archetype === 'UL'}
+            // Picking a question navigates, so the sheet has to go with it —
+            // this is the call site slice 1's comment promised, rather than
+            // an effect on `current` that would fire on every Next.
+            onPick={(i) => { closeSheet(); onPickGuarded(i); }}
+            onFilterChange={setFilter}
+          />
+        </RunnerSheet>
+      )}
+
+      {/* The case/trend panel, unchanged — same tabs, same visible_from
+          reveal rules, same scenario block. Only its container moves. */}
+      {compact && sheet === 'chart' && chartPanel && (
+        <RunnerSheet
+          title={
+            inCase && caseSnap
+              ? `Case study · ${answeredInCase} of ${caseChildIds.length} answered`
+              : 'Trend dataset'
+          }
+          onClose={closeSheet}
+        >
+          {chartPanel}
+        </RunnerSheet>
+      )}
+
+      {compact && sheet === 'menu' && (
+        <RunnerSheet title="Session" onClose={closeSheet}>
+          <RunnerSessionMenu
+            sessionTitle={sessionTitle}
+            modeLabel={modeLabel}
+            // The footer's own line, evicted from the bar on a phone —
+            // relocated here, not dropped.
+            brief={modeMsg}
+            flag={flagProps}
+            bookmark={bookmarkProps}
+            calc={{ on: calcOpen, onToggle: () => setCalcOpen((o) => !o) }}
+            // Passed as the bare identifier, not destructured and not
+            // `?? null` — see the prop's comment. This object is built from
+            // refs, so any EXPRESSION over it here trips react-hooks/refs,
+            // while reading its fields inside the child does not. It is
+            // already `… | null`, so it needs no coalescing.
+            clock={clockProps}
+            onExit={onExitAction}
+            onClose={closeSheet}
+          />
+        </RunnerSheet>
+      )}
+
+      {/* ── The calculator, docked (SLICE 6) ───────────────────────────────
+          Same component, same engine, same markup — only its frame changes.
+          A 264px window you drag by its title bar is a desktop object; on a
+          phone it becomes the sheet every other floating thing in the
+          runner already became.
+
+          ⚠ It hangs off `calcOpen`, NOT off `sheet === 'calc'` as the
+          handoff proposed. Two reasons, both load-bearing:
+
+          • SandboxCoach reads `calcOpen` (see its prop above). Moving the
+            compact truth into `sheet` would leave the tutorial's calculator
+            step watching a flag that no longer flips on a phone — silently,
+            with types and tests clean. Exactly the breakage the flag arc hit
+            when the sandbox hid controls the coach pointed at.
+          • <RunnerSessionMenu>'s rows call `onToggle()` and then
+            `onClose()` — and `onClose` is `closeSheet`. A row that set
+            sheet='calc' would be cancelled by the very next statement, so
+            the calculator would never open at all.
+
+          Mutual exclusion (the handoff's actual concern) holds anyway: only
+          one sheet renders at a time, and `.rn-sheet-scrim` covers all of
+          `.rn`, so nothing that opens another sheet is reachable while this
+          one is up. */}
+      {compact && calcOpen && (
+        <RunnerSheet title="Calculator" onClose={closeCalc}>
+          <Calculator open onClose={closeCalc} />
+        </RunnerSheet>
+      )}
 
       {showBlanksConfirm && (
         <FinishWithBlanksConfirm

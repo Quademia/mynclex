@@ -21,6 +21,10 @@
 
 import '@/styles/tokens.css';
 import '@/styles/runner.css';
+// MUST follow runner.css — it is an override layer, not a peer. The
+// tutorial renders the real runner, so it needs the same mobile layer
+// (docs/product-plan/runner-mobile.md).
+import '@/styles/runner-mobile.css';
 import '@/styles/tutorial.css';
 import '@/styles/calculator.css';
 

@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="styles/tokens.css?v=3">
+<link rel="stylesheet" href="styles/runner.css?v=3">
+<link rel="stylesheet" href="styles/calculator.css?v=3">
+<link rel="stylesheet" href="styles/runner-mobile.css?v=3">
+<style>
+  body { background: #eef1f4; }
+  /* Demo chrome only — none of this ships. */
+  .demo { padding: 36px 40px 80px; display: flex; flex-direction: column; gap: 18px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; }
+  .demo-frame { border-radius: 26px; border: 1px solid #dde1e6; background: var(--rn-shell-bg); box-shadow: 0 18px 44px rgba(15,23,42,.14); overflow: hidden; transition: width 240ms cubic-bezier(.22,.9,.3,1), height 240ms cubic-bezier(.22,.9,.3,1); }
+  /* The shell is 100dvh in production; here it fills the frame instead. */
+  .demo-frame .rn { height: 100%; }
+  .demo-seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: #fff; border: 1px solid var(--border); }
+  .demo-seg button { white-space: nowrap; border: none; background: transparent; font-family: inherit; font-size: 12.5px; font-weight: 700; color: var(--text-muted); padding: 7px 13px; border-radius: 7px; cursor: pointer; }
+  .demo-seg button.on { background: var(--accent); color: #fff; }
+  .demo-chip { border: 1px solid var(--border); background: #fff; color: var(--text-muted); font-family: inherit; font-size: 12px; font-weight: 700; padding: 7px 11px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .demo-chip.on { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .demo-chip.wrap { border-style: dashed; }
+  .demo-card { flex: 1 1 300px; background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .demo-card h3 { margin: 0 0 6px; font-size: 13px; font-weight: 800; color: var(--text); }
+  .demo-card p { margin: 0 0 8px; font-size: 12.5px; line-height: 1.6; color: #4b5563; }
+  .demo-card p:last-child { margin-bottom: 0; }
+  .demo code { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; background: var(--bg); border-radius: 4px; padding: 1px 4px; }
+</style>
+</helmet>
+
+<div class="demo">
+
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:820px">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#2d7d72">Interactive · real classes · real stylesheets</div>
+    <h1 style="margin:0;font-size:28px;font-weight:800;letter-spacing:-.02em;color:#111827">Runner — mobile prototype</h1>
+    <p style="margin:0;font-size:13.5px;line-height:1.6;color:#4b5563">All eleven question types and both wrappers, running on <code>styles/tokens.css</code> + <code>styles/runner.css</code> + <code>styles/calculator.css</code> exactly as they are in the repo. The one new file — <code>styles/runner-mobile.css</code> — is the deliverable. Answer, submit, flag, open the grid, the chart, the calculator: it all works. Switch the width to 1200 to confirm the desktop runner is unchanged.</p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;max-width:1100px">
+    <sc-for list="{{picker}}" as="p" hint-placeholder-count="13">
+      <button type="button" class="{{p.cls}}" onClick="{{p.go}}">{{p.label}}</button>
+    </sc-for>
+  </div>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+    <div class="demo-seg">
+      <button class="{{w390cls}}" onClick="{{setW390}}">390 · phone</button>
+      <button class="{{w768cls}}" onClick="{{setW768}}">768 · tablet</button>
+      <button class="{{w1200cls}}" onClick="{{setW1200}}">1200 · desktop</button>
+    </div>
+    <div class="demo-seg">
+      <button class="{{portraitCls}}" onClick="{{setPortrait}}">Portrait</button>
+      <button class="{{landscapeCls}}" onClick="{{setLandscape}}">Landscape</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted)">{{frameNote}}</div>
+  </div>
+
+  <div class="demo-frame" style="width:{{frameW}}px;height:{{frameH}}px">
+    <div class="rn">
+
+      <header class="rn-top">
+        <button type="button" class="rn-top-exit">←<span class="rn-top-exit-label"> Exit</span></button>
+        <div class="rn-top-divider"></div>
+        <div class="rn-top-ident">
+          <div class="rn-top-title">
+            <div class="name">Pharmacology — cardiac drugs</div>
+            <div class="meta">
+              <span>Untimed Learning</span>
+              <span class="dot"></span>
+              <span>13 questions</span>
+            </div>
+          </div>
+          <div class="rn-top-spacer"></div>
+          <div class="rn-counter">Q <strong>{{qNum}}</strong><span style="color:var(--text-faint)">/</span><strong>13</strong></div>
+        </div>
+
+        <div class="rn-clock-wrap">
+          <button type="button" class="rn-clock-eye" aria-label="Hide clock">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5V12l3 2"></path></svg>
+          </button>
+          <div class="rn-clock-pill stopwatch"><span class="time">{{clock}}</span></div>
+        </div>
+
+        <button type="button" class="{{flagCls}}" onClick="{{toggleFlag}}" aria-label="Flag this question for review">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="2" x2="4" y2="14.5"></line><path d="M4 2.6h7.6l-1.9 3.1 1.9 3.1H4Z" fill="{{flagFill}}"></path></svg>
+          <span class="rn-flag-btn-label">{{flagLabel}}</span>
+        </button>
+        <button type="button" class="{{bookmarkCls}}" onClick="{{toggleBookmark}}" aria-label="Bookmark this question">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="{{bookmarkFill}}" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2.2h8a.8.8 0 0 1 .8.8v10.6L8 11.1l-4.8 2.5V3a.8.8 0 0 1 .8-.8Z"></path></svg>
+          <span class="rn-bookmark-btn-label">{{bookmarkLabel}}</span>
+        </button>
+        <button type="button" class="rn-calc-btn" onClick="{{openCalc}}">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="1.5" width="10" height="13" rx="1.6"></rect><rect x="5" y="3.5" width="6" height="2.5" rx="0.5"></rect><line x1="5.5" y1="9" x2="5.5" y2="9"></line><line x1="8" y1="9" x2="8" y2="9"></line><line x1="10.5" y1="9" x2="10.5" y2="9"></line><line x1="5.5" y1="11.5" x2="5.5" y2="11.5"></line><line x1="8" y1="11.5" x2="8" y2="11.5"></line><line x1="10.5" y1="11.5" x2="10.5" y2="11.5"></line></svg>
+          <span class="rn-calc-btn-label">Calc</span>
+        </button>
+        <button type="button" class="rn-grid-toggle-btn on" onClick="{{openGrid}}">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1"></rect><rect x="9" y="2" width="5" height="5" rx="1"></rect><rect x="2" y="9" width="5" height="5" rx="1"></rect><rect x="9" y="9" width="5" height="5" rx="1"></rect></svg>
+          <span class="rn-grid-toggle-label">Grid</span>
+        </button>
+        <button type="button" class="rn-top-more" onClick="{{openMenu}}" aria-label="Session menu">⋯</button>
+      </header>
+
+      <div class="rn-body">
+        <main class="rn-main">
+          <div class="rn-main-scroll">
+            <div class="{{splitCls}}">
+
+              <sc-if value="{{isCase}}" hint-placeholder-val="{{false}}">
+                <aside class="rn-case" aria-label="Case study panel">
+                  <div class="rn-case-head">
+                    <div class="label">Case study <span class="pill">2 of 6 answered</span></div>
+                    <div class="title">72-year-old admitted with confusion and poor oral intake</div>
+                  </div>
+                  <div class="rn-case-scenario">
+                    <div class="label">Scenario</div>
+                    <div class="body">Admitted from home yesterday. Family reports she has been drowsy and eating very little for three days.</div>
+                  </div>
+                  <div class="rn-case-tabs" role="tablist">
+                    <button type="button" class="rn-case-tab on">Vitals</button>
+                    <button type="button" class="rn-case-tab">Labs</button>
+                    <button type="button" class="rn-case-tab">Meds</button>
+                    <button type="button" class="rn-case-tab">Nurses' notes</button>
+                  </div>
+                  <div class="rn-case-body">
+                    <div class="rn-table-scroll">
+                      <table>
+                        <thead><tr><th>Metric</th><th>08:00</th><th>12:00</th><th>16:00</th></tr></thead>
+                        <tbody>
+                          <tr><td>BP</td><td>118/72</td><td>104/64</td><td>96/58</td></tr>
+                          <tr><td>HR</td><td>88</td><td>102</td><td>114</td></tr>
+                          <tr><td>Temp</td><td>36.8</td><td>37.0</td><td>37.2</td></tr>
+                          <tr><td>Urine</td><td>40 mL/hr</td><td>25 mL/hr</td><td>15 mL/hr</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </aside>
+              </sc-if>
+
+              <sc-if value="{{isTrend}}" hint-placeholder-val="{{false}}">
+                <aside class="rn-trend" aria-label="Trend dataset">
+                  <div class="rn-trend-head">
+                    <div class="label"><span class="dot"></span> Trend dataset</div>
+                    <div class="title">Serum potassium over four days on furosemide</div>
+                  </div>
+                  <div class="rn-trend-scenario">
+                    <div class="label">Scenario</div>
+                    <div class="body">A 68-year-old on furosemide 40 mg twice daily for heart failure. No potassium supplement prescribed.</div>
+                  </div>
+                  <div class="rn-trend-body">
+                    <div class="rn-table-scroll">
+                      <table class="rn-trend-table">
+                        <thead><tr><th class="metric-col">Metric</th><th>Day 1</th><th>Day 2</th><th>Day 3</th><th>Day 4</th><th class="refrange-col">Reference</th></tr></thead>
+                        <tbody>
+                          <tr><td class="metric-col">Potassium</td><td class="tp">4.1</td><td class="tp">3.6</td><td class="tp">3.2</td><td class="tp">2.9</td><td class="refrange">3.5–5.0 mmol/L</td></tr>
+                          <tr><td class="metric-col">Sodium</td><td class="tp">138</td><td class="tp">137</td><td class="tp">136</td><td class="tp">135</td><td class="refrange">135–145 mmol/L</td></tr>
+                          <tr><td class="metric-col">Weight</td><td class="tp">82.4</td><td class="tp">80.9</td><td class="tp">79.8</td><td class="tp">78.6</td><td class="refrange">kg</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </aside>
+              </sc-if>
+
+              <div class="rn-q-wrap">
+
+                <sc-if value="{{hasWrapper}}" hint-placeholder-val="{{false}}">
+                  <div class="rn-case-summary">
+                    <div class="rn-case-head" style="padding:0;background:none;border:none">
+                      <div class="label">{{wrapperLabel}} <span class="pill">{{wrapperPill}}</span></div>
+                    </div>
+                    <div class="title">{{wrapperTitle}}</div>
+                    <div class="actions">
+                      <button type="button" class="open" onClick="{{openChart}}">{{wrapperCta}}</button>
+                      <sc-if value="{{isCase}}" hint-placeholder-val="{{false}}">
+                        <div class="rn-cjmm-strip">
+                          <div class="rn-cjmm-step done">Recognise cues</div>
+                          <div class="rn-cjmm-step done">Analyse cues</div>
+                          <div class="rn-cjmm-step current">Prioritise</div>
+                          <div class="rn-cjmm-step">Generate solutions</div>
+                          <div class="rn-cjmm-step">Take action</div>
+                          <div class="rn-cjmm-step">Evaluate</div>
+                        </div>
+                      </sc-if>
+                    </div>
+                    <sc-if value="{{isCase}}" hint-placeholder-val="{{false}}">
+                      <div style="font-size:11px;font-weight:600;color:var(--accent-dark)">Step 3 · Prioritise hypotheses</div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+
+                <div class="rn-q-meta">
+                  <span class="rn-type-pill">{{typeLabel}}</span>
+                  <sc-if value="{{isTrend}}" hint-placeholder-val="{{false}}">
+                    <span class="rn-trend-pill"><span class="glyph" aria-hidden="true">⤬</span> Trend</span>
+                  </sc-if>
+                  <span class="rn-type-pill">{{subject}}</span>
+                </div>
+
+                <!-- HIGHLIGHT, CLOZE and DRAG_CLOZE take over the stem, so the
+                     instruction moves above it. Every other type reads stem first. -->
+                <sc-if value="{{stemTakeover}}" hint-placeholder-val="{{false}}">
+                  <p class="rn-instruction">{{instruction}}</p>
+                </sc-if>
+
+                <sc-if value="{{showStem}}" hint-placeholder-val="{{true}}">
+                  <div class="rn-stem">{{stem}}</div>
+                </sc-if>
+                <sc-if value="{{showInstruction}}" hint-placeholder-val="{{false}}">
+                  <p class="rn-instruction">{{instruction}}</p>
+                </sc-if>
+
+                <sc-if value="{{showCountTop}}" hint-placeholder-val="{{false}}">
+                  <div class="rn-opt-count"><strong>{{picked}}</strong><span class="sep">of</span>{{needed}}<span class="{{countHintCls}}">{{countHint}}</span></div>
+                </sc-if>
+
+                <sc-if value="{{showOptions}}" hint-placeholder-val="{{true}}">
+                  <div class="rn-options">
+                    <sc-for list="{{opts}}" as="o" hint-placeholder-count="4">
+                      <button type="button" class="{{o.cls}}" onClick="{{o.pick}}">
+                        <span class="rn-opt-letter" aria-hidden="true">{{o.letter}}</span>
+                        <div class="rn-opt-body">{{o.text}}</div>
+                        <span class="rn-opt-verdict">{{o.verdict}}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{showMatrix}}" hint-placeholder-val="{{false}}">
+                  <div class="{{matrixCls}}">
+                    <div class="rn-matrix-row head" style="grid-template-columns:2fr 1fr 1fr">
+                      <div class="rn-matrix-row-label-head">{{matrixHead}}</div>
+                      <div class="rn-matrix-col-head">{{colA}}</div>
+                      <div class="rn-matrix-col-head">{{colB}}</div>
+                    </div>
+                    <sc-for list="{{matrixRows}}" as="r" hint-placeholder-count="4">
+                      <div class="rn-matrix-row-block">
+                        <div class="rn-matrix-row" style="grid-template-columns:2fr 1fr 1fr">
+                          <div class="rn-matrix-row-label">{{r.label}}</div>
+                          <button type="button" class="{{r.a.cls}}" onClick="{{r.a.pick}}"><span class="rn-matrix-cell-label">{{r.a.label}}</span></button>
+                          <button type="button" class="{{r.b.cls}}" onClick="{{r.b.pick}}"><span class="rn-matrix-cell-label">{{r.b.label}}</span></button>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{showHighlight}}" hint-placeholder-val="{{false}}">
+                  <div class="rn-highlight-hint">
+                    <strong>{{picked}}</strong> highlighted<span class="sep">·</span><span class="hint">tap a highlight to remove</span>
+                  </div>
+                  <div class="rn-highlight-stem">
+                    <sc-for list="{{parts}}" as="p" hint-placeholder-count="6">
+                      <sc-if value="{{p.isText}}" hint-placeholder-val="{{true}}">
+                        <span>{{p.text}}</span>
+                      </sc-if>
+                      <sc-if value="{{p.isChunk}}" hint-placeholder-val="{{false}}">
+                        <button type="button" class="{{p.cls}}" onClick="{{p.tap}}">{{p.text}}</button>
+                      </sc-if>
+                    </sc-for>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{showCloze}}" hint-placeholder-val="{{false}}">
+                  <div class="rn-cloze-hint">
+                    <strong>{{picked}}</strong> of {{needed}} blanks filled<span class="sep">·</span><span class="hint">tap a dropdown to change</span>
+                  </div>
+                  <div class="rn-cloze-stem">
+                    <sc-for list="{{parts}}" as="p" hint-placeholder-count="5">
+                      <sc-if value="{{p.isText}}" hint-placeholder-val="{{true}}">
+                        <span>{{p.text}}</span>
+                      </sc-if>
+                      <sc-if value="{{p.isBlank}}" hint-placeholder-val="{{false}}">
+                        <span class="rn-cloze-blank-wrap">
+                          <span class="rn-cloze-blank-num" aria-hidden="true">{{p.num}}</span>
+                          <select class="{{p.cls}}" value="{{p.value}}" onChange="{{p.change}}">
+                            <sc-for list="{{p.choices}}" as="c" hint-placeholder-count="3">
+                              <option value="{{c.id}}">{{c.text}}</option>
+                            </sc-for>
+                          </select>
+                        </span>
+                      </sc-if>
+                    </sc-for>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{showDragCloze}}" hint-placeholder-val="{{false}}">
+                  <div class="rn-dd-hint">{{ddHint}}</div>
+                  <div class="rn-dd-stem">
+                    <sc-for list="{{parts}}" as="p" hint-placeholder-count="5">
+                      <sc-if value="{{p.isText}}" hint-placeholder-val="{{true}}">
+                        <span>{{p.text}}</span>
+                      </sc-if>
+                      <sc-if value="{{p.isSlot}}" hint-placeholder-val="{{false}}">
+                        <button type="button" class="{{p.cls}}" onClick="{{p.tap}}">
+                          <span class="rn-dd-inline-num" aria-hidden="true">{{p.num}}</span>
+                          <span class="rn-dd-inline-text">{{p.text}}</span>
+                        </button>
+                      </sc-if>
+                    </sc-for>
+                  </div>
+                  <div class="rn-dd-pool">
+                    <div class="rn-dd-pool-label">Tap a word, then tap the blank it belongs in</div>
+                    <div class="rn-dd-pool-tokens">
+                      <sc-for list="{{pool}}" as="t" hint-placeholder-count="5">
+                        <button type="button" class="{{t.cls}}" onClick="{{t.arm}}">{{t.text}}</button>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{showDragOrder}}" hint-placeholder-val="{{false}}">
+                  <div class="rn-dd-hint">{{ddHint}}</div>
+                  <div class="rn-dd-slots">
+                    <sc-for list="{{slots}}" as="s" hint-placeholder-count="4">
+                      <button type="button" class="{{s.cls}}" onClick="{{s.tap}}">
+                        <span class="rn-dd-slot-num" aria-hidden="true">{{s.num}}</span>
+                        <span class="rn-dd-slot-label">{{s.label}}</span>
+                        <span class="rn-dd-slot-drop"><span class="rn-dd-slot-text">{{s.text}}</span></span>
+                      </button>
+                    </sc-for>
+                  </div>
+                  <div class="rn-dd-pool">
+                    <div class="rn-dd-pool-label">Tap a step, then tap the position it belongs in</div>
+                    <div class="rn-dd-pool-tokens">
+                      <sc-for list="{{pool}}" as="t" hint-placeholder-count="5">
+                        <button type="button" class="{{t.cls}}" onClick="{{t.arm}}">{{t.text}}</button>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{showBowtie}}" hint-placeholder-val="{{false}}">
+                  <div class="rn-bt-hint">{{ddHint}}</div>
+                  <div class="rn-bt-shape">
+                    <div class="rn-bt-shape-label left">Actions to take</div>
+                    <div class="rn-bt-shape-label centre">Condition most likely experiencing</div>
+                    <div class="rn-bt-shape-label right">Parameters to monitor</div>
+                    <button type="button" class="{{bt.centre.cls}}" onClick="{{bt.centre.pick}}"><span class="rn-bt-slot-text">{{bt.centre.text}}</span></button>
+                    <button type="button" class="{{bt.lt.cls}}" onClick="{{bt.lt.pick}}"><span class="rn-bt-slot-text">{{bt.lt.text}}</span></button>
+                    <button type="button" class="{{bt.lb.cls}}" onClick="{{bt.lb.pick}}"><span class="rn-bt-slot-text">{{bt.lb.text}}</span></button>
+                    <button type="button" class="{{bt.rt.cls}}" onClick="{{bt.rt.pick}}"><span class="rn-bt-slot-text">{{bt.rt.text}}</span></button>
+                    <button type="button" class="{{bt.rb.cls}}" onClick="{{bt.rb.pick}}"><span class="rn-bt-slot-text">{{bt.rb.text}}</span></button>
+                  </div>
+                  <div class="rn-bt-pool">
+                    <div class="rn-bt-pool-col">
+                      <div class="rn-bt-pool-header"><span class="rn-bt-pool-label">Actions</span><span class="rn-bt-pool-count">{{bt.leftCount}}</span></div>
+                      <ul class="rn-bt-pool-tokens">
+                        <sc-for list="{{bt.leftPool}}" as="t" hint-placeholder-count="3">
+                          <li><button type="button" class="{{t.cls}}" onClick="{{t.arm}}">{{t.text}}</button></li>
+                        </sc-for>
+                      </ul>
+                    </div>
+                    <div class="rn-bt-pool-col centre">
+                      <div class="rn-bt-pool-header"><span class="rn-bt-pool-label">Condition</span><span class="rn-bt-pool-count">{{bt.centreCount}}</span></div>
+                      <ul class="rn-bt-pool-tokens">
+                        <sc-for list="{{bt.centrePool}}" as="t" hint-placeholder-count="3">
+                          <li><button type="button" class="{{t.cls}}" onClick="{{t.arm}}">{{t.text}}</button></li>
+                        </sc-for>
+                      </ul>
+                    </div>
+                    <div class="rn-bt-pool-col">
+                      <div class="rn-bt-pool-header"><span class="rn-bt-pool-label">Parameters</span><span class="rn-bt-pool-count">{{bt.rightCount}}</span></div>
+                      <ul class="rn-bt-pool-tokens">
+                        <sc-for list="{{bt.rightPool}}" as="t" hint-placeholder-count="3">
+                          <li><button type="button" class="{{t.cls}}" onClick="{{t.arm}}">{{t.text}}</button></li>
+                        </sc-for>
+                      </ul>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{showCount}}" hint-placeholder-val="{{false}}">
+                  <div class="rn-opt-count"><strong>{{picked}}</strong><span class="sep">of</span>{{needed}}<span class="{{countHintCls}}">{{countHint}}</span></div>
+                </sc-if>
+
+                <sc-if value="{{isReviewed}}" hint-placeholder-val="{{false}}">
+                  <div class="rn-strip">
+                    <span class="{{verdictCls}}"><span class="glyph" aria-hidden="true">{{verdictGlyph}}</span>{{verdictWord}}</span>
+                    <span class="rn-strip-score">{{scoreLine}}<span class="sub">{{scoreSub}}</span></span>
+                    <span class="rn-strip-sep" aria-hidden="true"></span>
+                    <span class="rn-strip-rule">{{ruleLine}}</span>
+                    <span class="rn-strip-meta">
+                      <span class="rn-strip-time"><span class="glyph" aria-hidden="true">◷</span>{{timeLine}}</span>
+                      <span class="rn-strip-others" title="Of students who have answered this question in a real sitting"><strong>{{othersPct}}</strong> correct</span>
+                    </span>
+                  </div>
+                  <div class="rn-rationale">
+                    <div class="rn-rationale-body">{{rationale}}</div>
+                  </div>
+                </sc-if>
+
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <aside class="rn-grid" aria-label="Question grid">
+          <div class="rn-grid-head">
+            <div class="rn-grid-title-row">
+              <div class="rn-grid-title">Question grid</div>
+              <button type="button" class="rn-grid-collapse" aria-label="Collapse grid">›</button>
+            </div>
+            <div class="rn-grid-filters" data-coach="gridfilters">
+              <sc-for list="{{rail}}" as="f" hint-placeholder-count="3">
+                <button type="button" class="{{f.cls}}" aria-pressed="{{f.pressed}}" onClick="{{f.tap}}">{{f.label}} {{f.n}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div class="rn-grid-scroll">
+            <div class="rn-cells">
+              <sc-for list="{{cells}}" as="c" hint-placeholder-count="13">
+                <button type="button" class="{{c.cls}}" onClick="{{c.go}}" aria-label="{{c.aria}}">{{c.n}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div class="rn-grid-legend" data-coach="legend">
+            <div class="rn-grid-legend-head">What the colours mean — tap one to filter</div>
+            <sc-for list="{{legendRows}}" as="r" hint-placeholder-count="7">
+              <sc-if value="{{r.isPair}}" hint-placeholder-val="{{false}}">
+                <button type="button" class="{{r.cls}}" aria-pressed="{{r.pressed}}" aria-label="{{r.aria}}" onClick="{{r.tap}}">
+                  <span class="swatch-pair" aria-hidden="true"><span class="swatch f-partial"></span><span class="swatch f-wrong"></span></span>
+                  <span class="lbl">{{r.label}}</span><span class="n">{{r.n}}</span>
+                </button>
+              </sc-if>
+              <sc-if value="{{r.isRow}}" hint-placeholder-val="{{true}}">
+                <button type="button" class="{{r.cls}}" aria-pressed="{{r.pressed}}" aria-label="{{r.aria}}" onClick="{{r.tap}}">
+                  <span class="{{r.swatchCls}}" aria-hidden="true"></span>
+                  <span class="lbl">{{r.label}}</span><span class="n">{{r.n}}</span>
+                </button>
+              </sc-if>
+              <sc-if value="{{r.isInert}}" hint-placeholder-val="{{false}}">
+                <div class="row inert"><span class="swatch current" aria-hidden="true"></span><span class="lbl">Current</span></div>
+              </sc-if>
+            </sc-for>
+          </div>
+        </aside>
+      </div>
+
+      <footer class="rn-foot">
+        <div class="rn-foot-side">
+          <button type="button" class="btn btn-ghost btn-sm" onClick="{{prev}}">← Previous</button>
+        </div>
+        <div class="rn-foot-msg">Untimed Learning · pick an option, Submit to see the rationale, then Next →</div>
+        <div class="rn-foot-side right">
+          <button type="button" class="{{primaryCls}}" onClick="{{primary}}">{{primaryLabel}}</button>
+        </div>
+        <button type="button" class="rn-foot-grid" onClick="{{openGrid}}" aria-label="Question grid">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1"></rect><rect x="9" y="2" width="5" height="5" rx="1"></rect><rect x="2" y="9" width="5" height="5" rx="1"></rect><rect x="9" y="9" width="5" height="5" rx="1"></rect></svg>
+          <span class="n">{{qNum}}/13</span>
+        </button>
+      </footer>
+
+      <!-- ── Sheets: one shell, five uses ─────────────────────────── -->
+      <sc-if value="{{sheetOpen}}" hint-placeholder-val="{{false}}">
+        <div class="rn-sheet-scrim" onClick="{{closeSheet}}"></div>
+      </sc-if>
+
+      <sc-if value="{{isGridSheet}}" hint-placeholder-val="{{false}}">
+        <div class="rn-sheet" role="dialog" aria-label="Question grid">
+          <div class="rn-sheet-grab"></div>
+          <div class="rn-sheet-head">
+            <div class="rn-sheet-title">Question grid</div>
+            <button type="button" class="rn-sheet-close" onClick="{{closeSheet}}">✕</button>
+          </div>
+          <div class="rn-sheet-body">
+        <aside class="rn-grid" aria-label="Question grid">
+          <div class="rn-grid-head">
+            <div class="rn-grid-filters" data-coach="gridfilters">
+              <sc-for list="{{rail}}" as="f" hint-placeholder-count="3">
+                <button type="button" class="{{f.cls}}" aria-pressed="{{f.pressed}}" onClick="{{f.tap}}">{{f.label}} {{f.n}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div class="rn-grid-scroll">
+            <div class="rn-cells">
+              <sc-for list="{{cells}}" as="c" hint-placeholder-count="13">
+                <button type="button" class="{{c.cls}}" onClick="{{c.go}}" aria-label="{{c.aria}}">{{c.n}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div class="rn-grid-legend" data-coach="legend">
+            <div class="rn-grid-legend-head">What the colours mean — tap one to filter</div>
+            <sc-for list="{{legendRows}}" as="r" hint-placeholder-count="7">
+              <sc-if value="{{r.isPair}}" hint-placeholder-val="{{false}}">
+                <button type="button" class="{{r.cls}}" aria-pressed="{{r.pressed}}" aria-label="{{r.aria}}" onClick="{{r.tap}}">
+                  <span class="swatch-pair" aria-hidden="true"><span class="swatch f-partial"></span><span class="swatch f-wrong"></span></span>
+                  <span class="lbl">{{r.label}}</span><span class="n">{{r.n}}</span>
+                </button>
+              </sc-if>
+              <sc-if value="{{r.isRow}}" hint-placeholder-val="{{true}}">
+                <button type="button" class="{{r.cls}}" aria-pressed="{{r.pressed}}" aria-label="{{r.aria}}" onClick="{{r.tap}}">
+                  <span class="{{r.swatchCls}}" aria-hidden="true"></span>
+                  <span class="lbl">{{r.label}}</span><span class="n">{{r.n}}</span>
+                </button>
+              </sc-if>
+              <sc-if value="{{r.isInert}}" hint-placeholder-val="{{false}}">
+                <div class="row inert"><span class="swatch current" aria-hidden="true"></span><span class="lbl">Current</span></div>
+              </sc-if>
+            </sc-for>
+          </div>
+        </aside>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isChartSheet}}" hint-placeholder-val="{{false}}">
+        <div class="rn-sheet" role="dialog" aria-label="Dataset">
+          <div class="rn-sheet-grab"></div>
+          <div class="rn-sheet-head">
+            <div style="flex:1;min-width:0">
+              <div class="rn-sheet-title" style="margin-bottom:3px">{{wrapperLabel}} · {{wrapperPill}}</div>
+              <div style="font-size:14px;font-weight:700;line-height:1.4;color:var(--text)">{{wrapperTitle}}</div>
+            </div>
+            <button type="button" class="rn-sheet-close" onClick="{{closeSheet}}">✕</button>
+          </div>
+          <div class="rn-sheet-body">
+            <sc-if value="{{isCase}}" hint-placeholder-val="{{false}}">
+              <aside class="rn-case">
+                <div class="rn-case-scenario">
+                  <div class="label">Scenario</div>
+                  <div class="body">Admitted from home yesterday. Family reports she has been drowsy and eating very little for three days.</div>
+                </div>
+                <div class="rn-case-tabs" role="tablist">
+                  <button type="button" class="rn-case-tab on">Vitals</button>
+                  <button type="button" class="rn-case-tab">Labs</button>
+                  <button type="button" class="rn-case-tab">Meds</button>
+                  <button type="button" class="rn-case-tab">Nurses' notes</button>
+                </div>
+                <div class="rn-case-body">
+                  <div class="rn-table-scroll">
+                    <table>
+                      <thead><tr><th>Metric</th><th>08:00</th><th>12:00</th><th>16:00</th></tr></thead>
+                      <tbody>
+                        <tr><td>BP</td><td>118/72</td><td>104/64</td><td>96/58</td></tr>
+                        <tr><td>HR</td><td>88</td><td>102</td><td>114</td></tr>
+                        <tr><td>Temp</td><td>36.8</td><td>37.0</td><td>37.2</td></tr>
+                        <tr><td>Urine</td><td>40 mL/hr</td><td>25 mL/hr</td><td>15 mL/hr</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </aside>
+            </sc-if>
+            <sc-if value="{{isTrend}}" hint-placeholder-val="{{false}}">
+              <aside class="rn-trend">
+                <div class="rn-trend-scenario">
+                  <div class="label">Scenario</div>
+                  <div class="body">A 68-year-old on furosemide 40 mg twice daily for heart failure. No potassium supplement prescribed.</div>
+                </div>
+                <div class="rn-trend-body">
+                  <div class="rn-table-scroll">
+                    <table class="rn-trend-table">
+                      <thead><tr><th class="metric-col">Metric</th><th>Day 1</th><th>Day 2</th><th>Day 3</th><th>Day 4</th><th class="refrange-col">Reference</th></tr></thead>
+                      <tbody>
+                        <tr><td class="metric-col">Potassium</td><td class="tp">4.1</td><td class="tp">3.6</td><td class="tp">3.2</td><td class="tp">2.9</td><td class="refrange">3.5–5.0 mmol/L</td></tr>
+                        <tr><td class="metric-col">Sodium</td><td class="tp">138</td><td class="tp">137</td><td class="tp">136</td><td class="tp">135</td><td class="refrange">135–145 mmol/L</td></tr>
+                        <tr><td class="metric-col">Weight</td><td class="tp">82.4</td><td class="tp">80.9</td><td class="tp">79.8</td><td class="tp">78.6</td><td class="refrange">kg</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </aside>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isMenuSheet}}" hint-placeholder-val="{{false}}">
+        <div class="rn-sheet" role="dialog" aria-label="Session menu">
+          <div class="rn-sheet-grab"></div>
+          <div class="rn-menu-head">
+            <div style="display:flex;align-items:flex-start;gap:10px">
+              <div style="flex:1;min-width:0">
+                <div class="name">Pharmacology — cardiac drugs</div>
+                <div class="meta">Untimed Learning · 13 questions</div>
+              </div>
+              <button type="button" class="rn-sheet-close" onClick="{{closeSheet}}">✕</button>
+            </div>
+            <div class="rn-menu-brief">Pick an option, Submit to see the rationale, then Next. You can move between questions freely.</div>
+          </div>
+          <div class="rn-sheet-body">
+            <div class="rn-menu-list">
+              <button type="button" class="{{menuFlagCls}}" onClick="{{toggleFlag}}">
+                <span class="glyph"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="2" x2="4" y2="14.5"></line><path d="M4 2.6h7.6l-1.9 3.1 1.9 3.1H4Z" fill="{{flagFill}}"></path></svg></span>
+                <span class="body"><span class="label">Flag for review</span><span class="sub">Comes back in the grid's Flagged filter this sitting</span></span>
+                <span class="state">{{flagState}}</span>
+              </button>
+              <button type="button" class="rn-menu-item" onClick="{{toggleBookmark}}">
+                <span class="glyph"><svg width="14" height="14" viewBox="0 0 16 16" fill="{{bookmarkFill}}" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2.2h8a.8.8 0 0 1 .8.8v10.6L8 11.1l-4.8 2.5V3a.8.8 0 0 1 .8-.8Z"></path></svg></span>
+                <span class="body"><span class="label">Bookmark for later study</span><span class="sub">Kept after this sitting ends</span></span>
+                <span class="state">{{bookmarkState}}</span>
+              </button>
+              <button type="button" class="rn-menu-item" onClick="{{openCalc}}">
+                <span class="glyph"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="1.5" width="10" height="13" rx="1.6"></rect><rect x="5" y="3.5" width="6" height="2.5" rx="0.5"></rect><line x1="5.5" y1="9" x2="5.5" y2="9"></line><line x1="8" y1="9" x2="8" y2="9"></line><line x1="10.5" y1="9" x2="10.5" y2="9"></line><line x1="5.5" y1="11.5" x2="5.5" y2="11.5"></line><line x1="8" y1="11.5" x2="8" y2="11.5"></line><line x1="10.5" y1="11.5" x2="10.5" y2="11.5"></line></svg></span>
+                <span class="body"><span class="label">Calculator</span><span class="sub">The on-screen calculator you get in the exam</span></span>
+              </button>
+              <button type="button" class="rn-menu-item">
+                <span class="glyph"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5V12l3 2"></path></svg></span>
+                <span class="body"><span class="label">Hide the clock</span><span class="sub">Locks once the first time warning fires</span></span>
+              </button>
+            </div>
+            <div class="rn-menu-foot">
+              <button type="button" class="rn-menu-exit">Exit the session</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isCalcSheet}}" hint-placeholder-val="{{false}}">
+        <div class="rn-sheet" role="dialog" aria-label="Calculator">
+          <div class="rn-sheet-grab"></div>
+          <div class="rn-sheet-head">
+            <div class="rn-sheet-title">Calculator</div>
+            <button type="button" class="rn-sheet-close" onClick="{{closeSheet}}">✕</button>
+          </div>
+          <div class="rn-sheet-body">
+            <div class="calc-panel">
+              <div class="calc-display">
+                <div class="calc-expr">{{calcExpr}}</div>
+                <div class="calc-value">{{calcValue}}</div>
+              </div>
+              <div class="calc-grid">
+                <sc-for list="{{calcKeys}}" as="k" hint-placeholder-count="19">
+                  <button type="button" class="{{k.cls}}" onClick="{{k.press}}">{{k.label}}</button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:12px;max-width:1300px">
+    <div class="demo-card">
+      <h3>Landscape: no, don't shrink the desktop</h3>
+      <p>Scaling the desktop layout to fit a landscape phone means <code>zoom: 0.62</code> — the split needs 924 CSS px inside 844. Body copy goes from 15.5px to 9.6px, roughly 1.7 mm of cap height at arm's length, and it overrides the student's own iOS text-size setting. NCLEX stems run 40–80 words.</p>
+      <p>Height is the real constraint anyway: landscape leaves <strong>390px</strong> of it. Today's chrome alone is 120px of that, so a scaled desktop would show about four lines of stem above a chart panel that scrolls independently. The phone layout, tuned for landscape, shows more.</p>
+    </div>
+    <div class="demo-card">
+      <h3>What landscape does instead</h3>
+      <p>A second container query — <code>(max-height: 520px)</code> — keeps the compact layout but spends the width, not the pixels: chrome drops to 44px, the meta line hides, sheets become <strong>right-side drawers</strong> rather than bottom sheets (a bottom sheet in 390px of height is a joke), and above 760px of width the case/trend split comes back with lower floors (280 / 360) so the chart sits beside the question again.</p>
+      <p>Flip the toggle above to see it. Same DOM, same classes, third set of rules.</p>
+    </div>
+    <div class="demo-card">
+      <h3>What is real here</h3>
+      <p>Every selector — <code>.rn-opt</code>, <code>.rn-matrix-row</code>, <code>.rn-highlight-chunk</code>, <code>.rn-cloze-select</code>, <code>.rn-dd-slot-row</code>, <code>.rn-bt-slot</code>, <code>.rn-cell</code>, <code>.calc-panel</code> — is the class the components already render, and the icons are the SVGs from <code>runner-topbar.tsx</code>. Delete the one <code>runner-mobile.css</code> link and this is the current runner at any width.</p>
+      <p>Six additive component changes, all inert above 900px; the list is in that file's header comment.</p>
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1400,&quot;height&quot;:1200}}">
+const ITEMS = [
+  {
+    id: 'MCQ', type: 'MCQ', typeLabel: 'Multiple choice', subject: 'Cardiovascular',
+    stem: 'A client with heart failure reports increasing shortness of breath at night and has gained 2.3 kg in four days. Which action should the nurse take first?',
+    opts: [
+      { id: 'a', text: "Place the client in high Fowler's position" },
+      { id: 'b', text: 'Auscultate the lung fields and obtain oxygen saturation' },
+      { id: 'c', text: 'Notify the healthcare provider of the weight gain' },
+      { id: 'd', text: 'Restrict fluids to 1500 mL for the next 24 hours' },
+    ],
+    correct: ['b'],
+    rationale: 'Nocturnal dyspnoea with rapid weight gain suggests worsening fluid overload. Auscultation and oxygen saturation characterise the severity and drive every subsequent action.',
+    rule: 'All-or-nothing', others: '61%', time: '48s',
+  },
+  {
+    id: 'TF', type: 'TF', typeLabel: 'True / false', subject: 'Infection control',
+    stem: 'A client with suspected pulmonary tuberculosis should be placed in a negative-pressure room, and staff should wear a fit-tested N95 respirator on entry.',
+    opts: [{ id: 'true', text: 'True' }, { id: 'false', text: 'False' }],
+    correct: ['true'],
+    rationale: 'Airborne precautions apply from suspicion onwards, not from confirmation — waiting for the culture is three weeks of exposure.',
+    rule: 'All-or-nothing', others: '82%', time: '22s',
+  },
+  {
+    id: 'SATA', type: 'SATA', typeLabel: 'Select all that apply', subject: 'Pharmacology',
+    stem: 'A client is prescribed digoxin. Which findings should the nurse report before administering the next dose?',
+    instruction: 'Select all that apply.',
+    opts: [
+      { id: 'a', text: 'Apical pulse 52 beats per minute' },
+      { id: 'b', text: 'Serum potassium 3.1 mmol/L' },
+      { id: 'c', text: 'Reports seeing yellow-green halos' },
+      { id: 'd', text: 'Blood pressure 128/78 mmHg' },
+      { id: 'e', text: 'Serum digoxin level 2.6 ng/mL' },
+    ],
+    correct: ['a', 'b', 'c', 'e'],
+    rationale: 'Bradycardia, hypokalaemia, visual halos and a level above 2.0 ng/mL are all toxicity signals — hypokalaemia potentiates digoxin at any serum level.',
+    rule: 'Partial credit · wrong picks subtract', others: '38%', time: '1m 12s',
+  },
+  {
+    id: 'SELECT_N', type: 'SELECT_N', typeLabel: 'Select N', subject: 'Prioritisation', selectN: 3,
+    stem: 'The nurse is handed four charts at the start of the shift. Which three clients should be assessed first?',
+    instruction: 'Select 3 answers.',
+    opts: [
+      { id: 'a', text: 'Post-op day 1 with oxygen saturation 88% on room air' },
+      { id: 'b', text: 'Newly admitted with chest pain radiating to the jaw' },
+      { id: 'c', text: 'Awaiting discharge teaching for a new inhaler' },
+      { id: 'd', text: 'Blood glucose 2.6 mmol/L and diaphoretic' },
+      { id: 'e', text: 'Requesting a second pillow' },
+    ],
+    correct: ['a', 'b', 'd'],
+    rationale: 'Airway and breathing first, then perfusion, then acute hypoglycaemia. Teaching and comfort requests are real needs — they are simply not the first three.',
+    rule: 'Partial credit · capped at 3 picks', others: '47%', time: '1m 05s',
+  },
+  {
+    id: 'MATRIX', type: 'MATRIX', typeLabel: 'Matrix', subject: 'Perioperative',
+    stem: 'For each finding, indicate whether it is expected or unexpected for a client 6 hours after a total hip arthroplasty.',
+    matrixHead: 'Finding', colA: 'Expected', colB: 'Unexpected',
+    rows: [
+      { id: 'r1', label: 'Serosanguineous drainage on the dressing', correct: 'a' },
+      { id: 'r2', label: 'Affected leg internally rotated and shortened', correct: 'b' },
+      { id: 'r3', label: 'Pain rated 4 of 10 on movement', correct: 'a' },
+      { id: 'r4', label: 'Numbness and tingling in the affected foot', correct: 'b' },
+    ],
+    rationale: 'Internal rotation with shortening suggests dislocation, and new distal numbness suggests neurovascular compromise — both are emergencies.',
+    rule: 'Partial credit · per row', others: '44%', time: '1m 40s',
+  },
+  {
+    id: 'MATRIX_MR', type: 'MATRIX_MR', typeLabel: 'Matrix (multiple response)', subject: 'Endocrine',
+    stem: 'For each finding, select every category it belongs to. A finding may belong to both.',
+    matrixHead: 'Finding', colA: 'Hypoglycaemia', colB: 'Hyperglycaemia',
+    rows: [
+      { id: 'r1', label: 'Diaphoresis and tremor', correct: ['a'] },
+      { id: 'r2', label: 'Polyuria and polydipsia', correct: ['b'] },
+      { id: 'r3', label: 'Confusion', correct: ['a', 'b'] },
+      { id: 'r4', label: 'Fruity breath odour', correct: ['b'] },
+    ],
+    rationale: 'Confusion is the trap: it belongs to both, which is why the type exists. Diaphoresis with tremor is adrenergic and hypoglycaemic; polyuria and ketotic breath are hyperglycaemic.',
+    rule: 'Partial credit · per cell', others: '31%', time: '2m 12s',
+  },
+  {
+    id: 'HIGHLIGHT', type: 'HIGHLIGHT', typeLabel: 'Highlight', subject: 'Respiratory',
+    instruction: 'Highlight the findings that require immediate follow-up.',
+    parts: [
+      { t: 'A 74-year-old is admitted with pneumonia. On assessment the nurse notes ' },
+      { c: 'h1', t: 'a respiratory rate of 32' },
+      { t: ', a temperature of 38.1 °C, ' },
+      { c: 'h2', t: 'use of accessory muscles' },
+      { t: ', a productive cough with yellow sputum, ' },
+      { c: 'h3', t: 'oxygen saturation of 86% on 4 L' },
+      { t: ', and mild ankle oedema. The client is ' },
+      { c: 'h4', t: 'increasingly difficult to rouse' },
+      { t: ' and states she feels tired.' },
+    ],
+    correct: ['h1', 'h3', 'h4'],
+    rationale: 'Rate, saturation and level of consciousness together describe failing respiratory compensation. Accessory muscle use is expected work of breathing at this rate — it is not, on its own, the escalation trigger.',
+    rule: 'Partial credit · wrong picks subtract', others: '35%', time: '1m 48s',
+  },
+  {
+    id: 'CLOZE', type: 'CLOZE', typeLabel: 'Cloze', subject: 'Fluid & electrolytes',
+    instruction: 'Choose the option that completes each sentence.',
+    parts: [
+      { t: 'The client\u2019s serum potassium of 2.9 mmol/L places them at highest risk for ' },
+      { b: 'b1', choices: [{ id: 'x', text: 'select…' }, { id: 'c', text: 'cardiac dysrhythmias' }, { id: 'w1', text: 'seizures' }, { id: 'w2', text: 'hypertension' }], correct: 'c' },
+      { t: '. The nurse should first ' },
+      { b: 'b2', choices: [{ id: 'x', text: 'select…' }, { id: 'c', text: 'obtain a 12-lead ECG' }, { id: 'w1', text: 'restrict fluids' }, { id: 'w2', text: 'give a stat diuretic' }], correct: 'c' },
+      { t: ' and expect a prescription for ' },
+      { b: 'b3', choices: [{ id: 'x', text: 'select…' }, { id: 'c', text: 'IV potassium chloride' }, { id: 'w1', text: 'IV calcium gluconate' }, { id: 'w2', text: 'oral sodium bicarbonate' }], correct: 'c' },
+      { t: '.' },
+    ],
+    rationale: 'Hypokalaemia is a rhythm problem before it is anything else, so the ECG comes first and replacement follows. Calcium gluconate belongs to hyperkalaemia.',
+    rule: 'Partial credit · per blank', others: '41%', time: '2m 20s',
+  },
+  {
+    id: 'DRAG_CLOZE', type: 'DRAG_CLOZE', typeLabel: 'Drag-and-drop cloze', subject: 'Cardiovascular',
+    instruction: 'Complete the sentence using the words below.',
+    hint: 'Tap a word, then tap the blank it belongs in. Tap a filled blank to send it back.',
+    parts: [
+      { t: 'A client in hypovolaemic shock will show a ' },
+      { s: 's1', num: 1, correct: 't1' },
+      { t: ' heart rate, a ' },
+      { s: 's2', num: 2, correct: 't2' },
+      { t: ' blood pressure and ' },
+      { s: 's3', num: 3, correct: 't3' },
+      { t: ' urine output.' },
+    ],
+    tokens: [
+      { id: 't1', text: 'rising' }, { id: 't2', text: 'falling' }, { id: 't3', text: 'decreasing' },
+      { id: 't4', text: 'bounding' }, { id: 't5', text: 'unchanged' },
+    ],
+    rationale: 'Tachycardia is the earliest compensation, hypotension is late, and oliguria tracks renal perfusion. "Bounding" belongs to fluid overload, not shock.',
+    rule: 'Partial credit · per blank', others: '52%', time: '1m 30s',
+  },
+  {
+    id: 'DRAG_ORDER', type: 'DRAG_ORDER', typeLabel: 'Drag to order', subject: 'Skills',
+    stem: 'Place the steps for administering an intramuscular injection in the order the nurse should perform them.',
+    hint: 'Tap a step, then tap the position it belongs in. Tap a filled position to send it back.',
+    slots: [
+      { id: 's1', label: 'First', correct: 't3' },
+      { id: 's2', label: 'Second', correct: 't1' },
+      { id: 's3', label: 'Third', correct: 't4' },
+      { id: 's4', label: 'Fourth', correct: 't2' },
+    ],
+    tokens: [
+      { id: 't1', text: 'Select the site and clean it' },
+      { id: 't2', text: 'Inject at 90° and withdraw' },
+      { id: 't3', text: 'Verify the prescription and check allergies' },
+      { id: 't4', text: 'Don gloves and prepare the medication' },
+    ],
+    rationale: 'Verification precedes everything; site selection precedes preparation because the site determines needle length and volume.',
+    rule: 'Partial credit · per position', others: '58%', time: '1m 22s',
+  },
+  {
+    id: 'BOWTIE', type: 'BOWTIE', typeLabel: 'Bow-tie', subject: 'Clinical judgment',
+    stem: 'The client is hypotensive, tachycardic and oliguric after three days of poor intake. Complete the diagram by selecting from the choices below.',
+    hint: 'Tap a choice, then tap the box it belongs in.',
+    tokens: {
+      centre: [{ id: 'c1', text: 'Hypovolaemic shock' }, { id: 'c2', text: 'Cardiogenic shock' }, { id: 'c3', text: 'Septic shock' }],
+      left: [
+        { id: 'l1', text: 'Administer isotonic IV fluids' }, { id: 'l2', text: 'Elevate the legs' },
+        { id: 'l3', text: 'Restrict oral fluids' }, { id: 'l4', text: 'Withhold all analgesia' },
+      ],
+      right: [
+        { id: 'r1', text: 'Hourly urine output' }, { id: 'r2', text: 'Serial blood pressure' },
+        { id: 'r3', text: 'Daily weight only' }, { id: 'r4', text: 'Pupil size' },
+      ],
+    },
+    btCorrect: { centre: 'c1', left: ['l1', 'l2'], right: ['r1', 'r2'] },
+    rationale: 'Three days of poor intake with hypotension, tachycardia and oliguria is hypovolaemia. Isotonic fluid and leg elevation restore preload; hourly urine output and serial blood pressure say whether it worked.',
+    rule: 'Partial credit · per box', others: '29%', time: '2m 31s',
+  },
+  {
+    id: 'CASE', type: 'SATA', typeLabel: 'Select all that apply', subject: 'Fluid & electrolytes', wrapper: 'case',
+    stem: 'Which findings from the chart require immediate follow-up?',
+    instruction: 'Select all that apply.',
+    opts: [
+      { id: 'a', text: 'Serum sodium 126 mmol/L' },
+      { id: 'b', text: 'Temperature 37.2 °C' },
+      { id: 'c', text: 'Urine output 15 mL/hr for 4 hours' },
+      { id: 'd', text: 'Heart rate rising 88 → 114' },
+      { id: 'e', text: 'Reports mild thirst' },
+    ],
+    correct: ['a', 'c', 'd'],
+    rationale: 'Hyponatraemia explains the confusion, and falling urine output with a rising heart rate is compensated hypovolaemia.',
+    rule: 'Partial credit · wrong picks subtract', others: '52%', time: '2m 04s',
+  },
+  {
+    id: 'TREND', type: 'MCQ', typeLabel: 'Multiple choice', subject: 'Pharmacology', wrapper: 'trend',
+    stem: 'Based on the dataset, which action should the nurse take?',
+    opts: [
+      { id: 'a', text: 'Hold the next furosemide dose and notify the provider' },
+      { id: 'b', text: 'Increase the furosemide dose as the weight is still falling' },
+      { id: 'c', text: 'Encourage additional oral fluids only' },
+      { id: 'd', text: 'Recheck the potassium in one week' },
+    ],
+    correct: ['a'],
+    rationale: 'Potassium has fallen below the reference range and is still trending down on an unsupplemented loop diuretic. The trend, not any single value, is the finding.',
+    rule: 'All-or-nothing', others: '57%', time: '1m 14s',
+  },
+];
+
+const CALC_KEYS = [
+  { label: 'C', kind: 'fn' }, { label: 'CE', kind: 'fn' }, { label: '⌫', kind: 'fn' }, { label: '÷', kind: 'op' },
+  { label: '7' }, { label: '8' }, { label: '9' }, { label: '×', kind: 'op' },
+  { label: '4' }, { label: '5' }, { label: '6' }, { label: '−', kind: 'op' },
+  { label: '1' }, { label: '2' }, { label: '3' }, { label: '+', kind: 'op' },
+  { label: '0' }, { label: '.' }, { label: '=', kind: 'eq', wide: true },
+];
+
+const PICKER = [
+  ['MCQ', 'MCQ'], ['TF', 'True / false'], ['SATA', 'SATA'], ['SELECT_N', 'Select N'],
+  ['MATRIX', 'Matrix'], ['MATRIX_MR', 'Matrix MR'], ['HIGHLIGHT', 'Highlight'], ['CLOZE', 'Cloze'],
+  ['DRAG_CLOZE', 'Drag cloze'], ['DRAG_ORDER', 'Drag order'], ['BOWTIE', 'Bow-tie'],
+  ['CASE', 'Case wrapper'], ['TREND', 'Trend wrapper'],
+];
+
+class Component extends DCLogic {
+  state = {
+    i: 0,
+    answers: {},
+    submitted: {},
+    flagged: { 4: true },
+    bookmarked: {},
+    sheet: null,
+    armed: null,
+    filter: 'all',
+    frameW: 390,
+    landscape: false,
+    elapsed: 872,
+    calcExpr: '0.125 ÷ 0.25',
+    calcValue: '0.5',
+  };
+
+  componentDidMount() {
+    this.t = setInterval(() => this.setState((s) => ({ elapsed: s.elapsed + 1 })), 1000);
+  }
+  componentWillUnmount() { clearInterval(this.t); }
+
+  emptyAnswer(item) {
+    switch (item.type) {
+      case 'MATRIX': case 'MATRIX_MR': case 'CLOZE': case 'DRAG_CLOZE': case 'DRAG_ORDER': return {};
+      case 'BOWTIE': return { centre: null, left: [null, null], right: [null, null] };
+      default: return [];
+    }
+  }
+  answerOf(i) {
+    const a = this.state.answers[i];
+    return a === undefined ? this.emptyAnswer(ITEMS[i]) : a;
+  }
+  set(i, value) { this.setState((s) => ({ answers: { ...s.answers, [i]: value } })); }
+  locked(i) { return !!this.state.submitted[i]; }
+
+  isAnswered(i) {
+    const item = ITEMS[i];
+    const a = this.answerOf(i);
+    switch (item.type) {
+      case 'MATRIX':      return item.rows.every((r) => a[r.id]);
+      case 'MATRIX_MR':   return item.rows.every((r) => (a[r.id] || []).length > 0);
+      case 'CLOZE':       return item.parts.filter((p) => p.b).every((p) => a[p.b] && a[p.b] !== 'x');
+      case 'DRAG_CLOZE':  return item.parts.filter((p) => p.s).every((p) => a[p.s]);
+      case 'DRAG_ORDER':  return item.slots.every((s) => a[s.id]);
+      case 'BOWTIE':      return !!a.centre && a.left.every(Boolean) && a.right.every(Boolean);
+      case 'SELECT_N':    return (a.length || 0) === item.selectN;
+      case 'SATA':        return (a.length || 0) > 0;
+      default:            return (a.length || 0) === 1;
+    }
+  }
+
+  pickOption(id) {
+    const i = this.state.i;
+    if (this.locked(i)) return;
+    const item = ITEMS[i];
+    const a = this.answerOf(i);
+    if (item.type === 'SATA') {
+      this.set(i, a.includes(id) ? a.filter((x) => x !== id) : a.concat(id));
+    } else if (item.type === 'SELECT_N') {
+      if (a.includes(id)) this.set(i, a.filter((x) => x !== id));
+      else if (a.length < item.selectN) this.set(i, a.concat(id));
+    } else {
+      this.set(i, [id]);
+    }
+  }
+
+  pickCell(rowId, colId) {
+    const i = this.state.i;
+    if (this.locked(i)) return;
+    const item = ITEMS[i];
+    const a = this.answerOf(i);
+    if (item.type === 'MATRIX_MR') {
+      const cur = a[rowId] || [];
+      const next = cur.includes(colId) ? cur.filter((c) => c !== colId) : cur.concat(colId);
+      this.set(i, { ...a, [rowId]: next });
+    } else {
+      this.set(i, { ...a, [rowId]: colId });
+    }
+  }
+
+  toggleChunk(id) {
+    const i = this.state.i;
+    if (this.locked(i)) return;
+    const a = this.answerOf(i);
+    this.set(i, a.includes(id) ? a.filter((x) => x !== id) : a.concat(id));
+  }
+
+  setBlank(blankId, value) {
+    const i = this.state.i;
+    if (this.locked(i)) return;
+    this.set(i, { ...this.answerOf(i), [blankId]: value });
+  }
+
+  armToken(tok) {
+    if (this.locked(this.state.i)) return;
+    this.setState((s) => ({ armed: s.armed && s.armed.id === tok.id ? null : { id: tok.id, text: tok.text, wing: tok.wing } }));
+  }
+
+  tapSlot(slotId) {
+    const i = this.state.i;
+    if (this.locked(i)) return;
+    const a = this.answerOf(i);
+    const armed = this.state.armed;
+    if (!armed) {
+      if (a[slotId]) { const next = { ...a }; delete next[slotId]; this.set(i, next); }
+      return;
+    }
+    const next = { ...a };
+    Object.keys(next).forEach((k) => { if (next[k] === armed.id) delete next[k]; });
+    next[slotId] = armed.id;
+    this.set(i, next);
+    this.setState({ armed: null });
+  }
+
+  placeBowtie(wing, idx) {
+    const i = this.state.i;
+    if (this.locked(i)) return;
+    const a = this.answerOf(i);
+    const armed = this.state.armed;
+    const next = { centre: a.centre, left: a.left.slice(), right: a.right.slice() };
+    const occupant = wing === 'centre' ? next.centre : next[wing][idx];
+    if (!armed || armed.wing !== wing) {
+      if (occupant) {
+        if (wing === 'centre') next.centre = null; else next[wing][idx] = null;
+        this.set(i, next);
+      }
+      return;
+    }
+    if (wing === 'centre') next.centre = armed.id; else next[wing][idx] = armed.id;
+    this.set(i, next);
+    this.setState({ armed: null });
+  }
+
+  primaryAction = () => {
+    const i = this.state.i;
+    if (!this.locked(i)) {
+      if (!this.isAnswered(i)) return;
+      this.setState((s) => ({ submitted: { ...s.submitted, [i]: true }, armed: null }));
+      return;
+    }
+    if (i < ITEMS.length - 1) this.setState({ i: i + 1, armed: null });
+  };
+
+  score(n) {
+    const item = ITEMS[n];
+    const a = this.answerOf(n);
+    switch (item.type) {
+      case 'MATRIX':
+        return item.rows.filter((r) => a[r.id] === r.correct).length / item.rows.length;
+      case 'MATRIX_MR': {
+        let hit = 0;
+        item.rows.forEach((r) => {
+          const got = (a[r.id] || []).slice().sort().join(',');
+          if (got === r.correct.slice().sort().join(',')) hit += 1;
+        });
+        return hit / item.rows.length;
+      }
+      case 'CLOZE': {
+        const blanks = item.parts.filter((p) => p.b);
+        return blanks.filter((p) => a[p.b] === p.correct).length / blanks.length;
+      }
+      case 'DRAG_CLOZE': {
+        const slots = item.parts.filter((p) => p.s);
+        return slots.filter((p) => a[p.s] === p.correct).length / slots.length;
+      }
+      case 'DRAG_ORDER':
+        return item.slots.filter((s) => a[s.id] === s.correct).length / item.slots.length;
+      case 'BOWTIE': {
+        const want = item.btCorrect;
+        let hits = a.centre === want.centre ? 1 : 0;
+        hits += a.left.filter((x) => want.left.includes(x)).length;
+        hits += a.right.filter((x) => want.right.includes(x)).length;
+        return hits / 5;
+      }
+      default: {
+        const correct = item.correct || [];
+        const picked = a || [];
+        const hits = picked.filter((x) => correct.includes(x)).length;
+        const misses = picked.filter((x) => !correct.includes(x)).length;
+        return Math.max(0, (hits - misses) / correct.length);
+      }
+    }
+  }
+
+  /** Port of deriveCellFill — the prototype is UL live, so correctness shows. */
+  fillOf(n) {
+    if (!this.state.submitted[n]) return this.isAnswered(n) ? 'answered' : 'unanswered';
+    const sc = this.score(n);
+    return sc === 1 ? 'right' : sc > 0 ? 'partial' : 'wrong';
+  }
+
+  /** Port of isVisibleUnderFilter (cell-state.ts). */
+  visibleUnder(fill, isFlagged, filter) {
+    switch (filter) {
+      case 'all':     return true;
+      case 'flagged': return isFlagged;
+      case 'todo':    return fill === 'unanswered' || fill === 'skipped';
+      case 'dropped': return fill === 'wrong' || fill === 'partial';
+      default:        return fill === filter;
+    }
+  }
+
+  pressCalc(label) {
+    this.setState((s) => {
+      const expr = s.calcExpr, value = s.calcValue;
+      if (label === 'C') return { calcExpr: '', calcValue: '0' };
+      if (label === 'CE') return { calcValue: '0' };
+      if (label === '⌫') return { calcValue: value.length > 1 ? value.slice(0, -1) : '0' };
+      if (label === '=') {
+        try {
+          const src = (expr + ' ' + value).replace(/÷/g, '/').replace(/×/g, '*').replace(/−/g, '-');
+          const out = Function('"use strict";return (' + src + ')')();
+          return { calcExpr: '', calcValue: String(Math.round(out * 1e6) / 1e6) };
+        } catch (e) { return { calcValue: 'Error' }; }
+      }
+      if ('+−×÷'.includes(label)) return { calcExpr: value + ' ' + label, calcValue: '0' };
+      if (label === '.') return value.includes('.') ? {} : { calcValue: value + '.' };
+      return { calcValue: value === '0' ? label : value + label };
+    });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const i = s.i;
+    const item = ITEMS[i];
+    const a = this.answerOf(i);
+    const done = this.locked(i);
+    const correct = item.correct || [];
+    const letters = 'ABCDE';
+
+    const mm = String(Math.floor(s.elapsed / 60)).padStart(2, '0');
+    const ss = String(s.elapsed % 60).padStart(2, '0');
+
+    const isOptionType = ['MCQ', 'TF', 'SATA', 'SELECT_N'].includes(item.type);
+    const opts = isOptionType ? item.opts.map((o, n) => {
+      const picked = a.includes(o.id);
+      const isRight = correct.includes(o.id);
+      let cls = 'rn-opt', verdict = '';
+      if (done) {
+        cls += ' locked';
+        if (picked && isRight) { cls += ' right'; verdict = '✓ Correct'; }
+        else if (picked) { cls += ' wrong'; verdict = item.type === 'MCQ' || item.type === 'TF' ? '✕ Your answer' : '✕ Wrong pick'; }
+        else if (isRight) { cls += ' missed'; verdict = '⚠ Missed'; }
+        else cls += ' dim';
+      } else if (picked) cls += ' sel';
+      return { letter: letters[n], text: o.text, cls, verdict, pick: () => this.pickOption(o.id) };
+    }) : [];
+
+    // MATRIX / MATRIX_MR
+    const multi = item.type === 'MATRIX_MR';
+    const matrixRows = (item.rows || []).map((r) => {
+      const cell = (col, label) => {
+        const picked = multi ? (a[r.id] || []).includes(col) : a[r.id] === col;
+        const isRight = multi ? r.correct.includes(col) : r.correct === col;
+        let cls = 'rn-matrix-cell';
+        if (done) {
+          cls += ' locked';
+          if (picked && isRight) cls += ' right';
+          else if (picked) cls += ' wrong';
+          else if (isRight) cls += ' missed';
+        } else if (picked) cls += ' sel';
+        return { cls, label, pick: () => this.pickCell(r.id, col) };
+      };
+      return { label: r.label, a: cell('a', item.colA), b: cell('b', item.colB) };
+    });
+
+    // Stem-takeover types: HIGHLIGHT · CLOZE · DRAG_CLOZE
+    let parts = [];
+    if (item.type === 'HIGHLIGHT') {
+      parts = item.parts.map((p) => {
+        if (!p.c) return { isText: true, isChunk: false, text: p.t };
+        const picked = a.includes(p.c);
+        const isRight = correct.includes(p.c);
+        let cls = 'rn-highlight-chunk';
+        if (done) {
+          cls += ' locked';
+          if (picked && isRight) cls += ' right';
+          else if (picked) cls += ' wrong';
+          else if (isRight) cls += ' missed';
+        } else if (picked) cls += ' sel';
+        return { isText: false, isChunk: true, text: p.t, cls, tap: () => this.toggleChunk(p.c) };
+      });
+    } else if (item.type === 'CLOZE') {
+      let n = 0;
+      parts = item.parts.map((p) => {
+        if (!p.b) return { isText: true, isBlank: false, text: p.t };
+        n += 1;
+        const value = a[p.b] || 'x';
+        let cls = 'rn-cloze-select';
+        if (value !== 'x') cls += ' sel';
+        return {
+          isText: false, isBlank: true, num: n, value, cls, choices: p.choices,
+          change: (e) => this.setBlank(p.b, e.target.value),
+        };
+      });
+    } else if (item.type === 'DRAG_CLOZE') {
+      parts = item.parts.map((p) => {
+        if (!p.s) return { isText: true, isSlot: false, text: p.t };
+        const tokId = a[p.s];
+        const tok = item.tokens.find((t) => t.id === tokId);
+        let cls = 'rn-dd-inline-box';
+        if (tokId) cls += ' filled';
+        else if (s.armed) cls += ' armed-target';
+        if (done) {
+          cls += ' locked';
+          if (tokId === p.correct) cls += ' right';
+          else if (tokId) cls += ' wrong';
+          else cls += ' skipped';
+        }
+        return {
+          isText: false, isSlot: true, num: p.num, cls,
+          text: tok ? tok.text : '\u2003\u2003\u2003',
+          tap: () => this.tapSlot(p.s),
+        };
+      });
+    }
+
+    // Token pool shared by DRAG_CLOZE and DRAG_ORDER
+    let pool = [];
+    if (item.type === 'DRAG_CLOZE' || item.type === 'DRAG_ORDER') {
+      const used = Object.values(a);
+      pool = item.tokens.filter((t) => !used.includes(t.id)).map((t) => ({
+        text: t.text,
+        cls: 'rn-dd-token' + (s.armed && s.armed.id === t.id ? ' armed' : ''),
+        arm: () => this.armToken(t),
+      }));
+    }
+
+    // DRAG_ORDER slot rows
+    const slots = (item.slots || []).map((sl, n) => {
+      const tokId = a[sl.id];
+      const tok = (item.tokens || []).find((t) => t.id === tokId);
+      let cls = 'rn-dd-slot-row';
+      if (tokId) cls += ' filled';
+      else if (s.armed) cls += ' armed-target';
+      if (done) {
+        cls += ' locked';
+        if (tokId === sl.correct) cls += ' right';
+        else if (tokId) cls += ' wrong';
+        else cls += ' skipped';
+      }
+      return {
+        num: n + 1, label: sl.label, cls,
+        text: tok ? tok.text : 'Tap a step below, then tap here',
+        tap: () => this.tapSlot(sl.id),
+      };
+    });
+
+    // BOWTIE
+    let bt = null;
+    if (item.type === 'BOWTIE') {
+      const used = [a.centre].concat(a.left, a.right).filter(Boolean);
+      const want = item.btCorrect;
+      const slot = (wing, idx, id, base) => {
+        let cls = 'rn-bt-slot ' + base;
+        if (id) cls += ' filled';
+        else if (s.armed && s.armed.wing === wing) cls += ' armed-target';
+        if (done) {
+          cls += ' locked';
+          const ok = wing === 'centre' ? id === want.centre : want[wing].includes(id);
+          if (id && ok) cls += ' right';
+          else if (id) cls += ' wrong';
+          else cls += ' skipped';
+        }
+        const list = wing === 'centre' ? item.tokens.centre : item.tokens[wing];
+        const tok = list.find((t) => t.id === id);
+        return {
+          cls,
+          text: tok ? tok.text : (s.armed && s.armed.wing === wing ? 'Tap to place here' : 'Empty'),
+          pick: () => this.placeBowtie(wing, idx),
+        };
+      };
+      const pl = (wing) => (wing === 'centre' ? item.tokens.centre : item.tokens[wing])
+        .filter((t) => !used.includes(t.id))
+        .map((t) => ({
+          text: t.text,
+          cls: 'rn-bt-pool-token' + (s.armed && s.armed.id === t.id ? ' armed' : ''),
+          arm: () => this.armToken({ ...t, wing }),
+        }));
+      bt = {
+        centre: slot('centre', 0, a.centre, 'centre'),
+        lt: slot('left', 0, a.left[0], 'left-top'),
+        lb: slot('left', 1, a.left[1], 'left-bot'),
+        rt: slot('right', 0, a.right[0], 'right-top'),
+        rb: slot('right', 1, a.right[1], 'right-bot'),
+        leftPool: pl('left'), centrePool: pl('centre'), rightPool: pl('right'),
+        leftCount: a.left.filter(Boolean).length + ' of 2',
+        centreCount: (a.centre ? 1 : 0) + ' of 1',
+        rightCount: a.right.filter(Boolean).length + ' of 2',
+      };
+    }
+
+    // Grid — every count derived from visibleUnder(), so a count can never
+    // disagree with what tapping it shows (runner-grid.tsx, 2026-07-31).
+    const FILL_LABEL = {
+      unanswered: 'unanswered', answered: 'answered', right: 'correct',
+      partial: 'partial credit', wrong: 'wrong', skipped: 'skipped',
+    };
+    const ALL_FILTERS = ['all', 'flagged', 'todo', 'dropped', 'right', 'partial', 'wrong', 'skipped', 'unanswered', 'answered'];
+    const counts = {};
+    ALL_FILTERS.forEach((f) => { counts[f] = 0; });
+    ITEMS.forEach((it, n) => {
+      const fill = this.fillOf(n);
+      const flg = !!s.flagged[n];
+      ALL_FILTERS.forEach((f) => { if (this.visibleUnder(fill, flg, f)) counts[f] += 1; });
+    });
+    // Tapping the active filter clears it back to All.
+    const pickFilter = (f) => this.setState((st) => ({ filter: st.filter === f ? 'all' : f }));
+    const filter = s.filter;
+
+    const cells = ITEMS.map((it, n) => {
+      const fill = this.fillOf(n);
+      const flg = !!s.flagged[n];
+      const hidden = !this.visibleUnder(fill, flg, filter);
+      const cls = ['rn-cell', 'f-' + fill, flg && 'marked', n === i && 'current', hidden && 'hidden']
+        .filter(Boolean).join(' ');
+      const aria = 'Question ' + (n + 1)
+        + (fill !== 'unanswered' ? ', ' + FILL_LABEL[fill] : '')
+        + (flg ? ', flagged for review' : '')
+        + (n === i ? ', current' : '');
+      return { n: n + 1, cls, aria, go: () => this.setState({ i: n, sheet: null, armed: null }) };
+    });
+
+    const rail = [
+      { id: 'all', label: 'All' },
+      { id: 'flagged', label: 'Flagged' },
+      { id: 'todo', label: 'To do' },
+    ].map((f) => ({
+      label: f.label, n: counts[f.id], pressed: filter === f.id,
+      cls: 'rn-grid-filter' + (filter === f.id ? ' on' : ''),
+      tap: () => pickFilter(f.id),
+    }));
+
+    const rowAria = (label, n) => label + ' — ' + n + (n === 1 ? ' question' : ' questions');
+    const legendRows = [
+      { id: 'dropped', label: 'Dropped marks', pair: true, aria: 'Dropped marks, wrong and partial together' },
+      { id: 'unanswered', label: 'Unanswered', swatch: '' },
+      { id: 'right', label: 'Correct', swatch: 'f-right' },
+      { id: 'partial', label: 'Partial credit', swatch: 'f-partial' },
+      { id: 'wrong', label: 'Wrong', swatch: 'f-wrong' },
+      { id: 'skipped', label: 'Skipped', swatch: 'f-skipped' },
+      { id: 'flagged', label: 'Flagged for review', swatch: 'marked' },
+    ].map((r) => ({
+      isPair: !!r.pair, isRow: !r.pair, isInert: false,
+      label: r.label, n: counts[r.id], pressed: filter === r.id,
+      aria: rowAria(r.aria || r.label, counts[r.id]),
+      swatchCls: ('swatch ' + (r.swatch || '')).trim(),
+      cls: 'row act' + (filter === r.id ? ' on' : ''),
+      tap: () => pickFilter(r.id),
+    })).concat([{ isPair: false, isRow: false, isInert: true }]);
+
+    // Count line — SATA/SELECT_N above the options (as select-n.tsx does),
+    // highlight/cloze carry their own hint lines.
+    const pickedCount =
+      item.type === 'CLOZE' ? item.parts.filter((p) => p.b && a[p.b] && a[p.b] !== 'x').length
+      : Array.isArray(a) ? a.length : Object.keys(a).length;
+    const needed = item.type === 'SELECT_N' ? item.selectN
+      : item.type === 'CLOZE' ? item.parts.filter((p) => p.b).length
+      : correct.length;
+    const atCap = item.type === 'SELECT_N' && pickedCount === item.selectN;
+
+    const score = done ? this.score(i) : null;
+    const last = i === ITEMS.length - 1;
+    const isCase = item.wrapper === 'case';
+    const isTrend = item.wrapper === 'trend';
+    const stemTakeover = ['HIGHLIGHT', 'CLOZE', 'DRAG_CLOZE'].includes(item.type);
+
+    return {
+      qNum: i + 1,
+      clock: mm + ':' + ss,
+      typeLabel: item.typeLabel,
+      subject: item.subject,
+      stem: item.stem || '',
+      instruction: item.instruction || '',
+      showStem: !stemTakeover && !!item.stem,
+      showInstruction: !stemTakeover && !!item.instruction,
+      stemTakeover,
+      ddHint: item.hint || '',
+
+      isCase, isTrend,
+      hasWrapper: isCase || isTrend,
+      splitCls: (isCase || isTrend) ? 'rn-split' : '',
+      wrapperLabel: isCase ? 'Case study' : 'Trend dataset',
+      wrapperPill: isCase ? '2 of 6 answered' : '4 timepoints',
+      wrapperTitle: isCase
+        ? '72-year-old admitted with confusion and poor oral intake'
+        : 'Serum potassium over four days on furosemide',
+      wrapperCta: isCase ? 'View chart · 4 tabs' : 'View dataset',
+
+      showOptions: isOptionType,
+      showMatrix: item.type === 'MATRIX' || multi,
+      matrixCls: multi ? 'rn-matrix multi' : 'rn-matrix',
+      matrixHead: item.matrixHead || '', colA: item.colA || '', colB: item.colB || '',
+      showHighlight: item.type === 'HIGHLIGHT',
+      showCloze: item.type === 'CLOZE',
+      showDragCloze: item.type === 'DRAG_CLOZE',
+      showDragOrder: item.type === 'DRAG_ORDER',
+      showBowtie: item.type === 'BOWTIE',
+      showCountTop: item.type === 'SELECT_N' && !done,
+      showCount: item.type === 'SATA' && !done,
+      picked: pickedCount,
+      needed,
+      countHint: item.type === 'SELECT_N'
+        ? (atCap ? 'that is all three' : 'selected')
+        : 'pick every finding that applies',
+      countHintCls: atCap ? 'hint met' : 'hint',
+      opts, matrixRows, parts, pool, slots, bt, cells,
+
+      isReviewed: done,
+      verdictCls: 'rn-strip-verdict ' + (score === 1 ? 'ok' : score > 0 ? 'part' : 'no'),
+      verdictGlyph: score === 1 ? '✓' : score > 0 ? '◐' : '✕',
+      verdictWord: score === 1 ? 'CORRECT' : score > 0 ? 'PARTIAL CREDIT' : 'WRONG',
+      scoreLine: done ? (Math.round(score * 100) / 100) + ' / 1 mark' : '',
+      scoreSub: done && score > 0 && score < 1 ? ' · partial credit' : '',
+      ruleLine: item.rule,
+      timeLine: item.time,
+      othersPct: item.others,
+      rationale: item.rationale,
+
+      flagCls: 'rn-flag-btn' + (s.flagged[i] ? ' on' : ''),
+      flagLabel: s.flagged[i] ? 'Flagged' : 'Flag',
+      flagState: s.flagged[i] ? 'On' : 'Off',
+      flagFill: s.flagged[i] ? 'currentColor' : 'none',
+      menuFlagCls: 'rn-menu-item' + (s.flagged[i] ? ' on' : ''),
+      bookmarkCls: 'rn-bookmark-btn' + (s.bookmarked[i] ? ' on' : ''),
+      bookmarkLabel: s.bookmarked[i] ? 'Saved' : 'Bookmark',
+      bookmarkState: s.bookmarked[i] ? 'On' : 'Off',
+      bookmarkFill: s.bookmarked[i] ? 'currentColor' : 'none',
+      toggleFlag: () => this.setState((st) => ({ flagged: { ...st.flagged, [i]: !st.flagged[i] } })),
+      toggleBookmark: () => this.setState((st) => ({ bookmarked: { ...st.bookmarked, [i]: !st.bookmarked[i] } })),
+
+      rail, legendRows,
+
+      primaryCls: 'btn btn-accent btn-sm',
+      primaryLabel: done ? (last ? 'Finish' : 'Next →') : (this.isAnswered(i) ? 'Submit answer →' : 'Answer to continue'),
+      primary: this.primaryAction,
+      prev: () => this.setState((st) => ({ i: Math.max(0, st.i - 1), armed: null })),
+
+      sheetOpen: !!s.sheet,
+      isGridSheet: s.sheet === 'grid',
+      isChartSheet: s.sheet === 'chart',
+      isMenuSheet: s.sheet === 'menu',
+      isCalcSheet: s.sheet === 'calc',
+      openGrid: () => this.setState({ sheet: 'grid' }),
+      openChart: () => this.setState({ sheet: 'chart' }),
+      openMenu: () => this.setState({ sheet: 'menu' }),
+      openCalc: () => this.setState({ sheet: 'calc' }),
+      closeSheet: () => this.setState({ sheet: null }),
+
+      calcExpr: s.calcExpr,
+      calcValue: s.calcValue,
+      calcKeys: CALC_KEYS.map((k) => ({
+        label: k.label,
+        cls: 'calc-btn' + (k.kind === 'op' ? ' calc-btn-op' : k.kind === 'fn' ? ' calc-btn-fn' : k.kind === 'eq' ? ' calc-btn-eq' : '') + (k.wide ? ' calc-btn-wide' : ''),
+        press: () => this.pressCalc(k.label),
+      })),
+
+      picker: PICKER.map(([id, label], n) => ({
+        label,
+        cls: 'demo-chip' + (ITEMS[n].wrapper ? ' wrap' : '') + (i === n ? ' on' : ''),
+        go: () => this.setState({ i: n, sheet: null, armed: null }),
+      })),
+
+      frameW: s.landscape ? 812 : s.frameW,
+      frameH: s.landscape ? 390 : 812,
+      frameNote: s.landscape
+        ? '812 × 390 — landscape phone: chrome shrinks, sheets become side drawers, the split returns'
+        : (s.frameW === 390 ? '390 × 812 — the phone layout' : s.frameW === 768 ? '768 × 812 — still compact: the split needs 924' : '1200 × 812 — the current desktop runner, untouched'),
+      w390cls: !s.landscape && s.frameW === 390 ? 'on' : '',
+      w768cls: !s.landscape && s.frameW === 768 ? 'on' : '',
+      w1200cls: !s.landscape && s.frameW === 1200 ? 'on' : '',
+      setW390: () => this.setState({ frameW: 390, landscape: false }),
+      setW768: () => this.setState({ frameW: 768, landscape: false }),
+      setW1200: () => this.setState({ frameW: 1200, landscape: false }),
+      portraitCls: s.landscape ? '' : 'on',
+      landscapeCls: s.landscape ? 'on' : '',
+      setPortrait: () => this.setState({ landscape: false }),
+      setLandscape: () => this.setState({ landscape: true }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

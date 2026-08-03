@@ -100,7 +100,13 @@ export function CasePanel({
             {answeredCount} of {totalChildren} answered
           </span>
         </div>
-        <div className="title">{caseSnap.title_snapshot}</div>
+        {/* Sealed during a live sitting (page.tsx, Pillar 2) — the title
+            names the diagnosis, which is the answer to "Recognise cues".
+            The "Case study" label above already identifies the panel, so
+            the line is dropped rather than replaced with a placeholder. */}
+        {caseSnap.title_snapshot ? (
+          <div className="title">{caseSnap.title_snapshot}</div>
+        ) : null}
       </div>
 
       {/* Scenario sits between head and tabs — a sibling of the title,

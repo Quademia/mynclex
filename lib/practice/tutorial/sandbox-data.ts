@@ -142,10 +142,17 @@ export function buildSandboxData(returnTo?: string): LiveData {
     last_activity_at:         nowIso,
   };
 
+  // ⚠ NO `title_snapshot` — the wrapper title is sealed during a live
+  // sitting (page.tsx, Pillar 2) and this sandbox renders as `mode:
+  // 'live'`. The sandbox builds its own data and never passes through
+  // that projection, so the seal has to be honoured here by hand or the
+  // tutorial would teach a header the real runner does not show — the
+  // exact defect slice 8 existed to fix. `TUTORIAL_CASE.title` names no
+  // diagnosis, so nothing is lost by leaving it out; fidelity is the
+  // point, not protection.
   const cases: CaseSnapshot[] = [
     {
       case_id:                   TUTORIAL_CASE.case_id,
-      title_snapshot:            TUTORIAL_CASE.title,
       scenario_summary_snapshot: TUTORIAL_CASE.scenario,
       tabs_snapshot_json:        TUTORIAL_CASE.tabs,
     },
@@ -154,7 +161,6 @@ export function buildSandboxData(returnTo?: string): LiveData {
   const trends: TrendSnapshot[] = [
     {
       trend_id:           TUTORIAL_TREND.trend_id,
-      title_snapshot:     TUTORIAL_TREND.title,
       scenario_snapshot:  TUTORIAL_TREND.scenario,
       tabs_snapshot_json: TUTORIAL_TREND.tabs,
     },

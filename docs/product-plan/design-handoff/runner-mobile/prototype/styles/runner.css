@@ -548,27 +548,10 @@
 /* Scenario block — sits between the head and the tab row. Always
  * visible (doesn't scroll with the tab body), so the case's narrative
  * anchor stays in front of the student no matter which tab they pick. */
-/* ⚠ `overflow-y: auto` is LOAD-BEARING, not cosmetic (2026-08-03).
- * `.rn-case` is a fixed-height flex column: head · scenario · tabs · body.
- * A flex item's automatic minimum height is its CONTENT height, so with
- * `overflow: visible` this scenario could not shrink by a single pixel —
- * it kept its full height and the shortfall was taken entirely out of the
- * two items that CAN shrink (a scroll container's automatic minimum is 0):
- * the tab strip and the body. The tab strip is only 52px, so it collapsed
- * to a sliver and then to nothing, and the student lost the only control
- * that reaches the other charts. Measured: with a p90-length scenario the
- * strip was unusable below a 706px viewport and gone below 636px.
- * Making the scenario a scroll container lets it give ground first, which
- * is right — it is reference text you dip into, not a control.
- * ⚠ No `min-height` floor on purpose: flexbox already shrinks it
- * proportionally and it settled at ~86px (about three lines) at the most
- * extreme height tested. A 130px floor was measured and REJECTED — it did
- * not help the scenario, it just starved the body (28px vs 50px). */
 .rn-case-scenario {
   padding: 10px 14px 12px;
   border-bottom: 1px solid var(--border);
   background: var(--white);
-  overflow-y: auto;
 }
 .rn-case-scenario .label {
   font-size: 10px;
@@ -584,21 +567,12 @@
   color: var(--text);
 }
 
-/* ⚠ `flex-shrink: 0` is load-bearing — see the note on `.rn-case-scenario`.
- * `overflow-x: auto` (for tab strips wider than the panel) makes this a
- * scroll container, and a scroll container's automatic minimum size is 0 —
- * so flexbox was free to crush this strip VERTICALLY to nothing whenever
- * the panel ran short. These buttons are the only way to reach the other
- * charts, so this is the one row in the panel that must never give ground.
- * ⚠ Shared by the TREND panel too (trend-panel.tsx renders the same
- * class), so this single line fixes both. */
 .rn-case-tabs {
   display: flex;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   padding: 0 6px;
   overflow-x: auto;
-  flex-shrink: 0;
 }
 .rn-case-tab {
   padding: 8px 12px;
@@ -866,18 +840,11 @@
   line-height: 1.4;
 }
 
-/* Scenario sits between the head and the table. Always visible — it
- * scrolls within itself rather than being clipped, so "always visible"
- * still holds. `overflow-y: auto` is load-bearing for the same reason as
- * `.rn-case-scenario` (see the note there): without it this item cannot
- * shrink, and the trend panel's tab strip gets crushed instead. Measured
- * on the tutorial's trend question at 1024×768 — the strip was already
- * rendering at 23px against a natural 52px. */
+/* Scenario sits between the head and the table. Always visible. */
 .rn-trend-scenario {
   padding: 10px 14px 12px;
   border-bottom: 1px solid var(--border);
   background: var(--white);
-  overflow-y: auto;
 }
 .rn-trend-scenario .label {
   font-size: 10px;
@@ -1515,38 +1482,12 @@
   line-height: 1.65;
   color: var(--text-muted);
 }
-/* Separator follows the content — see the note in cloze.tsx.
- * `.terms` (96% of the bank: no rationales anywhere in the blank) —
- * bare labels, comma-joined, because a single space rendered
- * "low high unchanged" as one run-on line. */
-.rn-cloze-feedback-rationales.terms
-  .rn-cloze-feedback-item + .rn-cloze-feedback-item::before {
-  content: ', ';
-  /* Inherit body colour, never the label's green — the comma belongs to
-   * the sentence, not to the option it happens to follow. */
-  color: var(--text-muted);
-  font-weight: 400;
+.rn-cloze-feedback-item + .rn-cloze-feedback-item::before {
+  content: ' ';
 }
-/* `.prose` (at least one rationale) — one option per line. A comma here
- * would collide with the rationale's own sentence punctuation. */
-.rn-cloze-feedback-rationales.prose .rn-cloze-feedback-item {
-  display: block;
-}
-.rn-cloze-feedback-rationales.prose .rn-cloze-feedback-item + .rn-cloze-feedback-item {
-  margin-top: 4px;
-}
-
-/* ⚠ ONLY the correct option is coloured (Sam, 2026-08-03). Every other
- * label used to be #9b2c2c, which marked DISTRACTORS in the product's
- * "you got this wrong" colour — so a student who answered correctly saw
- * two or three red options beneath a header reading CORRECT. Ordinary
- * body text now; the green is the only signal, which is also the more
- * colour-blind-legible pairing since this list carries no ✓ glyph.
- * ⓘ drag-cloze keeps its red on purpose — its distractors sit under a
- * DISTRACTORS caption that explains the colour. This list has none. */
 .rn-cloze-feedback-label {
   font-weight: 600;
-  color: var(--text);
+  color: #9b2c2c;
 }
 .rn-cloze-feedback-item.right .rn-cloze-feedback-label {
   color: #15803d;

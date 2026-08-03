@@ -21,7 +21,7 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { COACH_STEPS, COACH_RECAP, COACH_SECTIONS } from './steps';
+import { COACH_STEPS, COACH_RECAP, COACH_RECAP_PHONE, COACH_SECTIONS } from './steps';
 import { markTutorialCompleted } from '@/lib/practice/tutorial/completion';
 import { TUTORIAL_KEY_EXAM_RUNNER } from '@/lib/practice/tutorial/keys';
 
@@ -42,15 +42,54 @@ interface Props {
    *  flag and bookmark is not visible from the icons, so being made to use
    *  one of them is worth more than another paragraph of copy. */
   currentFlagged: boolean;
+  /** Is the runner in its phone layout? Passed down rather than measured
+   *  here, so the coach and the runner can never disagree about the width
+   *  (`useIsCompact` lives with the runner and is already computed there). */
+  compact: boolean;
+  /** Open — or close, with null — the phone sheet a step needs. On desktop
+   *  the coach never calls this. */
+  onOpenSheet: (kind: 'menu' | 'grid' | 'chart' | null) => void;
 }
 
-export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubmitted, currentFlagged }: Props) {
+/**
+ * The first VISIBLE `[data-coach="<name>"]` element, or null.
+ *
+ * ⚠ Visibility is the whole point, twice over:
+ *
+ *   1. A control the current layout hides is not an anchor. Five of these
+ *      markers sit on topbar buttons that are `display: none` on a phone;
+ *      pointing a spotlight at a 0×0 box put the card 179px off-screen.
+ *   2. Some names exist TWICE at once. The grid rail keeps its marker in
+ *      the DOM while hidden on compact, and the grid SHEET renders the same
+ *      component — so a plain `querySelector` would find the hidden desktop
+ *      rail and ignore the sheet the student is looking at.
+ *
+ * Taking the first non-zero-sized match answers both without the coach
+ * needing to know which layout it is in.
+ */
+function visibleTarget(name?: string): HTMLElement | null {
+  if (!name) return null;
+  const nodes = document.querySelectorAll<HTMLElement>(`[data-coach="${name}"]`);
+  for (const node of nodes) {
+    const r = node.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) return node;
+  }
+  return null;
+}
+
+export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubmitted, currentFlagged, compact, onOpenSheet }: Props) {
   const [step, setStep] = useState(0);
   // Slice 2c coach controls.
   const [hidden, setHidden] = useState(false);   // coaching collapsed → free explore
   const [jumpOpen, setJumpOpen] = useState(false); // section dropdown open
   const ringRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  // The flat dim. Normally suppressed while a ring is up (the ring paints
+  // its own dim via a 9999px shadow) — but a step whose target this layout
+  // hides shows NEITHER, leaving the card floating over an undimmed runner.
+  // Restored imperatively in place(), for the same reason everything else
+  // here is: it tracks the DOM, not React state.
+  const dimRef = useRef<HTMLDivElement>(null);
 
   const s = COACH_STEPS[step];
   const total = COACH_STEPS.length;
@@ -68,21 +107,26 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubm
     }
   }, [s.done]);
 
-  // Apply the step's runner side effects: switch question, open the grid.
+  // Apply the step's runner side effects: switch question, open the grid,
+  // and on a phone open (or close) the sheet this step's control lives in.
   useEffect(() => {
     if (s.gotoKey) onGoto(s.gotoKey);
     if (s.grid) setGridOpen(true);
-    // Keyed on `step` only — onGoto/setGridOpen are stable and re-running on
-    // their identity would fire spurious gotos.
+    // ⚠ Called with null when the step names no sheet, not skipped: a sheet
+    // left open from the previous step would cover the next step's target,
+    // and the coach would then correctly conclude there is nothing to point
+    // at. Desktop never reaches this — `compact` is false and the runner
+    // ignores the sheet state anyway.
+    if (compact) onOpenSheet(s.phoneSheet ?? null);
+    // Keyed on `step` and `compact` only — the callbacks are stable and
+    // re-running on their identity would fire spurious gotos. `compact` is
+    // here so rotating a phone mid-step opens the sheet the step needs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  }, [step, compact]);
 
   // Bring the target into view once when the step changes.
   useLayoutEffect(() => {
-    if (!s.target) return;
-    document
-      .querySelector<HTMLElement>(`[data-coach="${s.target}"]`)
-      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    visibleTarget(s.target)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [step, s.target]);
 
   // Position the spotlight ring over the target and the card beside it, by
@@ -91,15 +135,33 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubm
   const place = useCallback(() => {
     const card = cardRef.current;
     const ring = ringRef.current;
-    const target = s.target
-      ? document.querySelector<HTMLElement>(`[data-coach="${s.target}"]`)
-      : null;
+    const target = visibleTarget(s.target);
 
     if (!target) {
-      // Centred card (via CSS) — clear any inline position left by a prior step.
-      if (card) { card.style.top = ''; card.style.left = ''; }
+      // Nothing to point at — either the step names no control, or it names
+      // one this layout hides. Centre the card and drop the ring.
+      //
+      // ⚠ Centred EXPLICITLY, in inline styles, rather than by falling back
+      // to the `.tc-centered` class. That class is applied from `s.target`
+      // alone, so a step whose target existed on desktop but not here kept
+      // the anchored styling with no anchor — and the phone rule then set
+      // `left: 8px !important` while `translate(-50%, -50%)` still applied,
+      // dragging the card 187px left of that. Measured at −179px on a 390px
+      // screen: half the card was off the edge of a public page.
+      if (card) {
+        card.style.top = '50%';
+        card.style.left = '50%';
+        card.style.transform = 'translate(-50%, -50%)';
+      }
+      if (ring) ring.style.display = 'none';
+      if (dimRef.current) dimRef.current.style.display = 'block';
       return;
     }
+    if (ring) ring.style.display = '';
+    if (dimRef.current) dimRef.current.style.display = '';
+    // Cleared because the no-target branch above sets it; an anchored card
+    // is positioned by its top-left corner and must not also be shifted.
+    if (card) card.style.transform = 'none';
 
     const r = target.getBoundingClientRect();
     if (ring) {
@@ -132,11 +194,23 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubm
     const t = setTimeout(place, 90);
     window.addEventListener('resize', place);
     window.addEventListener('scroll', place, true);
+    // ⚠ Re-place when ANY animation finishes. A phone sheet slides up over
+    // 220ms, and both measurements above land inside that window — so the
+    // ring took the row's mid-flight position and stayed there. Measured:
+    // the row settled at top 260 while the ring sat at 630, correctly sized
+    // and 370px low, which reads as a spotlight on nothing.
+    //
+    // Listening for the animation to END rather than adding a third
+    // hard-coded delay: the sheet's duration is not the coach's to know,
+    // it is disabled under prefers-reduced-motion, and this also covers
+    // anything else that animates into place later.
+    document.addEventListener('animationend', place, true);
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(t);
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', place, true);
+      document.removeEventListener('animationend', place, true);
     };
     // `hidden` is a dep so un-hiding re-measures + repositions the card/ring.
   }, [place, step, hidden]);
@@ -196,7 +270,7 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubm
         className={'tc-scrim' + (hasTarget ? ' has-target' : '')}
         aria-hidden="true"
       >
-        <div className="tc-dim" />
+        <div ref={dimRef} className="tc-dim" />
         {hasTarget && <div ref={ringRef} className="tc-ring" />}
       </div>
       <div
@@ -243,10 +317,13 @@ export function SandboxCoach({ onGoto, setGridOpen, onEnd, calcOpen, currentSubm
         </div>
 
         <div className="tc-title">{s.title}</div>
-        <div className="tc-body">{s.body}</div>
+        {/* Phone copy where the step has it. Most steps do not: the desktop
+            sentence is layout-independent and a second copy would just be a
+            second thing to keep true. */}
+        <div className="tc-body">{compact && s.phoneBody ? s.phoneBody : s.body}</div>
         {s.done && (
           <ul className="tc-recap">
-            {COACH_RECAP.map((r) => (
+            {(compact ? COACH_RECAP_PHONE : COACH_RECAP).map((r) => (
               <li key={r.k}><b>{r.k}:</b> {r.v}</li>
             ))}
           </ul>

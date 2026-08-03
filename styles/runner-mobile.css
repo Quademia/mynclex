@@ -1,0 +1,789 @@
+/* mynclex/styles/runner-mobile.css
+ *
+ * Phone/tablet layer for the session runner. Import AFTER runner.css.
+ *
+ * ⚠ Two bands live here, and only the first is "the phone layout":
+ *   ≤899px       — the phone layout (slices 1–6). Structural.
+ *   900–1300px   — tablet LANDSCAPE. Keeps the desktop layout and only
+ *                  stops it clipping. Added 2026-08-03; see that block
+ *                  for why. Above 1300px nothing here applies.
+ *
+ * ⚠ THIS FILE LANDS SLICE BY SLICE — see docs/product-plan/runner-mobile.md
+ * ────────────────────────────────────────────────────────────────────────
+ * The CD deliverable is one ~670-line stylesheet covering the whole arc.
+ * It CANNOT be copied in wholesale, because several of its sections hide
+ * a desktop element and rely on a component that replaces it — most
+ * sharply `.rn-split > .rn-case { display: none }`, which without the
+ * chart sheet (slice 4) would leave a case question on a phone with no
+ * scenario at all. Worse than today, not better.
+ *
+ * So each slice copies its own section across from the bundle at
+ * docs/product-plan/design-handoff/runner-mobile/runner-mobile.css, which
+ * is the verbatim original. Landed so far:
+ *
+ *   ✅ SLICE 1 — base, .rn container context, topbar, scroll region,
+ *                footer, sheet shell, session menu
+ *   ✅ SLICE 2 — the grid inside the sheet
+ *   ✅ SLICE 3 — answers: indent, caps, tap targets, sticky count
+ *   ✅ SLICE 4 — case / trend stack + summary card + chart sheet
+ *   ✅ SLICE 5 — matrix row-cards, bow-tie stack
+ *   ✅ SLICE 6 — calculator docked
+ *   ❌ SLICE 7 — landscape drawers. CANCELLED 2026-08-03 (Sam): phones
+ *                stay portrait. The tablet complaint that made it look
+ *                urgent was a DESKTOP-layout floor, fixed as the
+ *                900–1300px band below. Reopen only if reported.
+ *   ✅ TABLET LANDSCAPE — the 900–1300px band below (2026-08-03)
+ *
+ * WHY CONTAINER QUERIES, NOT @media
+ * ─────────────────────────────────
+ * Every rule below keys off the width of `.rn` itself rather than the
+ * viewport, which means the whole mobile layout can be rendered inside a
+ * 390px frame (design review, the runner tutorial sandbox, screenshots)
+ * without lying about what students get. One source of truth, provable.
+ *
+ * ⚠ This block used to claim "in production `.rn` IS the viewport, so the
+ * two are the same thing". That is FALSE and it cost us a bug. A classic
+ * scrollbar sits between them: measured at a 900px viewport, `.rn` is
+ * 885px. The container query fired and hid the case panel while
+ * useIsCompact() — then reading the VIEWPORT via matchMedia — stayed
+ * false and never rendered the summary card that replaces it, so a case
+ * question showed no scenario at all. use-is-compact.ts now observes this
+ * element instead, so the two cannot disagree. Don't reintroduce a
+ * viewport measurement anywhere in this layer.
+ *
+ * THE BREAKPOINT — 899px
+ * ──────────────────────
+ * `.rn-split` (case + trend questions) needs minmax(380px,1fr) +
+ * minmax(520px,720px) + 24px gap = 924px before it can lay out honestly.
+ * Below that it overflows, so 899px is where the phone layout has to take
+ * over. Tablets in portrait get the phone layout rather than a broken
+ * desktop one.
+ *
+ * COMPONENT CHANGES THIS LAYER ASSUMES  (all additive, all no-ops ≥900px)
+ * ──────────────────────────────────────────────────────────────────────
+ *   runner-topbar.tsx   · wrap title + spacer + counter in `.rn-top-ident`
+ *                         (display:contents ≥900, so desktop is untouched)
+ *                       · exit label in `<span class="rn-top-exit-label">`
+ *                       · new `.rn-top-more` (⋯) button, always rendered
+ *   runner-footer.tsx   · new `.rn-foot-grid` button (slice 2 renders it)
+ *                       · `.rn-foot-fwd` class in forward-only modes
+ *   runner.tsx          · useIsCompact() decides grid → sheet, case/trend
+ *                         panel → sheet, and which buttons go to the ⋯ menu
+ *   NEW runner-sheet.tsx, runner-session-menu.tsx
+ */
+
+/* ── Base (≥900px): the new nodes are inert ─────────────────────────── */
+/* .rn-top-ident is a passthrough on desktop, so the topbar's flex row is
+ * byte-for-byte what it is today. */
+.rn-top-ident        { display: contents; }
+.rn-top-more,
+.rn-foot-grid,
+.rn-case-summary,
+.rn-matrix-cell-label { display: none; }
+
+/* ── Real viewport height + the container context ───────────────────── */
+/* NOTE — the `--surface` gap this originally patched is now fixed properly
+ * in tokens.css (it was undefined repo-wide and rendered three runner
+ * surfaces transparent on DESKTOP too). Kept out of here deliberately: a
+ * mobile layer is the wrong home for a global token. */
+.rn {
+  /* "size", not "inline-size": the landscape rules (slice 7) query height. */
+  container-type: size;
+  container-name: rn;
+  position: relative;      /* containing block for the sheets */
+  /* 100vh is a lie on iOS Safari — the footer hides under the URL bar,
+   * which is exactly where Submit lives. */
+  height: 100dvh;
+}
+
+/* ── Tablet landscape (900–1300px): the split stops clipping ──────────
+ * NOT the phone layout. The desktop layout stays exactly as it is; these
+ * four rules only stop it overflowing. Found 2026-08-03 by testing a real
+ * tablet: in portrait a tablet is ≤899px and gets the phone layout, but
+ * ROTATE it and the desktop layout takes over at a width it cannot honour.
+ * The question was cut off with no page scrollbar — the hidden part was
+ * reachable only via a sub-region scrollbar a student will never find.
+ * Case study and trend only; all 11 standalone types measured clean.
+ *
+ * The cause is NOT the 520px column floor everyone (including this file's
+ * own header) assumes. Measured, it is two things:
+ *
+ *   1. `.rn-cjmm-strip` — the 6-step stepper is a nowrap flex row that
+ *      demands 534px and single-handedly holds the question column at
+ *      536px. With it removed the whole rest of the question — stem,
+ *      options, matrix — fits in 180px. It is within 2px of the 520px
+ *      floor by coincidence, which is what made this look like a column
+ *      problem. Wrapping costs no height until it actually wraps.
+ *   2. `.rn-matrix` spilled out of its track because `.rn-q-wrap` had no
+ *      `min-width: 0`, so `overflow-x` had nothing to bite on.
+ *
+ * The case column keeps `1fr`, so its floor only binds in the tightest
+ * configuration (narrow screen AND grid rail open); with the rail closed
+ * the panel still grows past 400px.
+ *
+ * ⚠ 1300, not 1250: at 1251 the desktop floors land on exactly the width
+ * available (939 vs 939), i.e. zero margin. The band needs to end where
+ * the desktop layout has room to spare, not where it just fits.
+ *
+ * ⚠ The grid rail is deliberately untouched. Narrowing it to 180px works
+ * for the split but overflows `.rn-cells` (needs 204px, fixed 5-column
+ * grid) — and the case bands are absolute-positioned from JS-computed
+ * offsets against those cells (runner.css §"Case band"), which the
+ * 2026-07-31 slice already broke once. Not worth it for 60px.
+ *
+ * ⚠ MEASURED, NOT STRUCTURAL. Verified 0px clipped on all 7 wrapper
+ * questions in the tutorial across 1024–1300, grid rail OPEN (the worst
+ * case). A matrix substantially wider than the tutorial's could still
+ * clip; the general answer is the phone's row-card treatment, which is
+ * deliberately not pulled into this band. Below 1024 with the rail open
+ * it still clips — that is landscape PHONES, and it belongs to slice 7.
+ * ─────────────────────────────────────────────────────────────────── */
+@container rn (min-width: 900px) and (max-width: 1300px) {
+  .rn-split      { grid-template-columns: minmax(250px, 1fr) minmax(400px, 720px); }
+  .rn-cjmm-strip { flex-wrap: wrap; }
+  .rn-q-wrap     { min-width: 0; }
+  .rn-matrix     { max-width: 100%; overflow-x: auto; }
+
+  /* ⚠ Load-bearing, and the least obvious rule in this block.
+   * `.rn-q-wrap` carries `margin: 0 auto` (runner.css) to centre a
+   * STANDALONE question. On a grid item, auto margins suppress stretch:
+   * the item is sized shrink-to-fit — i.e. to its own min-content — and
+   * overflows its track instead of filling it. That is why the question
+   * column measured 438px inside a 423px track, and why `max-width: 100%`
+   * on `.rn-matrix` above did nothing: 100% resolved against a parent
+   * that was itself sized by that same content.
+   * ⚠ runner.css's comment above `.rn-q-wrap` claims its `margin: 0 auto`
+   * is "a no-op inside a case". It is not — it is what defeats the clamp.
+   * Scoped to `.rn-split >` so standalone questions stay centred. */
+  .rn-split > .rn-q-wrap { margin-inline: 0; }
+}
+
+@container rn (max-width: 899px) {
+
+  /* ── Topbar: five controls ─────────────────────────────────────────
+   * exit · position stack · clock · flag · ⋯
+   * Bookmark, calculator and grid move to the session menu; the mode
+   * meta line moves under the counter. */
+  .rn-top {
+    height: 52px;
+    padding: 0 8px 0 4px;
+    gap: 6px;
+    padding-top: env(safe-area-inset-top);
+    height: calc(52px + env(safe-area-inset-top));
+  }
+  .rn-top-divider { display: none; }
+
+  .rn-top-ident {
+    display: flex;
+    flex-direction: column-reverse;   /* counter above, meta below */
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+  }
+  .rn-top-spacer { display: none; }
+
+  .rn-top-title { display: block; min-width: 0; max-width: 100%; }
+  .rn-top-title .name { display: none; }      /* lives in the ⋯ sheet */
+  .rn-top-title .meta {
+    font-size: 10.5px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .rn-counter { font-size: 14px; gap: 3px; }
+  .rn-counter strong { font-size: 14px; font-weight: 800; }
+
+  .rn-top-exit {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    font-size: 18px;
+  }
+  .rn-top-exit-label { display: none; }
+
+  /* Icon buttons: 40px targets, no labels, no hover-only meaning. */
+  .rn-flag-btn,
+  .rn-top-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    gap: 0;
+    border-radius: 9px;
+  }
+  .rn-flag-btn-label { display: none; }
+
+  /* Moved into the session menu, where they get words back. */
+  .rn-bookmark-btn,
+  .rn-calc-btn,
+  .rn-grid-toggle-btn { display: none; }
+
+  .rn-clock-eye { display: none; }            /* → session menu */
+  .rn-clock-pill { padding: 5px 10px; }
+
+  /* ── Scroll region ────────────────────────────────────────────────── */
+  .rn-main-scroll {
+    padding: 14px 16px 16px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .rn-q-wrap { max-width: none; }
+  .rn-stem { font-size: 15.5px; margin-bottom: 14px; }
+
+  /* ── Answers: full width, real tap targets ────────────────────────────
+   * The 32px academic indent costs 8% of a phone screen for no reading
+   * benefit, and the 460px cap is wider than the viewport anyway — so both
+   * come off. `.rn-matrix` is in here for the indent only; its row-card
+   * reflow is slice 5. */
+  .rn-options,
+  .rn-opt-count,
+  .rn-matrix {
+    margin-left: 0;
+    max-width: none;
+  }
+  .rn-opt {
+    min-height: 48px;
+    padding: 12px 13px;
+    gap: 10px;
+    font-size: 14.5px;
+  }
+  /* The three-channel state encoding (left border + letter circle + fill)
+   * is untouched; only the box around it grows. */
+  .rn-opt-verdict { align-self: flex-start; }
+
+  /* SELECT_N's count line stays visible while you scroll a list longer than
+   * the screen — on a phone, most of them.
+   *
+   * ⚠ `top`, not the handoff's `bottom`. A sticky `bottom: 0` holds an
+   * element that would fall BELOW the scrollport, pinning it as you scroll
+   * down TOWARD it. This one renders BEFORE `.rn-options` (select-n.tsx:86),
+   * so it starts above the fold and leaves via the top — the bottom
+   * constraint never engages. Measured before changing it: the line moved
+   * 152px while the container scrolled 152px, exactly 1:1, i.e. the rule was
+   * inert and the count scrolled away like any other text.
+   *
+   * Gradient flipped to match: solid at the top fading down, so the options
+   * pass out of view underneath it rather than into view above it.
+   *
+   * ⓘ SATA has no count line at all — only SELECT_N renders `.rn-opt-count`
+   * (it is the type with a cap to report against). The handoff lists both. */
+  .rn-opt-count {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    margin: 0 -16px 8px;
+    padding: 8px 16px;
+    background: linear-gradient(180deg, var(--rn-shell-bg) 60%, rgba(244,246,248,0));
+  }
+
+  /* ── MATRIX / MATRIX_MR: one card per row ─────────────────────────────
+   * A matrix is a table, and a table with three columns of prose cannot be
+   * read at 390px — measured at 456px wide before this, and 629px for the
+   * multi-response variant. Each row becomes a card: the row's statement as
+   * a full-width sentence, then its options as full-width chips. */
+  .rn-matrix { padding: 0; border: none; background: transparent; gap: 10px; }
+  .rn-matrix-row.head { display: none; }      /* labels move into the cells */
+  .rn-matrix-row-block { padding: 11px 12px; border-radius: 8px; }
+  /* ⚠ !important is load-bearing: matrix.tsx sets grid-template-columns
+   * INLINE per question (the column count varies), and an inline style beats
+   * any stylesheet selector. Without it the row stays a grid. */
+  .rn-matrix-row:not(.head) {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .rn-matrix-row-label {
+    display: block;
+    padding: 0 0 2px;
+    background: transparent;
+    font-size: 14.5px;
+    line-height: 1.45;
+  }
+  .rn-matrix-cell {
+    justify-content: flex-start;
+    gap: 9px;
+    padding: 0 12px;
+    min-height: 44px;
+    border-radius: 7px;
+  }
+  /* Hidden ≥900px (base rule at the top of this file) — there the header
+   * row names each column once. */
+  .rn-matrix-cell-label {
+    display: inline;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .rn-matrix-cell.sel .rn-matrix-cell-label { color: var(--accent-dark); font-weight: 700; }
+  .rn-matrix-row-foot { padding: 8px 0 0; }
+
+  /* ── BOWTIE: stacked wings, condition first ───────────────────────────
+   * The desktop shape is three columns joined by drawn connectors. Stacked,
+   * the reading order becomes the clinical one — the condition first, then
+   * what led to it, then what you do about it. */
+  .rn-bt-shape {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: none;
+    padding: 0;
+  }
+  .rn-bt-shape-label.centre  { order: 1; text-align: left; }
+  .rn-bt-slot.centre         { order: 2; min-height: 52px; }
+  .rn-bt-shape-label.left    { order: 3; text-align: left; padding-top: 8px; }
+  .rn-bt-slot.left-top       { order: 4; }
+  .rn-bt-slot.left-bot       { order: 5; }
+  .rn-bt-shape-label.right   { order: 6; text-align: left; padding-top: 8px; }
+  .rn-bt-slot.right-top      { order: 7; }
+  .rn-bt-slot.right-bot      { order: 8; }
+  .rn-bt-slot {
+    min-height: 48px;
+    justify-content: flex-start;
+    text-align: left;
+    font-size: 13.5px;
+  }
+  /* The flare connectors point at columns that no longer exist. */
+  .rn-bt-slot.centre::before,
+  .rn-bt-slot.centre::after { display: none; }
+  .rn-bt-pool { grid-template-columns: 1fr; }
+  .rn-bt-pool-token { min-height: 44px; }
+
+  /* ── Tap targets on the remaining types ───────────────────────────── */
+  .rn-dd-token,
+  .rn-dd-slot-row { min-height: 44px; }
+  /* The inline drop boxes are DRAG_CLOZE's whole interaction and were the
+   * smallest target in the runner at 29px. They sit inline in 15.5px/1.95
+   * prose, so a mis-tap landed on the sentence rather than on nothing. */
+  .rn-dd-inline-box { min-height: 44px; padding: 8px 10px; }
+  /* 44px exactly: 15.5 × 1.85 = 28.7 line box + 2 × 7 padding + 2 × 1 border.
+   * HIGHLIGHT's deliberate no-affordance default is preserved — the chunk
+   * still looks like prose until you tap it. */
+  .rn-highlight-chunk { padding: 7px 6px; }
+  /* The one deliberate exception to the 44px floor. A native <select> is
+   * not a box you tap — iOS gives it its own hit slop and opens a
+   * full-width wheel picker, and forcing it to 44px would break the
+   * baseline of the sentence it sits inside. 36px is the tallest it can
+   * be and still read as a word in prose. */
+  .rn-cloze-select { min-height: 36px; max-width: 14ch; }
+
+  /* ── The grid: out of the rail, into the sheet ────────────────────────
+   * `.rn-grid` is a fixed 240px with flex-shrink:0, so leaving it in the
+   * body would hand a 390px phone roughly 150px of question column — the
+   * bug this whole layer exists to fix. It reappears inside the bottom
+   * sheet, reached from the footer button. */
+  .rn-body > .rn-grid,
+  .rn-grid-handle { display: none; }
+
+  .rn-sheet .rn-grid {
+    width: 100%;
+    border-left: none;
+    /* 6 columns at 46px. ⚠ runner-grid.tsx computes the case-band
+     * rectangles from the SAME three numbers (COMPACT_GEOM) — change one
+     * without the other and the bands sit behind the wrong cells, silently. */
+    --rn-cell: 46px;
+    --rn-cell-gap: 8px;
+  }
+  /* ⚠ Centre the BOX, not the tracks inside it.
+   *
+   * The handoff had `justify-content: center` here. That centres the six
+   * columns within a full-width grid — but the case bands are absolutely
+   * positioned siblings whose left/top come from runner-grid.tsx's own
+   * arithmetic, measured from this element's padding edge. The tracks move;
+   * the bands do not. Measured on the rendered page: cells started at x=23
+   * while band 1 sat at x=266 for a cell at x=293, so it covered no cells
+   * at all and the six-question case band pointed at five of the wrong ones.
+   *
+   * Shrinking to `max-content` and centring with auto margins keeps column 0
+   * at x=0 inside this box, which is the coordinate space the bands assume,
+   * and centres the whole grid in the sheet as intended. */
+  .rn-sheet .rn-cells {
+    grid-template-columns: repeat(6, var(--rn-cell));
+    width: max-content;
+    margin-inline: auto;
+  }
+  .rn-sheet .rn-cell { font-size: 13px; }
+  .rn-sheet .rn-grid-head { border-bottom: none; padding: 0 16px 12px; }
+  .rn-sheet .rn-grid-filters { overflow-x: auto; }
+  .rn-sheet .rn-grid-filter { min-height: 44px; padding: 0 13px; font-size: 12.5px; }
+  .rn-sheet .rn-grid-title-row { display: none; }   /* the sheet head says it */
+
+  /* ⚠ Since 2026-07-30 the colour key IS the outcome filter — every row is
+   * a real button with a count (runner-grid.tsx). So it cannot collapse to
+   * a wrapped one-line caption on a phone: you cannot shrink a control to a
+   * label. Two columns of 44px rows keeps the eight controls from pushing
+   * the cells off the sheet. */
+  .rn-sheet .rn-grid-legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 8px;
+    font-size: 12px;
+    padding: 12px 16px 8px;
+  }
+  .rn-sheet .rn-grid-legend-head { grid-column: 1 / -1; }
+  .rn-sheet .rn-grid-legend .row { min-height: 44px; }
+  .rn-sheet .rn-grid-legend .row.act { padding: 0 8px; margin: 0; }
+  .rn-sheet .rn-grid-legend .row.inert { padding: 0 8px; margin: 0; }
+
+  /* ── Case / trend: split becomes a stack, panel becomes a sheet ─────
+   * `.rn-split` needs 924px to lay out honestly, so on a phone it stacks
+   * and the panel itself moves into the chart sheet. */
+  .rn-split {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: none;
+  }
+  /* runner.tsx already renders the panel into the sheet instead of the
+   * split on compact, so this is a belt-and-braces rule — but a load-
+   * bearing one: useIsCompact() is false for the first paint (SSR-safe
+   * default), so without it a phone would flash the 924px panel before
+   * the effect flips. */
+  .rn-split > .rn-case,
+  .rn-split > .rn-trend { display: none; }
+  .rn-case-banner { margin-bottom: 12px; }
+
+  /* The stand-in that keeps the question anchored to its case. */
+  .rn-case-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 11px 12px;
+    border: 1px solid rgba(45, 125, 114, 0.30);
+    background: rgba(45, 125, 114, 0.06);
+    border-radius: 10px;
+  }
+  .rn-case-summary .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .rn-case-summary .eyebrow {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--accent-dark);
+  }
+  .rn-case-summary .count {
+    flex: none;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .rn-case-summary .title {
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1.45;
+    color: var(--text);
+  }
+  /* The one CJMM step this question tests, in words — see the dots below. */
+  .rn-case-summary .step { font-size: 12px; color: var(--text-muted); }
+  .rn-case-summary .actions { display: flex; align-items: center; gap: 8px; }
+  .rn-case-summary .open {
+    flex: 1;
+    min-height: 40px;
+    border: 1px solid var(--accent);
+    border-radius: 9px;
+    background: var(--white);
+    color: var(--accent-dark);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .rn-case-summary .tabs { flex: none; font-size: 11.5px; color: var(--text-muted); }
+
+  /* CJMM: six steps of clinical judgment do not fit as six words, so the
+   * strip becomes position-only dots and the current step is named once,
+   * in the summary card above. */
+  .rn-cjmm-strip {
+    gap: 5px;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+  }
+  .rn-cjmm-arrow { display: none; }
+  .rn-cjmm-step {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--border-strong);
+    text-indent: -9999px;
+    overflow: hidden;
+  }
+  .rn-cjmm-step.done { background: var(--accent); }
+  .rn-cjmm-step.current {
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45, 125, 114, 0.22);
+  }
+
+  /* The panel, inside the sheet: no card chrome, no height cap — the
+   * sheet supplies both. */
+  .rn-sheet .rn-case,
+  .rn-sheet .rn-trend {
+    position: static;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+  }
+
+  /* Wide chart/trend tables scroll sideways instead of crushing. */
+  .rn-case-body,
+  .rn-trend-body { -webkit-overflow-scrolling: touch; }
+  .rn-trend-table { min-width: 460px; }
+  .rn-table-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  /* ── Footer: back · primary · grid ────────────────────────────────── */
+  .rn-foot {
+    height: auto;
+    padding: 10px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    gap: 10px;
+  }
+  /* The mode brief is orientation copy, not per-tap copy — it reads in
+   * full in the session menu instead of being crushed between buttons. */
+  .rn-foot-msg { display: none; }
+  .rn-foot-side { min-width: 0; }
+  .rn-foot-side.right { flex: 1; }
+  .rn-foot .btn-ghost {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    font-size: 0;                  /* "← Previous" → "←" */
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--white);
+  }
+  .rn-foot .btn-ghost::before { content: '←'; font-size: 17px; }
+  .rn-foot .btn-accent {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+  /* Forward-only modes (live Sequential + CAT) have no Previous and no
+   * grid, so the primary takes the whole bar rather than sitting beside a
+   * dead 48px box (Sam, 2026-07-31). Compact only — desktop keeps the
+   * disabled button and its explaining tooltip. */
+  .rn-foot-fwd .btn-ghost { display: none; }
+
+  .rn-foot-grid {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--white);
+    color: var(--text);
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .rn-foot-grid .n { font-size: 9px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+}
+
+/* ── Bottom sheet — the one pattern, four uses ──────────────────────────
+ * grid · chart (case/trend) · calculator · session menu.
+ * (The handoff said five and listed `results` — settled 2026-08-01 as a
+ * centred modal instead, so it never became a sheet.)
+ * Outside the container query because the sheet is only ever rendered by
+ * the compact branch anyway. */
+.rn-sheet-scrim {
+  /* Absolute, not fixed: `.rn` is the full viewport in production, so the two
+   * are identical there — but absolute also keeps the sheet inside the shell
+   * when the runner is rendered in a frame (design review, tutorial sandbox). */
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: rgba(17, 24, 39, 0.42);
+  animation: rn-sheet-fade 160ms ease-out;
+}
+.rn-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  max-height: 85dvh;
+  background: var(--rn-pane-bg);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+  animation: rn-sheet-up 220ms cubic-bezier(.22,.9,.3,1);
+}
+.rn-sheet-grab {
+  flex-shrink: 0;
+  align-self: center;
+  width: 38px;
+  height: 4px;
+  margin: 9px 0 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+.rn-sheet-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 16px 12px;
+}
+.rn-sheet-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.rn-sheet-close {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+}
+.rn-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+}
+@keyframes rn-sheet-up   { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes rn-sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .rn-sheet, .rn-sheet-scrim { animation: none; }
+}
+
+/* ── Session menu (⋯) — everything the topbar dropped, with its words ── */
+.rn-menu-head { padding: 0 16px 12px; border-bottom: 1px solid var(--border); }
+.rn-menu-head .name { font-size: 14.5px; font-weight: 800; color: var(--primary); }
+.rn-menu-head .meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.rn-menu-brief {
+  margin-top: 9px;
+  padding: 9px 11px;
+  border-radius: 7px;
+  background: var(--bg);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.rn-menu-list { display: flex; flex-direction: column; padding: 6px 8px; }
+.rn-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rn-menu-item:active { background: var(--bg); }
+.rn-menu-item:disabled { opacity: 0.55; cursor: not-allowed; }
+/* Holds the topbar's own inline SVGs, not text — so it centres as a flex
+ * box rather than relying on text-align + a baseline. */
+.rn-menu-item .glyph {
+  flex: 0 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+.rn-menu-item .body { flex: 1; min-width: 0; }
+.rn-menu-item .label { font-size: 14.5px; font-weight: 600; color: var(--text); }
+/* The sentence a desktop tooltip used to carry. Touch has no hover. */
+.rn-menu-item .sub { display: block; margin-top: 1px; font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.rn-menu-item .state { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--text-faint); }
+.rn-menu-item.on .glyph,
+.rn-menu-item.on .state { color: var(--rn-mark-border); }
+.rn-menu-foot { padding: 8px 16px 0; border-top: 1px solid var(--border); margin-top: 4px; }
+.rn-menu-exit {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  color: #b91c1c;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── Calculator, docked (SLICE 6) ───────────────────────────────────────
+ * Same engine and markup; the sheet re-homes the panel and the keys grow
+ * to a thumb.
+ *
+ * ⚠ Scoped to `.rn-sheet`, not to the container query the handoff used.
+ * On compact runner.tsx renders the sheet INSTEAD of the floating panel
+ * (never both), so the only `.calc-panel` that can exist inside `.rn-sheet`
+ * is the docked one — and scoping this way leaves the widget's own phone
+ * rules (calculator.css, ≤768px) untouched for any other surface that
+ * mounts <Calculator> later. Specificity carries it: every selector here
+ * is one class deeper than the rule it overrides, so import order between
+ * runner-mobile.css and calculator.css does not matter.
+ *
+ * ⚠ The handoff's block re-homes the panel and grows the keys but leaves
+ * `.calc-head` standing — while the sheet already draws a head reading
+ * "Calculator" with its own ✕. Rendered, that is two identical titles and
+ * two close buttons stacked on top of each other. The sheet owns the
+ * frame, so the panel's own head goes.
+ */
+.rn-sheet .calc-panel {
+  position: static;
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  /* The drag handle is hidden below, so the panel must stop claiming touch
+   * gestures — `touch-action: none` exists to let the header own the drag,
+   * and left in place it would swallow a scroll started over the keys. */
+  touch-action: auto;
+}
+.rn-sheet .calc-head { display: none; }
+/* 52px keys: the 44px floor plus room, since this is a numeric pad used
+ * under time pressure and a mis-tap costs a re-entry, not just a re-tap. */
+.rn-sheet .calc-btn { min-height: 52px; font-size: 17px; border-radius: 10px; }
+/* The memory strip stays the shorter, quieter row it is on desktop — but
+ * not 30px, which is below anything a thumb can hit. */
+.rn-sheet .calc-mem-row .calc-btn { min-height: 40px; font-size: 13px; }

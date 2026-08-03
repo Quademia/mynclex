@@ -50,6 +50,27 @@ export interface CoachStep {
   gotoKey?: string;
   /** Ensure the question grid is open for this step. */
   grid?:    boolean;
+  /**
+   * PHONE ONLY (≤899px) — the sheet that must be open for this step's
+   * target to be on screen.
+   *
+   * The phone layout does not DELETE the controls this walkthrough teaches;
+   * it relocates them. Bookmark, calculator and hide-clock move into the ⋯
+   * session menu, the grid rail becomes a sheet off the footer, and the
+   * case/trend chart becomes a sheet behind the summary card. So a step
+   * that points at one of those has to open the right sheet first, the
+   * same way `grid: true` already opens the desktop rail.
+   *
+   * Absent → the coach CLOSES any sheet it opened, so one step's sheet can
+   * never sit over the next step's target.
+   */
+  phoneSheet?: 'menu' | 'grid' | 'chart';
+  /**
+   * PHONE ONLY — replacement body for a step whose desktop copy names
+   * something the phone layout does not show ("the button", "top-right").
+   * Absent → `body` is used at every width, which is the common case.
+   */
+  phoneBody?: string;
   /** Must-do before Next unlocks (Slice 2b). `flag` is satisfied while the
    *  CURRENT question is flagged — the student has to actually press it.
    *  Bookmark has no gate on purpose: see its step. */
@@ -67,14 +88,26 @@ export const COACH_STEPS: CoachStep[] = [
   { title: 'What you are sitting', body: 'The title line names the session and its mode, how many questions it holds, and — inside a case study — which case you are in and which clinical-judgment step the question belongs to.', target: 'title' },
   { title: 'Nothing here is recorded', body: 'This badge only appears in the tutorial. When it is gone, you are in a real attempt and your answers count.', target: 'tutpill' },
   { title: 'Where you are', body: 'The counter shows the current question and the total. In an adaptive (CAT) exam there is no total to show, so only the current question appears — the exam ends when it has enough evidence about you.', target: 'counter' },
-  { title: 'The clock', body: 'Untimed sittings count up; timed sittings count down and warn you at 30, 15, 5 and 1 minute. Use the button to hide the clock if it distracts you — once a warning fires, the clock locks visible.', target: 'clock' },
+  // ⚠ The clock PILL is on the phone topbar, but the eye button that hides
+  // it is not — that row lives in the ⋯ menu. Desktop copy says "use the
+  // button", which on a phone points at nothing.
+  { title: 'The clock', body: 'Untimed sittings count up; timed sittings count down and warn you at 30, 15, 5 and 1 minute. Use the button to hide the clock if it distracts you — once a warning fires, the clock locks visible.', phoneBody: 'Untimed sittings count up; timed sittings count down and warn you at 30, 15, 5 and 1 minute. To hide the clock, open the ⋯ menu at the top right and choose “Hide the clock” — once a warning fires, it locks visible.', target: 'clock' },
   // ⭐ TWO steps, not CD's one. The pair is the point: same corner of the
   // screen, similar-looking toggles, opposite lifetimes. Said plainly here
   // because nothing on screen distinguishes them except shape and colour.
   { title: 'Flag for review', body: 'Flag anything you want to come back to before you submit. Flagged questions get an amber border in the grid and can be filtered there, and flagging never changes your answer. A flag belongs to THIS sitting only — it is cleared when you finish, and it does not follow the question anywhere.', target: 'flag', gate: 'flag', gateMsg: 'Try it: flag this question.' },
-  { title: 'Bookmark for later', body: 'Bookmarking is the other one, and it is not the same thing. A bookmark saves the QUESTION to your study list and stays until you remove it — so when you meet that question again, weeks later, it is still bookmarked. You can then build a practice set from your bookmarks alone. Use flag for "come back in a minute", bookmark for "study this again".', target: 'bookmark' },
-  { title: 'The calculator', body: 'An on-screen calculator is available on every question, in every mode — the same tool you get in the real exam. Open and close it from here.', target: 'calc', gate: 'calc', gateMsg: 'Open the calculator to continue.' },
-  { title: 'The question grid', body: 'Every question in the sitting, colour-coded. Click any cell to jump to it — where the mode allows going back.', target: 'grid', grid: true },
+  // On a phone the topbar has room for five controls, so bookmark and the
+  // calculator move into the ⋯ menu. `phoneSheet` opens it, and the menu
+  // rows carry the SAME data-coach names as the topbar buttons — the coach
+  // anchors to whichever copy is actually visible.
+  { title: 'Bookmark for later', body: 'Bookmarking is the other one, and it is not the same thing. A bookmark saves the QUESTION to your study list and stays until you remove it — so when you meet that question again, weeks later, it is still bookmarked. You can then build a practice set from your bookmarks alone. Use flag for "come back in a minute", bookmark for "study this again".', phoneBody: 'Bookmarking is the other one, and it is not the same thing. On a phone it lives in the ⋯ menu, opened for you here. A bookmark saves the QUESTION to your study list and stays until you remove it — so when you meet that question again, weeks later, it is still bookmarked. Use flag for "come back in a minute", bookmark for "study this again".', target: 'bookmark', phoneSheet: 'menu' },
+  // ⚠ The calc GATE still works on a phone: tapping the menu row opens the
+  // calculator sheet (which closes the menu), and the gate reads calcOpen,
+  // not which layout it opened in.
+  { title: 'The calculator', body: 'An on-screen calculator is available on every question, in every mode — the same tool you get in the real exam. Open and close it from here.', phoneBody: 'An on-screen calculator is available on every question, in every mode — the same tool you get in the real exam. On a phone it opens from the ⋯ menu and slides up from the bottom.', target: 'calc', phoneSheet: 'menu', gate: 'calc', gateMsg: 'Open the calculator to continue.' },
+  // `grid: true` opens the DESKTOP rail; `phoneSheet: 'grid'` opens the
+  // sheet that replaces it. Both are set — one applies at each width.
+  { title: 'The question grid', body: 'Every question in the sitting, colour-coded. Click any cell to jump to it — where the mode allows going back.', phoneBody: 'Every question in the sitting, colour-coded. On a phone it opens from the grid button at the bottom right. Tap any cell to jump to it — where the mode allows going back.', target: 'grid', grid: true, phoneSheet: 'grid' },
   // Copy tracks the grid's real labels. Updated when "Marked" became
   // "Flagged" — the tutorial is public and on prod, so leaving it naming
   // a chip that no longer exists would be a live inaccuracy, not a
@@ -83,13 +116,13 @@ export const COACH_STEPS: CoachStep[] = [
   // filter (2026-07-31): the rail and the key stayed SEPARATE elements,
   // so neither target was orphaned. Only the copy moved — the rail lost
   // "Wrong" to the key below, where outcome belongs.
-  { title: 'Filtering the grid', body: 'Narrow the grid to what you still have to deal with: All, Flagged, and To do — the questions you have not answered, plus any you chose to skip.', target: 'gridfilters' },
+  { title: 'Filtering the grid', body: 'Narrow the grid to what you still have to deal with: All, Flagged, and To do — the questions you have not answered, plus any you chose to skip.', target: 'gridfilters', phoneSheet: 'grid' },
   // ⚠ This step TEACHES the colour key, so it is wrong the moment a fill
   // changes — not merely dated. Amber moved from Skipped to Partial
   // credit on 2026-07-30 when the grid gained a sixth fill; leaving the
   // old sentence would have had the public walkthrough naming a key the
   // grid no longer uses.
-  { title: 'Reading the colours', body: 'White is unanswered, blue is answered, green is fully correct, amber is partial credit, and dark red is wrong. A dashed grey cell was skipped. An orange border means flagged for review; a teal ring means you are here now. Tap any line to see only those questions — including “Dropped marks”, which shows everywhere you lost a mark, wrong and partial together.', target: 'legend' },
+  { title: 'Reading the colours', body: 'White is unanswered, blue is answered, green is fully correct, amber is partial credit, and dark red is wrong. A dashed grey cell was skipped. An orange border means flagged for review; a teal ring means you are here now. Tap any line to see only those questions — including “Dropped marks”, which shows everywhere you lost a mark, wrong and partial together.', target: 'legend', phoneSheet: 'grid' },
   { title: 'The footer', body: 'Previous on the left, the mode reminder in the middle, and the action button on the right. The action button is disabled until your answer is complete — hover it to see what is missing.', target: 'footer' },
 
   // ── Every question type ──────────────────────────────────────────
@@ -106,12 +139,16 @@ export const COACH_STEPS: CoachStep[] = [
   { title: 'Bow-tie', body: 'The hardest shape: one condition in the centre, the actions it demands on the left, the parameters you would monitor on the right. All five boxes must be filled. Each wing has its own token pool.', gotoKey: 'bowtie', target: 'answerarea', gate: 'submit', gateMsg: 'Fill all five boxes, then submit.' },
 
   // ── Case & trend ─────────────────────────────────────────────────
-  { title: 'Case studies', body: 'A case is six linked questions about one client. The chart stays beside the question the whole way through — this is the part of the exam most students meet cold.', gotoKey: 'case_recognise', target: 'casepanel' },
-  { title: 'The chart unfolds as you go', body: 'Tabs appear as the case progresses: later observations arrive at later questions. Move through the tabs freely — nothing is hidden from you that the case has already given.', target: 'casetabs' },
+  // ⚠ "Stays beside the question" is a DESKTOP sentence. On a phone there is
+  // no room for a second column, so the chart becomes a sheet behind a
+  // summary card in the question column (slice 4). Same content, different
+  // place — and the copy has to say the true one.
+  { title: 'Case studies', body: 'A case is six linked questions about one client. The chart stays beside the question the whole way through — this is the part of the exam most students meet cold.', phoneBody: 'A case is six linked questions about one client. On a phone the chart opens as a panel over the question — tap “View chart” on the case card any time, on every question of the case. This is the part of the exam most students meet cold.', gotoKey: 'case_recognise', target: 'casepanel', phoneSheet: 'chart' },
+  { title: 'The chart unfolds as you go', body: 'Tabs appear as the case progresses: later observations arrive at later questions. Move through the tabs freely — nothing is hidden from you that the case has already given.', target: 'casetabs', phoneSheet: 'chart' },
   { title: 'The six clinical-judgment steps', body: 'Each question maps to one step: recognise cues, analyse cues, prioritise hypotheses, generate solutions, take action, evaluate outcomes. The strip shows where you are in that reasoning chain.', target: 'cjmm', gate: 'submit', gateMsg: 'Answer this question and submit to move through the case.' },
   { title: 'Working the case', body: 'The rest of the case behaves exactly the same way. Answer this one and the tutorial will step you toward the last question of the case.', gotoKey: 'case_analyse', target: 'answerarea', gate: 'submit', gateMsg: 'Answer and submit to continue.' },
   { title: 'The end of a case', body: 'The final step asks whether what you did worked. The counter pill at the top of the chart tracks how many of the six you have answered.', gotoKey: 'case_evaluate', target: 'answerarea', gate: 'submit', gateMsg: 'Answer and submit to continue.' },
-  { title: 'Trend items', body: 'A trend gives you one dataset over time. Unlike a case there is no progressive disclosure — everything is visible from the start, and the answer lives in the direction of travel, not in any single value.', gotoKey: 'trend_neuro', target: 'trendpanel' },
+  { title: 'Trend items', body: 'A trend gives you one dataset over time. Unlike a case there is no progressive disclosure — everything is visible from the start, and the answer lives in the direction of travel, not in any single value.', phoneBody: 'A trend gives you one dataset over time, opened from the card above the question. Unlike a case there is no progressive disclosure — everything is there from the start, and the answer lives in the direction of travel, not in any single value. The table scrolls sideways rather than squeezing its columns.', gotoKey: 'trend_neuro', target: 'trendpanel', phoneSheet: 'chart' },
   { title: 'Reading a trend', body: 'Read across the row for change over time and down the column for the picture at one moment. Then answer.', target: 'answerarea', gate: 'submit', gateMsg: 'Answer and submit to continue.' },
 
   // ── Close ────────────────────────────────────────────────────────
@@ -174,3 +211,19 @@ export const COACH_RECAP: { k: string; v: string }[] = [
   { k: 'Trend items',   v: 'one dataset over time, fully visible from the start' },
   { k: 'Modes',         v: 'untimed learning, batched test, sequential and adaptive' },
 ];
+
+// ⚠ PHONE RECAP — the desktop "Topbar" line names NINE controls, and the
+// phone topbar shows five: exit, position, clock, flag, ⋯. Reciting the
+// desktop bar to someone holding a phone is not a stale string, it is a
+// wrong one, on a public page. Only the two lines that describe WHERE a
+// control lives differ; everything else is layout-independent, so the rest
+// is reused rather than duplicated (a second full copy is a second thing to
+// keep in step, which is how the first one went stale).
+const PHONE_RECAP_OVERRIDES: Record<string, string> = {
+  Topbar: 'exit, position, clock, flag, and ⋯ for everything else — bookmark, calculator and hide-clock live in that menu',
+  'Question grid': 'the grid button at the bottom right: jump, filter by flagged / unanswered / wrong, colour key',
+};
+
+export const COACH_RECAP_PHONE: { k: string; v: string }[] = COACH_RECAP.map(
+  (r) => (PHONE_RECAP_OVERRIDES[r.k] ? { k: r.k, v: PHONE_RECAP_OVERRIDES[r.k] } : r),
+);

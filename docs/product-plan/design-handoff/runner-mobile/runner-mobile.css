@@ -1,0 +1,672 @@
+/* mynclex/styles/runner-mobile.css
+ *
+ * Phone/tablet-portrait layer for the session runner. Import AFTER
+ * runner.css. Nothing here changes the desktop layout.
+ *
+ * WHY CONTAINER QUERIES, NOT @media
+ * ─────────────────────────────────
+ * Every rule below keys off the width of `.rn` itself rather than the
+ * viewport. In production `.rn` IS the viewport, so the two are the same
+ * thing — but it also means the whole mobile layout can be rendered inside
+ * a 390px frame (design review, the runner tutorial sandbox, screenshots)
+ * without lying about what students get. One source of truth, provable.
+ *
+ * THE BREAKPOINT — 899px
+ * ──────────────────────
+ * `.rn-split` (case + trend questions) needs minmax(380px,1fr) +
+ * minmax(520px,720px) + 24px gap = 924px before it can lay out honestly.
+ * Below that it overflows, so 899px is where the phone layout has to take
+ * over. Tablets in portrait get the phone layout rather than a broken
+ * desktop one.
+ *
+ * COMPONENT CHANGES THIS LAYER ASSUMES  (all additive, all no-ops ≥900px)
+ * ──────────────────────────────────────────────────────────────────────
+ *   runner-topbar.tsx   · wrap title + spacer + counter in `.rn-top-ident`
+ *                         (display:contents ≥900, so desktop is untouched)
+ *                       · exit label in `<span class="rn-top-exit-label">`
+ *                       · new `.rn-top-more` (⋯) button, always rendered
+ *   runner-footer.tsx   · new `.rn-foot-grid` button, always rendered
+ *   runner-grid.tsx     · CELL / GAP / COLS read from the compact flag so
+ *                         case-band geometry matches the 6×46 phone grid
+ *   matrix.tsx /        · each cell renders
+ *   matrix-mr.tsx         `<span class="rn-matrix-cell-label">{col.label}</span>`
+ *                         (hidden ≥900 — the header row names it there)
+ *   runner.tsx          · useIsCompact() decides three things only:
+ *                         grid → sheet, case/trend panel → sheet,
+ *                         bookmark/calc/grid buttons → ⋯ session menu
+ *   NEW runner-sheet.tsx, runner-session-menu.tsx, case-summary-card.tsx
+ */
+
+/* ── Base (≥900px): the new nodes are inert ─────────────────────────── */
+/* .rn-top-ident is a passthrough on desktop, so the topbar's flex row is
+ * byte-for-byte what it is today. */
+.rn-top-ident        { display: contents; }
+.rn-top-more,
+.rn-foot-grid,
+.rn-case-summary,
+.rn-matrix-cell-label { display: none; }
+
+/* ── Real viewport height + the container context ───────────────────── */
+/* WARNING — repo gap, not a mobile issue: runner.css uses var(--surface) on
+ * .rn-dd-slot-row, .rn-cloze-select and .rn-bt-slot.filled, but tokens.css
+ * never defines it — those surfaces render transparent today. Defined here
+ * so the phone layer is honest; the real fix belongs in tokens.css. */
+:root { --surface: var(--white); }
+
+.rn {
+  /* "size", not "inline-size": the landscape rules below query height. */
+  container-type: size;
+  container-name: rn;
+  position: relative;      /* containing block for the sheets */
+  /* 100vh is a lie on iOS Safari — the footer hides under the URL bar,
+   * which is exactly where Submit lives. */
+  height: 100dvh;
+}
+
+@container rn (max-width: 899px) {
+
+  /* ── Topbar: five controls ─────────────────────────────────────────
+   * exit · position stack · clock · flag · ⋯
+   * Bookmark, calculator and grid move to the session menu; the mode
+   * meta line moves under the counter. */
+  .rn-top {
+    height: 52px;
+    padding: 0 8px 0 4px;
+    gap: 6px;
+    padding-top: env(safe-area-inset-top);
+    height: calc(52px + env(safe-area-inset-top));
+  }
+  .rn-top-divider { display: none; }
+
+  .rn-top-ident {
+    display: flex;
+    flex-direction: column-reverse;   /* counter above, meta below */
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+  }
+  .rn-top-spacer { display: none; }
+
+  .rn-top-title { display: block; min-width: 0; max-width: 100%; }
+  .rn-top-title .name { display: none; }      /* lives in the ⋯ sheet */
+  .rn-top-title .meta {
+    font-size: 10.5px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .rn-counter { font-size: 14px; gap: 3px; }
+  .rn-counter strong { font-size: 14px; font-weight: 800; }
+
+  .rn-top-exit {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    font-size: 18px;
+  }
+  .rn-top-exit-label { display: none; }
+
+  /* Icon buttons: 40px targets, no labels, no hover-only meaning. */
+  .rn-flag-btn,
+  .rn-top-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+    border-radius: 9px;
+  }
+  .rn-flag-btn-label { display: none; }
+
+  /* Moved into the session menu, where they get words back. */
+  .rn-bookmark-btn,
+  .rn-calc-btn,
+  .rn-grid-toggle-btn { display: none; }
+
+  .rn-clock-eye { display: none; }            /* → session menu */
+  .rn-clock-pill { padding: 5px 10px; }
+
+  /* ── Scroll region ────────────────────────────────────────────────── */
+  .rn-main-scroll {
+    padding: 14px 16px 16px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .rn-q-wrap { max-width: none; }
+  .rn-stem { font-size: 15.5px; margin-bottom: 14px; }
+
+  /* ── Answers: full width, real tap targets ────────────────────────── */
+  .rn-options,
+  .rn-opt-count,
+  .rn-matrix {
+    margin-left: 0;
+    max-width: none;
+  }
+  .rn-opt {
+    min-height: 48px;
+    padding: 12px 13px;
+    gap: 10px;
+    font-size: 14.5px;
+  }
+  .rn-opt-verdict { align-self: flex-start; }
+
+  /* SELECT_N / SATA count line sticks to the bottom of the scroll area so
+   * it survives a list longer than the screen. */
+  .rn-opt-count {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    margin: 0 -16px 8px;
+    padding: 8px 16px;
+    background: linear-gradient(180deg, rgba(244,246,248,0), var(--rn-shell-bg) 40%);
+  }
+
+  /* ── MATRIX / MATRIX_MR: one card per row ─────────────────────────── */
+  .rn-matrix { padding: 0; border: none; background: transparent; gap: 10px; }
+  .rn-matrix-row.head { display: none; }      /* labels move into the cells */
+  .rn-matrix-row-block { padding: 11px 12px; border-radius: 8px; }
+  /* The per-question column template is set inline by the runner, so it
+   * needs !important to be replaced by the stack. */
+  .rn-matrix-row:not(.head) {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .rn-matrix-row-label {
+    display: block;
+    padding: 0 0 2px;
+    background: transparent;
+    font-size: 14.5px;
+    line-height: 1.45;
+  }
+  .rn-matrix-cell {
+    justify-content: flex-start;
+    gap: 9px;
+    padding: 0 12px;
+    min-height: 44px;
+    border-radius: 7px;
+  }
+  .rn-matrix-cell-label {
+    display: inline;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .rn-matrix-cell.sel .rn-matrix-cell-label { color: var(--accent-dark); font-weight: 700; }
+  .rn-matrix-row-foot { padding: 8px 0 0; }
+
+  /* ── BOWTIE: stacked wings, condition first ───────────────────────── */
+  .rn-bt-shape {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: none;
+    padding: 0;
+  }
+  .rn-bt-shape-label.centre  { order: 1; text-align: left; }
+  .rn-bt-slot.centre         { order: 2; min-height: 52px; }
+  .rn-bt-shape-label.left    { order: 3; text-align: left; padding-top: 8px; }
+  .rn-bt-slot.left-top       { order: 4; }
+  .rn-bt-slot.left-bot       { order: 5; }
+  .rn-bt-shape-label.right   { order: 6; text-align: left; padding-top: 8px; }
+  .rn-bt-slot.right-top      { order: 7; }
+  .rn-bt-slot.right-bot      { order: 8; }
+  .rn-bt-slot {
+    min-height: 48px;
+    justify-content: flex-start;
+    text-align: left;
+    font-size: 13.5px;
+  }
+  /* The flare connectors point at columns that no longer exist. */
+  .rn-bt-slot.centre::before,
+  .rn-bt-slot.centre::after { display: none; }
+  .rn-bt-pool { grid-template-columns: 1fr; }
+  .rn-bt-pool-token { min-height: 44px; }
+
+  /* ── Tap targets on the remaining types ───────────────────────────── */
+  .rn-dd-token,
+  .rn-dd-slot-row { min-height: 44px; }
+  /* The inline drop boxes are DRAG_CLOZE's whole interaction and the
+   * smallest target in the runner at 29px. They sit inline in 15.5px/1.95
+   * prose, so a mis-tap lands on the sentence rather than on nothing. */
+  .rn-dd-inline-box { min-height: 44px; padding: 8px 10px; }
+  /* 44px exactly: 15.5 x 1.85 = 28.7 line box + 2 x 7 padding + 2 x 1 border. */
+  .rn-highlight-chunk { padding: 7px 6px; }
+  /* The one deliberate exception to the 44px floor. A native <select> is
+   * not a box you tap — iOS gives it its own hit slop and opens a
+   * full-width wheel picker, and forcing it to 44px would break the
+   * baseline of the sentence it sits inside. 36px is the tallest it can
+   * be and still read as a word in prose. */
+  .rn-cloze-select { min-height: 36px; max-width: 14ch; }
+
+  /* ── Case / trend: split becomes a stack, panel becomes a sheet ───── */
+  .rn-split {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: none;
+  }
+  /* The full panel only ever renders inside the chart sheet on compact —
+   * the summary card stands in for it in the flow. */
+  .rn-split > .rn-case,
+  .rn-split > .rn-trend { display: none; }
+  .rn-case-banner { margin-bottom: 12px; }
+
+  /* Persistent case/trend header in the question column. */
+  .rn-case-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 11px 12px;
+    border: 1px solid rgba(45, 125, 114, 0.30);
+    background: rgba(45, 125, 114, 0.06);
+    border-radius: 10px;
+  }
+  .rn-case-summary .title {
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1.45;
+    color: var(--text);
+  }
+  .rn-case-summary .actions { display: flex; align-items: center; gap: 8px; }
+  .rn-case-summary .open {
+    flex: 1;
+    min-height: 40px;
+    border: 1px solid var(--accent);
+    border-radius: 9px;
+    background: var(--white);
+    color: var(--accent-dark);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* CJMM: six steps of clinical judgment do not fit as six words. */
+  .rn-cjmm-strip {
+    gap: 5px;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+  }
+  .rn-cjmm-arrow { display: none; }
+  .rn-cjmm-step {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--border-strong);
+    text-indent: -9999px;
+    overflow: hidden;
+  }
+  .rn-cjmm-step.done { background: var(--accent); }
+  .rn-cjmm-step.current {
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45, 125, 114, 0.22);
+  }
+
+  /* Wide chart/trend tables scroll sideways instead of crushing. */
+  .rn-case-body,
+  .rn-trend-body { -webkit-overflow-scrolling: touch; }
+  .rn-trend-table { min-width: 460px; }
+  .rn-table-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  /* ── Footer: back · primary · grid ────────────────────────────────── */
+  .rn-foot {
+    height: auto;
+    padding: 10px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    gap: 10px;
+  }
+  /* The mode brief is orientation copy, not per-tap copy — it reads in
+   * full in the session menu instead of being crushed between buttons. */
+  .rn-foot-msg { display: none; }
+  .rn-foot-side { min-width: 0; }
+  .rn-foot-side.right { flex: 1; }
+  .rn-foot .btn-ghost {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    font-size: 0;                  /* "← Previous" → "←" */
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--white);
+  }
+  .rn-foot .btn-ghost::before { content: '←'; font-size: 17px; }
+  .rn-foot .btn-accent {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+  .rn-foot-grid {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--white);
+    color: var(--text);
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .rn-foot-grid .n { font-size: 9px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+  /* ── The grid, inside the sheet ───────────────────────────────────── */
+  .rn-body > .rn-grid,
+  .rn-grid-handle { display: none; }
+  .rn-sheet .rn-grid {
+    width: 100%;
+    border-left: none;
+    /* 6 columns at 46px — see runner-grid.tsx CELL/GAP/COLS note above. */
+    --rn-cell: 46px;
+    --rn-cell-gap: 8px;
+  }
+  .rn-sheet .rn-cells { grid-template-columns: repeat(6, var(--rn-cell)); justify-content: center; }
+  .rn-sheet .rn-cell { font-size: 13px; }
+  .rn-sheet .rn-grid-head { border-bottom: none; padding: 0 16px 12px; }
+  .rn-sheet .rn-grid-filters { overflow-x: auto; }
+  .rn-sheet .rn-grid-filter { min-height: 44px; padding: 0 13px; font-size: 12.5px; }
+  .rn-sheet .rn-grid-title-row { display: none; }   /* the sheet head says it */
+  /* ⚠ Since 2026-07-31 the colour key IS the outcome filter — every row is a
+   * button (runner-grid.tsx). So it cannot be squeezed into a wrapped one-line
+   * legend on phone: each row needs a 44px target. Two columns keeps the
+   * seven rows from pushing the cells off the sheet. */
+  .rn-sheet .rn-grid-legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 8px;
+    font-size: 12px;
+    padding: 12px 16px 8px;
+  }
+  .rn-sheet .rn-grid-legend-head { grid-column: 1 / -1; }
+  .rn-sheet .rn-grid-legend .row { min-height: 44px; }
+  .rn-sheet .rn-grid-legend .row.act { padding: 0 8px; margin: 0; }
+  .rn-sheet .rn-grid-legend .row.inert { padding: 0 8px; margin: 0; }
+  .rn-sheet .rn-case,
+  .rn-sheet .rn-trend {
+    position: static;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+  }
+}
+
+/* ── Bottom sheet — the one pattern, five uses ──────────────────────────
+ * grid · chart (case/trend) · calculator · session menu · results.
+ * Outside the container query because the sheet is portalled to the shell
+ * root and is only ever rendered by the compact branch anyway. */
+.rn-sheet-scrim {
+  /* Absolute, not fixed: `.rn` is the full viewport in production, so the two
+   * are identical there — but absolute also keeps the sheet inside the shell
+   * when the runner is rendered in a frame (design review, tutorial sandbox). */
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: rgba(17, 24, 39, 0.42);
+  animation: rn-sheet-fade 160ms ease-out;
+}
+.rn-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  max-height: 85dvh;
+  background: var(--rn-pane-bg);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+  animation: rn-sheet-up 220ms cubic-bezier(.22,.9,.3,1);
+}
+.rn-sheet-grab {
+  flex-shrink: 0;
+  align-self: center;
+  width: 38px;
+  height: 4px;
+  margin: 9px 0 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+.rn-sheet-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 16px 12px;
+}
+.rn-sheet-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.rn-sheet-close {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+}
+.rn-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+}
+@keyframes rn-sheet-up   { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes rn-sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .rn-sheet, .rn-sheet-scrim { animation: none; }
+}
+
+/* ── Session menu (⋯) — everything the topbar dropped, with its words ── */
+.rn-menu-head { padding: 0 16px 12px; border-bottom: 1px solid var(--border); }
+.rn-menu-head .name { font-size: 14.5px; font-weight: 800; color: var(--primary); }
+.rn-menu-head .meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.rn-menu-brief {
+  margin-top: 9px;
+  padding: 9px 11px;
+  border-radius: 7px;
+  background: var(--bg);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.rn-menu-list { display: flex; flex-direction: column; padding: 6px 8px; }
+.rn-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rn-menu-item:active { background: var(--bg); }
+.rn-menu-item .glyph { flex: 0 0 22px; text-align: center; font-size: 15px; color: var(--text-muted); }
+.rn-menu-item .body { flex: 1; min-width: 0; }
+.rn-menu-item .label { font-size: 14.5px; font-weight: 600; color: var(--text); }
+/* The sentence a desktop tooltip used to carry. Touch has no hover. */
+.rn-menu-item .sub { display: block; margin-top: 1px; font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.rn-menu-item .state { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--text-faint); }
+.rn-menu-item.on .glyph,
+.rn-menu-item.on .state { color: var(--rn-mark-border); }
+.rn-menu-foot { padding: 8px 16px 0; border-top: 1px solid var(--border); margin-top: 4px; }
+.rn-menu-exit {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  color: #b91c1c;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── Calculator, docked ────────────────────────────────────────────────
+ * Same engine and markup; the sheet re-homes the panel and the keys grow
+ * to a thumb. */
+@container rn (max-width: 899px) {
+  .calc-panel {
+    position: static;
+    width: 100%;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  .calc-btn { min-height: 52px; font-size: 17px; border-radius: 10px; }
+  .calc-mem-row .calc-btn { min-height: 40px; }
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+ *  LANDSCAPE PHONE — max-height 520px
+ *
+ *  Why not just scale the desktop layout down? The split needs 924 CSS px
+ *  inside 844, i.e. zoom around 0.62 — body copy drops from 15.5px to 9.6px
+ *  and the student’s own iOS text-size setting stops meaning anything.
+ *  Height is the harder limit anyway: a landscape phone has 390px of it,
+ *  and the current chrome eats 120.
+ *
+ *  So landscape keeps the compact layout and spends the WIDTH instead:
+ *  thinner chrome, side drawers instead of bottom sheets, and the case /
+ *  trend split restored with lower floors once there is room for it.
+ * ───────────────────────────────────────────────────────────────────── */
+@container rn (max-height: 520px) {
+  .rn-top { height: 44px; padding-top: 0; }
+  /* Vertical space is the scarce resource — the meta line goes first,
+   * because the session menu says all of it in full sentences. */
+  .rn-top-title { display: none; }
+  .rn-top-ident { flex-direction: row; align-items: center; }
+  .rn-clock-pill { padding: 4px 9px; }
+  .rn-flag-btn, .rn-top-more, .rn-top-exit { width: 36px; height: 36px; }
+
+  .rn-main-scroll { padding: 10px 16px 12px; }
+  .rn-q-meta { margin-bottom: 8px; }
+  .rn-stem { margin-bottom: 10px; }
+
+  .rn-foot { padding: 8px 12px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  /* A 700px-wide Submit button is not a better Submit button. */
+  .rn-foot-side.right { display: flex; justify-content: center; }
+  .rn-foot .btn-accent { min-height: 42px; max-width: 420px; }
+  .rn-foot .btn-ghost, .rn-foot-grid { width: 42px; height: 42px; }
+
+  /* A bottom sheet in 390px of height is a joke — it becomes a right-edge
+   * drawer, which is also where the thumb already is in landscape. */
+  .rn-sheet {
+    top: 0;
+    left: auto;
+    right: 0;
+    width: min(440px, 62%);
+    max-height: none;
+    height: 100%;
+    border-radius: 20px 0 0 20px;
+    box-shadow: -8px 0 32px rgba(15, 23, 42, 0.18);
+    animation: rn-drawer-in 220ms cubic-bezier(.22,.9,.3,1);
+    padding-right: env(safe-area-inset-right);
+  }
+  .rn-sheet-grab {
+    position: absolute;
+    left: 7px;
+    top: 50%;
+    width: 4px;
+    height: 38px;
+    margin: 0;
+    transform: translateY(-50%);
+  }
+  .rn-sheet-head { padding: 12px 16px 10px 20px; }
+  /* The drawer is ~440px wide, so 6 columns of 46 is the honest fit — 8
+   * overflowed and put a horizontal scrollbar under the cells. */
+  .rn-sheet .rn-cells { grid-template-columns: repeat(6, var(--rn-cell)); }
+  .rn-sheet .rn-grid-legend { grid-template-columns: 1fr 1fr; }
+}
+@keyframes rn-drawer-in { from { transform: translateX(100%); } to { transform: none; } }
+
+/* Wide landscape (any phone turned sideways is at least 667px): the chart
+ * earns its place beside the question again, at floors a phone can hold. */
+@container rn (max-height: 520px) and (min-width: 700px) {
+  .rn-split {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(340px, 1.15fr);
+    gap: 14px;
+    align-items: start;
+  }
+  .rn-split > .rn-case,
+  .rn-split > .rn-trend {
+    display: flex;
+    max-height: calc(100cqh - 44px - 58px - 24px);
+    border-radius: 10px;
+  }
+  /* The summary card stands in for a panel that is now on screen. */
+  .rn-case-summary { display: none; }
+
+  /* Width is the resource landscape HAS. Two layouts that cost a lot of
+   * height in portrait get their desktop shape back here. */
+  .rn-matrix { border: 2px solid var(--border-strong); background: var(--white); padding: 10px; }
+  .rn-matrix-row.head { display: grid; }
+  .rn-matrix-row:not(.head) { display: grid !important; }
+  .rn-matrix-row-label { display: flex; padding: 10px 12px; background: var(--bg); }
+  .rn-matrix-cell { justify-content: center; padding: 0; }
+  .rn-matrix-cell-label { display: none; }
+
+  .rn-bt-shape {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    gap: 4px 14px;
+    max-width: 640px;
+    margin: 0 auto 12px;
+    padding: 8px 4px;
+  }
+  .rn-bt-shape-label.left,
+  .rn-bt-shape-label.centre,
+  .rn-bt-shape-label.right { text-align: center; padding-top: 0; }
+  .rn-bt-slot { justify-content: center; text-align: center; }
+  .rn-bt-slot.centre::before,
+  .rn-bt-slot.centre::after { display: block; }
+  .rn-bt-pool { grid-template-columns: 1fr 1fr 1fr; }
+}

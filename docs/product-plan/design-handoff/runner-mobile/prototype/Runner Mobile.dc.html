@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<style>
+  body { margin: 0; background: #eef1f4; -webkit-font-smoothing: antialiased; }
+  a { color: #1f5a52; }
+  a:hover { color: #2d7d72; }
+</style>
+</helmet>
+
+<section style="display:flex;flex-direction:column;gap:44px;padding:56px 56px 96px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1f2937">
+
+  <div id="1a" style="display:flex;flex-direction:column;gap:44px">
+
+    <div style="display:flex;align-items:flex-start;gap:16px;max-width:960px">
+      <span style="flex:0 0 auto;margin-top:6px;font-size:11px;font-weight:800;letter-spacing:.08em;padding:4px 10px;border-radius:999px;background:#1f5a52;color:#fff">1A</span>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#2d7d72">Session runner · /session/[attempt_id]</div>
+        <h1 style="margin:0;font-size:38px;line-height:1.15;font-weight:800;letter-spacing:-.02em">Making the runner work on a phone</h1>
+        <p style="margin:0;font-size:15px;line-height:1.65;color:#4b5563;text-wrap:pretty">The runner is a three-region desktop shell — 56px topbar with nine controls, a fluid question column, a fixed 240px grid rail — plus a 924px-minimum split layout for case and trend questions. Below ~950px it stops working; below 420px several regions are unusable. Everything below is grounded in <code style="font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#fff;border:1px solid #e5e7eb;border-radius:4px;padding:1px 5px">styles/runner.css</code>, the four <code style="font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#fff;border:1px solid #e5e7eb;border-radius:4px;padding:1px 5px">runner-*.tsx</code> files and the eleven per-type runners.</p>
+      </div>
+    </div>
+
+    <!-- ─────────────── PART 1 · AUDIT ─────────────── -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;align-items:baseline;gap:12px">
+        <h2 style="margin:0;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#374151">Part 1 — What actually breaks</h2>
+        <div style="flex:1;height:1px;background:#d6dae0"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;max-width:1500px">
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #b91c1c;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#b91c1c">BLOCKER</span><span style="font-size:13.5px;font-weight:700">Case &amp; trend split never fits</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:#6b7280">.rn-split { grid-template-columns:<br>&nbsp;&nbsp;minmax(380px,1fr) minmax(520px,720px) }</div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">380 + 520 + 24 gap = <strong>924px minimum</strong>. On a 390px screen the chart panel and the question both overflow horizontally. Case questions are 6 in a row — a student can lose a whole case block.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #b91c1c;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#b91c1c">BLOCKER</span><span style="font-size:13.5px;font-weight:700">Grid rail eats 62% of the screen</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:#6b7280">.rn-grid { width: 240px; flex-shrink: 0 }<br>.rn-body { display: flex }</div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">240 of 390px, leaving 150px for the question. The collapsed handle is 32px and still steals width. The code already flags it: <em>“Mobile bottom-sheet variant (covered with the mobile slice)”</em>.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #b91c1c;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#b91c1c">BLOCKER</span><span style="font-size:13.5px;font-weight:700">Nine controls in one 56px row</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:#6b7280">Exit · divider · title+meta · counter ·<br>clock+eye · flag · bookmark · calc · grid</div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">The existing phone rules only strip the text labels. Four icon buttons + a clock pill + a counter + a 320px title still need ~430px. The title/meta line (mode · length · case · CJMM step) has nowhere to go.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #d97706;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#b45309">SEVERE</span><span style="font-size:13.5px;font-weight:700">MATRIX collapses</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:#6b7280">.rn-matrix { margin-left: 32px }<br>row template set inline, N columns</div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">390 − 32 indent − 20 padding − border = 336px for a row label plus 3–4 option columns ≈ 70px each. Row labels are full clinical sentences. Unreadable, and the 44px cells become the only thing that still fits.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #d97706;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#b45309">SEVERE</span><span style="font-size:13.5px;font-weight:700">BOWTIE keeps its 3-column shape</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:#6b7280">.rn-bt-shape { grid-template-columns:<br>&nbsp;&nbsp;1fr 1.3fr 1fr; max-width: 600px }</div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">Only the pool below collapses (@720). The shape itself gives each slot ~105px for a clinical phrase, at 12px italic. The pseudo-element connectors also overhang their column.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #d97706;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#b45309">SEVERE</span><span style="font-size:13.5px;font-weight:700">Options are indented and capped</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:#6b7280">.rn-options, .rn-opt-count, .rn-matrix<br>{ margin-left: 32px; max-width: 460px }</div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">The academic indent costs 8% of a phone screen for no reading benefit, and the 460px cap is wider than the viewport anyway. Option rows land at ~38px tall — under the 44px target.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #d97706;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#b45309">SEVERE</span><span style="font-size:13.5px;font-weight:700">100vh + no safe areas</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:#6b7280">.rn { height: 100vh }<br>.rn-case/.rn-trend { max-height: calc(100vh …) }</div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">On iOS Safari the footer sits under the URL bar until the student scrolls, so <em>Submit</em> is hidden at the moment it matters. The home indicator overlaps it on gesture devices.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #6b7280;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#6b7280">FRICTION</span><span style="font-size:13.5px;font-weight:700">Footer status line</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:#6b7280">“Untimed Learning · pick an option, Submit<br>to see the rationale, then Next →”</div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">A 70–100 character sentence between two buttons in a 64px bar (review’s line reads “tap a colour to filter, or step through in order”). On a phone it wraps to three lines or crushes the primary button. It is orientation copy, not per-tap copy.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #6b7280;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#6b7280">FRICTION</span><span style="font-size:13.5px;font-weight:700">Meaning lives in hover</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:#6b7280">@media (max-width:480px) { .rn-flag-btn-label,<br>.rn-bookmark-btn-label { display:none } }</div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">Flag and bookmark become two similar 14px glyphs with no words and <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">title=</code> tooltips a touch device never shows — exactly the pair the code says must never be confused.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #6b7280;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#6b7280">FRICTION</span><span style="font-size:13.5px;font-weight:700">Calculator anchors to the topbar</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:#6b7280">.calc-panel { right:12px; top:68px;<br>width: min(264px, 100vw − 24px) }</div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">It fits, but it floats over the question at the top of the screen, away from the thumb, and its keys stay desktop-sized. A dosage calculation needs the pad and the stem visible together.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #6b7280;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#6b7280">FRICTION</span><span style="font-size:13.5px;font-weight:700">Trend tables overflow silently</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:#6b7280">.rn-trend-table { width: 100% }<br>td.refrange { white-space: nowrap }</div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">Metric + 3–4 timepoints + a nowrap reference range needs ~520px. Inside a phone-width panel the columns crush or the panel scrolls with no affordance saying it can.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #6b7280;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#6b7280">FRICTION</span><span style="font-size:13.5px;font-weight:700">The colour key is now a filter</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:#6b7280">runner-grid.tsx, 2026-07-31<br>.rn-grid-legend .row.act[aria-pressed]</div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">Since the rebuild, the rail is three progress buttons (All / Flagged / To&nbsp;do) and every legend row is a real filter button, including a two-swatch “Dropped marks”. Eight 44px controls plus the cells no longer fit one phone-height sheet as a single column — the key goes to two columns, and the old plan of collapsing it into a wrapped one-line legend is dead: you cannot shrink a control to a caption.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e5e7eb;border-left:3px solid #16a34a;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:800;letter-spacing:.06em;color:#15803d">ALREADY FINE</span><span style="font-size:13.5px;font-weight:700">Every interaction is a tap</span></div>
+          <div style="font-size:13px;line-height:1.6;color:#4b5563">DRAG_CLOZE, DRAG_ORDER and BOWTIE are tap-to-arm / tap-to-place (<code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">onClick</code> only — no HTML5 drag, no pointer events). CLOZE uses native <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">&lt;select&gt;</code>. HIGHLIGHT chunks are inline buttons. <strong>No interaction model has to be rebuilt — this is a layout and chrome problem.</strong></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─────────────── PART 2 · THE SYSTEM ─────────────── -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;align-items:baseline;gap:12px">
+        <h2 style="margin:0;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#374151">Part 2 — The system</h2>
+        <div style="flex:1;height:1px;background:#d6dae0"></div>
+      </div>
+      <p style="margin:0;max-width:760px;font-size:14.5px;line-height:1.7;color:#4b5563;text-wrap:pretty">One rule underneath all of it: <strong>the question column is the phone screen. Everything else becomes a sheet you pull up and dismiss.</strong> Nothing is deleted, nothing moves to a second page, and the desktop layout is untouched above 900px.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;max-width:1500px">
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:24px;height:24px;border-radius:6px;background:#e8f2f0;color:#1f5a52;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">1</span><span style="font-size:14px;font-weight:700">Two bars, five controls</span></div>
+          <div style="font-size:13px;line-height:1.65;color:#4b5563">Top bar carries identity and state — exit, position, clock, flag, overflow. Bottom bar carries movement — back, the primary action, grid. Nine controls become five plus a sheet, and the two thumb-frequent ones (primary, grid) move to the bottom.</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:24px;height:24px;border-radius:6px;background:#e8f2f0;color:#1f5a52;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">2</span><span style="font-size:14px;font-weight:700">One sheet pattern, five uses</span></div>
+          <div style="font-size:13px;line-height:1.65;color:#4b5563">Grid, chart (case/trend), calculator, session menu and results all use the same bottom sheet: grab handle, title row, scrollable body, max 85dvh, scrim dismiss. Learn it once on question 1, reuse it for the rest of the sitting.</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:24px;height:24px;border-radius:6px;background:#e8f2f0;color:#1f5a52;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">3</span><span style="font-size:14px;font-weight:700">Split → stack, panel → drawer</span></div>
+          <div style="font-size:13px;line-height:1.65;color:#4b5563"><code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">.rn-split</code> becomes one column. The case/trend panel keeps a persistent 2-line summary card at the top of the question (title + the reason it matters) with <em>View chart</em>; the full chart is a sheet with the tabs intact. The CJMM strip becomes a 6-dot progress row.</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:24px;height:24px;border-radius:6px;background:#e8f2f0;color:#1f5a52;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">4</span><span style="font-size:14px;font-weight:700">Every answer becomes a full-width row</span></div>
+          <div style="font-size:13px;line-height:1.65;color:#4b5563">Drop the 32px indent and the 460px cap under 900px. MCQ / SATA / SELECT_N rows go to 48px minimum. MATRIX becomes one card per row with full-width choice chips. BOWTIE stacks vertically down the wings. The three-channel colour encoding is unchanged.</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:24px;height:24px;border-radius:6px;background:#e8f2f0;color:#1f5a52;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">5</span><span style="font-size:14px;font-weight:700">Words, not tooltips</span></div>
+          <div style="font-size:13px;line-height:1.65;color:#4b5563">Anything whose meaning lived in a <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">title=</code> attribute gets a visible word in the sheet: <em>Flag for review</em>, <em>Bookmark for later study</em>, the mode brief, the grid legend, the disabled-Previous reason. Touch has no hover.</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:24px;height:24px;border-radius:6px;background:#e8f2f0;color:#1f5a52;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">6</span><span style="font-size:14px;font-weight:700">Real viewport units</span></div>
+          <div style="font-size:13px;line-height:1.65;color:#4b5563"><code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">100dvh</code> on the shell, <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">env(safe-area-inset-*)</code> on both bars and every sheet, <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">overscroll-behavior:contain</code> on the scroll region. The Submit button is never under the URL bar or the home indicator.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────── PART 3 · SCREENS ─────────────── -->
+    <div style="display:flex;flex-direction:column;gap:22px">
+      <div style="display:flex;align-items:baseline;gap:12px">
+        <h2 style="margin:0;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#374151">Part 3 — The screens at 390 × 812</h2>
+        <div style="flex:1;height:1px;background:#d6dae0"></div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:36px">
+
+        <!-- 1 · MCQ -->
+        <div style="display:flex;flex-direction:column;gap:10px;width:390px">
+          <div style="display:flex;flex-direction:column;gap:3px"><div style="font-size:13px;font-weight:700">1 · Answering — MCQ</div><div style="font-size:12px;line-height:1.5;color:#6b7280">Two bars, five controls. Options full width, 48px rows.</div></div>
+          <div style="width:390px;height:812px;border-radius:30px;background:#f4f6f8;border:1px solid #dde1e6;box-shadow:0 18px 44px rgba(15,23,42,.14);overflow:hidden;display:flex;flex-direction:column;position:relative">
+            <div style="height:24px;flex-shrink:0;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:10px;font-weight:700;color:#9ca3af"><span>9:41</span><span style="letter-spacing:.06em">5G ▮▮</span></div>
+            <div style="height:52px;flex-shrink:0;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;padding:0 8px 0 6px">
+              <button style="width:40px;height:40px;border:none;background:transparent;color:#6b7280;font-size:19px;line-height:1;border-radius:8px;cursor:pointer">✕</button>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                <div style="font-size:14px;font-weight:800;letter-spacing:-.01em;color:#1f2937">Q 12 <span style="color:#9ca3af;font-weight:600">/ 75</span></div>
+                <div style="font-size:10.5px;font-weight:600;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Study · Untimed Learning</div>
+              </div>
+              <div style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#f4f6f8;border:1px solid #e5e7eb;font-size:12px;font-weight:700;color:#4b5563;font-variant-numeric:tabular-nums">14:32</div>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:15px;cursor:pointer">⚑</button>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:17px;font-weight:800;letter-spacing:1px;cursor:pointer">⋯</button>
+            </div>
+            <div style="flex:1;min-height:0;overflow:hidden;padding:14px 16px 4px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <span style="font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f4f6f8;border:1px solid #e5e7eb;color:#1f2937">Multiple choice</span>
+                <span style="font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f4f6f8;border:1px solid #e5e7eb;color:#1f2937">Cardiovascular</span>
+              </div>
+              <div style="font-size:15.5px;line-height:1.6;color:#1f2937;text-wrap:pretty">A client with heart failure reports increasing shortness of breath at night and has gained 2.3 kg in four days. Which action should the nurse take <strong style="font-weight:700">first</strong>?</div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 13px;min-height:48px;border:1px solid #e5e7eb;border-left:3px solid #e5e7eb;border-radius:4px;background:#fff"><span style="flex:0 0 22px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:flex-end;font-size:14px;font-weight:700;color:#1f2937">A.</span><span style="flex:1;font-size:14.5px;line-height:1.5">Place the client in high Fowler's position</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 13px;min-height:48px;border:1px solid #2d7d72;border-left:3px solid #2d7d72;border-radius:4px;background:#fff"><span style="flex:0 0 22px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#2d7d72;color:#fff;font-size:12px;font-weight:700">B</span><span style="flex:1;font-size:14.5px;line-height:1.5">Auscultate the lung fields and obtain oxygen saturation</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 13px;min-height:48px;border:1px solid #e5e7eb;border-left:3px solid #e5e7eb;border-radius:4px;background:#fff"><span style="flex:0 0 22px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:flex-end;font-size:14px;font-weight:700;color:#1f2937">C.</span><span style="flex:1;font-size:14.5px;line-height:1.5">Notify the healthcare provider of the weight gain</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 13px;min-height:48px;border:1px solid #e5e7eb;border-left:3px solid #e5e7eb;border-radius:4px;background:#fff"><span style="flex:0 0 22px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:flex-end;font-size:14px;font-weight:700;color:#1f2937">D.</span><span style="flex:1;font-size:14.5px;line-height:1.5">Restrict fluids to 1500 mL for the next 24 hours</span></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;background:#fff;border-top:1px solid #e5e7eb;padding:10px 12px 22px;display:flex;align-items:center;gap:10px">
+              <button style="width:48px;height:48px;flex-shrink:0;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#9ca3af;font-size:17px;cursor:pointer">←</button>
+              <button style="flex:1;height:48px;border:none;border-radius:10px;background:#2d7d72;color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer">Submit answer →</button>
+              <button style="width:48px;height:48px;flex-shrink:0;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#4b5563;font-size:13px;font-weight:700;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer"><span style="font-size:14px">⊞</span><span style="font-size:9px;color:#9ca3af">12/75</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 · Grid sheet -->
+        <div style="display:flex;flex-direction:column;gap:10px;width:390px">
+          <div style="display:flex;flex-direction:column;gap:3px"><div style="font-size:13px;font-weight:700">2 · Question grid sheet</div><div style="font-size:12px;line-height:1.5;color:#6b7280">The 240px rail, unchanged in substance: 3-channel cells, the All / Flagged / To&nbsp;do progress rail, and the colour key — which is now the outcome filter, so its rows are 44px controls in two columns.</div></div>
+          <div style="width:390px;height:812px;border-radius:30px;background:#f4f6f8;border:1px solid #dde1e6;box-shadow:0 18px 44px rgba(15,23,42,.14);overflow:hidden;display:flex;flex-direction:column;position:relative">
+            <div style="position:absolute;inset:0;background:rgba(17,24,39,.42)"></div>
+            <div style="height:24px;flex-shrink:0;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:10px;font-weight:700;color:#9ca3af"><span>9:41</span><span style="letter-spacing:.06em">5G ▮▮</span></div>
+            <div style="height:52px;flex-shrink:0;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;padding:0 8px 0 6px">
+              <button style="width:40px;height:40px;border:none;background:transparent;color:#6b7280;font-size:19px;border-radius:8px;cursor:pointer">✕</button>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><div style="font-size:14px;font-weight:800;color:#1f2937">Q 12 <span style="color:#9ca3af;font-weight:600">/ 75</span></div><div style="font-size:10.5px;font-weight:600;color:#6b7280">Study · Untimed Learning</div></div>
+              <div style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#f4f6f8;border:1px solid #e5e7eb;font-size:12px;font-weight:700;color:#4b5563">14:32</div>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:15px;cursor:pointer">⚑</button>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:17px;font-weight:800;cursor:pointer">⋯</button>
+            </div>
+            <div style="flex:1"></div>
+            <div style="position:relative;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -8px 32px rgba(15,23,42,.18);display:flex;flex-direction:column;max-height:660px">
+              <div style="display:flex;justify-content:center;padding:9px 0 4px"><span style="width:38px;height:4px;border-radius:2px;background:#d6dae0"></span></div>
+              <div style="display:flex;align-items:center;gap:10px;padding:4px 16px 12px">
+                <div style="flex:1;font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#6b7280">Question grid</div>
+                <button style="width:34px;height:34px;border:none;border-radius:8px;background:#f4f6f8;color:#6b7280;font-size:15px;cursor:pointer">✕</button>
+              </div>
+              <div style="display:flex;gap:6px;padding:0 16px 12px;overflow-x:auto">
+                <button style="flex:1;min-height:44px;border-radius:8px;border:1px solid #2d7d72;background:#2d7d72;color:#fff;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer">All 75</button>
+                <button style="flex:1;min-height:44px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#4b5563;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer">Flagged 4</button>
+                <button style="flex:1;min-height:44px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#4b5563;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer">To do 63</button>
+              </div>
+              <div style="padding:0 16px;overflow:auto">
+                <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:7px">
+                  <div style="height:46px;border-radius:6px;background:#dbe6f1;color:#1e3a5f;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">1</div>
+                  <div style="height:46px;border-radius:6px;background:#dbe6f1;color:#1e3a5f;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">2</div>
+                  <div style="height:46px;border-radius:6px;background:#dbe6f1;color:#1e3a5f;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #d97706">3</div>
+                  <div style="height:46px;border-radius:6px;background:#dbe6f1;color:#1e3a5f;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">4</div>
+                  <div style="height:46px;border-radius:6px;background:#dbe6f1;color:#1e3a5f;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">5</div>
+                  <div style="height:46px;border-radius:6px;background:#dbe6f1;color:#1e3a5f;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">6</div>
+                  <div style="height:46px;border-radius:6px;background:#dbe6f1;color:#1e3a5f;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">7</div>
+                  <div style="height:46px;border-radius:6px;background:#dbe6f1;color:#1e3a5f;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #d97706">8</div>
+                  <div style="height:46px;border-radius:6px;background:#dbe6f1;color:#1e3a5f;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">9</div>
+                  <div style="height:46px;border-radius:6px;background:#dbe6f1;color:#1e3a5f;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">10</div>
+                  <div style="height:46px;border-radius:6px;background:#dbe6f1;color:#1e3a5f;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">11</div>
+                  <div style="height:46px;border-radius:6px;background:#dbe6f1;color:#1e3a5f;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px #2d7d72">12</div>
+                  <div style="height:46px;border-radius:6px;background:#fff;border:1px solid #d6dae0;color:#4b5563;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">13</div>
+                  <div style="height:46px;border-radius:6px;background:#fff;border:1px solid #d6dae0;color:#4b5563;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">14</div>
+                  <div style="height:46px;border-radius:6px;background:#fff;border:1px solid #d6dae0;color:#4b5563;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">15</div>
+                  <div style="height:46px;border-radius:6px;background:#fff;border:1px solid #d6dae0;color:#4b5563;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">16</div>
+                  <div style="height:46px;border-radius:6px;background:#fff;border:1px solid #d6dae0;color:#4b5563;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">17</div>
+                  <div style="height:46px;border-radius:6px;background:#fff;border:1px solid #d6dae0;color:#4b5563;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">18</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;padding:12px 16px 26px;margin-top:10px;border-top:1px solid #e5e7eb">
+                <div style="grid-column:1/-1;font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#9ca3af;padding:0 8px 4px">What the colours mean — tap one to filter</div>
+                <button style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 8px;border:1px solid transparent;border-radius:6px;background:transparent;font-family:inherit;font-size:12px;color:#6b7280;text-align:left;cursor:pointer"><span style="display:inline-flex;gap:2px;flex-shrink:0"><span style="width:7px;height:14px;border-radius:2px;background:#f6d99c"></span><span style="width:7px;height:14px;border-radius:2px;background:#5b1d1d"></span></span><span style="flex:1">Dropped marks</span><span style="font-weight:600">9</span></button>
+                <button style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 8px;border:1px solid transparent;border-radius:6px;background:transparent;font-family:inherit;font-size:12px;color:#6b7280;text-align:left;cursor:pointer"><span style="width:14px;height:14px;border-radius:3px;flex-shrink:0;background:#fff;border:1px solid #d6dae0"></span><span style="flex:1">Unanswered</span><span style="font-weight:600">63</span></button>
+                <button style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 8px;border:1px solid transparent;border-radius:6px;background:transparent;font-family:inherit;font-size:12px;color:#6b7280;text-align:left;cursor:pointer"><span style="width:14px;height:14px;border-radius:3px;flex-shrink:0;background:#c8ecd1;border:1px solid #84c193"></span><span style="flex:1">Correct</span><span style="font-weight:600">3</span></button>
+                <button style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 8px;border:1px solid #cbd5e1;border-radius:6px;background:#f9fafb;font-family:inherit;font-size:12px;color:#6b7280;text-align:left;cursor:pointer"><span style="width:14px;height:14px;border-radius:3px;flex-shrink:0;background:#f6d99c;border:1px solid #d6a85a"></span><span style="flex:1">Partial credit</span><span style="font-weight:600">2</span></button>
+                <button style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 8px;border:1px solid transparent;border-radius:6px;background:transparent;font-family:inherit;font-size:12px;color:#6b7280;text-align:left;cursor:pointer"><span style="width:14px;height:14px;border-radius:3px;flex-shrink:0;background:#5b1d1d;border:1px solid #3d0e0e"></span><span style="flex:1">Wrong</span><span style="font-weight:600">7</span></button>
+                <button style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 8px;border:1px solid transparent;border-radius:6px;background:transparent;font-family:inherit;font-size:12px;color:#6b7280;text-align:left;cursor:pointer"><span style="width:14px;height:14px;border-radius:3px;flex-shrink:0;background:#eef0f3;border:1px dashed #9ca3af"></span><span style="flex:1">Skipped</span><span style="font-weight:600">0</span></button>
+                <button style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 8px;border:1px solid transparent;border-radius:6px;background:transparent;font-family:inherit;font-size:12px;color:#6b7280;text-align:left;cursor:pointer"><span style="width:14px;height:14px;border-radius:3px;flex-shrink:0;background:#fff;border:2px solid #d97706"></span><span style="flex:1">Flagged for review</span><span style="font-weight:600">4</span></button>
+                <div style="display:flex;align-items:center;gap:8px;min-height:44px;padding:0 8px;font-size:12px;color:#6b7280"><span style="width:14px;height:14px;border-radius:3px;flex-shrink:0;background:#fff;box-shadow:0 0 0 2px #2d7d72"></span><span style="flex:1">Current</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 · Case -->
+        <div style="display:flex;flex-direction:column;gap:10px;width:390px">
+          <div style="display:flex;flex-direction:column;gap:3px"><div style="font-size:13px;font-weight:700">3 · Case-study child</div><div style="font-size:12px;line-height:1.5;color:#6b7280">The 380px sticky panel becomes a persistent summary card + <em>View chart</em>. CJMM strip becomes 6 dots.</div></div>
+          <div style="width:390px;height:812px;border-radius:30px;background:#f4f6f8;border:1px solid #dde1e6;box-shadow:0 18px 44px rgba(15,23,42,.14);overflow:hidden;display:flex;flex-direction:column">
+            <div style="height:24px;flex-shrink:0;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:10px;font-weight:700;color:#9ca3af"><span>9:41</span><span style="letter-spacing:.06em">5G ▮▮</span></div>
+            <div style="height:52px;flex-shrink:0;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;padding:0 8px 0 6px">
+              <button style="width:40px;height:40px;border:none;background:transparent;color:#6b7280;font-size:19px;border-radius:8px;cursor:pointer">✕</button>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><div style="font-size:14px;font-weight:800;color:#1f2937">Q 31 <span style="color:#9ca3af;font-weight:600">/ 75</span></div><div style="font-size:10.5px;font-weight:600;color:#6b7280">Case 2 of 3 · step 3 of 6</div></div>
+              <div style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#f4f6f8;border:1px solid #e5e7eb;font-size:12px;font-weight:700;color:#4b5563">31:07</div>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:15px;cursor:pointer">⚑</button>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:17px;font-weight:800;cursor:pointer">⋯</button>
+            </div>
+            <div style="flex:1;min-height:0;overflow:hidden;padding:12px 16px 4px;display:flex;flex-direction:column;gap:12px">
+              <div style="border:1px solid rgba(45,125,114,.3);background:rgba(45,125,114,.06);border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:9px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#1f5a52">Case study</span>
+                  <span style="font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:rgba(45,125,114,.14);color:#2d7d72">2 of 6 answered</span>
+                </div>
+                <div style="font-size:13.5px;font-weight:700;line-height:1.45;color:#1f2937">72-year-old admitted with confusion and a 3-day history of poor oral intake</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <button style="flex:1;height:40px;border:1px solid #2d7d72;border-radius:9px;background:#fff;color:#1f5a52;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">View chart · 4 tabs</button>
+                  <div style="display:flex;gap:4px;align-items:center">
+                    <span style="width:8px;height:8px;border-radius:50%;background:#2d7d72"></span>
+                    <span style="width:8px;height:8px;border-radius:50%;background:#2d7d72"></span>
+                    <span style="width:10px;height:10px;border-radius:50%;background:#2d7d72;box-shadow:0 0 0 3px rgba(45,125,114,.22)"></span>
+                    <span style="width:8px;height:8px;border-radius:50%;background:#d6dae0"></span>
+                    <span style="width:8px;height:8px;border-radius:50%;background:#d6dae0"></span>
+                    <span style="width:8px;height:8px;border-radius:50%;background:#d6dae0"></span>
+                  </div>
+                </div>
+                <div style="font-size:11px;font-weight:600;color:#1f5a52">Step 3 · Analyse cues</div>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap"><span style="font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f4f6f8;border:1px solid #e5e7eb">Select all that apply</span></div>
+              <div style="font-size:15.5px;line-height:1.6;color:#1f2937;text-wrap:pretty">Which findings from the chart require immediate follow-up? <em style="font-size:12.5px;color:#6b7280;font-style:italic;display:block;margin-top:6px">Select all that apply.</em></div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 13px;min-height:48px;border:1px solid #2d7d72;border-left:3px solid #2d7d72;border-radius:4px;background:#fff"><span style="flex:0 0 22px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#2d7d72;color:#fff;font-size:12px;font-weight:700">A</span><span style="flex:1;font-size:14.5px;line-height:1.5">Serum sodium 126 mmol/L</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 13px;min-height:48px;border:1px solid #e5e7eb;border-left:3px solid #e5e7eb;border-radius:4px;background:#fff"><span style="flex:0 0 22px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:flex-end;font-size:14px;font-weight:700">B.</span><span style="flex:1;font-size:14.5px;line-height:1.5">Temperature 37.1 °C</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 13px;min-height:48px;border:1px solid #2d7d72;border-left:3px solid #2d7d72;border-radius:4px;background:#fff"><span style="flex:0 0 22px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#2d7d72;color:#fff;font-size:12px;font-weight:700">C</span><span style="flex:1;font-size:14.5px;line-height:1.5">Urine output 15 mL/hr for 4 hours</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 13px;min-height:48px;border:1px solid #e5e7eb;border-left:3px solid #e5e7eb;border-radius:4px;background:#fff"><span style="flex:0 0 22px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:flex-end;font-size:14px;font-weight:700">D.</span><span style="flex:1;font-size:14.5px;line-height:1.5">Reports mild thirst</span></div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;background:#fff;border-top:1px solid #e5e7eb;padding:10px 12px 22px;display:flex;align-items:center;gap:10px">
+              <button style="width:48px;height:48px;flex-shrink:0;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#4b5563;font-size:17px;cursor:pointer">←</button>
+              <button style="flex:1;height:48px;border:none;border-radius:10px;background:#2d7d72;color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer">Submit answer →</button>
+              <button style="width:48px;height:48px;flex-shrink:0;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#4b5563;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer"><span style="font-size:14px">⊞</span><span style="font-size:9px;color:#9ca3af">31/75</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 · Chart sheet -->
+        <div style="display:flex;flex-direction:column;gap:10px;width:390px">
+          <div style="display:flex;flex-direction:column;gap:3px"><div style="font-size:13px;font-weight:700">4 · Chart sheet (case &amp; trend)</div><div style="font-size:12px;line-height:1.5;color:#6b7280">Same tabs, same reveal rules. Wide tables scroll sideways with an explicit edge cue.</div></div>
+          <div style="width:390px;height:812px;border-radius:30px;background:#f4f6f8;border:1px solid #dde1e6;box-shadow:0 18px 44px rgba(15,23,42,.14);overflow:hidden;display:flex;flex-direction:column;position:relative">
+            <div style="position:absolute;inset:0;background:rgba(17,24,39,.42)"></div>
+            <div style="height:24px;flex-shrink:0;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:10px;font-weight:700;color:#9ca3af"><span>9:41</span><span style="letter-spacing:.06em">5G ▮▮</span></div>
+            <div style="height:52px;flex-shrink:0;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;padding:0 8px 0 6px">
+              <button style="width:40px;height:40px;border:none;background:transparent;color:#6b7280;font-size:19px;cursor:pointer">✕</button>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><div style="font-size:14px;font-weight:800;color:#1f2937">Q 31 <span style="color:#9ca3af;font-weight:600">/ 75</span></div><div style="font-size:10.5px;font-weight:600;color:#6b7280">Case 2 of 3 · step 3 of 6</div></div>
+              <div style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#f4f6f8;border:1px solid #e5e7eb;font-size:12px;font-weight:700;color:#4b5563">31:07</div>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:15px;cursor:pointer">⚑</button>
+            </div>
+            <div style="flex:1"></div>
+            <div style="position:relative;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -8px 32px rgba(15,23,42,.18);display:flex;flex-direction:column;max-height:690px">
+              <div style="display:flex;justify-content:center;padding:9px 0 4px"><span style="width:38px;height:4px;border-radius:2px;background:#d6dae0"></span></div>
+              <div style="padding:4px 16px 10px;display:flex;align-items:flex-start;gap:10px">
+                <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+                  <div style="font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#1f5a52">Case study · 2 of 6 answered</div>
+                  <div style="font-size:14px;font-weight:700;line-height:1.4;color:#1f2937">72-year-old admitted with confusion and poor oral intake</div>
+                </div>
+                <button style="width:34px;height:34px;border:none;border-radius:8px;background:#f4f6f8;color:#6b7280;font-size:15px;cursor:pointer">✕</button>
+              </div>
+              <div style="padding:0 16px 10px;border-bottom:1px solid #e5e7eb">
+                <div style="font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#6b7280;margin-bottom:4px">Scenario</div>
+                <div style="font-size:13px;line-height:1.55;color:#1f2937">Admitted from home yesterday. Family reports she has been drowsy and eating very little for three days.</div>
+              </div>
+              <div style="display:flex;gap:2px;padding:0 8px;background:#f4f6f8;border-bottom:1px solid #e5e7eb;overflow-x:auto">
+                <button style="flex-shrink:0;padding:12px 14px;border:none;background:#fff;border-bottom:2px solid #2d7d72;color:#1f4f48;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Vitals</button>
+                <button style="flex-shrink:0;padding:12px 14px;border:none;background:transparent;border-bottom:2px solid transparent;color:#6b7280;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">Labs</button>
+                <button style="flex-shrink:0;padding:12px 14px;border:none;background:transparent;border-bottom:2px solid transparent;color:#6b7280;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">Meds</button>
+                <button style="flex-shrink:0;padding:12px 14px;border:none;background:transparent;border-bottom:2px solid transparent;color:#6b7280;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">Nurses' notes</button>
+              </div>
+              <div style="padding:12px 16px 26px;overflow:auto">
+                <div style="position:relative;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden">
+                  <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr">
+                    <div style="padding:8px 10px;background:#fafbfc;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#6b7280;border-bottom:1px solid #e5e7eb">Metric</div>
+                    <div style="padding:8px 10px;background:#fafbfc;font-size:10.5px;font-weight:700;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb">08:00</div>
+                    <div style="padding:8px 10px;background:#fafbfc;font-size:10.5px;font-weight:700;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb">12:00</div>
+                    <div style="padding:8px 10px;background:#fafbfc;font-size:10.5px;font-weight:700;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb">16:00</div>
+                    <div style="padding:9px 10px;font-size:12.5px;font-weight:600;border-bottom:1px solid #e5e7eb">BP</div>
+                    <div style="padding:9px 10px;font-size:13px;border-bottom:1px solid #e5e7eb">118/72</div>
+                    <div style="padding:9px 10px;font-size:13px;border-bottom:1px solid #e5e7eb">104/64</div>
+                    <div style="padding:9px 10px;font-size:13px;border-bottom:1px solid #e5e7eb">96/58</div>
+                    <div style="padding:9px 10px;font-size:12.5px;font-weight:600;border-bottom:1px solid #e5e7eb">HR</div>
+                    <div style="padding:9px 10px;font-size:13px;border-bottom:1px solid #e5e7eb">88</div>
+                    <div style="padding:9px 10px;font-size:13px;border-bottom:1px solid #e5e7eb">102</div>
+                    <div style="padding:9px 10px;font-size:13px;border-bottom:1px solid #e5e7eb">114</div>
+                    <div style="padding:9px 10px;font-size:12.5px;font-weight:600">Temp</div>
+                    <div style="padding:9px 10px;font-size:13px">36.8</div>
+                    <div style="padding:9px 10px;font-size:13px">37.0</div>
+                    <div style="padding:9px 10px;font-size:13px">37.2</div>
+                  </div>
+                  <div style="position:absolute;top:0;right:0;bottom:0;width:26px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.95))"></div>
+                </div>
+                <div style="margin-top:8px;font-size:11.5px;color:#9ca3af;font-style:italic">Swipe the table sideways for later timepoints →</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5 · Matrix -->
+        <div style="display:flex;flex-direction:column;gap:10px;width:390px">
+          <div style="display:flex;flex-direction:column;gap:3px"><div style="font-size:13px;font-weight:700">5 · MATRIX / MATRIX_MR — stacked</div><div style="font-size:12px;line-height:1.5;color:#6b7280">One card per row. Row label reads as a sentence; choices are full-width 44px chips.</div></div>
+          <div style="width:390px;height:812px;border-radius:30px;background:#f4f6f8;border:1px solid #dde1e6;box-shadow:0 18px 44px rgba(15,23,42,.14);overflow:hidden;display:flex;flex-direction:column">
+            <div style="height:24px;flex-shrink:0;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:10px;font-weight:700;color:#9ca3af"><span>9:41</span><span style="letter-spacing:.06em">5G ▮▮</span></div>
+            <div style="height:52px;flex-shrink:0;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;padding:0 8px 0 6px">
+              <button style="width:40px;height:40px;border:none;background:transparent;color:#6b7280;font-size:19px;cursor:pointer">✕</button>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><div style="font-size:14px;font-weight:800;color:#1f2937">Q 44 <span style="color:#9ca3af;font-weight:600">/ 75</span></div><div style="font-size:10.5px;font-weight:600;color:#6b7280">Study · Untimed Learning</div></div>
+              <div style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#f4f6f8;border:1px solid #e5e7eb;font-size:12px;font-weight:700;color:#4b5563">42:18</div>
+              <button style="width:40px;height:40px;border:1px solid #d97706;border-radius:9px;background:rgba(217,119,6,.08);color:#d97706;font-size:15px;cursor:pointer">⚑</button>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:17px;font-weight:800;cursor:pointer">⋯</button>
+            </div>
+            <div style="flex:1;min-height:0;overflow:hidden;padding:14px 16px 4px;display:flex;flex-direction:column;gap:12px">
+              <div style="font-size:15.5px;line-height:1.6;color:#1f2937">For each finding, indicate whether it is <strong>expected</strong> or <strong>unexpected</strong> for a client 6 hours after a total hip arthroplasty.</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="border:1px solid #d6dae0;border-radius:8px;background:#fff;padding:11px 12px;display:flex;flex-direction:column;gap:9px">
+                  <div style="font-size:14.5px;line-height:1.45;color:#1f2937">Serosanguineous drainage on the dressing</div>
+                  <div style="display:flex;gap:8px">
+                    <button style="flex:1;min-height:44px;border:1px solid #2d7d72;border-radius:7px;background:rgba(45,125,114,.07);color:#1f5a52;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer">● Expected</button>
+                    <button style="flex:1;min-height:44px;border:1px solid #e5e7eb;border-radius:7px;background:#fff;color:#4b5563;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer">○ Unexpected</button>
+                  </div>
+                </div>
+                <div style="border:1px solid #d6dae0;border-radius:8px;background:#fff;padding:11px 12px;display:flex;flex-direction:column;gap:9px">
+                  <div style="font-size:14.5px;line-height:1.45;color:#1f2937">Affected leg internally rotated and shortened</div>
+                  <div style="display:flex;gap:8px">
+                    <button style="flex:1;min-height:44px;border:1px solid #e5e7eb;border-radius:7px;background:#fff;color:#4b5563;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer">○ Expected</button>
+                    <button style="flex:1;min-height:44px;border:1px solid #2d7d72;border-radius:7px;background:rgba(45,125,114,.07);color:#1f5a52;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer">● Unexpected</button>
+                  </div>
+                </div>
+                <div style="border:1px solid #d6dae0;border-radius:8px;background:#fff;padding:11px 12px;display:flex;flex-direction:column;gap:9px">
+                  <div style="font-size:14.5px;line-height:1.45;color:#1f2937">Pain rated 4 of 10 on movement</div>
+                  <div style="display:flex;gap:8px">
+                    <button style="flex:1;min-height:44px;border:1px solid #e5e7eb;border-radius:7px;background:#fff;color:#4b5563;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer">○ Expected</button>
+                    <button style="flex:1;min-height:44px;border:1px solid #e5e7eb;border-radius:7px;background:#fff;color:#4b5563;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer">○ Unexpected</button>
+                  </div>
+                </div>
+              </div>
+              <div style="font-size:12.5px;color:#6b7280"><strong style="color:#1f2937;font-weight:700">2</strong> of 4 rows answered</div>
+            </div>
+            <div style="flex-shrink:0;background:#fff;border-top:1px solid #e5e7eb;padding:10px 12px 22px;display:flex;align-items:center;gap:10px">
+              <button style="width:48px;height:48px;flex-shrink:0;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#4b5563;font-size:17px;cursor:pointer">←</button>
+              <button style="flex:1;height:48px;border:none;border-radius:10px;background:#e5e7eb;color:#9ca3af;font-family:inherit;font-size:15px;font-weight:700;cursor:default">Answer every row to continue</button>
+              <button style="width:48px;height:48px;flex-shrink:0;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#4b5563;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer"><span style="font-size:14px">⊞</span><span style="font-size:9px;color:#9ca3af">44/75</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6 · Bowtie -->
+        <div style="display:flex;flex-direction:column;gap:10px;width:390px">
+          <div style="display:flex;flex-direction:column;gap:3px"><div style="font-size:13px;font-weight:700">6 · BOWTIE — stacked wings</div><div style="font-size:12px;line-height:1.5;color:#6b7280">Condition first, then actions, then parameters. Tap-to-arm is unchanged; the pool follows each wing.</div></div>
+          <div style="width:390px;height:812px;border-radius:30px;background:#f4f6f8;border:1px solid #dde1e6;box-shadow:0 18px 44px rgba(15,23,42,.14);overflow:hidden;display:flex;flex-direction:column">
+            <div style="height:24px;flex-shrink:0;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:10px;font-weight:700;color:#9ca3af"><span>9:41</span><span style="letter-spacing:.06em">5G ▮▮</span></div>
+            <div style="height:52px;flex-shrink:0;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;padding:0 8px 0 6px">
+              <button style="width:40px;height:40px;border:none;background:transparent;color:#6b7280;font-size:19px;cursor:pointer">✕</button>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><div style="font-size:14px;font-weight:800;color:#1f2937">Q 58 <span style="color:#9ca3af;font-weight:600">/ 75</span></div><div style="font-size:10.5px;font-weight:600;color:#6b7280">Study · Untimed Learning</div></div>
+              <div style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#f4f6f8;border:1px solid #e5e7eb;font-size:12px;font-weight:700;color:#4b5563">55:41</div>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:15px;cursor:pointer">⚑</button>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:17px;font-weight:800;cursor:pointer">⋯</button>
+            </div>
+            <div style="flex:1;min-height:0;overflow:hidden;padding:14px 16px 4px;display:flex;flex-direction:column;gap:11px">
+              <div style="font-size:14.5px;line-height:1.55;color:#1f2937">Complete the diagram by selecting from the choices below.</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#2d7d72">Condition most likely experiencing</div>
+                <div style="min-height:52px;border:1.5px solid #2d7d72;border-radius:6px;background:#eff6ff;color:#1e3a8a;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px 12px">Hypovolaemic shock</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6b7280">Actions to take · 2</div>
+                <div style="min-height:48px;border:1.5px solid #2d7d72;border-radius:6px;background:#eff6ff;color:#1e3a8a;font-size:13.5px;font-weight:600;display:flex;align-items:center;padding:8px 12px">Administer isotonic IV fluids</div>
+                <div style="min-height:48px;border:1.5px dashed #d6dae0;border-radius:6px;background:#f4f6f8;color:#9ca3af;font-size:13px;font-style:italic;display:flex;align-items:center;padding:8px 12px">Tap a choice below, then tap here</div>
+                <div style="display:flex;flex-wrap:wrap;gap:7px;padding:10px;background:#f4f6f8;border:1px solid #e5e7eb;border-radius:8px">
+                  <button style="padding:10px 13px;min-height:44px;border:1px solid #2d7d72;border-radius:999px;background:#eff6ff;color:#1e3a8a;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Elevate the legs</button>
+                  <button style="padding:10px 13px;min-height:44px;border:1px solid #e5e7eb;border-radius:999px;background:#fff;color:#1f2937;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">Restrict oral fluids</button>
+                  <button style="padding:10px 13px;min-height:44px;border:1px solid #e5e7eb;border-radius:999px;background:#fff;color:#1f2937;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">Place in Trendelenburg</button>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6b7280">Parameters to monitor · 2</div>
+                <div style="min-height:48px;border:1.5px dashed #d6dae0;border-radius:6px;background:#f4f6f8;color:#9ca3af;font-size:13px;font-style:italic;display:flex;align-items:center;padding:8px 12px">Empty</div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;background:#fff;border-top:1px solid #e5e7eb;padding:10px 12px 22px;display:flex;align-items:center;gap:10px">
+              <button style="width:48px;height:48px;flex-shrink:0;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#4b5563;font-size:17px;cursor:pointer">←</button>
+              <button style="flex:1;height:48px;border:none;border-radius:10px;background:#e5e7eb;color:#9ca3af;font-family:inherit;font-size:15px;font-weight:700;cursor:default">3 of 5 boxes filled</button>
+              <button style="width:48px;height:48px;flex-shrink:0;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#4b5563;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer"><span style="font-size:14px">⊞</span><span style="font-size:9px;color:#9ca3af">58/75</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7 · Review -->
+        <div style="display:flex;flex-direction:column;gap:10px;width:390px">
+          <div style="display:flex;flex-direction:column;gap:3px"><div style="font-size:13px;font-weight:700">7 · After submit — rationale</div><div style="font-size:12px;line-height:1.5;color:#6b7280">Scoring strip wraps to two lines; rationale keeps its accent rule. Primary becomes Next.</div></div>
+          <div style="width:390px;height:812px;border-radius:30px;background:#f4f6f8;border:1px solid #dde1e6;box-shadow:0 18px 44px rgba(15,23,42,.14);overflow:hidden;display:flex;flex-direction:column">
+            <div style="height:24px;flex-shrink:0;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:10px;font-weight:700;color:#9ca3af"><span>9:41</span><span style="letter-spacing:.06em">5G ▮▮</span></div>
+            <div style="height:52px;flex-shrink:0;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;padding:0 8px 0 6px">
+              <button style="width:40px;height:40px;border:none;background:transparent;color:#6b7280;font-size:19px;cursor:pointer">✕</button>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><div style="font-size:14px;font-weight:800;color:#1f2937">Q 12 <span style="color:#9ca3af;font-weight:600">/ 75</span></div><div style="font-size:10.5px;font-weight:600;color:#6b7280">Study · Untimed Learning</div></div>
+              <div style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#f4f6f8;border:1px solid #e5e7eb;font-size:12px;font-weight:700;color:#4b5563">15:02</div>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:15px;cursor:pointer">⚑</button>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:17px;font-weight:800;cursor:pointer">⋯</button>
+            </div>
+            <div style="flex:1;min-height:0;overflow:hidden;padding:14px 16px 4px;display:flex;flex-direction:column;gap:11px">
+              <div style="font-size:15px;line-height:1.55;color:#1f2937">A client with heart failure reports increasing shortness of breath at night…</div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1px solid #e5e7eb;border-left:3px solid #16a34a;border-radius:4px;background:#fff"><span style="flex:0 0 22px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#16a34a;color:#fff;font-size:12px;font-weight:700">B</span><div style="flex:1"><div style="font-size:14.5px;line-height:1.5">Auscultate the lung fields and obtain oxygen saturation</div><div style="margin-top:3px;font-size:12.5px;font-style:italic;line-height:1.5;color:#6b7280">Assessment precedes intervention — you cannot act on breathlessness you have not characterised.</div></div><span style="flex-shrink:0;font-size:11.5px;font-weight:600;color:#15803d">✓ Your pick</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1px solid #e5e7eb;border-left:3px solid #e5e7eb;border-radius:4px;background:#fff;opacity:.6"><span style="flex:0 0 22px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:flex-end;font-size:14px;font-weight:700">A.</span><span style="flex:1;font-size:14.5px;line-height:1.5">Place the client in high Fowler's position</span></div>
+              </div>
+              <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:9px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:6px">
+                <span style="padding:3px 8px;border-radius:4px;font-size:10.5px;font-weight:800;letter-spacing:.05em;color:#15803d;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.35)">✓ CORRECT</span>
+                <span style="font-size:12.5px;font-weight:700">1 / 1 <span style="font-weight:400;color:#6b7280">point</span></span>
+                <span style="font-size:11.5px;color:#6b7280;display:inline-flex;align-items:center;gap:5px">◷ 48s</span>
+                <span style="width:100%;font-size:11.5px;color:#6b7280;line-height:1.5">All-or-nothing · 61% of students answered this correctly</span>
+              </div>
+              <div style="background:#f4f6f8;border-left:3px solid #2d7d72;border-radius:0 4px 4px 0;padding:12px 14px">
+                <div style="font-size:13px;line-height:1.6;color:#1f2937">Nocturnal dyspnoea with rapid weight gain suggests worsening fluid overload. Auscultation and oxygen saturation characterise the severity and drive every subsequent action — positioning, notification and fluid limits all follow from what you find.</div>
+              </div>
+            </div>
+            <div style="flex-shrink:0;background:#fff;border-top:1px solid #e5e7eb;padding:10px 12px 22px;display:flex;align-items:center;gap:10px">
+              <button style="width:48px;height:48px;flex-shrink:0;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#4b5563;font-size:17px;cursor:pointer">←</button>
+              <button style="flex:1;height:48px;border:none;border-radius:10px;background:#2d7d72;color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer">Next →</button>
+              <button style="width:48px;height:48px;flex-shrink:0;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#4b5563;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer"><span style="font-size:14px">⊞</span><span style="font-size:9px;color:#9ca3af">12/75</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8 · Session menu -->
+        <div style="display:flex;flex-direction:column;gap:10px;width:390px">
+          <div style="display:flex;flex-direction:column;gap:3px"><div style="font-size:13px;font-weight:700">8 · Session menu (⋯)</div><div style="font-size:12px;line-height:1.5;color:#6b7280">Everything the topbar had to drop, with the words the tooltips used to carry.</div></div>
+          <div style="width:390px;height:812px;border-radius:30px;background:#f4f6f8;border:1px solid #dde1e6;box-shadow:0 18px 44px rgba(15,23,42,.14);overflow:hidden;display:flex;flex-direction:column;position:relative">
+            <div style="position:absolute;inset:0;background:rgba(17,24,39,.42)"></div>
+            <div style="height:24px;flex-shrink:0;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:10px;font-weight:700;color:#9ca3af"><span>9:41</span><span style="letter-spacing:.06em">5G ▮▮</span></div>
+            <div style="height:52px;flex-shrink:0;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;padding:0 8px 0 6px">
+              <button style="width:40px;height:40px;border:none;background:transparent;color:#6b7280;font-size:19px;cursor:pointer">✕</button>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><div style="font-size:14px;font-weight:800;color:#1f2937">Q 12 <span style="color:#9ca3af;font-weight:600">/ 75</span></div><div style="font-size:10.5px;font-weight:600;color:#6b7280">Study · Untimed Learning</div></div>
+              <div style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#f4f6f8;border:1px solid #e5e7eb;font-size:12px;font-weight:700;color:#4b5563">14:32</div>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:15px;cursor:pointer">⚑</button>
+            </div>
+            <div style="flex:1"></div>
+            <div style="position:relative;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -8px 32px rgba(15,23,42,.18);display:flex;flex-direction:column">
+              <div style="display:flex;justify-content:center;padding:9px 0 4px"><span style="width:38px;height:4px;border-radius:2px;background:#d6dae0"></span></div>
+              <div style="padding:6px 16px 12px;border-bottom:1px solid #e5e7eb">
+                <div style="font-size:14.5px;font-weight:800;color:#1f4f48">Pharmacology — cardiac drugs</div>
+                <div style="font-size:12px;color:#6b7280;margin-top:2px">Untimed Learning · 75 questions</div>
+                <div style="margin-top:9px;font-size:12.5px;line-height:1.55;color:#4b5563;background:#f4f6f8;border-radius:7px;padding:9px 11px">Pick an option, Submit to see the rationale, then Next. You can move between questions freely.</div>
+              </div>
+              <div style="display:flex;flex-direction:column;padding:6px 8px 4px">
+                <button style="display:flex;align-items:center;gap:12px;padding:14px 12px;border:none;background:transparent;border-radius:10px;font-family:inherit;text-align:left;cursor:pointer"><span style="width:22px;text-align:center;font-size:15px;color:#d97706">⚑</span><span style="flex:1;font-size:14.5px;font-weight:600;color:#1f2937">Flag for review<span style="display:block;font-size:12px;font-weight:400;color:#6b7280;margin-top:1px">Comes back in the grid's Flagged filter this sitting</span></span><span style="font-size:12px;font-weight:700;color:#d97706">On</span></button>
+                <button style="display:flex;align-items:center;gap:12px;padding:14px 12px;border:none;background:transparent;border-radius:10px;font-family:inherit;text-align:left;cursor:pointer"><span style="width:22px;text-align:center;font-size:15px;color:#6b7280">🔖</span><span style="flex:1;font-size:14.5px;font-weight:600;color:#1f2937">Bookmark for later study<span style="display:block;font-size:12px;font-weight:400;color:#6b7280;margin-top:1px">Kept after this sitting ends</span></span><span style="font-size:12px;font-weight:700;color:#9ca3af">Off</span></button>
+                <button style="display:flex;align-items:center;gap:12px;padding:14px 12px;border:none;background:transparent;border-radius:10px;font-family:inherit;text-align:left;cursor:pointer"><span style="width:22px;text-align:center;font-size:15px;color:#6b7280">▦</span><span style="flex:1;font-size:14.5px;font-weight:600;color:#1f2937">Calculator</span></button>
+                <button style="display:flex;align-items:center;gap:12px;padding:14px 12px;border:none;background:transparent;border-radius:10px;font-family:inherit;text-align:left;cursor:pointer"><span style="width:22px;text-align:center;font-size:15px;color:#6b7280">◷</span><span style="flex:1;font-size:14.5px;font-weight:600;color:#1f2937">Hide the clock</span></button>
+              </div>
+              <div style="padding:8px 16px 30px;border-top:1px solid #e5e7eb;margin-top:4px">
+                <button style="width:100%;min-height:48px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#b91c1c;font-family:inherit;font-size:14.5px;font-weight:700;cursor:pointer">Exit the session</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 9 · Calculator -->
+        <div style="display:flex;flex-direction:column;gap:10px;width:390px">
+          <div style="display:flex;flex-direction:column;gap:3px"><div style="font-size:13px;font-weight:700">9 · Calculator sheet</div><div style="font-size:12px;line-height:1.5;color:#6b7280">Same engine, thumb-sized keys, docked at the bottom so the stem stays visible above it.</div></div>
+          <div style="width:390px;height:812px;border-radius:30px;background:#f4f6f8;border:1px solid #dde1e6;box-shadow:0 18px 44px rgba(15,23,42,.14);overflow:hidden;display:flex;flex-direction:column;position:relative">
+            <div style="height:24px;flex-shrink:0;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:10px;font-weight:700;color:#9ca3af"><span>9:41</span><span style="letter-spacing:.06em">5G ▮▮</span></div>
+            <div style="height:52px;flex-shrink:0;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;padding:0 8px 0 6px">
+              <button style="width:40px;height:40px;border:none;background:transparent;color:#6b7280;font-size:19px;cursor:pointer">✕</button>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><div style="font-size:14px;font-weight:800;color:#1f2937">Q 19 <span style="color:#9ca3af;font-weight:600">/ 75</span></div><div style="font-size:10.5px;font-weight:600;color:#6b7280">Study · Untimed Learning</div></div>
+              <div style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#f4f6f8;border:1px solid #e5e7eb;font-size:12px;font-weight:700;color:#4b5563">21:44</div>
+              <button style="width:40px;height:40px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#6b7280;font-size:15px;cursor:pointer">⚑</button>
+              <button style="width:40px;height:40px;border:1px solid #2d7d72;border-radius:9px;background:#f2f8f7;color:#1f5a52;font-size:17px;font-weight:800;cursor:pointer">⋯</button>
+            </div>
+            <div style="flex:1;min-height:0;overflow:hidden;padding:14px 16px 8px;display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:15.5px;line-height:1.6;color:#1f2937">The prescription reads 0.125 mg of digoxin. The supply is 0.25 mg per tablet. How many tablets should the nurse administer?</div>
+              <div style="display:flex;align-items:center;gap:10px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;padding:11px 13px"><span style="font-size:13px;color:#6b7280">Answer</span><span style="flex:1;font-size:15px;font-weight:700;color:#1f2937">0.5</span><span style="font-size:13px;color:#6b7280">tablets</span></div>
+            </div>
+            <div style="position:relative;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -8px 32px rgba(15,23,42,.18);padding:9px 12px 26px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:center"><span style="width:38px;height:4px;border-radius:2px;background:#d6dae0"></span></div>
+              <div style="display:flex;align-items:center;gap:10px"><div style="flex:1;font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#6b7280">Calculator</div><button style="width:32px;height:32px;border:none;border-radius:8px;background:#f4f6f8;color:#6b7280;font-size:14px;cursor:pointer">✕</button></div>
+              <div style="background:#f4f6f8;border:1px solid #e5e7eb;border-radius:10px;padding:10px 13px;text-align:right"><div style="font-size:11.5px;color:#9ca3af;min-height:15px">0.125 ÷ 0.25</div><div style="font-size:28px;font-weight:700;color:#1f2937;font-variant-numeric:tabular-nums">0.5</div></div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#f4f6f8;color:#6b7280;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">C</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#f4f6f8;color:#6b7280;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">CE</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#f4f6f8;color:#6b7280;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">⌫</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#f4f6f8;color:#6b7280;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer">÷</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-family:inherit;font-size:17px;font-weight:600;cursor:pointer">7</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-family:inherit;font-size:17px;font-weight:600;cursor:pointer">8</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-family:inherit;font-size:17px;font-weight:600;cursor:pointer">9</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#f4f6f8;color:#6b7280;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer">×</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-family:inherit;font-size:17px;font-weight:600;cursor:pointer">4</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-family:inherit;font-size:17px;font-weight:600;cursor:pointer">5</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-family:inherit;font-size:17px;font-weight:600;cursor:pointer">6</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#f4f6f8;color:#6b7280;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer">−</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-family:inherit;font-size:17px;font-weight:600;cursor:pointer">1</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-family:inherit;font-size:17px;font-weight:600;cursor:pointer">2</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-family:inherit;font-size:17px;font-weight:600;cursor:pointer">3</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#f4f6f8;color:#6b7280;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer">+</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-family:inherit;font-size:17px;font-weight:600;cursor:pointer">0</button>
+                <button style="min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-family:inherit;font-size:17px;font-weight:600;cursor:pointer">.</button>
+                <button style="grid-column:span 2;min-height:52px;border:1px solid #2d7d72;border-radius:10px;background:#2d7d72;color:#fff;font-family:inherit;font-size:18px;font-weight:700;cursor:pointer">=</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─────────────── PART 4 · PER TYPE ─────────────── -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;align-items:baseline;gap:12px">
+        <h2 style="margin:0;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#374151">Part 4 — All eleven question types</h2>
+        <div style="flex:1;height:1px;background:#d6dae0"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;max-width:1500px">
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;padding:12px 14px;display:flex;gap:10px"><span style="flex:0 0 96px;font-size:12px;font-weight:800;color:#1f5a52">MCQ · TF</span><span style="flex:1;font-size:12.5px;line-height:1.55;color:#4b5563">Drop the indent and cap, 48px rows. Nothing else.</span></div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;padding:12px 14px;display:flex;gap:10px"><span style="flex:0 0 96px;font-size:12px;font-weight:800;color:#1f5a52">SATA · SELECT_N</span><span style="flex:1;font-size:12.5px;line-height:1.55;color:#4b5563">As above. The count line (“2 of 5 picked”) moves to a sticky line just above the bottom bar so it survives a long list.</span></div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;padding:12px 14px;display:flex;gap:10px"><span style="flex:0 0 96px;font-size:12px;font-weight:800;color:#b45309">MATRIX · _MR</span><span style="flex:1;font-size:12.5px;line-height:1.55;color:#4b5563">Row-card stack, choice chips carry the column name as a word. Column headers disappear — they were the only place the choice was named.</span></div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;padding:12px 14px;display:flex;gap:10px"><span style="flex:0 0 96px;font-size:12px;font-weight:800;color:#b45309">BOWTIE</span><span style="flex:1;font-size:12.5px;line-height:1.55;color:#4b5563">Vertical: condition → actions → parameters, each wing's pool directly beneath it. Drop the connector pseudo-elements under 900px.</span></div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;padding:12px 14px;display:flex;gap:10px"><span style="flex:0 0 96px;font-size:12px;font-weight:800;color:#15803d">HIGHLIGHT</span><span style="flex:1;font-size:12.5px;line-height:1.55;color:#4b5563">Works as-is. Raise chunk padding to 7px 6px so a tapped word clears 44px vertically at line-height 1.85 (4px only reaches 39px).</span></div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;padding:12px 14px;display:flex;gap:10px"><span style="flex:0 0 96px;font-size:12px;font-weight:800;color:#15803d">CLOZE</span><span style="flex:1;font-size:12.5px;line-height:1.55;color:#4b5563">Native selects already give the iOS wheel picker, and are the one deliberate exception to the 44px floor — forcing the height would break the baseline of the sentence they sit in. min-height 36px, max-width 14ch.</span></div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;padding:12px 14px;display:flex;gap:10px"><span style="flex:0 0 96px;font-size:12px;font-weight:800;color:#15803d">DRAG_CLOZE<br>DRAG_ORDER</span><span style="flex:1;font-size:12.5px;line-height:1.55;color:#4b5563">Already tap-to-arm. The inline drop boxes need min-height 44px — at 29px they are the smallest target in the runner. Make the pool sticky at the bottom of the scroll area while a token is armed, so the slot and the pool are on screen together.</span></div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;padding:12px 14px;display:flex;gap:10px"><span style="flex:0 0 96px;font-size:12px;font-weight:800;color:#1f5a52">Review add-ons</span><span style="flex:1;font-size:12.5px;line-height:1.55;color:#4b5563">Scoring strip already has phone rules. The “how others did” dotted-underline hover becomes plain visible text — there is no hover.</span></div>
+      </div>
+    </div>
+
+    <!-- ─────────────── PART 5 · BUILD ─────────────── -->
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;align-items:baseline;gap:12px">
+        <h2 style="margin:0;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#374151">Part 5 — How it lands in the code</h2>
+        <div style="flex:1;height:1px;background:#d6dae0"></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;max-width:1500px">
+        <div style="flex:1 1 420px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:13.5px;font-weight:800">One breakpoint, one flag</div>
+          <div style="font-size:13px;line-height:1.65;color:#4b5563">Everything hangs off <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#f4f6f8;border-radius:4px;padding:1px 5px">@media (max-width: 899px)</code> — chosen because that is where <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">.rn-split</code>'s 924px floor gives out, so tablets in portrait get the phone layout rather than a broken desktop one. Above it, not one desktop rule changes. Add a single <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">useIsCompact()</code> media-query hook in <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">runner.tsx</code> for the three places CSS cannot reach: rendering the grid as a sheet, the chart as a sheet, and the ⋯ menu instead of four topbar buttons.</div>
+        </div>
+        <div style="flex:1 1 420px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:13.5px;font-weight:800">New pieces (small)</div>
+          <div style="font-size:13px;line-height:1.65;color:#4b5563"><code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">runner-sheet.tsx</code> — the one bottom-sheet shell (handle, scrim, focus trap, <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">dvh</code> cap, safe-area padding).<br><code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">runner-session-menu.tsx</code> — the ⋯ contents.<br><code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">case-summary-card.tsx</code> — the persistent 2-line case/trend header with <em>View chart</em>.<br>Everything else is CSS in <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">runner.css</code>, plus reusing <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">RunnerGrid</code> and <code style="font-family:ui-monospace,Menlo,monospace;font-size:12px">CasePanel</code> unchanged inside the sheet.</div>
+        </div>
+        <div style="flex:1 1 420px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:13.5px;font-weight:800">Order to build</div>
+          <div style="font-size:13px;line-height:1.65;color:#4b5563"><strong>1.</strong> Shell: dvh, safe areas, two bars, mode brief out of the footer. <strong>2.</strong> Grid sheet. <strong>3.</strong> Options / indent / tap targets — this alone fixes eight of the eleven types. <strong>4.</strong> Case + trend stack and chart sheet. <strong>5.</strong> Matrix and bowtie reflows. <strong>6.</strong> Calculator sheet and the ⋯ menu. Each step is shippable on its own.</div>
+        </div>
+        <div style="flex:1 1 420px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:13.5px;font-weight:800">Open questions for you</div>
+          <div style="font-size:13px;line-height:1.65;color:#4b5563">· Does the exam-live rule (hide difficulty and subject pills) also mean hiding the mode brief in the ⋯ menu?<br>· Should the clock auto-hide when the student scrolls a long stem, or stay pinned always?<br>· In forward-only modes (Sequential, CAT) the bottom bar has no Previous and no grid — do you want the primary button to run full width there?</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</section>
+
+</x-dc>
+</body>
+</html>

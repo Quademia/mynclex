@@ -347,7 +347,20 @@
 >
 > ### Bigger CAT work still open
 >
-> 10. ✅ **§16.6 — exam-mode display leaks — BUILT 2026-07-25 (`7e845fb`).**
+> 10. ✅ **§16.6 — exam-mode display leaks — BUILT 2026-07-25 (`7e845fb`),
+>     and ⚠ COMPLETED 2026-08-03 — it had missed the wrapper TITLE.** A case
+>     study's title names the diagnosis ("Diabetic Ketoacidosis", "Sepsis
+>     and Septic Shock"), and NGN's opening CJMM step is *Recognise cues* —
+>     so the header answered question 1 before it was asked. Sealed by
+>     `f23a562`. **⚠ It seals on LIVE, not on EXAM, and that is the point:**
+>     this is not scaffolding that teaches, it is answer content, so it
+>     joined Pillar 2 (the `status = 'IN_PROGRESS'` projection that already
+>     withholds the answer key and rationale) rather than the
+>     `hideExamScaffold` flag below. Study sittings are sealed too, for the
+>     same reason nobody hands a study sitting the answer key. **Do not
+>     reach for `hideExamScaffold` for the next leak of this class without
+>     first asking whether it is scaffolding or an answer.**
+>     Original entry follows.
 >     During a live exam the runner no longer shows the difficulty pill (a
 >     live readout of the engine's opinion of the candidate), the subject chip
 >     (Sam chose to strip this too — "an exam is an exam"), the `Case N of M`
@@ -762,10 +775,14 @@
 > History doorway was reporting a 50-row query limit as a real total.
 > **⚠ Not tested by Sam** — merged on his explicit instruction; first
 > user-eyes pass still outstanding.
-> **⏭ NEXT on CAT:** §16.6 exam-mode display leaks (the
-> difficulty chip broadcasting the engine's opinion mid-exam — seen on screen
-> during 6c testing) · the Builder's EXAM-intent CAT option (§2.3) + public
-> `/help/cat` (§3.2), the two pieces of Slice 9 still open.
+> **⏭ NEXT on CAT — corrected 2026-08-03.** Two of the three items listed
+> here were built and the marker was never moved: **§16.6 exam-mode display
+> leaks** shipped 2026-07-25 (`7e845fb`, item 10 below), and public
+> **`/help/cat`** shipped the same day (slice 6.4). ⚠ §16.6 turned out to be
+> incomplete — the **wrapper title** leaked on, and was sealed 2026-08-03;
+> that fix seals on **live**, NOT on exam, so do not reach for
+> `hideExamScaffold` for the next leak of this class. What actually remains
+> on CAT is **one** thing: the Builder's **EXAM-intent CAT option** (§2.3).
 > **Two decisions reopened, noted not changed:** §9.3 the 4-hour time limit
 > (vs real NCLEX's 5 — now a one-constant change) and §9.1.1 the passing standard
 > (theta 0.0 was inherited, not chosen). Both in cat.html §19 carried-forward.
@@ -779,6 +796,25 @@ Not exhaustive — design surprises happen — but the shape is settled
 where it's listed.
 
 Status legend: ✅ done · 🔨 in progress · ⏭ next · ⬜ pending
+
+> ⚠ **THESE MARKERS DRIFT — a 2026-08-03 audit found nine slices marked
+> pending that were fully built**, some for months (the Rasch engine, the
+> recalibration job, preflight, the results screen, the help routes,
+> discard, mark-for-review, the Builder's mobile variant, payments 5+6).
+> Each is now ✅ with a "marker corrected" note naming the evidence.
+>
+> The cause is structural, not carelessness: work lands via the **session
+> blocks above**, which are written as the work happens, while this
+> slice-by-slice list is a *plan* nobody revisits on the way past. When a
+> slice ships, flip it here too — and when reading, trust the session
+> blocks and the OPEN LIST over this section.
+>
+> ⚠ Verified-still-open after that audit, so these ⬜ are real: **7.2**
+> student analytics · **7.3** per-student-per-question state · **8.1/8.2**
+> tutor/admin runner QA · **5.5** curator tag allowlist · **5.6** source
+> breakdown · **5.7** My Payments · the two **2.4** pg_cron sweeps
+> (`nclex_timeout_sweep` / `nclex_orphan_cleanup` are named in a migration
+> comment but never created).
 
 > **PER-QUESTION TIME ENGINE — ✅ Slices 1–3 BUILT + Sam-tested + MERGED to
 > `main` 2026-07-12 (NOT prod).** The runner-level capability that fills
@@ -3126,9 +3162,9 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 ### Phase B — CAT schema & engine
 
-- ⬜ **3.1** CAT schema package (§12.7 of cat.html) — `difficulty_irt` + `difficulty_source` on bank + tutor tables, 5 CAT cols on `nclex_attempts`, 4 CAT cols on `nclex_attempt_items`, audit table `nclex_bank_item_calibration_history`, RPC stubs (`create_cat_attempt`, `cat_next_item`) raising "not yet implemented." Sam-gated dev → prod.
-- ⬜ **3.2** Rasch engine — fill in `create_cat_attempt` and `cat_next_item` bodies with TS Rasch (1PL) math per §4 + §10.2. Selection rule per §7, termination per §9.
-- ⬜ **3.3** Recalibration job — weekly batch (Sundays 02:00 UTC), 30-response threshold, 70/30 dampened blend. Runtime location TBD (Supabase pg_cron vs Cloudflare Worker).
+- ✅ **3.1** CAT schema package (§12.7 of cat.html) — `difficulty_irt` + `difficulty_source` on bank + tutor tables, 5 CAT cols on `nclex_attempts`, 4 CAT cols on `nclex_attempt_items`, audit table `nclex_bank_item_calibration_history`, RPC stubs (`create_cat_attempt`, `cat_next_item`) raising "not yet implemented." Sam-gated dev → prod. **Marker corrected 2026-08-03** — built as CAT Slice 1: `db/migrations/20260808120000_cat_slice1_schema.sql`, with the audit table landing in `20260825120000_calibration_history.sql`.
+- ✅ **3.2** Rasch engine — fill in `create_cat_attempt` and `cat_next_item` bodies with TS Rasch (1PL) math per §4 + §10.2. Selection rule per §7, termination per §9. **Marker corrected 2026-08-03** — `lib/cat/rasch.ts` + `lib/cat/termination.ts` (both with test suites); the whole CAT arc is live on prod since release `e636665`.
+- ✅ **3.3** Recalibration job — weekly batch (Sundays 02:00 UTC), 30-response threshold, 70/30 dampened blend. Runtime location TBD (Supabase pg_cron vs Cloudflare Worker). **Marker corrected 2026-08-03** — built as **Slice 10c**; the runtime question resolved to a **GitHub Action**, `.github/workflows/recalibrate.yml`, proven by a live green run. ⚠ Its schedule targets **prod** and has been live since 2026-07-29.
 
 ### Phase C — Runner (smallest visible loop first)
 
@@ -3156,9 +3192,9 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 - ✅ **4.6** History page + Resume detection — shipped 2026-05-10 across two sub-slices + two bug fixes that surfaced during testing. Save-progress half already shipped in 4.5a/b; what was missing was the entry point UX. See SESSIONS 2026-05-10 for the slice + bug-hunting session.
   - ✅ **4.6a** History page (MVP) — new `/student/bank/history` route replacing the Placeholder. Table card listing every attempt the student has (newest first, capped at 50, no pagination): When · Session · Source·Mode · Result · State · action. Status maps to action: COMPLETED/TIMED_OUT → Review →; IN_PROGRESS → Resume → (DRAFT restore from 4.5b takes over); ABANDONED → no link (hidden by default, toggleable). Search input + source/mode filter chips render disabled as visible placeholders for slice 7.1 polish. Source pill always says "Custom" in v1 (forward-compat for Packs/Programmes via SOURCE_LABEL map). Session column reuses `summariseRecent()` from launchers so each row reads as e.g. "Pharmacology · Hard · 25 Q." New folder `lib/practice/history/` (queries / types / format / table) + new `styles/history.css`. Commit `6cdc9dc`. **Hot-fix during testing** — UL students returning to an in-progress attempt saw "Loading review data…" for previously-submitted Qs. Cause: `page.tsx` applies sealed projection while `status=IN_PROGRESS` (Pillar 2), and `clientUnseal` (per-Q envelope from `submitAnswerAction`) is React state lost on reload. 4.5b correctly set `itemMode='review'` for finalised UL rows but the data those rows need to render was nowhere on the page. Fix: narrow follow-up query in the live branch fetches unseal columns ONLY for items whose answer row is finalised (SUBMITTED / AUTO_SUBMITTED / SKIPPED — never DRAFT); threads through `LiveData.seededUnseal`, seeds `clientUnseal` on mount. Pillar 2 holds — only items the student already submitted get unsealed. `PerItemUnseal` moved to canonical home in `lib/practice/runner/types`. Commit `16537f5`.
   - ✅ **4.6b** Resume banner surfaces EXAM attempts (non-CAT) — extends the banner shipped in 5.1c. Drops the `intent='STUDY'` filter from `get-resumable-attempt.ts` (5.1c filtered to STUDY based on the original §15 rule; 4.5a's revised attempt-creation §6.1.3 made timed EXAM resumable mid-timer). Adds `mode != 'CAT'` defensively for Phase B. Banner sub-line now mode-aware: timed → "Resume soon — the clock kept running while you were away."; untimed → "Pick up exactly where you left off." Commit `80fdbfa`. **Hot-fix during testing** — Sequential resume was stuck. `current` initialised to 0 always; on Sequential resume Q1 was SUBMITTED but `pendingAnswers` only seeds DRAFT rows so Q1 re-rendered in 'answering' mode with empty state. Sequential locks Prev + grid (4.5c) → student stuck; RPC blocks resubmit. Fix: `current` initialiser walks items, lands on first index whose answer row is missing or DRAFT — the natural "where you left off" position. Universal across archetypes (Sequential breaks; UL + Free-batched are UX-improved). Commit `823a2bd`.
-- ⏭ **4.7** Mark-for-review toggle — runner button, writes to marking table, persists across attempts.
-- ⬜ **4.8** Discard / abandon — modal with type-DELETE-to-confirm, calls `nclex_discard_attempt`.
-- ⬜ **4.9** Review state polish — read-only post-completion view, list + detail with filters (All / Wrong / Right / By category / Marked).
+- ✅ **4.7** Mark-for-review toggle — runner button, writes to marking table, persists across attempts. **Marker corrected 2026-08-03** — built 2026-07-30, but ⚠ **as TWO features, not one**: this slice's single "mark" was really *flag* (per-sitting, `nclex_attempt_items.is_flagged`, migration `20260902120000`) and *bookmark* (per-student, `nclex_question_marks`). The wording above describes only the bookmark half — "persists across attempts" is exactly what a flag must NOT do. Doc: `docs/product-plan/flag-and-bookmark.md`.
+- ✅ **4.8** Discard / abandon — modal with type-DELETE-to-confirm, calls `nclex_discard_attempt`. **Marker corrected 2026-08-03** — built 2026-07-30 alongside the History rebuild; migration `20260901120000_discard_attempt.sql` (a SECURITY DEFINER function, because a student has no UPDATE policy on `nclex_attempts`). Practice attempts only, measured not assumed.
+- ✅ **4.9** Review state polish — read-only post-completion view, list + detail with filters (All / Wrong / Right / By category / Marked). **Marker corrected 2026-08-03** — the review view and its filters exist; the grid's colour key became the filter in the scoring-strip arc (slice 3b), covering All / Wrong / Right / Partial / Skipped / Flagged. ⬜ Two gaps from the original wording remain: a **By category** filter, and a **skipped** question still reads WRONG in the strip (already settled the other way in the session report as *"Not answered"*, grey not red).
 
 ### Phase D — Builder (the entry point)
 
@@ -3170,7 +3206,7 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
   - **Tab restructure** — Intent + Mode moved to its own tab in front of Filters. Prevents the "fill out filters, then pick CAT, watch them collapse" UX trap.
   - **All-pool-chip fix** — `All` chip now correctly sends *no pool filter* instead of accidentally AND-restricting to marked items.
   - Mobile variant **deferred** — desktop-only for now. See 5.1e below.
-- ⬜ **5.1e** Mobile variant — accordion sections + sticky bottom action bar (live count + Start) on ≤720px. Per Claude Design's 390px artboard. Important because audience is phone-first; deferred until the runner exists so we polish a complete pipeline rather than a half one.
+- ✅ **5.1e** Mobile variant — accordion sections + sticky bottom action bar (live count + Start) on ≤720px. Per Claude Design's 390px artboard. Important because audience is phone-first; deferred until the runner exists so we polish a complete pipeline rather than a half one. **Marker corrected 2026-08-03** — the Builder was made mobile-compatible 2026-07-24, and reviewed again 2026-07-25 when Sam looked at the accordion on a real phone and decided it **stays as-is** (collapsing the default-open axes trades away discoverability and the live per-row counts to shorten a scroll that read fine). The same review split the crowded Filters tab into **three** tabs — Intent & Mode · Question pool · Content filters — verified at 375px with zero horizontal overflow.
 - ✅ **5.2** Recent Quizzes — shipped as part of 5.1c. Top-3 finished attempts as one-tap chips; click restores the saved configuration into the Builder form via `parseFilterPayload`.
 - ✅ **5.3** Weak-spots quick-start — shipped as part of 5.1c. v1 heuristic only (`pool=Incorrect`); replace with real analytics when slice 7.x lands.
 - ✅ **5.4** Unfinished-session banner — shipped as part of 5.1c (Resume banner). Latent until the runner fires `nclex_mark_attempt_started` and writes answers — currently no real students would see it because the runner stub doesn't call those.
@@ -3184,10 +3220,10 @@ Sources: `docs/product-plan/bank-consumption.html` (parent),
 
 ### Phase E — Preflight, results, help
 
-- ⬜ **6.1** Preflight screen — between builder Start click and Q1; shows config summary, mode-specific note, "skip preflight next time" checkbox (per-mode localStorage). Calls `nclex_mark_attempt_started`.
-- ⬜ **6.2** Results screen (fixed-length) — score, session-scoped breakdown across 6 axes, transition to Review.
+- ✅ **6.1** Preflight screen — between builder Start click and Q1; shows config summary, mode-specific note, "skip preflight next time" checkbox (per-mode localStorage). Calls `nclex_mark_attempt_started`. **Marker corrected 2026-08-03** — `app/(app)/(focused)/session/[attempt_id]/preflight.tsx`; the screen shipped back in slice 4.1.3 and has been extended since (CAT has its own preflight — there is deliberately **no** single shared one).
+- ✅ **6.2** Results screen (fixed-length) — score, session-scoped breakdown across 6 axes, transition to Review. **Marker corrected 2026-08-03** — `lib/practice/runner/results-popup.tsx` for the end-of-sitting moment, and the per-axis breakdown now lives on the **Session Report** (`/student/bank/session/report/[attemptId]`, 2026-07-30) rather than in the popup — Sam's reshaping: the popup is a moment, the report is a destination. ⚠ Settled 2026-08-01 that the popup **stays a centred modal** on phones rather than becoming a sheet.
 - ✅ **6.3** CAT summary page — **BUILT 2026-07-20** (`7462682`; = CAT plan **Slice 7**, §13; app-layer, no migration; vitest 280 → 306). Verdict copy, items-administered fact line, **trajectory graph** (theta over question number, with passing-standard reference + a 95% confidence band + per-item marker), per-Client-Needs-Category breakdown, "Compared to your previous CATs" panel, "Review answers" CTA + a "take another CAT" secondary, and the abandoned CAT as its own surface. Built from a Claude Design prototype (two rounds). **Raw theta / SE / duration deliberately NOT shown** — engine internals aren't a student-facing measure. **⚠ Finding:** category percentages read 19–48% beside a 98%-confident pass — correct, not a bug (a CAT serves at the edge of ability, so raw success converges near half for everyone), so the footnote now names that effect as well as partial credit. See cat.html §19.4.5.
-- ⬜ **6.4** Help routes — `app/help/[slug]/` (top-level, public, audience-neutral). First articles: `/help/cat`, `/help/payments`. Linked from CAT preflight + summary footer + dashboard CAT card.
+- ✅ **6.4** Help routes — `app/help/[slug]/` (top-level, public, audience-neutral). First articles: `/help/cat`, `/help/payments`. Linked from CAT preflight + summary footer + dashboard CAT card. **Marker corrected 2026-08-03** — built 2026-07-25 as a whole public Help section: a `/help` hub, `/help/cat` and `/help/readiness-packs` (a bonus Sam asked for), flat `/help/[slug]`, outside the auth boundary. ⚠ Actual path is **`app/(public)/help`**, not the `app/help` this line specifies. ⬜ **`/help/payments` is still unwritten** — the only article from the original wording that does not exist.
 
 ### Phase F — Dashboard, history, analytics
 
@@ -4032,7 +4068,7 @@ Slice order from the adopted Claude Design proposal
   `20260531120000` (dev only). **Deferred:** "did you mean gmail.com?"
   email typo hint (we verify format only — Convert's invite is the real
   deliverability test).
-- ⬜ **Slice 5+6 (combined)** On-platform checkout + subscriptions +
+- ✅ **Slice 5+6 (combined)** — **marker corrected 2026-08-03**: built and on prod. Schema `20260601120000_slice_5_1_payments_schema.sql` (incl. `nclex_subscriptions`) + `20260602120000_slice_5_3_subscription_payment_unique.sql`, public checkout at `app/(public)/checkout`. ⚠ Two gaps behind it are real and still open: **no transactional email** (nothing built — see the email-trigger registry) and the **trial is unwired**. Original wording follows. On-platform checkout + subscriptions +
   standalone bank. Slices 5 and 6 were merged 2026-05-21 — the bank
   opt-in card at programme checkout can't activate without
   `nclex_subscriptions`, so building them apart would ship a half-wired
