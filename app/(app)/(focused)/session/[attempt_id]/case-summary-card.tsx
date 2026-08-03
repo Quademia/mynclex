@@ -14,12 +14,21 @@
 // chart — never the clinical detail itself, because a student must read
 // that in the panel where the tabs and their reveal rules live, not from
 // a paraphrase in the margin.
+//
+// ⚠ The title is SEALED during a live sitting (page.tsx, Pillar 2) — it
+// names the diagnosis, which is the answer to the opening question. So
+// `title` is optional here and the card must read correctly without it:
+// the eyebrow ("Case study" / "Trend dataset"), the progress count and
+// the View-chart button all still do their jobs. This card is the ONLY
+// thing identifying the wrapper on a phone, which is why it is a fallback
+// rather than a blank.
 
 'use client';
 
 interface Props {
   kind: 'case' | 'trend';
-  title: string;
+  /** Absent while the sitting is live — see the seal note above. */
+  title?: string;
   /** Chart tabs in the panel — the button says how much is behind it. */
   tabCount: number;
   /** Cases only: position within the case block, e.g. 2 of 6 answered. */
@@ -55,7 +64,7 @@ export function CaseSummaryCard({
         )}
       </div>
 
-      <div className="title">{title}</div>
+      {title ? <div className="title">{title}</div> : null}
 
       {cjmmStepLabel && <div className="step">{cjmmStepLabel}</div>}
 

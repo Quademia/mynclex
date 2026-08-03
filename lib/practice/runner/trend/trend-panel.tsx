@@ -45,7 +45,11 @@ export function TrendPanel({ trendSnap, resolveImageUrl }: Props) {
           <span className="dot" aria-hidden="true" />
           Trend data
         </div>
-        <div className="title">{trendSnap.title_snapshot}</div>
+        {/* Sealed live — see case-panel.tsx. "Sepsis Vital-Sign
+            Deterioration" answers the question it is shown beside. */}
+        {trendSnap.title_snapshot ? (
+          <div className="title">{trendSnap.title_snapshot}</div>
+        ) : null}
       </div>
 
       {(() => {

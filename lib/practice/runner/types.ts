@@ -108,14 +108,21 @@ export interface AnswerRow {
 
 export interface CaseSnapshot {
   case_id:                   string;
-  title_snapshot:            string;
+  // ⚠ OPTIONAL because it is SEALED during a live sitting — a case title
+  // names the diagnosis ("Diabetic Ketoacidosis"), which is the answer to
+  // the opening "Recognise cues" question. page.tsx omits the column from
+  // the projection while status is IN_PROGRESS, exactly as it omits the
+  // answer key and rationale. Absent live, present in review; the stored
+  // column is NOT NULL and untouched. Never render it without a fallback.
+  title_snapshot?:           string;
   scenario_summary_snapshot: string | null;
   tabs_snapshot_json:        unknown[];
 }
 
 export interface TrendSnapshot {
   trend_id:                 string;
-  title_snapshot:           string;
+  /** Sealed live — see the note on CaseSnapshot.title_snapshot. */
+  title_snapshot?:          string;
   scenario_snapshot:        string | null;
   // Frozen chart tabs (Slice 3b). The trend stimulus is entirely
   // tab-based since Slice 4 retired the flat grid.

@@ -68,6 +68,33 @@ const UNSEALED_ITEM_COLUMNS =
   SEALED_ITEM_COLUMNS +
   ', correct_answer_snapshot_json, rationale_snapshot, rationale_img_snapshot';
 
+// ── Pillar 2, extended to the WRAPPER TITLE (2026-08-03) ─────────────
+// A case study's title is not a label, it is the answer to the first
+// question. Real examples from the bank: "Diabetic Ketoacidosis",
+// "Sepsis and Septic Shock", "Small Bowel Obstruction", "Hyponatremia
+// (SIADH)" — and NGN's opening CJMM step is literally "Recognise cues".
+// One even narrates the whole six-question arc ("Acute Ischaemic Stroke:
+// From Cue Recognition to Post-tPA Evaluation"). Trend titles do the same
+// ("Sepsis Vital-Sign Deterioration"), where "is this deteriorating?" is
+// often the question being asked.
+//
+// ⚠ Sealed on LIVE, not on EXAM. This is deliberately NOT the §16.6
+// exam-scaffold rule (`intent === 'EXAM' && isLive`, runner.tsx), because
+// this is not scaffolding that teaches — it is answer content, the same
+// class as the rationale and the answer key above. Nobody argues a study
+// sitting should be handed the answer key because study teaches, and the
+// same reasoning applies here. Study modes are sealed too; review of ANY
+// finished sitting restores it, which is when the title earns its keep
+// (it is how a case is recognised in History and the reports).
+//
+// ⚠ The stored snapshot is never touched — only what we send. The column
+// stays NOT NULL and every review surface still reads it.
+const SEALED_CASE_COLUMNS   = 'case_id, scenario_summary_snapshot, tabs_snapshot_json';
+const UNSEALED_CASE_COLUMNS = SEALED_CASE_COLUMNS + ', title_snapshot';
+
+const SEALED_TREND_COLUMNS   = 'trend_id, scenario_snapshot, tabs_snapshot_json';
+const UNSEALED_TREND_COLUMNS = SEALED_TREND_COLUMNS + ', title_snapshot';
+
 
 interface PageProps {
   params: Promise<{ attempt_id: string }>;
@@ -169,7 +196,9 @@ export default async function SessionPage({ params }: PageProps) {
   }
 
   const isLive = attempt.status === 'IN_PROGRESS';
-  const itemColumns = isLive ? SEALED_ITEM_COLUMNS : UNSEALED_ITEM_COLUMNS;
+  const itemColumns  = isLive ? SEALED_ITEM_COLUMNS  : UNSEALED_ITEM_COLUMNS;
+  const caseColumns  = isLive ? SEALED_CASE_COLUMNS  : UNSEALED_CASE_COLUMNS;
+  const trendColumns = isLive ? SEALED_TREND_COLUMNS : UNSEALED_TREND_COLUMNS;
 
   const [items, cases, trends, answers] = await Promise.all([
     supabase
@@ -179,14 +208,11 @@ export default async function SessionPage({ params }: PageProps) {
       .order('position', { ascending: true }),
     supabase
       .from('nclex_attempt_case_snapshots')
-      .select('case_id, title_snapshot, scenario_summary_snapshot, tabs_snapshot_json')
+      .select(caseColumns)
       .eq('attempt_id', attempt_id),
     supabase
       .from('nclex_attempt_trend_snapshots')
-      .select(
-        'trend_id, title_snapshot, scenario_snapshot, ' +
-        'tabs_snapshot_json',
-      )
+      .select(trendColumns)
       .eq('attempt_id', attempt_id),
     supabase
       .from('nclex_attempt_answers')
