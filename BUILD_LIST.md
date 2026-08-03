@@ -347,7 +347,20 @@
 >
 > ### Bigger CAT work still open
 >
-> 10. ✅ **§16.6 — exam-mode display leaks — BUILT 2026-07-25 (`7e845fb`).**
+> 10. ✅ **§16.6 — exam-mode display leaks — BUILT 2026-07-25 (`7e845fb`),
+>     and ⚠ COMPLETED 2026-08-03 — it had missed the wrapper TITLE.** A case
+>     study's title names the diagnosis ("Diabetic Ketoacidosis", "Sepsis
+>     and Septic Shock"), and NGN's opening CJMM step is *Recognise cues* —
+>     so the header answered question 1 before it was asked. Sealed by
+>     `f23a562`. **⚠ It seals on LIVE, not on EXAM, and that is the point:**
+>     this is not scaffolding that teaches, it is answer content, so it
+>     joined Pillar 2 (the `status = 'IN_PROGRESS'` projection that already
+>     withholds the answer key and rationale) rather than the
+>     `hideExamScaffold` flag below. Study sittings are sealed too, for the
+>     same reason nobody hands a study sitting the answer key. **Do not
+>     reach for `hideExamScaffold` for the next leak of this class without
+>     first asking whether it is scaffolding or an answer.**
+>     Original entry follows.
 >     During a live exam the runner no longer shows the difficulty pill (a
 >     live readout of the engine's opinion of the candidate), the subject chip
 >     (Sam chose to strip this too — "an exam is an exam"), the `Case N of M`
