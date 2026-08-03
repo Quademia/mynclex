@@ -28,7 +28,11 @@
  *   ✅ SLICE 4 — case / trend stack + summary card + chart sheet
  *   ✅ SLICE 5 — matrix row-cards, bow-tie stack
  *   ✅ SLICE 6 — calculator docked
- *   ⬜ SLICE 7 — landscape drawers
+ *   ❌ SLICE 7 — landscape drawers. CANCELLED 2026-08-03 (Sam): phones
+ *                stay portrait. The tablet complaint that made it look
+ *                urgent was a DESKTOP-layout floor, fixed as the
+ *                900–1300px band below. Reopen only if reported.
+ *   ✅ TABLET LANDSCAPE — the 900–1300px band below (2026-08-03)
  *
  * WHY CONTAINER QUERIES, NOT @media
  * ─────────────────────────────────

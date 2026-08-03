@@ -1,7 +1,8 @@
 # Runner — mobile compatibility
 
-Last updated: 2026-07-31 (slices 1–5 built + verified on dev, incl. the real
-/session route; 6–8 open)
+Last updated: 2026-08-03 (**the arc is CLOSED.** Slices 1–6 + 8 built; the
+tablet-landscape band added; **slice 7 cancelled by Sam**. Two defects fixed
+that this document had mis-diagnosed — see *The problem, measured*.)
 
 ## What this is
 
@@ -37,6 +38,28 @@ Not "it looks cramped" — the numbers, verified against the repo at
   + 24px gap = **924px minimum** (`runner.css:493`). Below that it cannot
   lay out honestly.
 
+⚠ **CORRECTION (2026-08-03) — that last bullet is the number, not the
+cause, and this document leaned on it for three sessions.** The 924px is
+real, but it is not what stops the split shrinking. Measured on the
+rendered page:
+
+- **`.rn-cjmm-strip` is the actual floor.** The 6-step stepper is a
+  `nowrap` flex row with a min-content width of **534px**, and it alone
+  holds the question column at 536px. Delete it and the entire rest of a
+  case question — stem, meta, options, matrix — fits in **180px**. It sits
+  within **2px** of the 520px column floor by coincidence, which is
+  precisely why the floor looked like the culprit for so long.
+- **`.rn-q-wrap`'s `margin: 0 auto` defeats the clamp.** On a grid item
+  auto margins suppress stretch, so the wrap sizes shrink-to-fit to its own
+  min-content and **overflows its track** rather than filling it — which
+  also renders `max-width: 100%` on `.rn-matrix` inert, since 100% then
+  resolves against a parent sized by that same content. ⚠ `runner.css`'s
+  own comment above `.rn-q-wrap` calls this margin *"a no-op inside a
+  case"*. It is not a no-op; it is the defect.
+
+Consequence: lowering the column floors alone does nothing, which is what
+the first attempt at this did. Both had to be fixed together.
+
 ## Strategy
 
 **One rule: the question column is the phone screen. Everything else
@@ -52,16 +75,30 @@ chrome problem, not an interaction-model problem** — which is why the
 arc is additive rather than a rewrite.
 
 **Container queries, not `@media`.** Every rule keys off the width of
-`.rn` itself. In production `.rn` *is* the viewport so they are
-equivalent, but keying off the element means the phone layout also
-renders correctly inside a frame — design review, screenshots, and the
-runner tutorial sandbox — instead of being something only a real device
-can show. `container-type: size` (not `inline-size`) because the
-landscape rules query height.
+`.rn` itself, which means the phone layout also renders correctly inside a
+frame — design review, screenshots, and the runner tutorial sandbox —
+instead of being something only a real device can show.
+`container-type: size` (not `inline-size`) because the landscape rules
+query height.
+
+⚠ **This section used to say "in production `.rn` *is* the viewport so
+they are equivalent". That is FALSE, and it shipped a bug** (fixed
+2026-08-03). A classic scrollbar sits between the two: at a **900px
+viewport `.rn` is 885px**. The CSS hid the case panel via the container
+query while `useIsCompact()` — reading the *viewport* through
+`matchMedia` — stayed `false` and never rendered the `<CaseSummaryCard>`
+that stands in for it. In that band a case question showed **no scenario
+at all**. Not clipped: absent. `use-is-compact.ts` now observes the
+element with a `ResizeObserver`, so the two are structurally incapable of
+disagreeing. **Never reintroduce a viewport measurement in this arc.**
 
 **Breakpoint 899px**, derived not picked: it is where `.rn-split`'s
 924px minimum gives out. Tablets in portrait get the phone layout rather
 than a broken desktop one.
+
+**Second band — 900–1300px, tablet LANDSCAPE** (added 2026-08-03). Not a
+phone layout: the desktop layout stays, and four rules stop it clipping.
+See *The tablet-landscape band* below.
 
 **Desktop is untouched, structurally.** The six new nodes are neutralised
 above 900px by `display: contents` / `display: none`, not by promise.
@@ -120,23 +157,30 @@ sheet shell and the mode brief does not move, it *disappears* on phones.
 **Fix: `runner-sheet.tsx` lands in slice 1.** The slicing below reflects
 that.
 
-## ▶ NEXT SESSION — start here
+## ▶ THE ARC IS CLOSED — nothing queued
 
-**State: slices 1–5 are built, verified and MERGED to `main`
-(2026-07-31). Not on prod.** Slices 6–8 are open.
+**State (2026-08-03): slices 1–6 and 8 built and verified; the
+tablet-landscape band built and verified; slice 7 CANCELLED by Sam.**
+There is no next slice. Do not pick this arc up as queued work.
 
-Pick up with **slice 6**, and do the two things in this order:
+What "cancelled" means here, in Sam's words: **phones stay portrait.** We
+are not designing a landscape phone experience, and if a student reports
+one we reopen it — a decision, not an oversight. The reasoning is under
+*Slice 7* below.
 
-1. **Settle the results sheet before writing any of it.** `runner.tsx`
-   already types `sheet` as `'grid' | 'chart' | 'calc' | 'menu' |
-   'results'`, and `'results'` is the only one never implemented or
-   specified. Ask Sam what it is: almost certainly "the end-of-sitting
-   results popup becomes a sheet on compact", but that is an inference.
-   The popup today is `showResults` in `runner.tsx`, reopened from the
-   topbar pill in review.
-2. **Then the calculator.** The section is waiting verbatim in
-   `docs/product-plan/design-handoff/runner-mobile/runner-mobile.css`
-   under *Calculator, docked*, plus the remaining ⋯ menu rows.
+⚠ **The one known hole, accepted knowingly.** We cannot stop a student
+rotating. A **large phone** in landscape — iPhone 15/16 Pro Max is 932px
+wide — lands just above the 899px line and therefore gets the **full
+desktop layout on a phone**, where case/trend still clip (measured: 139px
+at 900, 79px at 960, grid rail open). Smaller phones are unaffected: an
+iPhone 14 sideways is 844px, under the line, phone layout.
+
+A cheap guard was offered and **declined**: make the phone layout apply
+when the container is narrow **or short** (`height ≤ 520px`). It is ~3
+lines now that `use-is-compact.ts` observes the element and already has
+the height, and it separates cleanly — phones in landscape are 375–430px
+tall, every tablet in landscape is ≥744px, so no tablet would be touched.
+Recorded here so reopening is cheap.
 
 **How to work this arc** (it paid off five times, so keep doing it):
 
@@ -533,15 +577,98 @@ verification limit this document already records. The decision rests on
 computed CSS plus what the element is for, not on the rendered page.
 Look at it during the next signed-in pass.
 
-### ⬜ Slice 7 — Landscape layer
+### ✅ The tablet-landscape band — 900–1300px  *(built 2026-08-03)*
 
-`@container rn (max-height: 520px)`. Sheets become right-edge drawers; a
-bottom sheet in 390px of height is useless. Above 700px wide the split,
-the matrix table and the bow-tie shape all return.
+**Not in the handoff, and not a phone layout.** The desktop layout stays
+exactly as it is; four rules stop it clipping.
 
-Explicitly **not** a scaled-down desktop: fitting 924px into 844 means
-`zoom ≈ 0.62`, which drops body copy to 9.6px and overrides the
-student's own iOS text-size setting.
+**Why it existed.** A tablet in portrait is ≤899px and gets the phone
+layout — Sam tested that and it was fine. **Rotate it** and the desktop
+layout takes over at a width it cannot honour. Measured at 1024×768
+(classic 4:3 iPad landscape, and much of Android): **35px of the question
+cut with the grid rail closed, 227px with it open** — and with **no page
+scrollbar**, so the hidden part was reachable only via a sub-region
+scrollbar a student will never find. Case study and trend only; all 11
+standalone types measured clean.
+
+⚠ **The threshold moves with the grid rail**, which is why it looked
+size-dependent: the rail is a fixed 240px open / 87px collapsed. Same
+1180px viewport — **56px cut with the grid open, 0px with it closed.**
+
+The cause was **not** the 520px floor; see the correction under *The
+problem, measured*. The four rules:
+
+```css
+@container rn (min-width: 900px) and (max-width: 1300px) {
+  .rn-split      { grid-template-columns: minmax(250px, 1fr) minmax(400px, 720px); }
+  .rn-cjmm-strip { flex-wrap: wrap; }
+  .rn-q-wrap     { min-width: 0; }
+  .rn-matrix     { max-width: 100%; overflow-x: auto; }
+  .rn-split > .rn-q-wrap { margin-inline: 0; }   /* the load-bearing one */
+}
+```
+
+- The case column keeps `1fr`, so its floor **only binds in the tightest
+  configuration** (narrow screen AND rail open); with the rail closed the
+  panel still grows past 400px.
+- Wrapping the strip costs **no height until it actually wraps** — 44px is
+  its normal single-row height, not an increase. (⚠ I claimed a 44px
+  vertical cost mid-session and it was a misreading of my own measurement.)
+- ⚠ **1300, not 1250:** at 1251 the desktop floors land on *exactly* the
+  width available (939 vs 939) — zero margin. The band must end where the
+  desktop layout has room to spare, not where it merely fits.
+
+⚠ **The grid rail is deliberately untouched.** Narrowing it to 180px fixes
+the split but overflows `.rn-cells` (needs 204px; fixed 5-column grid) —
+and the case bands are absolute-positioned from **JS-computed offsets**
+against those cells, which the 2026-07-31 slice already broke once. Not
+worth 60px.
+
+**Verified**, grid rail OPEN (the worst case): all **18** tutorial
+questions — 11 types + both wrappers — **0px clipped across 1024–1300**.
+Desktop proven untouched **by computed style** at 1440 (tracks
+`384px 720px`; every band rule confirmed off). Console clean.
+Sam confirmed on a real tablet.
+
+⚠ **Measured, not structural.** The band is verified against the
+tutorial's content. A case study with a **substantially wider matrix**
+than any we hold could still clip; the general answer is the phone's
+row-card treatment, deliberately not pulled into this band.
+
+⚠ A **pre-existing** 16px overflow inside `.rn-q-wrap` on SELECT_N at
+390px was found and confirmed present on unmodified code (verified by
+stashing the change and re-measuring). Left alone — not a regression.
+
+### ❌ Slice 7 — Landscape layer  *(CANCELLED 2026-08-03, Sam)*
+
+**Was:** `@container rn (max-height: 520px)`. Sheets become right-edge
+drawers; a bottom sheet in 390px of height is useless. Above 700px wide
+the split, the matrix table and the bow-tie shape all return. Explicitly
+**not** a scaled-down desktop: fitting 924px into 844 means `zoom ≈ 0.62`,
+which drops body copy to 9.6px and overrides the student's own iOS
+text-size setting.
+
+**Why it was cancelled.** Two reasons, in order:
+
+1. **The tablet complaint that made it look urgent was never slice 7's to
+   fix.** It was a fixed-width floor in the *desktop* layout, and it is
+   now fixed there — by the band above, on the width axis, with no JS and
+   no breakpoint change. Slice 7 would have answered a tablet problem by
+   giving tablets a phone layout, which is the wrong shape of answer.
+2. **Sam's call: phones stay portrait.** We are not designing a landscape
+   phone experience. Reopen if a student reports one.
+
+Also weighing on it, and worth keeping if it is ever revisited: a
+landscape phone today is **cramped, not lying** — it shows correct
+information in a tight space, a materially weaker case than slice 8's
+public tutorial, which was actively teaching a screen that did not exist.
+And the expensive half (restoring the split) forces `useIsCompact` to
+become two-dimensional, touching the three structural decisions the whole
+arc rests on. If revisited, take **only the cheap half** — chrome shrink +
+sheets as right-edge drawers — and leave the split restoration alone.
+
+See *▶ THE ARC IS CLOSED* for the one accepted hole (large phones
+sideways) and the ~3-line guard that was offered and declined.
 
 ### ✅ Slice 8 — Runner tutorial pass  *(built 2026-08-01; not in the handoff)*
 
@@ -658,29 +785,26 @@ question off-screen. That is the argument for slice 4 next.
 
 ## ⬜ NOT BUILT — the complete list
 
-Everything below is knowingly absent as of 2026-07-31. Nothing here is a
-regression; each is either a later slice or a pre-existing condition.
+Everything below is knowingly absent as of 2026-08-03. Nothing here is a
+regression; each is either a cancelled slice or a pre-existing condition.
 
 **Slices**
 - ~~**6** — calculator docked.~~ ✅ **Built 2026-08-01.** The remaining ⋯
   rows turned out to be already done, and the results sheet is settled as
   a modal rather than built. Left behind: the nested `role="dialog"`
   inside the calculator sheet (see slice 6).
-- **7** — the landscape layer. At ≤520px height the phone layout applies
-  unchanged, so a bottom sheet eats most of the screen. No drawers, no
-  split/matrix/bow-tie restoration above 700px wide.
+- ~~**7** — the landscape layer.~~ ❌ **CANCELLED 2026-08-03 by Sam** —
+  phones stay portrait, reopen if a student reports it. The tablet
+  complaint that made it look urgent was fixed in the *desktop* layout
+  instead (see *The tablet-landscape band*), which is where it belonged.
+  Full reasoning, and the cheap half worth taking if it is ever revisited,
+  under *Slice 7* above.
 
-  ⚠ **Bigger than "one more block of CSS", established 2026-08-01.**
-  Every rule in this arc keys off WIDTH; landscape adds HEIGHT as a second
-  axis, and above 700px wide it *partly reverses* slices 3–5 (split,
-  matrix table and bow-tie shape return). One part **cannot be done in CSS
-  at all**: on compact the case/trend panel is not rendered beside the
-  question — `runner.tsx` renders a `<CaseSummaryCard>` in its place, a JS
-  decision made on width alone. Restoring the split therefore forces
-  `useIsCompact` to become two-dimensional, touching the three structural
-  decisions the whole arc rests on. A fair smaller cut: take only the
-  cheap half (chrome shrink + sheets as right-edge drawers) and leave the
-  split restoration alone.
+  ⚠ **Accepted hole:** a large phone sideways (iPhone 15/16 Pro Max,
+  932px) is just above the 899px line, so it gets the desktop layout and
+  case/trend clip there. A ~3-line guard (compact when narrow **or**
+  short) was offered and declined; it is described under *▶ THE ARC IS
+  CLOSED*.
 - ~~**8** — the runner tutorial pass.~~ ✅ **Built 2026-08-01.** ⚠ And one
   of its three stated defects — the avatar over the Previous button — was
   **never real**; it was the Next.js dev toolbar. See slice 8 above.
