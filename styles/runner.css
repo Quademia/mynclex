@@ -1515,12 +1515,38 @@
   line-height: 1.65;
   color: var(--text-muted);
 }
-.rn-cloze-feedback-item + .rn-cloze-feedback-item::before {
-  content: ' ';
+/* Separator follows the content — see the note in cloze.tsx.
+ * `.terms` (96% of the bank: no rationales anywhere in the blank) —
+ * bare labels, comma-joined, because a single space rendered
+ * "low high unchanged" as one run-on line. */
+.rn-cloze-feedback-rationales.terms
+  .rn-cloze-feedback-item + .rn-cloze-feedback-item::before {
+  content: ', ';
+  /* Inherit body colour, never the label's green — the comma belongs to
+   * the sentence, not to the option it happens to follow. */
+  color: var(--text-muted);
+  font-weight: 400;
 }
+/* `.prose` (at least one rationale) — one option per line. A comma here
+ * would collide with the rationale's own sentence punctuation. */
+.rn-cloze-feedback-rationales.prose .rn-cloze-feedback-item {
+  display: block;
+}
+.rn-cloze-feedback-rationales.prose .rn-cloze-feedback-item + .rn-cloze-feedback-item {
+  margin-top: 4px;
+}
+
+/* ⚠ ONLY the correct option is coloured (Sam, 2026-08-03). Every other
+ * label used to be #9b2c2c, which marked DISTRACTORS in the product's
+ * "you got this wrong" colour — so a student who answered correctly saw
+ * two or three red options beneath a header reading CORRECT. Ordinary
+ * body text now; the green is the only signal, which is also the more
+ * colour-blind-legible pairing since this list carries no ✓ glyph.
+ * ⓘ drag-cloze keeps its red on purpose — its distractors sit under a
+ * DISTRACTORS caption that explains the colour. This list has none. */
 .rn-cloze-feedback-label {
   font-weight: 600;
-  color: #9b2c2c;
+  color: var(--text);
 }
 .rn-cloze-feedback-item.right .rn-cloze-feedback-label {
   color: #15803d;
