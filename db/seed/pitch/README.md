@@ -65,16 +65,25 @@ them in order against dev to reset to a known state:
 05-demo-students.sql         18 students + enrolments, results, attendance
 06-demo-tutor.sql            the Steven Harris tutor identity
 07-demo-student.sql          the Miss Claudia Harris student login
+08-maternity.sql             one maternity set packaged four ways
+09-weekly-year.sql           the free weekly Q&A as 52 taught weeks
 ```
+
+Run all nine. `09` extends the free weekly Q&A programme that `08`
+creates, so the numbering is the dependency order, not a suggestion —
+and a reset that stops at `07` silently drops both the maternity
+packages and the year.
 
 Re-running is safe at any time: every statement is an upsert or an
 update, and dates that would otherwise rot are rebased on `CURRENT_DATE`.
 
-Two of them are generated — edit the generator, not the `.sql`:
+Four of them are generated — edit the generator, not the `.sql`:
 
 ```
 python3 db/seed/pitch/build_notes.py         # -> 02
 python3 db/seed/pitch/build_crash_course.py  # -> 03
+python3 db/seed/pitch/build_maternity.py     # -> 08
+python3 db/seed/pitch/build_weekly_year.py   # -> 09
 ```
 
 ## Removing the seeded students
