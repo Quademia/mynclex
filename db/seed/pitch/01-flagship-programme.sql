@@ -496,9 +496,12 @@ ON CONFLICT (cohort_id) DO UPDATE SET
 -- 8. Cohort checklist — every template activity, in both cohorts
 -- =====================================================================
 -- For a TUTOR_LED programme the student sees the curriculum THROUGH
--- these rows: no checklist row, no activity. The seed-on-cohort-INSERT
--- trigger described in db/schema.sql is not present on dev, so the
--- rows are written here explicitly.
+-- these rows: no checklist row, no activity. There is no
+-- seed-on-cohort-INSERT trigger to do it for us — one existed but was
+-- retired 2026-06-25, so a new cohort starts unconfigured BY DESIGN
+-- (absent row = the tutor has not included it yet). Hence the rows are
+-- written here explicitly; a demo cohort has no tutor to click
+-- "Include all".
 --
 -- release_date follows the same week-pacing default the app uses when
 -- it creates one of these rows (lib/curriculum/cohort-attach.ts):

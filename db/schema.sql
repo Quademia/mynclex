@@ -946,9 +946,10 @@ CREATE INDEX idx_nclex_cohorts_programme ON nclex_cohorts(programme_id);
 -- the per-type contract is the TS discriminated union in
 -- lib/curriculum/types.ts). Origin migration:
 -- db/migrations/20260512200000_slice_9_3a_curriculum_schema.sql.
--- The unit-count reconciliation triggers (slice 9.1d) and the
--- cohort-checklist seed trigger (9.3f) are functions — see the
--- migrations folder, per the RPC note at the foot of this file.
+-- The unit-count reconciliation triggers (slice 9.1d) are functions —
+-- see the migrations folder, per the RPC note at the foot of this file.
+-- (9.3f also shipped a cohort-checklist seed trigger. It was RETIRED
+-- on 2026-06-25 — see the note on nclex_cohort_checklist_items below.)
 
 CREATE TABLE nclex_programme_units (
   unit_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1094,8 +1095,22 @@ CREATE INDEX idx_nclex_programme_activities_cohort
 -- copy. Origin migrations:
 -- db/migrations/20260514120000_slice_9_3f_cohort_checklist.sql,
 -- db/migrations/20260515160000_slice_10_7_activity_window.sql.
--- The seed-on-cohort-INSERT trigger is a function — see the
--- migrations folder.
+-- There is NO seed-on-cohort-INSERT trigger. One shipped with 9.3f and
+-- was dropped on 2026-06-25 (migration
+-- 20260625130000_drop_cohort_checklist_seed_trigger.sql) when the
+-- checklist stopped being a snapshot taken at cohort creation and
+-- became an OVERRIDE on the LIVE template. Three states:
+--   • no row      — unconfigured. The TUTOR sees the activity rendered
+--                   from the template with default dates; STUDENTS do
+--                   not see it at all.
+--   • is_included — TRUE = included, FALSE = excluded.
+-- A row appears on the tutor's first explicit action, or in bulk via
+-- the "N unconfigured → Include all" affordance
+-- (includeAllUnconfiguredActivitiesAction). So a brand-new cohort
+-- correctly starts with ZERO rows — that is the design, not a missing
+-- seed. Rows seeded by the old trigger were left in place as valid
+-- overrides, which is why some older cohorts hold more rows than their
+-- programme currently has activities.
 
 CREATE TABLE nclex_cohort_checklist_items (
   checklist_item_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
