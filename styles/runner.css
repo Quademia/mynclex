@@ -548,10 +548,27 @@
 /* Scenario block — sits between the head and the tab row. Always
  * visible (doesn't scroll with the tab body), so the case's narrative
  * anchor stays in front of the student no matter which tab they pick. */
+/* ⚠ `overflow-y: auto` is LOAD-BEARING, not cosmetic (2026-08-03).
+ * `.rn-case` is a fixed-height flex column: head · scenario · tabs · body.
+ * A flex item's automatic minimum height is its CONTENT height, so with
+ * `overflow: visible` this scenario could not shrink by a single pixel —
+ * it kept its full height and the shortfall was taken entirely out of the
+ * two items that CAN shrink (a scroll container's automatic minimum is 0):
+ * the tab strip and the body. The tab strip is only 52px, so it collapsed
+ * to a sliver and then to nothing, and the student lost the only control
+ * that reaches the other charts. Measured: with a p90-length scenario the
+ * strip was unusable below a 706px viewport and gone below 636px.
+ * Making the scenario a scroll container lets it give ground first, which
+ * is right — it is reference text you dip into, not a control.
+ * ⚠ No `min-height` floor on purpose: flexbox already shrinks it
+ * proportionally and it settled at ~86px (about three lines) at the most
+ * extreme height tested. A 130px floor was measured and REJECTED — it did
+ * not help the scenario, it just starved the body (28px vs 50px). */
 .rn-case-scenario {
   padding: 10px 14px 12px;
   border-bottom: 1px solid var(--border);
   background: var(--white);
+  overflow-y: auto;
 }
 .rn-case-scenario .label {
   font-size: 10px;
@@ -567,12 +584,21 @@
   color: var(--text);
 }
 
+/* ⚠ `flex-shrink: 0` is load-bearing — see the note on `.rn-case-scenario`.
+ * `overflow-x: auto` (for tab strips wider than the panel) makes this a
+ * scroll container, and a scroll container's automatic minimum size is 0 —
+ * so flexbox was free to crush this strip VERTICALLY to nothing whenever
+ * the panel ran short. These buttons are the only way to reach the other
+ * charts, so this is the one row in the panel that must never give ground.
+ * ⚠ Shared by the TREND panel too (trend-panel.tsx renders the same
+ * class), so this single line fixes both. */
 .rn-case-tabs {
   display: flex;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   padding: 0 6px;
   overflow-x: auto;
+  flex-shrink: 0;
 }
 .rn-case-tab {
   padding: 8px 12px;
@@ -840,11 +866,18 @@
   line-height: 1.4;
 }
 
-/* Scenario sits between the head and the table. Always visible. */
+/* Scenario sits between the head and the table. Always visible — it
+ * scrolls within itself rather than being clipped, so "always visible"
+ * still holds. `overflow-y: auto` is load-bearing for the same reason as
+ * `.rn-case-scenario` (see the note there): without it this item cannot
+ * shrink, and the trend panel's tab strip gets crushed instead. Measured
+ * on the tutorial's trend question at 1024×768 — the strip was already
+ * rendering at 23px against a natural 52px. */
 .rn-trend-scenario {
   padding: 10px 14px 12px;
   border-bottom: 1px solid var(--border);
   background: var(--white);
+  overflow-y: auto;
 }
 .rn-trend-scenario .label {
   font-size: 10px;
