@@ -65,7 +65,7 @@ Why legal name = brand name, at this stage:
   holding structure is ever needed.
 
 Registration checklist (Sam, off-platform):
-- [x] **BOUGHT 2026-08-06:** `quademia.com` AND `quademia.org` (~£20 for
+- [x] **BOUGHT 2026-08-05:** `quademia.com` AND `quademia.org` (~£20 for
       both), on the **workspace Cloudflare account** (Cloudflare
       Registrar), 2FA enabled on the account first, auto-renew on. Why
       that account: the prod app Worker lives there, and Cloudflare only
@@ -328,7 +328,7 @@ Two systems share the domain and must not be confused:
      old address as an alias.
    - Recreate free aliases on the new domain: support@, hello@, billing@,
      admin@ — one inbox wearing department faces.
-   - **Primary = the person, roles = aliases (settled 2026-08-06).**
+   - **Primary = the person, roles = aliases (settled 2026-08-05).**
      `sam@quademia.com` is the primary Workspace identity; `admin@` is an
      alias on it, NOT the other way round. A primary is the account's
      identity and expensive to change; an alias is free to re-point — so
@@ -353,7 +353,30 @@ two competing SPF records is a classic silent-delivery killer. DKIM
 selectors are separate per sender (fine). Start DMARC in monitoring mode
 (`p=none`), tighten later.
 
-**Post-rename dashboard email sweep (added 2026-08-06).** The workspace
+**Workspace-move status (2026-08-05):** quademia.com added to the
+Workspace as a **secondary domain**, verified, **Gmail activated** —
+receiving works. Google's auto-setup wrote the DNS into Cloudflare
+itself: the **legacy 5-record MX set** (`aspmx.l.google.com` + four
+`alt*` — supported indefinitely per Google, "no changes required";
+do NOT replace with the newer single `smtp.google.com` record) and the
+SPF TXT (`v=spf1 include:_spf.google.com ~all` — the ONE record the
+Resend slice later edits, never duplicates). Two loose ends deferred:
+
+- [ ] **DKIM** — blocked by Google until ~24h after Gmail activation
+      (prompt seen 2026-08-05; retry from 2026-08-06). Admin console →
+      Apps → Gmail → Authenticate email → quademia.com → Generate new
+      record → add the `google._domainkey` TXT in Cloudflare → Start
+      authentication. Affects outbound signatures only; nothing else
+      waits on it.
+- [ ] **DMARC** — add in Cloudflare: TXT `_dmarc` =
+      `v=DMARC1; p=none; rua=mailto:admin@quademia.com`. Monitoring
+      mode only (reports, no blocking). Providers send one aggregate
+      XML report/day each; the interval is effectively fixed (big
+      providers ignore `ri=`) — filter to a label and ignore until
+      needed. Tighten policy only after Resend is live and both
+      senders authenticate.
+
+**Post-rename dashboard email sweep (added 2026-08-05).** The workspace
 Cloudflare account and the workspace Supabase org don't need "taking
 over" — the same person and the same mailbox persist through the rename
 (the old address survives as an alias, so resets/verifications keep
@@ -390,7 +413,7 @@ references (rename debt above) and the Resend/SMTP work already scoped.
 
 ---
 
-## Build order (domain bought 2026-08-06 — this list is live)
+## Build order (domain bought 2026-08-05 — this list is live)
 
 1. **Verify quademia.com in Resend + custom SMTP on both MyNclex Supabase
    projects, branded auth templates** — nothing email-dependent is safe
