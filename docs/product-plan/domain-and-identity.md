@@ -198,6 +198,29 @@ MyNclex splits the jobs:
   support would just be blind. **Read-side admin viewer** ("account
   activity" panel on admin user detail) is its own later slice, built when
   support traffic justifies it.
+
+  **Gamma's TWO tables become this ONE.** Gamma split `auth_events` (login
+  watchdog) from `reset_requests` (reset watchdog) because each carried its
+  own enforcement RPCs — kill enforcement and the reason for two tables
+  disappears; a reset request is just another event. Design consequences,
+  settled 2026-08-05:
+  - One `event_type` column: `LOGIN_OK` · `LOGIN_FAIL` · `REGISTERED` ·
+    `RESET_REQUESTED` · `RESET_COMPLETED` (later `INVITE_ACCEPTED`,
+    `GOOGLE_FIRST_SIGNIN`). One timeline per student — support reads the
+    whole story in order instead of interleaving two tables.
+  - **Append-only.** Gamma's `used`/`used_utc` update-back flag is replaced
+    by reading the timeline: a `RESET_REQUESTED` with no `RESET_COMPLETED`
+    after it IS the unfinished reset ("requested 14:02, never completed →
+    check spam"). No row is ever updated.
+  - **No fingerprint hashes.** Gamma's `fp_hash`/`ua_hash` existed to
+    enforce per-device limits; no enforcement → no fingerprints. Keep only
+    the human-readable device label ("Android · Chrome") — less machinery,
+    less quasi-identifying data at rest.
+  - **Keep gamma's `user_exists` idea** on reset events: the page stays
+    silent about unknown emails (anti-enumeration), but the log records
+    "requested for an address we don't know" — which answers the #1 support
+    case ("never got the email" → "you asked for your Yahoo; your account
+    is under your Gmail").
 - Known limit: "I registered under a different email" is invisible to any
   log — the admin user-search is the tool for that case.
 
