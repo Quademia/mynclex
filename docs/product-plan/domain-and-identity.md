@@ -65,7 +65,14 @@ Why legal name = brand name, at this stage:
   holding structure is ever needed.
 
 Registration checklist (Sam, off-platform):
-- [ ] Buy `quademia.com` (grab `.org` too if cheap)
+- [ ] Buy `quademia.com` (grab `.org` too if cheap) — **on the workspace
+      Cloudflare account** (Cloudflare Registrar), with **2FA on and
+      auto-renew enabled**. Why that account: the prod app Worker lives
+      there, and Cloudflare only routes a custom domain to a Worker when
+      the domain's DNS zone sits in the *same* account — buying it
+      anywhere else adds a zone-transfer step before build-order item 4.
+      Buying via Cloudflare Registrar also means the domain is born with
+      its DNS already in Cloudflare (day-one sequence, step 1).
 - [ ] Name availability check at Ghana ORC before settling exact styling
 - [ ] Ask Paystack which registration tier they need (business name vs
       company limited by shares) — the company form is the one that scales
@@ -315,8 +322,23 @@ Two systems share the domain and must not be confused:
    - **Rename the user** admin@qacademynurses.com → sam@quademia.com —
      same mailbox, same history, same subscription; Google auto-keeps the
      old address as an alias.
-   - Recreate free aliases on the new domain: support@, hello@, billing@
-     — one inbox wearing department faces.
+   - Recreate free aliases on the new domain: support@, hello@, billing@,
+     admin@ — one inbox wearing department faces.
+   - **Primary = the person, roles = aliases (settled 2026-08-06).**
+     `sam@quademia.com` is the primary Workspace identity; `admin@` is an
+     alias on it, NOT the other way round. A primary is the account's
+     identity and expensive to change; an alias is free to re-point — so
+     the stable thing (the human) holds the primary and the roles ride as
+     labels. Also: Google's security model (recovery, 2FA, alerts) assumes
+     one account = one human, and some vendor signups block role-based
+     addresses (`admin@`/`info@`) outright.
+   - **Infrastructure accounts register under `admin@quademia.com`** (the
+     alias): Cloudflare, Supabase, Resend, Paystack, GitHub. Mail lands in
+     Sam's box either way, but the day a second human runs infrastructure,
+     `admin@` converts to its own account/group and every vendor account
+     transfers with it — without entangling Sam's personal identity.
+     Be consistent: every infra vendor gets `admin@`, human correspondence
+     stays `sam@`.
    - Optionally flip quademia.com to primary domain (blocked on a few
      purchase channels; if blocked, daily reality is identical — skip).
    - Bill only ever grows when a second HUMAN needs a separate inbox.
@@ -326,6 +348,20 @@ need auth records on quademia.com. SPF must be ONE record naming both —
 two competing SPF records is a classic silent-delivery killer. DKIM
 selectors are separate per sender (fine). Start DMARC in monitoring mode
 (`p=none`), tighten later.
+
+**Post-rename dashboard email sweep (added 2026-08-06).** The workspace
+Cloudflare account and the workspace Supabase org don't need "taking
+over" — the same person and the same mailbox persist through the rename
+(the old address survives as an alias, so resets/verifications keep
+landing). What IS needed is a deliberate sweep right after the rename:
+log in to each vendor dashboard (Cloudflare, Supabase, Paystack, Resend,
+GitHub) and change the account email to `admin@quademia.com` (per the
+registration rule above) — each verifies the new address by mail; 2FA,
+Workers, zones, projects all stay put. ⚠ **Before renaming, check how
+each dashboard is signed into:** if any uses "Sign in with Google" with
+the old address, the rename changes the Google identity's primary email
+and email-matched SSO can hiccup — recovery works via the alias, but do
+the sweep immediately after the rename, not "eventually."
 
 **qacademynurses.com transition:**
 - Stays in the same Workspace as a legacy receiver — old addresses
