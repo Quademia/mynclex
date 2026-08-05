@@ -283,6 +283,62 @@ MyNclex layers:
 
 ---
 
+## Professional email — settled 2026-08-05 (same session, later)
+
+Two systems share the domain and must not be confused:
+
+1. **The robot (sending):** app-fired mail — invites, resets, login codes,
+   receipts — as `noreply@quademia.com` via **Resend** (the already-settled
+   plan). No mailbox exists behind noreply@; it's a sender identity whose
+   right to send comes from DNS records set when verifying the domain in
+   Resend. Auth/transactional emails send from the **root domain** (they
+   should look maximally official); a reputation-isolating subdomain
+   (e.g. `mail.quademia.com`) is considered only when bulk sends
+   (nudges/announcements) arrive with the transactional-email arc.
+2. **The humans (receiving + replying):** real mailboxes. **No new
+   purchase** — Sam's existing Google Workspace seat
+   (admin@qacademynurses.com + aliases) carries the move, because
+   Workspace charges per person, not per domain:
+   - Add quademia.com to the existing Workspace (Admin console → Domains;
+     verify via one TXT record; point quademia.com MX at Google).
+   - **Rename the user** admin@qacademynurses.com → sam@quademia.com —
+     same mailbox, same history, same subscription; Google auto-keeps the
+     old address as an alias.
+   - Recreate free aliases on the new domain: support@, hello@, billing@
+     — one inbox wearing department faces.
+   - Optionally flip quademia.com to primary domain (blocked on a few
+     purchase channels; if blocked, daily reality is identical — skip).
+   - Bill only ever grows when a second HUMAN needs a separate inbox.
+
+**DNS coexistence rule:** Google (human mail) and Resend (robot mail) each
+need auth records on quademia.com. SPF must be ONE record naming both —
+two competing SPF records is a classic silent-delivery killer. DKIM
+selectors are separate per sender (fine). Start DMARC in monitoring mode
+(`p=none`), tighten later.
+
+**qacademynurses.com transition:**
+- Stays in the same Workspace as a legacy receiver — old addresses
+  (support@, admin@) keep landing in the same inbox indefinitely. Gamma
+  products keep their noreply@qacademynurses.com Resend sender untouched
+  until their own migration; gamma will move to quademia senders
+  eventually (Sam, 2026-08-05), on gamma's schedule, not forced by this
+  move.
+- ⚠ **NEVER let qacademynurses.com expire — even years after last use.**
+  Its addresses are registered as logins/contacts in places that will be
+  forgotten (Supabase, Paystack, Cloudflare, Resend, student records). A
+  lapsed domain can be re-registered by a stranger who then receives
+  password-reset mail for those accounts. Renew forever (~$12/yr); it may
+  downgrade to a pure forwarding shell once migration completes, but it
+  renews.
+
+**Day-one sequence when the domain lands:** DNS into Cloudflare → add
+domain to Workspace + rename + aliases → verify domain in Resend → wire
+Supabase SMTP (build-order item 1). ~One afternoon, mostly DNS waits.
+Repo touch is minimal: the two hardcoded support@qacademynurses.com
+references (rename debt above) and the Resend/SMTP work already scoped.
+
+---
+
 ## Build order (once the domain is bought)
 
 1. **Verify quademia.com in Resend + custom SMTP on both MyNclex Supabase
