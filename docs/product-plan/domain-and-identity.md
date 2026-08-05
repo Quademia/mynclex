@@ -65,14 +65,18 @@ Why legal name = brand name, at this stage:
   holding structure is ever needed.
 
 Registration checklist (Sam, off-platform):
-- [ ] Buy `quademia.com` (grab `.org` too if cheap) — **on the workspace
-      Cloudflare account** (Cloudflare Registrar), with **2FA on and
-      auto-renew enabled**. Why that account: the prod app Worker lives
-      there, and Cloudflare only routes a custom domain to a Worker when
-      the domain's DNS zone sits in the *same* account — buying it
-      anywhere else adds a zone-transfer step before build-order item 4.
-      Buying via Cloudflare Registrar also means the domain is born with
-      its DNS already in Cloudflare (day-one sequence, step 1).
+- [x] **BOUGHT 2026-08-06:** `quademia.com` AND `quademia.org` (~£20 for
+      both), on the **workspace Cloudflare account** (Cloudflare
+      Registrar), 2FA enabled on the account first, auto-renew on. Why
+      that account: the prod app Worker lives there, and Cloudflare only
+      routes a custom domain to a Worker when the domain's DNS zone sits
+      in the *same* account — buying it anywhere else would have added a
+      zone-transfer step before build-order item 4. Buying via Cloudflare
+      Registrar also means DNS was born in Cloudflare (day-one sequence,
+      step 1, effectively done). The `.org` is purely defensive — an
+      education brand's most credible lookalike TLD — and does nothing
+      until it's pointed as a redirect to `.com` someday; no email, no
+      site, just renews.
 - [ ] Name availability check at Ghana ORC before settling exact styling
 - [ ] Ask Paystack which registration tier they need (business name vs
       company limited by shares) — the company form is the one that scales
@@ -386,7 +390,7 @@ references (rename debt above) and the Resend/SMTP work already scoped.
 
 ---
 
-## Build order (once the domain is bought)
+## Build order (domain bought 2026-08-06 — this list is live)
 
 1. **Verify quademia.com in Resend + custom SMTP on both MyNclex Supabase
    projects, branded auth templates** — nothing email-dependent is safe
