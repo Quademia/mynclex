@@ -73,6 +73,17 @@ Registration checklist (Sam, off-platform):
 - [ ] Quick trademark sanity check (Ghana + USPTO — customers are US-bound)
 - [ ] Social handles (@quademia)
 
+### 2b. New logo needed (noted 2026-08-05)
+
+The current logo is geared to **QAcademy** and doesn't carry over — the
+rebrand needs a **Quademia** logo. Wanted before/alongside the domain
+going live, because the logo lands in several launch-path places at once:
+the Google OAuth consent screen (Branding config — the free consent-screen
+fix shows *logo + name*), the branded Supabase auth email templates
+(SMTP slice), the app shell/topbar, favicons/app icons, and the future
+landing page. Design work happens off-repo; the asset drop is a small
+slice when ready.
+
 ### 3. Rename debt this creates (build-list items when the domain is live)
 
 - Gamma email worker + templates send as
