@@ -152,15 +152,31 @@ Beta-B has Google + Microsoft via NextAuth).
 
 ## Login methods & rate limiting — settled 2026-08-05 (same session, later)
 
-**v1 login menu: email+password · forgot/reset password · Google sign-in.
-Nothing else.** Emulates gamma's *menu*, not gamma's build:
+**v1 login menu: email+password · forgot/reset password · Google sign-in ·
+6-digit email-code login.** *(Code login promoted from v2 to v1 on Sam's
+call, 2026-08-05 — "I don't like to push things that can be done to v2.")*
+Emulates gamma's *menu*, not gamma's build:
 
 - **Magic link is deliberately NOT copied** — it double-loads the weakest
-  infrastructure (email delivery), and the WhatsApp/Gmail in-app-browser trap
+  infrastructure (email delivery), the WhatsApp/Gmail in-app-browser trap
   means the session often lands in a browser the student doesn't use ("the
-  link didn't work"). Google covers no-password sign-in; reset covers
-  forgotten passwords. If passwordless is ever wanted, a 6-digit email code
-  beats a link for this audience (v2, parked).
+  link didn't work"), and one-time links get consumed by email-security
+  prefetchers before the student clicks. The **email-code login replaces
+  it**: same no-password benefit, but the student types the code into the
+  browser they're already in, so both failure modes structurally vanish.
+- **Email-code login design (verified against Supabase docs 2026-08-05):**
+  OTP and magic link share one implementation — putting `{{ .Token }}` in
+  the Magic Link email template makes it send a code instead; the app
+  verifies with email + code (`verifyOtp`, type `email`). Settled:
+  - Template goes **code-only** (no link) — magic link stays off the menu.
+  - **`shouldCreateUser: false`** — codes sign in EXISTING accounts only;
+    registration stays a deliberate act. (Default would auto-create a bare
+    auth user with no profile/role — same trap as first-time Google.)
+  - Expiry short (minutes, not the 24h cap); Supabase's built-in
+    send-frequency spacing stacks under our layer-2 rule below.
+  - Honest cost, accepted: students who choose this door put email
+    delivery in their routine login path — which is why it sits AFTER the
+    SMTP fix in the build order, and why password + Google remain.
 - **Google slice's real work is not the button:** (a) first-time Google users
   skip `/register`, so profile row + STUDENT role must be created on the
   OAuth callback path; (b) verify account-linking behaviour deliberately —
@@ -187,6 +203,7 @@ Gamma's rules deserve to be ported, not just admired. Read in full from
 | Login fails per **device** (fp hash) | 10 min | 5 → blocked |
 | Login fails per **device** | 24 h | 10 → blocked |
 | Reset requests per **email** | 60 min | 3 → blocked |
+| Login-code requests per **email** (ours, no gamma equivalent) | 60 min | 3 → blocked |
 
 Design credit where due: graduated windows (sharp brake + slow-grind
 catcher), two axes (email AND device, so rotating either still trips the
@@ -242,9 +259,12 @@ MyNclex layers:
   disappears; a reset request is just another event. Design consequences,
   settled 2026-08-05:
   - One `event_type` column: `LOGIN_OK` · `LOGIN_FAIL` · `REGISTERED` ·
-    `RESET_REQUESTED` · `RESET_COMPLETED` (later `INVITE_ACCEPTED`,
+    `RESET_REQUESTED` · `RESET_COMPLETED` · `CODE_REQUESTED` ·
+    `CODE_LOGIN_OK` · `CODE_LOGIN_FAIL` (later `INVITE_ACCEPTED`,
     `GOOGLE_FIRST_SIGNIN`). One timeline per student — support reads the
-    whole story in order instead of interleaving two tables.
+    whole story in order instead of interleaving two tables. (A
+    `CODE_REQUESTED` with no `CODE_LOGIN_OK` after it = "check your spam",
+    same read as unfinished resets.)
   - **Append-only.** Gamma's `used`/`used_utc` update-back flag is replaced
     by reading the timeline: a `RESET_REQUESTED` with no `RESET_COMPLETED`
     after it IS the unfinished reset ("requested 14:02, never completed →
@@ -271,8 +291,12 @@ MyNclex layers:
 2. **Forgot-password flow** (depends on 1) — carries Turnstile on the three
    public forms, the `nclex_auth_events` write-side, AND the layer-2
    per-email threshold checks (gamma's rules, server-side) with it.
-3. **Attach `nclex.quademia.com` to the app Worker** (routes block in
+3. **Email-code login** (depends on 1; reuses slice 2's Turnstile + logging
+   + threshold plumbing) — code-only Magic Link template,
+   `shouldCreateUser: false`, request-code + enter-code UI on the login
+   page, `CODE_*` events logged.
+4. **Attach `nclex.quademia.com` to the app Worker** (routes block in
    wrangler.jsonc + Supabase redirect allowlist + site URL).
-4. **Google sign-in.**
-5. Transactional email arc (registry already in transactional-email.md).
-6. Cross-product SSO — parked, revisit post-migration of sibling products.
+5. **Google sign-in.**
+6. Transactional email arc (registry already in transactional-email.md).
+7. Cross-product SSO — parked, revisit post-migration of sibling products.
