@@ -462,6 +462,31 @@ login inventory + what was changed:
   until their own migration; gamma will move to quademia senders
   eventually (Sam, 2026-08-05), on gamma's schedule, not forced by this
   move.
+- **Bring qacademynurses.com over from IONOS (settled 2026-08-05 — NO
+  RUSH, deliberately last).** The domain is currently registered at
+  IONOS — exactly the "old registrar, old card on file" failure mode the
+  never-expire rule below fears. Plan: move it to the workspace
+  Cloudflare account so all three company domains share one 2FA'd,
+  auto-renewing home under admin@quademia.com. Two steps, in order:
+  1. **Move the DNS zone** to the workspace Cloudflare account (add
+     zone, let Cloudflare import records, verify the copy, flip
+     nameservers at IONOS). Must-not-break list, in priority order:
+     ① **Google MX** — legacy *receiving*; the old addresses are still
+     recovery contacts for unswept vendors (Paystack, Resend, and
+     anything forgotten) — non-negotiable, test with a real email.
+     ② Resend's DKIM records — gamma still sends as
+     noreply@qacademynurses.com. ③ The gamma sites' CNAMEs (Pages
+     lives in gamma's CF account; cross-account CNAMEs keep working).
+     Ground rule from Sam: gamma disruption is acceptable (free,
+     inactive accounts) — mail delivery is not.
+  2. **Registrar transfer** IONOS → Cloudflare, a few stable days
+     later (unlock + EPP code at IONOS; up to ~7 days; charges one
+     year's at-cost renewal; blocked if IONOS renewed it within the
+     last 60 days). IONOS account can then be emptied and closed.
+  **Why no rush (Sam's sequencing call):** everything gets repointed to
+  quademia.com *first* — once that migration is done, the old domain is
+  a pure legacy shell (receiving-only), so the transfer becomes a
+  near-zero-stakes formality rather than a live-infrastructure move.
 - ⚠ **NEVER let qacademynurses.com expire — even years after last use.**
   Its addresses are registered as logins/contacts in places that will be
   forgotten (Supabase, Paystack, Cloudflare, Resend, student records). A
