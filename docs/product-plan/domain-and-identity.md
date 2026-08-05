@@ -171,25 +171,62 @@ Nothing else.** Emulates gamma's *menu*, not gamma's build:
   is exposed. Turn confirmation on for self-serve the day delivery is
   reliable — not before.
 
-**Rate limiting: split the two jobs gamma's tables did with one.**
+**Rate limiting: three layers.** *(Revised 2026-08-05, later the same
+session — the first cut of this section claimed Supabase built-ins +
+Turnstile could stand in for gamma's rules entirely, and that the events
+table would "never decide anything". Sam pushed back; on investigation he
+was right. Both claims are corrected below.)*
 
-Gamma's `auth_events`/`reset_requests` are both bouncer and logbook, called
-from browser JS (a static site's only option) — so as *security* they only
-limit users polite enough to use the login page; attackers hit Supabase's
-endpoint directly with the public anon key and are never counted. As a
-*support tool* for honest struggling users, they work fine (that audience IS
-the logged audience).
+Gamma's rules deserve to be ported, not just admired. Read in full from
+`db/migrations/auth_events_and_rate_limit.sql` + `reset_rate_limit.sql`:
 
-MyNclex splits the jobs:
+| Rule | Window | Threshold |
+|---|---|---|
+| Login fails per **email** | 10 min | 5 → blocked |
+| Login fails per **email** | 24 h | 10 → blocked |
+| Login fails per **device** (fp hash) | 10 min | 5 → blocked |
+| Login fails per **device** | 24 h | 10 → blocked |
+| Reset requests per **email** | 60 min | 3 → blocked |
 
-- **Blocking (enforcement — no custom tables):** Supabase built-in auth rate
-  limits (tune in dashboard during the SMTP pass — same screen) +
-  **Cloudflare Turnstile** on login/register/forgot-password, verified
-  server-side inside the server action before Supabase is called (use the
-  native Supabase↔Turnstile integration so the direct endpoint also demands
-  a token). Cloudflare WAF/edge rules in reserve. This beats gamma's posture
-  because enforcement sits where it cannot be bypassed.
-- **Support logbook (`nclex_auth_events` — records, never decides):**
+Design credit where due: graduated windows (sharp brake + slow-grind
+catcher), two axes (email AND device, so rotating either still trips the
+other), blocked attempts excluded from the counts (punishment doesn't feed
+itself), and `retry_after_seconds` returned so the page says "try again in
+X minutes" instead of dead-ending. Gamma's real weakness is only WHERE it
+runs — browser JS calling RPCs, which an attacker skips by hitting
+Supabase's endpoint directly with the public anon key. Supabase built-ins
+do NOT replicate these rules (its sign-in limit is per-IP, not per-email;
+no graduated account lockout exists) — they cover different attacks.
+
+MyNclex layers:
+
+1. **Turnstile + Supabase built-ins (bots + bulk):** built-in auth rate
+   limits (tune in dashboard during the SMTP pass — same screen) +
+   **Cloudflare Turnstile** on login/register/forgot-password, verified
+   server-side inside the server action before Supabase is called (use the
+   native Supabase↔Turnstile integration so the direct endpoint also
+   demands a token). Cloudflare WAF/edge rules in reserve. Free protection
+   the counters shouldn't have to absorb.
+2. **Gamma's graduated rules, ported into the server actions (targeted
+   abuse):** one count-query on `nclex_auth_events` at the top of the
+   login/reset actions, same thresholds as the table above, same
+   retry-countdown UX. Enforced server-side, so nobody using our forms can
+   skip it — gamma's logic one layer deeper. **v1 drops only the
+   device-fingerprint axis** (Turnstile substitutes for it; keeps
+   fingerprint hashing out of the table). Ships with the forgot-password
+   slice.
+3. **Auth-hook upgrade (parked, build list):** Supabase auth hooks include
+   a password-verification-attempt hook — the same check moved INSIDE
+   Supabase Auth, binding even direct endpoint calls (the layer gamma could
+   never reach). Verify hook specifics against Supabase docs at build time.
+
+- **Support logbook (`nclex_auth_events`):** ⚠ correction to the first cut
+  of this section — with layer 2 adopted, the table IS read by enforcement
+  (one count at action-top), so "records, never decides" no longer holds.
+  What survives of that principle: the table stays **append-only** (gains a
+  reader, never an updater), and layers 1/3 stand independent of it — if
+  the table broke, bot/bulk protection would be unchanged; only the
+  per-email thresholds and support visibility would pause.
   write-side ships WITH the forgot-password slice (logs can't be captured
   retroactively — the table must exist before the support case does). Logged
   from server actions after each login/register/reset attempt: event type,
@@ -232,7 +269,8 @@ MyNclex splits the jobs:
    projects, branded auth templates** — nothing email-dependent is safe
    before this.
 2. **Forgot-password flow** (depends on 1) — carries Turnstile on the three
-   public forms + the `nclex_auth_events` write-side with it.
+   public forms, the `nclex_auth_events` write-side, AND the layer-2
+   per-email threshold checks (gamma's rules, server-side) with it.
 3. **Attach `nclex.quademia.com` to the app Worker** (routes block in
    wrangler.jsonc + Supabase redirect allowlist + site URL).
 4. **Google sign-in.**
