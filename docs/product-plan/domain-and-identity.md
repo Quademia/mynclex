@@ -150,12 +150,66 @@ Beta-B has Google + Microsoft via NextAuth).
 
 ---
 
+## Login methods & rate limiting — settled 2026-08-05 (same session, later)
+
+**v1 login menu: email+password · forgot/reset password · Google sign-in.
+Nothing else.** Emulates gamma's *menu*, not gamma's build:
+
+- **Magic link is deliberately NOT copied** — it double-loads the weakest
+  infrastructure (email delivery), and the WhatsApp/Gmail in-app-browser trap
+  means the session often lands in a browser the student doesn't use ("the
+  link didn't work"). Google covers no-password sign-in; reset covers
+  forgotten passwords. If passwordless is ever wanted, a 6-digit email code
+  beats a link for this audience (v2, parked).
+- **Google slice's real work is not the button:** (a) first-time Google users
+  skip `/register`, so profile row + STUDENT role must be created on the
+  OAuth callback path; (b) verify account-linking behaviour deliberately —
+  an email+password student later using Google with the same address must
+  land in the SAME account, not a duplicate.
+- **Email confirmation policy:** decide consciously when SMTP is fixed.
+  Invited flows prove email ownership implicitly; only self-serve /register
+  is exposed. Turn confirmation on for self-serve the day delivery is
+  reliable — not before.
+
+**Rate limiting: split the two jobs gamma's tables did with one.**
+
+Gamma's `auth_events`/`reset_requests` are both bouncer and logbook, called
+from browser JS (a static site's only option) — so as *security* they only
+limit users polite enough to use the login page; attackers hit Supabase's
+endpoint directly with the public anon key and are never counted. As a
+*support tool* for honest struggling users, they work fine (that audience IS
+the logged audience).
+
+MyNclex splits the jobs:
+
+- **Blocking (enforcement — no custom tables):** Supabase built-in auth rate
+  limits (tune in dashboard during the SMTP pass — same screen) +
+  **Cloudflare Turnstile** on login/register/forgot-password, verified
+  server-side inside the server action before Supabase is called (use the
+  native Supabase↔Turnstile integration so the direct endpoint also demands
+  a token). Cloudflare WAF/edge rules in reserve. This beats gamma's posture
+  because enforcement sits where it cannot be bypassed.
+- **Support logbook (`nclex_auth_events` — records, never decides):**
+  write-side ships WITH the forgot-password slice (logs can't be captured
+  retroactively — the table must exist before the support case does). Logged
+  from server actions after each login/register/reset attempt: event type,
+  email tried, outcome, rough device label. No passwords, admin-only RLS,
+  retention sweep. If this table broke, protection would be unchanged —
+  support would just be blind. **Read-side admin viewer** ("account
+  activity" panel on admin user detail) is its own later slice, built when
+  support traffic justifies it.
+- Known limit: "I registered under a different email" is invisible to any
+  log — the admin user-search is the tool for that case.
+
+---
+
 ## Build order (once the domain is bought)
 
 1. **Verify quademia.com in Resend + custom SMTP on both MyNclex Supabase
    projects, branded auth templates** — nothing email-dependent is safe
    before this.
-2. **Forgot-password flow** (depends on 1).
+2. **Forgot-password flow** (depends on 1) — carries Turnstile on the three
+   public forms + the `nclex_auth_events` write-side with it.
 3. **Attach `nclex.quademia.com` to the app Worker** (routes block in
    wrangler.jsonc + Supabase redirect allowlist + site URL).
 4. **Google sign-in.**
