@@ -29,7 +29,10 @@ For now, keep it minimal.
 
 - Next.js 16 + TypeScript + React 19 (App Router)
 - Deployed to Cloudflare Workers via `@opennextjs/cloudflare`
-- Supabase (shared QAcademy instance) for Postgres + Auth + Storage
+- Supabase for Postgres + Auth + Storage — MyNclex has its **own** dev/prod
+  Supabase projects, separate from the gamma products' pair (corrected
+  2026-08-05; this line previously claimed a "shared QAcademy instance",
+  which was never true — see `docs/product-plan/domain-and-identity.md`)
 - `@supabase/ssr` for cookie-based server-side auth
 - Resend for transactional email via a dedicated MyNclex email worker
 - Paystack for payments (GHS + international card)
