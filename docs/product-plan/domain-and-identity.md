@@ -19,7 +19,25 @@ product (the UWorld shape — nursing.uworld.com, medicine.uworld.com):
 | MyNclex | `nclex.quademia.com` |
 | MyTeacher | `teacher.quademia.com` |
 | Schools platform (Beta-B) | `schools.quademia.com` |
-| MyNMCLicensure | `nmc.quademia.com` (or similar — name at attach time) |
+| MyNMCLicensure | `licensure.quademia.com` |
+
+*Subdomain names settled 2026-08-05 (attached at each product's
+migration time, so rename-before-attach stays cheap):*
+- **`licensure`** for MyNMCLicensure — the product is **Ghana-based**
+  (NMC here = Ghana's Nursing and Midwifery Council), and "the licensure
+  exam" is what its students call the thing. Rejected: `nmcghlicensure`
+  (15 chars, phone-hostile), `nmc` (ambiguous — the UK regulator is also
+  the NMC, and a future UK-bound product would fight over it; if that
+  product ever exists, *it* takes the specific name, e.g. `uknmc`/`cbt`).
+- **`teacher`** for MyTeacher — matches the brand users already know;
+  its students log in there too, and `assessor` is a rarer word to type.
+  (`assessor`/`assess` considered — the product is really class-based
+  assessment; revisit only at gamma-migration time if the brand itself
+  is rethought.)
+- **`schools`** (plural) for Beta-B — the hub for many schools. The
+  white-label ambition strengthens this: a white-labeled school gets its
+  own subdomain (`<schoolname>.quademia.com`) or custom domain later, so
+  the hub name stays out of their way.
 
 **Why one parent matters (not just branding):** browser cookies can be scoped
 to a parent domain and shared across its subdomains. Products on unrelated
@@ -82,7 +100,17 @@ Registration checklist (Sam, off-platform):
       company limited by shares) — the company form is the one that scales
 - [ ] Business bank account in the exact registered name
 - [ ] Quick trademark sanity check (Ghana + USPTO — customers are US-bound)
-- [ ] Social handles (@quademia)
+- [ ] **Check + secure `@quademia` social handles** — urgency raised
+      2026-08-05: the name is now publicly discoverable (domain
+      registration + certificate logs), so squatting risk is live.
+      Platforms, chosen for the phone-first audience: **Instagram,
+      TikTok, Facebook, WhatsApp Business, X, YouTube, LinkedIn**
+      (company page). Register even with no content plan — an empty
+      owned handle beats a squatted one (same logic as the `.org`).
+      Where `@quademia` is taken, use ONE consistent fallback everywhere
+      (e.g. `@quademiahq`), not a different name per platform. Register
+      with `hello@quademia.com` (public-facing face; infra keeps
+      `admin@`).
 
 ### 2b. New logo needed (noted 2026-08-05; urgency raised same day)
 
