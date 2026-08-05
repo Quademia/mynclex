@@ -297,6 +297,17 @@ MyNclex layers:
    page, `CODE_*` events logged.
 4. **Attach `nclex.quademia.com` to the app Worker** (routes block in
    wrangler.jsonc + Supabase redirect allowlist + site URL).
-5. **Google sign-in.**
+5. **Google sign-in** — gated on the consent screen showing Quademia, not
+   a Supabase project ID (the gamma-era "sign in to
+   <ref>.supabase.co" screen must never exist here). Settled 2026-08-05:
+   **try the free fix first** — Google Cloud Console Branding +
+   Verification (shows logo + name instead of the project ID; brand
+   verification takes a few business days; test on the DEV project's
+   OAuth credentials and look at the actual screen before shipping).
+   The Supabase custom-domain add-on (paid) is the **escalation only if
+   branding alone still leaks the supabase.co URL** — judged too
+   expensive as a default for a cosmetic fix. Slice also carries:
+   first-time-Google profile+role creation on the callback path, and
+   the account-linking check (same email = same account, no duplicate).
 6. Transactional email arc (registry already in transactional-email.md).
 7. Cross-product SSO — parked, revisit post-migration of sibling products.
