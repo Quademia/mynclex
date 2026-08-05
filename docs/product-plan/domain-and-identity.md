@@ -84,16 +84,24 @@ Registration checklist (Sam, off-platform):
 - [ ] Quick trademark sanity check (Ghana + USPTO — customers are US-bound)
 - [ ] Social handles (@quademia)
 
-### 2b. New logo needed (noted 2026-08-05)
+### 2b. New logo needed (noted 2026-08-05; urgency raised same day)
 
 The current logo is geared to **QAcademy** and doesn't carry over — the
-rebrand needs a **Quademia** logo. Wanted before/alongside the domain
-going live, because the logo lands in several launch-path places at once:
-the Google OAuth consent screen (Branding config — the free consent-screen
-fix shows *logo + name*), the branded Supabase auth email templates
-(SMTP slice), the app shell/topbar, favicons/app icons, and the future
-landing page. Design work happens off-repo; the asset drop is a small
-slice when ready.
+rebrand needs an **official Quademia logo**. Wanted before/alongside the
+domain going live, because the logo lands in several launch-path places
+at once: the Google OAuth consent screen (Branding config — the free
+consent-screen fix shows *logo + name*), the branded Supabase auth email
+templates (SMTP slice), the app shell/topbar, favicons/app icons, and
+the future landing page.
+
+**One slot is live TODAY (Sam, 2026-08-05):** the **Workspace profile
+picture** on sam@quademia.com. That avatar is what recipients see next
+to every email sent from sam@ *and* every alias face (admin@, support@,
+hello@, billing@) — a logo there makes every mail from us read as
+official from the first glance, at zero infrastructure cost. It's the
+cheapest, highest-visibility branding surface we have, and it's empty
+until the logo exists. Design work happens off-repo; the asset drop is
+a small slice when ready.
 
 ### 3. Rename debt this creates (build-list items when the domain is live)
 
@@ -353,14 +361,34 @@ two competing SPF records is a classic silent-delivery killer. DKIM
 selectors are separate per sender (fine). Start DMARC in monitoring mode
 (`p=none`), tighten later.
 
-**Workspace-move status (2026-08-05):** quademia.com added to the
-Workspace as a **secondary domain**, verified, **Gmail activated** —
-receiving works. Google's auto-setup wrote the DNS into Cloudflare
-itself: the **legacy 5-record MX set** (`aspmx.l.google.com` + four
-`alt*` — supported indefinitely per Google, "no changes required";
-do NOT replace with the newer single `smtp.google.com` record) and the
-SPF TXT (`v=spf1 include:_spf.google.com ~all` — the ONE record the
-Resend slice later edits, never duplicates). Two loose ends deferred:
+**Workspace move — DONE 2026-08-05, all in one day.** The completed
+sequence, in order:
+
+1. quademia.com added to the Workspace as a **secondary domain**,
+   verified, **Gmail activated**. Google's auto-setup wrote the DNS into
+   Cloudflare itself: the **legacy 5-record MX set** (`aspmx.l.google.com`
+   + four `alt*` — supported indefinitely per Google, "no changes
+   required"; do NOT replace with the newer single `smtp.google.com`
+   record) and the SPF TXT (`v=spf1 include:_spf.google.com ~all` — the
+   ONE record the Resend slice later edits, never duplicates).
+2. ⚠ Detour worth remembering: the domain-add flow **accidentally created
+   a second user** at sam@quademia.com (a second seat, squatting on the
+   rename's target address). Deleted (empty, minutes old, no data
+   transfer) before renaming; billing seat count checked back to 1.
+3. **Rename done:** admin@qacademynurses.com → `sam@quademia.com` — same
+   mailbox/history/subscription; the old address auto-kept as an alias
+   (proven: still receives).
+4. **Aliases added** on quademia.com, all landing in the one inbox:
+   `admin@` · `support@` · `hello@` · `billing@`.
+5. **Org display name** → Quademia; **primary domain FLIPPED** —
+   quademia.com is now the Workspace primary, qacademynurses.com demoted
+   to secondary/legacy receiver (the flip was allowed; the "skip if
+   blocked" fallback wasn't needed).
+6. **Delivery proven by test mail** from an outside account to all three
+   routes: sam@quademia.com ✓ · admin@quademia.com ✓ ·
+   admin@qacademynurses.com ✓.
+
+Two loose ends deferred:
 
 - [ ] **DKIM** — blocked by Google until ~24h after Gmail activation
       (prompt seen 2026-08-05; retry from 2026-08-06). Admin console →
@@ -376,19 +404,28 @@ Resend slice later edits, never duplicates). Two loose ends deferred:
       needed. Tighten policy only after Resend is live and both
       senders authenticate.
 
-**Post-rename dashboard email sweep (added 2026-08-05).** The workspace
-Cloudflare account and the workspace Supabase org don't need "taking
-over" — the same person and the same mailbox persist through the rename
-(the old address survives as an alias, so resets/verifications keep
-landing). What IS needed is a deliberate sweep right after the rename:
-log in to each vendor dashboard (Cloudflare, Supabase, Paystack, Resend,
-GitHub) and change the account email to `admin@quademia.com` (per the
-registration rule above) — each verifies the new address by mail; 2FA,
-Workers, zones, projects all stay put. ⚠ **Before renaming, check how
-each dashboard is signed into:** if any uses "Sign in with Google" with
-the old address, the rename changes the Google identity's primary email
-and email-matched SSO can hiccup — recovery works via the alias, but do
-the sweep immediately after the rename, not "eventually."
+**Post-rename dashboard email sweep — DONE 2026-08-05 (same day).**
+The accounts never needed "taking over" — the same person and the same
+mailbox persisted through the rename (the old address survives as an
+alias, so resets/verifications kept landing throughout). The verified
+login inventory + what was changed:
+
+- **Cloudflare (workspace)** — was Google-SSO; a password was set during
+  the pre-purchase 2FA setup, which insulated the rename. Account email
+  changed to `admin@quademia.com` ✓. Consequence, accepted: the Google
+  identity (sam@) no longer matches the account email (admin@), so
+  **email + password + 2FA is the door now**, not the Google button.
+- **Workspace GitHub** (the prod-Supabase key) — logs in with its own
+  password, so the Google rename never touched it. `admin@quademia.com`
+  added, verified, **set primary** ✓. Note: this account holds no repos
+  and doesn't need to — it exists purely as the Supabase login key.
+  Keep it; converting Supabase to email-login is churn with no payoff.
+- **Prod Supabase** — login unchanged ("Sign in with GitHub", inherits
+  the fix above). Account email checked in preferences ✓.
+- **Untouched by design:** the mybackpacc-byte GitHub user and the
+  QAcademy-Nurses org (repo host) — personal-side, outside the Workspace,
+  nothing to move. Paystack + Resend get their email swept when their
+  build slices arrive.
 
 **qacademynurses.com transition:**
 - Stays in the same Workspace as a legacy receiver — old addresses
