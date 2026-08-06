@@ -269,10 +269,31 @@ Gamma's rules deserve to be ported, not just admired. Read in full from
 | Login-code requests per **email** (ours, no gamma equivalent) | 60 min | 3 → blocked |
 
 Design credit where due: graduated windows (sharp brake + slow-grind
-catcher), two axes (email AND device, so rotating either still trips the
-other), blocked attempts excluded from the counts (punishment doesn't feed
-itself), and `retry_after_seconds` returned so the page says "try again in
-X minutes" instead of dead-ending. Gamma's real weakness is only WHERE it
+catcher), two axes (email AND device), blocked attempts excluded from the
+counts (punishment doesn't feed itself), and `retry_after_seconds`
+returned so the page says "try again in X minutes" instead of
+dead-ending.
+
+⚠ **Correction, 2026-08-06, from reading gamma's SQL rather than this
+summary of it:** the line above used to read "two axes … so rotating
+either still trips the other", which describes redundancy and is wrong.
+**Gamma's device query carries no `identifier` filter** — it counts
+failures for a fingerprint across *every* address. So the axes catch
+opposite attacks: the email axis sees many attempts against ONE account
+(credential stuffing on a known target), the device axis sees ONE machine
+failing against MANY accounts (a spray or an enumeration sweep). Dropping
+the device axis therefore does not weaken the email rule — it removes the
+only rule watching a different door. That is what makes Turnstile
+load-bearing rather than merely nice (layer 1), and it is the reason 2d
+should not lag far behind 2c.
+
+⚠ **One more thing gamma gets wrong, and we did not port:** its countdown
+comes from `MIN(created_utc)`, the oldest attempt in the window. That is
+correct only when the count sits exactly on the threshold. Past it — 7
+failures against a limit of 5 — the oldest ageing out still leaves 6, so
+gamma tells the student to return in 2 minutes and refuses her again when
+she does. The block actually lifts when the **Nth-newest** attempt ages
+out. Ours computes that instead, and needs at most `limit` rows to do it. Gamma's real weakness is only WHERE it
 runs — browser JS calling RPCs, which an attacker skips by hitting
 Supabase's endpoint directly with the public anon key. Supabase built-ins
 do NOT replicate these rules (its sign-in limit is per-IP, not per-email;
@@ -288,13 +309,14 @@ MyNclex layers:
    demands a token). Cloudflare WAF/edge rules in reserve. Free protection
    the counters shouldn't have to absorb.
 2. **Gamma's graduated rules, ported into the server actions (targeted
-   abuse):** one count-query on `nclex_auth_events` at the top of the
-   login/reset actions, same thresholds as the table above, same
-   retry-countdown UX. Enforced server-side, so nobody using our forms can
-   skip it — gamma's logic one layer deeper. **v1 drops only the
-   device-fingerprint axis** (Turnstile substitutes for it; keeps
-   fingerprint hashing out of the table). Ships with the forgot-password
-   slice. ⚠ **And it must NOT grow an IP threshold** — see the IP
+   abuse):** ✅ **BUILT as slice 2c, 2026-08-06** — `lib/auth/thresholds.ts`.
+   One count-query on `nclex_auth_events` at the top of the login/reset
+   actions, same thresholds as the table above, same retry-countdown UX.
+   Enforced server-side, so nobody using our forms can skip it — gamma's
+   logic one layer deeper. **v1 drops only the device-fingerprint axis**
+   (Turnstile substitutes for it; keeps fingerprint hashing out of the
+   table) — ⚠ but see the correction above for what that axis was actually
+   doing, and why layer 1 is not optional now. ⚠ **And it must NOT grow an IP threshold** — see the IP
    decision below; the address is logged and never enforced on, because
    Ghanaian mobile carriers put thousands of subscribers behind a handful
    of addresses and a per-IP rule could lock out a whole network's worth
@@ -771,9 +793,9 @@ references (rename debt above) and the Resend/SMTP work already scoped.
 2. **Forgot-password flow** (depends on 1) — carries Turnstile on the three
    public forms, the `nclex_auth_events` write-side, AND the layer-2
    per-email threshold checks (gamma's rules, server-side) with it.
-   **STATUS 2026-08-06 — 2a and 2b BUILT + Sam-tested on dev; 2c and 2d
-   remain.** The first code of this arc after three documentation
-   sessions.
+   **STATUS 2026-08-06 (evening) — 2a, 2b and 2c BUILT + Sam-tested on
+   dev; only 2d remains.** The first code of this arc after three
+   documentation sessions.
    - ✅ **2a — the logbook.** `nclex_auth_events` + the write side
      (migration `20260904120000_auth_events.sql`, `lib/auth/events.ts`,
      `lib/auth/device-label.ts`). Shipped BEFORE the flow it serves
@@ -801,11 +823,52 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      is single-use) and **refuses** implicit ones outright (there you
      must call `setSession` yourself). Slice 3's email-code login will
      meet the same thing.
-   - ⬜ **2c — the thresholds.** Not built. ⚠ **Until it lands the reset
-     form has no per-email limit on it** — the only brake is Supabase's
-     own auth-email rate limit (100/hr). Bounded, not protected, and the
-     reason 2c should not drift far behind 2b.
+   - ✅ **2c — the thresholds** (2026-08-06 evening). `lib/auth/thresholds.ts`
+     plus the gate at the top of both server actions. **No migration** —
+     2a had already built the index and the `*_BLOCKED` event types this
+     needs. Login **5 in 10 min + 10 in 24 h**, reset **3 in 60 min**, per
+     email address. Verified on dev by driving both forms, with the event
+     timeline read back from the table each time.
+     - **Reset has no long rule, deliberately.** Guessing passwords is
+       only useful if you can keep guessing, so the patient attacker is a
+       real threat and the 24-hour login rule exists for him. Requesting
+       reset links gains an attacker nothing however long he waits — the
+       link goes to the student's inbox. The 60-minute rule stops inbox
+       flooding, and flooding spread over a day is not flooding.
+     - ⭐ **It fails OPEN**, exactly as the support-logbook section above
+       promises. A broken count query lets the caller through; closed
+       would convert a database blip into "nobody can sign in".
+     - ⭐ **The countdown reads the Nth-newest failure, not `MIN()`.**
+       Gamma computes from the oldest attempt in the window, which is
+       correct only when the count sits exactly on the threshold; past it
+       gamma quotes a time that expires while the student is still
+       blocked. A countdown that lies is worse than no countdown, and the
+       countdown is why this is a rule rather than a flat refusal.
+     - ⭐ **A 24-hour block offers the reset link; a 10-minute one does
+       not** (Sam, walking the timeline). On the tenth failure both rules
+       trip and the longer one wins, so the block is ~23½ h anchored to
+       her FIRST failure. "Come back tomorrow" does not state the wrong
+       duration — it answers the wrong question, because someone who has
+       failed that often has genuinely forgotten the password. Reset is a
+       separate counter and works immediately. At 10 minutes waiting
+       really is the right advice, and pushing a reset at someone one
+       typo away creates work she didn't need.
+     - ⓘ **Known and accepted, both also true of gamma:** a successful
+       login does not clear the failure counter, and the 24-hour rule can
+       catch a genuinely forgetful student — who is never stranded, since
+       reset stays open, which is the reason the offer above exists.
    - ⬜ **2d — Turnstile.** Not built. Keys still to create in Cloudflare.
+     ⚠ **It carries more weight than first scoped.** Reading gamma's SQL
+     closely (2026-08-06) showed its device axis has **no email filter**,
+     so it is not the email axis applied twice — it catches ONE machine
+     failing against MANY addresses, which 2c cannot see at all. Turnstile
+     is the better substitute, since the native Supabase integration also
+     binds the direct auth endpoint our server actions never reach — but
+     until it ships, that door has no lock gamma had.
+     ⚠ **Sequencing trap:** flipping Supabase's native captcha setting
+     makes it reject *every* auth call without a token, including the
+     existing login and register forms. Verify inside our own server
+     actions first; flip the Supabase switch after.
    - ⓘ **Prod is untouched.** The migration reaches prod through
      `migrate-prod.yml` on the next release; prod's redirect allowlist
      (`https://mynclex.qacademynurses.workers.dev/**`) must be set before
