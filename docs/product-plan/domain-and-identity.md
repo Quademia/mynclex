@@ -401,6 +401,16 @@ selectors are separate per sender (fine). Start DMARC in monitoring mode
   ONE-record rule above remains true and live — it just turned out
   nothing needed merging for this sender. Re-check it if any future
   sender wants root-level SPF.
+  ⓘ **Confirmed by lookup 2026-08-06 (later), after both senders and
+  DKIM were live:** root `quademia.com` still carries exactly one SPF
+  record, `v=spf1 include:_spf.google.com ~all` (Google only), while
+  Resend's sits separately on `send.quademia.com` as
+  `v=spf1 include:amazonses.com ~all` (Resend delivers over SES
+  underneath). **Two SPF records that never had to be merged, because
+  they are on different names** — the danger the rule guards against is
+  two records on the *same* name, which is a different thing from two
+  records in the same zone. DKIM likewise coexists on separate selectors
+  (`google._domainkey` + `resend._domainkey`), which is by design.
 
 **Workspace move — DONE 2026-08-05, all in one day.** The completed
 sequence, in order:
@@ -429,21 +439,37 @@ sequence, in order:
    routes: sam@quademia.com ✓ · admin@quademia.com ✓ ·
    admin@qacademynurses.com ✓.
 
-Two loose ends deferred:
+Two loose ends deferred — **both CLOSED 2026-08-06 (later)**:
 
-- [ ] **DKIM** — blocked by Google until ~24h after Gmail activation
-      (prompt seen 2026-08-05; retry from 2026-08-06). Admin console →
-      Apps → Gmail → Authenticate email → quademia.com → Generate new
-      record → add the `google._domainkey` TXT in Cloudflare → Start
-      authentication. Affects outbound signatures only; nothing else
-      waits on it.
-- [ ] **DMARC** — add in Cloudflare: TXT `_dmarc` =
-      `v=DMARC1; p=none; rua=mailto:admin@quademia.com`. Monitoring
-      mode only (reports, no blocking). Providers send one aggregate
-      XML report/day each; the interval is effectively fixed (big
-      providers ignore `ri=`) — filter to a label and ignore until
-      needed. Tighten policy only after Resend is live and both
-      senders authenticate.
+- [x] **DKIM** — was blocked by Google until ~24h after Gmail activation
+      (prompt seen 2026-08-05); the gate opened and it was done on the
+      06. Admin console → Apps → Gmail → Authenticate email →
+      quademia.com → Generate new record → `google._domainkey` TXT in
+      Cloudflare → **Start authentication**. Affects outbound signatures
+      only; nothing else waited on it.
+      **Verified by DNS lookup, not by report:** the published key's own
+      header (`MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A…`) is the **2048-bit**
+      RSA signature — so the key length is a fact about the record, not
+      a claim about which radio button was clicked. Google-side state
+      confirmed by Sam: the console offers **Stop** authentication,
+      which only appears once it is running.
+      ⚠ **The step that silently does nothing if skipped is "Start
+      authentication".** Publishing the TXT record is necessary and not
+      sufficient — and DNS cannot reveal the difference, so a future
+      audit of this must look at the Google console, not at `dig`.
+- [x] **DMARC** — TXT `_dmarc` =
+      `v=DMARC1; p=none; rua=mailto:admin@quademia.com`, live and
+      confirmed by lookup. Monitoring mode only (reports, no blocking).
+      Providers send one aggregate XML report/day each; the interval is
+      effectively fixed (big providers ignore `ri=`) — filter to a label
+      and ignore until needed. Tighten policy only after both senders
+      have been passing for a while; there is no deadline on that and no
+      benefit to rushing it.
+
+ⓘ **Resend's DKIM is 1024-bit and that is not a defect.** The
+`resend._domainkey` key header (`MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC…`)
+is 1024-bit — Resend's own default, not a setting anyone chose. The two
+senders therefore carry visibly different key lengths. Don't "fix" it.
 
 **Post-rename dashboard email sweep — DONE 2026-08-05 (same day).**
 The accounts never needed "taking over" — the same person and the same
@@ -521,7 +547,9 @@ references (rename debt above) and the Resend/SMTP work already scoped.
 1. **Verify quademia.com in Resend + custom SMTP on both MyNclex Supabase
    projects, branded auth templates** — nothing email-dependent is safe
    before this.
-   **STATUS 2026-08-06 — plumbing DONE, templates remain:**
+   **STATUS 2026-08-06 (later) — ✅ ITEM COMPLETE.** Plumbing landed
+   earlier the same day; templates, the copy folder, DKIM and DMARC
+   closed in the session after it.
    - ✅ **Resend account created — a NEW one, registered under
      `admin@quademia.com`** (the infra rule holds from day one). Settled
      over reusing gamma's account (mybackpacc@gmail.com): Resend's free
@@ -546,22 +574,46 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    - ✅ **Delivery proven on both**: dashboard invite to an outside Gmail
      address — arrived in the **inbox** (not spam), branded sender, on
      dev and on prod. Test users deleted after.
-   - ⬜ **Auth-email rate limit bump to 100/hr** (both projects,
+   - ✅ **Auth-email rate limit bumped to 100/hr** (both projects,
      Authentication → Rate Limits; matches Resend's free 100/day ceiling;
-     both rise together at the Pro upgrade). Instructed 2026-08-06 but
-     **not confirmed done** — verify at next session.
-   - ⬜ **Branded auth templates** — scope + wording settled with Sam
-     2026-08-06, nothing pasted yet. Brand FOUR: invite ·
-     reset-password · confirm-signup · change-email (all text-branded,
-     "— The Quademia team", no logo until one exists; invite copy stays
-     neutral on who invited, because tutor-add and pay-first checkout
-     send the same template). **Deliberately skipped:** magic link
-     (slice 3 rewrites it code-only — branding now is thrown-away work)
-     and reauthentication (nothing uses it).
-   - ⬜ **New docs folder for ALL product email copy** (not just auth) —
-     approved by Sam 2026-08-06; create it when the templates are
-     written, so the canonical copy lives in the repo, not only in two
-     dashboards.
+     both rise together at the Pro upgrade). Instructed 2026-08-06, and
+     **confirmed done by Sam 2026-08-06 (later)** — recorded on his word,
+     not tool-verified: the MCP connection cannot read a project's auth
+     config, so this setting is unreadable from here by design.
+   - ✅ **Branded auth templates — TWO, not four** (written, pasted to
+     dev and prod, reset verified end-to-end 2026-08-06 later). Copy
+     lives in [`../email/auth-templates.md`](../email/auth-templates.md).
+     Branded: **reset-password** · **confirm-signup**. Text-branded,
+     "— The Quademia team", no logo until one exists; sender is
+     **Quademia**, but the body names **MyNclex** in the first sentence,
+     because a nurse who signed up for NCLEX prep has never heard of
+     Quademia and an unrecognised sender reads as phishing.
+     ⭐ **The four became two on Sam's reasoning, and it is the better
+     split.** The plan had invite branded "neutrally" because tutor-add
+     and pay-first share one template. Sam's objection: *an invite is
+     never just an invite* — it always arrives attached to a programme
+     or to bank access, so a generic "create your account" email is a
+     link with no answer to "for what?". The neutral wording was
+     therefore not a solution to the shared-template problem, it was the
+     problem, restated. Invite goes **custom** in the transactional arc;
+     branding the generic body would have been work we then delete.
+     Cheaper than it sounds to leave: since the SMTP switch it already
+     sends **from** Quademia, so it reads unstyled, not untrustworthy.
+     **Also skipped:** magic link (slice 3 rewrites it code-only),
+     reauthentication (nothing uses it), and **change-email** (nothing
+     in the codebase calls `updateUser({ email })` — brand it the day a
+     change-email surface exists).
+     ⚠ **Link expiry is default-backed, not verified.** Both templates
+     say 1 hour = Supabase's documented default, unchanged on either
+     project. The dashboard setting was not locatable on the day and
+     cannot be read over MCP. See the warning in `auth-templates.md`.
+   - ✅ **New docs folder for ALL product email copy** — created as
+     [`docs/email/`](../email/README.md) (a sibling of `product-plan/`,
+     not inside it: this is an asset, not a plan). Carries the standing
+     rule **repo is the source, dashboard is a copy** — because a
+     template that only exists in two dashboards is copy nobody can
+     review, diff, or recover. The app's own transactional copy joins it
+     when that arc is built.
 2. **Forgot-password flow** (depends on 1) — carries Turnstile on the three
    public forms, the `nclex_auth_events` write-side, AND the layer-2
    per-email threshold checks (gamma's rules, server-side) with it.
@@ -584,4 +636,45 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    first-time-Google profile+role creation on the callback path, and
    the account-linking check (same email = same account, no duplicate).
 6. Transactional email arc (registry already in transactional-email.md).
+   **Carries the invite rewrite** — see item 1's template note and the
+   Supabase-managed section of `transactional-email.md`.
 7. Cross-product SSO — parked, revisit post-migration of sibling products.
+
+---
+
+## Launch gates (things deliberately left OFF until real users arrive)
+
+Not deferrals through neglect — each is **correct to leave off today and
+wrong to leave off at launch**. They share one trigger: *the moment
+strangers can reach the product*. Collected here because each one's
+failure mode is silent, and a silent failure nobody is watching for is
+found by a user, not by us.
+
+- [ ] **Email confirmation on self-serve `/register`** (Supabase Auth →
+      Providers → Email → Confirm email). Off since the beginning, and
+      **Sam's reason for keeping it off is right**: during a build you
+      create test users constantly, and confirmation turns every one of
+      them into an inbox round-trip. Blast radius checked 2026-08-06
+      (later) and it is narrower than it feels — `signUp()` appears in
+      exactly ONE place, `app/register/actions.ts`; seeded demo users
+      insert into `auth.users` with `email_confirmed_at` already set, and
+      invited students come via `inviteUserByEmail`, which confirms on
+      accept. So the toggle reaches self-serve registration and nothing
+      else.
+      **Why it must flip at launch:** what confirmation buys is stopping
+      someone occupying an account with an address they don't own, and
+      catching typos before they harden. With prod empty by design that
+      benefit is currently **zero**, while the cost is paid on every test
+      signup — a real cost against an imaginary population. The moment
+      the population is real the trade inverts. ⚠ The failure mode if
+      forgotten is quiet and lands on the user: a nurse mistypes her
+      address at signup, never receives the reset she needs months later,
+      and there is no way to prove the account is hers.
+      The template is already written and pasted (item 1), so flipping it
+      is a toggle, not a task. Branding it changed nothing on its own —
+      it only decided what the email says *if* this is ever switched on.
+- [ ] **Resend Pro upgrade** (~$20/mo, 50k/month, no daily cap) — the
+      trigger accepted by Sam in item 1: **before real signup volume**.
+      Gamma once took >100 signups in a day and emails silently stopped;
+      the free tier's 100/day ceiling re-creates exactly that failure.
+      The auth rate limit (100/hr) rises with it — they move together.
