@@ -20,7 +20,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { completeResetAction } from './actions';
 import '@/styles/tokens.css';
@@ -34,26 +34,44 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // ⭐ RUN THE HANDOFF EXACTLY ONCE. React Strict Mode (on by default in
-  // dev) invokes every effect twice, which on this page is not a harmless
-  // repeat: the recovery code is single-use, so the second run spends an
-  // already-spent code, fails, and paints "this link didn't work" over a
-  // reset that worked. That is the SAME race as the library one above,
-  // just between our own two passes — turning detectSessionInUrl off
-  // removes one competitor and this removes the other. A ref survives
-  // Strict Mode's simulated remount, which is what makes it the guard
-  // rather than state.
-  const startedRef = useRef(false);
-
   useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
+    // ⓘ NO run-once ref guard here, deliberately. Strict Mode invokes
+    // this twice in dev, and that is now harmless — nothing below spends
+    // a single-use token; it only listens. A guard would actively break
+    // it: Strict Mode's cleanup fires between the two passes, so the
+    // first pass's subscription and timer would be torn down while the
+    // second pass skipped setting up replacements, and the page would
+    // wait on "Checking your link…" for a session nobody was listening
+    // for. Let it run twice and let each cleanup pair with its own setup.
 
-    // Read the credentials out of the URL synchronously, before the
-    // Supabase client's detectSessionInUrl can consume and clear them.
-    // Supabase sends one of two shapes depending on the project's flow —
-    // tokens in the fragment, or a code in the query — so handle both
-    // rather than betting on today's setting.
+    // ⭐ TWO LINK SHAPES, AND THE LIBRARY HANDLES EXACTLY ONE OF THEM.
+    // Verified against the installed @supabase/auth-js + @supabase/ssr
+    // source on 2026-08-06, after two failed fixes built on guesses:
+    //
+    //   ?code=…            PKCE. THE LIBRARY OWNS IT. It consumes the
+    //                      code the instant any client is constructed,
+    //                      and the code is single-use — so we must NOT
+    //                      exchange it ourselves. Doing that is what made
+    //                      this page report "this link didn't work" for
+    //                      resets that had actually succeeded. We only
+    //                      wait for the session it produces.
+    //                      ⓘ This is the shape real reset emails use.
+    //
+    //   #access_token=…    Implicit. THE LIBRARY REFUSES IT. createBrowserClient
+    //                      hard-sets flowType:'pkce', and GoTrueClient
+    //                      throws "Not a valid PKCE flow url." for an
+    //                      implicit callback under that flowType —
+    //                      silently, since the error only reaches its own
+    //                      debug channel. So here we MUST do the work.
+    //                      Reached by admin-generated recovery links.
+    //                      (This is also why /welcome works: it always
+    //                      calls setSession itself and never leans on the
+    //                      library's URL detection.)
+    //
+    // Reading the URL is also the gate that keeps this page from
+    // resetting whoever happens to be signed in on a shared device: no
+    // token in the address means not a reset, however valid the session
+    // sitting in the browser is.
     const rawHash = window.location.hash.startsWith('#')
       ? window.location.hash.slice(1)
       : '';
@@ -61,56 +79,73 @@ export default function ResetPasswordPage() {
     const accessToken = hashParams.get('access_token');
     const refreshToken = hashParams.get('refresh_token');
     const code = new URLSearchParams(window.location.search).get('code');
+    const arrivedFromLink = Boolean((accessToken && refreshToken) || code);
 
-    // ⚠ detectSessionInUrl OFF — this page owns the token, nothing else.
-    // With it on (the default) the client consumes the single-use code
-    // the moment it loads and wipes the address bar, so the explicit
-    // exchange below arrives second and fails on an already-spent code —
-    // and the page then reports "this link didn't work" for a reset that
-    // in fact succeeded. Exactly what happened on the first live test,
-    // 2026-08-06; the giveaway was the real URL flashing up and being
-    // replaced by a bare one.
-    const supabase = createClient({ detectSessionInUrl: false });
-
-    async function establishUser() {
-      if (accessToken && refreshToken) {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        if (error) return null;
-      } else if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) return null;
-      } else {
-        // No recovery credentials in the URL. Note this branch returns
-        // null even when a perfectly good session exists in the browser —
-        // see the header. A direct visit to this page is not a reset.
-        return null;
-      }
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      return user;
-    }
-
-    // ⚠ No cancelled-flag / cleanup pair here, and its absence is
-    // deliberate. Strict Mode's cleanup fires between its two passes, so
-    // a flag set there would cancel the ONLY run the guard above allows —
-    // and the page would sit on "Checking your link…" forever. Setting
-    // state after unmount is a no-op in React 18+, so there is nothing
-    // left for the flag to protect against.
-    establishUser().then((user) => {
-      if (!user) {
-        setPhase('invalid');
-        return;
-      }
+    function accept(user: { email?: string | null }) {
       setEmail(user.email ?? '');
-      // Drop the token fragment from the address bar, so a shared screen
-      // or a pasted URL doesn't carry a live session with it.
+      // Drop the token from the address bar so a shared screen or a
+      // pasted URL doesn't carry a live session with it. (The library
+      // usually does this too; doing it again is harmless.)
       window.history.replaceState(null, '', window.location.pathname);
       setPhase('ready');
-    });
+    }
+
+    let settled = false;
+    let unsubscribe: (() => void) | null = null;
+
+    function settle(user: { email?: string | null } | null) {
+      if (settled) return;
+      settled = true;
+      if (user) accept(user);
+      else setPhase('invalid');
+    }
+
+    // A direct visit skips all of this and simply lets the deadline below
+    // fire immediately — one path to 'invalid' rather than two, which is
+    // also what keeps setPhase out of the effect body (react-hooks'
+    // set-state-in-effect rule, and it is right: a synchronous setState
+    // here renders twice for no reason).
+    if (arrivedFromLink) {
+      const supabase = createClient();
+
+      if (accessToken && refreshToken) {
+        // Implicit shape — ours to establish, because the library will
+        // not touch it (see above). Strict Mode runs this twice; setting
+        // the same session twice is idempotent, which is exactly why the
+        // /welcome page has survived the same double-run for months.
+        supabase.auth
+          .setSession({ access_token: accessToken, refresh_token: refreshToken })
+          .then(({ data, error }) => settle(error ? null : (data.user ?? null)));
+      } else {
+        // PKCE shape — the library is already exchanging. Two ways to
+        // hear the result, because neither is reliable alone: getUser()
+        // catches the case where it finished before this effect ran, and
+        // the subscription catches the far more common case where it has
+        // not finished yet. Neither one spends the code.
+        const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (session?.user) settle(session.user);
+        });
+        unsubscribe = () => sub.subscription.unsubscribe();
+
+        supabase.auth.getUser().then(({ data }) => {
+          if (data.user) settle(data.user);
+        });
+      }
+    }
+
+    // ⚠ A deadline is required, not defensive padding. If the exchange
+    // fails — an expired link, a code already spent, a link opened in a
+    // different browser from the one that asked for it — the library
+    // reports it to its own console and simply never emits a session, so
+    // without this the page would wait on "Checking your link…" forever.
+    // Ten seconds is long enough for a slow phone on mobile data and
+    // short enough not to feel broken; a direct visit needs none of it.
+    const deadline = setTimeout(() => settle(null), arrivedFromLink ? 10_000 : 0);
+
+    return () => {
+      clearTimeout(deadline);
+      unsubscribe?.();
+    };
   }, []);
 
   async function handleSubmit(formData: FormData) {

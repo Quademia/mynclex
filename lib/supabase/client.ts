@@ -9,37 +9,28 @@
 
 import { createBrowserClient } from '@supabase/ssr';
 
-/**
- * @param opts.detectSessionInUrl
- *   Leave unset (the default, true) everywhere except a page that reads
- *   an auth link's token out of the URL itself.
- *
- *   ⚠ WHY THE ESCAPE HATCH EXISTS. The client normally watches the URL
- *   for auth tokens and consumes them on its own, then wipes the address
- *   bar. On a page that ALSO reads that token deliberately, the two race
- *   for a strictly single-use code: whichever arrives second fails, and
- *   the page reports "this link didn't work" for a reset that actually
- *   succeeded. That is not hypothetical — it is what /reset-password did
- *   on its first live test (2026-08-06), and the flash of the real URL
- *   being replaced by a bare one was the library tidying up mid-race.
- *
- *   Turning it off hands the page sole ownership of the token, which is
- *   what lets /reset-password enforce the rule that matters there: it
- *   must act on the LINK's identity, never on whoever happens to be
- *   signed in on the device already.
- *
- *   ⓘ /welcome has the same shape and does NOT pass this yet. It survives
- *   because invite links arrive as tokens rather than a single-use code,
- *   and setting a session twice is harmless where spending a code twice
- *   is not. It is standing on the same floorboard — fix it next time
- *   there is a reason to be in that file and an invite to test with.
- */
-export function createClient(opts?: { detectSessionInUrl?: boolean }) {
+// ⚠ TWO THINGS ABOUT THIS CLIENT THAT ARE NOT OPTIONAL, verified against
+// the installed @supabase/ssr 0.5.2 source on 2026-08-06 after a wasted
+// fix attempt. Read before trying to configure it:
+//
+//   1. `detectSessionInUrl` CANNOT BE TURNED OFF. createBrowserClient
+//      sets it (and flowType, persistSession, autoRefreshToken, storage)
+//      AFTER spreading your options, so anything you pass for those keys
+//      is discarded without a warning. The client will always consume an
+//      auth token it finds in the URL, and always wipe the address bar
+//      afterwards.
+//   2. It is a MODULE-LEVEL SINGLETON in the browser. The first call
+//      builds the client; every later call returns that same instance and
+//      ignores its arguments entirely.
+//
+// Together: a page cannot opt out of the library's URL handling, and must
+// not try to do that work itself in parallel — the two race for a
+// single-use code and the loser reports a failure that did not happen.
+// The supported shape is to let the client do the exchange and WAIT for
+// the session (see app/reset-password/page.tsx).
+export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    opts?.detectSessionInUrl === false
-      ? { auth: { detectSessionInUrl: false } }
-      : undefined
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 }
