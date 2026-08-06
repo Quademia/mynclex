@@ -9,11 +9,17 @@ import { redirect } from 'next/navigation';
 import { safeNext } from '@/lib/auth/safe-next';
 import { logAuthEvent } from '@/lib/auth/events';
 import { accountExistsForEmail } from '@/lib/auth/account-lookup';
-import { checkLoginThreshold, formatRetry } from '@/lib/auth/thresholds';
+import {
+  checkLoginThreshold,
+  formatRetry,
+  LOGIN_RULE_24H,
+} from '@/lib/auth/thresholds';
 
 type LoginResult =
   | { ok: true }
-  | { ok: false; error: string };
+  // `suggestReset` asks the form to offer the reset link alongside the
+  // message. Set only for the 24-hour block — see the gate below.
+  | { ok: false; error: string; suggestReset?: boolean };
 
 export async function loginAction(formData: FormData): Promise<LoginResult> {
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
@@ -46,9 +52,23 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
       email,
       reason: gate.rule,
     });
+    // ⭐ THE LONG BLOCK GETS A WAY OUT, THE SHORT ONE DOESN'T (Sam,
+    // 2026-08-06). Ten failures in a day is a pattern a real student
+    // reaches — she has genuinely forgotten the password, and the honest
+    // answer to that is the reset link, not a number. "Come back
+    // tomorrow" is the one reply that helps nobody: an attacker ignores
+    // it and she is stranded by it, because nothing on the blocked
+    // screen tells her the reset path is on a separate counter and still
+    // open to her.
+    //
+    // The 10-minute block deliberately does NOT offer it. There, waiting
+    // really is the right advice — she is probably one typo away — and
+    // pushing a password reset at someone who has simply mistyped
+    // creates work she didn't need.
     return {
       ok: false,
       error: `Too many sign-in attempts. Try again ${formatRetry(gate.retryAfterSeconds)}.`,
+      suggestReset: gate.rule === LOGIN_RULE_24H,
     };
   }
 

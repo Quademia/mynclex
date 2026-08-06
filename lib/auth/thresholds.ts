@@ -45,12 +45,22 @@ type Rule = {
   label: string;
 };
 
+/**
+ * The long login rule, named because the login form has to recognise it:
+ * a 24-hour lockout offers the reset link, a 10-minute one does not.
+ * Exported so that comparison is a shared constant rather than the same
+ * string literal typed out in two files — rename it here and a stale
+ * comparison becomes a compile error instead of a link that quietly
+ * stops appearing.
+ */
+export const LOGIN_RULE_24H = 'threshold_24h';
+
 // Gamma's numbers, unchanged. Graduated on purpose — the short window is a
 // sharp brake on a burst, the long one catches the patient attacker who
 // spaces attempts out to stay under it.
 const LOGIN_RULES: Rule[] = [
   { windowSec: 10 * 60, limit: 5, label: 'threshold_10min' },
-  { windowSec: 24 * 60 * 60, limit: 10, label: 'threshold_24h' },
+  { windowSec: 24 * 60 * 60, limit: 10, label: LOGIN_RULE_24H },
 ];
 
 const RESET_RULES: Rule[] = [

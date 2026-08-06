@@ -19,6 +19,9 @@ export function LoginForm({
   initialEmail?: string;
 }) {
   const [error, setError] = useState<string | null>(null);
+  // Set only by the 24-hour lockout, which is long enough that "wait" is
+  // not a usable answer on its own.
+  const [showReset, setShowReset] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   // Carried to /forgot-password so a student who has just failed to sign
   // in doesn't retype the address she was already struggling with.
@@ -26,6 +29,7 @@ export function LoginForm({
 
   async function handleSubmit(formData: FormData) {
     setError(null);
+    setShowReset(false);
     setSubmitting(true);
 
     const result = await loginAction(formData);
@@ -33,9 +37,17 @@ export function LoginForm({
     // On success loginAction redirects, so we only get here on failure.
     if (!result?.ok && result?.error) {
       setError(result.error);
+      setShowReset(result.suggestReset === true);
     }
     setSubmitting(false);
   }
+
+  // Built once — the standing "Forgot your password?" link and the one
+  // offered inside a 24-hour lockout are the same destination, and both
+  // carry the address she has already typed.
+  const forgotHref = email
+    ? `/forgot-password?email=${encodeURIComponent(email)}`
+    : '/forgot-password';
 
   return (
     <form className="auth-form" action={handleSubmit}>
@@ -64,13 +76,29 @@ export function LoginForm({
           required
         />
         <span className="auth-hint auth-forgot">
-          <a href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : '/forgot-password'}>
-            Forgot your password?
-          </a>
+          <a href={forgotHref}>Forgot your password?</a>
         </span>
       </div>
 
-      {error && <div className="auth-error">{error}</div>}
+      {error && (
+        <div className="auth-error">
+          {error}
+          {showReset && (
+            // Phrased as the way back in, not as an instruction. She has
+            // just been refused; "Set a new password" is the thing that
+            // actually helps, and it works right now because the reset
+            // limit is a separate counter that her failed sign-ins have
+            // not touched.
+            <>
+              {' '}
+              <a className="auth-error-action" href={forgotHref}>
+                Set a new password instead
+              </a>
+              .
+            </>
+          )}
+        </div>
+      )}
 
       <button type="submit" className="auth-submit" disabled={submitting}>
         {submitting ? 'Signing in…' : 'Sign in'}

@@ -114,6 +114,21 @@
   font-size: 13px;
 }
 
+/* The way out of a 24-hour lockout, offered inside the refusal itself.
+   Inherits the danger colour rather than taking the usual link blue —
+   on a pale red panel the blue reads as a foreign element, and this is
+   part of the sentence, not a separate control. Underlined so it is
+   still obviously a link without relying on colour alone. */
+.auth-error-action {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.auth-error-action:hover {
+  text-decoration: none;
+}
+
 .auth-submit {
   padding: 11px 20px;
   background: var(--primary);
