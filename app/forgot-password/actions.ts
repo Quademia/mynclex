@@ -8,11 +8,19 @@
 // truth goes to the log instead, where support can read it and a visitor
 // cannot. See lib/auth/account-lookup.ts for the full reasoning.
 //
-// ⚠ NO RATE LIMIT ON THIS FORM YET. The per-email rule (3 requests an
-// hour) is slice 2c and enforces off the RESET_REQUESTED rows this action
-// writes — which is why the log had to ship first. Until then the only
-// brake is Supabase's own auth-email rate limit (100/hr, set on both
-// projects). Bounded, not protected.
+// RATE LIMITED SINCE SLICE 2c: 3 requests per address per hour, counted
+// off the RESET_REQUESTED rows this action writes — which is why the log
+// had to ship first.
+//
+// ⭐ THE LIMIT MESSAGE DOES NOT BREAK THE SILENCE ABOVE, AND THE WORDING
+// IS WHY. It is allowed to exist at all because it keys off the address
+// that was TYPED, never off whether that address has an account: an
+// attacker learns only "this address has been submitted three times in the
+// past hour", which he knows already, because he is the one who submitted
+// it. ⚠ So the copy must talk about HER REQUESTS, never about our sends.
+// "We've already sent a few links to this address" would be a leak — we
+// send nothing at all to an address with no account, so the sentence would
+// only ever be true for real ones.
 
 'use server';
 
@@ -20,6 +28,7 @@ import { createClient } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
 import { logAuthEvent } from '@/lib/auth/events';
 import { accountExistsForEmail } from '@/lib/auth/account-lookup';
+import { checkResetThreshold, formatRetry } from '@/lib/auth/thresholds';
 
 type ForgotResult = { ok: true } | { ok: false; error: string };
 
@@ -31,6 +40,21 @@ export async function requestResetAction(formData: FormData): Promise<ForgotResu
   // slice-2c counters and lock a student out of her own reset form.
   if (!email) {
     return { ok: false, error: 'Enter the email address you registered with.' };
+  }
+
+  // Before the send, and before the lookup — a refused request should cost
+  // us one query, not three.
+  const gate = await checkResetThreshold(email);
+  if (gate.blocked) {
+    await logAuthEvent({
+      eventType: 'RESET_BLOCKED',
+      email,
+      reason: gate.rule,
+    });
+    return {
+      ok: false,
+      error: `You've asked for a reset link a few times already. Try again ${formatRetry(gate.retryAfterSeconds)}.`,
+    };
   }
 
   // Asked BEFORE the send, because afterwards is too late to be sure: the

@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { safeNext } from '@/lib/auth/safe-next';
 import { logAuthEvent } from '@/lib/auth/events';
 import { accountExistsForEmail } from '@/lib/auth/account-lookup';
+import { checkLoginThreshold, formatRetry } from '@/lib/auth/thresholds';
 
 type LoginResult =
   | { ok: true }
@@ -26,6 +27,29 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
   // and lock a student out by mis-submitting her own login page.
   if (!email || !password) {
     return { ok: false, error: 'Email and password are required.' };
+  }
+
+  // ⭐ THE GATE COMES BEFORE SUPABASE, NOT AFTER (slice 2c). An attempt
+  // that is refused here never reaches signInWithPassword, so a password
+  // guess against a locked address is not even tested — which is the
+  // point of the rule and also why it sits above the expensive call.
+  //
+  // ⓘ No accountExistsForEmail on this path, unlike the failure branch
+  // below. A blocked attempt is the one arriving during an attack, and
+  // that is precisely when we want to do LESS work per request, not more.
+  // Support loses nothing: the LOGIN_FAIL rows that caused the block are
+  // sitting right underneath this row, and they carry the answer.
+  const gate = await checkLoginThreshold(email);
+  if (gate.blocked) {
+    await logAuthEvent({
+      eventType: 'LOGIN_BLOCKED',
+      email,
+      reason: gate.rule,
+    });
+    return {
+      ok: false,
+      error: `Too many sign-in attempts. Try again ${formatRetry(gate.retryAfterSeconds)}.`,
+    };
   }
 
   const supabase = await createClient();
