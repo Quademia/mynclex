@@ -160,6 +160,37 @@ describe('the queries', () => {
     expect(chain.in).toHaveBeenCalledWith('event_type', ['RESET_REQUESTED']);
   });
 
+  // ⭐ THE FETCH CAP IS EXACTLY THE DEEPEST THRESHOLD, AND THAT IS SOUND
+  // RATHER THAN LUCKY. The unblock moment depends only on the Nth-newest
+  // row, never on the total — 12 failures and 12,000 give the same answer
+  // off the same 10 rows. This test exists because the relationship is
+  // invisible at the call site: raise the 24h limit to 15 and forget the
+  // fetch, and the long rule would quietly stop firing altogether, with
+  // every other test in this file still green.
+  it('fetches exactly as many rows as the deepest rule needs', async () => {
+    stubRows({ data: [], error: null });
+    await checkLoginThreshold('nurse@example.com');
+    expect(mocks.limit).toHaveBeenCalledWith(10);
+
+    vi.clearAllMocks();
+    stubRows({ data: [], error: null });
+    await checkResetThreshold('nurse@example.com');
+    expect(mocks.limit).toHaveBeenCalledWith(3);
+  });
+
+  it('looks back as far as the widest rule, not the narrowest', async () => {
+    const chain = stubRows({ data: [], error: null });
+    await checkLoginThreshold('nurse@example.com');
+
+    // The 24-hour rule can only fire if the query reaches back 24 hours.
+    // Scoping the fetch to the 10-minute window would leave the long rule
+    // permanently unreachable — the failure this test names.
+    const since = new Date((chain.gte as ReturnType<typeof vi.fn>).mock.calls[0][1]);
+    const hoursBack = (Date.now() - since.getTime()) / (60 * 60 * 1000);
+    expect(hoursBack).toBeGreaterThan(23.9);
+    expect(hoursBack).toBeLessThan(24.1);
+  });
+
   it('lowercases the address, so case cannot be used to reset the count', async () => {
     const chain = stubRows({ data: [], error: null });
     await checkLoginThreshold('  Nurse@Example.COM  ');
