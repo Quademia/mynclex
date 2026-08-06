@@ -168,11 +168,16 @@ Beta-B has Google + Microsoft via NextAuth).
 
 - **No email layer exists.** `workers/` is empty, Resend isn't a dependency.
   The only emails MyNclex has ever sent are Supabase Auth invites.
-- **⚠ Unverified whether the Supabase projects are on default SMTP** (needs a
-  dashboard check on both). Default SMTP = unbranded sender + a few emails/hr
-  rate limit — which would silently break tutor-add onboarding at class size.
-  Gamma's prod setup doc (`db/setup/supabase_auth_storage.md`) shows the
-  custom-SMTP-via-Resend pattern to replicate.
+- ~~**⚠ Unverified whether the Supabase projects are on default SMTP**~~
+  **RESOLVED 2026-08-06: they were — both of them.** Confirmed the honest
+  way, in passing: the custom-SMTP toggle was OFF on dev and on prod when
+  each was opened for the wiring (nothing to configure it with had ever
+  existed — no Resend account, no credentials). Both now run **custom SMTP
+  via Resend** (see the build-order item 1 status below). The original
+  worry stands as history: default SMTP = unbranded sender + a few
+  emails/hr — it would have silently broken tutor-add onboarding at class
+  size. Gamma's prod setup doc (`db/setup/supabase_auth_storage.md`) was
+  the pattern replicated.
 - The `EMAIL-TRIGGER` marker convention in transactional-email.md has
   drifted: ~15 events are marked "anchor exists, needs marker" but only ONE
   marker exists in code. Needs a tidy pass.
@@ -388,6 +393,14 @@ need auth records on quademia.com. SPF must be ONE record naming both —
 two competing SPF records is a classic silent-delivery killer. DKIM
 selectors are separate per sender (fine). Start DMARC in monitoring mode
 (`p=none`), tighten later.
+  ⓘ **How it actually landed (2026-08-06):** the feared root-SPF edit
+  never happened, because Resend doesn't put SPF on the root at all — its
+  records scope to the **`send.` subdomain** (MX + SPF on
+  `send.quademia.com`, DKIM on its own `resend._domainkey` selector).
+  Google's root SPF record is untouched and stays Google-only. The
+  ONE-record rule above remains true and live — it just turned out
+  nothing needed merging for this sender. Re-check it if any future
+  sender wants root-level SPF.
 
 **Workspace move — DONE 2026-08-05, all in one day.** The completed
 sequence, in order:
@@ -508,6 +521,47 @@ references (rename debt above) and the Resend/SMTP work already scoped.
 1. **Verify quademia.com in Resend + custom SMTP on both MyNclex Supabase
    projects, branded auth templates** — nothing email-dependent is safe
    before this.
+   **STATUS 2026-08-06 — plumbing DONE, templates remain:**
+   - ✅ **Resend account created — a NEW one, registered under
+     `admin@quademia.com`** (the infra rule holds from day one). Settled
+     over reusing gamma's account (mybackpacc@gmail.com): Resend's free
+     plan allows **one verified domain per account** (checked live
+     2026-08-06), and gamma's slot is taken by qacademynurses.com — so
+     sharing forces the $20/mo Pro plan for no gain, and the free 100
+     emails/day pot would be shared between gamma's ~629 users and
+     MyNclex. Convergence still comes for free later: when gamma migrates
+     to quademia senders, it sends through THIS account and the old one
+     retires. ⚠ **Paid-plan trigger accepted by Sam:** the Pro upgrade
+     (~$20/mo, 50k/month, no daily cap) happens **before real signup
+     volume** — gamma once had >100 signups in a day and emails silently
+     stopped; that is the known failure the free tier re-creates.
+   - ✅ **quademia.com verified in Resend** (region eu-west-1), via
+     Resend's Domain Connect auto-configure → one-time Cloudflare
+     authorization. Three records, all DNS-only, none touching the root
+     (see the coexistence note above).
+   - ✅ **Custom SMTP live on BOTH projects** (dev first, then prod), as
+     **Quademia `<noreply@quademia.com>`**, `smtp.resend.com:465`,
+     per-environment sending-only API keys (`mynclex-dev-smtp` /
+     `mynclex-prod-smtp` — dev revocable without touching prod).
+   - ✅ **Delivery proven on both**: dashboard invite to an outside Gmail
+     address — arrived in the **inbox** (not spam), branded sender, on
+     dev and on prod. Test users deleted after.
+   - ⬜ **Auth-email rate limit bump to 100/hr** (both projects,
+     Authentication → Rate Limits; matches Resend's free 100/day ceiling;
+     both rise together at the Pro upgrade). Instructed 2026-08-06 but
+     **not confirmed done** — verify at next session.
+   - ⬜ **Branded auth templates** — scope + wording settled with Sam
+     2026-08-06, nothing pasted yet. Brand FOUR: invite ·
+     reset-password · confirm-signup · change-email (all text-branded,
+     "— The Quademia team", no logo until one exists; invite copy stays
+     neutral on who invited, because tutor-add and pay-first checkout
+     send the same template). **Deliberately skipped:** magic link
+     (slice 3 rewrites it code-only — branding now is thrown-away work)
+     and reauthentication (nothing uses it).
+   - ⬜ **New docs folder for ALL product email copy** (not just auth) —
+     approved by Sam 2026-08-06; create it when the templates are
+     written, so the canonical copy lives in the repo, not only in two
+     dashboards.
 2. **Forgot-password flow** (depends on 1) — carries Turnstile on the three
    public forms, the `nclex_auth_events` write-side, AND the layer-2
    per-email threshold checks (gamma's rules, server-side) with it.
