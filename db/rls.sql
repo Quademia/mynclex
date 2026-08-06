@@ -1719,3 +1719,36 @@ CREATE POLICY nclex_readiness_pack_items_curate_all ON nclex_readiness_pack_item
   TO authenticated
   USING (nclex_user_has_permission('BANK_CURATE'))
   WITH CHECK (nclex_user_has_permission('BANK_CURATE'));
+
+
+-- ============================================================
+-- nclex_auth_events — the auth logbook (build-order item 2, slice 2a)
+-- Migration: db/migrations/20260904120000_auth_events.sql
+-- ============================================================
+
+-- ⭐ THE ABSENT POLICIES ARE THE DESIGN. One SELECT policy and nothing
+-- else: no INSERT, no UPDATE, no DELETE, for anybody. With RLS enabled an
+-- operation with no policy is denied, so "append-only — no row is ever
+-- updated" is something the database refuses rather than something every
+-- future call site has to remember.
+--
+-- Writes come through createServiceRoleClient(), which bypasses RLS. That
+-- is required, not a workaround: the most important row here is a FAILED
+-- login, and a failed login has no session — auth.uid() is NULL, so no
+-- policy we could express would ever let it be written.
+--
+-- Retention deletes run through nclex_purge_auth_events(), SECURITY
+-- DEFINER, nightly on pg_cron. Removing whole rows on age is not a breach
+-- of append-only, which is about an event's record never being revised.
+ALTER TABLE nclex_auth_events ENABLE ROW LEVEL SECURITY;
+
+-- USERS_MANAGE rather than a bare SUPER_ADMIN check — the helper already
+-- returns true for SUPER_ADMIN, and this is the bucket the future
+-- "account activity" panel on admin user detail will sit behind.
+--
+-- A student cannot read her own rows, deliberately: handing her the log
+-- would hand an attacker who got in once the list of every address and
+-- device that had tried. The support answer is given BY support.
+CREATE POLICY nclex_auth_events_admin_read ON nclex_auth_events FOR SELECT
+  TO authenticated
+  USING (nclex_user_has_permission('USERS_MANAGE'));

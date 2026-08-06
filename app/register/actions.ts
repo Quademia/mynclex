@@ -8,6 +8,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createSbClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
+import { logAuthEvent } from '@/lib/auth/events';
 
 type RegisterResult =
   | { ok: true }
@@ -74,6 +75,17 @@ export async function registerAction(formData: FormData): Promise<RegisterResult
     await rollbackAuthUser(authUser.id);
     return { ok: false, error: 'Could not assign role. Please try again.' };
   }
+
+  // Only the completed signup is logged. The three failure paths above
+  // all roll the auth user back, so an event there would record an
+  // account that no longer exists — and REGISTERED is the only signup
+  // type in the constraint precisely because a half-created user is not
+  // a registration. (The rollback itself already logs to the console.)
+  await logAuthEvent({
+    eventType: 'REGISTERED',
+    email,
+    userId: authUser.id,
+  });
 
   redirect('/router');
 }

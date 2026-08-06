@@ -2038,6 +2038,54 @@ CREATE UNIQUE INDEX idx_nclex_readiness_credits_one_live_claim_per_pack
   WHERE pack_id IS NOT NULL AND expired_at IS NULL AND revoked_at IS NULL;
 
 
+-- nclex_auth_events — append-only log of authentication attempts (login,
+-- registration, invite acceptance, reset, login code). Build-order item 2
+-- slice 2a; migration 20260904120000_auth_events.sql, which carries the
+-- full rationale for every column.
+--
+-- Three things about this table are decisions rather than defaults:
+--   • user_id has NO foreign key. An FK would either block deleting a
+--     user or cascade their history away, and a log that vanishes with
+--     its subject is not a log. The register rollback path hard-deletes
+--     auth users, so this is live, not hypothetical.
+--   • email is kept even when it matches no account — "she asked for her
+--     Yahoo, her account is under her Gmail" is the #1 support case and
+--     is only answerable if unrecognised addresses are stored.
+--   • ip_address is recorded and never enforced on. Ghanaian mobile
+--     carriers put thousands of subscribers behind one address, so a
+--     per-IP rate limit could lock out a whole network of nurses.
+CREATE TABLE nclex_auth_events (
+  event_id     BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  occurred_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  event_type   TEXT        NOT NULL,
+  email        TEXT,                                 -- address TRIED, lowercased
+  user_id      UUID,                                 -- when known; no FK, on purpose
+  user_exists  BOOLEAN,                              -- reset events only
+  device_label TEXT,                                 -- 'Android · Chrome'; not a hash
+  ip_address   INET,                                 -- logged, never enforced on
+  reason       TEXT,                                 -- 'invalid_credentials', …
+  -- The future types (CODE_* = slice 3, GOOGLE_FIRST_SIGNIN = slice 5)
+  -- are listed now so those slices need no migration. *_BLOCKED is a
+  -- distinct type, not a flag, so slice 2c can exclude blocked attempts
+  -- from the counts that blocked them.
+  CONSTRAINT nclex_auth_events_type_ck CHECK (event_type IN (
+    'LOGIN_OK', 'LOGIN_FAIL', 'LOGIN_BLOCKED',
+    'REGISTERED',
+    'RESET_REQUESTED', 'RESET_COMPLETED', 'RESET_BLOCKED',
+    'CODE_REQUESTED', 'CODE_LOGIN_OK', 'CODE_LOGIN_FAIL',
+    'INVITE_ACCEPTED', 'GOOGLE_FIRST_SIGNIN'
+  ))
+);
+-- One index per named reader: the slice-2c threshold count, a student's
+-- support timeline, and the nightly retention sweep.
+CREATE INDEX idx_nclex_auth_events_email_time
+  ON nclex_auth_events (email, occurred_at DESC) WHERE email IS NOT NULL;
+CREATE INDEX idx_nclex_auth_events_user_time
+  ON nclex_auth_events (user_id, occurred_at DESC) WHERE user_id IS NOT NULL;
+CREATE INDEX idx_nclex_auth_events_occurred
+  ON nclex_auth_events (occurred_at);
+
+
 -- RPC functions are large and tracked by their migration files
 -- (mynclex/db/migrations/mynclex_trend_save_rpc_slice_1_12b.sql).
 -- The function bodies are NOT mirrored into schema.sql to keep the
