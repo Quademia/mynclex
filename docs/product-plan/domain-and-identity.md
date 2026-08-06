@@ -294,7 +294,9 @@ MyNclex layers:
    skip it — gamma's logic one layer deeper. **v1 drops only the
    device-fingerprint axis** (Turnstile substitutes for it; keeps
    fingerprint hashing out of the table). Ships with the forgot-password
-   slice.
+   slice. → The same "what is a device, and do we care?" question returns
+   in **Concurrent sessions / device limits** below; the answer there is
+   also *don't fingerprint* — count Supabase's real sessions instead.
 3. **Auth-hook upgrade (parked, build list):** Supabase auth hooks include
    a password-verification-attempt hook — the same check moved INSIDE
    Supabase Auth, binding even direct endpoint calls (the layer gamma could
@@ -343,6 +345,118 @@ MyNclex layers:
     is under your Gmail").
 - Known limit: "I registered under a different email" is invisible to any
   log — the admin user-search is the tool for that case.
+
+---
+
+## Concurrent sessions / device limits — researched 2026-08-06 (later)
+
+*Raised by Sam while scoping slice 2a: "how many devices can be logged in
+on the same user at a time — gamma does it." It had never entered this
+doc. It belongs here, because it is the same question as the device axis
+we just dropped from rate limiting: **what is a device, and do we care?***
+
+**This is a revenue problem wearing a security costume.** The Bank is a
+standalone subscription, and a question bank is the classic
+shared-password product — one nurse buys, her study group uses it. Every
+other item in this doc protects students from attackers. This one
+protects the product from its own customers, which is why it reads
+differently and why the acceptable false-positive rate is much lower: an
+over-tight limit doesn't annoy an attacker, it annoys a paying student.
+
+### What gamma built (read 2026-08-06)
+
+`sessions` table (`db/schema.sql` §1.11) — **max 2 active per user**,
+7-day expiry. On login it counts active sessions and, at 2, deactivates
+the **oldest** before inserting the new one. `guard.js` re-checks on
+every guarded page load and treats a dead session as logged out; logout
+sets `active = FALSE`; rows are never deleted.
+
+⚠ **Same structural flaw as gamma's rate limiting, for the same reason:
+it runs in the browser.** The session id lives in `localStorage` and the
+check is a script the browser is trusted to run. A sharer doesn't have to
+defeat it — a browser that never runs `guard.js` is unaffected. Speed
+bump, not a lock. The *rule* is worth porting; the *placement* is the
+thing we fix by being server-side, exactly as with layer 2.
+
+### What Supabase gives natively (verified against Supabase docs 2026-08-06)
+
+Three settings, no code, per project, under **Authentication → Sessions**:
+
+| Setting | Does |
+|---|---|
+| Time-box user sessions | Fixed maximum lifetime, then re-authenticate |
+| Inactivity timeout | Sessions die if not refreshed within N |
+| **Single session per user** | Most recent sign-in survives; all others terminated |
+
+⭐ **Only ONE of the three addresses sharing.** Time-box and inactivity
+timeout force periodic re-login — a security/compliance feature (their
+docs frame it around SOC 2 / HIPAA). A shared account simply logs in
+again, so neither touches the problem. Don't let "Supabase offers all
+three" read as "Supabase solves this".
+
+Two limits on the one that does apply:
+- **It is exactly 1, not N.** There is no "max 2" setting.
+- **It is not instant.** Enforcement happens when a session next
+  *refreshes*, so the effect lands within roughly the access-token
+  lifetime (1 h by default), not at the moment someone else signs in.
+
+⭐ **The useful gift is elsewhere:** every access token carries a
+**`session_id` claim** (UUID) matching the primary key of
+`auth.sessions`. Gamma invented its own session ids because it had no
+server to ask. We do not need to.
+
+### Settled direction
+
+**Reject single-session-per-user as the default.** It would log a student
+out of her laptop every time she opened her phone. Study on the laptop,
+practise on the phone is the exact pattern the mobile work was designed
+around (`mobile-responsive.md`) — punishing it to deter sharing costs
+more than it saves. Gamma's **2** exists for that reason and is the right
+starting number.
+
+**What we would build is a POLICY, not a session system.** Supabase keeps
+owning sessions — issuing, refreshing, revoking. We only add the rule:
+count this user's live sessions, and when a third appears, revoke the
+oldest. That is much smaller than gamma's build, and unlike gamma's it
+can *actually revoke* rather than flip a boolean the browser is trusted
+to honour. Our own check also bites on the **next page load**, where
+Supabase's native toggle waits for a token refresh — ours is stricter
+*and* faster, which is itself an argument for allowing two rather than
+one.
+
+⚠ **What is counted is browsers, not devices.** One laptop running Chrome
+and Edge is two sessions. Whatever number gets picked, pick it knowing
+that — "2 devices" and "2 sessions" are not the same promise, and the
+support conversation will be about the difference.
+
+### ⭐ Sequencing: capture first, decide with evidence
+
+**Not part of slice 2, and deliberately given no build-order number yet.**
+
+Slice 2a logs a `LOGIN_OK` with a `device_label` on every successful
+sign-in. **The moment that ships, account sharing becomes visible** — one
+account, five device labels, a week's worth of usage — with no
+enforcement built at all. So: ship 2a, watch real logins, then choose the
+limit from data instead of picking a number in advance. Same rule applied
+elsewhere in this product (capture the data now, defer the surface —
+see [[analytics-deferred-per-feature]] in practice across the progress
+engine and audit log).
+
+Consequences folded back into slice 2a because of this:
+- The **device-label helper** (user-agent → "Android · Chrome") is built
+  once there and shared with any future session slice. Don't write it
+  twice.
+- ⓘ **Password change already terminates all of a user's sessions**
+  (Supabase behaviour, per their sessions doc). So the forgot-password
+  flow being built in slice 2 *is itself* the "kick everyone off" button
+  — which is exactly what a student does the day she realises her
+  password got around. Worth saying in the support copy when that exists.
+
+⚠ **Unverified:** whether these three toggles are available on the free
+plan. Supabase's docs don't say, and auth config cannot be read over MCP
+(same limit as the rate-limit and OTP-expiry settings). Visible on
+Authentication → Sessions — worth a glance, because if time-boxing is
+free it is a cheap win independent of everything above.
 
 ---
 
