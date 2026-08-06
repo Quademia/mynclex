@@ -87,6 +87,24 @@
   margin-top: 2px;
 }
 
+/* The "Forgot your password?" link under the password field. Right
+ * aligned so it reads as an escape hatch attached to that field rather
+ * than a hint about it — .auth-hint alone would put it where the
+ * "minimum 8 characters" style of note lives. */
+.auth-forgot {
+  align-self: flex-end;
+}
+
+.auth-forgot a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-forgot a:hover {
+  text-decoration: underline;
+}
+
 .auth-error {
   padding: 10px 14px;
   background: #fef2f2;

@@ -20,6 +20,9 @@ export function LoginForm({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Carried to /forgot-password so a student who has just failed to sign
+  // in doesn't retype the address she was already struggling with.
+  const [email, setEmail] = useState(initialEmail ?? '');
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -45,7 +48,8 @@ export function LoginForm({
           name="email"
           type="email"
           autoComplete="email"
-          defaultValue={initialEmail ?? ''}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
         />
       </div>
@@ -59,6 +63,11 @@ export function LoginForm({
           autoComplete="current-password"
           required
         />
+        <span className="auth-hint auth-forgot">
+          <a href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : '/forgot-password'}>
+            Forgot your password?
+          </a>
+        </span>
       </div>
 
       {error && <div className="auth-error">{error}</div>}

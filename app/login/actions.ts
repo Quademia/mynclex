@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { safeNext } from '@/lib/auth/safe-next';
 import { logAuthEvent } from '@/lib/auth/events';
+import { accountExistsForEmail } from '@/lib/auth/account-lookup';
 
 type LoginResult =
   | { ok: true }
@@ -35,14 +36,38 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
   });
 
   if (error) {
-    // Supabase answers a wrong password and an unknown address with the
-    // same 'Invalid login credentials', which is what keeps the form from
-    // confirming who has an account. The log inherits that blindness —
-    // user_exists is a RESET-side idea, and there is nothing honest to put
-    // here. Support reads the pattern instead: many fails then a success
-    // is a forgotten password; many fails and no success is the case to
-    // look at.
-    await logAuthEvent({ eventType: 'LOGIN_FAIL', email, reason: error.message });
+    // ⭐ THE PAGE AND THE LOG HAVE DIFFERENT AUDIENCES, SO THEY GET
+    // DIFFERENT ANSWERS (settled with Sam, 2026-08-06). Supabase replies
+    // to a wrong password and to an unknown address with the same
+    // 'Invalid login credentials', and the student must keep seeing
+    // exactly that — otherwise the form becomes a way to discover who has
+    // an account here. But the admin reading a support case is behind a
+    // login, a role check and an RLS policy, and has no reason to inherit
+    // that blindfold. So we look the address up ourselves and record
+    // which of the two it actually was.
+    //
+    // ⚠ The result must never travel back to the caller. It is not in the
+    // returned error, and it must not enter one later.
+    //
+    // ⓘ Cheap where it looks expensive: this sits after a failed
+    // signInWithPassword, which has already run a deliberately-slow
+    // password hash. One indexed lookup beside that is noise.
+    const userExists = await accountExistsForEmail(email);
+
+    await logAuthEvent({
+      eventType: 'LOGIN_FAIL',
+      email,
+      userExists,
+      // Our diagnosis first, then Supabase's own words. The verbatim
+      // message still earns its place: not every failure is credentials,
+      // and once email confirmation is switched on at launch, 'Email not
+      // confirmed' will look identical to a wrong password from the
+      // student's side while being a completely different support case.
+      reason:
+        userExists === null
+          ? error.message
+          : `${userExists ? 'wrong_password' : 'no_such_account'}: ${error.message}`,
+    });
     return { ok: false, error: error.message };
   }
 
