@@ -869,6 +869,49 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      makes it reject *every* auth call without a token, including the
      existing login and register forms. Verify inside our own server
      actions first; flip the Supabase switch after.
+
+     **↳ 2d also carries the `/register` gap** (found 2026-08-06 when Sam
+     asked what happens on signup with an address that already exists —
+     verified on dev, not assumed). Registering with a known address
+     returns Supabase's **"User already registered"** verbatim from
+     `app/register/actions.ts`. Functionally correct: no duplicate is
+     created and no orphan auth user is left, because the flow errors
+     before the profile insert. But it makes `/register` the one public
+     auth surface that answers the question the other two refuse:
+
+     | Form | Unknown address | Known address |
+     |---|---|---|
+     | Login | "Invalid login credentials" | "Invalid login credentials" |
+     | Forgot password | "If an account exists…" | "If an account exists…" |
+     | **Register** | proceeds | **"User already registered"** |
+
+     ⭐ **THE MESSAGE STAYS — Sam's call, 2026-08-06.** A returning
+     student who has forgotten she already signed up gets a clear,
+     actionable answer instead of a dead end, and that is worth more here
+     than closing an oracle an attacker can approximate anyway. Recorded
+     so this reads as a decision rather than the oversight it currently
+     looks like. ⚠ **But the decision has an expiry we do not control:**
+     switching email confirmation ON (a launch gate above) makes Supabase
+     stop returning that error and hand back a decoy user instead,
+     emailing the real owner "someone tried to sign up with your
+     address". So at launch the message disappears on its own. Keeping it
+     past that point would mean looking the address up ourselves and
+     re-creating the oracle deliberately — a different decision from this
+     one, and one to take with eyes open.
+
+     Two things that DO belong in 2d, both independent of the wording:
+     - **Turnstile on `/register`, not just login and forgot-password.**
+       Right now the oracle can be queried as fast as the network allows:
+       2c's thresholds count `LOGIN_FAIL` and `RESET_REQUESTED` only, so
+       **`/register` has no rate limit of any kind.**
+     - **Make a rejected signup visible.** A duplicate registration is
+       refused before `logAuthEvent` runs, so it writes **no row at all** —
+       `/register` is the only auth surface that leaves no trace on
+       failure, which means probing it is invisible in the very logbook
+       built to make attacks visible. Needs a new event type (e.g.
+       `REGISTER_REJECTED`) — ⚠ **and that one is NOT free**, unlike the
+       `CODE_*` and `GOOGLE_FIRST_SIGNIN` types 2a pre-loaded: it is not
+       in the CHECK constraint, so it needs a migration.
    - ⓘ **Prod is untouched.** The migration reaches prod through
      `migrate-prod.yml` on the next release; prod's redirect allowlist
      (`https://mynclex.qacademynurses.workers.dev/**`) must be set before
