@@ -178,10 +178,19 @@ export default function ResetPasswordPage() {
       <main className="auth-main">
         <section className="auth-card">
           <div className="auth-header">
-            <h1 className="auth-title">This link didn&apos;t work</h1>
+            {/* "No longer works", not "invalid". The link WAS good — she
+                got a real email from us and it worked until it didn't.
+                "Invalid" reads as an accusation, or worse, as though the
+                email had been a phishing attempt she was right to
+                distrust; "no longer" carries the reassurance that it once
+                worked. The cause is deliberately left open because this
+                screen covers four of them (expired, already used, opened
+                in a different browser, timed out waiting) and naming only
+                expiry would send some students chasing the wrong fix. */}
+            <h1 className="auth-title">This link no longer works</h1>
             <p className="auth-subtitle">
-              Reset links last one hour and can only be used once. Ask for a
-              fresh one and it&apos;ll work.
+              It may have expired, or already been used. Request a new one to
+              continue.
             </p>
           </div>
           <div className="auth-footer">

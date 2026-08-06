@@ -39,13 +39,22 @@ export function ForgotForm({ initialEmail }: { initialEmail?: string }) {
     // two ways back to the same place read as two destinations.
     return (
       <>
+        {/* ⚠ The "If an account exists for…" opening is load-bearing, not
+            hedging. It is the only thing stopping this screen from
+            confirming to a stranger which addresses are registered here.
+            Reword the rest freely; keep the conditional. */}
         <p className="auth-subtitle">
           If an account exists for <strong>{sentTo}</strong>, we&apos;ve sent a
-          link to reset the password. It expires in one hour.
+          link to reset it. The link expires in one hour and can only be used
+          once.
         </p>
+        {/* Two causes, two clauses: it is in spam, or she used an address
+            she never registered with. "Try" rather than "Check" because
+            the imperative read as an instruction to go straight to spam,
+            past the inbox she has already looked in. */}
         <p className="auth-hint">
-          Nothing arrived? Check your spam folder, and make sure you used the
-          address you registered with — it may be a different one.
+          Nothing after a few minutes? Try your spam folder — and check the
+          address above is the one you registered with.
         </p>
       </>
     );
