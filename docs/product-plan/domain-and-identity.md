@@ -294,7 +294,12 @@ MyNclex layers:
    skip it — gamma's logic one layer deeper. **v1 drops only the
    device-fingerprint axis** (Turnstile substitutes for it; keeps
    fingerprint hashing out of the table). Ships with the forgot-password
-   slice. → The same "what is a device, and do we care?" question returns
+   slice. ⚠ **And it must NOT grow an IP threshold** — see the IP
+   decision below; the address is logged and never enforced on, because
+   Ghanaian mobile carriers put thousands of subscribers behind a handful
+   of addresses and a per-IP rule could lock out a whole network's worth
+   of nurses on a busy evening. → The same "what is a device, and do we
+   care?" question returns
    in **Concurrent sessions / device limits** below; the answer there is
    also *don't fingerprint* — count Supabase's real sessions instead.
 3. **Auth-hook upgrade (parked, build list):** Supabase auth hooks include
@@ -343,6 +348,41 @@ MyNclex layers:
     "requested for an address we don't know" — which answers the #1 support
     case ("never got the email" → "you asked for your Yahoo; your account
     is under your Gmail").
+  - ⭐ **THE PAGE AND THE LOG HAVE DIFFERENT AUDIENCES, AND ARE ALLOWED
+    DIFFERENT ANSWERS** (Sam, 2026-08-06, while reading the first
+    `LOGIN_FAIL` rows). The anti-enumeration rule constrains what the
+    PAGE may say. It does not constrain what we may KNOW. An admin
+    reading a support case sits behind a login, a role check and an RLS
+    policy, and has no reason to inherit a visitor's blindfold.
+    **Consequence, built in 2b:** `user_exists` is filled on `LOGIN_FAIL`
+    too, and `reason` carries our diagnosis — `wrong_password` vs
+    `no_such_account` — while the student keeps seeing Supabase's
+    identical "Invalid login credentials" for both. So `user_exists`
+    stopped being a reset-only column.
+    **Why record it rather than look it up later:** a lookup answers
+    "does this address exist NOW". A student who mistypes on Monday and
+    registers properly on Tuesday leaves a Monday row that a Wednesday
+    search reads as "her account existed, so it was a password problem"
+    — misleading, and silently so. It also separates two attacks that
+    look identical otherwise: failures against addresses that DON'T
+    exist are enumeration, against ones that DO are credential stuffing.
+    ⚠ **The answer must never travel back to the user** — not in an
+    error, a response body, or a redirect. That is the enumeration
+    oracle we declined to build, rebuilt by accident.
+    ⓘ Known gap: `accountExistsForEmail` reads `nclex_users`, not
+    `auth.users`, so a pay-first buyer between paying and finishing
+    setup at `/welcome` logs as "no account". Flag only — she can still
+    reset. Closing it needs a SECURITY DEFINER function, since PostgREST
+    does not expose the auth schema.
+  - **The IP address: logged, never enforced on** (settled with Sam,
+    2026-08-06 — the doc previously recommended storing none). Storing
+    and blocking are two decisions and they go different ways here. It
+    is the only axis that can SEE a spray that came through our own
+    forms; a per-IP *threshold* is the dangerous half, for the
+    carrier-NAT reason in the rate-limiting section above. ⓘ Its honest
+    scope is "traffic through our forms" — an attacker calling
+    Supabase's endpoint directly with the public anon key never reaches
+    our server actions and writes no row at all.
 - Known limit: "I registered under a different email" is invisible to any
   log — the admin user-search is the tool for that case.
 
@@ -731,6 +771,45 @@ references (rename debt above) and the Resend/SMTP work already scoped.
 2. **Forgot-password flow** (depends on 1) — carries Turnstile on the three
    public forms, the `nclex_auth_events` write-side, AND the layer-2
    per-email threshold checks (gamma's rules, server-side) with it.
+   **STATUS 2026-08-06 — 2a and 2b BUILT + Sam-tested on dev; 2c and 2d
+   remain.** The first code of this arc after three documentation
+   sessions.
+   - ✅ **2a — the logbook.** `nclex_auth_events` + the write side
+     (migration `20260904120000_auth_events.sql`, `lib/auth/events.ts`,
+     `lib/auth/device-label.ts`). Shipped BEFORE the flow it serves
+     because logs cannot be captured retroactively — the table has to
+     exist before the support case does. Append-only is **enforced, not
+     remembered**: one SELECT policy for `USERS_MANAGE` and no
+     insert/update/delete policy for anybody, so the database refuses
+     rather than trusting call sites. Writes go through the service-role
+     client, which is required anyway — a failed login has no session,
+     so `auth.uid()` is NULL and no policy could ever admit the row.
+     90-day retention sweep on pg_cron, window in `nclex_config`.
+     Every future event type (`CODE_*` for slice 3,
+     `GOOGLE_FIRST_SIGNIN` for slice 5) is already in the CHECK
+     constraint, so those slices need no migration. `INVITE_ACCEPTED`
+     is written from `/welcome` today, tagged `tutor_add` / `pay_first`.
+   - ✅ **2b — the flow.** `/forgot-password`, `/reset-password`, the
+     login-form link, and `lib/auth/account-lookup.ts`. Verified end to
+     end on dev: request → email → link → new password → signed in, with
+     the `RESET_REQUESTED` / `RESET_COMPLETED` pair 56 s apart in the
+     log.
+     ⚠ **The `?code=` vs `#access_token=` trap cost three attempts** and
+     is now written up in `CLAUDE.md` → Known Workarounds. Short version:
+     `@supabase/ssr` forces `flowType:'pkce'`, so the browser client
+     auto-consumes PKCE links (never exchange those yourself — the code
+     is single-use) and **refuses** implicit ones outright (there you
+     must call `setSession` yourself). Slice 3's email-code login will
+     meet the same thing.
+   - ⬜ **2c — the thresholds.** Not built. ⚠ **Until it lands the reset
+     form has no per-email limit on it** — the only brake is Supabase's
+     own auth-email rate limit (100/hr). Bounded, not protected, and the
+     reason 2c should not drift far behind 2b.
+   - ⬜ **2d — Turnstile.** Not built. Keys still to create in Cloudflare.
+   - ⓘ **Prod is untouched.** The migration reaches prod through
+     `migrate-prod.yml` on the next release; prod's redirect allowlist
+     (`https://mynclex.qacademynurses.workers.dev/**`) must be set before
+     the flow works there.
 3. **Email-code login** (depends on 1; reuses slice 2's Turnstile + logging
    + threshold plumbing) — code-only Magic Link template,
    `shouldCreateUser: false`, request-code + enter-code UI on the login
