@@ -20,7 +20,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { completeResetAction } from './actions';
 import '@/styles/tokens.css';
@@ -34,7 +34,21 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // ⭐ RUN THE HANDOFF EXACTLY ONCE. React Strict Mode (on by default in
+  // dev) invokes every effect twice, which on this page is not a harmless
+  // repeat: the recovery code is single-use, so the second run spends an
+  // already-spent code, fails, and paints "this link didn't work" over a
+  // reset that worked. That is the SAME race as the library one above,
+  // just between our own two passes — turning detectSessionInUrl off
+  // removes one competitor and this removes the other. A ref survives
+  // Strict Mode's simulated remount, which is what makes it the guard
+  // rather than state.
+  const startedRef = useRef(false);
+
   useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+
     // Read the credentials out of the URL synchronously, before the
     // Supabase client's detectSessionInUrl can consume and clear them.
     // Supabase sends one of two shapes depending on the project's flow —
@@ -48,8 +62,15 @@ export default function ResetPasswordPage() {
     const refreshToken = hashParams.get('refresh_token');
     const code = new URLSearchParams(window.location.search).get('code');
 
-    const supabase = createClient();
-    let cancelled = false;
+    // ⚠ detectSessionInUrl OFF — this page owns the token, nothing else.
+    // With it on (the default) the client consumes the single-use code
+    // the moment it loads and wipes the address bar, so the explicit
+    // exchange below arrives second and fails on an already-spent code —
+    // and the page then reports "this link didn't work" for a reset that
+    // in fact succeeded. Exactly what happened on the first live test,
+    // 2026-08-06; the giveaway was the real URL flashing up and being
+    // replaced by a bare one.
+    const supabase = createClient({ detectSessionInUrl: false });
 
     async function establishUser() {
       if (accessToken && refreshToken) {
@@ -73,8 +94,13 @@ export default function ResetPasswordPage() {
       return user;
     }
 
+    // ⚠ No cancelled-flag / cleanup pair here, and its absence is
+    // deliberate. Strict Mode's cleanup fires between its two passes, so
+    // a flag set there would cancel the ONLY run the guard above allows —
+    // and the page would sit on "Checking your link…" forever. Setting
+    // state after unmount is a no-op in React 18+, so there is nothing
+    // left for the flag to protect against.
     establishUser().then((user) => {
-      if (cancelled) return;
       if (!user) {
         setPhase('invalid');
         return;
@@ -85,10 +111,6 @@ export default function ResetPasswordPage() {
       window.history.replaceState(null, '', window.location.pathname);
       setPhase('ready');
     });
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   async function handleSubmit(formData: FormData) {
