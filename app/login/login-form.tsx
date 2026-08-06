@@ -84,15 +84,15 @@ export function LoginForm({
         <div className="auth-error">
           {error}
           {showReset && (
-            // Phrased as the way back in, not as an instruction. She has
-            // just been refused; "Set a new password" is the thing that
-            // actually helps, and it works right now because the reset
-            // limit is a separate counter that her failed sign-ins have
-            // not touched.
+            // Joined with "or" into the sentence the action left open, so
+            // the screen offers a choice rather than a refusal with a
+            // link stuck on the end. It works right now because the reset
+            // limit is a separate counter her failed sign-ins have not
+            // touched — the whole reason it is worth offering here.
             <>
-              {' '}
+              {' or '}
               <a className="auth-error-action" href={forgotHref}>
-                Set a new password instead
+                set a new password instead
               </a>
               .
             </>

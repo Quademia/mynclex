@@ -65,10 +65,23 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
     // really is the right advice — she is probably one typo away — and
     // pushing a password reset at someone who has simply mistyped
     // creates work she didn't need.
+    //
+    // ⓘ The offer is joined to the sentence with "or" rather than left to
+    // stand as its own (Sam's copy call). Two sentences made the link read
+    // as an afterthought tacked onto a refusal; one sentence presents what
+    // it actually is — a choice between waiting and resetting. Which is
+    // why `error` is left UNTERMINATED in that branch: the form closes it
+    // after the link. The short-block branch punctuates itself, since
+    // nothing follows it.
+    const offerReset = gate.rule === LOGIN_RULE_24H;
+    const retry = formatRetry(gate.retryAfterSeconds);
+
     return {
       ok: false,
-      error: `Too many sign-in attempts. Try again ${formatRetry(gate.retryAfterSeconds)}.`,
-      suggestReset: gate.rule === LOGIN_RULE_24H,
+      error: offerReset
+        ? `Too many sign-in attempts. Try again ${retry}`
+        : `Too many sign-in attempts. Try again ${retry}.`,
+      suggestReset: offerReset,
     };
   }
 
