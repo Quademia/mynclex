@@ -19,6 +19,10 @@ export function ForgotForm({ initialEmail }: { initialEmail?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  // Holds the button until a Turnstile pass exists — see login-form.tsx.
+  // ⓘ This is the form the gap was actually caught on: one field, so the
+  // student reaches the button faster than on either of the other two.
+  const [passReady, setPassReady] = useState(false);
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -83,9 +87,13 @@ export function ForgotForm({ initialEmail }: { initialEmail?: string }) {
 
       {error && <div className="auth-error">{error}</div>}
 
-      <TurnstileWidget />
+      <TurnstileWidget onReadyChange={setPassReady} />
 
-      <button type="submit" className="auth-submit" disabled={submitting}>
+      <button
+        type="submit"
+        className="auth-submit"
+        disabled={submitting || !passReady}
+      >
         {submitting ? 'Sending…' : 'Send reset link'}
       </button>
     </form>

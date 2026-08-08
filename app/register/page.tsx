@@ -14,6 +14,8 @@ import '@/styles/auth.css';
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Holds the button until a Turnstile pass exists — see login-form.tsx.
+  const [passReady, setPassReady] = useState(false);
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -101,9 +103,13 @@ export default function RegisterPage() {
 
           {error && <div className="auth-error">{error}</div>}
 
-          <TurnstileWidget />
+          <TurnstileWidget onReadyChange={setPassReady} />
 
-          <button type="submit" className="auth-submit" disabled={submitting}>
+          <button
+            type="submit"
+            className="auth-submit"
+            disabled={submitting || !passReady}
+          >
             {submitting ? 'Creating account…' : 'Create account'}
           </button>
         </form>

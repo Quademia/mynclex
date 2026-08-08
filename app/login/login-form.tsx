@@ -24,6 +24,15 @@ export function LoginForm({
   // not a usable answer on its own.
   const [showReset, setShowReset] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // ⭐ HOLDS THE BUTTON UNTIL A TURNSTILE PASS EXISTS. Found by testing on
+  // 2026-08-08: the form renders instantly, the pass takes a moment, and
+  // submitting in that gap is refused with "we could not verify your
+  // browser" — the app blaming her browser for being quick. ⚠ The window
+  // is WIDER for the students this product is for, not narrower: a slow
+  // mobile connection means a slower widget. The widget reports true by
+  // itself if it errors or never loads, so this can never become a dead
+  // form — see turnstile-widget.tsx.
+  const [passReady, setPassReady] = useState(false);
   // Carried to /forgot-password so a student who has just failed to sign
   // in doesn't retype the address she was already struggling with.
   const [email, setEmail] = useState(initialEmail ?? '');
@@ -113,9 +122,13 @@ export function LoginForm({
           and submitting, and the place a challenge (when Managed mode
           decides to show one) reads as part of signing in rather than as
           an interruption. */}
-      <TurnstileWidget />
+      <TurnstileWidget onReadyChange={setPassReady} />
 
-      <button type="submit" className="auth-submit" disabled={submitting}>
+      <button
+        type="submit"
+        className="auth-submit"
+        disabled={submitting || !passReady}
+      >
         {submitting ? 'Signing in…' : 'Sign in'}
       </button>
     </form>

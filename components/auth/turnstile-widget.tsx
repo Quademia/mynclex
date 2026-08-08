@@ -49,6 +49,33 @@ declare global {
 }
 
 /**
+ * The mounted widget's readiness reporter, module-level for the same
+ * reason resetTurnstile takes no widget id: there is exactly one widget
+ * per auth screen. It lets reset() below flip the form back to "not ready"
+ * without the three forms each having to remember to do it themselves.
+ */
+let notifyReady: ((ready: boolean) => void) | null = null;
+
+/**
+ * ⚠ HOW LONG A FORM MAY STAY LOCKED WAITING FOR A PASS THAT NEVER COMES.
+ *
+ * Every path to readiness runs through a Cloudflare callback, so a widget
+ * that never calls back — script blocked by an extension, a filtering
+ * proxy, a corporate network — would leave the submit button dead forever
+ * with nothing on screen to explain it. That is a worse failure than the
+ * one this whole feature is guarding against.
+ *
+ * After this long we unlock anyway. The submit then reaches the server
+ * with no token, is refused, and the student gets a sentence telling her
+ * to refresh — which is a bad outcome, but a legible one.
+ *
+ * Generous on purpose: the students this matters most for are on slow
+ * mobile connections, and unlocking early would hand them the refusal
+ * while their pass was still on its way.
+ */
+const READY_FALLBACK_MS = 10_000;
+
+/**
  * Throw away the spent pass and fetch a fresh one. Call after EVERY failed
  * submit — see the single-use note in the header.
  *
@@ -56,9 +83,16 @@ declare global {
  * resets every widget on the page, and there is exactly one per auth
  * screen. Threading an id through a ref, up to the form, and back down
  * would buy nothing and give the forms a handle they could forget to use.
+ *
+ * ⭐ It locks the form again first. Between the reset and the new pass
+ * arriving the hidden field is EMPTY, so a fast second submit in that gap
+ * would be refused for "no pass" — the very bug this readiness work
+ * exists to remove, reintroduced at the one moment the student is most
+ * likely to be clicking quickly.
  */
 export function resetTurnstile(): void {
   try {
+    notifyReady?.(false);
     window.turnstile?.reset();
   } catch {
     // Script still loading, or the widget is already gone. Either way
@@ -66,15 +100,47 @@ export function resetTurnstile(): void {
   }
 }
 
-export function TurnstileWidget() {
+export function TurnstileWidget({
+  onReadyChange,
+}: {
+  /**
+   * Called with true once a pass is in hand, false while there isn't one.
+   * The three forms use it to hold their submit button.
+   */
+  onReadyChange?: (ready: boolean) => void;
+}) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const holder = useRef<HTMLDivElement | null>(null);
   const widgetId = useRef<string | null>(null);
+  // Held in a ref so the render effect below does not re-run — and tear
+  // the widget down — every time the parent re-renders. Kept in step from
+  // an effect rather than assigned during render, which React forbids;
+  // declared FIRST so it runs before the render effect that reads it.
+  const report = useRef(onReadyChange);
+  useEffect(() => {
+    report.current = onReadyChange;
+  });
 
   useEffect(() => {
-    if (!siteKey) return;
+    // ⭐ NO SITE KEY MEANS READY IMMEDIATELY, and this branch is the whole
+    // reason the fallback below is not the only safety net. Turnstile is
+    // switched off here, no widget will render, no callback will ever
+    // fire — so waiting for one would leave every auth form on the site
+    // permanently un-submittable. Same fail-open rule as the server:
+    // not configured must never mean not usable.
+    if (!siteKey) {
+      report.current?.(true);
+      return;
+    }
 
     let cancelled = false;
+    notifyReady = (ready) => report.current?.(ready);
+
+    // The backstop for a widget that never speaks at all — see
+    // READY_FALLBACK_MS.
+    const fallback = setTimeout(() => {
+      if (!cancelled) report.current?.(true);
+    }, READY_FALLBACK_MS);
 
     function render() {
       // widgetId guards against a double render: React 19 runs effects
@@ -96,6 +162,26 @@ export function TurnstileWidget() {
         // student's OS and drop a dark widget onto a light card.
         theme: 'light',
         'refresh-expired': 'auto',
+
+        // A pass is in hand — this is the only path that unlocks the form
+        // on its merits rather than by giving up.
+        callback: () => report.current?.(true),
+
+        // Expired: 'refresh-expired: auto' above will fetch another and
+        // fire callback again, so locking here is a brief pause rather
+        // than a dead end. Worth doing — the alternative is a form that
+        // looks submittable while holding a pass Cloudflare has retired.
+        'expired-callback': () => report.current?.(false),
+
+        // ⭐ ERRORS UNLOCK RATHER THAN LOCK, which reads backwards and is
+        // the kinder failure. An errored widget will never produce a pass
+        // (this is what the 110200 "domain not authorised" state looked
+        // like), so holding the button means a dead form with no
+        // explanation anywhere on the page. Letting the submit through
+        // gets her a sentence from the server telling her to refresh.
+        // Neither is good; only one of them tells her anything.
+        'error-callback': () => report.current?.(true),
+        'timeout-callback': () => report.current?.(true),
       });
     }
 
@@ -121,6 +207,8 @@ export function TurnstileWidget() {
 
     return () => {
       cancelled = true;
+      clearTimeout(fallback);
+      notifyReady = null;
       const id = widgetId.current;
       widgetId.current = null;
       if (id) {
