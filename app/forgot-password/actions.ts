@@ -30,7 +30,8 @@ import { logAuthEvent } from '@/lib/auth/events';
 import { accountExistsForEmail } from '@/lib/auth/account-lookup';
 import { checkResetThreshold, formatRetry } from '@/lib/auth/thresholds';
 import {
-  verifyTurnstile,
+  readTurnstileTicket,
+  isCaptchaRejection,
   TURNSTILE_FIELD,
   TURNSTILE_FAILED_MESSAGE,
 } from '@/lib/auth/turnstile';
@@ -56,8 +57,8 @@ export async function requestResetAction(formData: FormData): Promise<ForgotResu
   // address — every visitor without a valid pass gets it, whether or not
   // the address they typed exists. Nothing about the account leaks, so the
   // silence this file is built around holds.
-  const turnstile = await verifyTurnstile(formData.get(TURNSTILE_FIELD));
-  if (!turnstile.passed) {
+  const turnstile = readTurnstileTicket(formData.get(TURNSTILE_FIELD));
+  if (!turnstile.ok) {
     await logAuthEvent({
       eventType: 'RESET_BLOCKED',
       email,
@@ -96,7 +97,28 @@ export async function requestResetAction(formData: FormData): Promise<ForgotResu
     // will need revisiting at build-order item 4, when the app moves to
     // nclex.quademia.com and this stops pointing anywhere useful in prod.
     redirectTo: `${origin}/reset-password`,
+    // Spent here, once. See the login action for why this is the only
+    // place the token is checked.
+    captchaToken: turnstile.token,
   });
+
+  // ⭐ THE ONE ERROR THIS FORM IS NOT ALLOWED TO SWALLOW. Everything below
+  // deliberately returns ok:true whatever happened, so the screen cannot
+  // be used to discover who has an account here. A captcha rejection is
+  // the exception: no email was sent and none ever will be, so the silent
+  // success screen would tell her to go and wait for a link that does not
+  // exist — and she has no way to find out otherwise. It is safe to show
+  // for the same reason the pre-check above is: it keys off the PASS, not
+  // the address, so every visitor without a valid one sees it whether or
+  // not the address they typed is real. Nothing leaks.
+  if (error && isCaptchaRejection(error.message)) {
+    await logAuthEvent({
+      eventType: 'RESET_BLOCKED',
+      email,
+      reason: `turnstile:${error.message}`,
+    });
+    return { ok: false, error: TURNSTILE_FAILED_MESSAGE };
+  }
 
   await logAuthEvent({
     eventType: 'RESET_REQUESTED',

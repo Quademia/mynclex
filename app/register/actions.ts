@@ -10,7 +10,8 @@ import { createClient as createSbClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 import { logAuthEvent } from '@/lib/auth/events';
 import {
-  verifyTurnstile,
+  readTurnstileTicket,
+  isCaptchaRejection,
   TURNSTILE_FIELD,
   TURNSTILE_FAILED_MESSAGE,
 } from '@/lib/auth/turnstile';
@@ -47,8 +48,8 @@ export async function registerAction(formData: FormData): Promise<RegisterResult
   // That answer is worth giving to a person and worth denying to a script,
   // and this is what tells them apart.
   //
-  const turnstile = await verifyTurnstile(formData.get(TURNSTILE_FIELD));
-  if (!turnstile.passed) {
+  const turnstile = readTurnstileTicket(formData.get(TURNSTILE_FIELD));
+  if (!turnstile.ok) {
     await logAuthEvent({
       eventType: 'REGISTER_REJECTED',
       email,
@@ -66,10 +67,25 @@ export async function registerAction(formData: FormData): Promise<RegisterResult
       data: {
         full_name: `${forename} ${surname}`,
       },
+      // Spent here, once — see the login action.
+      captchaToken: turnstile.token,
     },
   });
 
   if (signUpError) {
+    // A captcha refusal is not a rejected signup in the sense the row
+    // below means — nothing about the address was ever assessed. Own
+    // reason, own message; Supabase's "captcha protection: request
+    // disallowed" is no use to someone filling in a form.
+    if (isCaptchaRejection(signUpError.message)) {
+      await logAuthEvent({
+        eventType: 'REGISTER_REJECTED',
+        email,
+        reason: `turnstile:${signUpError.message}`,
+      });
+      return { ok: false, error: TURNSTILE_FAILED_MESSAGE };
+    }
+
     // ⭐ THE ROW THAT CLOSES THE /register GAP (slice 2d, step 2). Until
     // this line, a refused signup returned here having written nothing —
     // so /register was the only auth surface that left no trace on

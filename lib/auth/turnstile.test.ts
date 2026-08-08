@@ -1,67 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Same shape as events.test.ts: vi.mock factories hoist above the imports,
-// so anything they close over has to hoist with them.
-const mocks = vi.hoisted(() => ({
-  headers: vi.fn(),
-}));
-
-vi.mock('next/headers', () => ({
-  headers: () => mocks.headers(),
-}));
-
 import {
-  verifyTurnstile,
+  readTurnstileTicket,
   isTurnstileConfigured,
+  isCaptchaRejection,
   TURNSTILE_FIELD,
 } from './turnstile';
 
 const SITE_KEY = 'test-site-key';
 const SECRET_KEY = 'test-secret-key';
 
-function headerBag(entries: Record<string, string> = {}) {
-  const lower = Object.fromEntries(
-    Object.entries(entries).map(([k, v]) => [k.toLowerCase(), v])
-  );
-  return { get: (name: string) => lower[name.toLowerCase()] ?? null };
-}
-
-/** A siteverify reply, as Cloudflare shapes it. */
-function siteverify(body: unknown, status = 200) {
-  return Promise.resolve({
-    ok: status >= 200 && status < 300,
-    status,
-    json: () => Promise.resolve(body),
-  } as Response);
-}
-
-/**
- * Stub global fetch and hand back the spy.
- *
- * The parameters are declared even though the body ignores them: without
- * them vi infers a zero-argument call signature, and every
- * `mock.calls[0]` below types as `[]` — so the assertions that read the
- * request body would need a cast through `unknown` to compile, which is
- * exactly the cast that stops a test from noticing a changed signature.
- */
-function stubFetch(body: unknown = { success: true }, status = 200) {
-  const mock = vi.fn((_url: string, _init: RequestInit) =>
-    siteverify(body, status)
-  );
-  vi.stubGlobal('fetch', mock);
-  return mock;
-}
-
-describe('verifyTurnstile', () => {
+describe('readTurnstileTicket', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // The module narrates every unusual branch to console.error, and most
-    // of the tests below aim straight at one.
+    // The module narrates the not-configured branch to console.error, and
+    // one test below aims straight at it.
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     process.env.TURNSTILE_SECRET_KEY = SECRET_KEY;
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = SITE_KEY;
-    mocks.headers.mockResolvedValue(headerBag({ 'cf-connecting-ip': '41.66.1.9' }));
   });
 
   afterEach(() => {
@@ -70,166 +27,108 @@ describe('verifyTurnstile', () => {
     delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   });
 
-  it('passes a token Cloudflare accepts', async () => {
-    vi.stubGlobal('fetch', vi.fn(() => siteverify({ success: true })));
-
-    await expect(verifyTurnstile('good-token')).resolves.toEqual({
-      passed: true,
-      reason: 'ok',
+  it('hands the token back for Supabase to spend', () => {
+    expect(readTurnstileTicket('a-real-looking-token')).toEqual({
+      ok: true,
+      token: 'a-real-looking-token',
     });
   });
 
-  it('refuses a token Cloudflare rejects, and keeps its reason', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() =>
-        siteverify({ success: false, 'error-codes': ['invalid-input-response'] })
-      )
-    );
-
-    await expect(verifyTurnstile('forged')).resolves.toEqual({
-      passed: false,
-      reason: 'invalid-input-response',
+  it('trims the token', () => {
+    // A stray newline from a form encoder would otherwise travel to
+    // Supabase verbatim and be rejected as forged.
+    expect(readTurnstileTicket('  padded  ')).toEqual({
+      ok: true,
+      token: 'padded',
     });
   });
 
-  it('refuses an empty token without calling Cloudflare at all', async () => {
-    const fetchMock = vi.fn(() => siteverify({ success: true }));
+  it('refuses when no token arrived', () => {
+    for (const empty of ['', '   ', null, undefined]) {
+      expect(readTurnstileTicket(empty)).toEqual({
+        ok: false,
+        reason: 'missing_token',
+      });
+    }
+  });
+
+  // ⭐ THE WHOLE POINT OF THIS MODULE AFTER THE REWRITE. It must NOT check
+  // the token with Cloudflare: a token can be validated exactly once, and
+  // spending it here would hand Supabase a used one and refuse every
+  // sign-in, signup and reset on the site the moment the native captcha
+  // setting is switched on. A future "improvement" that adds verification
+  // back here is the single most damaging edit that could be made to this
+  // file, and this is the test that catches it.
+  it('never calls out to Cloudflare', () => {
+    const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(verifyTurnstile('')).resolves.toEqual({
-      passed: false,
-      reason: 'missing_token',
-    });
-    await expect(verifyTurnstile(null)).resolves.toMatchObject({
-      passed: false,
-    });
-    await expect(verifyTurnstile(undefined)).resolves.toMatchObject({
-      passed: false,
-    });
+    readTurnstileTicket('a-real-looking-token');
+    readTurnstileTicket('');
 
-    // The point of the branch: a spray arriving with no tokens must not
-    // cost us one outbound request per attempt.
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  // ⭐ The four fail-open branches. Each one is the difference between
-  // "we did not rate-limit for ten minutes" and "nobody in the world can
-  // sign in", and each is easy to invert by accident — a refactor that
-  // moves any of these to passed:false looks tidier and takes the product
-  // down at the front door.
-  describe('fails open', () => {
-    it('when the network throws', async () => {
-      vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('ENOTFOUND'))));
+  // ⭐ Fail-open, matching thresholds.ts: a missing key is a broken check,
+  // and a broken check must not become "nobody can sign in".
+  it('passes through with no token when Turnstile is not configured', () => {
+    delete process.env.TURNSTILE_SECRET_KEY;
 
-      await expect(verifyTurnstile('t')).resolves.toEqual({
-        passed: true,
-        reason: 'unreachable',
-      });
+    expect(readTurnstileTicket('anything')).toEqual({
+      ok: true,
+      token: undefined,
     });
-
-    it('when siteverify answers with an HTTP error', async () => {
-      vi.stubGlobal('fetch', vi.fn(() => siteverify({}, 503)));
-
-      await expect(verifyTurnstile('t')).resolves.toEqual({
-        passed: true,
-        reason: 'unreachable',
-      });
-    });
-
-    it("when Cloudflare says the failure was its own", async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn(() =>
-          siteverify({ success: false, 'error-codes': ['internal-error'] })
-        )
-      );
-
-      await expect(verifyTurnstile('t')).resolves.toEqual({
-        passed: true,
-        reason: 'unreachable',
-      });
-    });
-
-    it('when no keys are configured', async () => {
-      delete process.env.TURNSTILE_SECRET_KEY;
-      const fetchMock = vi.fn(() => siteverify({ success: true }));
-      vi.stubGlobal('fetch', fetchMock);
-
-      await expect(verifyTurnstile('t')).resolves.toEqual({
-        passed: true,
-        reason: 'disabled',
-      });
-      expect(fetchMock).not.toHaveBeenCalled();
-    });
+    // undefined rather than the token itself, so the call sites hand
+    // Supabase nothing at all rather than something it did not ask for.
+    expect(readTurnstileTicket('')).toEqual({ ok: true, token: undefined });
   });
 
   // ⭐ The misconfiguration that would be an outage rather than a hole:
   // secret present, site key missing means no widget renders anywhere, so
-  // no token is ever sent, so every sign-in on the site is refused for a
-  // reason no screen can explain. One flag derived from both keys is what
-  // stops it, and this is the test that keeps the second half of that
-  // condition from being deleted as redundant.
-  it('is switched off unless BOTH keys are present', async () => {
+  // no token is ever sent, so every sign-in is refused for a reason no
+  // screen can explain. One flag derived from both keys is what stops it,
+  // and this keeps the second half from being deleted as redundant.
+  it('is switched off unless BOTH keys are present', () => {
     expect(isTurnstileConfigured()).toBe(true);
 
     delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     expect(isTurnstileConfigured()).toBe(false);
+    expect(readTurnstileTicket('a-token')).toMatchObject({ token: undefined });
+  });
+});
 
-    const fetchMock = vi.fn(() => siteverify({ success: true }));
-    vi.stubGlobal('fetch', fetchMock);
-    await expect(verifyTurnstile('t')).resolves.toMatchObject({
-      passed: true,
-      reason: 'disabled',
-    });
-    expect(fetchMock).not.toHaveBeenCalled();
+describe('isCaptchaRejection', () => {
+  // ⭐ This decides which EVENT TYPE gets written, so it decides whether a
+  // captcha problem can lock a student out of her own account. Matched as
+  // BLOCKED it is excluded from 2c's counts; missed and logged as FAIL,
+  // five of them block her for ten minutes on a password she typed
+  // correctly every time.
+  it('recognises the ways Supabase words it', () => {
+    for (const message of [
+      'captcha protection: request disallowed (invalid-input-response)',
+      'Captcha verification process failed',
+      'CAPTCHA challenge could not be verified',
+    ]) {
+      expect(isCaptchaRejection(message)).toBe(true);
+    }
   });
 
-  it('sends the secret and the token, and never the site key', async () => {
-    const fetchMock = stubFetch();
-
-    await verifyTurnstile('  padded-token  ');
-
-    const [, init] = fetchMock.mock.calls[0];
-    const sent = new URLSearchParams(init.body as string);
-
-    expect(sent.get('secret')).toBe(SECRET_KEY);
-    // Trimmed: a stray newline from a copy-paste or a form encoder would
-    // otherwise be sent verbatim and rejected as a forged token.
-    expect(sent.get('response')).toBe('padded-token');
-    expect(init.body as string).not.toContain(SITE_KEY);
-  });
-
-  it('passes the caller IP to Cloudflare when the headers carry one', async () => {
-    const fetchMock = stubFetch();
-
-    await verifyTurnstile('t');
-
-    const [, init] = fetchMock.mock.calls[0];
-    expect(new URLSearchParams(init.body as string).get('remoteip')).toBe(
-      '41.66.1.9'
-    );
-  });
-
-  it('still verifies when there are no headers to read', async () => {
-    // Outside a request scope next/headers throws. That must cost us the
-    // optional IP and nothing else — an unverified caller is a far worse
-    // outcome than an unscored one.
-    mocks.headers.mockRejectedValue(new Error('called outside a request'));
-    const fetchMock = stubFetch();
-
-    await expect(verifyTurnstile('t')).resolves.toMatchObject({ passed: true });
-
-    const [, init] = fetchMock.mock.calls[0];
-    expect(new URLSearchParams(init.body as string).has('remoteip')).toBe(false);
+  it('leaves an ordinary credentials failure alone', () => {
+    // The one that must never match — it is the normal wrong-password
+    // path, and turning it into a BLOCKED row would silently disable 2c's
+    // login threshold entirely.
+    expect(isCaptchaRejection('Invalid login credentials')).toBe(false);
+    expect(isCaptchaRejection('Email not confirmed')).toBe(false);
+    expect(isCaptchaRejection('User already registered')).toBe(false);
+    expect(isCaptchaRejection(null)).toBe(false);
+    expect(isCaptchaRejection(undefined)).toBe(false);
   });
 });
 
 describe('TURNSTILE_FIELD', () => {
   // Not decoration. This is the name Cloudflare's widget gives its hidden
   // input; the three server actions read FormData by this exact string.
-  // Change it and every auth form silently starts sending nothing, which
-  // fails open — so no test but this one would notice.
+  // Change it and every auth form silently starts sending nothing.
   it('matches the name the widget writes', () => {
     expect(TURNSTILE_FIELD).toBe('cf-turnstile-response');
   });

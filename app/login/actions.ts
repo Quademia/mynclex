@@ -15,7 +15,8 @@ import {
   LOGIN_RULE_24H,
 } from '@/lib/auth/thresholds';
 import {
-  verifyTurnstile,
+  readTurnstileTicket,
+  isCaptchaRejection,
   TURNSTILE_FIELD,
   TURNSTILE_FAILED_MESSAGE,
 } from '@/lib/auth/turnstile';
@@ -47,10 +48,13 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
   // ever. Stopping that flood here means it never reaches the counters,
   // the database, or Supabase.
   //
-  // ⓘ Below the required-fields bounce above, which is free and local —
-  // no reason to spend a round-trip to Cloudflare on an empty form.
-  const turnstile = await verifyTurnstile(formData.get(TURNSTILE_FIELD));
-  if (!turnstile.passed) {
+  // ⓘ This does NOT check whether the token is genuine — Supabase does
+  // that, below, because a token can only be checked once and Supabase is
+  // the only one of us standing at both doors. See lib/auth/turnstile.ts.
+  // All that happens here is "did a token arrive at all", which is free
+  // and catches the script that sends none.
+  const turnstile = readTurnstileTicket(formData.get(TURNSTILE_FIELD));
+  if (!turnstile.ok) {
     // LOGIN_BLOCKED, not LOGIN_FAIL, and the choice matters. LOGIN_FAIL
     // feeds 2c's counter — so a student whose browser blocks the widget
     // script would silently accumulate failures and lock herself out of
@@ -121,9 +125,33 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
+    // ⭐ THE TOKEN IS SPENT HERE AND NOWHERE ELSE. Undefined when Turnstile
+    // is switched off, and Supabase ignores it when its own captcha
+    // setting is off — so this same line is correct on both sides of that
+    // dashboard switch, which is what lets the switch be flipped without
+    // a deploy.
+    options: { captchaToken: turnstile.token },
   });
 
   if (error) {
+    // ⭐ A CAPTCHA REFUSAL IS NOT A FAILED PASSWORD, AND MUST NOT BE
+    // COUNTED AS ONE. Falling through to the LOGIN_FAIL branch below would
+    // feed 2c's counter, so five captcha problems would lock a student out
+    // of an account she typed correctly every time. BLOCKED is excluded
+    // from those counts by construction.
+    //
+    // She also sees our sentence rather than Supabase's, which says things
+    // like "captcha protection: request disallowed" — true, and no use to
+    // anybody standing at a login form.
+    if (isCaptchaRejection(error.message)) {
+      await logAuthEvent({
+        eventType: 'LOGIN_BLOCKED',
+        email,
+        reason: `turnstile:${error.message}`,
+      });
+      return { ok: false, error: TURNSTILE_FAILED_MESSAGE };
+    }
+
     // ⭐ THE PAGE AND THE LOG HAVE DIFFERENT AUDIENCES, SO THEY GET
     // DIFFERENT ANSWERS (settled with Sam, 2026-08-06). Supabase replies
     // to a wrong password and to an unknown address with the same
