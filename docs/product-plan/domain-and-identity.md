@@ -793,9 +793,10 @@ references (rename debt above) and the Resend/SMTP work already scoped.
 2. **Forgot-password flow** (depends on 1) — carries Turnstile on the three
    public forms, the `nclex_auth_events` write-side, AND the layer-2
    per-email threshold checks (gamma's rules, server-side) with it.
-   **STATUS 2026-08-06 (evening) — 2a, 2b and 2c BUILT + Sam-tested on
-   dev; only 2d remains.** The first code of this arc after three
-   documentation sessions.
+   **STATUS 2026-08-08 — ITEM 2 IS COMPLETE. 2a, 2b, 2c and 2d all built
+   and Sam-tested on dev.** ⬜ The only thing outstanding is prod: two
+   migrations ride the next release, and prod's captcha switch is flipped
+   after it, never before.
    - ✅ **2a — the logbook.** `nclex_auth_events` + the write side
      (migration `20260904120000_auth_events.sql`, `lib/auth/events.ts`,
      `lib/auth/device-label.ts`). Shipped BEFORE the flow it serves
@@ -857,18 +858,99 @@ references (rename debt above) and the Resend/SMTP work already scoped.
        login does not clear the failure counter, and the 24-hour rule can
        catch a genuinely forgetful student — who is never stranded, since
        reset stays open, which is the reason the offer above exists.
-   - ⬜ **2d — Turnstile.** Not built. Keys still to create in Cloudflare.
-     ⚠ **It carries more weight than first scoped.** Reading gamma's SQL
-     closely (2026-08-06) showed its device axis has **no email filter**,
-     so it is not the email axis applied twice — it catches ONE machine
-     failing against MANY addresses, which 2c cannot see at all. Turnstile
-     is the better substitute, since the native Supabase integration also
-     binds the direct auth endpoint our server actions never reach — but
-     until it ships, that door has no lock gamma had.
-     ⚠ **Sequencing trap:** flipping Supabase's native captcha setting
-     makes it reject *every* auth call without a token, including the
-     existing login and register forms. Verify inside our own server
-     actions first; flip the Supabase switch after.
+   - ✅ **2d — Turnstile** (2026-08-08). Four commits, one migration
+     (`20260905120000_register_rejected.sql`), dev-applied. Widget on all
+     three public forms in **Managed** mode; `lib/auth/turnstile.ts` +
+     `components/auth/turnstile-widget.tsx`. vitest **939 → 948**.
+     It closes the door 2c cannot see: reading gamma's SQL closely
+     (2026-08-06) showed its device axis has **no email filter**, so it is
+     not the email axis applied twice — it catches ONE machine failing
+     against MANY addresses, which per-email counting is blind to.
+
+     - ⭐⭐ **THE PLAN ASKED FOR TWO CHECKS AND TWO IS NOT BUILDABLE.**
+       This section used to read "verified server-side inside the server
+       action … (use the native Supabase↔Turnstile integration so the
+       direct endpoint also demands a token)". That is both, and a
+       Turnstile token **can be validated exactly once** — Cloudflare's
+       own words, with `timeout-or-duplicate` returned for a replay. The
+       first cut spent the token in our own actions, which worked, and
+       made the Supabase switch impossible to turn on: Supabase would
+       have been handed a spent token and refused every sign-in, signup
+       and reset on the site. One token, one check; the only real
+       question is **who gets it**.
+     - ⭐ **SUPABASE GETS IT**, because it is the only one of the two
+       standing at BOTH doors. Our anon key is public by design — it
+       ships in every page — so anyone can call Supabase's auth endpoint
+       directly and never touch a server action of ours. Our forms hand
+       the token through untouched in `options.captchaToken`. What stays
+       on our side is deliberately cheap and **non-consuming**: is
+       Turnstile on, did a token arrive. A missing token is refused and
+       logged before the database is touched, which is exactly the
+       traffic this layer is for — a script spraying addresses sends no
+       token at all.
+     - ⭐ **PROVEN, NOT ASSUMED.** With the dev switch on, a direct POST
+       to `/auth/v1/token?grant_type=password` carrying only the public
+       anon key returns
+       `{"error_code":"captcha_failed","msg":"captcha protection: request
+       disallowed (no captcha_token found)"}`. Before this slice that
+       same call tried the password and, repeated, walked past Turnstile
+       **and** every 2c threshold.
+     - ⭐ **A CAPTCHA REFUSAL IS NOT A FAILED PASSWORD.** Supabase reports
+       it as an ordinary auth error, so left alone it would log
+       `LOGIN_FAIL` and feed 2c's counter — five of them and a student is
+       locked out of an account she typed correctly every time.
+       `isCaptchaRejection()` routes them to `LOGIN_BLOCKED` /
+       `RESET_BLOCKED` / `REGISTER_REJECTED`, which are excluded from the
+       counts by construction. ⚠ Matched on message text, since there is
+       no stable code; deliberately broad, because over-matching costs a
+       row filed under the wrong type and under-matching costs a student
+       her account.
+     - ⭐ **A PASS IS SINGLE-USE, AND THAT IS THE WHOLE DIFFICULTY OF THE
+       SLICE.** A student who mistypes her password has spent hers before
+       the screen tells her, so her *correct* retry would be refused with
+       a message about her browser. Every form calls `resetTurnstile()`
+       on every failed submit. Verified in the log, twice, as
+       `LOGIN_FAIL` → `LOGIN_OK` seconds apart with no block between —
+       once with us verifying and once with Supabase verifying.
+     - ⭐ **AND THE FORM NOW WAITS FOR THE PASS.** Found by Sam testing on
+       dev, in the logbook rather than on screen: a `RESET_BLOCKED /
+       turnstile:missing_token` followed by success twelve seconds later.
+       The form renders instantly, the pass takes a moment, and a submit
+       in that gap carries none — the app blaming her for being quick.
+       ⚠ **The window is WIDER for this product's students, not
+       narrower**: a slow mobile connection means a slower widget, and
+       `/forgot-password` has one field so the button is reached soonest.
+       The submit button is now held until a pass exists. Three separate
+       guards stop that becoming a dead form (no site key → ready at
+       once; `error-callback`/`timeout-callback` **unlock** rather than
+       lock, since an errored widget will never produce a pass; a
+       10-second backstop for a widget that never speaks). Nothing in
+       tsc, eslint or 948 tests could have found this.
+     - ⚠ **`localhost` IS NOT ALLOWED AUTOMATICALLY** on a Turnstile
+       widget, contrary to what was assumed on the day. The widget throws
+       **error 110200 (domain not authorised)**, emits no token, and
+       every sign-in is then refused. Add `localhost` — hostname only, no
+       port, no scheme — to the widget's Hostname Management.
+     - ⓘ **Managed mode, not Invisible, and Invisible is not available to
+       us anyway.** Invisible has nowhere to put a challenge, so a
+       visitor Cloudflare is unsure about is simply refused with nothing
+       to click — and this audience is disproportionately that visitor,
+       for the same carrier-NAT reason that forbids a per-IP rule.
+       Separately, Cloudflare requires that invisible mode be paired with
+       a reference to its Privacy Addendum **in our own privacy policy**,
+       and MyNclex has no privacy-policy route at all. ⏭ Revisit at
+       launch, when that page has to exist regardless.
+     - ⓘ Refusal copy is one shared sentence — *"We could not verify your
+       browser. Please refresh the page and try again."* Deliberately
+       silent about which of the reasons applied, since they all have the
+       same fix. **Not Sam-copy-passed.**
+     - ⬜ **Prod's switch is NOT flipped**, on purpose, and must not be
+       until the release: prod would otherwise demand a pass the deployed
+       code does not send. ⚠ `TURNSTILE_SECRET_KEY` is a **Worker secret
+       per environment** (both set 2026-08-08, dashboard not CLI); if it
+       is ever missing, Turnstile switches itself off and says so loudly
+       in the Worker log rather than blocking anyone. Site keys are
+       committed in `wrangler.jsonc` — public by design.
 
      **↳ 2d also carries the `/register` gap** (found 2026-08-06 when Sam
      asked what happens on signup with an address that already exists —
@@ -899,23 +981,36 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      re-creating the oracle deliberately — a different decision from this
      one, and one to take with eyes open.
 
-     Two things that DO belong in 2d, both independent of the wording:
-     - **Turnstile on `/register`, not just login and forgot-password.**
-       Right now the oracle can be queried as fast as the network allows:
-       2c's thresholds count `LOGIN_FAIL` and `RESET_REQUESTED` only, so
-       **`/register` has no rate limit of any kind.**
-     - **Make a rejected signup visible.** A duplicate registration is
-       refused before `logAuthEvent` runs, so it writes **no row at all** —
-       `/register` is the only auth surface that leaves no trace on
-       failure, which means probing it is invisible in the very logbook
-       built to make attacks visible. Needs a new event type (e.g.
-       `REGISTER_REJECTED`) — ⚠ **and that one is NOT free**, unlike the
-       `CODE_*` and `GOOGLE_FIRST_SIGNIN` types 2a pre-loaded: it is not
-       in the CHECK constraint, so it needs a migration.
-   - ⓘ **Prod is untouched.** The migration reaches prod through
-     `migrate-prod.yml` on the next release; prod's redirect allowlist
+     Two things that DO belong in 2d, both independent of the wording —
+     **both ✅ BUILT 2026-08-08:**
+     - ✅ **Turnstile on `/register`, not just login and forgot-password.**
+       The oracle could previously be queried as fast as the network
+       allowed: 2c's thresholds count `LOGIN_FAIL` and `RESET_REQUESTED`
+       only, so **`/register` had no rate limit of any kind.** It is now
+       the one surface where Turnstile is the *only* limit, which is why
+       it mattered most here.
+     - ✅ **A rejected signup is visible** — `REGISTER_REJECTED`,
+       migration `20260905120000_register_rejected.sql`. ⚠ The only event
+       type in this arc that was **not free**, unlike the `CODE_*` and
+       `GOOGLE_FIRST_SIGNIN` types 2a pre-loaded into the constraint.
+       ⭐ **It also reversed an earlier decision on purpose.** The old
+       comment argued the profile/role rollback paths should not be
+       logged, because the rollback deletes the auth user and `REGISTERED`
+       was the only signup type available to describe the attempt with.
+       The second half is what changed: `REGISTER_REJECTED` says exactly
+       "this signup did not happen", which is the true statement about a
+       rolled-back attempt — **and it is the support case that matters
+       most**, a student who says she registered and cannot sign in. Until
+       now that existed only as a console line on a Worker nobody will
+       read. Five failure paths now write a row; the three validation
+       bounces stay unlogged, matching the login action's empty-form
+       bounce.
+   - ⓘ **Prod is untouched.** Both migrations (`20260904120000`,
+     `20260905120000`) reach prod through `migrate-prod.yml` on the next
+     release; prod's redirect allowlist
      (`https://mynclex.qacademynurses.workers.dev/**`) must be set before
-     the flow works there.
+     the flow works there, and prod's captcha switch must be flipped
+     **after** that release, never before.
 3. **Email-code login** (depends on 1; reuses slice 2's Turnstile + logging
    + threshold plumbing) — code-only Magic Link template,
    `shouldCreateUser: false`, request-code + enter-code UI on the login
