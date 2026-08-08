@@ -29,8 +29,24 @@ jobs:
       - name: Install dependencies
         run: npm clean-install
 
+      # ⚠ BUILD-TIME, NOT RUNTIME — see the long note in deploy-dev.yml for
+      # the full story. Short version: wrangler.jsonc's `vars` are runtime
+      # bindings, but `NEXT_PUBLIC_*` is substituted into the browser
+      # bundle while `next build` runs. Absent here, it is `undefined` in
+      # the browser forever, however correct the Worker's bindings are.
+      #
+      # ⚠ AND THESE ARE THE PROD VALUES, matching `env.prod` in
+      # wrangler.jsonc — NOT the top-level dev ones. The build step carries
+      # no `--env prod` (only the deploy below does), so nothing else in
+      # this pipeline would pick them up.
       - name: Build OpenNext bundle
         run: npm run cf:build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://dehspjcfmhoshcdtsmjq.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHNwamNmbWhvc2hjZHRzbWpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzQ2MjEsImV4cCI6MjA5MjgxMDYyMX0.whd-VAiJLdsYT0VDfU1HhaxVvt1oeiHKxhhb7Vc1QbY
+          # The PROD Turnstile widget (workspace CF account). Hostnames
+          # mynclex.qacademynurses.workers.dev + nclex.quademia.com.
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: 0x4AAAAAAEKcS2eMshf8RS_u
 
       - name: Deploy to workspace CF
         uses: cloudflare/wrangler-action@v4

@@ -29,8 +29,43 @@ jobs:
       - name: Install dependencies
         run: npm clean-install
 
+      # ⚠ THESE MUST BE HERE, NOT ONLY IN wrangler.jsonc, AND THE REASON IS
+      # THE ONE THING TO UNDERSTAND ABOUT THIS FILE.
+      #
+      # wrangler.jsonc's `vars` are RUNTIME bindings — Cloudflare hands
+      # them to the Worker when it serves a request, which is why the
+      # SERVER half of the app has always worked. But `NEXT_PUBLIC_*` is a
+      # BUILD-time substitution: webpack replaces each reference with a
+      # string literal while `next build` runs, and anything absent then
+      # becomes `undefined` in the browser bundle FOREVER. A runtime
+      # binding arrives hours too late to help.
+      #
+      # ⭐ Found 2026-08-08, and it had been silently true for as long as
+      # these workflows have existed. The symptom that exposed it was the
+      # Turnstile widget rendering server-side and then vanishing on
+      # hydration — but it was never only Turnstile: the deployed
+      # `/reset-password` bundle read
+      # `createBrowserClient(n.env.NEXT_PUBLIC_SUPABASE_URL, …)` with the
+      # references UNREPLACED, so that page and `/welcome` could not have
+      # worked on either Worker. Both were verified on localhost, where
+      # `.env.local` is present at build time — which is exactly why three
+      # months of sessions never caught it.
+      #
+      # ⚠ DUPLICATED WITH wrangler.jsonc ON PURPOSE, and that is known
+      # debt: two places, one truth, no mechanism keeping them in step
+      # (wrangler.jsonc is JSONC, so a workflow step cannot simply `jq` it
+      # out). If you change a public value in one, change it in the other.
+      # All three are public by design — they ship to every browser and
+      # RLS is what protects the data.
       - name: Build OpenNext bundle
         run: npm run cf:build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://xkqxfzfsllxyxpdtcrja.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrcXhmemZzbGx4eXhwZHRjcmphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjk4ODYsImV4cCI6MjA5MjgwNTg4Nn0.yRC-HClidhjdUELZETOo9ndyKzzkV7k6Dn_QlyCjx9E
+          # The DEV Turnstile widget (personal CF account). Its hostname
+          # list must carry mynclex-dev.mybackpacc.workers.dev, or the
+          # widget throws 110200 and issues no pass.
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: 0x4AAAAAAEKb3Z55nyB9Sipe
 
       - name: Deploy to personal CF
         uses: cloudflare/wrangler-action@v4
