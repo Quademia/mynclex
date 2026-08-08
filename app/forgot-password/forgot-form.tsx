@@ -13,6 +13,7 @@
 
 import { useState } from 'react';
 import { requestResetAction } from './actions';
+import { TurnstileWidget, resetTurnstile } from '@/components/auth/turnstile-widget';
 
 export function ForgotForm({ initialEmail }: { initialEmail?: string }) {
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +31,10 @@ export function ForgotForm({ initialEmail }: { initialEmail?: string }) {
       setSentTo(typed);
     } else {
       setError(result.error);
+      // The pass is single-use and this attempt has spent it — see the
+      // note in login-form.tsx. The success branch needs no reset: it
+      // swaps the form out for the sent screen entirely.
+      resetTurnstile();
     }
     setSubmitting(false);
   }
@@ -77,6 +82,8 @@ export function ForgotForm({ initialEmail }: { initialEmail?: string }) {
       </div>
 
       {error && <div className="auth-error">{error}</div>}
+
+      <TurnstileWidget />
 
       <button type="submit" className="auth-submit" disabled={submitting}>
         {submitting ? 'Sending…' : 'Send reset link'}

@@ -9,6 +9,11 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createSbClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 import { logAuthEvent } from '@/lib/auth/events';
+import {
+  verifyTurnstile,
+  TURNSTILE_FIELD,
+  TURNSTILE_FAILED_MESSAGE,
+} from '@/lib/auth/turnstile';
 
 type RegisterResult =
   | { ok: true }
@@ -29,6 +34,26 @@ export async function registerAction(formData: FormData): Promise<RegisterResult
   }
   if (password !== confirmPassword) {
     return { ok: false, error: 'Passwords do not match.' };
+  }
+
+  // ⭐ THE ONLY LIMIT THIS FORM HAS (slice 2d). /login and
+  // /forgot-password each sit behind a per-email rule from 2c; this one
+  // does not, because 2c counts LOGIN_FAIL and RESET_REQUESTED and
+  // registration writes neither. Until Turnstile arrived, /register could
+  // be submitted as fast as the network allowed — which mattered more
+  // here than anywhere else, since this is the one public form that
+  // answers whether an address already has an account ("User already
+  // registered", kept deliberately — see domain-and-identity.md → 2d).
+  // That answer is worth giving to a person and worth denying to a script,
+  // and this is what tells them apart.
+  //
+  // ⚠ Nothing is logged on refusal yet — a rejected signup writes no row
+  // at all, which is the /register gap the next slice closes with a
+  // REGISTER_REJECTED event. That one needs a migration; it is the only
+  // event type in this arc not already in the CHECK constraint.
+  const turnstile = await verifyTurnstile(formData.get(TURNSTILE_FIELD));
+  if (!turnstile.passed) {
+    return { ok: false, error: TURNSTILE_FAILED_MESSAGE };
   }
 
   const supabase = await createClient();

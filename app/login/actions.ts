@@ -14,6 +14,11 @@ import {
   formatRetry,
   LOGIN_RULE_24H,
 } from '@/lib/auth/thresholds';
+import {
+  verifyTurnstile,
+  TURNSTILE_FIELD,
+  TURNSTILE_FAILED_MESSAGE,
+} from '@/lib/auth/turnstile';
 
 type LoginResult =
   | { ok: true }
@@ -33,6 +38,32 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
   // and lock a student out by mis-submitting her own login page.
   if (!email || !password) {
     return { ok: false, error: 'Email and password are required.' };
+  }
+
+  // ⭐ LAYER 1 BEFORE LAYER 2 (slice 2d). Turnstile runs above the
+  // threshold gate because the traffic it stops is the traffic 2c cannot
+  // see at all: one machine working through thousands of DIFFERENT
+  // addresses leaves one failure per address and trips no per-email rule
+  // ever. Stopping that flood here means it never reaches the counters,
+  // the database, or Supabase.
+  //
+  // ⓘ Below the required-fields bounce above, which is free and local —
+  // no reason to spend a round-trip to Cloudflare on an empty form.
+  const turnstile = await verifyTurnstile(formData.get(TURNSTILE_FIELD));
+  if (!turnstile.passed) {
+    // LOGIN_BLOCKED, not LOGIN_FAIL, and the choice matters. LOGIN_FAIL
+    // feeds 2c's counter — so a student whose browser blocks the widget
+    // script would silently accumulate failures and lock herself out of
+    // an account she never got as far as attempting. BLOCKED is excluded
+    // from those counts by construction (2a gave blocks their own type),
+    // which is exactly the meaning wanted here: refused before Supabase
+    // was ever asked.
+    await logAuthEvent({
+      eventType: 'LOGIN_BLOCKED',
+      email,
+      reason: `turnstile:${turnstile.reason}`,
+    });
+    return { ok: false, error: TURNSTILE_FAILED_MESSAGE };
   }
 
   // ⭐ THE GATE COMES BEFORE SUPABASE, NOT AFTER (slice 2c). An attempt

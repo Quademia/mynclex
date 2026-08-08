@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { registerAction } from './actions';
+import { TurnstileWidget, resetTurnstile } from '@/components/auth/turnstile-widget';
 import '@/styles/tokens.css';
 import '@/styles/auth.css';
 
@@ -22,6 +23,10 @@ export default function RegisterPage() {
 
     if (!result?.ok && result?.error) {
       setError(result.error);
+      // Single-use pass, spent by this attempt — see login-form.tsx. It
+      // matters most on this form: "User already registered" and "Passwords
+      // do not match" are both errors she fixes and immediately resubmits.
+      resetTurnstile();
     }
     setSubmitting(false);
   }
@@ -95,6 +100,8 @@ export default function RegisterPage() {
           </div>
 
           {error && <div className="auth-error">{error}</div>}
+
+          <TurnstileWidget />
 
           <button type="submit" className="auth-submit" disabled={submitting}>
             {submitting ? 'Creating account…' : 'Create account'}

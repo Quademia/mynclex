@@ -29,6 +29,11 @@ import { headers } from 'next/headers';
 import { logAuthEvent } from '@/lib/auth/events';
 import { accountExistsForEmail } from '@/lib/auth/account-lookup';
 import { checkResetThreshold, formatRetry } from '@/lib/auth/thresholds';
+import {
+  verifyTurnstile,
+  TURNSTILE_FIELD,
+  TURNSTILE_FAILED_MESSAGE,
+} from '@/lib/auth/turnstile';
 
 type ForgotResult = { ok: true } | { ok: false; error: string };
 
@@ -40,6 +45,25 @@ export async function requestResetAction(formData: FormData): Promise<ForgotResu
   // slice-2c counters and lock a student out of her own reset form.
   if (!email) {
     return { ok: false, error: 'Enter the email address you registered with.' };
+  }
+
+  // ⭐ LAYER 1, ABOVE THE PER-EMAIL RULE (slice 2d). Same ordering as
+  // /login and the same reason: a bot working through a list of addresses
+  // never trips a per-address limit, because it only visits each one once.
+  //
+  // ⚠ AND THE REFUSAL IS SAFE TO SHOW HERE, which is not obvious on a form
+  // whose whole design is to reveal nothing. It keys off the PASS, not the
+  // address — every visitor without a valid pass gets it, whether or not
+  // the address they typed exists. Nothing about the account leaks, so the
+  // silence this file is built around holds.
+  const turnstile = await verifyTurnstile(formData.get(TURNSTILE_FIELD));
+  if (!turnstile.passed) {
+    await logAuthEvent({
+      eventType: 'RESET_BLOCKED',
+      email,
+      reason: `turnstile:${turnstile.reason}`,
+    });
+    return { ok: false, error: TURNSTILE_FAILED_MESSAGE };
   }
 
   // Before the send, and before the lookup — a refused request should cost

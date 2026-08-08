@@ -10,6 +10,7 @@
 
 import { useState } from 'react';
 import { loginAction } from './actions';
+import { TurnstileWidget, resetTurnstile } from '@/components/auth/turnstile-widget';
 
 export function LoginForm({
   next,
@@ -38,6 +39,14 @@ export function LoginForm({
     if (!result?.ok && result?.error) {
       setError(result.error);
       setShowReset(result.suggestReset === true);
+      // ⭐ THE PASS IS SPENT — MINT A FRESH ONE BEFORE SHE TRIES AGAIN.
+      // Cloudflare consumes the token when the server checks it, so
+      // without this the second attempt (with the CORRECT password) would
+      // be refused for a reason the screen cannot explain. Unconditional:
+      // some failure paths return before the token is checked and leave it
+      // unspent, and a needless refresh costs nothing next to guessing
+      // which ones those are.
+      resetTurnstile();
     }
     setSubmitting(false);
   }
@@ -99,6 +108,12 @@ export function LoginForm({
           )}
         </div>
       )}
+
+      {/* Below the error, above the button — the last thing between her
+          and submitting, and the place a challenge (when Managed mode
+          decides to show one) reads as part of signing in rather than as
+          an interruption. */}
+      <TurnstileWidget />
 
       <button type="submit" className="auth-submit" disabled={submitting}>
         {submitting ? 'Signing in…' : 'Sign in'}

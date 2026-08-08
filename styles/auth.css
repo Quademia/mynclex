@@ -129,6 +129,18 @@
   text-decoration: none;
 }
 
+/* Cloudflare Turnstile's container (slice 2d). Empty and zero-height
+   most of the time — Managed mode is silent for the great majority of
+   visitors — so it must not reserve space it usually doesn't need. It
+   grows on its own the moment Cloudflare decides to show something.
+
+   The widget itself is rendered at size 'flexible', so it takes this
+   element's width rather than Cloudflare's fixed 300px, which overflows
+   the auth card on a phone. */
+.auth-turnstile:not(:empty) {
+  margin-top: 4px;
+}
+
 .auth-submit {
   padding: 11px 20px;
   background: var(--primary);
