@@ -28,6 +28,18 @@
   // Top-level vars are the dev defaults. Prod values live in env.prod
   // below and are selected when the prod CF Worker deploys with the
   // wrangler environment set to `prod`.
+  //
+  // ⚠ THESE ARE RUNTIME BINDINGS ONLY, AND THAT IS NOT ENOUGH ON ITS OWN.
+  // Cloudflare hands them to the Worker when it serves a request, which
+  // covers every server-side read. But `NEXT_PUBLIC_*` is substituted into
+  // the BROWSER bundle while `next build` runs, long before any binding
+  // exists — so each value is ALSO listed in the `env:` block of the build
+  // step in .github/workflows/deploy-dev.yml and deploy-prod.yml.
+  // ⚠ Two places, one truth, nothing keeping them in step: change a public
+  // value here and change it there too. (Found 2026-08-08 — until then the
+  // browser bundle had no Supabase URL and no Turnstile key at all, so
+  // /reset-password and /welcome could not work on either deployed
+  // Worker.)
   "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://xkqxfzfsllxyxpdtcrja.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrcXhmemZzbGx4eXhwZHRjcmphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjk4ODYsImV4cCI6MjA5MjgwNTg4Nn0.yRC-HClidhjdUELZETOo9ndyKzzkV7k6Dn_QlyCjx9E",
