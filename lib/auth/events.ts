@@ -40,6 +40,11 @@ export type AuthEventType =
   | 'LOGIN_FAIL'
   | 'LOGIN_BLOCKED'
   | 'REGISTERED'
+  // ⚠ The one type in this arc that was NOT free. 2a pre-loaded CODE_* and
+  // GOOGLE_FIRST_SIGNIN into the constraint; this one arrived later, from
+  // the /register gap, and cost a migration of its own
+  // (20260905120000_register_rejected.sql).
+  | 'REGISTER_REJECTED'
   | 'RESET_REQUESTED'
   | 'RESET_COMPLETED'
   | 'RESET_BLOCKED'

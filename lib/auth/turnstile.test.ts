@@ -35,6 +35,23 @@ function siteverify(body: unknown, status = 200) {
   } as Response);
 }
 
+/**
+ * Stub global fetch and hand back the spy.
+ *
+ * The parameters are declared even though the body ignores them: without
+ * them vi infers a zero-argument call signature, and every
+ * `mock.calls[0]` below types as `[]` — so the assertions that read the
+ * request body would need a cast through `unknown` to compile, which is
+ * exactly the cast that stops a test from noticing a changed signature.
+ */
+function stubFetch(body: unknown = { success: true }, status = 200) {
+  const mock = vi.fn((_url: string, _init: RequestInit) =>
+    siteverify(body, status)
+  );
+  vi.stubGlobal('fetch', mock);
+  return mock;
+}
+
 describe('verifyTurnstile', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -169,12 +186,11 @@ describe('verifyTurnstile', () => {
   });
 
   it('sends the secret and the token, and never the site key', async () => {
-    const fetchMock = vi.fn(() => siteverify({ success: true }));
-    vi.stubGlobal('fetch', fetchMock);
+    const fetchMock = stubFetch();
 
     await verifyTurnstile('  padded-token  ');
 
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [, init] = fetchMock.mock.calls[0];
     const sent = new URLSearchParams(init.body as string);
 
     expect(sent.get('secret')).toBe(SECRET_KEY);
@@ -185,12 +201,11 @@ describe('verifyTurnstile', () => {
   });
 
   it('passes the caller IP to Cloudflare when the headers carry one', async () => {
-    const fetchMock = vi.fn(() => siteverify({ success: true }));
-    vi.stubGlobal('fetch', fetchMock);
+    const fetchMock = stubFetch();
 
     await verifyTurnstile('t');
 
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [, init] = fetchMock.mock.calls[0];
     expect(new URLSearchParams(init.body as string).get('remoteip')).toBe(
       '41.66.1.9'
     );
@@ -201,12 +216,11 @@ describe('verifyTurnstile', () => {
     // optional IP and nothing else — an unverified caller is a far worse
     // outcome than an unscored one.
     mocks.headers.mockRejectedValue(new Error('called outside a request'));
-    const fetchMock = vi.fn(() => siteverify({ success: true }));
-    vi.stubGlobal('fetch', fetchMock);
+    const fetchMock = stubFetch();
 
     await expect(verifyTurnstile('t')).resolves.toMatchObject({ passed: true });
 
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [, init] = fetchMock.mock.calls[0];
     expect(new URLSearchParams(init.body as string).has('remoteip')).toBe(false);
   });
 });

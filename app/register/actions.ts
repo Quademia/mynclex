@@ -47,12 +47,13 @@ export async function registerAction(formData: FormData): Promise<RegisterResult
   // That answer is worth giving to a person and worth denying to a script,
   // and this is what tells them apart.
   //
-  // ⚠ Nothing is logged on refusal yet — a rejected signup writes no row
-  // at all, which is the /register gap the next slice closes with a
-  // REGISTER_REJECTED event. That one needs a migration; it is the only
-  // event type in this arc not already in the CHECK constraint.
   const turnstile = await verifyTurnstile(formData.get(TURNSTILE_FIELD));
   if (!turnstile.passed) {
+    await logAuthEvent({
+      eventType: 'REGISTER_REJECTED',
+      email,
+      reason: `turnstile:${turnstile.reason}`,
+    });
     return { ok: false, error: TURNSTILE_FAILED_MESSAGE };
   }
 
@@ -69,11 +70,37 @@ export async function registerAction(formData: FormData): Promise<RegisterResult
   });
 
   if (signUpError) {
+    // ⭐ THE ROW THAT CLOSES THE /register GAP (slice 2d, step 2). Until
+    // this line, a refused signup returned here having written nothing —
+    // so /register was the only auth surface that left no trace on
+    // failure, and someone walking a list of addresses to find out which
+    // ones are registered here did it invisibly, in the very logbook 2a
+    // built to make that visible.
+    //
+    // ⓘ user_exists is set from the message rather than a lookup. This is
+    // the one flow where Supabase has ALREADY told us the answer, so
+    // asking again would be a second query for a fact in hand. ⚠ It goes
+    // in the LOG only — the student keeps seeing Supabase's own words,
+    // which is Sam's decision of 2026-08-06 and the reason the message
+    // is worth having at all.
+    const alreadyRegistered = /already registered/i.test(signUpError.message);
+
+    await logAuthEvent({
+      eventType: 'REGISTER_REJECTED',
+      email,
+      userExists: alreadyRegistered ? true : null,
+      reason: `signup_failed: ${signUpError.message}`,
+    });
     return { ok: false, error: signUpError.message };
   }
 
   const authUser = signUpData.user;
   if (!authUser) {
+    await logAuthEvent({
+      eventType: 'REGISTER_REJECTED',
+      email,
+      reason: 'no_user_returned',
+    });
     return { ok: false, error: 'Signup failed. Please try again.' };
   }
 
@@ -88,6 +115,25 @@ export async function registerAction(formData: FormData): Promise<RegisterResult
 
   if (profileError) {
     await rollbackAuthUser(authUser.id);
+    // ⭐ THE OLD REASONING FOR NOT LOGGING THIS NO LONGER HOLDS, so it is
+    // logged now. It used to run: the rollback deletes the auth user, so
+    // an event here would describe an account that does not exist, and
+    // REGISTERED was the only signup type available to describe it with.
+    // The second half is what changed — REGISTER_REJECTED says exactly
+    // "this signup did not happen", which is the true statement about a
+    // rolled-back attempt.
+    //
+    // And it is the case support most needs: a student who says she
+    // registered and cannot sign in. Until now that existed only as a
+    // console line on a Worker, which nobody will ever go and read.
+    //
+    // ⓘ No userId — deliberately. The id is gone by this point, and a
+    // foreign key to a deleted auth user is worse than no id at all.
+    await logAuthEvent({
+      eventType: 'REGISTER_REJECTED',
+      email,
+      reason: `profile_insert_failed: ${profileError.message}`,
+    });
     return { ok: false, error: 'Could not create profile. Please try again.' };
   }
 
@@ -98,14 +144,22 @@ export async function registerAction(formData: FormData): Promise<RegisterResult
 
   if (roleError) {
     await rollbackAuthUser(authUser.id);
+    await logAuthEvent({
+      eventType: 'REGISTER_REJECTED',
+      email,
+      reason: `role_insert_failed: ${roleError.message}`,
+    });
     return { ok: false, error: 'Could not assign role. Please try again.' };
   }
 
-  // Only the completed signup is logged. The three failure paths above
-  // all roll the auth user back, so an event there would record an
-  // account that no longer exists — and REGISTERED is the only signup
-  // type in the constraint precisely because a half-created user is not
-  // a registration. (The rollback itself already logs to the console.)
+  // REGISTERED here; REGISTER_REJECTED on all five failure paths that got
+  // as far as Supabase. /register was the only auth surface that could be
+  // left silently, and that is what slice 2d step 2 came to fix.
+  //
+  // ⓘ The three validation bounces at the top of this function stay
+  // unlogged, matching the empty-form bounce in the login action: nothing
+  // was attempted, so there is nothing to record, and logging them would
+  // fill the table with mistyped confirm-password fields.
   await logAuthEvent({
     eventType: 'REGISTERED',
     email,
