@@ -87,6 +87,24 @@
   margin-top: 2px;
 }
 
+/* The "Forgot your password?" link under the password field. Right
+ * aligned so it reads as an escape hatch attached to that field rather
+ * than a hint about it — .auth-hint alone would put it where the
+ * "minimum 8 characters" style of note lives. */
+.auth-forgot {
+  align-self: flex-end;
+}
+
+.auth-forgot a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-forgot a:hover {
+  text-decoration: underline;
+}
+
 .auth-error {
   padding: 10px 14px;
   background: #fef2f2;
@@ -94,6 +112,33 @@
   border-radius: var(--radius);
   color: var(--danger);
   font-size: 13px;
+}
+
+/* The way out of a 24-hour lockout, offered inside the refusal itself.
+   Inherits the danger colour rather than taking the usual link blue —
+   on a pale red panel the blue reads as a foreign element, and this is
+   part of the sentence, not a separate control. Underlined so it is
+   still obviously a link without relying on colour alone. */
+.auth-error-action {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.auth-error-action:hover {
+  text-decoration: none;
+}
+
+/* Cloudflare Turnstile's container (slice 2d). Empty and zero-height
+   most of the time — Managed mode is silent for the great majority of
+   visitors — so it must not reserve space it usually doesn't need. It
+   grows on its own the moment Cloudflare decides to show something.
+
+   The widget itself is rendered at size 'flexible', so it takes this
+   element's width rather than Cloudflare's fixed 300px, which overflows
+   the auth card on a phone. */
+.auth-turnstile:not(:empty) {
+  margin-top: 4px;
 }
 
 .auth-submit {

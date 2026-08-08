@@ -29,7 +29,10 @@ For now, keep it minimal.
 
 - Next.js 16 + TypeScript + React 19 (App Router)
 - Deployed to Cloudflare Workers via `@opennextjs/cloudflare`
-- Supabase (shared QAcademy instance) for Postgres + Auth + Storage
+- Supabase for Postgres + Auth + Storage — MyNclex has its **own** dev/prod
+  Supabase projects, separate from the gamma products' pair (corrected
+  2026-08-05; this line previously claimed a "shared QAcademy instance",
+  which was never true — see `docs/product-plan/domain-and-identity.md`)
 - `@supabase/ssr` for cookie-based server-side auth
 - Resend for transactional email via a dedicated MyNclex email worker
 - Paystack for payments (GHS + international card)
@@ -284,6 +287,34 @@ slice.
   Done in `lib/library/body-tiptap.ts` → `tiptapToBody`. Apply the
   same clone to any future editor doc / PM-derived structure sent to
   a Server Action.
+
+- **Auth links: `?code=` and `#access_token=` need OPPOSITE handling, and
+  the browser client cannot be configured out of it.** Verified against
+  the installed `@supabase/ssr` 0.5.2 + `@supabase/auth-js` source on
+  2026-08-06, after `/reset-password` took three attempts.
+  - `createBrowserClient` sets `detectSessionInUrl`, `flowType`,
+    `storage`, `persistSession` and `autoRefreshToken` **after** spreading
+    the caller's options, so anything you pass for those keys is
+    **discarded silently**. It is also a module-level singleton — later
+    calls return the first client and ignore their arguments.
+  - **`?code=` (PKCE — what real auth emails send): the library owns it.**
+    It consumes the code the instant any client is constructed. The code
+    is single-use, so calling `exchangeCodeForSession` yourself races the
+    library and the loser reports failure for an operation that
+    succeeded. Only *wait* for the session (`onAuthStateChange` +
+    `getUser`).
+  - **`#access_token=` (implicit — admin-generated links): the library
+    refuses it.** `GoTrueClient` throws `"Not a valid PKCE flow url."`
+    for an implicit callback under `flowType:'pkce'`, and routes that
+    error to its own debug channel, so **nothing appears in the
+    console**. Here you MUST call `setSession()` yourself. (This is why
+    `/welcome` has always worked — it does exactly that.)
+  - Reference implementation: `app/reset-password/page.tsx`. The same
+    trap is waiting for slice 3's email-code login.
+  - ⚠ Debugging note: navigating between two URLs that differ **only in
+    the fragment does not reload the page**. Two wrong diagnoses that day
+    came from "tests" that never ran the new code and were showing the
+    previous attempt's screen. Change path, or force a reload.
 
 - **Production builds use webpack, not Turbopack.** The `build` and
   `cf:build` scripts pass `--webpack` to `next build`. Reason: Next.js 16

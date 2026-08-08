@@ -7,12 +7,15 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { registerAction } from './actions';
+import { TurnstileWidget, resetTurnstile } from '@/components/auth/turnstile-widget';
 import '@/styles/tokens.css';
 import '@/styles/auth.css';
 
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Holds the button until a Turnstile pass exists — see login-form.tsx.
+  const [passReady, setPassReady] = useState(false);
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -22,6 +25,10 @@ export default function RegisterPage() {
 
     if (!result?.ok && result?.error) {
       setError(result.error);
+      // Single-use pass, spent by this attempt — see login-form.tsx. It
+      // matters most on this form: "User already registered" and "Passwords
+      // do not match" are both errors she fixes and immediately resubmits.
+      resetTurnstile();
     }
     setSubmitting(false);
   }
@@ -96,7 +103,13 @@ export default function RegisterPage() {
 
           {error && <div className="auth-error">{error}</div>}
 
-          <button type="submit" className="auth-submit" disabled={submitting}>
+          <TurnstileWidget onReadyChange={setPassReady} />
+
+          <button
+            type="submit"
+            className="auth-submit"
+            disabled={submitting || !passReady}
+          >
             {submitting ? 'Creating account…' : 'Create account'}
           </button>
         </form>

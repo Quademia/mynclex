@@ -14,6 +14,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { activatePendingForEmail } from '@/lib/payments/activate';
+import { logAuthEvent } from '@/lib/auth/events';
 
 type FinalizeResult = { ok: true } | { ok: false; error: string };
 
@@ -102,6 +103,21 @@ export async function finalizeWelcomeAction(
   if (user.email) {
     await activatePendingForEmail(user.email);
   }
+
+  // Without this row an invited student simply does not exist in the log
+  // until her first ordinary login — so the timeline for the arrival most
+  // likely to go wrong would start after the part that went wrong.
+  //
+  // The reason distinguishes the two doors above, which is the first
+  // question support asks: a tutor-add student who never arrives is a
+  // tutor problem, a pay-first buyer who never arrives is a money
+  // problem.
+  await logAuthEvent({
+    eventType: 'INVITE_ACCEPTED',
+    email: user.email,
+    userId: user.id,
+    reason: existingProfile ? 'tutor_add' : 'pay_first',
+  });
 
   redirect('/router');
 }

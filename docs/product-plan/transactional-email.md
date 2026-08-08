@@ -6,8 +6,8 @@ that should send an email**, so that when we build the email arc post-MVP
 nothing is missed. See [main.md](main.md) and
 [payments-and-enrolment.md](payments-and-enrolment.md).*
 
-Last updated: 2026-06-24 (payment emails: tutor-side notification firmed to a
-required P1 — every payment notifies BOTH student and tutor).
+Last updated: 2026-08-06 (invite moves out of the Supabase-managed section and
+into this layer — see the ⚠ note at the bottom; identity templates branded).
 
 ---
 
@@ -31,8 +31,13 @@ registry IS the build checklist and the markers ARE the wiring points.
 - **Supabase Auth** already owns a separate set of identity emails (invite,
   email confirmation, password reset, magic link). Those are **not** part of
   this transactional layer — they're configured in Supabase. They're listed in
-  the "Supabase-managed" section below only so the full picture is in one place;
-  we don't send them through Resend.
+  the "Supabase-managed" section below only so the full picture is in one place.
+  ⚠ **Corrected 2026-08-06:** this line used to end "we don't send them through
+  Resend", which stopped being true when custom SMTP went live. They *are*
+  delivered by Resend now — the split is about **who composes and triggers**
+  the email (Supabase, from a dashboard template, with no access to programme
+  or payment data), not about which wire it goes down. Both layers leave the
+  building through the same Resend account.
 
 ---
 
@@ -151,14 +156,50 @@ content release, or account state, ask "should this notify someone?" — if yes:
 
 ## Supabase-managed identity emails (NOT this layer — for reference)
 
-Configured in Supabase Auth, not sent via Resend. Worth a config/branding pass
-during the email arc so they don't look default/unbranded:
+Configured in Supabase Auth, not sent via Resend. **Branding pass done
+2026-08-06** — copy lives in [`../email/auth-templates.md`](../email/auth-templates.md);
+the delivery plumbing (custom SMTP, DKIM, DMARC) is in `domain-and-identity.md`.
 
-- **Invite** — sent when a paid/added student is invited to set a password
-  (the pre-`/welcome` step).
-- **Email confirmation** — on sign-up, if enabled.
-- **Password reset / recovery** — "forgot password" flow.
-- **Magic link** — if used.
+- **Password reset / recovery** — "forgot password" flow. ✅ Branded.
+  (The flow itself is build-order item 2 and isn't built yet; the
+  template was written ahead of it deliberately.)
+- **Email confirmation** — on sign-up. ✅ Branded, but **the setting is
+  OFF** — see the launch-gate list in `domain-and-identity.md`.
+- **Magic link** — deliberately unbranded; build-order item 3 rewrites it
+  as a code-only email in code.
+- **Reauthentication** / **Change email** — unbranded, unused. Nothing
+  calls `updateUser({ email })` today.
+
+### ⚠ Invite is being moved OUT of this section
+
+Corrected 2026-08-06. This section used to list **Invite** as "the
+pre-`/welcome` step", while the Enrolment catalog above independently
+listed `enrolment.confirmed` and `enrolment.tutor_added` doing the same
+job with real context. **Both were true at once, and nobody had put them
+side by side** — as written, an invited student would receive two emails:
+a thin Supabase invite carrying the password link, and our rich email
+carrying the reason.
+
+It should be one email, and the rich one wins. **Sam's reasoning
+(2026-08-06):** an invite is never just an invite — it always arrives
+attached to a programme or to bank access, so an email that only says
+*you have an account* leaves the reader asking *for what?*. The context
+IS the email; the password link is a detail inside it.
+
+**How** — the two invite call sites
+([`lib/enrolments/actions.ts`](../../lib/enrolments/actions.ts),
+[`lib/payments/activate.ts`](../../lib/payments/activate.ts)) currently use
+`admin.auth.admin.inviteUserByEmail`, which sends Supabase's generic body
+as a side effect. Swap to `admin.auth.admin.generateLink({ type: 'invite' })`,
+which mints the **same** set-password link and sends nothing — then our
+worker sends one branded email carrying both.
+
+⚠ **Do not delete or disable the Supabase invite template before that
+lands.** Until this arc is built it is the only email an invited student
+receives; removing it early makes tutor-add and pay-first silently send
+nothing. It stays deliberately unbranded in the meantime — and since the
+SMTP switch it already sends **from** Quademia, so it reads unstyled
+rather than untrustworthy.
 
 ---
 

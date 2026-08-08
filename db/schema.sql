@@ -946,9 +946,10 @@ CREATE INDEX idx_nclex_cohorts_programme ON nclex_cohorts(programme_id);
 -- the per-type contract is the TS discriminated union in
 -- lib/curriculum/types.ts). Origin migration:
 -- db/migrations/20260512200000_slice_9_3a_curriculum_schema.sql.
--- The unit-count reconciliation triggers (slice 9.1d) and the
--- cohort-checklist seed trigger (9.3f) are functions — see the
--- migrations folder, per the RPC note at the foot of this file.
+-- The unit-count reconciliation triggers (slice 9.1d) are functions —
+-- see the migrations folder, per the RPC note at the foot of this file.
+-- (9.3f also shipped a cohort-checklist seed trigger. It was RETIRED
+-- on 2026-06-25 — see the note on nclex_cohort_checklist_items below.)
 
 CREATE TABLE nclex_programme_units (
   unit_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1094,8 +1095,22 @@ CREATE INDEX idx_nclex_programme_activities_cohort
 -- copy. Origin migrations:
 -- db/migrations/20260514120000_slice_9_3f_cohort_checklist.sql,
 -- db/migrations/20260515160000_slice_10_7_activity_window.sql.
--- The seed-on-cohort-INSERT trigger is a function — see the
--- migrations folder.
+-- There is NO seed-on-cohort-INSERT trigger. One shipped with 9.3f and
+-- was dropped on 2026-06-25 (migration
+-- 20260625130000_drop_cohort_checklist_seed_trigger.sql) when the
+-- checklist stopped being a snapshot taken at cohort creation and
+-- became an OVERRIDE on the LIVE template. Three states:
+--   • no row      — unconfigured. The TUTOR sees the activity rendered
+--                   from the template with default dates; STUDENTS do
+--                   not see it at all.
+--   • is_included — TRUE = included, FALSE = excluded.
+-- A row appears on the tutor's first explicit action, or in bulk via
+-- the "N unconfigured → Include all" affordance
+-- (includeAllUnconfiguredActivitiesAction). So a brand-new cohort
+-- correctly starts with ZERO rows — that is the design, not a missing
+-- seed. Rows seeded by the old trigger were left in place as valid
+-- overrides, which is why some older cohorts hold more rows than their
+-- programme currently has activities.
 
 CREATE TABLE nclex_cohort_checklist_items (
   checklist_item_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -2021,6 +2036,54 @@ CREATE INDEX idx_nclex_readiness_credits_payment ON nclex_readiness_credits (pay
 CREATE UNIQUE INDEX idx_nclex_readiness_credits_one_live_claim_per_pack
   ON nclex_readiness_credits (user_id, pack_id)
   WHERE pack_id IS NOT NULL AND expired_at IS NULL AND revoked_at IS NULL;
+
+
+-- nclex_auth_events — append-only log of authentication attempts (login,
+-- registration, invite acceptance, reset, login code). Build-order item 2
+-- slice 2a; migration 20260904120000_auth_events.sql, which carries the
+-- full rationale for every column.
+--
+-- Three things about this table are decisions rather than defaults:
+--   • user_id has NO foreign key. An FK would either block deleting a
+--     user or cascade their history away, and a log that vanishes with
+--     its subject is not a log. The register rollback path hard-deletes
+--     auth users, so this is live, not hypothetical.
+--   • email is kept even when it matches no account — "she asked for her
+--     Yahoo, her account is under her Gmail" is the #1 support case and
+--     is only answerable if unrecognised addresses are stored.
+--   • ip_address is recorded and never enforced on. Ghanaian mobile
+--     carriers put thousands of subscribers behind one address, so a
+--     per-IP rate limit could lock out a whole network of nurses.
+CREATE TABLE nclex_auth_events (
+  event_id     BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  occurred_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  event_type   TEXT        NOT NULL,
+  email        TEXT,                                 -- address TRIED, lowercased
+  user_id      UUID,                                 -- when known; no FK, on purpose
+  user_exists  BOOLEAN,                              -- reset events only
+  device_label TEXT,                                 -- 'Android · Chrome'; not a hash
+  ip_address   INET,                                 -- logged, never enforced on
+  reason       TEXT,                                 -- 'invalid_credentials', …
+  -- The future types (CODE_* = slice 3, GOOGLE_FIRST_SIGNIN = slice 5)
+  -- are listed now so those slices need no migration. *_BLOCKED is a
+  -- distinct type, not a flag, so slice 2c can exclude blocked attempts
+  -- from the counts that blocked them.
+  CONSTRAINT nclex_auth_events_type_ck CHECK (event_type IN (
+    'LOGIN_OK', 'LOGIN_FAIL', 'LOGIN_BLOCKED',
+    'REGISTERED',
+    'RESET_REQUESTED', 'RESET_COMPLETED', 'RESET_BLOCKED',
+    'CODE_REQUESTED', 'CODE_LOGIN_OK', 'CODE_LOGIN_FAIL',
+    'INVITE_ACCEPTED', 'GOOGLE_FIRST_SIGNIN'
+  ))
+);
+-- One index per named reader: the slice-2c threshold count, a student's
+-- support timeline, and the nightly retention sweep.
+CREATE INDEX idx_nclex_auth_events_email_time
+  ON nclex_auth_events (email, occurred_at DESC) WHERE email IS NOT NULL;
+CREATE INDEX idx_nclex_auth_events_user_time
+  ON nclex_auth_events (user_id, occurred_at DESC) WHERE user_id IS NOT NULL;
+CREATE INDEX idx_nclex_auth_events_occurred
+  ON nclex_auth_events (occurred_at);
 
 
 -- RPC functions are large and tracked by their migration files
