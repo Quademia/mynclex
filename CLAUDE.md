@@ -316,6 +316,39 @@ slice.
     came from "tests" that never ran the new code and were showing the
     previous attempt's screen. Change path, or force a reload.
 
+- **`NEXT_PUBLIC_*` must exist at BUILD time — `wrangler.jsonc` vars are
+  RUNTIME only, and the gap is silent.** Cloudflare hands `vars` to the
+  Worker when it serves a request, so every server-side read works and
+  nothing looks wrong. But `NEXT_PUBLIC_*` is a *build-time substitution*:
+  webpack replaces each reference with a string literal while `next build`
+  runs, and anything missing at that moment is `undefined` in the browser
+  bundle **forever**. A runtime binding arrives hours too late.
+  Found 2026-08-08, after it had been true for as long as the deploy
+  workflows existed. Two symptoms, one cause:
+  - The Turnstile widget rendered **server-side** (runtime vars present)
+    and vanished on hydration (client bundle had no key) — a container in
+    the HTML and no widget on the page.
+  - ⚠ Worse and older: the deployed `/reset-password` bundle read
+    `createBrowserClient(n.env.NEXT_PUBLIC_SUPABASE_URL, …)` **unreplaced**,
+    so it and `/welcome` (invite acceptance) could not work on either
+    Worker. Both had only ever been tested on **localhost**, where
+    `.env.local` is present at build time — which is exactly why months of
+    sessions never caught it.
+
+  **Rule: any new `NEXT_PUBLIC_*` goes in THREE places** — `.env.local`
+  (local dev), `wrangler.jsonc` `vars` (server at runtime, dev + `env.prod`),
+  and the `env:` block of the **build** step in *both*
+  `.github/workflows/deploy-dev.yml` and `deploy-prod.yml`. ⚠ The build step
+  carries no `--env prod`; only the deploy does, so nothing else in the
+  pipeline supplies prod's values. The duplication is known debt, flagged in
+  comments on both sides (wrangler.jsonc is JSONC, so a workflow step cannot
+  just `jq` it out).
+
+  **To check a deployed environment**, read the served bundle rather than
+  trusting the config — the value should appear as a literal:
+  `curl -s <origin>/login | grep -oE '/_next/static/chunks/app/login/[^"]+\.js'`
+  then grep that chunk for the expected value.
+
 - **Production builds use webpack, not Turbopack.** The `build` and
   `cf:build` scripts pass `--webpack` to `next build`. Reason: Next.js 16
   defaults to Turbopack for production builds, but

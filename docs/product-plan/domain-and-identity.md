@@ -793,10 +793,10 @@ references (rename debt above) and the Resend/SMTP work already scoped.
 2. **Forgot-password flow** (depends on 1) — carries Turnstile on the three
    public forms, the `nclex_auth_events` write-side, AND the layer-2
    per-email threshold checks (gamma's rules, server-side) with it.
-   **STATUS 2026-08-08 — ITEM 2 IS COMPLETE. 2a, 2b, 2c and 2d all built
-   and Sam-tested on dev.** ⬜ The only thing outstanding is prod: two
-   migrations ride the next release, and prod's captcha switch is flipped
-   after it, never before.
+   **STATUS 2026-08-08 — ITEM 2 IS COMPLETE AND ON PROD.** 2a, 2b, 2c and
+   2d all built, Sam-tested on dev, released (`cf0cb8e` + `fccc9db`), and
+   exercised on prod with the captcha switch on and the redirect allowlist
+   set. Prod tracker 153.
    - ✅ **2a — the logbook.** `nclex_auth_events` + the write side
      (migration `20260904120000_auth_events.sql`, `lib/auth/events.ts`,
      `lib/auth/device-label.ts`). Shipped BEFORE the flow it serves
@@ -944,13 +944,29 @@ references (rename debt above) and the Resend/SMTP work already scoped.
        browser. Please refresh the page and try again."* Deliberately
        silent about which of the reasons applied, since they all have the
        same fix. **Not Sam-copy-passed.**
-     - ⬜ **Prod's switch is NOT flipped**, on purpose, and must not be
-       until the release: prod would otherwise demand a pass the deployed
-       code does not send. ⚠ `TURNSTILE_SECRET_KEY` is a **Worker secret
-       per environment** (both set 2026-08-08, dashboard not CLI); if it
-       is ever missing, Turnstile switches itself off and says so loudly
-       in the Worker log rather than blocking anyone. Site keys are
-       committed in `wrangler.jsonc` — public by design.
+     - ✅ **PROD IS LIVE** (2026-08-08, releases `cf0cb8e` then `fccc9db`).
+       Switch flipped, redirect allowlist set, `TURNSTILE_SECRET_KEY` a
+       Worker secret in both environments (dashboard, not CLI). The same
+       back-door probe that returned `invalid_credentials` before the flip
+       now returns `captcha_failed`. Prod's logbook holds its first rows —
+       `LOGIN_OK`, `LOGIN_FAIL (wrong_password)`, `LOGIN_OK` 24 s later:
+       the typo retry succeeding on prod with Supabase verifying.
+     - ⚠⚠ **THE RELEASE EXPOSED A BUG OLDER THAN THIS SLICE, AND IT IS THE
+       MOST IMPORTANT THING ON THIS PAGE.** The widget did not appear on
+       either Worker. Cause: `wrangler.jsonc` `vars` are **runtime**
+       bindings, but `NEXT_PUBLIC_*` is a **build-time** substitution, and
+       neither deploy workflow passed any environment to its build step —
+       so the server rendered the widget's container and hydration removed
+       it. **The same starvation hit `createBrowserClient`**, meaning
+       `/reset-password` and **`/welcome` (invite acceptance) had never
+       worked on the dev or prod Workers at all.** Both had only ever been
+       tested on localhost, where `.env.local` is present at build time.
+       Fixed in `ac822dc`; the three-places rule for any future
+       `NEXT_PUBLIC_` variable is now in `CLAUDE.md` → Known Workarounds.
+       ⭐ It surfaced only because Sam said the widget was missing on a
+       release already reported green — **a green deploy is not evidence
+       of a working page**, the companion to 2026-08-06's *a green merge
+       is not evidence of a green deploy*.
 
      **↳ 2d also carries the `/register` gap** (found 2026-08-06 when Sam
      asked what happens on signup with an address that already exists —
