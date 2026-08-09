@@ -42,11 +42,21 @@
 
 'use server';
 
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { safeNext } from '@/lib/auth/safe-next';
 import { logAuthEvent } from '@/lib/auth/events';
 import { accountExistsForEmail } from '@/lib/auth/account-lookup';
-import { checkCodeRequestThreshold, formatRetry } from '@/lib/auth/thresholds';
-import { rememberPendingCodeEmail } from '@/lib/auth/code-session';
+import {
+  checkCodeRequestThreshold,
+  checkCodeVerifyThreshold,
+  formatRetry,
+} from '@/lib/auth/thresholds';
+import {
+  rememberPendingCodeEmail,
+  readPendingCodeEmail,
+  forgetPendingCodeEmail,
+} from '@/lib/auth/code-session';
 import {
   readTurnstileTicket,
   isCaptchaRejection,
@@ -184,4 +194,143 @@ export async function requestCodeAction(
   // the same screen as everyone else and reaches support none the wiser;
   // the alternative leaks whether the address was real.
   return { ok: true };
+}
+
+type VerifyCodeResult =
+  // On success this never returns — redirect() throws. Present so the
+  // union is honest about the shape rather than pretending.
+  | { ok: true }
+  // `restart` asks the form to go back to the email step. Set only when
+  // there is no pending address left to verify against, where showing her
+  // the code box again would be showing her a box that cannot work.
+  | { ok: false; error: string; restart?: boolean };
+
+/**
+ * Slice 3d — the second half of the code door.
+ *
+ * ⭐ NO TURNSTILE HERE, AND IT WAS CHECKED RATHER THAN ASSUMED (2026-08-09).
+ * Supabase's captcha setting does not guard the verify endpoint: a call to
+ * /auth/v1/verify with no pass at all answers `otp_expired`, not
+ * `captcha_failed`. So the widget would have been friction with no
+ * counterpart — a second pass to clear while she squints at six digits on
+ * her phone, on the door built to reduce friction. The per-address rule
+ * below guards this one, on the axis that is safe for this audience.
+ *
+ * ⭐ AND THIS FLOW NEVER TOUCHES A URL, which settles a question the plan
+ * left open. domain-and-identity.md warned that slice 3 would meet the
+ * `?code=` vs `#access_token=` trap that cost /reset-password three
+ * attempts. It does not: that trap is about a LINK arriving in the browser
+ * with a token in it, and there is no link here. verifyOtp returns the
+ * session to this server action, and the SSR client writes the session
+ * cookies through `setAll` — which works because an action may set cookies.
+ * Nothing is parsed out of an address bar, so there is nothing to race and
+ * nothing to configure.
+ */
+export async function verifyCodeAction(
+  formData: FormData
+): Promise<VerifyCodeResult> {
+  // ⭐ THE ADDRESS COMES FROM THE COOKIE, NOT THE FORM, and the reason is
+  // persistence rather than security. Supabase requires the address and the
+  // code to match, so a forged address buys nothing — it only asks about a
+  // code that went to somebody else's inbox. What the cookie buys is that
+  // she can come back from Gmail to a reloaded tab and still be mid-flow.
+  const email = await readPendingCodeEmail();
+
+  // Digits only. She may well paste "123 456" straight out of the email, or
+  // out of a notification that added its own spacing, and refusing that
+  // would be refusing her the correct code for having copied it faithfully.
+  const code = String(formData.get('code') ?? '').replace(/\D/g, '');
+
+  // Optional return address, same as the password door — a student sent
+  // here mid-checkout goes back to where she came from.
+  const next = safeNext(formData.get('next'));
+
+  if (!email) {
+    // No pending address: the cookie expired, or she arrived at this step
+    // some other way. Nothing was attempted and nothing is logged — there
+    // is no address to log it against, which is precisely the problem.
+    return {
+      ok: false,
+      error: 'That took a while — enter your email address to get a new code.',
+      restart: true,
+    };
+  }
+
+  // Not logged, for the reason the other actions don't log an empty submit:
+  // nothing was attempted, and an empty box must not be able to feed the
+  // counter that locks her out.
+  if (!code) {
+    return { ok: false, error: 'Enter the 6-digit code from your email.' };
+  }
+
+  // ⭐ BEFORE SUPABASE, so a guess against a locked address is not even
+  // tested. Same ordering, and same reasoning, as the password door.
+  const gate = await checkCodeVerifyThreshold(email);
+  if (gate.blocked) {
+    await logAuthEvent({
+      eventType: 'CODE_BLOCKED',
+      email,
+      reason: gate.rule,
+    });
+    // ⓘ No "set a new password instead" offer, unlike the 24-hour password
+    // lockout. That offer exists there because ten failures in a day means
+    // she has genuinely forgotten her password and reset is the honest
+    // answer. Five wrong codes in ten minutes means something else — a
+    // stale code, or digits misread — and the answer to both is a fresh
+    // code, which the same screen already offers.
+    return {
+      ok: false,
+      error: `Too many incorrect codes. Try again ${formatRetry(gate.retryAfterSeconds)}.`,
+    };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token: code,
+    type: 'email',
+  });
+
+  if (error) {
+    await logAuthEvent({
+      eventType: 'CODE_LOGIN_FAIL',
+      email,
+      // ⓘ No accountExistsForEmail lookup here, unlike the password door.
+      // It would answer nothing this row doesn't already carry: reaching
+      // this action at all means a CODE_REQUESTED row exists for the same
+      // address moments earlier, and that row recorded userExists at the
+      // only moment it was worth recording.
+      reason: error.message,
+    });
+    // ⚠ Supabase answers a WRONG code and an EXPIRED one identically
+    // ('Token has expired or is invalid'), so this sentence cannot claim
+    // to know which — and must not, since guessing wrong would send her
+    // hunting for a fresh code she already has, or re-typing one that
+    // died. Both fixes are on the screen; the copy names both.
+    return {
+      ok: false,
+      error: 'That code didn’t work. Check the digits, or ask for a new one.',
+    };
+  }
+
+  if (data.user) {
+    await supabase
+      .from('nclex_users')
+      .update({ last_login_utc: new Date().toISOString() })
+      .eq('id', data.user.id);
+  }
+
+  await logAuthEvent({
+    eventType: 'CODE_LOGIN_OK',
+    email,
+    userId: data.user?.id ?? null,
+  });
+
+  // She is in; the pending address has served its purpose. Cleared before
+  // the redirect because redirect() throws, so nothing after it runs — and
+  // a cookie left behind would put a returning visitor back on the code
+  // step holding a code that has already been spent.
+  await forgetPendingCodeEmail();
+
+  redirect(next ?? '/router');
 }

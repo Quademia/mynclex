@@ -14,6 +14,8 @@ import {
   formatRetry,
   checkLoginThreshold,
   checkResetThreshold,
+  checkCodeRequestThreshold,
+  checkCodeVerifyThreshold,
 } from './thresholds';
 
 const MIN = 60 * 1000;
@@ -158,6 +160,56 @@ describe('the queries', () => {
     await checkResetThreshold('nurse@example.com');
 
     expect(chain.in).toHaveBeenCalledWith('event_type', ['RESET_REQUESTED']);
+  });
+
+  // ⭐ SLICE 3's TWO RULES WATCH TWO DIFFERENT DOORS, and the whole design
+  // rests on them not being the same door. Requests are limited because
+  // each one may ring an inbox that did not ask; guesses are limited
+  // because six digits is a small space. If either query grew the other's
+  // event type, a student who cannot get an email to arrive would be
+  // locked out for guessing, or a wrong digit would cost her the ability
+  // to fetch a fresh code — and both would look like the feature working.
+  it('counts CODE_REQUESTED only — asking is not guessing', async () => {
+    const chain = stubRows({ data: [], error: null });
+    await checkCodeRequestThreshold('nurse@example.com');
+
+    expect(chain.in).toHaveBeenCalledWith('event_type', ['CODE_REQUESTED']);
+  });
+
+  it('counts CODE_LOGIN_FAIL only — and never CODE_BLOCKED', async () => {
+    const chain = stubRows({ data: [], error: null });
+    await checkCodeVerifyThreshold('nurse@example.com');
+
+    expect(chain.in).toHaveBeenCalledWith('event_type', ['CODE_LOGIN_FAIL']);
+  });
+
+  // ⭐ THE CODE DOOR MUST NOT REACH THE PASSWORD DOOR'S COUNTER, in either
+  // direction. A mistyped code locking her out of her password would
+  // punish her at a door she was not standing at; the reverse would do the
+  // same in mirror. Both rules name their own type, so this holds by
+  // construction — and this test is what turns "by construction" into
+  // something that fails loudly if the construction changes.
+  it('keeps the code counters clear of LOGIN_FAIL', async () => {
+    for (const check of [checkCodeRequestThreshold, checkCodeVerifyThreshold]) {
+      vi.clearAllMocks();
+      const chain = stubRows({ data: [], error: null });
+      await check('nurse@example.com');
+
+      const types = (chain.in as ReturnType<typeof vi.fn>).mock.calls[0][1];
+      expect(types).not.toContain('LOGIN_FAIL');
+      expect(types).not.toContain('CODE_BLOCKED');
+    }
+  });
+
+  it('fetches what each code rule needs — 3 requests, 5 guesses', async () => {
+    stubRows({ data: [], error: null });
+    await checkCodeRequestThreshold('nurse@example.com');
+    expect(mocks.limit).toHaveBeenCalledWith(3);
+
+    vi.clearAllMocks();
+    stubRows({ data: [], error: null });
+    await checkCodeVerifyThreshold('nurse@example.com');
+    expect(mocks.limit).toHaveBeenCalledWith(5);
   });
 
   // ⭐ THE FETCH CAP IS EXACTLY THE DEEPEST THRESHOLD, AND THAT IS SOUND

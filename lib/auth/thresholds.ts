@@ -82,6 +82,23 @@ const CODE_REQUEST_RULES: Rule[] = [
   { windowSec: 60 * 60, limit: 3, label: 'threshold_request_60min' },
 ];
 
+// Slice 3d — guessing, not asking. Shaped like the SHORT login rule
+// (5 in 10 minutes) because it is the same event: someone at a box, trying
+// values. The long login companion is deliberately absent, for the same
+// reason reset has none — a patient attacker gains nothing here, because
+// the thing he is guessing at expires on its own.
+//
+// ⭐ THIS RULE, NOT THE EXPIRY, IS WHAT GUARDS THE CODE. Six digits is a
+// million values; at five tries per ten minutes that is thirty an hour, so
+// even a code living its full hour faces odds around thirty in a million.
+// Worth stating because slice 3 originally planned to shorten the shared
+// Email OTP Expiration to buy that safety, which would have cut the
+// password-reset link to ten minutes as collateral and bought almost
+// nothing — see docs/email/auth-templates.md.
+const CODE_VERIFY_RULES: Rule[] = [
+  { windowSec: 10 * 60, limit: 5, label: 'threshold_verify_10min' },
+];
+
 /**
  * Never report "try again in 0 seconds" — the student refreshes instantly,
  * gets blocked again, and learns the countdown is lying. Gamma floors at
@@ -243,6 +260,24 @@ export function checkResetThreshold(email: string): Promise<ThresholdVerdict> {
  */
 export function checkCodeRequestThreshold(email: string): Promise<ThresholdVerdict> {
   return check(email, ['CODE_REQUESTED'], CODE_REQUEST_RULES);
+}
+
+/**
+ * 5 wrong codes in 10 minutes, for this address (slice 3d).
+ *
+ * ⚠ CODE_LOGIN_FAIL ONLY — deliberately separate from checkLoginThreshold
+ * above, and the separation runs both ways. Folding these into the password
+ * rule would let a student's mistyped CODE lock her out of her PASSWORD;
+ * folding the password's failures into this one would do the reverse. Two
+ * doors, two counters, and a student who is struggling at one keeps the
+ * other.
+ *
+ * ⓘ CODE_BLOCKED is not counted, by construction — this rule names the
+ * types it counts, and blocks are their own type precisely so a refusal
+ * can never feed the rule that produced it.
+ */
+export function checkCodeVerifyThreshold(email: string): Promise<ThresholdVerdict> {
+  return check(email, ['CODE_LOGIN_FAIL'], CODE_VERIFY_RULES);
 }
 
 /**
