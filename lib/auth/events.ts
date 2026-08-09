@@ -27,16 +27,24 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { deviceLabelFrom } from './device-label';
 
 // The full vocabulary, matching the CHECK constraint in the migration.
-// CODE_* lands with slice 3 (email-code login) and GOOGLE_FIRST_SIGNIN
-// with slice 5; they are named here and in the constraint now so those
-// slices need no migration.
+// CODE_* lands with slice 3 (email-code login) and GOOGLE_* with slice 5;
+// they are named here and in the constraint now so those slices need no
+// migration.
 //
 // ⚠ CORRECTED 2026-08-09 — "no migration" held for three of slice 3's four
 // types, not all four. 2a foresaw the types describing what the STUDENT did
 // (requested a code, signed in, got it wrong) and missed the one describing
 // what WE did: refuse her before asking. CODE_BLOCKED cost
-// 20260906120000_code_blocked.sql. The same blind spot is worth watching for
-// in slice 5: GOOGLE_FIRST_SIGNIN is a success type with no refusal partner.
+// 20260906120000_code_blocked.sql.
+//
+// ⭐ RESOLVED 2026-08-09 (later still) — the blind spot flagged here for
+// slice 5 was real, and was caught before it cost a third migration.
+// GOOGLE_FIRST_SIGNIN was a success type with no refusal partner; it is
+// now retired in favour of GOOGLE_LOGIN_OK + GOOGLE_BLOCKED
+// (20260907120000_google_signin.sql). Retired rather than renamed in place:
+// under sign-in-only there is no first sign-in that creates an account, so
+// the old name would have gone on reading correctly while meaning something
+// else. It was never written to — zero rows on dev and prod.
 //
 // *_BLOCKED are separate types rather than a flag on a fail because
 // slice 2c must exclude blocked attempts from the counts that blocked
@@ -64,7 +72,18 @@ export type AuthEventType =
   // / 'turnstile:<code>'), exactly as LOGIN_BLOCKED already does for three.
   | 'CODE_BLOCKED'
   | 'INVITE_ACCEPTED'
-  | 'GOOGLE_FIRST_SIGNIN';
+  // Slice 5. Google is a SIGN-IN method, not a sign-up method — a stranger
+  // is refused before an auth.users row exists, by the before-user-created
+  // hook in 20260907120000_google_signin.sql. Two outcomes reach us and no
+  // third: she is signed in, or she is turned away. There is no wrong
+  // answer to give at this door, so there is no GOOGLE_LOGIN_FAIL.
+  //
+  // ⚠ GOOGLE_BLOCKED is written HERE, in TypeScript, not by the hook: the
+  // hook refuses by aborting the signup, and a row inserted inside that
+  // transaction could roll back with it. `reason` says which refusal
+  // ('no_account' today), as LOGIN_BLOCKED already does for three.
+  | 'GOOGLE_LOGIN_OK'
+  | 'GOOGLE_BLOCKED';
 
 export type AuthEventInput = {
   eventType: AuthEventType;

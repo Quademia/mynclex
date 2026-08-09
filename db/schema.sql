@@ -2064,13 +2064,19 @@ CREATE TABLE nclex_auth_events (
   device_label TEXT,                                 -- 'Android · Chrome'; not a hash
   ip_address   INET,                                 -- logged, never enforced on
   reason       TEXT,                                 -- 'invalid_credentials', …
-  -- GOOGLE_FIRST_SIGNIN (slice 5) is listed ahead of its slice, as CODE_*
-  -- was. *_BLOCKED is a distinct type, not a flag, so slice 2c can exclude
+  -- *_BLOCKED is a distinct type, not a flag, so slice 2c can exclude
   -- blocked attempts from the counts that blocked them.
   -- ⚠ Two types arrived by migration after this block was written and it
   -- did not follow them: REGISTER_REJECTED (20260905120000) and
   -- CODE_BLOCKED (20260906120000), both added here 2026-08-09. Pre-loading
   -- types is what makes that drift easy to miss — the list looks finished.
+  -- ⭐ GOOGLE_FIRST_SIGNIN was pre-loaded here for slice 5 and is now GONE
+  -- (20260907120000_google_signin.sql). Google became a SIGN-IN method, not
+  -- a sign-up method, so a first sign-in that creates an account cannot
+  -- happen; the name would have kept reading correctly while meaning
+  -- something else. Replaced by the pair every other door already has —
+  -- GOOGLE_LOGIN_OK + GOOGLE_BLOCKED. It was never written to (zero rows,
+  -- dev and prod, checked before the migration).
   -- ⚠ This file DESCRIBES the database; the migrations ARE it. When they
   -- disagree the migrations win, and a stale line here is not cosmetic:
   -- 2026-08-03 lost time to a retired trigger this file still called live.
@@ -2079,7 +2085,8 @@ CREATE TABLE nclex_auth_events (
     'REGISTERED', 'REGISTER_REJECTED',
     'RESET_REQUESTED', 'RESET_COMPLETED', 'RESET_BLOCKED',
     'CODE_REQUESTED', 'CODE_LOGIN_OK', 'CODE_LOGIN_FAIL', 'CODE_BLOCKED',
-    'INVITE_ACCEPTED', 'GOOGLE_FIRST_SIGNIN'
+    'INVITE_ACCEPTED',
+    'GOOGLE_LOGIN_OK', 'GOOGLE_BLOCKED'
   ))
 );
 -- One index per named reader: the slice-2c threshold count, a student's

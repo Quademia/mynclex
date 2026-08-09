@@ -191,10 +191,11 @@ Beta-B has Google + Microsoft via NextAuth).
 
 ### SSO
 
-- **"Sign in with Google": feasible, modest slice.** Enable provider on both
-  Supabase projects + button. The real work: a first-time Google user skips
-  `/register`, so profile-row + STUDENT-role creation must happen on the
-  OAuth callback path or they land half-created.
+- **"Sign in with Google": feasible, modest slice — and SIGN-IN ONLY.**
+  Enable provider on both Supabase projects + button. ⭐ **Settled
+  2026-08-09 (later still): Google never creates an account.** It is a
+  second door into an account that already exists. Mechanism and reasoning
+  in build-order item ⑤.
 - **True cross-product SSO: parked.** The three products sit on three
   separate identity systems (MyNclex Supabase pair, gamma Supabase pair,
   Beta-B NextAuth+D1). Same parent domain keeps the door open; merging
@@ -234,17 +235,24 @@ Emulates gamma's *menu*, not gamma's build:
   - Template goes **code-only** (no link) — magic link stays off the menu.
   - **`shouldCreateUser: false`** — codes sign in EXISTING accounts only;
     registration stays a deliberate act. (Default would auto-create a bare
-    auth user with no profile/role — same trap as first-time Google.)
+    auth user with no profile/role.) ⭐ **Google took the same stance on
+    2026-08-09 (later still)** — see item ⑤ — so both passwordless doors now
+    agree: *signing in never registers.* What was a warning about a trap
+    Google was going to walk into became a shared rule.
   - Expiry short (minutes, not the 24h cap); Supabase's built-in
     send-frequency spacing stacks under our layer-2 rule below.
   - Honest cost, accepted: students who choose this door put email
     delivery in their routine login path — which is why it sits AFTER the
     SMTP fix in the build order, and why password + Google remain.
-- **Google slice's real work is not the button:** (a) first-time Google users
-  skip `/register`, so profile row + STUDENT role must be created on the
-  OAuth callback path; (b) verify account-linking behaviour deliberately —
-  an email+password student later using Google with the same address must
-  land in the SAME account, not a duplicate.
+- **Google slice's real work is not the button:** (a) ⚠ **turning unknown
+  addresses away** — Google is sign-in only, so an address with no account
+  here must be refused *before* an `auth.users` row is written; (b) verify
+  account-linking behaviour deliberately — an email+password student later
+  using Google with the same address must land in the SAME account, not a
+  duplicate. ⓘ **(a) was reversed on 2026-08-09 (later still).** It read
+  "profile row + STUDENT role must be created on the OAuth callback path"
+  from 2026-08-05 until then — the exact opposite instruction. Anyone
+  working from a stale copy will build the wrong half of this slice.
 - **Email confirmation policy:** decide consciously when SMTP is fixed.
   Invited flows prove email ownership implicitly; only self-serve /register
   is exposed. Turn confirmation on for self-serve the day delivery is
@@ -1141,8 +1149,18 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      exactly as `LOGIN_BLOCKED` already serves three meanings. Proven both
      ways on dev — the type inserts, and a made-up type is still refused
      with `23514`.
-     ⏭ **Slice 5 has the same shape**: `GOOGLE_FIRST_SIGNIN` is a success
-     type with no refusal partner. Noted in `lib/auth/events.ts`.
+     ⏭ **Slice 5 had the same shape — and the sign-in-only decision of
+     2026-08-09 (later still) dissolved it.** Turning away an unknown Google
+     address is now a real, expected, frequent event, so the missing refusal
+     partner finally has an obvious meaning instead of being a shape nobody
+     could name. Three sightings cost two migrations; the fourth was fixed
+     by a product decision, not by a schema one.
+     ⓘ `GOOGLE_FIRST_SIGNIN` **survives with a shifted meaning** — no longer
+     "an account was created via Google", which can no longer happen, but
+     "an existing user linked Google for the first time". The type name is
+     already in the CHECK constraint (`20260904120000_auth_events.sql`) and
+     is worth keeping; the *definition* is what moved. Noted in
+     `lib/auth/events.ts`.
    - ✅ **3b — the code-only template** (`docs/email/auth-templates.md`
      template 3). Pasted into the template Supabase calls *Magic Link*,
      which is not a mistake: links and codes are one implementation and the
@@ -1313,8 +1331,9 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    The Supabase custom-domain add-on (paid) is the **escalation only if
    branding alone still leaks the supabase.co URL** — judged too
    expensive as a default for a cosmetic fix. Slice also carries:
-   first-time-Google profile+role creation on the callback path, and
-   the account-linking check (same email = same account, no duplicate).
+   **refusing addresses that have no account here** (Google is sign-in
+   only — see the settlement below), and the account-linking check (same
+   email = same account, no duplicate).
    **⚠ BLOCKED 2026-08-09 (later) — NOT ON THE CODE, ON A MISSING PAGE.**
    See *Legal pages* below. Google's consent-screen configuration wants a
    publicly reachable **privacy policy URL** (plus a homepage, usually
@@ -1331,25 +1350,80 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      not start the N days. Legal pages first is therefore the sequencing,
      not because the code depends on them but because nothing else is on
      the critical path.
-   - ⓘ **Slice shape, surveyed 2026-08-09 (later).** No OAuth exists
-     today; the only `exchangeCodeForSession` in the repo is `/welcome`'s.
-     Needs: a **migration** (the predicted refusal partner —
-     `GOOGLE_FIRST_SIGNIN` is a success type with nothing for a refusal,
-     the third sighting of the shape that cost `20260905120000` and
-     `20260906120000`), an `/auth/callback` **route handler**,
-     first-time profile+role creation, account linking, the button, and
-     logging. Slice-3 sized: five or six sub-slices.
+   - ⭐⭐ **SETTLED 2026-08-09 (later still) — GOOGLE IS A SIGN-IN METHOD,
+     NOT A SIGN-UP METHOD.** Sam's framing, and it follows from what the
+     product *is*: an account with no subscription and no enrolment can do
+     nothing here, so manufacturing empty accounts serves nobody. The rule:
+     **Google verifies who she is; we then verify she has an account with
+     us.** Known address → in. Unknown address → turned away, with nothing
+     written anywhere.
+     - ⚠ **`signInWithOAuth` has no `shouldCreateUser`.** Verified against
+       the installed `@supabase/auth-js` on 2026-08-09: that option exists
+       only on the passwordless path. Its OAuth options are exactly
+       `redirectTo`, `scopes`, `queryParams`, `skipBrowserRedirect`. So the
+       switch that holds the line for email-code login **does not exist
+       here** and the same rule must be enforced by other means.
+     - ✅ **Existing users need no code — automatic linking is built in.**
+       Supabase Auth looks for a user with the same email when a new OAuth
+       identity arrives and links it to that user. So an email+password
+       student clicking Google lands in *her own* account and no row is
+       created. This makes the account-linking sub-slice **verification
+       work, not construction**. ⚠ Precondition not yet tested: the docs
+       warn that linking to an **unverified** email would be insecure, and
+       our invited + never-confirmed users sit exactly there. **Test on dev
+       before trusting it.**
+     - ✅ **Unknown users are refused by the `before-user-created` hook.**
+       Supabase runs it before the row is written; returning an error
+       object denies the signup and *no user is created*. Implementable as
+       a **Postgres function** — no new infrastructure, we already own the
+       database. One of Supabase's own worked examples is rejecting a
+       single OAuth provider's signups, which is nearly this case exactly.
+     - ⭐ **This retracts the create-then-delete objection.** The argument
+       against sign-in-only on 2026-08-09 (later) was that it would mean
+       letting Supabase create an account and deleting it — manufacturing
+       the half-built-account trap on every refusal, with permanent lockout
+       if a delete ever failed. **That is not the mechanism available.** The
+       hook refuses before creation, so there is nothing to delete and that
+       failure mode does not exist. The objection was answered by the
+       platform, not by accepting its cost.
+     - ⚠⚠ **THE HOOK SITS IN FRONT OF EVERY DOOR — this is the sharpest
+       edge in the slice.** `/register` and both invite paths
+       (`lib/enrolments/actions.ts`, `lib/payments/activate.ts`) create
+       users too. A hook that rejects carelessly kills registration **and**
+       tutor enrolment **and** payment activation in one move. It must
+       refuse **only** creations arriving via Google and wave everything
+       else through.
+     - ⚠ **Enabling a hook is project config, not just SQL** — so dev and
+       prod each need it switched on by hand, in the dashboard. That is
+       this repo's oldest failure shape (`NEXT_PUBLIC_*` in three places,
+       Turnstile in four) arriving in a new costume. **Write both down.**
+   - ⓘ **Slice shape, surveyed 2026-08-09 (later), revised (later still).**
+     No OAuth exists today; the only `exchangeCodeForSession` in the repo
+     is `/welcome`'s. Needs: a **migration** (the `before-user-created`
+     Postgres function, plus the refusal event type — see the resolved
+     refusal-partner note in slice 2a), an `/auth/callback` **route
+     handler**, the refusal path, account-linking *verification*, the
+     button, and logging. Slice-3 sized: five or six sub-slices.
+     ⓘ **What left the slice:** first-time profile+role creation. Under
+     sign-in-only there is no first-time creation to do — which removes
+     what the 08-09 (later) session called the *delicate* sub-slice.
    - ⭐ **The `?code=` trap does NOT apply to the callback.** That trap is
      about `createBrowserClient` consuming the code in the BROWSER before
      the caller can. A server-side route handler owns the exchange
      legitimately and is the documented Supabase SSR pattern. ⚠ Do not
      "fix" it to match `/welcome`, which is a different situation
      (implicit-flow fragment, handled client-side on purpose).
-   - ⚠ **The half-built-account trap is waiting on this callback**, and
-     it is no longer hypothetical: prod carried a real example until
-     2026-08-09 (an unconfirmed, never-signed-in `auth.users` row with no
-     profile and no roles, left from 08-06 SMTP testing; deleted with
-     Sam's approval, prod now has **zero** profile-less users).
+   - ⭐ **The half-built-account trap USED TO BE waiting on this callback.
+     Sign-in-only disarms it.** It was never hypothetical: prod carried a
+     real example until 2026-08-09 (an unconfirmed, never-signed-in
+     `auth.users` row with no profile and no roles, left from 08-06 SMTP
+     testing; deleted with Sam's approval, prod now has **zero**
+     profile-less users). The trap needed a path that creates an auth user
+     and then has to create a profile alongside it; refusing before
+     creation removes the gap rather than guarding it.
+     ⚠ Still true of the OTHER doors — `/register` guards it with
+     `rollbackAuthUser`, and both invite paths create users. This item
+     stops adding a new way in; it does not retire the shape.
 6. Transactional email arc (registry already in transactional-email.md).
    **Carries the invite rewrite** — see item 1's template note and the
    Supabase-managed section of `transactional-email.md`.
