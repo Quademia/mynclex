@@ -191,10 +191,11 @@ Beta-B has Google + Microsoft via NextAuth).
 
 ### SSO
 
-- **"Sign in with Google": feasible, modest slice.** Enable provider on both
-  Supabase projects + button. The real work: a first-time Google user skips
-  `/register`, so profile-row + STUDENT-role creation must happen on the
-  OAuth callback path or they land half-created.
+- **"Sign in with Google": feasible, modest slice — and SIGN-IN ONLY.**
+  Enable provider on both Supabase projects + button. ⭐ **Settled
+  2026-08-09 (later still): Google never creates an account.** It is a
+  second door into an account that already exists. Mechanism and reasoning
+  in build-order item ⑤.
 - **True cross-product SSO: parked.** The three products sit on three
   separate identity systems (MyNclex Supabase pair, gamma Supabase pair,
   Beta-B NextAuth+D1). Same parent domain keeps the door open; merging
@@ -234,17 +235,24 @@ Emulates gamma's *menu*, not gamma's build:
   - Template goes **code-only** (no link) — magic link stays off the menu.
   - **`shouldCreateUser: false`** — codes sign in EXISTING accounts only;
     registration stays a deliberate act. (Default would auto-create a bare
-    auth user with no profile/role — same trap as first-time Google.)
+    auth user with no profile/role.) ⭐ **Google took the same stance on
+    2026-08-09 (later still)** — see item ⑤ — so both passwordless doors now
+    agree: *signing in never registers.* What was a warning about a trap
+    Google was going to walk into became a shared rule.
   - Expiry short (minutes, not the 24h cap); Supabase's built-in
     send-frequency spacing stacks under our layer-2 rule below.
   - Honest cost, accepted: students who choose this door put email
     delivery in their routine login path — which is why it sits AFTER the
     SMTP fix in the build order, and why password + Google remain.
-- **Google slice's real work is not the button:** (a) first-time Google users
-  skip `/register`, so profile row + STUDENT role must be created on the
-  OAuth callback path; (b) verify account-linking behaviour deliberately —
-  an email+password student later using Google with the same address must
-  land in the SAME account, not a duplicate.
+- **Google slice's real work is not the button:** (a) ⚠ **turning unknown
+  addresses away** — Google is sign-in only, so an address with no account
+  here must be refused *before* an `auth.users` row is written; (b) verify
+  account-linking behaviour deliberately — an email+password student later
+  using Google with the same address must land in the SAME account, not a
+  duplicate. ⓘ **(a) was reversed on 2026-08-09 (later still).** It read
+  "profile row + STUDENT role must be created on the OAuth callback path"
+  from 2026-08-05 until then — the exact opposite instruction. Anyone
+  working from a stale copy will build the wrong half of this slice.
 - **Email confirmation policy:** decide consciously when SMTP is fixed.
   Invited flows prove email ownership implicitly; only self-serve /register
   is exposed. Turn confirmation on for self-serve the day delivery is
@@ -959,6 +967,12 @@ references (rename debt above) and the Resend/SMTP work already scoped.
        a reference to its Privacy Addendum **in our own privacy policy**,
        and MyNclex has no privacy-policy route at all. ⏭ Revisit at
        launch, when that page has to exist regardless.
+       ⭐ **UPDATE 2026-08-09 (later) — that page is now on the critical
+       path, and not for this.** Google's brand verification wants the
+       same missing document, which makes **two** items blocked on one
+       page that neither listed as a dependency. Decision on where the
+       legal pages live, and the rule for writing them: → *Legal pages*,
+       below the build order.
      - ⓘ Refusal copy is one shared sentence — *"We could not verify your
        browser. Please refresh the page and try again."* Deliberately
        silent about which of the reasons applied, since they all have the
@@ -1135,8 +1149,18 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      exactly as `LOGIN_BLOCKED` already serves three meanings. Proven both
      ways on dev — the type inserts, and a made-up type is still refused
      with `23514`.
-     ⏭ **Slice 5 has the same shape**: `GOOGLE_FIRST_SIGNIN` is a success
-     type with no refusal partner. Noted in `lib/auth/events.ts`.
+     ⏭ **Slice 5 had the same shape — and the sign-in-only decision of
+     2026-08-09 (later still) dissolved it.** Turning away an unknown Google
+     address is now a real, expected, frequent event, so the missing refusal
+     partner finally has an obvious meaning instead of being a shape nobody
+     could name. Three sightings cost two migrations; the fourth was fixed
+     by a product decision, not by a schema one.
+     ⓘ `GOOGLE_FIRST_SIGNIN` **survives with a shifted meaning** — no longer
+     "an account was created via Google", which can no longer happen, but
+     "an existing user linked Google for the first time". The type name is
+     already in the CHECK constraint (`20260904120000_auth_events.sql`) and
+     is worth keeping; the *definition* is what moved. Noted in
+     `lib/auth/events.ts`.
    - ✅ **3b — the code-only template** (`docs/email/auth-templates.md`
      template 3). Pasted into the template Supabase calls *Magic Link*,
      which is not a mistake: links and codes are one implementation and the
@@ -1239,8 +1263,70 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      the code door sends links there.
 4. **Attach `nclex.quademia.com` to the app Worker** (routes block in
    wrangler.jsonc + Supabase redirect allowlist + site URL).
-5. **Google sign-in** — gated on the consent screen showing Quademia, not
-   a Supabase project ID (the gamma-era "sign in to
+   **STATUS 2026-08-09 (later) — ✅ ITEM COMPLETE AND LIVE ON PROD.**
+   Released as PR #51, prod `d86f6e2`. Both workflows green; the tracker
+   went 153 → **154** rows.
+   - ✅ **The domain is served by the prod Worker**, attached by the
+     deploy itself: `custom_domain: true` on an `env.prod` route, so
+     wrangler created the DNS record and provisioned the certificate.
+     Nothing was added by hand. ⓘ **The deploy token turned out to carry
+     Zone → DNS → Edit**, which was the one thing that could not be
+     checked in advance — the fallback (attach in the dashboard, drop the
+     block) was never needed.
+   - ✅ **Verified on the live domain, not assumed**: `/`, `/login`,
+     `/register`, `/forgot-password`, `/programmes`, `/readiness` all
+     **200**; `/student` **307** to login. The **prod** Turnstile sitekey
+     is present in the login browser bundle and the dev testing key
+     appears **zero** times; `/reset-password`'s bundle carries the
+     Supabase URL as a literal with nothing left unreplaced — so both
+     08-08 traps are clear on the new host.
+   - ⭐ **THE APP NEEDED NO CODE CHANGE, AND THE DOC HAD PREDICTED
+     OTHERWISE.** Every absolute URL the app builds — the reset link, both
+     invite links (`lib/enrolments/actions.ts`, `lib/payments/activate.ts`)
+     and the Paystack return (`lib/payments/actions.ts`) — is read off the
+     incoming request, so each followed the app to the new domain by
+     itself. The warning in `app/forgot-password/actions.ts` that this
+     item would leave the reset link "pointing nowhere useful in prod" was
+     checked and **struck**, with the finding written in its place.
+   - ⭐⭐ **`workers_dev` FLIPPED ITS OWN DEFAULT, AND THE PLAN LOST.** The
+     agreed sequence was two releases: attach the domain with
+     `mynclex.qacademynurses.workers.dev` still open, prove the new host
+     against a working fallback, *then* close the old one. It did not
+     happen. `workers_dev` defaults to true only while a Worker has **no
+     routes** — declaring the custom domain flipped it to false, and both
+     changes landed in the same deploy. The only trace was a line in the
+     deploy log. ⚠ **The recommendation to take the "safe" two-step was
+     mine and it was built on a wrong belief about that default.** It cost
+     nothing (the certificate provisioned instantly, the domain answered
+     first request) and `false` is the state we wanted — but the safety
+     step was never actually taken. The value is now **stated explicitly**
+     in `wrangler.jsonc` with the reasoning, because an implicit default
+     that silently overrides a plan is the 08-08 shape: config that does
+     not say what is true.
+   - ✅ **The rename debt this move always carried is paid**:
+     `support@qacademynurses.com` → `support@quademia.com` in
+     `app/no-access/page.tsx` and
+     `app/(public)/checkout/callback/page.tsx`. Confirmed in the compiled
+     bundle; the string `qacademynurses` no longer appears anywhere in app
+     code. The old address still receives, so a receipt already in
+     somebody's inbox does not go dead.
+   - ⓘ **Sam did both dashboard halves before the release** — prod's
+     Supabase redirect allowlist + Site URL, and the prod Turnstile
+     widget's hostname list. Neither lives in the repo and both refuse the
+     new domain **silently** if missing, so they are the first thing to
+     check if the front door ever misbehaves on a new host.
+   - ⚠ **This release also carried slice 3** (email-code login) and its
+     migration, which had been sitting on `main`. Prod's Magic Link
+     template was replaced with template 3 by Sam beforehand, which was
+     the stated blocker. ⬜ **The code door has still never been driven on
+     prod** — only on dev. Prod being empty by design keeps the blast
+     radius near zero, but it is not verified there.
+5. **Google sign-in** — ✅ **BUILT AND PROVEN ON DEV 2026-08-09 (later
+   still)** (`aa0391f` 5a+5b, `2f370f0` 5c+5d; on `main` pending Sam's
+   approval, **deliberately NOT released to prod** — see *Releasing this*
+   below). Refusal, registration, linking and sign-in all driven by Sam
+   against a real Google account. Gated on the consent screen showing
+   Quademia, not a Supabase project ID (the gamma-era "sign in to
    <ref>.supabase.co" screen must never exist here). Settled 2026-08-05:
    **try the free fix first** — Google Cloud Console Branding +
    Verification (shows logo + name instead of the project ID; brand
@@ -1249,12 +1335,262 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    The Supabase custom-domain add-on (paid) is the **escalation only if
    branding alone still leaks the supabase.co URL** — judged too
    expensive as a default for a cosmetic fix. Slice also carries:
-   first-time-Google profile+role creation on the callback path, and
-   the account-linking check (same email = same account, no duplicate).
+   **refusing addresses that have no account here** (Google is sign-in
+   only — see the settlement below), and the account-linking check (same
+   email = same account, no duplicate).
+   **⚠ BLOCKED 2026-08-09 (later) — NOT ON THE CODE, ON A MISSING PAGE.**
+   See *Legal pages* below. Google's consent-screen configuration wants a
+   publicly reachable **privacy policy URL** (plus a homepage, usually
+   terms) on the authorized domain, and **MyNclex has no privacy-policy
+   route at all** — no `/privacy`, no `/terms`, no privacy link anywhere
+   in the UI. So the *verification clock cannot start*, which matters
+   because that clock is the only slow part of this item.
+   - ⭐ **THE SLICE AND THE CLOCK ARE SEPARABLE, AND SAM'S CALL WAS TO
+     TREAT THEM SO.** Google sign-in **works unverified** — it just shows
+     the raw `<ref>.supabase.co` screen until verification clears. With
+     prod empty by design that costs nothing, so the code can be built
+     and shipped in any order relative to the submission. ⓘ What that
+     reasoning does **not** buy is a running clock: building first does
+     not start the N days. Legal pages first is therefore the sequencing,
+     not because the code depends on them but because nothing else is on
+     the critical path.
+   - ⭐⭐ **SETTLED 2026-08-09 (later still) — GOOGLE IS A SIGN-IN METHOD,
+     NOT A SIGN-UP METHOD.** Sam's framing, and it follows from what the
+     product *is*: an account with no subscription and no enrolment can do
+     nothing here, so manufacturing empty accounts serves nobody. The rule:
+     **Google verifies who she is; we then verify she has an account with
+     us.** Known address → in. Unknown address → turned away, with nothing
+     written anywhere.
+     - ⚠ **`signInWithOAuth` has no `shouldCreateUser`.** Verified against
+       the installed `@supabase/auth-js` on 2026-08-09: that option exists
+       only on the passwordless path. Its OAuth options are exactly
+       `redirectTo`, `scopes`, `queryParams`, `skipBrowserRedirect`. So the
+       switch that holds the line for email-code login **does not exist
+       here** and the same rule must be enforced by other means.
+     - ✅ **Existing users need no code — automatic linking is built in.**
+       Supabase Auth looks for a user with the same email when a new OAuth
+       identity arrives and links it to that user. So an email+password
+       student clicking Google lands in *her own* account and no row is
+       created. This makes the account-linking sub-slice **verification
+       work, not construction**. ⚠ Precondition not yet tested: the docs
+       warn that linking to an **unverified** email would be insecure, and
+       our invited + never-confirmed users sit exactly there. **Test on dev
+       before trusting it.**
+     - ✅ **Unknown users are refused by the `before-user-created` hook.**
+       Supabase runs it before the row is written; returning an error
+       object denies the signup and *no user is created*. Implementable as
+       a **Postgres function** — no new infrastructure, we already own the
+       database. One of Supabase's own worked examples is rejecting a
+       single OAuth provider's signups, which is nearly this case exactly.
+     - ⭐ **This retracts the create-then-delete objection.** The argument
+       against sign-in-only on 2026-08-09 (later) was that it would mean
+       letting Supabase create an account and deleting it — manufacturing
+       the half-built-account trap on every refusal, with permanent lockout
+       if a delete ever failed. **That is not the mechanism available.** The
+       hook refuses before creation, so there is nothing to delete and that
+       failure mode does not exist. The objection was answered by the
+       platform, not by accepting its cost.
+     - ⚠⚠ **THE HOOK SITS IN FRONT OF EVERY DOOR — this is the sharpest
+       edge in the slice.** `/register` and both invite paths
+       (`lib/enrolments/actions.ts`, `lib/payments/activate.ts`) create
+       users too. A hook that rejects carelessly kills registration **and**
+       tutor enrolment **and** payment activation in one move. It must
+       refuse **only** creations arriving via Google and wave everything
+       else through.
+     - ⚠ **Enabling a hook is project config, not just SQL** — so dev and
+       prod each need it switched on by hand, in the dashboard. That is
+       this repo's oldest failure shape (`NEXT_PUBLIC_*` in three places,
+       Turnstile in four) arriving in a new costume. **Write both down.**
+   - ⓘ **Slice shape, surveyed 2026-08-09 (later), revised (later still).**
+     No OAuth exists today; the only `exchangeCodeForSession` in the repo
+     is `/welcome`'s. Needs: a **migration** (the `before-user-created`
+     Postgres function, plus the refusal event type — see the resolved
+     refusal-partner note in slice 2a), an `/auth/callback` **route
+     handler**, the refusal path, account-linking *verification*, the
+     button, and logging. Slice-3 sized: five or six sub-slices.
+     ⓘ **What left the slice:** first-time profile+role creation. Under
+     sign-in-only there is no first-time creation to do — which removes
+     what the 08-09 (later) session called the *delicate* sub-slice.
+   - ✅ **What shipped, 2026-08-09 (later still).** `hook_reject_google_signups`
+     (Postgres, `20260907120000`) · `GOOGLE_LOGIN_OK` + `GOOGLE_BLOCKED`
+     replacing `GOOGLE_FIRST_SIGNIN` · `app/auth/callback/route.ts` (both
+     endings, one handler) · `app/login/google-actions.ts` (Server Action,
+     no browser client) · the button on `/login`, offered on both doors.
+   - ⭐ **Names: `GOOGLE_LOGIN_OK` + `GOOGLE_BLOCKED`, and the pair is the
+     point.** Sam's call was to retire `GOOGLE_FIRST_SIGNIN` rather than
+     repurpose it — a name that goes on reading correctly while meaning
+     something else is worse than a wrong one. The pair (rather than a lone
+     `GOOGLE_SIGNIN`) declines the fourth invitation to ship a success type
+     with no refusal partner; the previous two cost `20260905120000` and
+     `20260906120000`. Refusing a stranger is the most common thing this
+     feature does and should not be the one event the logbook cannot name.
+   - ⚠ **AUTOMATIC LINKING RESTS ON EMAIL CONFIRMATION, AND THAT DIAL IS
+     STILL OPEN.** Supabase links a new OAuth identity to an existing user
+     only when it can trust the address; the docs call linking to an
+     unverified email insecure. Both projects currently run
+     `mailer_autoconfirm: true` (checked 2026-08-09), so every address
+     counts as verified and dev faithfully predicts prod. **The day
+     self-serve email confirmation is turned on** — already a named open
+     decision under *Email confirmation policy* above — **that precondition
+     changes and linking must be re-tested.** Nothing connects those two
+     decisions but this paragraph.
+   - ⚠ **The invited-but-unfinished student — OPEN, not handled.** Someone
+     invited by a tutor or a payment who never completed `/welcome` has an
+     auth user and no profile. Arriving by Google on that address, linking
+     attaches to that half-finished account, nothing is created, the hook
+     never fires, and she lands with a session and nothing behind it —
+     `/router` sorts her to `/no-access`. Dev carries three such invites
+     from June's payments testing, so this is live, not hypothetical. The
+     callback logs it with `reason: 'no_profile'` so it is visible rather
+     than looking like an ordinary sign-in. **Routing her to `/welcome`
+     instead is a product decision Sam has not taken**, and was deliberately
+     not smuggled into the slice.
+
+   ### Releasing this — the order is not optional
+
+   ⚠ **The prod Supabase switches must come AFTER the migration lands on
+   prod, never before.** As of 2026-08-09 prod has no
+   `hook_reject_google_signups` and still carries the old
+   `GOOGLE_FIRST_SIGNIN` constraint (both checked). Enabling the hook there
+   first would point it at a function that does not exist, and that hook is
+   consulted for **every** user creation — `/register`, tutor invites,
+   pay-first activation. The precise set of flows this slice exists to
+   protect.
+
+   1. Google Console — safe any time, independent of the repo.
+   2. Merge to `main`, then release `main` → `prod`. **The migration lands
+      here**, bringing the function and the two event types.
+   3. **Then** prod Supabase: Google provider · Redirect URLs
+      (`https://nclex.quademia.com/**`) · the `before-user-created` toggle.
+
+   ⚠ **The toggle is the one that fails silently** — the function will be
+   sitting there from the migration, but a hook that is not switched on
+   simply does not run, and prod starts creating exactly the orphan rows
+   this was built to prevent. No error, no symptom, until someone's payment
+   fails weeks later. It belongs on the release checklist, not in memory.
+
+   ⓘ **Prod release is HELD, and not on the code.** In Testing status the
+   button works for listed test users and refuses everyone else, so shipping
+   it to a live `nclex.quademia.com` puts a control on the login page that
+   turns away every real visitor. Publishing needs the privacy policy — see
+   *Legal pages*. ⭐ An environment-variable gate to ship it dark was
+   proposed and **dropped on 2026-08-09**: it was code written to avoid
+   waiting, and with two users on prod and no students there is nothing to
+   gain by rushing. `main` sitting ahead of `prod` is the normal state here.
+
+   ### One Google Cloud project, one consent screen — settled 2026-08-09
+
+   ⭐ **The consent screen is per-PROJECT, not per-client.** Every OAuth
+   client in a project shares the app name, logo, authorized domains,
+   privacy/terms URLs, publishing status, verification state and test-user
+   list. Only the client ID/secret and redirect URIs are per-client. So the
+   end state is **one `Quademia` project owned by `admin@quademia.com`, with
+   one client per product** — verify once, one privacy policy URL, one brand
+   on the door. It is the same argument the *Legal pages* section makes
+   about writing the policy as a company document.
+
+   ⚠ **Do NOT rename gamma's existing Cloud project to serve this.** Sam
+   proposed it (correctly noting a project can hold several clients); the
+   objection is that gamma prod is the live login path for **~629 real
+   users**, so editing its consent screen is a change to a production
+   authentication surface — and if that app is verified, branding edits can
+   send it back through review. Consolidate **forward**: new project now,
+   gamma's clients move in when those products migrate to this stack. Three
+   things to check first were listed and not yet answered — who owns
+   gamma's project, whether it is verified/published, and whether its screen
+   currently leaks a `supabase.co` ref.
+
+   ⓘ **Accepted cost of one shared screen:** she sees *"Sign in to
+   Quademia"*, not *"MyNclex"* — an unfamiliar word at the exact moment she
+   decides whether to trust us with her Google account. Two things soften it
+   and both are deliberate work, not hope: the **logo**, which is
+   recognisable when the word is not, and **`quademia.com` resolving to
+   something** (the apex is still dark — see the end of *Legal pages*).
+   - ⭐ **The `?code=` trap does NOT apply to the callback.** That trap is
+     about `createBrowserClient` consuming the code in the BROWSER before
+     the caller can. A server-side route handler owns the exchange
+     legitimately and is the documented Supabase SSR pattern. ⚠ Do not
+     "fix" it to match `/welcome`, which is a different situation
+     (implicit-flow fragment, handled client-side on purpose).
+   - ⭐ **The half-built-account trap USED TO BE waiting on this callback.
+     Sign-in-only disarms it.** It was never hypothetical: prod carried a
+     real example until 2026-08-09 (an unconfirmed, never-signed-in
+     `auth.users` row with no profile and no roles, left from 08-06 SMTP
+     testing; deleted with Sam's approval, prod now has **zero**
+     profile-less users). The trap needed a path that creates an auth user
+     and then has to create a profile alongside it; refusing before
+     creation removes the gap rather than guarding it.
+     ⚠ Still true of the OTHER doors — `/register` guards it with
+     `rollbackAuthUser`, and both invite paths create users. This item
+     stops adding a new way in; it does not retire the shape.
 6. Transactional email arc (registry already in transactional-email.md).
    **Carries the invite rewrite** — see item 1's template note and the
    Supabase-managed section of `transactional-email.md`.
 7. Cross-product SSO — parked, revisit post-migration of sibling products.
+
+---
+
+## Legal pages (privacy policy + terms) — settled 2026-08-09 (later)
+
+**Two features are now blocked on one document nobody has written.** Google's
+OAuth consent screen wants a public privacy-policy URL before the brand
+verification that makes the screen say *Quademia* instead of a raw
+`<ref>.supabase.co`. And Turnstile's **invisible mode** was already parked on
+the same thing — Cloudflare requires its Privacy Addendum be referenced in
+ours (see the 2d notes above, which recorded it as a launch-time question and
+did not connect it to anything else). One missing page, two stalled items,
+and neither had it as a named dependency.
+
+### Where they live: **in this repo, at `nclex.quademia.com/privacy` and `/terms`** — for now
+
+Sam's question was whether to stand up a small site at `quademia.com`
+instead. Checked, and the root domain **serves nothing** — no apex record, no
+`www`, and the `.org` is dark. Only `nclex.quademia.com` resolves. So "a
+small repo at the root" is a new repo, build, Worker/Pages project, DNS and
+deploy pipeline, from zero.
+
+Decided in this repo because:
+- **Google is satisfied either way** — the authorized domain is
+  `quademia.com`, which covers its subdomains. Hosting location does not
+  change the verification outcome, so this constraint does not decide it.
+- **It is the fastest route to a live URL**, and a live URL is the only
+  thing standing between us and a running verification clock.
+- **Moving later is cheap** — a redirect, and one URL edited in the Google
+  console.
+- **The root site is coming, but is not ready to be forced into existence.**
+  It needs brand decisions that have not been made (the About page, the
+  "Qualified + Academia" story). A legal page should not drag those forward
+  half-finished.
+
+### ⭐ The rule that matters more than the hosting
+
+> **Write it as a Quademia Ltd company document covering our products — NOT
+> as "MyNclex's privacy policy".**
+
+This project's recurring failure is *one truth in several places*:
+`NEXT_PUBLIC_*` in three, Turnstile in four, money formatting in five. A
+privacy policy is the ideal candidate to repeat it — four products arrive,
+each takes a copy, and four documents must then be amended in step by hand.
+Legal documents *do* get amended, and the copy that misses an amendment is
+the one that causes harm.
+
+Get the framing right and relocating to a root site later is a **move**. Get
+it wrong and it is a **merge of four diverged documents**.
+
+⚠ **This is not a task to hand to Claude alone.** The routes and a draft are
+ordinary work, but what a privacy policy *claims* must be true of the actual
+data handling — and this product takes payments and personal data from nurses
+across several jurisdictions (Ghana, US, UK, Canada). A professional should
+read it before it goes live. Recorded here so "Claude drafted it" is never
+mistaken for "it was reviewed".
+
+### Separately: the apex domain is dark
+
+Now the name is publicly discoverable (registration + certificate logs),
+someone who hears "Quademia" and types `quademia.com` gets nothing. ⓘ **This
+needs no repo** — a DNS record plus a Cloudflare redirect rule to
+`nclex.quademia.com` fixes it with zero infrastructure. Low urgency, and a
+separate decision from where the legal pages live.
 
 ---
 

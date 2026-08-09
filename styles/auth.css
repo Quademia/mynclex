@@ -294,6 +294,68 @@
   text-decoration: underline;
 }
 
+/* ── The Google door (slice 5d) ──────────────────────────────────────── */
+
+/* A rule with "or" sitting in it. The two lines are drawn with borders on
+   the pseudo-elements rather than a background image so they follow the
+   theme's border token, and flex gives the word its gap without needing a
+   solid background to punch through the rule. */
+.auth-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.auth-or::before,
+.auth-or::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--border);
+}
+
+.auth-alt {
+  display: flex;
+}
+
+/* Deliberately NOT .auth-submit's filled style. The password button is the
+   primary action and must stay the obvious thing to press; an equally loud
+   second button turns one clear door into a choice between two. Outlined,
+   full width, same height — present and easy to hit, quieter in weight.
+   Phone-first, per the 768px rule: the tap target is the full card width. */
+.auth-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 20px;
+  background: var(--white);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.auth-google:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--text-muted);
+}
+
+/* The mark must not shrink when the label wraps on a narrow phone — a
+   squashed Google logo is worse than a wrapped line. */
+.auth-google svg {
+  flex-shrink: 0;
+}
+
 @media (max-width: 480px) {
   .auth-card { padding: 32px 24px; }
   .auth-row { grid-template-columns: 1fr; }
