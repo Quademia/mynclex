@@ -832,8 +832,17 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      `@supabase/ssr` forces `flowType:'pkce'`, so the browser client
      auto-consumes PKCE links (never exchange those yourself — the code
      is single-use) and **refuses** implicit ones outright (there you
-     must call `setSession` yourself). Slice 3's email-code login will
-     meet the same thing.
+     must call `setSession` yourself). ~~Slice 3's email-code login will
+     meet the same thing.~~ ⚠ **IT DOES NOT — corrected 2026-08-09 when
+     slice 3d was built.** The trap is about a LINK arriving in the browser
+     carrying a token, which is the one thing a code flow does not have.
+     `verifyOtp` hands the session to a Server Action and `@supabase/ssr`
+     writes the session cookies through `setAll`; nothing is parsed out of
+     an address bar, so there is nothing to race and nothing to configure.
+     The warning stood for four days and shaped the slice-3 plan — kept
+     struck through rather than deleted, so anyone who remembers it finds
+     the answer instead of the fear. **It still applies to `/welcome` and
+     `/reset-password`**, which really do receive links.
    - ✅ **2c — the thresholds** (2026-08-06 evening). `lib/auth/thresholds.ts`
      plus the gate at the top of both server actions. **No migration** —
      2a had already built the index and the `*_BLOCKED` event types this
@@ -1109,6 +1118,125 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    + threshold plumbing) — code-only Magic Link template,
    `shouldCreateUser: false`, request-code + enter-code UI on the login
    page, `CODE_*` events logged.
+   **STATUS 2026-08-09 — BUILT AND VERIFIED ON DEV, NOT YET RELEASED.**
+   Six sub-slices, one migration (`20260906120000_code_blocked.sql`,
+   dev-applied). vitest **948 → 952**, eslint clean, tsc at the known
+   pre-existing errors.
+
+   - ✅ **3a — `CODE_BLOCKED`.** ⚠ **The plan said this slice needed no
+     migration and the plan was 75% right.** 2a pre-loaded the constraint
+     with the types it could foresee — and what it foresaw were the three
+     describing what the STUDENT did (asked, succeeded, got it wrong). It
+     missed the one describing what WE do: refuse her before asking. A
+     refusal cannot be written as a failure, because 2c's rules count
+     failures, so the block would be counted by the rule that produced it
+     and extend itself. One type, not two; `reason` separates
+     `threshold_request_60min` / `threshold_verify_10min` / `turnstile:*`,
+     exactly as `LOGIN_BLOCKED` already serves three meanings. Proven both
+     ways on dev — the type inserts, and a made-up type is still refused
+     with `23514`.
+     ⏭ **Slice 5 has the same shape**: `GOOGLE_FIRST_SIGNIN` is a success
+     type with no refusal partner. Noted in `lib/auth/events.ts`.
+   - ✅ **3b — the code-only template** (`docs/email/auth-templates.md`
+     template 3). Pasted into the template Supabase calls *Magic Link*,
+     which is not a mistake: links and codes are one implementation and the
+     template is the only switch between them. **No link at all**, which
+     is what takes magic link off the menu. Four choices in the markup are
+     load-bearing, not decorative — the code sits high so a notification
+     preview often saves opening the email; the words *"sign-in code is"*
+     sit immediately before the digits because that adjacency is how iOS
+     and Android detect a one-time code and offer autofill (pairing with
+     the input attribute in 3e); the code is not inside a link, since some
+     clients linkify anything tappable and a scanner may follow it; and it
+     is monospaced and widely spaced for six digits on a small screen.
+     ⚠⚠ **THE SLICE LOST ITS DASHBOARD CHANGE, ON EVIDENCE.** The plan
+     was to shorten the OTP expiry to 10 minutes. **There is one expiry
+     dial** (`Auth → Providers → Email → Email OTP Expiration`) **and it
+     moves every email token at once**, including the password-reset link
+     that template 1 promises lasts an hour. So the change would have made
+     that email lie, and shortened it for exactly the person the reset flow
+     exists for. It also buys almost nothing: *"a short expiry does more
+     against guessing than any rule we write"* was true before this slice
+     had a rule and false the moment it did — at 5 wrong codes per 10
+     minutes an attacker gets ~30 guesses an hour against a million
+     combinations. **Left at 1 hour**, reasoning recorded in the template
+     doc so it is not relitigated.
+   - ✅ **3c — requesting a code** (`app/login/code-actions.ts`,
+     `lib/auth/code-session.ts`). Always succeeds, as
+     `/forgot-password` does, so the form cannot be used to discover who
+     has an account here. ⚠ **That silence is harder to hold here**, because
+     `shouldCreateUser: false` makes Supabase answer an unknown address
+     with a DISTINCT error (`422 otp_disabled`, *"Signups not allowed for
+     otp"*) rather than a quiet nothing. Every error swallowed except the
+     captcha one, which is safe because it keys off the pass, not the
+     address. ⭐ **The pending-address cookie is part of that silence** —
+     written on every path that gets past the gates, because a cookie set
+     only for real accounts would answer through a side channel the exact
+     question every other line refuses to answer.
+     ⭐ **THE HALF-BUILT ACCOUNT IS REAL — measured, by making one.** The
+     same call without `shouldCreateUser: false` produced a row in
+     `auth.users`, already `confirmed_at` **and** `last_sign_in_at`, with
+     zero rows in `nclex_users` and zero roles: a person who exists to
+     Supabase and is invisible to the app. The 500 the caller sees arrives
+     afterwards, from the email — so the error is not even the damaging
+     part. Test user deleted. **The identical trap waits on slice 5's
+     OAuth callback.**
+   - ✅ **3d — verifying** (`verifyCodeAction`). ⭐ **The `?code=` trap does
+     not apply** — see the struck-through warning above. ⭐ **No Turnstile
+     on this step, checked not assumed**: `/auth/v1/verify` with no pass at
+     all answers `otp_expired`, not `captcha_failed`, so a pass here would
+     be friction with no counterpart. Rule: **5 wrong codes in 10 minutes**
+     per address, counting `CODE_LOGIN_FAIL` only. ⚠ **Two doors, two
+     counters, in both directions** — a mistyped code must never reach the
+     password counter and vice versa, or a student struggling at one door
+     silently loses the other. Held by construction and pinned by tests
+     that were **mutation-checked**, not merely green.
+   - ✅ **3e — the two-step UI** (`app/login/code-form.tsx`,
+     `/login?mode=code`, reached from *"Email me a sign-in code instead"*).
+     Mode in the URL so it survives a reload; **step decided by the server
+     from the cookie**, which is the whole point — she asks for a code,
+     switches to Gmail, and the phone discards the tab behind her. Proven:
+     a full reload returns her to the code box with the address intact.
+     Had it lived in React state she would land on an empty field, and
+     asking again is what trips the 3-an-hour limit.
+     **One field, not six boxes** — the six-box pattern looks premium and
+     behaves badly exactly where these students are (paste lands in one box
+     on many mobile browsers, screen readers announce six unlabelled
+     fields, OS autofill often declines). A single input keeps
+     `autocomplete="one-time-code"` working, which is the biggest usability
+     win available. ⭐ **The widget is mounted on both steps and only
+     *resend* waits for it** — resending is not verifying, it is step 1's
+     request wearing step 2's clothes, so it needs the same pass; the code
+     box never waits for Cloudflare.
+     ⚠ Two bugs found only by driving it: a **nested `<form>`** for the
+     restart control (HTML forbids it, browsers silently drop the inner
+     one, so it would have done nothing), and **React 19 resets the field
+     after every action** — which is wanted, but it made `required` block
+     later submits before the action ran, and is invisible in the file.
+   - ✅ **3f — verified on dev.** ⭐ **The end-to-end proof is Sam's own
+     run**: `CODE_REQUESTED` 11:09:29 → `CODE_LOGIN_OK` 11:10:08, **39
+     seconds**, `reason: null` on the request (so the send genuinely
+     succeeded), `user_id` set and `nclex_users.last_login_utc` written.
+     Also driven and confirmed against the table: an unknown address
+     advances exactly as a real one does while the log holds
+     `user_exists: false` · five wrong codes then `CODE_BLOCKED /
+     threshold_verify_10min` ("try again in 7 minutes") · three requests
+     then `CODE_BLOCKED / threshold_request_60min` ("46 minutes") · the
+     cookie cleared server-side by *"Use a different email address"*,
+     confirmed by reload · `httpOnly` real (invisible to `document.cookie`)
+     · **375px clean** — no horizontal overflow, code field and widget both
+     sized to the card. ⭐ **The two counters proved separate in the live
+     system, not just in tests**: that address was verify-blocked and could
+     still request codes.
+     ⚠ **Unexercised, and named rather than covered by "done"**: the
+     **resend** control (needs a 60 s wait plus a ready pass), **Turnstile
+     meeting a real challenge** on this door (dev runs the testing pair, so
+     the pass is always instant), and **`next`** threading through the code
+     door. None are security controls.
+   - ⓘ **Prod is untouched.** `20260906120000` reaches prod through
+     `migrate-prod.yml` on the next release, and ⚠ **prod's Magic Link
+     template must be replaced with template 3 before that release**, or
+     the code door sends links there.
 4. **Attach `nclex.quademia.com` to the app Worker** (routes block in
    wrangler.jsonc + Supabase redirect allowlist + site URL).
 5. **Google sign-in** — gated on the consent screen showing Quademia, not
