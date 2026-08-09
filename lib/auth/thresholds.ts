@@ -67,6 +67,21 @@ const RESET_RULES: Rule[] = [
   { windowSec: 60 * 60, limit: 3, label: 'threshold_60min' },
 ];
 
+// Slice 3c. Deliberately the same shape and the same numbers as RESET_RULES,
+// because it is the same shape of abuse: an address being made to receive
+// email it did not ask for. Copying the reset rule rather than inventing a
+// number means there is one answer to "how often may a stranger make your
+// inbox ring", not two that drift.
+//
+// ⚠ NO LONG RULE, for the reason reset has none. A second, 24-hour window
+// would catch the patient attacker — but the only thing he wins by being
+// patient here is that somebody else's inbox gets a few more emails, and
+// the cost of the rule lands on a student who genuinely cannot get a code
+// to arrive and is trying again this evening.
+const CODE_REQUEST_RULES: Rule[] = [
+  { windowSec: 60 * 60, limit: 3, label: 'threshold_request_60min' },
+];
+
 /**
  * Never report "try again in 0 seconds" — the student refreshes instantly,
  * gets blocked again, and learns the countdown is lying. Gamma floors at
@@ -210,6 +225,24 @@ export function checkLoginThreshold(email: string): Promise<ThresholdVerdict> {
 /** 3 reset requests in 60 minutes, for this address. */
 export function checkResetThreshold(email: string): Promise<ThresholdVerdict> {
   return check(email, ['RESET_REQUESTED'], RESET_RULES);
+}
+
+/**
+ * 3 sign-in codes in 60 minutes, for this address (slice 3c).
+ *
+ * ⭐ COUNTS REQUESTS, NOT FAILURES, and that is the difference between this
+ * and the login rule above. There is no such thing as a failed code
+ * request: an unknown address and a real one both return the same silent
+ * success, by design. So the thing worth limiting is the asking itself —
+ * every ask is potentially an email somebody did not want.
+ *
+ * ⓘ CODE_REQUESTED is written for unknown addresses too, even though no
+ * email is sent to them. If it were not, this rule would only ever bite
+ * real accounts, and how quickly the limit tripped would itself answer the
+ * question the whole flow refuses to answer.
+ */
+export function checkCodeRequestThreshold(email: string): Promise<ThresholdVerdict> {
+  return check(email, ['CODE_REQUESTED'], CODE_REQUEST_RULES);
 }
 
 /**
