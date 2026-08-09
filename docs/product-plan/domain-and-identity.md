@@ -303,11 +303,21 @@ MyNclex layers:
 
 1. **Turnstile + Supabase built-ins (bots + bulk):** built-in auth rate
    limits (tune in dashboard during the SMTP pass — same screen) +
-   **Cloudflare Turnstile** on login/register/forgot-password, verified
-   server-side inside the server action before Supabase is called (use the
-   native Supabase↔Turnstile integration so the direct endpoint also
-   demands a token). Cloudflare WAF/edge rules in reserve. Free protection
-   the counters shouldn't have to absorb.
+   **Cloudflare Turnstile** on login/register/forgot-password. ✅ **BUILT as
+   slice 2d, 2026-08-08.** Cloudflare WAF/edge rules in reserve. Free
+   protection the counters shouldn't have to absorb.
+
+   ⚠ **CORRECTED 2026-08-08 — this paragraph used to ask for two checks and
+   they cannot both exist.** It read *"verified server-side inside the server
+   action before Supabase is called (use the native Supabase↔Turnstile
+   integration so the direct endpoint also demands a token)"*. A Turnstile
+   token can be validated **exactly once**; whichever side checks it first
+   spends it and the other is handed a used one. Building the first half is
+   what surfaced this. **Supabase is the verifier** — it is the only one of
+   the two standing at *both* doors, since the anon key is public and anyone
+   can call Supabase's auth endpoint without ever touching our code. Our
+   server actions read the token without consuming it and forward it in
+   `options.captchaToken`. See `lib/auth/turnstile.ts` and slice 2d below.
 2. **Gamma's graduated rules, ported into the server actions (targeted
    abuse):** ✅ **BUILT as slice 2c, 2026-08-06** — `lib/auth/thresholds.ts`.
    One count-query on `nclex_auth_events` at the top of the login/reset
@@ -967,6 +977,74 @@ references (rename debt above) and the Resend/SMTP work already scoped.
        release already reported green — **a green deploy is not evidence
        of a working page**, the companion to 2026-08-06's *a green merge
        is not evidence of a green deploy*.
+
+     **↳ 2d's tail: DEV RUNS ON CLOUDFLARE'S TESTING PAIR** (settled
+     2026-08-09, commit `0d38cf3`). Slice 2d worked, and the first thing it
+     did was lock Claude out of the three surfaces it protects.
+
+     - ⚠⚠ **THE WARNING THAT MATTERS MOST ON THIS PAGE: THE DAY DEV GOES
+       BACK TO THE REAL KEYS, CLAUDE LOSES `/login`, `/register` AND
+       `/forgot-password` AGAIN, AND THE BROWSER PANE HANGS ON THEM.** Not
+       degrades — crashes. This is not a bug to be fixed, worked around, or
+       retried: Turnstile's entire purpose is to detect an automated
+       browser, Claude's browser is an automated browser, so Cloudflare
+       escalates to its heaviest challenge on exactly that client and the
+       pane stops responding. **The product succeeding *is* the failure.**
+       If those three pages ever start hanging again, check the dev keys
+       before looking anywhere else — that is the cause, every time.
+     - **What dev uses now:** sitekey `1x00000000000000000000AA` (visible,
+       always passes, no challenge) + secret
+       `1x0000000000000000000000000000000AA` (always passes validation).
+       Both are published by Cloudflare for this exact purpose. The real
+       dev widget is `0x4AAAAAAEKb3Z55nyB9Sipe` (personal CF account) —
+       kept in the comments at every site, since it is what we swap back to.
+     - **Nothing about the code changed, and that is the point.** The
+       widget still renders, visible and full size; a pass is still issued,
+       still forwarded, still validated by Supabase, and the answer is
+       still read back. Every step of the machinery runs. Only the
+       *judgement* is stubbed to yes. Which means the chain that broke
+       repeatedly on 08-06 and 08-08 stays exercised on dev instead of
+       being discovered on prod.
+     - ⚠ **IT IS A FOUR-WAY MATCH AND ALL FOUR MOVE TOGETHER:**
+       `wrangler.jsonc` `vars` · the build step's `env:` in
+       `deploy-dev.yml` · the **secret on the dev Supabase project's
+       captcha setting** · and `.env.local` for local dev (**both** keys —
+       `lib/auth/turnstile.ts` treats Turnstile as off unless it sees the
+       secret *and* the site key). A testing pass checked against the real
+       secret is refused, and so is the reverse. **A mismatch is an outage
+       at the front door, not a degraded mode.**
+     - ⚠ **`.env.local` HAD NO TURNSTILE KEYS AT ALL, AND THAT IS WHY WE
+       LOOKED.** Dev's Supabase captcha was on, localhost rendered no
+       widget, so **every login, signup and reset on `localhost:3000` was
+       refused** — for Sam as much as for Claude, silently, since 08-08.
+       Cause: `.worktreeinclude` copies `.env*` **parent → child only**.
+       The keys were written into the 08-08 worktree's copy, that worktree
+       was pruned, and nothing carries a change back up. The permanent copy
+       in the main checkout has them now, so every future session inherits
+       them.
+     - ⭐ **PROD WAS PROVEN, NOT ASSUMED — AND THE 08-08 CHECK HAD NOT
+       PROVEN IT.** That probe sent **no** token and got `captcha_failed`,
+       which shows prod *demands* a pass; a door that asks for ID and never
+       reads it answers that probe identically. Probed again on 08-09 with
+       a deliberately **garbage** token, prod answered `captcha_failed —
+       invalid-input-response`: Cloudflare looked at it and refused. Prod
+       validates. **Dev, by contrast, accepts any string as a pass** — that
+       is what an always-passes secret means, and it is the expected state,
+       not a defect.
+     - ⓘ **Dev's front door is now decorative**, and the cost is bounded:
+       slice **2c's per-email thresholds are still fully live on dev**
+       (our own code, nothing to do with Cloudflare), and dev holds no real
+       users. Prod is untouched — separate Cloudflare account, separate
+       widget, separate Supabase project.
+     - ⏭ **NEWLY POSSIBLE, AND STILL NOT DONE: force a real refusal.** Swap
+       dev to the *always-fails* pair (`2x00000000000000000000AB` +
+       `2x0000000000000000000000000000000AA`) and a genuine captcha
+       rejection happens on demand. That is the only practical way to test
+       `isCaptchaRejection` routing a refusal to `LOGIN_BLOCKED` instead of
+       `LOGIN_FAIL` — the guard that stops a student being locked out of an
+       account she typed correctly every time. **It has never been tested**,
+       because real Turnstile cannot be made to fail to order.
+       https://developers.cloudflare.com/turnstile/troubleshooting/testing/
 
      **↳ 2d also carries the `/register` gap** (found 2026-08-06 when Sam
      asked what happens on signup with an address that already exists —
