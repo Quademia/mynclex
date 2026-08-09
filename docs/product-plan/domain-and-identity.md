@@ -1339,7 +1339,13 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    **refusing addresses that have no account here** (Google is sign-in
    only — see the settlement below), and the account-linking check (same
    email = same account, no duplicate).
-   **⚠ BLOCKED 2026-08-09 (later) — NOT ON THE CODE, ON A MISSING PAGE.**
+   **⚠ "BLOCKED ON A MISSING PAGE" — WRITTEN 2026-08-09 (later),
+   OVERTAKEN THE SAME DAY.** ⭐ Struck as a blocker: the slice was built,
+   released and published without the page. What the missing privacy policy
+   actually holds up is **brand verification** (the branded screen), not
+   publishing and not the feature. Left here because the reasoning below is
+   still sound and the correction is the useful part — *the document gates
+   the clock, never the code.*
    See *Legal pages* below. Google's consent-screen configuration wants a
    publicly reachable **privacy policy URL** (plus a homepage, usually
    terms) on the authorized domain, and **MyNclex has no privacy-policy
@@ -1484,12 +1490,28 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    same day: it was code written to avoid waiting, for a problem the plan
    had already answered.
 
-   ⚠ **Still unchecked: what a NON-test-user sees.** The ugly URL is
-   cosmetic; a *"Google hasn't verified this app"* interstitial is not — it
-   tells a nurse we may be unsafe, and no branding fix addresses it. Not
-   expected, because `email` + `profile` are non-sensitive scopes that need
-   no verification, but **expected is not checked**. Sign in with an account
-   that is not on the test-user list to find out.
+   ✅ **THE PROD APP IS PUBLISHED** (confirmed 2026-08-09), so Google
+   sign-in is live for **real students**, not only listed test users. The
+   Testing-mode consequence this section spent a day reasoning about never
+   applied to the released state. ⓘ The log had already implied it: the
+   second account in Sam's `GOOGLE_BLOCKED` reached **our** hook, which a
+   Testing-mode app would have stopped at Google.
+
+   ⭐ **Which means publishing did NOT wait for the privacy policy.** The
+   earlier reasoning — that publishing needs a public privacy-policy URL —
+   did not hold in practice for an app requesting only `email` + `profile`.
+   Those are **non-sensitive scopes**, which need no verification, and it is
+   *verification* (the branded screen), not *publishing*, that the document
+   actually gates. Two things that had been treated as one. ⚠ The privacy
+   policy is still owed for its own reasons — Turnstile's invisible mode,
+   brand verification, and the plain fact that this product takes payments
+   and personal data across four jurisdictions.
+
+   ⓘ **Not explicitly confirmed:** whether a *"Google hasn't verified this
+   app"* interstitial appears en route. Not expected on non-sensitive
+   scopes, and Sam reported no obstacle, but he was not asked directly.
+   ⚠ Keep it separate from branding — the ugly URL is cosmetic, that screen
+   would not be.
 
    ### One Google Cloud project, one consent screen — settled 2026-08-09
 
