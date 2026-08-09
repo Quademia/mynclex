@@ -23,20 +23,51 @@
 import Link from 'next/link';
 import { LoginForm } from './login-form';
 import { CodeForm } from './code-form';
+import { GoogleButton } from './google-button';
 import { safeNext } from '@/lib/auth/safe-next';
 import { readPendingCodeEmail } from '@/lib/auth/code-session';
 import '@/styles/tokens.css';
 import '@/styles/auth.css';
 
+// What /auth/callback sends her back with when the Google door does not open
+// (slice 5c). Rendered server-side because she arrives here by redirect, not
+// by submitting anything — there is no action result to hold in client state.
+//
+// ⭐ `no_account` IS THE ORDINARY OUTCOME, NOT AN ERROR CONDITION, and the
+// copy has to carry that. She authenticated perfectly; she simply has no
+// account here yet. So it names the likeliest fix — an account under a
+// different address — rather than telling her something went wrong.
+//
+// ⓘ Saying "no account" out loud is not the leak it would be on the code
+// door. There she could type ANY address and read the answer; here she can
+// only ask about an address she can already log into at Google.
+const CALLBACK_ERRORS: Record<string, string> = {
+  no_account:
+    "We couldn't find a MyNclex account for that Google address. If your account uses a different email, sign in below.",
+  google_failed:
+    "We couldn't finish signing you in with Google. Please try again.",
+  google_unavailable:
+    "Google sign-in isn't available right now — please use your email and password.",
+};
+
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; email?: string; mode?: string }>;
+  searchParams: Promise<{
+    next?: string;
+    email?: string;
+    mode?: string;
+    error?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const next = safeNext(sp.next) ?? undefined;
   const initialEmail = typeof sp.email === 'string' ? sp.email : undefined;
   const codeMode = sp.mode === 'code';
+
+  // Looked up, never echoed. Rendering sp.error straight onto the page would
+  // let anyone put words of their choosing on our sign-in screen with a link.
+  const callbackError = sp.error ? CALLBACK_ERRORS[sp.error] : undefined;
 
   const registerHref = next
     ? `/register?next=${encodeURIComponent(next)}`
@@ -61,6 +92,8 @@ export default async function LoginPage({
           </p>
         </div>
 
+        {callbackError && <div className="auth-error">{callbackError}</div>}
+
         {codeMode ? (
           <CodeForm
             next={next}
@@ -70,6 +103,11 @@ export default async function LoginPage({
         ) : (
           <LoginForm next={next} initialEmail={initialEmail} />
         )}
+
+        {/* Offered on BOTH doors. Google is a third way in, not an
+            alternative to the password specifically, and a student who has
+            switched to the code door has no less claim to it. */}
+        <GoogleButton next={next} />
 
         <div className="auth-footer">
           Don&apos;t have an account? <Link href={registerHref}>Create one</Link>
