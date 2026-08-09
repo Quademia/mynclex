@@ -105,25 +105,49 @@
       // checklist. If MyTeacher or the others ever attach their own
       // subdomain, they inherit the same constraint.
       //
-      // ⚠ THE DEPLOY TOKEN NEEDS ZONE PERMISSION, NOT JUST WORKERS
-      // PERMISSION. Creating a custom domain writes a DNS record, so
-      // CLOUDFLARE_API_TOKEN_PROD (a repo secret, used by
-      // deploy-prod.yml) must carry Zone → DNS → Edit on quademia.com as
-      // well as Workers Scripts → Edit. If a release ever fails here with
-      // an authorization error, that is the cause and the fallback is to
-      // add the domain by hand in the dashboard (Workers → mynclex →
-      // Settings → Domains & Routes) and drop this block.
-      //
-      // ⓘ Two doors are open on purpose right now: this one and the
-      // default mynclex.qacademynurses.workers.dev. The workers.dev one
-      // gets switched off (`"workers_dev": false`) once this is proven,
-      // so the app answers on exactly one address — see the session log.
+      // ⓘ THE DEPLOY TOKEN NEEDS ZONE PERMISSION, NOT JUST WORKERS
+      // PERMISSION — creating a custom domain writes a DNS record. Checked
+      // on the 2026-08-09 release and CLOUDFLARE_API_TOKEN_PROD does carry
+      // it: the domain and its certificate were created by the deploy, not
+      // by hand. Kept as a note because a token rotated to a narrower scope
+      // would fail here with an authorization error, and the cause would
+      // not be obvious. The fallback then is to add the domain in the
+      // dashboard (Workers → mynclex → Settings → Domains & Routes) and
+      // drop this block.
       "routes": [
         {
           "pattern": "nclex.quademia.com",
           "custom_domain": true
         }
       ],
+      // ⭐⭐ STATED, NOT ASSUMED — AND THIS LINE IS THE LESSON OF THE
+      // 2026-08-09 RELEASE.
+      //
+      // `workers_dev` defaults to TRUE for a Worker with no routes, which
+      // is why mynclex.qacademynurses.workers.dev has always answered. But
+      // the moment a `routes` block exists, wrangler flips that default to
+      // FALSE. So declaring the custom domain above ALSO closed the
+      // workers.dev address, in the same deploy, with nothing in this file
+      // saying so — only a warning in the deploy log:
+      //
+      //   "Because 'workers_dev' is not in your Wrangler file, it will be
+      //    disabled for this deployment by default."
+      //
+      // ⚠ THE PLAN THAT DAY WAS THE OPPOSITE. Both doors were meant to
+      // stay open for one release so the new domain could be proven
+      // against a working fallback, then workers.dev closed separately.
+      // The implicit default overrode the plan. It cost nothing — the
+      // certificate provisioned immediately and the domain answered on the
+      // first request — but the safety step did not happen, and nobody
+      // reading this file could have predicted that.
+      //
+      // So the value is written down. `false` is what we want (one
+      // canonical address, no second URL to leak into a link or a
+      // bookmark), and now the file says it instead of inheriting it.
+      // ⓘ To reopen the old address for debugging, set this to `true` and
+      // redeploy — it is a config flag, not a rebuild, and not a one-way
+      // door.
+      "workers_dev": false,
       "vars": {
         "NEXT_PUBLIC_SUPABASE_URL": "https://dehspjcfmhoshcdtsmjq.supabase.co",
         "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHNwamNmbWhvc2hjZHRzbWpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzQ2MjEsImV4cCI6MjA5MjgxMDYyMX0.whd-VAiJLdsYT0VDfU1HhaxVvt1oeiHKxhhb7Vc1QbY",
