@@ -2064,15 +2064,21 @@ CREATE TABLE nclex_auth_events (
   device_label TEXT,                                 -- 'Android · Chrome'; not a hash
   ip_address   INET,                                 -- logged, never enforced on
   reason       TEXT,                                 -- 'invalid_credentials', …
-  -- The future types (CODE_* = slice 3, GOOGLE_FIRST_SIGNIN = slice 5)
-  -- are listed now so those slices need no migration. *_BLOCKED is a
-  -- distinct type, not a flag, so slice 2c can exclude blocked attempts
-  -- from the counts that blocked them.
+  -- GOOGLE_FIRST_SIGNIN (slice 5) is listed ahead of its slice, as CODE_*
+  -- was. *_BLOCKED is a distinct type, not a flag, so slice 2c can exclude
+  -- blocked attempts from the counts that blocked them.
+  -- ⚠ Two types arrived by migration after this block was written and it
+  -- did not follow them: REGISTER_REJECTED (20260905120000) and
+  -- CODE_BLOCKED (20260906120000), both added here 2026-08-09. Pre-loading
+  -- types is what makes that drift easy to miss — the list looks finished.
+  -- ⚠ This file DESCRIBES the database; the migrations ARE it. When they
+  -- disagree the migrations win, and a stale line here is not cosmetic:
+  -- 2026-08-03 lost time to a retired trigger this file still called live.
   CONSTRAINT nclex_auth_events_type_ck CHECK (event_type IN (
     'LOGIN_OK', 'LOGIN_FAIL', 'LOGIN_BLOCKED',
-    'REGISTERED',
+    'REGISTERED', 'REGISTER_REJECTED',
     'RESET_REQUESTED', 'RESET_COMPLETED', 'RESET_BLOCKED',
-    'CODE_REQUESTED', 'CODE_LOGIN_OK', 'CODE_LOGIN_FAIL',
+    'CODE_REQUESTED', 'CODE_LOGIN_OK', 'CODE_LOGIN_FAIL', 'CODE_BLOCKED',
     'INVITE_ACCEPTED', 'GOOGLE_FIRST_SIGNIN'
   ))
 );
