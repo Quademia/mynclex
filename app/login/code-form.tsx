@@ -283,7 +283,7 @@ export function CodeForm({
           disabled={submitting}
           onClick={handleRestart}
         >
-          Use a different address
+          Use a different email address
         </button>
       </div>
 
