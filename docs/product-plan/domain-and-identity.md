@@ -1321,8 +1321,12 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      the stated blocker. ⬜ **The code door has still never been driven on
      prod** — only on dev. Prod being empty by design keeps the blast
      radius near zero, but it is not verified there.
-5. **Google sign-in** — gated on the consent screen showing Quademia, not
-   a Supabase project ID (the gamma-era "sign in to
+5. **Google sign-in** — ✅ **BUILT AND PROVEN ON DEV 2026-08-09 (later
+   still)** (`aa0391f` 5a+5b, `2f370f0` 5c+5d; on `main` pending Sam's
+   approval, **deliberately NOT released to prod** — see *Releasing this*
+   below). Refusal, registration, linking and sign-in all driven by Sam
+   against a real Google account. Gated on the consent screen showing
+   Quademia, not a Supabase project ID (the gamma-era "sign in to
    <ref>.supabase.co" screen must never exist here). Settled 2026-08-05:
    **try the free fix first** — Google Cloud Console Branding +
    Verification (shows logo + name instead of the project ID; brand
@@ -1407,6 +1411,101 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      ⓘ **What left the slice:** first-time profile+role creation. Under
      sign-in-only there is no first-time creation to do — which removes
      what the 08-09 (later) session called the *delicate* sub-slice.
+   - ✅ **What shipped, 2026-08-09 (later still).** `hook_reject_google_signups`
+     (Postgres, `20260907120000`) · `GOOGLE_LOGIN_OK` + `GOOGLE_BLOCKED`
+     replacing `GOOGLE_FIRST_SIGNIN` · `app/auth/callback/route.ts` (both
+     endings, one handler) · `app/login/google-actions.ts` (Server Action,
+     no browser client) · the button on `/login`, offered on both doors.
+   - ⭐ **Names: `GOOGLE_LOGIN_OK` + `GOOGLE_BLOCKED`, and the pair is the
+     point.** Sam's call was to retire `GOOGLE_FIRST_SIGNIN` rather than
+     repurpose it — a name that goes on reading correctly while meaning
+     something else is worse than a wrong one. The pair (rather than a lone
+     `GOOGLE_SIGNIN`) declines the fourth invitation to ship a success type
+     with no refusal partner; the previous two cost `20260905120000` and
+     `20260906120000`. Refusing a stranger is the most common thing this
+     feature does and should not be the one event the logbook cannot name.
+   - ⚠ **AUTOMATIC LINKING RESTS ON EMAIL CONFIRMATION, AND THAT DIAL IS
+     STILL OPEN.** Supabase links a new OAuth identity to an existing user
+     only when it can trust the address; the docs call linking to an
+     unverified email insecure. Both projects currently run
+     `mailer_autoconfirm: true` (checked 2026-08-09), so every address
+     counts as verified and dev faithfully predicts prod. **The day
+     self-serve email confirmation is turned on** — already a named open
+     decision under *Email confirmation policy* above — **that precondition
+     changes and linking must be re-tested.** Nothing connects those two
+     decisions but this paragraph.
+   - ⚠ **The invited-but-unfinished student — OPEN, not handled.** Someone
+     invited by a tutor or a payment who never completed `/welcome` has an
+     auth user and no profile. Arriving by Google on that address, linking
+     attaches to that half-finished account, nothing is created, the hook
+     never fires, and she lands with a session and nothing behind it —
+     `/router` sorts her to `/no-access`. Dev carries three such invites
+     from June's payments testing, so this is live, not hypothetical. The
+     callback logs it with `reason: 'no_profile'` so it is visible rather
+     than looking like an ordinary sign-in. **Routing her to `/welcome`
+     instead is a product decision Sam has not taken**, and was deliberately
+     not smuggled into the slice.
+
+   ### Releasing this — the order is not optional
+
+   ⚠ **The prod Supabase switches must come AFTER the migration lands on
+   prod, never before.** As of 2026-08-09 prod has no
+   `hook_reject_google_signups` and still carries the old
+   `GOOGLE_FIRST_SIGNIN` constraint (both checked). Enabling the hook there
+   first would point it at a function that does not exist, and that hook is
+   consulted for **every** user creation — `/register`, tutor invites,
+   pay-first activation. The precise set of flows this slice exists to
+   protect.
+
+   1. Google Console — safe any time, independent of the repo.
+   2. Merge to `main`, then release `main` → `prod`. **The migration lands
+      here**, bringing the function and the two event types.
+   3. **Then** prod Supabase: Google provider · Redirect URLs
+      (`https://nclex.quademia.com/**`) · the `before-user-created` toggle.
+
+   ⚠ **The toggle is the one that fails silently** — the function will be
+   sitting there from the migration, but a hook that is not switched on
+   simply does not run, and prod starts creating exactly the orphan rows
+   this was built to prevent. No error, no symptom, until someone's payment
+   fails weeks later. It belongs on the release checklist, not in memory.
+
+   ⓘ **Prod release is HELD, and not on the code.** In Testing status the
+   button works for listed test users and refuses everyone else, so shipping
+   it to a live `nclex.quademia.com` puts a control on the login page that
+   turns away every real visitor. Publishing needs the privacy policy — see
+   *Legal pages*. ⭐ An environment-variable gate to ship it dark was
+   proposed and **dropped on 2026-08-09**: it was code written to avoid
+   waiting, and with two users on prod and no students there is nothing to
+   gain by rushing. `main` sitting ahead of `prod` is the normal state here.
+
+   ### One Google Cloud project, one consent screen — settled 2026-08-09
+
+   ⭐ **The consent screen is per-PROJECT, not per-client.** Every OAuth
+   client in a project shares the app name, logo, authorized domains,
+   privacy/terms URLs, publishing status, verification state and test-user
+   list. Only the client ID/secret and redirect URIs are per-client. So the
+   end state is **one `Quademia` project owned by `admin@quademia.com`, with
+   one client per product** — verify once, one privacy policy URL, one brand
+   on the door. It is the same argument the *Legal pages* section makes
+   about writing the policy as a company document.
+
+   ⚠ **Do NOT rename gamma's existing Cloud project to serve this.** Sam
+   proposed it (correctly noting a project can hold several clients); the
+   objection is that gamma prod is the live login path for **~629 real
+   users**, so editing its consent screen is a change to a production
+   authentication surface — and if that app is verified, branding edits can
+   send it back through review. Consolidate **forward**: new project now,
+   gamma's clients move in when those products migrate to this stack. Three
+   things to check first were listed and not yet answered — who owns
+   gamma's project, whether it is verified/published, and whether its screen
+   currently leaks a `supabase.co` ref.
+
+   ⓘ **Accepted cost of one shared screen:** she sees *"Sign in to
+   Quademia"*, not *"MyNclex"* — an unfamiliar word at the exact moment she
+   decides whether to trust us with her Google account. Two things soften it
+   and both are deliberate work, not hope: the **logo**, which is
+   recognisable when the word is not, and **`quademia.com` resolving to
+   something** (the apex is still dark — see the end of *Legal pages*).
    - ⭐ **The `?code=` trap does NOT apply to the callback.** That trap is
      about `createBrowserClient` consuming the code in the BROWSER before
      the caller can. A server-side route handler owns the exchange
