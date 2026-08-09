@@ -82,7 +82,7 @@ export default async function NoAccessPage({
         </div>
 
         <div className="dash-note">
-          <strong>What to do:</strong> contact support at support@qacademynurses.com with your
+          <strong>What to do:</strong> contact support at support@quademia.com with your
           email address ({user.email}) and we&apos;ll sort this out.
         </div>
 

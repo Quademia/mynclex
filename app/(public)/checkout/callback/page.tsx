@@ -24,7 +24,11 @@ import { PendingRecheck } from './pending-recheck';
 
 export const dynamic = 'force-dynamic';
 
-const SUPPORT_EMAIL = 'support@qacademynurses.com';
+// Renamed with the domain move (build-order item 4, 2026-08-09). The
+// support@ alias on quademia.com lands in the same inbox and was
+// delivery-proven on 2026-08-05; the old address still receives, so a
+// receipt already in someone's inbox does not go dead.
+const SUPPORT_EMAIL = 'support@quademia.com';
 
 function money(minor: number, currency: Currency): string {
   const major = minor / 100;

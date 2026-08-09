@@ -91,6 +91,39 @@
     "prod": {
       "name": "mynclex",
       "account_id": "38efec172a6a35b1928ffbd96003c21d",
+      // The real front door — build-order item 4, attached 2026-08-09.
+      //
+      // `custom_domain: true` means wrangler does the whole job on deploy:
+      // creates the DNS record on the zone and provisions the TLS
+      // certificate. Nothing to add by hand in the dashboard.
+      //
+      // ⭐ THIS ONLY WORKS BECAUSE THE ZONE AND THE WORKER ARE ON THE SAME
+      // CLOUDFLARE ACCOUNT. Cloudflare will not route a custom domain to a
+      // Worker across accounts, which is exactly why quademia.com was
+      // bought on the workspace account (38efec…) rather than the personal
+      // one, back on 2026-08-05. See domain-and-identity.md → registration
+      // checklist. If MyTeacher or the others ever attach their own
+      // subdomain, they inherit the same constraint.
+      //
+      // ⚠ THE DEPLOY TOKEN NEEDS ZONE PERMISSION, NOT JUST WORKERS
+      // PERMISSION. Creating a custom domain writes a DNS record, so
+      // CLOUDFLARE_API_TOKEN_PROD (a repo secret, used by
+      // deploy-prod.yml) must carry Zone → DNS → Edit on quademia.com as
+      // well as Workers Scripts → Edit. If a release ever fails here with
+      // an authorization error, that is the cause and the fallback is to
+      // add the domain by hand in the dashboard (Workers → mynclex →
+      // Settings → Domains & Routes) and drop this block.
+      //
+      // ⓘ Two doors are open on purpose right now: this one and the
+      // default mynclex.qacademynurses.workers.dev. The workers.dev one
+      // gets switched off (`"workers_dev": false`) once this is proven,
+      // so the app answers on exactly one address — see the session log.
+      "routes": [
+        {
+          "pattern": "nclex.quademia.com",
+          "custom_domain": true
+        }
+      ],
       "vars": {
         "NEXT_PUBLIC_SUPABASE_URL": "https://dehspjcfmhoshcdtsmjq.supabase.co",
         "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlaHNwamNmbWhvc2hjZHRzbWpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzQ2MjEsImV4cCI6MjA5MjgxMDYyMX0.whd-VAiJLdsYT0VDfU1HhaxVvt1oeiHKxhhb7Vc1QbY",
