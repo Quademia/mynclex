@@ -959,6 +959,12 @@ references (rename debt above) and the Resend/SMTP work already scoped.
        a reference to its Privacy Addendum **in our own privacy policy**,
        and MyNclex has no privacy-policy route at all. ⏭ Revisit at
        launch, when that page has to exist regardless.
+       ⭐ **UPDATE 2026-08-09 (later) — that page is now on the critical
+       path, and not for this.** Google's brand verification wants the
+       same missing document, which makes **two** items blocked on one
+       page that neither listed as a dependency. Decision on where the
+       legal pages live, and the rule for writing them: → *Legal pages*,
+       below the build order.
      - ⓘ Refusal copy is one shared sentence — *"We could not verify your
        browser. Please refresh the page and try again."* Deliberately
        silent about which of the reasons applied, since they all have the
@@ -1309,10 +1315,109 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    expensive as a default for a cosmetic fix. Slice also carries:
    first-time-Google profile+role creation on the callback path, and
    the account-linking check (same email = same account, no duplicate).
+   **⚠ BLOCKED 2026-08-09 (later) — NOT ON THE CODE, ON A MISSING PAGE.**
+   See *Legal pages* below. Google's consent-screen configuration wants a
+   publicly reachable **privacy policy URL** (plus a homepage, usually
+   terms) on the authorized domain, and **MyNclex has no privacy-policy
+   route at all** — no `/privacy`, no `/terms`, no privacy link anywhere
+   in the UI. So the *verification clock cannot start*, which matters
+   because that clock is the only slow part of this item.
+   - ⭐ **THE SLICE AND THE CLOCK ARE SEPARABLE, AND SAM'S CALL WAS TO
+     TREAT THEM SO.** Google sign-in **works unverified** — it just shows
+     the raw `<ref>.supabase.co` screen until verification clears. With
+     prod empty by design that costs nothing, so the code can be built
+     and shipped in any order relative to the submission. ⓘ What that
+     reasoning does **not** buy is a running clock: building first does
+     not start the N days. Legal pages first is therefore the sequencing,
+     not because the code depends on them but because nothing else is on
+     the critical path.
+   - ⓘ **Slice shape, surveyed 2026-08-09 (later).** No OAuth exists
+     today; the only `exchangeCodeForSession` in the repo is `/welcome`'s.
+     Needs: a **migration** (the predicted refusal partner —
+     `GOOGLE_FIRST_SIGNIN` is a success type with nothing for a refusal,
+     the third sighting of the shape that cost `20260905120000` and
+     `20260906120000`), an `/auth/callback` **route handler**,
+     first-time profile+role creation, account linking, the button, and
+     logging. Slice-3 sized: five or six sub-slices.
+   - ⭐ **The `?code=` trap does NOT apply to the callback.** That trap is
+     about `createBrowserClient` consuming the code in the BROWSER before
+     the caller can. A server-side route handler owns the exchange
+     legitimately and is the documented Supabase SSR pattern. ⚠ Do not
+     "fix" it to match `/welcome`, which is a different situation
+     (implicit-flow fragment, handled client-side on purpose).
+   - ⚠ **The half-built-account trap is waiting on this callback**, and
+     it is no longer hypothetical: prod carried a real example until
+     2026-08-09 (an unconfirmed, never-signed-in `auth.users` row with no
+     profile and no roles, left from 08-06 SMTP testing; deleted with
+     Sam's approval, prod now has **zero** profile-less users).
 6. Transactional email arc (registry already in transactional-email.md).
    **Carries the invite rewrite** — see item 1's template note and the
    Supabase-managed section of `transactional-email.md`.
 7. Cross-product SSO — parked, revisit post-migration of sibling products.
+
+---
+
+## Legal pages (privacy policy + terms) — settled 2026-08-09 (later)
+
+**Two features are now blocked on one document nobody has written.** Google's
+OAuth consent screen wants a public privacy-policy URL before the brand
+verification that makes the screen say *Quademia* instead of a raw
+`<ref>.supabase.co`. And Turnstile's **invisible mode** was already parked on
+the same thing — Cloudflare requires its Privacy Addendum be referenced in
+ours (see the 2d notes above, which recorded it as a launch-time question and
+did not connect it to anything else). One missing page, two stalled items,
+and neither had it as a named dependency.
+
+### Where they live: **in this repo, at `nclex.quademia.com/privacy` and `/terms`** — for now
+
+Sam's question was whether to stand up a small site at `quademia.com`
+instead. Checked, and the root domain **serves nothing** — no apex record, no
+`www`, and the `.org` is dark. Only `nclex.quademia.com` resolves. So "a
+small repo at the root" is a new repo, build, Worker/Pages project, DNS and
+deploy pipeline, from zero.
+
+Decided in this repo because:
+- **Google is satisfied either way** — the authorized domain is
+  `quademia.com`, which covers its subdomains. Hosting location does not
+  change the verification outcome, so this constraint does not decide it.
+- **It is the fastest route to a live URL**, and a live URL is the only
+  thing standing between us and a running verification clock.
+- **Moving later is cheap** — a redirect, and one URL edited in the Google
+  console.
+- **The root site is coming, but is not ready to be forced into existence.**
+  It needs brand decisions that have not been made (the About page, the
+  "Qualified + Academia" story). A legal page should not drag those forward
+  half-finished.
+
+### ⭐ The rule that matters more than the hosting
+
+> **Write it as a Quademia Ltd company document covering our products — NOT
+> as "MyNclex's privacy policy".**
+
+This project's recurring failure is *one truth in several places*:
+`NEXT_PUBLIC_*` in three, Turnstile in four, money formatting in five. A
+privacy policy is the ideal candidate to repeat it — four products arrive,
+each takes a copy, and four documents must then be amended in step by hand.
+Legal documents *do* get amended, and the copy that misses an amendment is
+the one that causes harm.
+
+Get the framing right and relocating to a root site later is a **move**. Get
+it wrong and it is a **merge of four diverged documents**.
+
+⚠ **This is not a task to hand to Claude alone.** The routes and a draft are
+ordinary work, but what a privacy policy *claims* must be true of the actual
+data handling — and this product takes payments and personal data from nurses
+across several jurisdictions (Ghana, US, UK, Canada). A professional should
+read it before it goes live. Recorded here so "Claude drafted it" is never
+mistaken for "it was reviewed".
+
+### Separately: the apex domain is dark
+
+Now the name is publicly discoverable (registration + certificate logs),
+someone who hears "Quademia" and types `quademia.com` gets nothing. ⓘ **This
+needs no repo** — a DNS record plus a Cloudflare redirect rule to
+`nclex.quademia.com` fixes it with zero infrastructure. Low urgency, and a
+separate decision from where the legal pages live.
 
 ---
 
