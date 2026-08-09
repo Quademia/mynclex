@@ -62,10 +62,29 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://xkqxfzfsllxyxpdtcrja.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrcXhmemZzbGx4eXhwZHRjcmphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjk4ODYsImV4cCI6MjA5MjgwNTg4Nn0.yRC-HClidhjdUELZETOo9ndyKzzkV7k6Dn_QlyCjx9E
-          # The DEV Turnstile widget (personal CF account). Its hostname
-          # list must carry mynclex-dev.mybackpacc.workers.dev, or the
-          # widget throws 110200 and issues no pass.
-          NEXT_PUBLIC_TURNSTILE_SITE_KEY: 0x4AAAAAAEKb3Z55nyB9Sipe
+          # ⭐⭐ DEV IS DELIBERATELY ON CLOUDFLARE'S *TESTING* PAIR. Not a
+          # placeholder, not a leaked key, not something to "fix" back to
+          # the real one — read the long note at the matching line in
+          # wrangler.jsonc before changing this.
+          #
+          # Short version: 1x00000000000000000000AA is published by
+          # Cloudflare and renders a normal visible widget that passes
+          # instantly with no challenge, so an automated browser can reach
+          # /login, /register and /forgot-password. A real widget's whole
+          # purpose is to prevent that, and it succeeds. Settled 2026-08-09.
+          #
+          # ⚠ Must match wrangler.jsonc AND the secret on the dev Supabase
+          # project's captcha setting. A testing pass checked against the
+          # real secret is refused — a mismatch takes dev's front door down.
+          #
+          # The real dev widget, for when we swap back:
+          # 0x4AAAAAAEKb3Z55nyB9Sipe (personal CF account; its hostname list
+          # must carry mynclex-dev.mybackpacc.workers.dev, or the widget
+          # throws 110200 and issues no pass).
+          #
+          # ⚠ If you copy this workflow to create a new environment, this
+          # line is the one to change first.
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
 
       - name: Deploy to personal CF
         uses: cloudflare/wrangler-action@v4

@@ -44,14 +44,48 @@
     "NEXT_PUBLIC_SUPABASE_URL": "https://xkqxfzfsllxyxpdtcrja.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrcXhmemZzbGx4eXhwZHRjcmphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjk4ODYsImV4cCI6MjA5MjgwNTg4Nn0.yRC-HClidhjdUELZETOo9ndyKzzkV7k6Dn_QlyCjx9E",
     // Turnstile site key — public by design, it ships to every browser
-    // that loads an auth form. This is the DEV widget (personal CF
-    // account, hostname mynclex-dev.mybackpacc.workers.dev).
+    // that loads an auth form.
+    //
+    // ⭐⭐ DEV IS DELIBERATELY ON CLOUDFLARE'S *TESTING* PAIR, NOT THE REAL
+    // DEV WIDGET. This is not a placeholder anyone forgot to fill in, and
+    // it must not be "fixed" back to the real key without reading this.
+    //
+    // 1x00000000000000000000AA is published by Cloudflare for exactly this
+    // purpose: a normal, visible widget that issues a pass instantly with
+    // no challenge, paired with a secret whose answer is always yes. The
+    // real dev widget was 0x4AAAAAAEKb3Z55nyB9Sipe (personal CF account,
+    // hostnames mynclex-dev.mybackpacc.workers.dev + localhost) — keep it,
+    // it is what we swap back to.
+    //
+    // ⭐ WHY: Turnstile's entire job is to stop an automated browser, and
+    // it does it well, so a real widget locks Claude out of /login,
+    // /register and /forgot-password — the three surfaces slice ③ is
+    // about to rebuild. The testing pair keeps every step of the machinery
+    // running (widget → pass → forwarded → Supabase validates → we read
+    // the answer) and stubs out only the judgement. Settled 2026-08-09.
+    //
+    // ⚠ THIS IS A THREE-WAY MATCH AND ALL THREE MOVE TOGETHER: this key,
+    // the same key in deploy-dev.yml, and the SECRET on the dev Supabase
+    // project's captcha setting. A testing pass checked against the real
+    // secret is refused, and so is the reverse — a mismatch is an outage
+    // at the front door, not a degraded mode. Local dev is a fourth place
+    // and lives in .env.local (both keys, see the note there).
+    //
+    // ⚠ PROD IS NOT THIS. Its real key sits in the `env.prod` block below,
+    // on a different Cloudflare account, checked by a different Supabase
+    // project. Never copy this line down there.
+    //
+    // ⓘ To exercise a genuine refusal on dev — the only practical way to
+    // test the LOGIN_BLOCKED-vs-LOGIN_FAIL routing in lib/auth/turnstile.ts
+    // — swap this for 2x00000000000000000000AB ("always fails") and the
+    // dev Supabase secret for 2x0000000000000000000000000000000AA.
+    // https://developers.cloudflare.com/turnstile/troubleshooting/testing/
     //
     // ⚠ Its partner, TURNSTILE_SECRET_KEY, is NOT here and must never be:
     // it is a Worker secret (`wrangler secret put`). If either is missing
     // at runtime the check switches itself off and says so loudly in the
     // Worker log — see lib/auth/turnstile.ts.
-    "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAEKb3Z55nyB9Sipe"
+    "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "1x00000000000000000000AA"
   },
   "env": {
     "prod": {
