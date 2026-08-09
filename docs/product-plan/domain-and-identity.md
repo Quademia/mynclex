@@ -1321,11 +1321,12 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      the stated blocker. ⬜ **The code door has still never been driven on
      prod** — only on dev. Prod being empty by design keeps the blast
      radius near zero, but it is not verified there.
-5. **Google sign-in** — ✅ **BUILT AND PROVEN ON DEV 2026-08-09 (later
-   still)** (`aa0391f` 5a+5b, `2f370f0` 5c+5d; on `main` pending Sam's
-   approval, **deliberately NOT released to prod** — see *Releasing this*
-   below). Refusal, registration, linking and sign-in all driven by Sam
-   against a real Google account. Gated on the consent screen showing
+5. **Google sign-in** — ✅ **DONE AND LIVE ON PROD, 2026-08-09 (later
+   still)** (`aa0391f` 5a+5b, `2f370f0` 5c+5d, `42f3f7e` docs; released as
+   PR #52, tracker 154 → **155**). Refusal, registration, linking and
+   sign-in each driven by Sam against a real Google account on **both**
+   dev and prod. Branding deliberately deferred — see *Releasing this*
+   below. Gated on the consent screen showing
    Quademia, not a Supabase project ID (the gamma-era "sign in to
    <ref>.supabase.co" screen must never exist here). Settled 2026-08-05:
    **try the free fix first** — Google Cloud Console Branding +
@@ -1446,16 +1447,17 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      instead is a product decision Sam has not taken**, and was deliberately
      not smuggled into the slice.
 
-   ### Releasing this — the order is not optional
+   ### ✅ Released 2026-08-09 — and the order that made it safe
 
-   ⚠ **The prod Supabase switches must come AFTER the migration lands on
-   prod, never before.** As of 2026-08-09 prod has no
-   `hook_reject_google_signups` and still carries the old
-   `GOOGLE_FIRST_SIGNIN` constraint (both checked). Enabling the hook there
-   first would point it at a function that does not exist, and that hook is
-   consulted for **every** user creation — `/register`, tutor invites,
-   pay-first activation. The precise set of flows this slice exists to
-   protect.
+   ⚠ **The prod Supabase switches must come AFTER the migration lands,
+   never before** — the rule that shaped this release and the one to reuse
+   for any future auth hook. Before PR #52, prod had no
+   `hook_reject_google_signups` and still carried the old
+   `GOOGLE_FIRST_SIGNIN` constraint (both checked first). Enabling the hook
+   there first would have pointed it at a function that does not exist, and
+   that hook is consulted for **every** user creation — `/register`, tutor
+   invites, pay-first activation. The precise set of flows this slice
+   exists to protect.
 
    1. Google Console — safe any time, independent of the repo.
    2. Merge to `main`, then release `main` → `prod`. **The migration lands
@@ -1463,20 +1465,31 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    3. **Then** prod Supabase: Google provider · Redirect URLs
       (`https://nclex.quademia.com/**`) · the `before-user-created` toggle.
 
-   ⚠ **The toggle is the one that fails silently** — the function will be
-   sitting there from the migration, but a hook that is not switched on
-   simply does not run, and prod starts creating exactly the orphan rows
-   this was built to prevent. No error, no symptom, until someone's payment
-   fails weeks later. It belongs on the release checklist, not in memory.
+   ⚠ **The toggle is the one that fails silently** — the function ships with
+   the migration, but a hook that is not switched on simply does not run,
+   and prod starts creating exactly the orphan rows this was built to
+   prevent. No error, no symptom, until someone's payment fails weeks
+   later. **On the release checklist, never in memory.** ⓘ On 2026-08-09
+   the proof it was on was Sam's `GOOGLE_BLOCKED` row — a disabled hook
+   could not have produced one.
 
-   ⓘ **Prod release is HELD, and not on the code.** In Testing status the
-   button works for listed test users and refuses everyone else, so shipping
-   it to a live `nclex.quademia.com` puts a control on the login page that
-   turns away every real visitor. Publishing needs the privacy policy — see
-   *Legal pages*. ⭐ An environment-variable gate to ship it dark was
-   proposed and **dropped on 2026-08-09**: it was code written to avoid
-   waiting, and with two users on prod and no students there is nothing to
-   gain by rushing. `main` sitting ahead of `prod` is the normal state here.
+   ⭐ **THE HOLD WAS LIFTED BY SEPARATING COSMETICS FROM FUNCTION, not by
+   overriding the reasoning.** This section previously said hold prod until
+   the consent screen is published, because in Testing status the button
+   refuses everyone who is not a listed test user. Sam's call was that the
+   raw `dehspjcfmhoshcdtsmjq.supabase.co` screen is acceptable for now —
+   what matters is proving the flow works on prod; branding comes after.
+   The earlier framing had bundled the two together. ⓘ An environment
+   variable gate to ship the button dark was proposed and **dropped** the
+   same day: it was code written to avoid waiting, for a problem the plan
+   had already answered.
+
+   ⚠ **Still unchecked: what a NON-test-user sees.** The ugly URL is
+   cosmetic; a *"Google hasn't verified this app"* interstitial is not — it
+   tells a nurse we may be unsafe, and no branding fix addresses it. Not
+   expected, because `email` + `profile` are non-sensitive scopes that need
+   no verification, but **expected is not checked**. Sign in with an account
+   that is not on the test-user list to find out.
 
    ### One Google Cloud project, one consent screen — settled 2026-08-09
 
