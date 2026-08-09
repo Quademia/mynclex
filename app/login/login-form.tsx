@@ -67,6 +67,16 @@ export function LoginForm({
     ? `/forgot-password?email=${encodeURIComponent(email)}`
     : '/forgot-password';
 
+  // Same idea for the code door: carry both the address she has already
+  // typed and the return path she arrived with, so switching doors costs
+  // her nothing and loses nothing.
+  const codeHref = (() => {
+    const params = new URLSearchParams({ mode: 'code' });
+    if (email) params.set('email', email);
+    if (next) params.set('next', next);
+    return `/login?${params.toString()}`;
+  })();
+
   return (
     <form className="auth-form" action={handleSubmit}>
       {next ? <input type="hidden" name="next" value={next} /> : null}
@@ -131,6 +141,17 @@ export function LoginForm({
       >
         {submitting ? 'Signing in…' : 'Sign in'}
       </button>
+
+      {/* ⭐ THE CODE DOOR IS A LINK, NOT A SECOND FORM COMPETING FOR
+          ATTENTION (slice 3e). The password stays the primary way in — two
+          forms on first paint asks a tired student to choose between doors
+          before she has tried the one she already knows. It carries the
+          address she has typed, so switching does not cost her retyping it,
+          and `next` so a student sent here mid-checkout still gets back to
+          where she came from. */}
+      <div className="auth-switch">
+        <a href={codeHref}>Email me a sign-in code instead</a>
+      </div>
     </form>
   );
 }

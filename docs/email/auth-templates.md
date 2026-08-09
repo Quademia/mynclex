@@ -3,8 +3,9 @@
 Copy for the identity emails **Supabase itself sends**, over our custom
 SMTP (Resend, as Quademia `<noreply@quademia.com>`).
 
-Last updated: 2026-08-06 — first written. Two templates branded;
-see *Deliberately not branded* below for the other four and why.
+Last updated: 2026-08-09 — magic link rewritten **code-only** for slice 3
+(template 3). Three templates branded; see *Deliberately not branded*
+below for the other three and why.
 
 Paste target: Supabase dashboard → **Authentication → Emails →
 Templates**, per project. Dev first, test, then prod — see the standing
@@ -39,18 +40,40 @@ Supabase substitutes these at send time. Only these are used here:
 |---|---|
 | `{{ .ConfirmationURL }}` | The action link — carries the token and the redirect |
 | `{{ .Email }}` | The recipient's address |
+| `{{ .Token }}` | The 6-digit code. **Putting this in a template is what turns that email from a link into a code** — see template 3 |
 
-⚠ **The stated expiry is the default, not a reading.** Both templates
-say the link expires in **1 hour** — Supabase's documented default OTP
-expiry (3600s), which neither project has been changed from. The
-setting was **not locatable on the dashboard** on 2026-08-06 and cannot
-be read from here (the MCP connection can't see auth config, the same
-limit that makes the rate-limit setting unverifiable). So this is
-default-backed, not verified.
+⚠ **The stated expiry is the default, not a reading.** All three templates
+say **1 hour** — Supabase's documented default OTP expiry (3600s), which
+neither project has been changed from. The setting was **not locatable on
+the dashboard** on 2026-08-06 and cannot be read from here (the MCP
+connection can't see auth config, the same limit that makes the
+rate-limit setting unverifiable). So this is default-backed, not verified.
 
 **If password-reset links ever expire sooner than the email promises,
 look here first** — either the copy or the setting has moved. The fix is
-a one-word edit in both templates plus a re-paste to both projects.
+a one-word edit in the templates plus a re-paste to both projects.
+
+⚠⚠ **THERE IS ONE EXPIRY DIAL, AND IT MOVES ALL THREE OF THESE AT ONCE.**
+`Auth → Providers → Email → Email OTP Expiration` governs every email
+token this project issues — the login code, the signup confirmation, and
+**the password-reset link**. Slice 3 planned to shorten it to 10 minutes
+for the login code; that would have cut the reset link to 10 minutes too,
+while template 1 went on promising an hour. **Left at 1 hour on purpose**
+(2026-08-09). Two reasons:
+
+- The flow that suffers is the one that matters most — a student on slow
+  mobile email, locked out, waiting for a reset link. Ten minutes is a
+  cruel window for exactly the person the reset flow exists for.
+- **The expiry is not what guards the code; the threshold is.** With
+  slice 3's rule of 5 wrong codes per 10 minutes per address, an attacker
+  gets around 30 guesses an hour against a million combinations. Halving
+  or sextupling the validity barely moves that. The earlier claim that a
+  short expiry "does more against guessing than any rule we write" was
+  true before the rule existed and stopped being true the moment it did.
+
+**Do not shorten this dial for one template's benefit.** If a shorter code
+life is ever genuinely wanted, it needs the reset and confirm copy changed
+in the same pass, or the emails start lying.
 
 ---
 
@@ -191,11 +214,106 @@ Confirm your email address
 
 ---
 
+## 3. Sign-in code (the "Magic Link" template)
+
+Slice 3's email-code login. ⚠ **Pasted into the template Supabase calls
+"Magic Link"** — that is not a mistake. Supabase implements magic links
+and email codes as *one thing*, and the template is the only switch
+between them: include `{{ .Token }}` and it sends a code, include
+`{{ .ConfirmationURL }}` and it sends a link. **This template deliberately
+contains no link at all**, which is what takes magic link off the menu.
+
+**Why the link had to go** (settled 2026-08-05, and Supabase's own
+troubleshooting guide agrees): one-time links get consumed by email
+security scanners that "click" them before the student does, so the token
+is spent by the time she taps it; and a link opened from Gmail or WhatsApp
+lands in an in-app browser she doesn't otherwise use, so the session
+appears in the wrong place and reads as *"the link didn't work"*. A typed
+code makes both failure modes structurally impossible — she stays in the
+browser she started in, and nothing can consume a code by looking at it.
+
+**Subject**
+
+```
+Your MyNclex sign-in code
+```
+
+**Message body**
+
+```html
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f6f7f9;padding:32px 12px;">
+  <tr>
+    <td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#ffffff;border-radius:10px;padding:36px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+        <tr>
+          <td style="font-size:19px;font-weight:600;color:#111827;padding-bottom:14px;">
+            Your sign-in code
+          </td>
+        </tr>
+        <tr>
+          <td style="font-size:15px;line-height:1.6;color:#374151;padding-bottom:20px;">
+            Your MyNclex sign-in code is:
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding-bottom:22px;">
+            <div style="display:inline-block;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:16px 28px;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:8px;color:#111827;">{{ .Token }}</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="font-size:15px;line-height:1.6;color:#374151;padding-bottom:24px;">
+            Enter it on the sign-in page you already have open, for
+            <strong>{{ .Email }}</strong>.
+          </td>
+        </tr>
+        <tr>
+          <td style="font-size:13px;line-height:1.6;color:#6b7280;padding-bottom:24px;border-bottom:1px solid #e5e7eb;">
+            This code expires in 1 hour and can be used once.
+            <strong>If you didn't try to sign in, you can ignore this email</strong>
+            — a code on its own doesn't let anyone in, and your account is
+            unchanged.
+          </td>
+        </tr>
+        <tr>
+          <td style="font-size:13px;line-height:1.6;color:#6b7280;padding-top:20px;">
+            — The Quademia team<br>
+            <span style="color:#9ca3af;">MyNclex · NCLEX-RN preparation</span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+```
+
+**Four choices in that markup worth keeping**
+
+- **The code sits high in the body, right after one short line.** Phone
+  notification previews show the first stretch of an email, so she often
+  never has to open it. For a phone-first audience switching apps to read
+  this, that is the difference between two taps and six.
+- **"Your MyNclex sign-in code is:" immediately precedes the number.**
+  iOS and Android detect one-time codes by looking for a number next to
+  words like *code*, and offer it as an autofill suggestion. The wording
+  is load-bearing, not decorative — it pairs with the `autocomplete`
+  attribute on the input in slice 3e.
+- **The code is not inside a link.** Some clients auto-linkify anything
+  that looks tappable; a linkified code is one a security scanner might
+  follow, which is the exact failure this template exists to avoid.
+- **Monospace with wide letter-spacing.** She is copying six digits off a
+  small screen, and `0`/`O` and `1`/`l` have to be unmistakable.
+
+⚠ **The house rule "the raw link is always printed as text" does not
+apply here.** There is no link to print. That rule exists so a broken
+button isn't a dead end; this email has no button and no dead end.
+
+---
+
 ## Deliberately not branded
 
 | Template | Why not |
 |---|---|
 | **Invite** | Going custom. An invite always arrives attached to something — a programme, bank access — so the email worth sending is the one that says *what you've been given*, not *you have an account*. Branding the generic body is work we'd delete. Replaced in the transactional arc by `enrolment.confirmed` / `enrolment.tutor_added`, minted with `generateLink({ type: 'invite' })` so our layer sends the only email. Until then it keeps sending Supabase's default body — already **from** Quademia since the 2026-08-06 SMTP switch, so it reads unstyled rather than untrustworthy. |
-| **Magic link** | Build-order item 3 rewrites it as a code-only email in code. Branding the link version now is thrown-away work. |
+| ~~**Magic link**~~ | **Done — it is now template 3 above.** The 2026-08-06 note said item 3 would rewrite it code-only and that branding the link version first was work we'd delete; that is what happened on 2026-08-09. Kept here struck through rather than removed, so anyone following the old note lands on the answer. |
 | **Change email** | Unreachable — nothing in the codebase calls `updateUser({ email })`. Brand it the day a change-email surface exists. |
 | **Reauthentication** | Unused. |

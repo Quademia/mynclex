@@ -67,6 +67,38 @@ const RESET_RULES: Rule[] = [
   { windowSec: 60 * 60, limit: 3, label: 'threshold_60min' },
 ];
 
+// Slice 3c. Deliberately the same shape and the same numbers as RESET_RULES,
+// because it is the same shape of abuse: an address being made to receive
+// email it did not ask for. Copying the reset rule rather than inventing a
+// number means there is one answer to "how often may a stranger make your
+// inbox ring", not two that drift.
+//
+// ⚠ NO LONG RULE, for the reason reset has none. A second, 24-hour window
+// would catch the patient attacker — but the only thing he wins by being
+// patient here is that somebody else's inbox gets a few more emails, and
+// the cost of the rule lands on a student who genuinely cannot get a code
+// to arrive and is trying again this evening.
+const CODE_REQUEST_RULES: Rule[] = [
+  { windowSec: 60 * 60, limit: 3, label: 'threshold_request_60min' },
+];
+
+// Slice 3d — guessing, not asking. Shaped like the SHORT login rule
+// (5 in 10 minutes) because it is the same event: someone at a box, trying
+// values. The long login companion is deliberately absent, for the same
+// reason reset has none — a patient attacker gains nothing here, because
+// the thing he is guessing at expires on its own.
+//
+// ⭐ THIS RULE, NOT THE EXPIRY, IS WHAT GUARDS THE CODE. Six digits is a
+// million values; at five tries per ten minutes that is thirty an hour, so
+// even a code living its full hour faces odds around thirty in a million.
+// Worth stating because slice 3 originally planned to shorten the shared
+// Email OTP Expiration to buy that safety, which would have cut the
+// password-reset link to ten minutes as collateral and bought almost
+// nothing — see docs/email/auth-templates.md.
+const CODE_VERIFY_RULES: Rule[] = [
+  { windowSec: 10 * 60, limit: 5, label: 'threshold_verify_10min' },
+];
+
 /**
  * Never report "try again in 0 seconds" — the student refreshes instantly,
  * gets blocked again, and learns the countdown is lying. Gamma floors at
@@ -210,6 +242,42 @@ export function checkLoginThreshold(email: string): Promise<ThresholdVerdict> {
 /** 3 reset requests in 60 minutes, for this address. */
 export function checkResetThreshold(email: string): Promise<ThresholdVerdict> {
   return check(email, ['RESET_REQUESTED'], RESET_RULES);
+}
+
+/**
+ * 3 sign-in codes in 60 minutes, for this address (slice 3c).
+ *
+ * ⭐ COUNTS REQUESTS, NOT FAILURES, and that is the difference between this
+ * and the login rule above. There is no such thing as a failed code
+ * request: an unknown address and a real one both return the same silent
+ * success, by design. So the thing worth limiting is the asking itself —
+ * every ask is potentially an email somebody did not want.
+ *
+ * ⓘ CODE_REQUESTED is written for unknown addresses too, even though no
+ * email is sent to them. If it were not, this rule would only ever bite
+ * real accounts, and how quickly the limit tripped would itself answer the
+ * question the whole flow refuses to answer.
+ */
+export function checkCodeRequestThreshold(email: string): Promise<ThresholdVerdict> {
+  return check(email, ['CODE_REQUESTED'], CODE_REQUEST_RULES);
+}
+
+/**
+ * 5 wrong codes in 10 minutes, for this address (slice 3d).
+ *
+ * ⚠ CODE_LOGIN_FAIL ONLY — deliberately separate from checkLoginThreshold
+ * above, and the separation runs both ways. Folding these into the password
+ * rule would let a student's mistyped CODE lock her out of her PASSWORD;
+ * folding the password's failures into this one would do the reverse. Two
+ * doors, two counters, and a student who is struggling at one keeps the
+ * other.
+ *
+ * ⓘ CODE_BLOCKED is not counted, by construction — this rule names the
+ * types it counts, and blocks are their own type precisely so a refusal
+ * can never feed the rule that produced it.
+ */
+export function checkCodeVerifyThreshold(email: string): Promise<ThresholdVerdict> {
+  return check(email, ['CODE_LOGIN_FAIL'], CODE_VERIFY_RULES);
 }
 
 /**

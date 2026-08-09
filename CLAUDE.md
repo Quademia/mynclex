@@ -316,6 +316,79 @@ slice.
     came from "tests" that never ran the new code and were showing the
     previous attempt's screen. Change path, or force a reload.
 
+- **`NEXT_PUBLIC_*` must exist at BUILD time — `wrangler.jsonc` vars are
+  RUNTIME only, and the gap is silent.** Cloudflare hands `vars` to the
+  Worker when it serves a request, so every server-side read works and
+  nothing looks wrong. But `NEXT_PUBLIC_*` is a *build-time substitution*:
+  webpack replaces each reference with a string literal while `next build`
+  runs, and anything missing at that moment is `undefined` in the browser
+  bundle **forever**. A runtime binding arrives hours too late.
+  Found 2026-08-08, after it had been true for as long as the deploy
+  workflows existed. Two symptoms, one cause:
+  - The Turnstile widget rendered **server-side** (runtime vars present)
+    and vanished on hydration (client bundle had no key) — a container in
+    the HTML and no widget on the page.
+  - ⚠ Worse and older: the deployed `/reset-password` bundle read
+    `createBrowserClient(n.env.NEXT_PUBLIC_SUPABASE_URL, …)` **unreplaced**,
+    so it and `/welcome` (invite acceptance) could not work on either
+    Worker. Both had only ever been tested on **localhost**, where
+    `.env.local` is present at build time — which is exactly why months of
+    sessions never caught it.
+
+  **Rule: any new `NEXT_PUBLIC_*` goes in THREE places** — `.env.local`
+  (local dev), `wrangler.jsonc` `vars` (server at runtime, dev + `env.prod`),
+  and the `env:` block of the **build** step in *both*
+  `.github/workflows/deploy-dev.yml` and `deploy-prod.yml`. ⚠ The build step
+  carries no `--env prod`; only the deploy does, so nothing else in the
+  pipeline supplies prod's values. The duplication is known debt, flagged in
+  comments on both sides (wrangler.jsonc is JSONC, so a workflow step cannot
+  just `jq` it out).
+
+  **To check a deployed environment**, read the served bundle rather than
+  trusting the config — the value should appear as a literal:
+  `curl -s <origin>/login | grep -oE '/_next/static/chunks/app/login/[^"]+\.js'`
+  then grep that chunk for the expected value.
+
+- **⚠ REAL TURNSTILE KEYS ON DEV MAKE `/login`, `/register` AND
+  `/forgot-password` UNREACHABLE TO CLAUDE — THE BROWSER PANE HANGS ON
+  THEM.** Not a bug and not fixable. Turnstile exists to detect an
+  automated browser; Claude's browser is one; so Cloudflare escalates to
+  its heaviest challenge on exactly that client and the pane stops
+  responding. **The product working correctly is the failure mode.**
+  Settled 2026-08-09 (`0d38cf3`): **dev runs on Cloudflare's published
+  testing pair** — sitekey `1x00000000000000000000AA` (visible, always
+  passes, no challenge) + secret `1x0000000000000000000000000000000AA`
+  (always passes validation). The widget still renders and every step
+  still runs — pass issued, forwarded, validated by Supabase, answer read
+  back — only the judgement is stubbed to yes. **Prod keeps the real pair**
+  (separate Cloudflare account, separate widget, separate Supabase
+  project) and was verified to genuinely validate, not merely demand, a
+  token.
+
+  **If those three pages start hanging again, check the dev keys first —
+  that is the cause, every time.** The real dev widget
+  (`0x4AAAAAAEKb3Z55nyB9Sipe`) is kept in the comments at every site,
+  since it is what a swap-back uses.
+
+  **⚠ Four places, one truth, and a mismatch is an outage at the front
+  door** (a testing pass checked by the real secret is refused, and so is
+  the reverse): `wrangler.jsonc` `vars` · the build step's `env:` in
+  `deploy-dev.yml` · **the secret on the dev Supabase project's captcha
+  setting** (dashboard, not in the repo) · and `.env.local`, which needs
+  **both** keys — `lib/auth/turnstile.ts` treats Turnstile as switched off
+  unless it sees the secret *and* the site key, and "off" now means our
+  server drops the pass while Supabase still demands one.
+
+  ⚠ `.env.local` is copied into worktrees **parent → child only**. A key
+  added inside a worktree dies with it — write it to the main checkout's
+  copy or it is gone next session. (That is exactly how localhost auth sat
+  broken from 08-08 to 08-09 without anyone noticing.)
+
+  ⓘ To make Turnstile **fail** on demand — the only practical way to test
+  the `LOGIN_BLOCKED`-vs-`LOGIN_FAIL` routing — swap dev to
+  `2x00000000000000000000AB` + `2x0000000000000000000000000000000AA`.
+  https://developers.cloudflare.com/turnstile/troubleshooting/testing/
+
 - **Production builds use webpack, not Turbopack.** The `build` and
   `cf:build` scripts pass `--webpack` to `next build`. Reason: Next.js 16
   defaults to Turbopack for production builds, but
@@ -471,12 +544,24 @@ Local dev requires `mynclex/.env.local` (git-ignored):
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
+PAYSTACK_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 ```
 
 The first two are safe for the browser (RLS protects data).
 The service role key **never leaves the server** (per rule #5).
 It's used only by the registration rollback path — see
 `app/register/actions.ts`.
+
+⚠ **The two Turnstile lines are not optional and not a placeholder.** Dev's
+Supabase project has its captcha switch ON, so a missing site key means no
+widget, no pass, and **every login, signup and password reset on
+`localhost:3000` refused** — which is precisely what happened, unnoticed,
+between 2026-08-08 and 08-09. They are Cloudflare's **testing** pair, on
+purpose; see the Turnstile entry under *Known Workarounds* for why, and for
+the warning about putting the real keys back. **Both lines or neither** —
+`lib/auth/turnstile.ts` switches itself off unless it sees both.
 
 Production values live as Cloudflare Worker secrets set via
 `wrangler secret put`. See `mynclex/CLONING.md` (future) for the

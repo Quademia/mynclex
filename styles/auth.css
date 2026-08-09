@@ -165,6 +165,118 @@
   cursor: not-allowed;
 }
 
+/* ── The email-code door (slice 3e) ──────────────────────────────────── */
+
+/* "We've sent a code to <address>." Sits above the code field so the
+   address she is verifying against is on screen while she types — without
+   it, a typo in the email is invisible until she has spent a code and a
+   couple of minutes wondering why nothing arrived. */
+.auth-sent {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.auth-sent strong {
+  color: var(--text);
+  word-break: break-all;
+}
+
+/* ⭐ ONE FIELD, NOT SIX BOXES, and it is a deliberate refusal of the
+   fashionable pattern. Six separate inputs look premium and behave badly
+   exactly where this product's students are: pasting a code lands in one
+   box on many mobile browsers, screen readers announce six unlabelled
+   fields with no idea they are one value, and OS autofill frequently
+   declines to fill them at all. A single input keeps `one-time-code`
+   autofill working, which is the biggest usability win available here.
+
+   The styling below is what buys back the legibility six boxes were for:
+   monospaced so 0/O and 1/l cannot be confused, and widely spaced so six
+   digits read as six digits on a small screen. */
+.auth-code-input {
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 6px;
+  text-align: center;
+}
+
+/* Placeholder keeps the normal weight and spacing — a placeholder styled
+   like real input reads as a code already entered. */
+.auth-code-input::placeholder {
+  font-weight: 400;
+  letter-spacing: 4px;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+/* "We've sent another code." Calm rather than alarming — this is a
+   confirmation, and reusing .auth-error's red for it would tell her
+   something went wrong when nothing did. */
+.auth-notice {
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius);
+  color: #166534;
+  font-size: 13px;
+}
+
+/* The row of ways out — resend, change address, switch door. Centred and
+   quiet: every one of these is a secondary path, and the submit button
+   above must stay the obvious thing to press. */
+.auth-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.auth-switch a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
+}
+
+.auth-switch-sep {
+  color: var(--text-muted);
+}
+
+/* A button that has to read as a link, because what it does is navigate-ish
+   but it must run a Server Action (clearing a cookie, resending a code) and
+   an <a> cannot do that. Inherits the link colour so the row stays visually
+   one set of choices rather than a link beside a control. */
+.auth-linkbtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.auth-linkbtn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+/* ⚠ Must stay clearly readable while disabled, unlike a disabled submit.
+   This is where the resend countdown lives — "Send a new code in 43s" is
+   information, and fading it to near-invisible hides the one thing that
+   explains why the control cannot be used yet. */
+.auth-linkbtn:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
 .auth-footer {
   margin-top: 24px;
   text-align: center;

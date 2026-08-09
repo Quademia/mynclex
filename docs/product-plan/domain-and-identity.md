@@ -303,11 +303,21 @@ MyNclex layers:
 
 1. **Turnstile + Supabase built-ins (bots + bulk):** built-in auth rate
    limits (tune in dashboard during the SMTP pass — same screen) +
-   **Cloudflare Turnstile** on login/register/forgot-password, verified
-   server-side inside the server action before Supabase is called (use the
-   native Supabase↔Turnstile integration so the direct endpoint also
-   demands a token). Cloudflare WAF/edge rules in reserve. Free protection
-   the counters shouldn't have to absorb.
+   **Cloudflare Turnstile** on login/register/forgot-password. ✅ **BUILT as
+   slice 2d, 2026-08-08.** Cloudflare WAF/edge rules in reserve. Free
+   protection the counters shouldn't have to absorb.
+
+   ⚠ **CORRECTED 2026-08-08 — this paragraph used to ask for two checks and
+   they cannot both exist.** It read *"verified server-side inside the server
+   action before Supabase is called (use the native Supabase↔Turnstile
+   integration so the direct endpoint also demands a token)"*. A Turnstile
+   token can be validated **exactly once**; whichever side checks it first
+   spends it and the other is handed a used one. Building the first half is
+   what surfaced this. **Supabase is the verifier** — it is the only one of
+   the two standing at *both* doors, since the anon key is public and anyone
+   can call Supabase's auth endpoint without ever touching our code. Our
+   server actions read the token without consuming it and forward it in
+   `options.captchaToken`. See `lib/auth/turnstile.ts` and slice 2d below.
 2. **Gamma's graduated rules, ported into the server actions (targeted
    abuse):** ✅ **BUILT as slice 2c, 2026-08-06** — `lib/auth/thresholds.ts`.
    One count-query on `nclex_auth_events` at the top of the login/reset
@@ -793,10 +803,10 @@ references (rename debt above) and the Resend/SMTP work already scoped.
 2. **Forgot-password flow** (depends on 1) — carries Turnstile on the three
    public forms, the `nclex_auth_events` write-side, AND the layer-2
    per-email threshold checks (gamma's rules, server-side) with it.
-   **STATUS 2026-08-08 — ITEM 2 IS COMPLETE. 2a, 2b, 2c and 2d all built
-   and Sam-tested on dev.** ⬜ The only thing outstanding is prod: two
-   migrations ride the next release, and prod's captcha switch is flipped
-   after it, never before.
+   **STATUS 2026-08-08 — ITEM 2 IS COMPLETE AND ON PROD.** 2a, 2b, 2c and
+   2d all built, Sam-tested on dev, released (`cf0cb8e` + `fccc9db`), and
+   exercised on prod with the captcha switch on and the redirect allowlist
+   set. Prod tracker 153.
    - ✅ **2a — the logbook.** `nclex_auth_events` + the write side
      (migration `20260904120000_auth_events.sql`, `lib/auth/events.ts`,
      `lib/auth/device-label.ts`). Shipped BEFORE the flow it serves
@@ -822,8 +832,17 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      `@supabase/ssr` forces `flowType:'pkce'`, so the browser client
      auto-consumes PKCE links (never exchange those yourself — the code
      is single-use) and **refuses** implicit ones outright (there you
-     must call `setSession` yourself). Slice 3's email-code login will
-     meet the same thing.
+     must call `setSession` yourself). ~~Slice 3's email-code login will
+     meet the same thing.~~ ⚠ **IT DOES NOT — corrected 2026-08-09 when
+     slice 3d was built.** The trap is about a LINK arriving in the browser
+     carrying a token, which is the one thing a code flow does not have.
+     `verifyOtp` hands the session to a Server Action and `@supabase/ssr`
+     writes the session cookies through `setAll`; nothing is parsed out of
+     an address bar, so there is nothing to race and nothing to configure.
+     The warning stood for four days and shaped the slice-3 plan — kept
+     struck through rather than deleted, so anyone who remembers it finds
+     the answer instead of the fear. **It still applies to `/welcome` and
+     `/reset-password`**, which really do receive links.
    - ✅ **2c — the thresholds** (2026-08-06 evening). `lib/auth/thresholds.ts`
      plus the gate at the top of both server actions. **No migration** —
      2a had already built the index and the `*_BLOCKED` event types this
@@ -944,13 +963,97 @@ references (rename debt above) and the Resend/SMTP work already scoped.
        browser. Please refresh the page and try again."* Deliberately
        silent about which of the reasons applied, since they all have the
        same fix. **Not Sam-copy-passed.**
-     - ⬜ **Prod's switch is NOT flipped**, on purpose, and must not be
-       until the release: prod would otherwise demand a pass the deployed
-       code does not send. ⚠ `TURNSTILE_SECRET_KEY` is a **Worker secret
-       per environment** (both set 2026-08-08, dashboard not CLI); if it
-       is ever missing, Turnstile switches itself off and says so loudly
-       in the Worker log rather than blocking anyone. Site keys are
-       committed in `wrangler.jsonc` — public by design.
+     - ✅ **PROD IS LIVE** (2026-08-08, releases `cf0cb8e` then `fccc9db`).
+       Switch flipped, redirect allowlist set, `TURNSTILE_SECRET_KEY` a
+       Worker secret in both environments (dashboard, not CLI). The same
+       back-door probe that returned `invalid_credentials` before the flip
+       now returns `captcha_failed`. Prod's logbook holds its first rows —
+       `LOGIN_OK`, `LOGIN_FAIL (wrong_password)`, `LOGIN_OK` 24 s later:
+       the typo retry succeeding on prod with Supabase verifying.
+     - ⚠⚠ **THE RELEASE EXPOSED A BUG OLDER THAN THIS SLICE, AND IT IS THE
+       MOST IMPORTANT THING ON THIS PAGE.** The widget did not appear on
+       either Worker. Cause: `wrangler.jsonc` `vars` are **runtime**
+       bindings, but `NEXT_PUBLIC_*` is a **build-time** substitution, and
+       neither deploy workflow passed any environment to its build step —
+       so the server rendered the widget's container and hydration removed
+       it. **The same starvation hit `createBrowserClient`**, meaning
+       `/reset-password` and **`/welcome` (invite acceptance) had never
+       worked on the dev or prod Workers at all.** Both had only ever been
+       tested on localhost, where `.env.local` is present at build time.
+       Fixed in `ac822dc`; the three-places rule for any future
+       `NEXT_PUBLIC_` variable is now in `CLAUDE.md` → Known Workarounds.
+       ⭐ It surfaced only because Sam said the widget was missing on a
+       release already reported green — **a green deploy is not evidence
+       of a working page**, the companion to 2026-08-06's *a green merge
+       is not evidence of a green deploy*.
+
+     **↳ 2d's tail: DEV RUNS ON CLOUDFLARE'S TESTING PAIR** (settled
+     2026-08-09, commit `0d38cf3`). Slice 2d worked, and the first thing it
+     did was lock Claude out of the three surfaces it protects.
+
+     - ⚠⚠ **THE WARNING THAT MATTERS MOST ON THIS PAGE: THE DAY DEV GOES
+       BACK TO THE REAL KEYS, CLAUDE LOSES `/login`, `/register` AND
+       `/forgot-password` AGAIN, AND THE BROWSER PANE HANGS ON THEM.** Not
+       degrades — crashes. This is not a bug to be fixed, worked around, or
+       retried: Turnstile's entire purpose is to detect an automated
+       browser, Claude's browser is an automated browser, so Cloudflare
+       escalates to its heaviest challenge on exactly that client and the
+       pane stops responding. **The product succeeding *is* the failure.**
+       If those three pages ever start hanging again, check the dev keys
+       before looking anywhere else — that is the cause, every time.
+     - **What dev uses now:** sitekey `1x00000000000000000000AA` (visible,
+       always passes, no challenge) + secret
+       `1x0000000000000000000000000000000AA` (always passes validation).
+       Both are published by Cloudflare for this exact purpose. The real
+       dev widget is `0x4AAAAAAEKb3Z55nyB9Sipe` (personal CF account) —
+       kept in the comments at every site, since it is what we swap back to.
+     - **Nothing about the code changed, and that is the point.** The
+       widget still renders, visible and full size; a pass is still issued,
+       still forwarded, still validated by Supabase, and the answer is
+       still read back. Every step of the machinery runs. Only the
+       *judgement* is stubbed to yes. Which means the chain that broke
+       repeatedly on 08-06 and 08-08 stays exercised on dev instead of
+       being discovered on prod.
+     - ⚠ **IT IS A FOUR-WAY MATCH AND ALL FOUR MOVE TOGETHER:**
+       `wrangler.jsonc` `vars` · the build step's `env:` in
+       `deploy-dev.yml` · the **secret on the dev Supabase project's
+       captcha setting** · and `.env.local` for local dev (**both** keys —
+       `lib/auth/turnstile.ts` treats Turnstile as off unless it sees the
+       secret *and* the site key). A testing pass checked against the real
+       secret is refused, and so is the reverse. **A mismatch is an outage
+       at the front door, not a degraded mode.**
+     - ⚠ **`.env.local` HAD NO TURNSTILE KEYS AT ALL, AND THAT IS WHY WE
+       LOOKED.** Dev's Supabase captcha was on, localhost rendered no
+       widget, so **every login, signup and reset on `localhost:3000` was
+       refused** — for Sam as much as for Claude, silently, since 08-08.
+       Cause: `.worktreeinclude` copies `.env*` **parent → child only**.
+       The keys were written into the 08-08 worktree's copy, that worktree
+       was pruned, and nothing carries a change back up. The permanent copy
+       in the main checkout has them now, so every future session inherits
+       them.
+     - ⭐ **PROD WAS PROVEN, NOT ASSUMED — AND THE 08-08 CHECK HAD NOT
+       PROVEN IT.** That probe sent **no** token and got `captcha_failed`,
+       which shows prod *demands* a pass; a door that asks for ID and never
+       reads it answers that probe identically. Probed again on 08-09 with
+       a deliberately **garbage** token, prod answered `captcha_failed —
+       invalid-input-response`: Cloudflare looked at it and refused. Prod
+       validates. **Dev, by contrast, accepts any string as a pass** — that
+       is what an always-passes secret means, and it is the expected state,
+       not a defect.
+     - ⓘ **Dev's front door is now decorative**, and the cost is bounded:
+       slice **2c's per-email thresholds are still fully live on dev**
+       (our own code, nothing to do with Cloudflare), and dev holds no real
+       users. Prod is untouched — separate Cloudflare account, separate
+       widget, separate Supabase project.
+     - ⏭ **NEWLY POSSIBLE, AND STILL NOT DONE: force a real refusal.** Swap
+       dev to the *always-fails* pair (`2x00000000000000000000AB` +
+       `2x0000000000000000000000000000000AA`) and a genuine captcha
+       rejection happens on demand. That is the only practical way to test
+       `isCaptchaRejection` routing a refusal to `LOGIN_BLOCKED` instead of
+       `LOGIN_FAIL` — the guard that stops a student being locked out of an
+       account she typed correctly every time. **It has never been tested**,
+       because real Turnstile cannot be made to fail to order.
+       https://developers.cloudflare.com/turnstile/troubleshooting/testing/
 
      **↳ 2d also carries the `/register` gap** (found 2026-08-06 when Sam
      asked what happens on signup with an address that already exists —
@@ -1015,6 +1118,125 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    + threshold plumbing) — code-only Magic Link template,
    `shouldCreateUser: false`, request-code + enter-code UI on the login
    page, `CODE_*` events logged.
+   **STATUS 2026-08-09 — BUILT AND VERIFIED ON DEV, NOT YET RELEASED.**
+   Six sub-slices, one migration (`20260906120000_code_blocked.sql`,
+   dev-applied). vitest **948 → 952**, eslint clean, tsc at the known
+   pre-existing errors.
+
+   - ✅ **3a — `CODE_BLOCKED`.** ⚠ **The plan said this slice needed no
+     migration and the plan was 75% right.** 2a pre-loaded the constraint
+     with the types it could foresee — and what it foresaw were the three
+     describing what the STUDENT did (asked, succeeded, got it wrong). It
+     missed the one describing what WE do: refuse her before asking. A
+     refusal cannot be written as a failure, because 2c's rules count
+     failures, so the block would be counted by the rule that produced it
+     and extend itself. One type, not two; `reason` separates
+     `threshold_request_60min` / `threshold_verify_10min` / `turnstile:*`,
+     exactly as `LOGIN_BLOCKED` already serves three meanings. Proven both
+     ways on dev — the type inserts, and a made-up type is still refused
+     with `23514`.
+     ⏭ **Slice 5 has the same shape**: `GOOGLE_FIRST_SIGNIN` is a success
+     type with no refusal partner. Noted in `lib/auth/events.ts`.
+   - ✅ **3b — the code-only template** (`docs/email/auth-templates.md`
+     template 3). Pasted into the template Supabase calls *Magic Link*,
+     which is not a mistake: links and codes are one implementation and the
+     template is the only switch between them. **No link at all**, which
+     is what takes magic link off the menu. Four choices in the markup are
+     load-bearing, not decorative — the code sits high so a notification
+     preview often saves opening the email; the words *"sign-in code is"*
+     sit immediately before the digits because that adjacency is how iOS
+     and Android detect a one-time code and offer autofill (pairing with
+     the input attribute in 3e); the code is not inside a link, since some
+     clients linkify anything tappable and a scanner may follow it; and it
+     is monospaced and widely spaced for six digits on a small screen.
+     ⚠⚠ **THE SLICE LOST ITS DASHBOARD CHANGE, ON EVIDENCE.** The plan
+     was to shorten the OTP expiry to 10 minutes. **There is one expiry
+     dial** (`Auth → Providers → Email → Email OTP Expiration`) **and it
+     moves every email token at once**, including the password-reset link
+     that template 1 promises lasts an hour. So the change would have made
+     that email lie, and shortened it for exactly the person the reset flow
+     exists for. It also buys almost nothing: *"a short expiry does more
+     against guessing than any rule we write"* was true before this slice
+     had a rule and false the moment it did — at 5 wrong codes per 10
+     minutes an attacker gets ~30 guesses an hour against a million
+     combinations. **Left at 1 hour**, reasoning recorded in the template
+     doc so it is not relitigated.
+   - ✅ **3c — requesting a code** (`app/login/code-actions.ts`,
+     `lib/auth/code-session.ts`). Always succeeds, as
+     `/forgot-password` does, so the form cannot be used to discover who
+     has an account here. ⚠ **That silence is harder to hold here**, because
+     `shouldCreateUser: false` makes Supabase answer an unknown address
+     with a DISTINCT error (`422 otp_disabled`, *"Signups not allowed for
+     otp"*) rather than a quiet nothing. Every error swallowed except the
+     captcha one, which is safe because it keys off the pass, not the
+     address. ⭐ **The pending-address cookie is part of that silence** —
+     written on every path that gets past the gates, because a cookie set
+     only for real accounts would answer through a side channel the exact
+     question every other line refuses to answer.
+     ⭐ **THE HALF-BUILT ACCOUNT IS REAL — measured, by making one.** The
+     same call without `shouldCreateUser: false` produced a row in
+     `auth.users`, already `confirmed_at` **and** `last_sign_in_at`, with
+     zero rows in `nclex_users` and zero roles: a person who exists to
+     Supabase and is invisible to the app. The 500 the caller sees arrives
+     afterwards, from the email — so the error is not even the damaging
+     part. Test user deleted. **The identical trap waits on slice 5's
+     OAuth callback.**
+   - ✅ **3d — verifying** (`verifyCodeAction`). ⭐ **The `?code=` trap does
+     not apply** — see the struck-through warning above. ⭐ **No Turnstile
+     on this step, checked not assumed**: `/auth/v1/verify` with no pass at
+     all answers `otp_expired`, not `captcha_failed`, so a pass here would
+     be friction with no counterpart. Rule: **5 wrong codes in 10 minutes**
+     per address, counting `CODE_LOGIN_FAIL` only. ⚠ **Two doors, two
+     counters, in both directions** — a mistyped code must never reach the
+     password counter and vice versa, or a student struggling at one door
+     silently loses the other. Held by construction and pinned by tests
+     that were **mutation-checked**, not merely green.
+   - ✅ **3e — the two-step UI** (`app/login/code-form.tsx`,
+     `/login?mode=code`, reached from *"Email me a sign-in code instead"*).
+     Mode in the URL so it survives a reload; **step decided by the server
+     from the cookie**, which is the whole point — she asks for a code,
+     switches to Gmail, and the phone discards the tab behind her. Proven:
+     a full reload returns her to the code box with the address intact.
+     Had it lived in React state she would land on an empty field, and
+     asking again is what trips the 3-an-hour limit.
+     **One field, not six boxes** — the six-box pattern looks premium and
+     behaves badly exactly where these students are (paste lands in one box
+     on many mobile browsers, screen readers announce six unlabelled
+     fields, OS autofill often declines). A single input keeps
+     `autocomplete="one-time-code"` working, which is the biggest usability
+     win available. ⭐ **The widget is mounted on both steps and only
+     *resend* waits for it** — resending is not verifying, it is step 1's
+     request wearing step 2's clothes, so it needs the same pass; the code
+     box never waits for Cloudflare.
+     ⚠ Two bugs found only by driving it: a **nested `<form>`** for the
+     restart control (HTML forbids it, browsers silently drop the inner
+     one, so it would have done nothing), and **React 19 resets the field
+     after every action** — which is wanted, but it made `required` block
+     later submits before the action ran, and is invisible in the file.
+   - ✅ **3f — verified on dev.** ⭐ **The end-to-end proof is Sam's own
+     run**: `CODE_REQUESTED` 11:09:29 → `CODE_LOGIN_OK` 11:10:08, **39
+     seconds**, `reason: null` on the request (so the send genuinely
+     succeeded), `user_id` set and `nclex_users.last_login_utc` written.
+     Also driven and confirmed against the table: an unknown address
+     advances exactly as a real one does while the log holds
+     `user_exists: false` · five wrong codes then `CODE_BLOCKED /
+     threshold_verify_10min` ("try again in 7 minutes") · three requests
+     then `CODE_BLOCKED / threshold_request_60min` ("46 minutes") · the
+     cookie cleared server-side by *"Use a different email address"*,
+     confirmed by reload · `httpOnly` real (invisible to `document.cookie`)
+     · **375px clean** — no horizontal overflow, code field and widget both
+     sized to the card. ⭐ **The two counters proved separate in the live
+     system, not just in tests**: that address was verify-blocked and could
+     still request codes.
+     ⚠ **Unexercised, and named rather than covered by "done"**: the
+     **resend** control (needs a 60 s wait plus a ready pass), **Turnstile
+     meeting a real challenge** on this door (dev runs the testing pair, so
+     the pass is always instant), and **`next`** threading through the code
+     door. None are security controls.
+   - ⓘ **Prod is untouched.** `20260906120000` reaches prod through
+     `migrate-prod.yml` on the next release, and ⚠ **prod's Magic Link
+     template must be replaced with template 3 before that release**, or
+     the code door sends links there.
 4. **Attach `nclex.quademia.com` to the app Worker** (routes block in
    wrangler.jsonc + Supabase redirect allowlist + site URL).
 5. **Google sign-in** — gated on the consent screen showing Quademia, not

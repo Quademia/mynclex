@@ -93,9 +93,18 @@ export async function requestResetAction(formData: FormData): Promise<ForgotResu
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     // ⚠ Must be on the Supabase project's redirect allowlist
-    // (Authentication → URL Configuration) or the send is refused. And it
-    // will need revisiting at build-order item 4, when the app moves to
-    // nclex.quademia.com and this stops pointing anywhere useful in prod.
+    // (Authentication → URL Configuration) or the send is refused — that
+    // is the gate that actually bites, and it is a dashboard setting, not
+    // something this file can enforce.
+    //
+    // ⓘ This line USED to warn that item 4 (nclex.quademia.com) would
+    // leave it "pointing nowhere useful in prod". Checked when item 4 was
+    // built on 2026-08-09, and it was wrong: `origin` is whatever address
+    // the browser actually arrived on, so the link follows the app to a
+    // new domain by itself. Nothing here changed for the move. The same
+    // is true of the two invite paths (lib/enrolments/actions.ts,
+    // lib/payments/activate.ts) and the Paystack return URL
+    // (lib/payments/actions.ts), which read the request the same way.
     redirectTo: `${origin}/reset-password`,
     // Spent here, once. See the login action for why this is the only
     // place the token is checked.

@@ -31,6 +31,13 @@ import { deviceLabelFrom } from './device-label';
 // with slice 5; they are named here and in the constraint now so those
 // slices need no migration.
 //
+// ⚠ CORRECTED 2026-08-09 — "no migration" held for three of slice 3's four
+// types, not all four. 2a foresaw the types describing what the STUDENT did
+// (requested a code, signed in, got it wrong) and missed the one describing
+// what WE did: refuse her before asking. CODE_BLOCKED cost
+// 20260906120000_code_blocked.sql. The same blind spot is worth watching for
+// in slice 5: GOOGLE_FIRST_SIGNIN is a success type with no refusal partner.
+//
 // *_BLOCKED are separate types rather than a flag on a fail because
 // slice 2c must exclude blocked attempts from the counts that blocked
 // them — otherwise the punishment feeds itself and one tripped limit
@@ -51,6 +58,11 @@ export type AuthEventType =
   | 'CODE_REQUESTED'
   | 'CODE_LOGIN_OK'
   | 'CODE_LOGIN_FAIL'
+  // Both of slice 3's refusals — too many codes requested, too many wrong
+  // codes entered — plus a Turnstile refusal on the request step. One type;
+  // `reason` says which ('threshold_request_60min' / 'threshold_verify_10min'
+  // / 'turnstile:<code>'), exactly as LOGIN_BLOCKED already does for three.
+  | 'CODE_BLOCKED'
   | 'INVITE_ACCEPTED'
   | 'GOOGLE_FIRST_SIGNIN';
 
