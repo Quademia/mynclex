@@ -196,6 +196,20 @@ export async function requestCodeAction(
   return { ok: true };
 }
 
+/**
+ * "Use a different address" — drop the pending one and go back to the email
+ * step (slice 3e).
+ *
+ * An action rather than a link because a cookie cannot be cleared by
+ * navigating to a page: Next.js forbids writing cookies during a render, so
+ * only an action or route handler can do it. A link would take her to the
+ * email step while the cookie quietly kept her old address alive, and the
+ * next reload would drop her back onto the wrong code box.
+ */
+export async function restartCodeAction(): Promise<void> {
+  await forgetPendingCodeEmail();
+}
+
 type VerifyCodeResult =
   // On success this never returns — redirect() throws. Present so the
   // union is honest about the shape rather than pretending.
