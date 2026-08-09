@@ -1239,6 +1239,64 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      the code door sends links there.
 4. **Attach `nclex.quademia.com` to the app Worker** (routes block in
    wrangler.jsonc + Supabase redirect allowlist + site URL).
+   **STATUS 2026-08-09 (later) — ✅ ITEM COMPLETE AND LIVE ON PROD.**
+   Released as PR #51, prod `d86f6e2`. Both workflows green; the tracker
+   went 153 → **154** rows.
+   - ✅ **The domain is served by the prod Worker**, attached by the
+     deploy itself: `custom_domain: true` on an `env.prod` route, so
+     wrangler created the DNS record and provisioned the certificate.
+     Nothing was added by hand. ⓘ **The deploy token turned out to carry
+     Zone → DNS → Edit**, which was the one thing that could not be
+     checked in advance — the fallback (attach in the dashboard, drop the
+     block) was never needed.
+   - ✅ **Verified on the live domain, not assumed**: `/`, `/login`,
+     `/register`, `/forgot-password`, `/programmes`, `/readiness` all
+     **200**; `/student` **307** to login. The **prod** Turnstile sitekey
+     is present in the login browser bundle and the dev testing key
+     appears **zero** times; `/reset-password`'s bundle carries the
+     Supabase URL as a literal with nothing left unreplaced — so both
+     08-08 traps are clear on the new host.
+   - ⭐ **THE APP NEEDED NO CODE CHANGE, AND THE DOC HAD PREDICTED
+     OTHERWISE.** Every absolute URL the app builds — the reset link, both
+     invite links (`lib/enrolments/actions.ts`, `lib/payments/activate.ts`)
+     and the Paystack return (`lib/payments/actions.ts`) — is read off the
+     incoming request, so each followed the app to the new domain by
+     itself. The warning in `app/forgot-password/actions.ts` that this
+     item would leave the reset link "pointing nowhere useful in prod" was
+     checked and **struck**, with the finding written in its place.
+   - ⭐⭐ **`workers_dev` FLIPPED ITS OWN DEFAULT, AND THE PLAN LOST.** The
+     agreed sequence was two releases: attach the domain with
+     `mynclex.qacademynurses.workers.dev` still open, prove the new host
+     against a working fallback, *then* close the old one. It did not
+     happen. `workers_dev` defaults to true only while a Worker has **no
+     routes** — declaring the custom domain flipped it to false, and both
+     changes landed in the same deploy. The only trace was a line in the
+     deploy log. ⚠ **The recommendation to take the "safe" two-step was
+     mine and it was built on a wrong belief about that default.** It cost
+     nothing (the certificate provisioned instantly, the domain answered
+     first request) and `false` is the state we wanted — but the safety
+     step was never actually taken. The value is now **stated explicitly**
+     in `wrangler.jsonc` with the reasoning, because an implicit default
+     that silently overrides a plan is the 08-08 shape: config that does
+     not say what is true.
+   - ✅ **The rename debt this move always carried is paid**:
+     `support@qacademynurses.com` → `support@quademia.com` in
+     `app/no-access/page.tsx` and
+     `app/(public)/checkout/callback/page.tsx`. Confirmed in the compiled
+     bundle; the string `qacademynurses` no longer appears anywhere in app
+     code. The old address still receives, so a receipt already in
+     somebody's inbox does not go dead.
+   - ⓘ **Sam did both dashboard halves before the release** — prod's
+     Supabase redirect allowlist + Site URL, and the prod Turnstile
+     widget's hostname list. Neither lives in the repo and both refuse the
+     new domain **silently** if missing, so they are the first thing to
+     check if the front door ever misbehaves on a new host.
+   - ⚠ **This release also carried slice 3** (email-code login) and its
+     migration, which had been sitting on `main`. Prod's Magic Link
+     template was replaced with template 3 by Sam beforehand, which was
+     the stated blocker. ⬜ **The code door has still never been driven on
+     prod** — only on dev. Prod being empty by design keeps the blast
+     radius near zero, but it is not verified there.
 5. **Google sign-in** — gated on the consent screen showing Quademia, not
    a Supabase project ID (the gamma-era "sign in to
    <ref>.supabase.co" screen must never exist here). Settled 2026-08-05:
