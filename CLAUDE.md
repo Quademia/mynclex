@@ -34,7 +34,14 @@ For now, keep it minimal.
   2026-08-05; this line previously claimed a "shared QAcademy instance",
   which was never true — see `docs/product-plan/domain-and-identity.md`)
 - `@supabase/ssr` for cookie-based server-side auth
-- Resend for transactional email via a dedicated MyNclex email worker
+- Resend for email — **sent from the app itself** (Server Actions), not from a
+  separate worker (corrected 2026-08-10; this line previously said "via a
+  dedicated MyNclex email worker", copied from gamma's shape. Gamma needs one
+  because a static site on Pages has nowhere to run server code; we are Next.js
+  on Workers, so the extra hop buys nothing — and gamma's worker never achieved
+  what it existed for, since the secret needed to reach it ships to the
+  browser. `workers/` here holds only a `.gitkeep` and should stay that way.
+  See `docs/product-plan/transactional-email.md`)
 - Paystack for payments (GHS + international card)
 
 MyNclex is the first QAcademy product on this stack. MyNMCLicensure and
