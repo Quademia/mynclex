@@ -973,6 +973,16 @@ references (rename debt above) and the Resend/SMTP work already scoped.
        page that neither listed as a dependency. Decision on where the
        legal pages live, and the rule for writing them: → *Legal pages*,
        below the build order.
+       ⭐ **UPDATE 2026-08-10 — the ROUTE exists; the DOCUMENT does not.**
+       `https://quademia.com/privacy` is live (own repo, own domain — see
+       *Legal pages*), so neither this nor Google's verification is
+       waiting on an address any more. Both now wait only on the prose —
+       which in turn waits on **company registration**, because a privacy
+       policy has to name a data controller. ⚠ "MyNclex has no
+       privacy-policy route at all" above is no longer the blocker, but
+       do not read the live URL as the item being unblocked: a page
+       reading *Coming soon* cannot carry Cloudflare's Privacy Addendum
+       reference.
      - ⓘ Refusal copy is one shared sentence — *"We could not verify your
        browser. Please refresh the page and try again."* Deliberately
        silent about which of the reasons applied, since they all have the
@@ -1562,6 +1572,19 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    **Carries the invite rewrite** — see item 1's template note and the
    Supabase-managed section of `transactional-email.md`.
 7. Cross-product SSO — parked, revisit post-migration of sibling products.
+   ⓘ **It now has an obvious home.** As of 2026-08-10 the parent site
+   (`quademia.com`, its own repo — see *Legal pages*) runs the same stack
+   as this app, which is precisely why it was built as an application
+   rather than as static files. It carries no Supabase, no database and no
+   login today; SSO is the one thing that would change that, and it would
+   be a decision, not a slice.
+
+ⓘ **Not numbered, because it is not this app:** the **parent site** was
+built and released on 2026-08-10 — `quademia.com` + `www`, with
+`/privacy` and `/terms` as placeholders. It is a separate repo with its
+own branches and its own Workers. Nothing in the numbered list above
+depends on it except that the legal-page *addresses* now exist. → *Legal
+pages*, below.
 
 ---
 
@@ -1576,26 +1599,90 @@ ours (see the 2d notes above, which recorded it as a launch-time question and
 did not connect it to anything else). One missing page, two stalled items,
 and neither had it as a named dependency.
 
-### Where they live: **in this repo, at `nclex.quademia.com/privacy` and `/terms`** — for now
+### ~~Where they live: **in this repo, at `nclex.quademia.com/privacy` and `/terms`** — for now~~
 
-Sam's question was whether to stand up a small site at `quademia.com`
+> ⚠⚠ **REVERSED BY SAM ON 2026-08-10, THE DAY AFTER IT WAS WRITTEN, AND THE
+> REVERSAL IS BUILT AND LIVE.** The legal pages are **not** in this repo.
+> They are at **`https://quademia.com/privacy`** and **`/terms`**, served by
+> a **second repo**, `QAcademy-Nurses/quademia-parent-site`. The original
+> reasoning is kept below, struck through, because it is wrong in an
+> instructive way — see *Where they actually live*, which follows it.
+
+~~Sam's question was whether to stand up a small site at `quademia.com`
 instead. Checked, and the root domain **serves nothing** — no apex record, no
 `www`, and the `.org` is dark. Only `nclex.quademia.com` resolves. So "a
 small repo at the root" is a new repo, build, Worker/Pages project, DNS and
-deploy pipeline, from zero.
+deploy pipeline, from zero.~~
 
-Decided in this repo because:
-- **Google is satisfied either way** — the authorized domain is
+~~Decided in this repo because:~~
+- ~~**Google is satisfied either way** — the authorized domain is
   `quademia.com`, which covers its subdomains. Hosting location does not
-  change the verification outcome, so this constraint does not decide it.
-- **It is the fastest route to a live URL**, and a live URL is the only
-  thing standing between us and a running verification clock.
-- **Moving later is cheap** — a redirect, and one URL edited in the Google
-  console.
-- **The root site is coming, but is not ready to be forced into existence.**
+  change the verification outcome, so this constraint does not decide it.~~
+- ~~**It is the fastest route to a live URL**, and a live URL is the only
+  thing standing between us and a running verification clock.~~
+- ~~**Moving later is cheap** — a redirect, and one URL edited in the Google
+  console.~~
+- ~~**The root site is coming, but is not ready to be forced into existence.**
   It needs brand decisions that have not been made (the About page, the
   "Qualified + Academia" story). A legal page should not drag those forward
-  half-finished.
+  half-finished.~~
+
+### Where they actually live: **`quademia.com/privacy` and `/terms`, in their own repo** — settled and shipped 2026-08-10
+
+Sam re-opened it the next morning with one sentence: *why do something now
+and redo it later?* Three things came out of that, and each reversed a
+claim above.
+
+- ⭐⭐ **THE COST WAS MIS-PRICED, NOT MIS-JUDGED.** "A new repo, build,
+  Worker/Pages project, DNS and deploy pipeline, from zero" costs a
+  *website*. Sam had asked for **two pages**. The actual build — repo,
+  three routes, pipeline, domain, live — took one session.
+- ⭐ **"Moving later is cheap" WAS THE WEAKEST LINE ON THE PAGE.** A
+  privacy-policy URL is *recorded by outsiders*: Google's OAuth consent
+  configuration, Cloudflare's Turnstile privacy-addendum requirement, the
+  payment provider, later an app store. Moving it means re-telling each,
+  and a Google brand verification may have to re-run. Worse, the move
+  would probably never happen — the root site needs brand decisions nobody
+  has made, so "for now" quietly becomes forever, and then a **MyTeacher**
+  user reads the *company's* privacy policy on a *nursing product's*
+  subdomain.
+- ⭐ **THE EXTRACTION RULE APPLIES IN REVERSE, AND THAT IS THE REAL
+  ARGUMENT.** Legal pages inside this repo do not break `cp -r mynclex/`
+  going *out*; they break it coming *back*. The **company's** documents
+  would depend on **one product's** deployment staying alive. And the
+  precedent is this project's own: `mynclex` was a folder in the gamma
+  repo, went stale, and had to be cut out on 2026-05-19.
+
+⓵ **A third option was designed and rejected.** Serving
+`quademia.com/privacy` from *this* Worker via Cloudflare zone routes needs
+**three** special cases — an asset carve-out (or the page arrives as
+unstyled text, because `/_next/*` would be swallowed by the apex redirect),
+a login-cookie scoping guard (a Supabase cookie set on the apex is sent to
+every subdomain), and a middleware exclusion. All three exist only because
+one app would be answering to two identities. When the clever option needs
+three special cases and the plain one needs none, the clever option is only
+cheaper this week.
+
+**What now exists** (full detail lives in that repo's `CLAUDE.md` and
+`README.md`, not here — this section is a pointer, not a second copy):
+
+- `QAcademy-Nurses/quademia-parent-site`, private. Same stack as this app
+  on purpose (Next 16 / React 19 / OpenNext on a Worker) so both migrate
+  together rather than becoming two things to understand. **No Supabase, no
+  database, no login, no secrets** — cross-product SSO (build order ⑦) is
+  the one thing that would change that.
+- `main` → dev Worker on the **personal** CF account. `prod` → live Worker
+  on the **workspace** account, serving `quademia.com` + `www`.
+  ⚠ The custom domain can only ever be on prod: the zone is on the
+  workspace account and Cloudflare will not route a custom domain across
+  accounts — the same rule that decided where the domain was bought.
+- `/`, `/privacy`, `/terms` are live. **The legal pages are "Coming soon"
+  placeholders** — the *address* was the urgent part, not the prose.
+
+⚠ **`@opennextjs/cloudflare` had to be pinned exactly (`1.19.6`) there, and
+now here too.** This repo's `^1.19.1` floats to 1.20.x, which requires
+`next >= 16.2.11` against our 16.2.4 — `npm install` fails outright, and
+only the lockfile was hiding it.
 
 ### ⭐ The rule that matters more than the hosting
 
@@ -1619,13 +1706,50 @@ across several jurisdictions (Ghana, US, UK, Canada). A professional should
 read it before it goes live. Recorded here so "Claude drafted it" is never
 mistaken for "it was reviewed".
 
-### Separately: the apex domain is dark
+### ⚠⚠ The document is blocked on COMPANY REGISTRATION (found 2026-08-10)
 
-Now the name is publicly discoverable (registration + certificate logs),
+A privacy policy has to name a **data controller** — the legal person
+answerable for the data. **Quademia Ltd is not incorporated** (§2:
+"Nothing is registered yet"), and "QAcademy Educational Consult" never was
+either. So there is currently **no entity to name**.
+
+⭐ This re-orders two lists that looked independent. The registration
+checklist in §2 is **upstream of the legal text**, not parallel to it —
+the Ghana ORC step in particular. Writing the policy first would mean
+drafting it around a company that does not exist and then amending the one
+document we least want to amend.
+
+ⓘ Same constraint, smaller: the parent site carries **no "Quademia Ltd"
+and no registration number on any page** for the same reason. That is
+written into its `CLAUDE.md` as a standing rule, not left to memory.
+
+### ~~Separately: the apex domain is dark~~ — ✅ FIXED 2026-08-10
+
+~~Now the name is publicly discoverable (registration + certificate logs),
 someone who hears "Quademia" and types `quademia.com` gets nothing. ⓘ **This
 needs no repo** — a DNS record plus a Cloudflare redirect rule to
 `nclex.quademia.com` fixes it with zero infrastructure. Low urgency, and a
-separate decision from where the legal pages live.
+separate decision from where the legal pages live.~~
+
+The parent site closed this as a side effect, and better than the planned
+redirect would have: `quademia.com` and `www.quademia.com` now serve a real
+holding page naming the company and linking to MyNclex, rather than
+bouncing a curious visitor into a nursing product. No redirect rule was
+needed. ⓘ The `.org` is still dark and still purely defensive.
+
+ⓘ **Two deployment behaviours worth knowing before the next domain change**,
+both observed on 2026-08-10:
+- **The first request to a route within ~30 s of a deploy can 404** while
+  Cloudflare rolls the new version across its edge. Seen on three separate
+  deploys, a different route each time, always stable afterwards. Not a
+  defect — but it means the first visitor after a release can catch a
+  stale edge.
+- ⚠ **A negative DNS answer outlives the fix.** The apex had been dark all
+  day, so the local network had cached "no address" and kept refusing
+  `quademia.com` for about an hour after it was live worldwide.
+  `ipconfig /flushdns` did not help — the stale entry was upstream. Verify
+  with `curl --doh-url https://cloudflare-dns.com/dns-query`, or from
+  mobile data, before concluding a domain has failed to attach.
 
 ---
 
