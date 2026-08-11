@@ -1,12 +1,21 @@
 # Transactional Email — Trigger Registry
 
-*Status: **architecture settled, nothing built**. This doc is the single
-source of truth for **every point in the app that should send an email**, and
-now also for **how a send works**. See [main.md](main.md) and
+*Status: **slice 1a BUILT — the queue, the sender and the receipt. The clock
+(1b) is next.** On the session branch, dev-tested, not on `main`. This doc is
+the single source of truth for **every point in the app that should send an
+email**, and for **how a send works**. See [main.md](main.md) and
 [payments-and-enrolment.md](payments-and-enrolment.md).*
 
-Last updated: 2026-08-10 (design session, no code — the two classes;
-outbox + no email Worker; the fingerprint; the receipt is per **checkout**;
+Last updated: 2026-08-11 (**slice 1a built** — see *Slice 1a* below: inline
+send via `waitUntil`; the reason decides the retry, not a count; a short
+automatic window then a human; three framings, because the pay-first branch
+grants nothing at payment time; `noreply@` + Reply-To; dev sends for real
+except `@example.com`; the catalog is a **capture list, not a build plan**;
+rolling windows for every ⏰ email. Three defects found by reading rendered
+output rather than by tsc or lint).
+
+Previously: 2026-08-10 (design session, no code — the two classes; outbox +
+no email Worker; the fingerprint; the receipt is per **checkout**;
 `enrolment.confirmed` folded into `payment.received`; first pair chosen;
 templates as `.ts` files carrying a frozen snapshot; monitoring = a "stuck"
 admin page **plus** an out-of-band alert).
@@ -19,8 +28,29 @@ Email should have been wired from the start; it wasn't. Rather than retrofit it
 feature-by-feature, we will build it **once, as a focused arc, after the core
 app is in good shape**. Until then the rule is: **whenever we build something
 that ought to send an email, we (1) add a row to the catalog below and (2) drop
-a greppable marker at the exact code location.** When the email arc lands, this
-registry IS the build checklist and the markers ARE the wiring points.
+a greppable marker at the exact code location.**
+
+> ### ⚠ The catalog is a CAPTURE LIST, not a build plan (Sam, 2026-08-11)
+>
+> This section used to end *"this registry IS the build checklist and the
+> markers ARE the wiring points."* Both halves of that were too strong, and
+> Sam's correction is the more useful frame:
+>
+> **Some catalogued emails will never be built, and emails will be built that
+> were never catalogued.** So the catalog records what we noticed we might
+> owe someone — it does not commit us to 24 emails, and it does not bound us
+> to those 24.
+>
+> Two consequences that shaped slice 1a:
+>
+> - **Per-email decisions stay per-email.** Whether a late reminder should
+>   still go out is an editorial judgement about *that* email; deciding it
+>   globally, in advance, for emails that may never exist is designing around
+>   guesses. The machinery only has to be *able* to express either answer.
+> - **`EmailEventKey` in `lib/email/types.ts` lists only what is WIRED**, and
+>   grows one entry at a time. Seeding it from the catalog would put keys in
+>   the code for emails nobody built — which is exactly how gamma ended up
+>   with `{{expiryDate}}` placeholders no template ever used.
 
 ## How a send works — settled 2026-08-10
 
@@ -44,8 +74,17 @@ can share one sender. **Every send is recorded, instant ones included**
 ⚠ **This supersedes the old "Resend via a dedicated MyNclex email worker
 (`workers/`)" line**, which came from CLAUDE.md and was copied from gamma's
 shape. `workers/` in this repo holds nothing but a `.gitkeep`, and should
-stay that way. ⓘ **CLAUDE.md's "Stack (Target)" still carries the old line
-and needs a one-line correction.**
+stay that way. ✅ CLAUDE.md's "Stack (Target)" was corrected the same day
+(2026-08-10) and now reads *"sent from the app itself"*.
+
+> ⚠ **A note about another file's state is only true on the day it is
+> written.** This paragraph carried "CLAUDE.md still needs a one-line
+> correction" for a day after CLAUDE.md had already been corrected, and on
+> 2026-08-11 Claude repeated it as fact four or five times in one session
+> without opening the file. Same trap as the session-log entries that say
+> "not on prod" — the claim is dated, the reader is not. If you find
+> yourself citing this doc about the *contents of another file*, go and
+> look.
 
 **Sam's call, 2026-08-10:** gamma needed a Worker because a static site on
 Cloudflare Pages has nowhere to run server code. We are Next.js on Workers —
@@ -253,8 +292,29 @@ From a read of `mynmclicensure/workers/email-worker/index.js`, 2026-08-10:
    filters want both.
 
 ⓘ **Worth keeping from gamma:** the shared `footer.html` injected into every
-body (social links in one place), and `{{placeholder}}` substitution itself —
-simple, and legible to a non-coder.
+body (social links in one place).
+
+### ⚠ Built without `{{placeholder}}` substitution (2026-08-11)
+
+The section above assumes gamma's mechanism — a template string with
+`{{name}}` holes, filled at send time. **Slice 1a did not use it**, and the
+reason is that the doc's own requirement rules it out.
+
+This doc asks each template to declare *"the list of values it requires, so
+rendering one without a value it needs is caught"*. With `.ts` files and a
+typed payload, **the type IS that list**, and it is checked when the code is
+built rather than discovered in somebody's inbox. Placeholders would give us
+gamma's problem back: a typo'd `{{teachr}}` ships as literal text.
+
+So a template is a function of a typed payload, and interpolation is
+ordinary. Points 1–4 above still all apply and are all addressed —
+`esc()` in `templates/wrapper.ts` escapes every non-literal value, a missing
+value is a build error rather than a blank, there is no shared filler, and
+`render.ts` produces a plain-text twin of every message.
+
+⚠ The trade named above is unchanged and still real: Sam writes the copy, and
+a `.ts` file is more intimidating to open than an `.html` one. `/admin/emails/preview`
+exists partly to soften that — every variant is visible without reading code.
 
 ### Who writes the words
 
@@ -277,6 +337,39 @@ against. If our sender stops running, Resend does not go red; it shows fewer
 emails, and that is indistinguishable from a quiet week.
 
 So the view has to be ours.
+
+#### ⭐ But the two halves are complementary, not rivals (settled 2026-08-11)
+
+Sam asked the sharp version of this: *could we skip the outbox table entirely
+and build the admin page from Resend's data?* Their read API is better than
+assumed — a list endpoint, a per-email retrieve, `last_event`, and the body
+retained — so it deserved a real answer rather than a reflex. Four things
+rule it out, each fatal alone:
+
+1. **It only knows what it ACCEPTED.** A rejected call, a wrong key, a job
+   that never ran — none create a record there. The list just comes back
+   shorter.
+2. **Duplicate protection must happen BEFORE the network call.** Two Paystack
+   retries in the same second are refused by our unique index; asking Resend
+   "did I send this already?" is check-then-act across a network.
+3. **"Who have I already warned?" has to run at scan speed.** One indexed
+   query here versus an HTTP call per student there.
+4. **A failed send left nothing at Resend to retry FROM** — no payload, no
+   recipient, no snapshot.
+
+**The division: our table owns INTENT and ATTEMPT; Resend owns OUTCOME**, and
+`provider_message_id` is the join. That is what let the bounce webhook be
+deferred — the page *pulls* `last_event` per row instead of being *pushed* it,
+with no public endpoint and no signature verification to build.
+
+⚠ **The pull needs a full-access Resend key.** A send-only key sends
+perfectly and returns `restricted_api_key` on every read, which on 2026-08-11
+made every row read "Handed over" for ever with no hint why. `fetchDeliveryStatus`
+now reports *why* it came back empty and the page says so above the table —
+a monitoring column that quietly stops answering is the very failure this
+layer exists to catch, reproduced inside the monitor. Sam widened the key.
+ⓘ When the bounce webhook is eventually built, Resend pushes and needs no
+read permission, so the keys should go back to send-only then.
 
 ### Two halves, both needed
 
@@ -346,17 +439,25 @@ grep -rn "EMAIL-TRIGGER" --include=*.ts --include=*.tsx
 That list should always reconcile with the catalog. When you add a marker, add
 (or tick) the matching catalog row in the same change.
 
-> ⚠ **It does not reconcile, and never has (checked 2026-08-10).** There is
+> ⚠ **It did not reconcile, and never had (checked 2026-08-10).** There was
 > exactly **one** `EMAIL-TRIGGER` marker in the whole codebase —
 > [`app/(public)/checkout/callback/page.tsx`](../../app/(public)/checkout/callback/page.tsx)
-> — and its key, `payment.setup_link_resend`, **is not in the catalog at all**.
-> Half of the convention was never practised.
+> — and its key, `payment.setup_link_resend`, **was not in the catalog at
+> all**. Half of the convention was never practised.
 >
 > The consequence for the build: *"the markers ARE the wiring points"* is a
-> promise this repo cannot keep. Each slice must **find** its call sites by
+> promise this repo could not keep. Each slice must **find** its call sites by
 > reading the code, using the `Anchor` column below as the guide (that column
 > does appear accurate). Drop the marker as you wire each one, so the second
 > half of the arc gets the benefit the first half didn't.
+>
+> ✅ **Started, 2026-08-11.** Slice 1a added three real markers, all
+> `payment.received`, all catalogued — two in `lib/payments/activate.ts`
+> (the pay-first branch and the granted branch) and one in
+> `lib/enrolments/actions.ts` (tutor mark-paid). Five of the six markers now
+> in the repo reconcile. The odd one out is still
+> `payment.setup_link_resend`, which remains uncatalogued because it marks an
+> email we have chosen not to build — the receipt covers that reader instead.
 
 ### Going-forward checklist (per feature)
 
@@ -424,7 +525,7 @@ content release, or account state, ask "should this notify someone?" — if yes:
 
 | Event key | Kind | Trigger | Recipient | Purpose | Pri | Anchor |
 |---|---|---|---|---|---|---|
-| `payment.received` | ⚡ | A **checkout** is paid — Paystack success OR tutor "mark paid" | student | **Receipt**: amount, method, reference + one "what you now have" line per purpose in the checkout (incl. *you're enrolled*, folded in above). Fingerprint = `checkout_group_id` | P1 | ✅ |
+| `payment.received` | ⚡ | A **checkout** is paid — Paystack success OR tutor "mark paid" | student | **✅ BUILT 2026-08-11.** Receipt: amount, method, reference + one "what you now have" line per purpose in the checkout (incl. *you're enrolled*, folded in above), in three framings. Fingerprint = `checkout_group_id` | P1 | ✅ |
 | `payment.failed` | ⚡ | Paystack reports a failed/declined charge | student | Payment didn't go through, retry link | P1 | ✅ |
 | `payment.installment_due` | ⏰ | An installment is approaching its due date | student | Reminder + pay link | P1 | ⬜ (clock ✅ — see below) |
 | `payment.installment_overdue` | ⏰ | An installment passes its due date unpaid | student | Overdue notice + grace info | P1 | ✅ (state) / ⬜ (job) |
@@ -444,6 +545,51 @@ content release, or account state, ask "should this notify someone?" — if yes:
 > reminder computes its own due date separately, the two can drift, and the
 > failure mode is the bad one: *"your access is paused, payment overdue"*
 > arriving to somebody who was **never warned**.
+>
+> #### ⭐ Stages are ROLLING WINDOWS, never calendar dates (settled 2026-08-11)
+>
+> This is the general rule for all **seven** ⏰ emails, not just this one, and
+> getting it wrong reintroduces the exact failure above.
+>
+> The obvious definition of the last warning is *"due today"*. It is broken,
+> because the sweep only looks **once a day, at 02:00**. Take a payment due at
+> 01:00 on Friday:
+>
+> | Run | What it sees | What it does |
+> |---|---|---|
+> | Thursday 02:00 | due Friday — not "today" | nothing |
+> | Friday 02:00 | overdue by an hour | **pauses her** |
+>
+> She is locked out having heard nothing, and this happens to *everyone* whose
+> due time falls in the early hours.
+>
+> Ask instead **"is it due within the next 24 hours?"** — Thursday's run sees
+> 23 hours and warns; Friday's pauses. A full day's notice.
+>
+> ⭐ **And it is a guarantee, not an improvement.** The job runs every 24
+> hours and the window asks about the next 24 hours, so the windows tile end
+> to end with no gaps and no overlaps. Every due date falls inside exactly
+> one. Nobody slips between two runs; nobody is caught by two. `T-3` is the
+> same shape — *"due between 72 and 96 hours away"*, also exactly one run
+> wide, so also exactly one send.
+>
+> ⚠ **The guarantee assumes the runs actually happen.** Miss one night and
+> whoever's window fell inside it is never warned, and is paused the next
+> night. That is what makes the catch-up question load-bearing rather than
+> housekeeping — see *Still to settle*, item 2.
+>
+> ⓘ **Where the enqueue lives: inside `nclex_enrolment_nightly_sweep()`
+> itself, before the pause step** — so the warning and the pause come from
+> one expression in one function and structurally cannot drift. That
+> migration's header already warns its arithmetic mirrors
+> `lib/payments/schedule.ts` and the two must stay in lockstep; a third copy
+> is how that eventually goes wrong.
+>
+> ⓘ **No interlock.** Blocking the pause when the warning did not send was
+> considered and rejected: it ties access enforcement to a third-party mail
+> provider's uptime, so a bad week at Resend would quietly leave non-payers
+> with full access. The guarantee depends on the row being *written* — same
+> transaction as the sweep — not on Resend having delivered it.
 
 > **Every payment notifies BOTH sides.** A received payment is a paired send:
 > `payment.received` (the student's receipt) **and** `payment.tutor_received`
@@ -499,6 +645,119 @@ unsubscribe link and a stored preference. Build last — but the outbox needs an
 
 ---
 
+## ✅ Slice 1a — BUILT 2026-08-11
+
+The ⚡ half of the pair below. On the session branch, dev-tested, **not on
+`main`**. Migration `20260908120000_email_outbox.sql`; new `lib/email/` and
+`app/(app)/admin/emails/`; the receipt wired into `lib/payments/activate.ts`
+(Paystack) and `lib/enrolments/actions.ts` (tutor mark-paid).
+
+**⭐ The slice was split, and 1b must not drift.** 1a needs no scheduling at
+all, because the receipt sends inline; the flusher's *mechanism* is still
+undecided and blocks only 1b. Splitting let the decided half ship — but the
+⏰ half is the one that historically never gets built, so it is **next, not
+later**.
+
+### What 1a settled
+
+- **Instant sends go out inline, via `waitUntil`.** A receipt arriving 5–15
+  minutes late is a worse product than one arriving in three seconds, and a
+  scheduled flusher cannot beat that — GitHub's schedules run late under
+  load. `getCloudflareContext().ctx.waitUntil` returns the buyer's page at
+  once and keeps the send alive after the response; `initOpenNextCloudflareForDev()`
+  was already wired, so it behaves the same on localhost. The queue is the
+  safety net beneath the happy path, not the route it takes.
+- **⭐ The reason decides the retry, not a count.** Resend names every
+  rejection. Can-never-work → DEAD on the *first* failure (no point waiting
+  a day to learn what Resend already said, and a stuck page full of
+  never-going-to-work rows is a stuck page nobody reads). Hiccup → back off.
+  Quota → tomorrow, not ten minutes. Bad key → retry forever *and* alarm,
+  because that one is not about this email.
+  ⚠ **There is no Resend error for a bad recipient.** A typo'd address is
+  ACCEPTED and bounces afterwards, so it never enters the retry loop at all;
+  it leaves as `SENT`. Do not write retry rules for it — that gap is covered
+  by reading `last_event`.
+- **⭐ Short automatic window, then a human (Sam).** Four attempts across
+  roughly an hour, then it stops and waits for the Retry button. His
+  argument, which killed a longer schedule: *a system that quietly succeeds
+  on attempt four has hidden a day-long problem from you.* The window is
+  deliberately too short to conceal anything real.
+- **Dev and prod share one domain; the KEYS separate them** (`mynclex-dev-app`
+  / `mynclex-prod-app`, mirroring the existing `mynclex-*-smtp` pair). Sam
+  overruled a proposed dev subdomain, with the SMTP setup as precedent.
+- **Dev sends real email.** ⭐ And the stronger argument is Sam's own: for a
+  *mailer*, suppressing sends in dev is self-defeating — "I tested it and it
+  worked" stops meaning anything. ⚠ One exception, in `outbox.ts`:
+  `@example.com` is declined unqueued. Dev holds 18 such seeded addresses, on
+  a domain reserved by standard never to accept mail, so a table scan would
+  post a ~90% hard-bounce rate on a new Resend account. An address that
+  cannot receive is not a test of anything.
+- **`noreply@quademia.com` as the sender, `support@quademia.com` as Reply-To.**
+  Sam's call; these are auto-generated. ⚠ It also made shipped copy wrong —
+  the footer said *"Reply to this email"*, which with a noreply sender is
+  false. Fixed in both directions: the words point at support, and a Reply-To
+  header catches everyone who hits Reply without reading.
+
+### ⭐ The three framings — what reading the pay-first branch found
+
+The doc folded `enrolment.confirmed` into `payment.received` on the grounds
+that they are *"the same moment, same person, same checkout"*. For an
+account-holder, true. **For a pay-first guest, false**, and the receipt would
+have stated something that had not happened.
+
+`activateGroup` in `lib/payments/activate.ts`: when no profile is found it
+sends ONE invite, marks the group `SETUP_REQUIRED`, and creates **no
+enrolment, no subscription, no credits**. The grants happen at `/welcome`,
+possibly days later.
+
+So the money half is constant and the *"what you now have"* half is
+**state-aware** — `ACTIVATED`, `PENDING_APPROVAL`, `SETUP_REQUIRED`. Under the
+last of these every grants line is null, and legitimately so: a bank pass has
+no end date to quote because `end_at` is computed **at** activation.
+
+⭐ **The fold's conclusion survives, for a different reason than the doc
+gives.** No second email is needed when she finishes `/welcome`, because at
+that instant she is sitting in the app and can see she is in. One email —
+because of where she *is*, not because the two moments coincide.
+
+⭐ **And that framing is the only message that reaches her if the invite
+itself failed** (`activate.ts` logs it and tells the screen to say "contact
+support"). She has paid, has no account, and nothing else arrives on its own.
+
+### Three defects found by reading OUTPUT, not by the tools
+
+None were caught by tsc, eslint, or the type system:
+
+1. An instalment's grants line read **"Enrolled in Payment 2 of 4"** — the
+   place name was taken from the receipt line, but a `PROGRAMME_INSTALLMENT`
+   row carries `cohort_id = NULL` by the `cohort_scope` CHECK. The cohort
+   lives on the **enrolment**.
+2. A subject read **"Payment received — one step left — GHS 350"**, two
+   em-dashes in one line.
+3. `ACTIVATED` payments exist on dev with no enrolment or subscription link,
+   which silently dropped the whole *"what you now have"* section. Fallbacks
+   added — that section is what makes it a receipt rather than a bank
+   statement.
+
+ⓘ This is why `/admin/emails/preview` exists: the receipt branches five ways
+by line item and three by framing, so on any given day most branches are
+untested and the first person to meet a broken one would be a customer.
+
+### Deliberately NOT in 1a
+
+The clock and the reminder (1b) · the bounce webhook (the page pulls
+`last_event` instead) · the stuck-queue alarm (needs a non-email channel,
+and needs the queue to have been run in anger first) · fan-out · the invite
+swap · opt-out preferences.
+
+ⓘ **Also deliberately not wired: the "payments already received" backfill**
+in `addStudentWithPlan` (`lib/enrolments/actions.ts`). It writes synthetic
+`OFF_PLATFORM` rows for money the tutor took *before* the student was added.
+That is bookkeeping, not a payment event — emailing a receipt for it, at a
+moment she did not act, would confuse rather than reassure.
+
+---
+
 ## First build — the chosen pair (settled 2026-08-10)
 
 **One instant, one scheduled. Sam's call:** *"lets pick one instance that
@@ -527,7 +786,7 @@ the one change that can leave an invited student with *nothing*, so it does not
 belong in the slice still finding bugs in the pipe · opt-out preferences,
 since neither of these is opt-out-able.
 
-### Folders this arc needs (agreed 2026-08-10, none created yet)
+### Folders this arc needs (agreed 2026-08-10, ✅ all created 2026-08-11)
 
 **New folders — two certain, one likely:**
 
@@ -559,17 +818,22 @@ on their own, so subfolders would be structure for its own sake —
 `lib/toast/` is deliberately flat for the same reason. Group later if 24 files
 starts to hurt.
 
-### ⏭ Still to settle before any code
+### ⏭ Still to settle before any code — three of four closed 2026-08-11
 
-1. **The outbox row itself** — the remaining columns beyond the fingerprint
-   and the snapshot payload (status, attempts, last error, not-before).
-2. **The catch-up policy** for a missed cron run: send late, or skip? A
-   `T-3` reminder that runs a day late is arguably a `T-2` reminder, and
-   arguably nothing at all.
-3. **The alarm's own channel** — see *Monitoring*; the alert cannot be an
-   email if the thing being watched is the mailer.
-4. **Reading the pay-first branch** before the `enrolment.confirmed` fold is
-   built (see the note under *Enrolment & access*).
+1. ✅ **The outbox row itself** — settled and built. Eighteen columns; see
+   `db/migrations/20260908120000_email_outbox.sql`, whose comments carry the
+   reasoning per column.
+2. ✅ **The catch-up policy** — settled as **per-email, not global**. Sam's
+   framing: *"send late or skip"* is an editorial judgement about what a
+   particular email should say and when it stops being worth saying, so
+   answering it now for emails that may never be built is designing around
+   guesses. The TABLE carries the capability (`expires_at`, empty for
+   everything in 1a); each email fills in a value when its turn comes.
+3. ⬜ **The alarm's own channel** — still open, deliberately. It cannot be
+   designed before the queue has been run in anger, and it cannot be email.
+   This is now the only unsettled item in the arc.
+4. ✅ **Reading the pay-first branch** — done, and it found a real defect in
+   this doc's own design. See *The three framings* below.
 
 ---
 
