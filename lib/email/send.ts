@@ -17,6 +17,7 @@ import 'server-only';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { enqueueEmail } from './outbox';
 import { renderOutboxRow } from './render';
+import { SUPPORT_EMAIL } from './templates/wrapper';
 import type { EnqueueInput, FailureClass, OutboxRow, SendOutcome } from './types';
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
@@ -137,6 +138,11 @@ async function postToResend(args: {
       body: JSON.stringify({
         from,
         to: [args.to],
+        // ⭐ We send FROM noreply@ because these are auto-generated, but
+        // a real person hitting Reply must not hit a wall. Reply-To
+        // catches them silently and routes to support. The footer also
+        // says where to write, for the people who read first.
+        reply_to: [SUPPORT_EMAIL],
         subject: args.subject,
         html: args.html,
         text: args.text,

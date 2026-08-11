@@ -15,6 +15,17 @@
 //   2. Tables for layout. Outlook's rendering engine is Word's.
 //   3. A max width around 600px, which is what mail clients assume.
 
+/**
+ * Where a reader should actually write. Single-sourced because it is
+ * used twice and the two must never disagree: the footer PRINTS it, and
+ * send.ts sets it as the Reply-To header.
+ *
+ * ⭐ We send FROM noreply@ (these are auto-generated), so Reply-To is
+ * what stops "Questions? Write to us" being a dead end for anyone who
+ * just hits Reply out of habit — which most people do.
+ */
+export const SUPPORT_EMAIL = 'support@quademia.com';
+
 /** Brand colours, mirrored from styles/tokens.css (see rule 1 above). */
 export const BRAND = {
   primary: '#1e3a5f',

@@ -16,11 +16,10 @@
 // need their own footer with a real preference link; that is the point
 // to split this file, not before.
 
-import { BRAND, esc } from './wrapper';
+import { BRAND, SUPPORT_EMAIL, esc } from './wrapper';
 
 const SITE = 'https://quademia.com';
 const APP = 'https://nclex.quademia.com';
-const SUPPORT = 'hello@quademia.com';
 
 /**
  * @param context One line saying why this email reached them. Required —
@@ -35,8 +34,12 @@ export function footer(context: string): string {
     </p>
     <p style="margin:0 0 10px;font-family:Helvetica,Arial,sans-serif;font-size:12px;
               line-height:1.6;color:${BRAND.muted};">
-      Questions? Reply to this email or write to
-      <a href="mailto:${SUPPORT}" style="color:${BRAND.accent};text-decoration:none;">${SUPPORT}</a>.
+      <!-- ⚠ Do NOT restore "Reply to this email" here. We send from
+           noreply@, so that sentence would be false. Anyone who replies
+           anyway is caught by the Reply-To header set in send.ts — this
+           line is for the people who read before they click. -->
+      Questions? Write to
+      <a href="mailto:${SUPPORT_EMAIL}" style="color:${BRAND.accent};text-decoration:none;">${SUPPORT_EMAIL}</a>.
     </p>
     <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:12px;color:${BRAND.muted};">
       <a href="${APP}" style="color:${BRAND.muted};text-decoration:underline;">MyNclex</a>

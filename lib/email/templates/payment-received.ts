@@ -23,7 +23,7 @@
 
 import { formatMinor } from '@/lib/products/money';
 import type { EmailTemplate, PaymentReceiptPayload, ReceiptLineItem } from '../types';
-import { BRAND, button, esc, factRow } from './wrapper';
+import { BRAND, SUPPORT_EMAIL, button, esc, factRow } from './wrapper';
 
 // ─────────────────────────────────────────────────────────────────────
 // The three framings
@@ -84,7 +84,7 @@ const FRAMING: Record<
     note:
       'Look for a separate email inviting you to set up your account. ' +
       'If it has not arrived within a few minutes, check your spam folder — ' +
-      'and if it is not there either, reply to this email and we will sort it out.',
+      `and if it is not there either, write to ${SUPPORT_EMAIL} and we will sort it out.`,
   },
 };
 
