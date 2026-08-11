@@ -19,6 +19,12 @@ type Props = {
   sent: OutboxRow[];
   /** Resend message id → their last_event, when we could reach them. */
   delivery: Record<string, string>;
+  /**
+   * Why the delivery lookup came back empty, when it did. Shown so a
+   * column that never answers reads as "we could not ask" rather than
+   * "nothing has happened yet" — the two look identical otherwise.
+   */
+  deliveryError: string | null;
 };
 
 /** How each state reads to a person, and how loud it should look. */
@@ -55,7 +61,7 @@ function when(iso: string | null): string {
   });
 }
 
-export function EmailsView({ stuck, sent, delivery }: Props) {
+export function EmailsView({ stuck, sent, delivery, deliveryError }: Props) {
   const [toast, setToast] = useState<{ text: string; tone: 'ok' | 'bad' } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -174,6 +180,12 @@ export function EmailsView({ stuck, sent, delivery }: Props) {
           <strong>Handed over</strong> means Resend accepted it. The delivery column is their
           answer to what happened next.
         </p>
+        {deliveryError && (
+          <p className="eml-warn">
+            ⚠ Delivery status is unavailable, so every row below reads “Handed over” whatever
+            actually happened to it. {deliveryError}
+          </p>
+        )}
 
         {sent.length === 0 ? (
           <p className="eml-empty">Nothing sent yet.</p>

@@ -74,6 +74,19 @@
   color: var(--muted);
 }
 
+/* Shown only when the delivery lookup could not run at all — so an
+ * unanswering column reads as "we could not ask", not "nothing yet". */
+.eml-warn {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-left: 3px solid #d99a2b;
+  border-radius: 4px;
+  background: #fdf3e2;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #7a4f0d;
+}
+
 .eml-empty {
   margin: 0;
   padding: 20px;

@@ -320,17 +320,29 @@ export async function deliverEmailById(emailId: string): Promise<DeliverResult> 
  * us building a public endpoint with signature verification to be
  * PUSHED it. Sam's question, 2026-08-11.
  *
- * ⚠ Best-effort by design. If the key is missing or Resend is slow, the
- * page shows "handed over" and nothing worse: a monitoring view that
- * fails to load because a third party is down is not monitoring.
+ * ⚠ Best-effort by design. If Resend is slow or unreachable the page
+ * still renders: a monitoring view that fails to load because a third
+ * party is down is not monitoring.
  *
- * @returns message id → last_event ('delivered', 'bounced', 'complained'…)
+ * ⭐ BUT IT REPORTS WHY IT CAME BACK EMPTY. Returning a bare {} on
+ * failure makes "Resend has not told us yet" look identical to "we could
+ * not ask", and a column that quietly stops answering is precisely the
+ * silence this whole layer exists to detect. Found the hard way on
+ * 2026-08-11: a send-only Resend key sends perfectly and cannot read
+ * anything back, so every row read "Handed over" for ever with no hint
+ * as to why.
+ *
+ * @returns statuses keyed by message id, plus `error` when the lookup
+ *          itself could not be performed.
  */
 export async function fetchDeliveryStatus(
   messageIds: string[]
-): Promise<Record<string, string>> {
+): Promise<{ statuses: Record<string, string>; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey || messageIds.length === 0) return {};
+  if (messageIds.length === 0) return { statuses: {} };
+  if (!apiKey) {
+    return { statuses: {}, error: 'No Resend key is set in this environment.' };
+  }
 
   const results = await Promise.allSettled(
     messageIds.map(async (id) => {
@@ -338,17 +350,39 @@ export async function fetchDeliveryStatus(
         headers: { Authorization: `Bearer ${apiKey}` },
         signal: AbortSignal.timeout(4000),
       });
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { name?: string; message?: string } | null;
+        const err = new Error(body?.message ?? `Resend returned HTTP ${res.status}.`);
+        err.name = body?.name ?? `http_${res.status}`;
+        throw err;
+      }
       const body = (await res.json()) as { last_event?: string };
       return [id, body.last_event ?? ''] as const;
     })
   );
 
-  const out: Record<string, string> = {};
+  const statuses: Record<string, string> = {};
+  let firstError: Error | undefined;
   for (const r of results) {
-    if (r.status === 'fulfilled' && r.value[1]) out[r.value[0]] = r.value[1];
+    if (r.status === 'fulfilled') {
+      if (r.value[1]) statuses[r.value[0]] = r.value[1];
+    } else if (!firstError) {
+      firstError = r.reason as Error;
+    }
   }
-  return out;
+
+  // Only report an error if NOTHING came back — a single slow lookup
+  // among twenty successful ones is noise, not a fault worth a banner.
+  if (Object.keys(statuses).length === 0 && firstError) {
+    const restricted = firstError.name === 'restricted_api_key';
+    return {
+      statuses,
+      error: restricted
+        ? 'This Resend key can only send, not read. Delivery status needs a full-access key.'
+        : firstError.message,
+    };
+  }
+  return { statuses };
 }
 
 // ─────────────────────────────────────────────────────────────────────

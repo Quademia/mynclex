@@ -55,7 +55,9 @@ export default async function AdminEmailsPage() {
   const sent = (sentData ?? []) as OutboxRow[];
 
   // Ask Resend what became of the ones we handed over. Best-effort: a
-  // slow or unconfigured provider must not stop the page rendering.
+  // slow or unconfigured provider must not stop the page rendering — but
+  // if the lookup could not run at all, the view says so rather than
+  // showing a column that silently never answers.
   const delivery = await fetchDeliveryStatus(
     sent.map((r) => r.provider_message_id).filter((id): id is string => !!id)
   );
@@ -63,7 +65,12 @@ export default async function AdminEmailsPage() {
   return (
     <main className="auth-list-page">
       <div className="auth-list-inner eml-page">
-        <EmailsView stuck={stuck} sent={sent} delivery={delivery} />
+        <EmailsView
+          stuck={stuck}
+          sent={sent}
+          delivery={delivery.statuses}
+          deliveryError={delivery.error ?? null}
+        />
       </div>
     </main>
   );
