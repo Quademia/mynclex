@@ -28,6 +28,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { buildSchedule, isOverdue } from '@/lib/payments/schedule';
+import { sendPaymentReceipt } from '@/lib/payments/result';
 import type { Currency } from '@/lib/payments/types';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
 
@@ -660,9 +661,12 @@ export async function markInstallmentPaidAction(
   if (!profile?.email) return { ok: false, error: 'Could not find the student account.' };
 
   const now = new Date().toISOString();
+  // Held in a variable rather than inlined: it is the receipt's
+  // fingerprint, and this path has no Paystack reference to fall back on.
+  const checkoutGroupId = crypto.randomUUID();
   const { error: insErr } = await admin.from('nclex_payments').insert({
     paystack_reference: null,
-    checkout_group_id: crypto.randomUUID(),
+    checkout_group_id: checkoutGroupId,
     user_id: enr.user_id,
     email: profile.email,
     purpose: 'PROGRAMME_INSTALLMENT',
@@ -702,6 +706,14 @@ export async function markInstallmentPaidAction(
         .eq('paused_reason', 'INSTALLMENT_OVERDUE');
     }
   }
+
+  // EMAIL-TRIGGER[payment.received]: the student — the second anchor for
+  // the receipt. The tutor collected this money directly, so nothing
+  // else would ever tell her it had been recorded against her plan.
+  // ACTIVATED because the row is written already settled: this path
+  // never passes through PAID, and the auto-unpause above has already
+  // run, so "what you now have" is true by the time this is called.
+  await sendPaymentReceipt(checkoutGroupId, 'ACTIVATED');
 
   revalidatePath(rosterPath(enr.programme_id));
   return { ok: true };

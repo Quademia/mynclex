@@ -1,0 +1,317 @@
+/* mynclex/styles/email-admin.css
+ *
+ * The admin email monitor (/admin/emails) and its template preview.
+ * Prefix: .eml-*
+ *
+ * Uses app tokens throughout — this is an in-app surface. (The EMAILS
+ * themselves cannot use tokens: mail clients do not support CSS custom
+ * properties, so lib/email/templates/wrapper.ts carries literal hex.
+ * Two different worlds; do not unify them.)
+ */
+
+.eml-page {
+  max-width: 1240px;
+}
+
+/* ── header ─────────────────────────────────────────────────────── */
+
+.eml-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.eml-eyebrow {
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.eml-title {
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.eml-sub {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ── sections ───────────────────────────────────────────────────── */
+
+.eml-section {
+  margin-bottom: 32px;
+}
+
+.eml-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.eml-h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.eml-note {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.eml-empty {
+  margin: 0;
+  padding: 20px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--muted);
+  background: var(--bg-soft);
+}
+
+/* ── table ──────────────────────────────────────────────────────── */
+
+.eml-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.eml-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.eml-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.eml-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border-soft, #eef0f3);
+  vertical-align: top;
+  color: var(--text);
+}
+
+.eml-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.eml-key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.eml-stage {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg-soft);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.eml-to,
+.eml-subject {
+  max-width: 26ch;
+  overflow-wrap: anywhere;
+}
+
+.eml-why {
+  max-width: 40ch;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.eml-code {
+  display: block;
+  margin-top: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.eml-when {
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+/* ── pills ──────────────────────────────────────────────────────── */
+
+.eml-pill {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.eml-pill-ok    { background: #e8f5f1; color: #1f6b5e; }
+.eml-pill-warn  { background: #fdf3e2; color: #8a5a12; }
+.eml-pill-bad   { background: #fdeaea; color: #a32222; }
+.eml-pill-muted { background: var(--bg-soft); color: var(--muted); }
+
+/* ── buttons ────────────────────────────────────────────────────── */
+
+.eml-btn,
+.eml-btn-ghost {
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.eml-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.eml-btn:hover:not(:disabled) {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.eml-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.eml-btn-ghost {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.eml-btn-ghost:hover {
+  background: var(--bg-soft);
+}
+
+/* ── toast (UI convention #1 — never an inline banner) ──────────── */
+
+.eml-toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 380px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 14%);
+  font-size: 14px;
+}
+
+.eml-toast-ok  { background: #e8f5f1; color: #1f6b5e; border: 1px solid #bfe0d7; }
+.eml-toast-bad { background: #fdeaea; color: #a32222; border: 1px solid #f2c5c5; }
+
+.eml-toast button {
+  border: none;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+}
+
+/* ── preview ────────────────────────────────────────────────────── */
+
+.eml-preview {
+  margin-bottom: 28px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.eml-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+}
+
+.eml-preview-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.eml-preview-subject {
+  margin: 0;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.eml-preview-subject span {
+  margin-right: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.eml-preview-frame {
+  display: block;
+  width: 100%;
+  height: 620px;
+  border: none;
+  background: #f9fafb;
+}
+
+/* ── mobile (UI convention #3) ──────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .eml-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .eml-btn-ghost {
+    text-align: center;
+  }
+
+  .eml-preview-frame {
+    height: 480px;
+  }
+}

@@ -1752,3 +1752,25 @@ ALTER TABLE nclex_auth_events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY nclex_auth_events_admin_read ON nclex_auth_events FOR SELECT
   TO authenticated
   USING (nclex_user_has_permission('USERS_MANAGE'));
+
+
+-- nclex_email_outbox — admins read; nobody writes through RLS.
+-- ⭐ THE ABSENT POLICIES ARE THE DESIGN, as on nclex_auth_events. One
+-- SELECT policy and nothing else: with RLS on, an operation with no
+-- policy is denied, so "the browser cannot queue an email" is refused by
+-- the database rather than remembered by every future call site.
+--
+-- Writes go through createServiceRoleClient(). Required, not a
+-- workaround: the most important row here is the receipt for a pay-first
+-- buyer, who has no session and no profile — auth.uid() is NULL, so no
+-- policy we could express would ever admit her row.
+--
+-- COMMS_MANAGE rather than a bare SUPER_ADMIN check (the helper already
+-- returns true for SUPER_ADMIN); it is the bucket that already gates
+-- /admin/announcements. A student cannot read her own rows: the payload
+-- carries frozen money facts and the failure reasons are operational.
+ALTER TABLE nclex_email_outbox ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_email_outbox_admin_read ON nclex_email_outbox FOR SELECT
+  TO authenticated
+  USING (nclex_user_has_permission('COMMS_MANAGE'));
