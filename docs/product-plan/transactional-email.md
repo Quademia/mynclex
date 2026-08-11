@@ -743,6 +743,33 @@ None were caught by tsc, eslint, or the type system:
 by line item and three by framing, so on any given day most branches are
 untested and the first person to meet a broken one would be a customer.
 
+### ⏭ Agreed but NOT built — the preview becomes a list (Sam, 2026-08-11)
+
+`/admin/emails/preview` currently renders **every variant of every template
+at once**. That is fine at one template and unusable at twenty-four: the
+receipt alone is seven frames and a ~4,400px scroll.
+
+Sam's shape, which is better than the one proposed to him (that version made
+you pick a template *and then* a variant — but within one template you want
+all its variants together, since comparing them is the entire point):
+
+- **The list** — one row per template: name, event key, variant count.
+- **Click one** — that template's variants, all of them, exactly as the page
+  renders today. One screen for a simple email; seven frames for the receipt.
+
+An email with a single variant then costs no wasted click, and adding an
+email later adds a row to a list instead of making a page longer.
+
+ⓘ **A query parameter (`?template=payment.received`), not a new route** — no
+new folder, one file changed, and it matches the cohort fold's `?cohort=`
+precedent where a selection is a context rather than a place. `allPreviews()`
+already returns each variant with its event key, so this is grouping what
+exists, not fetching anything new.
+
+⚠ **The samples are invented fixtures inside each template file** — `Ama`,
+`Cohort 3`, `GHS 350`. Nothing is seeded, nothing is written, no cleanup. Sam
+asked; worth stating so nobody later goes looking for preview data to prune.
+
 ### Deliberately NOT in 1a
 
 The clock and the reminder (1b) · the bounce webhook (the page pulls
