@@ -78,7 +78,20 @@ export async function sendEnrolmentAddedEmail(args: EnrolEmailArgs): Promise<{ q
     // about — the subject line IS the programme name. Better to leave
     // the row unqueued and tell the tutor than to send "You have been
     // enrolled — ".
-    if (!names) return { queued: false };
+    //
+    // ⚠ This return used to be SILENT, and cost a test run on 2026-08-12:
+    // an enrolment succeeded, no row was queued, and nothing anywhere
+    // said why. In the one layer built to stop unexplained silence, an
+    // unexplained silence.
+    if (!names) {
+      console.error(
+        '[email] enrolment email: could not read the names for',
+        args.enrolmentId,
+        'programme',
+        args.programmeId,
+      );
+      return { queued: false };
+    }
 
     const payload: EnrolmentAddedPayload = {
       reason: args.reason,
@@ -130,6 +143,14 @@ async function readNames(
       ? admin.from('nclex_cohorts').select('name').eq('cohort_id', args.cohortId).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+
+  // ⚠ Inspect the ERRORS, not just the data. Reading `.data?.title` alone
+  // turns "the query failed" and "the programme has no title" into the
+  // same null — the same defect the receipt's delivery column had on
+  // 08-11, where "Resend hasn't said" and "we couldn't ask" rendered
+  // identically.
+  if (prog.error) console.error('[email] programme read failed:', prog.error.message);
+  if (tutor.error) console.error('[email] tutor read failed:', tutor.error.message);
 
   const programmeName = prog.data?.title?.trim();
   if (!programmeName) return null;

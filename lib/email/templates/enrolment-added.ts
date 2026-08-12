@@ -27,7 +27,7 @@
 
 import { formatMinor } from '@/lib/products/money';
 import type { EmailTemplate, EnrolmentAddedPayload } from '../types';
-import { BRAND, SUPPORT_EMAIL, button, esc, factRow } from './wrapper';
+import { BRAND, button, esc, factRow } from './wrapper';
 
 // ─────────────────────────────────────────────────────────────────────
 // Dial 1 — why she is getting this
@@ -63,14 +63,25 @@ const REASON: Record<
 const ENTRY: Record<EnrolmentAddedPayload['entry'], { note: string | null }> = {
   LOG_IN: { note: null },
   SET_UP: {
-    // ⚠ Does NOT tell her to use "Forgot password" as a fallback. That
-    // may well work for an invited-but-unconfirmed account, and it is
-    // exactly the kind of thing that is easy to assert and awkward to
-    // verify — and the person reading this line is, by definition,
-    // already locked out. Support is true without qualification.
+    // ⭐ Points at the CODE, and only because it was watched working
+    // (2026-08-12) against exactly this account state: invited by a
+    // tutor, never confirmed, no password. generateLink creates the
+    // account the instant the tutor clicks, and /login's "Email me a
+    // sign-in code" only requires the account to exist — so an expired
+    // invite is an inconvenience, not a lock-out, and nobody needs to
+    // wait on support.
+    //
+    // ⚠ Names the button as it is actually labelled on /login. Copy that
+    // sends someone hunting for a control that isn't there is worse than
+    // copy that says nothing.
+    //
+    // ⓘ No URL in the sentence: the footer already links MyNclex, and a
+    // bare one here cannot be made clickable without restructuring how
+    // this note renders.
     note:
       'The button above is your way in, and it works once. If it has already ' +
-      `expired, write to ${SUPPORT_EMAIL} and we will send you a fresh one.`,
+      'expired, go to the sign-in page and choose "Email me a sign-in code" — ' +
+      'your account already exists, so a code will let you straight in.',
   },
 };
 
