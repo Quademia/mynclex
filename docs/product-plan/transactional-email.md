@@ -489,9 +489,9 @@ content release, or account state, ask "should this notify someone?" — if yes:
 
 | Event key | Kind | Trigger | Recipient | Purpose | Pri | Anchor |
 |---|---|---|---|---|---|---|
-| `enrolment.tutor_added` | ⚡ | Tutor manually adds a student (cohort add / self-paced add / waitlist convert) | student | "Your tutor enrolled you" — set-password/login + link in | P1 | ✅ |
+| `enrolment.tutor_added` | ⚡ | Tutor manually adds a student (cohort add / self-paced add) | student | **✅ BUILT 2026-08-12.** "Your tutor enrolled you" — what she was given, who gave it, and the way in. Carries the **invite swap**: for a new account we mint the link ourselves and Supabase sends nothing | P1 | ✅ |
 | `waitlist.joined` | ⚡ | Student/lead joins a cohort waitlist | lead | Acknowledge waitlist position | P2 | ✅ |
-| `waitlist.converted` | ⚡ | Tutor converts a waitlisted lead to enrolled | student | "A place opened up — you're in" | P2 | ✅ |
+| `waitlist.converted` | ⚡ | Tutor converts a waitlisted lead to enrolled | student | **✅ BUILT 2026-08-12.** "A place has opened up." Its **own key, sharing `enrolment.tutor_added`'s template** — one dial turned. See below | P2 | ✅ |
 | `enrolment.access_expiring` | ⏰ | Access window is N days from expiry | student | Renew / heads-up before losing access | P2 | ⬜ ⚠ blocked |
 | `enrolment.access_expired` | ⏰ | Access window passes | student | Access ended, how to renew | P2 | ⬜ ⚠ blocked |
 
@@ -743,11 +743,26 @@ None were caught by tsc, eslint, or the type system:
 by line item and three by framing, so on any given day most branches are
 untested and the first person to meet a broken one would be a customer.
 
-### ⏭ Agreed but NOT built — the preview becomes a list (Sam, 2026-08-11)
+### ✅ The preview became a list — BUILT 2026-08-12
 
-`/admin/emails/preview` currently renders **every variant of every template
-at once**. That is fine at one template and unusable at twenty-four: the
-receipt alone is seven frames and a ~4,400px scroll.
+Built as designed below, as a `?template=` parameter on the existing route.
+One addition the design did not anticipate: **aliases are hidden from the
+list**. `waitlist.converted` and `enrolment.tutor_added` share one template,
+and listing both would show the same email twice under two names with
+identical variants beneath each. A registry key that differs from the
+template's own `key` marks the alias; it still renders, it just does not get
+its own row. `templateIndex()` and `allPreviews()` in `lib/email/render.ts`.
+
+⭐ It also grew a `name` on `EmailTemplate` — "Payment receipt", not "Payment
+received". Deliberately not derived from the event key, which sits beside it
+in the row: a name that re-spells the trigger prints the same words twice in
+a list whose only job is to be scannable at twenty-four rows.
+
+The original design, for the record:
+
+`/admin/emails/preview` rendered **every variant of every template at once**.
+That is fine at one template and unusable at twenty-four: the receipt alone
+is seven frames and a ~4,400px scroll.
 
 Sam's shape, which is better than the one proposed to him (that version made
 you pick a template *and then* a variant — but within one template you want
@@ -782,6 +797,168 @@ in `addStudentWithPlan` (`lib/enrolments/actions.ts`). It writes synthetic
 `OFF_PLATFORM` rows for money the tutor took *before* the student was added.
 That is bookkeeping, not a payment event — emailing a receipt for it, at a
 moment she did not act, would confuse rather than reassure.
+
+---
+
+## ✅ Enrolment emails — BUILT 2026-08-12
+
+⚠ **Out of sequence, and deliberately.** The plan below picks
+`payment.installment_due` as the second build. Sam took the tutor-enrolment
+email first instead. **1b is still next and still must not drift** — nothing
+here weakens the reason it was flagged: it is the half that historically
+never gets built, and no other feature will ever drag the clock in.
+
+`enrolment.tutor_added` + `waitlist.converted`. New
+`lib/email/templates/enrolment-added.ts` and `lib/enrolments/enrol-email.ts`;
+the send wired into `inviteOrAttachAndEnrol`. **No migration** — the outbox
+from 1a took two new keys without a schema change, which is the first
+evidence that the queue generalises.
+
+### What was silent before
+
+- **A tutor adding a student who already had an account sent NOTHING.** She
+  found out by logging in and noticing a new programme in her sidebar. The
+  code said so in a comment — *"Notification email to existing users is
+  deferred (no email worker yet)"* — and it had been true for months.
+- **A brand-new student got Supabase's default invite**, which says *you have
+  an account* and structurally cannot say what for. Supabase sees an address
+  and a link; that is the whole reason this layer exists.
+
+### ⭐ Two dials, not four emails
+
+It presents as four emails and is not:
+
+| | She has an account | She is brand new |
+|---|---|---|
+| **Tutor added her** | "You've been enrolled" · Log in | + Set up your account |
+| **She was waiting** | "A place has opened up" · Log in | + Set up your account |
+
+**Dial 1 (`reason`) is wording. Dial 2 (`entry`) is the way in, and is the
+only one carrying risk.** Neither is guessed: the caller knows why it was
+called, and `inviteOrAttachAndEnrol` already returns `invited` because that
+is the branch it just took.
+
+### Two keys, one template
+
+In the system the two events are **indistinguishable** — same function, same
+row, same guards. The difference is only what the student remembers: one is
+news, the other answers a question she asked weeks ago. So they share a
+template and keep separate keys, because the queue should report which
+actually happened, and changing the wording of one must not silently change
+the other.
+
+### ⭐ The invite swap — and what it cost
+
+`inviteUserByEmail` → `generateLink({ type: 'invite' })`. Same account, same
+link, same `/welcome` landing; the only change is who writes the email that
+carries it. **One email, and the rich one wins** — the third application of
+that rule (the invite on 08-06, `enrolment.confirmed` on 08-10, this).
+
+⚠ **It makes our email load-bearing.** Under the invited branch the link
+inside it is the only way into the account. That is why the queue-failure
+path stops being cosmetic — see below.
+
+### ⭐ A queue failure reaches the tutor
+
+The receipt swallows send failures on purpose: by the time it fires, the
+money has moved and there is nobody standing there to tell. **Enrolment is
+the opposite** — the tutor is looking at the screen, and is the only person
+who can act. So `enqueueAndSend` now reports whether the row reached the
+queue, and the roster toast turns to an **error tone on a successful
+action**: the student IS enrolled and nothing rolls back, but nothing was
+sent, and for a new account that means she has no way in.
+
+⚠ `queued: true` means queued, **not delivered**. Delivery still surfaces
+only on `/admin/emails`.
+
+### ⚠ The send is the LAST line of `inviteOrAttachAndEnrol`
+
+Thirty lines above it, the "payments already received" backfill **deletes
+the enrolment** if its insert fails (`lib/enrolments/actions.ts`, the
+add-with-plan rollback). Queued any earlier, we would tell a student she is
+enrolled in something that no longer exists. Found by reading to the bottom
+of the function, not by any tool.
+
+### ⭐ The money line is disclosure, not chasing
+
+When the tutor attaches a plan, the email states the next amount and its due
+date and stops. Without it, **the first thing she ever hears about owing
+money is her access being paused** by the nightly sweep. The chasing belongs
+to `payment.installment_due`; this is only the disclosure that a plan exists.
+Position comes from the same schedule engine the sweep uses, so "2 of 4" is
+the sweep's own arithmetic rather than a second opinion.
+
+### ⭐⭐ The resend action we thought we owed — not needed
+
+The obvious hole: her link expires, or she clicks it and abandons setup, and
+she is enrolled and locked out at once. There is **no resend anywhere**, and
+⚠ **the admin Retry button cannot be it** — it re-sends the stored row, and
+the payload is a frozen snapshot by design, so it would re-send the **same
+expired link**, report success, and change nothing.
+
+But the way back in already existed. `generateLink` creates the account the
+instant the tutor clicks, and `/login`'s **"Email me a sign-in code"** asks
+only that the account exist. **Verified live on 2026-08-12** against exactly
+that state — invited, never confirmed, no password. She gets in, and
+`/welcome` turns out not to be load-bearing for a tutor-added student at all:
+it only sets a password and a name, while her profile and enrolment already
+exist.
+
+⚠ **And the app had been telling her to do the one thing it forbids.**
+`/welcome` said *"Ask your tutor to add you again"* in two places — which the
+duplicate-enrolment guard refuses, since she is already enrolled. Wrong since
+it was written; the swap only made it reachable more often. Corrected in
+three places (the email's expired-link note, `app/welcome/actions.ts`,
+`app/welcome/page.tsx`), all naming the button exactly as `/login` labels it.
+
+ⓘ The welcome card deliberately reassures about the **account** and not the
+enrolment: it is a convergence point, and the pay-first buyer who lands there
+has an account but no enrolment, subscription or credits until she finishes.
+
+**So a resend action is still unbuilt and is no longer urgent.** When it is
+built, two constraints already known: it must **mint a new link** (never
+re-send a stored one), and it must use `stage` so the fingerprint admits a
+genuine re-issue while still refusing duplicates. It would also close the
+payments-side `EMAIL-TRIGGER[payment.setup_link_resend]` hole, open since
+2026-06-24.
+
+### ⚠ An `@example.com` recipient makes the toast lie
+
+`enqueueEmail` declines those addresses unqueued — correctly; they are
+guaranteed hard bounces. But it reports success, so the tutor is told *"emailed
+them a link"* when no row was written and nothing was sent. **Dev-only**
+(prod has no such addresses), and all three seeded waitlist leads are
+`@example.com`, so it is easy to hit while testing and easy to mistake for a
+real failure.
+
+### Tested on dev — 4 of 6 variants, live
+
+Eight outbox rows, **every one SENT on the first attempt**, all with a
+provider id. Nothing stuck, nothing dead, no retry exercised.
+
+Run live: tutor-added existing-account into a cohort · tutor-added **new**
+account (the swap) · tutor-added **self-paced**, no cohort and lifetime
+access (both null cases) · **waitlist convert, new account, part-paid plan**
+(which also proves the backfill ordering).
+
+Skipped: tutor-added-new-with-plan and waitlist-convert-existing-account —
+both are **recombinations of halves already proven**, not untested mechanisms.
+
+⚠ One test run was lost to a false alarm: the first attempt was made against
+the **deployed dev Worker**, which runs `main` and has none of this. The whole
+feature exists only on the session branch, so every variant has to be tested
+on `localhost`.
+
+### Two silences fixed in my own code while diagnosing that
+
+Both were the exact fault this layer exists to prevent, reproduced inside it:
+
+- `sendEnrolmentAddedEmail` returned `{ queued: false }` from the name-lookup
+  path **saying nothing at all**.
+- `readNames` read `.data?.title` without inspecting `.error`, collapsing *the
+  query failed* and *the programme has no title* into one null — the same
+  shape as the receipt's delivery column on 08-11, where *"Resend hasn't
+  said"* and *"we couldn't ask"* rendered identically.
 
 ---
 
