@@ -393,11 +393,37 @@ paying the trust cost and collecting none of the benefit.
 ⓘ `team@` works equally. Avoid `notifications@`, which reads as cold as
 `noreply@`.
 
-### ⚠ What this changes in the repo
+### ⚠ What has to change, and where — BOTH the address and the keys
 
-`EMAIL_FROM` in three places — `.env.local` (⚠ the **main checkout's** copy;
-worktrees copy parent→child only), `wrangler.jsonc` vars for both
-environments, the prod Worker secret.
+⭐ **The new keys are part of the switch, not a follow-up.** A full-access key
+is a **new key string**, so `RESEND_API_KEY` changes everywhere at the same
+time as `EMAIL_FROM`. Doing one without the other is how you get a switch that
+half-works.
+
+| What | Where | Kind |
+|---|---|---|
+| `EMAIL_FROM` | `.env.local` · `wrangler.jsonc` vars (dev **and** `env.prod`) | var |
+| `RESEND_API_KEY` | `.env.local` · `wrangler secret put` on **both** Workers | secret |
+| SMTP sender address | Supabase Auth settings, **both projects** (dashboard, not the repo) | — |
+
+⚠ **`.env.local` is the main checkout's copy.** Worktrees copy parent→child
+only, so a key written inside a worktree dies with it — exactly how localhost
+auth sat broken for a day in August.
+
+⚠ **`RESEND_API_KEY` is a SECRET, not a var** — it never goes in
+`wrangler.jsonc`, and the deploy workflows do not inject runtime secrets, so it
+must be set per-Worker with `wrangler secret put`. Both Workers, because dev
+sends for real too.
+
+⚠ **A Resend key can be scoped to a specific domain.** If the current keys are
+scoped to `quademia.com`, they will **refuse** the new subdomain — the first
+send from `mail.quademia.com` fails for a reason that looks nothing like a
+domain problem. Check the scope when creating the replacements, or scope them
+to the new domain deliberately.
+
+ⓘ Same shape as the Turnstile trap in `CLAUDE.md`: several places, one truth,
+and a mismatch is an outage at the front door. Change them together, then send
+one test **per environment** before assuming it worked.
 
 ⚠ **And one copy inversion.** `lib/email/templates/footer.ts` carries an
 explicit comment forbidding *"Reply to this email"* **because** we send from
@@ -418,13 +444,17 @@ that produces the engagement signal above.
   `@example.com` is suppressed — but **revisit a `dev.` child when 1b's sweep is
   about to be switched on**, not before.
 
-### Do the full-access key in the same visit
+### ⭐ The full-access key is part of this change
 
-The Resend key is send-only, so `fetchDeliveryStatus` cannot read `last_event`
-and **a bounce is invisible forever** — and there is no Resend error for a bad
-recipient, so nothing else will ever tell us. Changing the sending identity is
-exactly when you want to see bounces, not least because a new domain has no
-standing yet.
+Not an optional extra in the same visit — **the switch is the moment to mint
+the replacements**, because new keys are needed anyway (see the table above)
+and there is no reason to mint send-only ones twice.
+
+Today's key is send-only, so `fetchDeliveryStatus` cannot read `last_event` and
+**a bounce is invisible forever** — and there is no Resend error for a bad
+recipient, so nothing else will ever tell us. A brand-new sending domain has no
+standing, which makes its first weeks precisely when bounces matter most and
+precisely when we currently cannot see them.
 
 ⓘ **Check whether gamma sends from its own domain.** If it does it is isolated
 by accident and needs nothing. If it is on `quademia.com`, fold it in *after*
