@@ -322,6 +322,118 @@ exists partly to soften that — every variant is visible without reading code.
 rewrites it — the same way all seven scoring rules were reworded before they
 shipped.
 
+## The sending identity — AGREED 2026-08-12, NOT YET DONE
+
+⚠ **A decision, not a state.** Everything still sends from
+`noreply@quademia.com`. This section is what to change and why; nothing below
+is live.
+
+Prompted by two advisories Resend raises on the dashboard: **don't send from
+the root domain**, and **don't send from `noreply@`**.
+
+| | Today | Agreed |
+|---|---|---|
+| Domain | `quademia.com` (root) | **`mail.quademia.com`** |
+| From | `MyNclex <noreply@quademia.com>` | **`MyNclex <hello@mail.quademia.com>`** |
+| Reply-To | `support@quademia.com` | unchanged |
+| Supabase auth SMTP | root | move to the same subdomain |
+
+### Why a subdomain
+
+Mailbox providers score reputation **per domain**. The root is where
+`support@quademia.com` lives — the address that actually has to reach a stuck
+student. Automated mail damaging the root would push our human replies into
+spam, and the likeliest cause is already scheduled: the ⏰ emails go to the
+**stalest addresses in the product**, where a bounce spike is most probable.
+
+⭐ **And now is the cheapest it will ever be.** Reputation is earned by volume
+over time; we have almost none. Moving after ten thousand receipts means
+abandoning standing we had built.
+
+### ⭐⭐ ONE subdomain for every product — split by RISK, not by product
+
+An earlier version of this recommended a subdomain per product
+(`mail.nclex.quademia.com`). **Sam pushed back and was right.** Two reasons,
+both decisive:
+
+- **All three apps send the same KIND of mail** — receipts, reminders,
+  enrolment notices. Transactional, expected, low-complaint. Separating by
+  product splits the *reputation* without splitting the *risk*, which is the
+  worst of both.
+- **Volume pools.** At hundreds-to-low-thousands, three subdomains means three
+  weak reputations warming independently, each below the threshold where
+  providers form a confident opinion. Pooled, the same volume builds one
+  domain that is genuinely trusted. Isolation only starts paying when each
+  stream can stand on its own volume, which is far off.
+
+Plus the operational point: one set of DNS records, one warmup, one DMARC
+report — which matters for a solo operator.
+
+**The product goes in the DISPLAY NAME, not the domain** (`MyNclex <hello@…>`),
+so the recipient sees the product while every app builds one reputation.
+
+⭐ **Where the split genuinely belongs, later:** the **engagement nudges** (P3)
+have a different risk profile — unsolicited, opt-out-able, complaint-prone.
+That is the moment to split, onto something like `news.quademia.com`, so a
+nudge campaign that annoys people cannot take the receipts down with it.
+Split by risk, when the risk actually differs.
+
+### Why not `noreply@`
+
+Three costs, only one about reputation: replies are a positive **engagement
+signal** we forfeit · replies into a black hole are a product failure · and
+someone with no way to reply hits **"report spam"** instead, which is the
+fastest way to wreck a domain.
+
+⚠ **We are currently in the worst of the three positions.** The 08-11 fix added
+a Reply-To header, so replies *do* reach `support@`. But the visible address
+still says *noreply*, discouraging the very replies the plumbing now handles —
+paying the trust cost and collecting none of the benefit.
+
+ⓘ `team@` works equally. Avoid `notifications@`, which reads as cold as
+`noreply@`.
+
+### ⚠ What this changes in the repo
+
+`EMAIL_FROM` in three places — `.env.local` (⚠ the **main checkout's** copy;
+worktrees copy parent→child only), `wrangler.jsonc` vars for both
+environments, the prod Worker secret.
+
+⚠ **And one copy inversion.** `lib/email/templates/footer.ts` carries an
+explicit comment forbidding *"Reply to this email"* **because** we send from
+`noreply@`. Once the From is repliable that reasoning inverts, and the footer
+should simply say reply — the friendliest support channel there is, and the one
+that produces the engagement signal above.
+
+### ⚠ Two things this does NOT do
+
+- **Keys do not separate reputation.** The 08-11 decision — one domain, dev and
+  prod told apart by keys — separates *attribution inside Resend* and the blast
+  radius of a leaked key. Providers score the **domain**, so a bad run on dev
+  lands on the reputation prod depends on.
+- **⚠ 1b invalidates the assumption that made that acceptable.** A nightly
+  sweep that scans and mails whoever is due turns dev from a handful of manual
+  sends into **automated volume against real addresses**, aimed at the stalest
+  data we hold. Keep one domain for now — dev volume is small and
+  `@example.com` is suppressed — but **revisit a `dev.` child when 1b's sweep is
+  about to be switched on**, not before.
+
+### Do the full-access key in the same visit
+
+The Resend key is send-only, so `fetchDeliveryStatus` cannot read `last_event`
+and **a bounce is invisible forever** — and there is no Resend error for a bad
+recipient, so nothing else will ever tell us. Changing the sending identity is
+exactly when you want to see bounces, not least because a new domain has no
+standing yet.
+
+ⓘ **Check whether gamma sends from its own domain.** If it does it is isolated
+by accident and needs nothing. If it is on `quademia.com`, fold it in *after*
+its email worker is dealt with — its `EMAIL_SECRET` ships to every browser, so
+anyone can send through it, and that is not history to attach to a domain the
+receipts depend on.
+
+---
+
 ## Monitoring — where Sam sees the queue
 
 ⭐ Sam raised this **first**, ahead of every other design question: *"we will
