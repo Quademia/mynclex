@@ -962,6 +962,96 @@ Both were the exact fault this layer exists to prevent, reproduced inside it:
 
 ---
 
+## ⏭ 1b — the shape, settled in discussion 2026-08-12 (no code yet)
+
+Sam's framing, and it generalises further than he pitched it.
+
+### What the sweep actually is
+
+Not a payments job. `nclex_enrolment_nightly_sweep()` is the **"enforce time on
+enrolments and subscriptions"** job, running 02:00 daily under pg_cron, and it
+makes three state changes:
+
+| | |
+|---|---|
+| **4a** | `ENROLLED → PAUSED` when the next unpaid position is overdue — *unless* `installment_grace_until` is in the future, or the programme has `payment_gates_access = FALSE` |
+| **4b** | `ENROLLED`/`PAUSED` → `EXPIRED` when `access_expires_at` has passed |
+| **4c** | subscriptions `ACTIVE → EXPIRED` past `end_at` (bank + readiness) |
+
+⚠ **The live definition is not the one you find first.** The sweep has been
+redefined three times — `20260608` (original), `20260610` (grace), `20260706`
+(payment gating). Read the newest.
+
+### ⭐⭐ THE RULE — a scheduled email is a state change, warned or recorded
+
+Every transition the sweep makes wants a **pair**: a warning before it, a
+record at it. Same select, two boundaries — `< NOW() + N` and `< NOW()`.
+
+| Sweep step | Warning (due in N) | Notification (it happened) |
+|---|---|---|
+| 4a | `payment.installment_due` | `payment.installment_overdue` |
+| 4b | `enrolment.access_expiring` | `enrolment.access_expired` |
+
+**Four of the seven ⏰ emails out of one function**, and it is the answer to
+Sam's reason for picking 1b next (*"it will teach us how to handle the other
+time-controlled emails"*). It also makes the doc's stated risk —
+*"access paused" reaching somebody never warned* — **structurally impossible**,
+since warning and pause come from one pass over one expression.
+
+ⓘ **4c has no catalog entry.** A bank or readiness pass expiring notifies
+nobody. Probably wants the same pair; not listed, so not promised.
+
+### The trigger lives WITH the sweep — no second mechanism
+
+Sam's call, and right: a separate scheduler would be a second thing to keep in
+step, which is the failure this pairing exists to remove.
+
+⚠ **Correcting an objection raised and withdrawn the same day:** enqueueing
+from SQL does *not* put copy decisions in Postgres. The payload carries **raw**
+values — minor units, ISO dates, ids, names — and the `.ts` template does all
+formatting and wording, exactly as `payment.received` already does. The real
+cost is narrower: **the payload shape becomes a contract with no type-checking
+on the SQL side**, so a missing key renders as nothing in somebody's inbox.
+That is gamma's `{{expiryDate}}` failure precisely. Mitigate with a
+deliberately thin payload and a smoke test — not with a different architecture.
+
+### Why the window is forgiving, whatever N you pick
+
+`stage` = the installment position, so the outbox's unique index means *"this
+enrolment has been warned about payment 3"* — once, permanently, enforced by
+the database. Pick "within 3 days" on a nightly job and she matches on the
+first night; the next two inserts are refused. **The hard part — not warning
+her four times — is already built and already exercised by the receipt.**
+
+ⓘ Which is why the rolling-window rule below still matters but is no longer
+load-bearing on its own: the fingerprint is the backstop, the window is the
+timing.
+
+### ⚠ Two things this does NOT solve
+
+- **The drain.** pg_cron can select and insert; it **cannot call Resend**. So
+  something outside still has to send what the sweep queued. This is the one
+  genuinely open decision before code. Precedent: `recalibrate.yml`, a GitHub
+  Actions schedule that calls in. ⓘ This repo has no `app/api/` — route
+  handlers sit top-level (`app/logout/route.ts`).
+- **A sweep run is a burst.** Every send so far is one row, inline, under
+  `waitUntil`, on somebody's request. A sweep queueing fifty rows at 02:00 has
+  no request in flight, so for the **whole ⏰ half the drain is not the safety
+  net — it is the only delivery path.**
+
+### ⚠ Adjacent, and worth doing before the ⏰ emails ship
+
+The Resend key is **send-only**, so `fetchDeliveryStatus` cannot read
+`last_event` and **a bounce is invisible forever** (there is no Resend error
+for a bad recipient — the address is accepted and bounces later, leaving the
+row `SENT`). The ⏰ emails go to addresses nobody has typed in months; an
+access-expiry warning may be the first mail a student has had in a year, and
+those are the most likely to bounce silently. Needs a full-access key in
+`.env.local` (⚠ the **main checkout's** copy — worktrees copy parent→child
+only), `wrangler.jsonc`, and the prod Worker secret.
+
+---
+
 ## First build — the chosen pair (settled 2026-08-10)
 
 **One instant, one scheduled. Sam's call:** *"lets pick one instance that
