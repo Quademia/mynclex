@@ -405,25 +405,39 @@ export async function fetchDeliveryStatus(
  * response has gone. Available here because next.config.ts already calls
  * initOpenNextCloudflareForDev(), so it behaves the same on localhost.
  *
- * ⚠ NEVER THROWS, and never returns a failure that a caller should act
- * on. The money landing matters more than the receipt: if queueing or
- * sending falls over, the payment must still complete. That is what the
- * admin page is for.
+ * ⚠ NEVER THROWS. The money landing matters more than the receipt: if
+ * queueing or sending falls over, the payment must still complete. That
+ * is what the admin page is for.
+ *
+ * ⭐ It DOES report whether the row reached the queue (`queued`), added
+ * 2026-08-12 for the tutor-enrolled email. Ignoring it stays correct and
+ * is what the receipt does — by the time that fires, the money has moved
+ * and there is nobody to tell. But when a tutor enrols a student, the
+ * tutor is *standing right there*, and a mail that never even reached
+ * the queue is total silence for the student. The one person who can fix
+ * it is looking at the screen for one more second; this is what lets
+ * them be told.
+ *
+ * ⚠ `queued: true` means QUEUED, not delivered. The send runs after the
+ * response under waitUntil, and its outcome surfaces on /admin/emails —
+ * never synchronously here.
  */
-export async function enqueueAndSend(input: EnqueueInput): Promise<void> {
+export async function enqueueAndSend(input: EnqueueInput): Promise<{ queued: boolean }> {
   let emailId = '';
   try {
     const queued = await enqueueEmail(input);
     if (!queued.ok) {
       console.error('[email] enqueue failed', input.eventKey, input.subjectRef, queued.error);
-      return;
+      return { queued: false };
     }
-    // Empty id = nothing to send (a suppressed example.com address).
-    if (!queued.emailId) return;
+    // Empty id = nothing to send (a suppressed example.com address, or a
+    // duplicate the fingerprint refused). Both are successful outcomes:
+    // there is nothing wrong for a caller to report.
+    if (!queued.emailId) return { queued: true };
     emailId = queued.emailId;
   } catch (e) {
     console.error('[email] enqueue threw', input.eventKey, (e as Error).message);
-    return;
+    return { queued: false };
   }
 
   const attempt = deliverEmailById(emailId).catch((e: Error) => {
@@ -441,4 +455,6 @@ export async function enqueueAndSend(input: EnqueueInput): Promise<void> {
     // is already safely queued either way.
     await attempt;
   }
+
+  return { queued: true };
 }

@@ -235,6 +235,7 @@ const PAID_AT = '2026-08-11T10:30:00.000Z';
 
 export const paymentReceivedTemplate: EmailTemplate<PaymentReceiptPayload> = {
   key: 'payment.received',
+  name: 'Payment receipt',
   subject,
   body,
   previews: [

@@ -13,6 +13,10 @@ import {
   PAYMENT_RECEIVED_FOOTER_CONTEXT,
   paymentReceivedTemplate,
 } from './templates/payment-received';
+import {
+  ENROLMENT_ADDED_FOOTER_CONTEXT,
+  enrolmentAddedTemplate,
+} from './templates/enrolment-added';
 
 export type Rendered = { subject: string; html: string; text: string };
 
@@ -30,7 +34,30 @@ const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: s
     template: paymentReceivedTemplate,
     footerContext: PAYMENT_RECEIVED_FOOTER_CONTEXT,
   },
+  'enrolment.tutor_added': {
+    template: enrolmentAddedTemplate,
+    footerContext: ENROLMENT_ADDED_FOOTER_CONTEXT,
+  },
+  // ⭐ An ALIAS, not a second template. Same file, same words, one dial
+  // turned — see enrolment-added.ts. Both keys must render, because a
+  // queued waitlist.converted row has to become an email; but the
+  // template declares `key: 'enrolment.tutor_added'`, and that mismatch
+  // is what marks this row as an alias for the preview list below.
+  'waitlist.converted': {
+    template: enrolmentAddedTemplate,
+    footerContext: ENROLMENT_ADDED_FOOTER_CONTEXT,
+  },
 };
+
+/**
+ * A registry key that is not the template's own key is an alias — two
+ * events sharing one template. Aliases render, but they are hidden from
+ * the preview list so one email does not appear twice under two names
+ * with identical variants beneath each.
+ */
+function isAlias(registryKey: string, entry: { template: { key: string } }): boolean {
+  return registryKey !== entry.template.key;
+}
 
 export function hasTemplate(eventKey: string): boolean {
   return eventKey in TEMPLATES;
@@ -88,18 +115,50 @@ export function renderOutboxRow(row: Pick<OutboxRow, 'event_key' | 'payload_json
   return { subject, html, text: toPlainText(html) };
 }
 
+export type PreviewVariant = {
+  eventKey: string;
+  /** The template's human name, repeated on each variant so a filtered
+   *  list still knows what it is looking at without a second lookup. */
+  name: string;
+  label: string;
+  rendered: Rendered;
+};
+
 /**
  * Every preview variant across every template, for /admin/emails/preview.
  * Reuses the exact render path a real send takes — a preview that went
  * through different code would prove nothing.
+ *
+ * Pass an event key to render only that template's variants. The page
+ * uses this for its detail view; unrecognised keys yield an empty array,
+ * which the page shows as "no such template" rather than an error.
  */
-export function allPreviews(): { eventKey: string; label: string; rendered: Rendered }[] {
-  const out: { eventKey: string; label: string; rendered: Rendered }[] = [];
-  for (const [eventKey, entry] of Object.entries(TEMPLATES)) {
+export function allPreviews(eventKey?: string): PreviewVariant[] {
+  const out: PreviewVariant[] = [];
+  for (const [key, entry] of Object.entries(TEMPLATES)) {
+    if (eventKey ? key !== eventKey : isAlias(key, entry)) continue;
     for (const preview of entry.template.previews) {
-      const rendered = renderOutboxRow({ event_key: eventKey, payload_json: preview.payload });
-      if (rendered) out.push({ eventKey, label: preview.label, rendered });
+      const rendered = renderOutboxRow({ event_key: key, payload_json: preview.payload });
+      if (rendered) out.push({ eventKey: key, name: entry.template.name, label: preview.label, rendered });
     }
   }
   return out;
+}
+
+/**
+ * One row per built template, for the preview list.
+ *
+ * ⚠ Reads TEMPLATES, not the catalog. The plan doc lists 24 emails; this
+ * lists what exists. A list built from the catalog would advertise
+ * templates nobody wrote — the same mismatch that left gamma with
+ * placeholders no template ever used.
+ */
+export function templateIndex(): { eventKey: string; name: string; variantCount: number }[] {
+  return Object.entries(TEMPLATES)
+    .filter(([key, entry]) => !isAlias(key, entry))
+    .map(([eventKey, entry]) => ({
+      eventKey,
+      name: entry.template.name,
+      variantCount: entry.template.previews.length,
+    }));
 }

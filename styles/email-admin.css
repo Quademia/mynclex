@@ -262,6 +262,49 @@
   color: inherit;
 }
 
+/* ── preview: the template list ─────────────────────────────────── */
+
+.eml-tlist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.eml-tlist li + li .eml-trow {
+  border-top: 1px solid var(--border-soft, #eef0f3);
+}
+
+.eml-trow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.eml-trow:hover {
+  background: var(--bg-soft);
+}
+
+.eml-tname {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.eml-tcount {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 /* ── preview ────────────────────────────────────────────────────── */
 
 .eml-preview {
@@ -326,5 +369,13 @@
 
   .eml-preview-frame {
     height: 480px;
+  }
+
+  /* The row's three parts stop fitting side by side well before 768px;
+     stack them so the name stays the thing you scan. */
+  .eml-trow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }

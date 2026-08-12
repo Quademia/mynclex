@@ -21,7 +21,16 @@ import type { Currency } from '@/lib/products/money';
 // promise the code cannot keep, which is exactly how the EMAIL-TRIGGER
 // marker convention ended up with one marker whose key is not in the
 // catalog at all.
-export type EmailEventKey = 'payment.received';
+//
+// ⭐ `enrolment.tutor_added` and `waitlist.converted` share ONE template
+// (enrolment-added.ts) but stay two keys, settled 2026-08-12. In the
+// system they are indistinguishable — both are the same function call
+// producing the same enrolment row — so the difference is only what the
+// student remembers: one is news, the other answers a question she asked
+// weeks ago. Two keys so the admin queue reports which actually
+// happened, and so changing the wording of one cannot silently change
+// the other.
+export type EmailEventKey = 'payment.received' | 'enrolment.tutor_added' | 'waitlist.converted';
 
 // ─────────────────────────────────────────────────────────────────────
 // The outbox row
@@ -81,6 +90,16 @@ export type EnqueueInput = {
 export type EmailTemplate<P = Record<string, unknown>> = {
   /** Matches the event key it renders. */
   key: EmailEventKey;
+  /**
+   * What this email IS, in a person's words — "Payment receipt", not
+   * "Payment received".
+   *
+   * ⚠ Deliberately not derived from `key`. The preview list shows both,
+   * and a name that merely re-spells the trigger would print the same
+   * words twice in a list whose only job is to be scannable at 24 rows.
+   * The key says when it fires; this says what lands in the inbox.
+   */
+  name: string;
   subject: (payload: P) => string;
   /** The inner body. The wrapper and footer are added by render.ts. */
   body: (payload: P) => string;
@@ -152,6 +171,67 @@ export type PaymentReceiptPayload = {
   /** Where to go next, when there is somewhere. Absolute URL. */
   ctaHref: string | null;
   ctaLabel: string | null;
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// The tutor-enrolled payload
+// ─────────────────────────────────────────────────────────────────────
+// ⭐ TWO DIALS, NOT FOUR EMAILS (settled with Sam, 2026-08-12).
+//
+//   Dial 1 — `reason`: why she is getting this. Wording only.
+//   Dial 2 — `entry`:  how she gets in. The real work.
+//
+// Dial 2 is not a guess: inviteOrAttachAndEnrol already returns
+// `invited`, because it is the branch it just took.
+
+export type EnrolmentReason = 'TUTOR_ADDED' | 'WAITLIST_CONVERTED';
+
+export type EnrolmentEntry =
+  /** She has an account. The link is a plain sign-in. */
+  | 'LOG_IN'
+  /**
+   * Brand new. `actionUrl` is a one-time link minted by us via
+   * generateLink, and it is the ONLY way into the account — there is no
+   * password to fall back on.
+   */
+  | 'SET_UP';
+
+export type EnrolmentAddedPayload = {
+  reason: EnrolmentReason;
+  entry: EnrolmentEntry;
+  /** Always known here — the tutor typed it, or the lead left it. */
+  recipientName: string | null;
+  /**
+   * Who added her. ⚠ Not decoration: "you have been enrolled" from
+   * nobody in particular is indistinguishable from a phishing email.
+   */
+  tutorName: string;
+  programmeName: string;
+  /** Tutor-led only. Null on a self-paced programme, which has no cohort. */
+  cohortName: string | null;
+  /** Frozen at enrolment. Null = lifetime, and prints nothing. */
+  accessExpiresAtISO: string | null;
+  /**
+   * The money line, when the tutor attached a payment plan.
+   *
+   * ⭐ Present because otherwise the FIRST thing she ever hears about
+   * owing money is her access being paused by the nightly sweep. The
+   * chasing belongs to payment.installment_due; this is only the
+   * disclosure that a plan exists at all.
+   */
+  plan: {
+    currency: Currency;
+    /** The next payment due, in minor units. */
+    nextAmountMinor: number;
+    /** When it is due. Already resolved from the frozen schedule. */
+    nextDueISO: string;
+    /** Total number of payments in the plan, for "1 of 4". */
+    totalPayments: number;
+    /** How many are already recorded as received. */
+    paidCount: number;
+  } | null;
+  actionUrl: string;
+  actionLabel: string;
 };
 
 // ─────────────────────────────────────────────────────────────────────
