@@ -1,18 +1,34 @@
 # Transactional Email — Trigger Registry
 
-*Status: **slice 1a BUILT — the queue, the sender and the receipt. The clock
-(1b) is next.** On the session branch, dev-tested, not on `main`. This doc is
-the single source of truth for **every point in the app that should send an
-email**, and for **how a send works**. See [main.md](main.md) and
+*Status: **the spine is built and the drain now runs.** 3 of 24 emails wired
+(`payment.received`, `enrolment.tutor_added`, `waitlist.converted`), and as of
+2026-08-18 a pg_cron job sends what is due every five minutes — so the ⏰ half
+is unblocked and `payment.installment_due` (1b) is next with no structural
+question left in it. **All of it is on `main`; NONE of it is on `prod`.** This
+doc is the single source of truth for **every point in the app that should
+send an email**, and for **how a send works**. See [main.md](main.md) and
 [payments-and-enrolment.md](payments-and-enrolment.md).*
 
-Last updated: 2026-08-11 (**slice 1a built** — see *Slice 1a* below: inline
-send via `waitUntil`; the reason decides the retry, not a count; a short
-automatic window then a human; three framings, because the pay-first branch
-grants nothing at payment time; `noreply@` + Reply-To; dev sends for real
-except `@example.com`; the catalog is a **capture list, not a build plan**;
-rolling windows for every ⏰ email. Three defects found by reading rendered
-output rather than by tsc or lint).
+> ⚠ **The status line above went stale for a week and this doc warns about
+> exactly that trap two screens down.** It read *"on the session branch, not on
+> `main`"* until 2026-08-18, having been true only on the day it was written.
+> A dated claim needs a date on it or a reader will take it as current — the
+> same failure as the session-log entries that say "not on prod". If you are
+> reading this line, check `git log origin/main` rather than trusting it.
+
+Last updated: 2026-08-18 (**the drain built** — see *The drain* below: pg_cron
+knocks on a private app URL every five minutes; chosen over GitHub Actions
+because the retry delays demand minutes and Actions bills whole minutes;
+⚠ **the retry policy agreed on 08-11 was designed and never running**, and
+this repairs it; the listener considered and parked; a quota/attempts gap
+found in the existing sender).
+
+Previously: 2026-08-11 (**slice 1a built** — inline send via `waitUntil`; the
+reason decides the retry, not a count; a short automatic window then a human;
+three framings, because the pay-first branch grants nothing at payment time;
+`noreply@` + Reply-To; dev sends for real except `@example.com`; the catalog
+is a **capture list, not a build plan**; rolling windows for every ⏰ email.
+Three defects found by reading rendered output rather than by tsc or lint).
 
 Previously: 2026-08-10 (design session, no code — the two classes; outbox +
 no email Worker; the fingerprint; the receipt is per **checkout**;
@@ -1171,10 +1187,13 @@ timing.
 
 ### ⚠ Two things this does NOT solve
 
-- **The drain.** Something outside Postgres still has to send what the sweep
-  queued. This is the one genuinely open decision before code. Precedent:
-  `recalibrate.yml`, a GitHub Actions schedule that calls in. ⓘ This repo has
-  no `app/api/` — route handlers sit top-level (`app/logout/route.ts`).
+- ~~**The drain.**~~ ✅ **SOLVED AND BUILT 2026-08-18 — see *The drain* below.**
+  Something outside Postgres still has to send what the sweep queued; it is now
+  `app/cron/email-drain`, knocked on every five minutes by a fourth pg_cron
+  job. The original wording, for the record: *"This is the one genuinely open
+  decision before code. Precedent: `recalibrate.yml`, a GitHub Actions schedule
+  that calls in. ⓘ This repo has no `app/api/` — route handlers sit top-level."*
+  ⚠ The Actions precedent was examined and **rejected** on cost and cadence.
 
   ⚠ **Corrected 2026-08-18 — an earlier version of this bullet said pg_cron
   "cannot call Resend". That is wrong, and the real wall is elsewhere.**
@@ -1283,6 +1302,142 @@ access-expiry warning may be the first mail a student has had in a year, and
 those are the most likely to bounce silently. Needs a full-access key in
 `.env.local` (⚠ the **main checkout's** copy — worktrees copy parent→child
 only), `wrangler.jsonc`, and the prod Worker secret.
+
+---
+
+## ✅ The drain — BUILT 2026-08-18
+
+The postman. Four commits on `main`; **no student-visible change**.
+
+| | |
+|---|---|
+| `lib/email/drain.ts` | claims what is due and sends it through the **existing** sender |
+| `app/cron/email-drain/route.ts` | the private door, Bearer-guarded |
+| `db/migrations/20260909120000_email_drain_cron.sql` | pg_net + `nclex_email_drain_knock()` + the job |
+| `app/(app)/admin/config/config-defs.ts` | the off switch |
+
+### ⭐⭐ It repairs something already broken — that is the headline, not 1b
+
+The drain was picked up as 1b's blocker, and it is. But reading the sender to
+build it found that **the retry policy settled on 2026-08-11 was designed and
+had never run once.** `deliverOutboxRow` UPDATEs a failed row — status
+`FAILED`, `send_after` pushed forward — and returns. **Nothing had ever re-read
+that row.** The only second attempt the product had was a person pressing Retry
+on `/admin/emails`.
+
+So the drain is not only the ⏰ delivery path; it is the missing half of a
+decision already taken, and it repairs the ⚡ emails **already live on `main`**
+independently of anything scheduled. ⓘ It stayed invisible because every send
+so far has succeeded first time — 13 rows across three sessions — so the retry
+machinery was never asked to run.
+
+⭐ **One word carries both jobs: "due."** `claimDueEmails` asks for rows whose
+`send_after` has passed, which is true of a newly queued reminder *and* of a
+failure waiting for its next go. The drain never needs to know which it has.
+
+### ⭐ Why pg_cron, and why NOT GitHub Actions
+
+The retry delays are **1 / 5 / 15 / 30 minutes**, so the knock must come every
+few minutes or the window stops being an hour. That priced the options:
+
+| | Fast enough | Cost | Verdict |
+|---|---|---|---|
+| GitHub Actions | 5-min floor | **~8,600 min/month against a 2,000 allowance** (private repo, billed rounded up per run) | ✗ |
+| Cloudflare cron on the app Worker | yes | free | ✗ **`@opennextjs/cloudflare` 1.19.6 emits no scheduled handler** |
+| A separate tiny Worker | yes | free | ✗ breaches the `workers/` stays-empty line for a schedule |
+| **pg_cron + pg_net** | per-minute | free | ✅ |
+
+⚠ **An hourly Actions schedule was very nearly shipped**, and would have
+quietly stretched "five attempts inside an hour" to four hours — the exact
+concealment Sam killed the long retry schedule to prevent. The plan was right
+and the reasoning under it was wrong; the delays are what caught it.
+
+⭐ It is also Sam's own "no second mechanism" instinct satisfied **at the level
+that matters** — the same scheduler the sweep already runs on, now a fourth job
+beside three.
+
+### The design choices worth knowing
+
+- **One pass per knock, not a loop that empties the tray.** A Worker is capped
+  on subrequests per invocation and the burst case is what would hit it. A
+  backlog drains across successive knocks, oldest `send_after` first.
+- **Sequential, not parallel.** Fifty concurrent sends is how a low-volume
+  Resend account gets rate-limited, and a burst is exactly the ⏰ shape.
+- **⚠ Overlapping knocks are NOT guarded.** `claimDueEmails` selects, it does
+  not lock, so two simultaneous drains would attempt one batch twice. Resend's
+  idempotency key (already sent, built from the fingerprint) collapses the
+  duplicate, so the cost is a wasted attempt rather than a second email. A
+  concurrency guard on the knocker is the real fix and is not built.
+- **No run-log table.** pg_net already records every call with its status and
+  the app's reply in `net._http_response`. ⚠ Supabase prunes it within hours,
+  so it is a live view, not history — the outbox row remains the durable record.
+
+### ⚠ Two values per project, and a deliberately loud refusal
+
+Neither is in the migration, and the function **refuses and warns** without
+either rather than knocking at nothing:
+
+| | Where | Why not in the file |
+|---|---|---|
+| `email_drain_url` | `nclex_config`, seeded **blank** | one migration runs on both projects; dev calling prod's Worker would drain the live queue |
+| the bearer secret | **Supabase Vault**, `nclex_email_drain_cron_secret` | a migration in the repo must never carry a credential |
+
+The same secret must be set on that project's Worker as a Cloudflare secret.
+**The door and the postman need the same key**; a mismatch is a 401 every five
+minutes.
+
+### The off switch, and the one setting deliberately not on it
+
+`email_drain_enabled` joins the three job switches on `/admin/config`. ⚠ It was
+**missed on the first pass and caught by Sam** — the page renders `CONFIG_DEFS`,
+not the table, so an undeclared key does not exist as far as it is concerned,
+and stopping a five-minute job would have meant editing the database by hand.
+`recalibrate.yml`'s header already states the rule: stopping a scheduled job is
+an admin action, not a deploy.
+
+⭐ **`email_drain_url` is deliberately NOT on that page.** There is no text type,
+and it is not a setting — it is per-environment plumbing, like a Worker secret.
+An editable box invites the one typo that silently stops all scheduled email.
+⚠ The cost, stated so nobody "fixes" it: **one row in `nclex_config` the admin
+page never shows.**
+
+### Proven on dev, unattended
+
+- Door: `GET` 405 · unauthenticated 401 · wrong secret 401 · correct 200.
+- **A real email sent by the drain with no request in flight** — the claim that
+  mattered.
+- The doorbell reached the deployed dev Worker: 404 before deploy (which itself
+  proved reachability), **200 after**.
+- ⭐ **The unattended proof**: a row queued at 11:31:38 — after the 11:30 tick,
+  before 11:35. The 11:30 knock reported `claimed 0`; the **11:35 knock reported
+  `claimed 1, sent 1`** and the row went `SENT` at 11:35:01. Nothing was touched.
+
+### ⚠ Found while checking the retry rule — a gap in the EXISTING sender
+
+`send.ts` says a quota failure *"must NOT count toward the death limit — five
+quota failures could be five days apart."* **The code does not do that.** All
+four failure classes share one `attempts` counter and only the TRANSIENT branch
+reads it, so a row that hit the daily ceiling five nights running would be
+killed by its **first** ordinary hiccup instead of getting its hour.
+
+⚠ And the obvious one-line fix does not work: the CONFIG branch **needs**
+`attempts` to grow, since it indexes its back-off by it — freezing the counter
+sends `RETRY_DELAYS_MS[-1]`, i.e. `undefined`, into a `Date`. So an honest fix
+wants a **separate counter for the failures the limit governs**, which is a
+column and therefore a migration. Narrow (needs repeated quota failures *then*
+a hiccup) and we have never reached the free-tier ceiling — but it bites
+precisely on a high-volume bad day. **Open.**
+
+ⓘ Also corrected while there: the comment says "four tries", the schedule gives
+**five** (four delays schedule attempts 2–5).
+
+### ⚠ Prod has NONE of this
+
+The migration reaches prod only at the next release, and three things must be
+set there or the doorbell refuses (loudly, by design): `CRON_SECRET` on the
+prod Worker · the Vault secret on the prod project · `email_drain_url` pointing
+at prod. **Prod's secret must be a DIFFERENT value from dev's** — same
+reasoning as the Resend keys: dev must be revocable without touching prod.
 
 ---
 
