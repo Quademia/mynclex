@@ -1345,7 +1345,77 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    OAuth credentials and look at the actual screen before shipping).
    The Supabase custom-domain add-on (paid) is the **escalation only if
    branding alone still leaks the supabase.co URL** — judged too
-   expensive as a default for a cosmetic fix. Slice also carries:
+   expensive as a default for a cosmetic fix.
+
+   > ### ⚠⚠ REVERSED 2026-08-18 (Sam) — branding is NOT the cheap path
+   >
+   > The decision above survives as the record of what was believed; it is no
+   > longer the plan. **"Free" was only ever free in money.**
+   >
+   > Branding + Verification is blocked on, in order: a **published privacy
+   > policy** (nobody has written it), **terms**, an **official Quademia logo**
+   > (does not exist), **Google brand verification** (days of latency, a third
+   > party's decision, can be refused), and a company name that is **not
+   > incorporated** (see `lib/email/templates/footer.ts`). ⭐ **Every one of
+   > those dependencies sits outside our control.**
+   >
+   > ⚠ **And the outcome was never proven.** We would spend the logo, the legal
+   > pages and the verification wait and might still see `<ref>.supabase.co` —
+   > which is exactly why the paid add-on was kept as an escalation. Expensive
+   > in dependencies AND uncertain in result is the worst pair available.
+   >
+   > ⭐⭐ **What settled it: `qacademy-beta-b`.** Sam pointed at the schools
+   > project, which shows a clean consent screen with **no logo, no
+   > verification, no privacy policy and no registered company**. Checked
+   > directly (2026-08-18): it is **NextAuth v5 + `@auth/d1-adapter`, no
+   > Supabase anywhere**, and its OAuth callback lives at
+   > `src/app/api/auth/[...nextauth]/route.ts` — **on its own domain**. Its
+   > clean screen was never a branding achievement; it never needed Google's
+   > permission to look right, because Google was only ever reporting the host
+   > it redirects to.
+   >
+   > ### The plan now — own the redirect
+   >
+   > Register our own Google OAuth client against
+   > `https://nclex.quademia.com/auth/google/callback`, so the consent screen
+   > names **our domain**. Our route exchanges the code with Google
+   > server-side and hands the resulting ID token to Supabase via
+   > **`signInWithIdToken({ provider: 'google', token })`** — verified present
+   > in the installed `@supabase/supabase-js` 2.105.3, `google` among its
+   > supported providers.
+   >
+   > ⭐ **The stranger-refusal guard SURVIVES the swap.**
+   > `hook_reject_google_signups` is a GoTrue **before-user-created** hook, and
+   > migration `20260907120000` states it is *"consulted for EVERY user
+   > creation… structural, not a condition we hand-wrote carefully and hope is
+   > right."* The id-token path creates its user through GoTrue like every
+   > other door, so the hook fires. ⚠ **Prove it anyway** — five minutes on dev
+   > with one unknown Google address. It is the property that closed the
+   > half-built-account trap and it is live on prod.
+   >
+   > **Measured cost**, not estimated: `app/login/google-actions.ts` (64 lines)
+   > rewritten to build Google's authorize URL ourselves — state, nonce, PKCE,
+   > which is the genuinely fiddly part; **one new callback route**; and
+   > `app/auth/callback/route.ts` (124 lines) adapted, since it already knows
+   > how to write `GOOGLE_BLOCKED` / `GOOGLE_LOGIN_OK`. ⓘ **Unchanged:** the
+   > hook migration, `lib/auth/events.ts`, and `google-button.tsx`. One slice.
+   >
+   > ⓘ **The paid add-on drops to third**, not second: ~$120/year forever
+   > against one session once, and it leaves the Supabase dependency in place
+   > rather than removing it. ⓘ Owning the flow is also the right shape if
+   > cross-product SSO (item ⑦) ever happens — beta-b being NextAuth already
+   > makes that seam real.
+   >
+   > **Branding becomes optional polish**, worth doing when the logo and legal
+   > pages exist for their own reasons — not a blocker on anything.
+   >
+   > ⓘ **For the record, Claude argued branding-first and was wrong twice:**
+   > it called the option "free" when it is only free in money, and it claimed
+   > the swap risked reopening the half-built-account trap when the hook is
+   > structural and unaffected. Both corrections came from Sam pushing back
+   > rather than from the analysis.
+
+   Slice also carries:
    **refusing addresses that have no account here** (Google is sign-in
    only — see the settlement below), and the account-linking check (same
    email = same account, no duplicate).
@@ -1590,10 +1660,17 @@ pages*, below.
 
 ## Legal pages (privacy policy + terms) — settled 2026-08-09 (later)
 
-**Two features are now blocked on one document nobody has written.** Google's
-OAuth consent screen wants a public privacy-policy URL before the brand
-verification that makes the screen say *Quademia* instead of a raw
-`<ref>.supabase.co`. And Turnstile's **invisible mode** was already parked on
+**One feature is blocked on a document nobody has written** — and it used to
+be two.
+
+⚠ **Corrected 2026-08-18.** This said *"two features"*, the second being
+Google's OAuth consent screen, which wanted a public privacy-policy URL
+before the brand verification that would make the screen say *Quademia*
+instead of a raw `<ref>.supabase.co`. **That dependency is gone**: the
+consent screen is being fixed by owning the redirect URI instead of by
+asking Google to re-brand the Supabase one — see the reversal under
+build-order item ⑤. ⭐ Which is itself an argument for the new approach:
+the old one made a cosmetic fix wait on a legal document. And Turnstile's **invisible mode** was already parked on
 the same thing — Cloudflare requires its Privacy Addendum be referenced in
 ours (see the 2d notes above, which recorded it as a launch-time question and
 did not connect it to anything else). One missing page, two stalled items,
