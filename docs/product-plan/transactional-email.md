@@ -4,7 +4,7 @@
 5 of 24 emails wired — `payment.received`, `enrolment.tutor_added`,
 `waitlist.converted`, and as of 2026-08-18 `payment.installment_due` +
 `payment.installment_overdue`, **the first time-driven emails the product has
-ever sent**. A pg_cron job knocks on the drain every five minutes. **All of it is on `main`; NONE of it is on `prod`.** This
+ever sent**. A pg_cron job knocks on the drain every five minutes. **Released to prod 2026-08-18 (PR #53) — live on BOTH projects, proven by a real test-mode purchase whose receipt sent in 218 ms through prod's own key.** This
 doc is the single source of truth for **every point in the app that should
 send an email**, and for **how a send works**. See [main.md](main.md) and
 [payments-and-enrolment.md](payments-and-enrolment.md).*
@@ -16,7 +16,7 @@ send an email**, and for **how a send works**. See [main.md](main.md) and
 > same failure as the session-log entries that say "not on prod". If you are
 > reading this line, check `git log origin/main` rather than trusting it.
 
-Last updated: 2026-08-18 (**the drain built** — see *The drain* below: pg_cron
+Last updated: 2026-08-18, later session (**RELEASED TO PROD** — PR #53, four migrations; the three hand-set values in place, the doorbell answering 200, and the first prod email sent in 218 ms by a real test-mode purchase. Same day, earlier: **the drain built** — see *The drain* below: pg_cron
 knocks on a private app URL every five minutes; chosen over GitHub Actions
 because the retry delays demand minutes and Actions bills whole minutes;
 ⚠ **the retry policy agreed on 08-11 was designed and never running**, and
@@ -1611,13 +1611,26 @@ came back `FAILED` with a retry a minute out — where before it went `DEAD` on
 attempt one. ⭐ And it composes with the strike counter: a key outage spends
 no strikes, so a long one cannot quietly exhaust an email's retry budget.
 
-### ⚠ Prod has NONE of this
+### ✅ Released to prod 2026-08-18 — and the three values are set
 
-The migration reaches prod only at the next release, and three things must be
-set there or the doorbell refuses (loudly, by design): `CRON_SECRET` on the
-prod Worker · the Vault secret on the prod project · `email_drain_url` pointing
-at prod. **Prod's secret must be a DIFFERENT value from dev's** — same
-reasoning as the Resend keys: dev must be revocable without touching prod.
+(This section read "⚠ Prod has NONE of this" until the release that same
+evening — kept because the requirement it states is permanent, not
+historical.) Three things must be set per project or the doorbell refuses
+(loudly, by design): `CRON_SECRET` on the Worker · the Vault secret
+(`nclex_email_drain_cron_secret`) · `email_drain_url` in `nclex_config`.
+**Each project's secret is a DIFFERENT value** — same reasoning as the
+Resend keys: dev must be revocable without touching prod.
+
+All three were set on prod on release night. ⚠ **The Cloudflare one fought
+back**: the first `CRON_SECRET` add never reached the live Worker and the
+door answered 503 for half an hour — likely the dashboard's
+save-without-deploy draft trap. ⭐ **The 503-vs-401 split earned its keep**:
+"no secret configured" vs "wrong key" could be told apart from outside with
+`curl` alone, which is the whole reason the two codes were separated.
+Delete + re-add fixed it. Proof, from pg_net's own log: knocks 19:45–20:00
+all 503; the 20:05 knock **200 `{claimed 0}`**, unattended. Then a real
+test-mode purchase sent `payment.received` in **218 ms** through the ⚡
+path — the first email ever through prod's Resend key.
 
 ---
 
