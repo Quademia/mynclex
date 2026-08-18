@@ -1412,24 +1412,67 @@ page never shows.**
   before 11:35. The 11:30 knock reported `claimed 0`; the **11:35 knock reported
   `claimed 1, sent 1`** and the row went `SENT` at 11:35:01. Nothing was touched.
 
-### ⚠ Found while checking the retry rule — a gap in the EXISTING sender
+### ✅ Two counters — FIXED 2026-08-18 (migration `20260910120000`)
 
-`send.ts` says a quota failure *"must NOT count toward the death limit — five
-quota failures could be five days apart."* **The code does not do that.** All
-four failure classes share one `attempts` counter and only the TRANSIENT branch
-reads it, so a row that hit the daily ceiling five nights running would be
-killed by its **first** ordinary hiccup instead of getting its hour.
+`send.ts` and the outbox migration both said a quota failure *"must NOT count
+toward the death limit — five quota failures could be five days apart"* and
+that the attempt count is a backstop *"here, and only here."* **Neither was
+true.** All four failure classes shared one `attempts` counter and only the
+TRANSIENT branch read it, so a row that hit the daily ceiling five nights
+running was killed by its **first** ordinary hiccup, having never once retried.
 
-⚠ And the obvious one-line fix does not work: the CONFIG branch **needs**
-`attempts` to grow, since it indexes its back-off by it — freezing the counter
-sends `RETRY_DELAYS_MS[-1]`, i.e. `undefined`, into a `Date`. So an honest fix
-wants a **separate counter for the failures the limit governs**, which is a
-column and therefore a migration. Narrow (needs repeated quota failures *then*
-a hiccup) and we have never reached the free-tier ceiling — but it bites
-precisely on a high-volume bad day. **Open.**
+⭐ **The one-line fix does not work, and that is why this is a column.** The
+CONFIG branch **needs** `attempts` to grow, since it indexes its back-off by it
+— freeze it and it sends `RETRY_DELAYS_MS[-1]`, i.e. `undefined`, into a
+`Date`. One class needs the number rising and another needs it still.
 
-ⓘ Also corrected while there: the comment says "four tries", the schedule gives
-**five** (four delays schedule attempts 2–5).
+So: `attempts` = **times tried** (honest total; the admin page and the CONFIG
+back-off), `transient_attempts` = **strikes** (hiccups only; the give-up rule
+reads this and nothing else). ⚠ `requeueEmail` resets **both** — resetting the
+total while leaving strikes at the limit gives a Retry button that looks like
+it worked and kills the row on its next hiccup.
+
+**Exercised, not reasoned about:** with the key swapped out on localhost, a row
+at `attempts=7 / strikes=0` took a CONFIG failure and came back `FAILED` (not
+`DEAD`), attempts 8, **strikes still 0**, next try +30 min as a valid date —
+the Invalid-Date landmine proven safe.
+
+ⓘ Also corrected: the comment said "four tries"; four delays schedule **five**
+attempts (2–5).
+
+### ⚠⚠ OPEN — a bad API key is classified as PERMANENT, and the drain makes it bite
+
+Found 2026-08-18 while forcing the failure above. Setting an invalid key,
+Resend did **not** answer with a key error. It returned:
+
+```
+code: validation_error    message: "API key is invalid"
+```
+
+`validation_error` maps to **PERMANENT**, so the row went **DEAD on the first
+failure**. The `missing_/invalid_/restricted_api_key → CONFIG` mapping never
+fired, because Resend does not appear to send those codes — at least not for a
+malformed key.
+
+⚠ **This defeats the entire reason the CONFIG class exists.** The migration
+states the intent: *"this is not about one email, EVERY email is failing, and
+it drains by itself the moment the key is fixed."* What would actually happen:
+
+- the drain wakes every five minutes and works through the queue
+- **every row it touches goes DEAD** rather than being held
+- fixing the key **drains nothing** — each row needs a manual Retry, one by one
+
+⭐ **And the drain is what makes it bite.** Before 2026-08-18 nothing re-read a
+failed row, so a bad key merely left the queue sitting. Now there is a machine
+that will methodically kill it. **Building the drain turned a dormant
+misclassification into an active one** — worth noting as a general shape: work
+that makes a system actually run promotes its latent bugs.
+
+**Before writing a rule:** only a *malformed* key has been observed. Check what
+Resend returns for a **revoked** or **restricted** key too — the fix is
+probably "treat a 401 as CONFIG whatever code it carries", or match on the
+message as well as the code, but that should be decided from evidence rather
+than from one sample.
 
 ### ⚠ Prod has NONE of this
 
