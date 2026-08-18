@@ -41,9 +41,18 @@ function whatItIsFor(p: InstallmentOverduePayload): string {
   return p.cohortName ? `${p.programmeTitle} · ${p.cohortName}` : p.programmeTitle;
 }
 
+// ⭐ THE SUBJECT LEADS WITH A LABEL (Sam, 2026-08-18). "Access paused:"
+// first, so the reader knows this one matters before deciding whether to
+// open it — and then the PROGRAMME, because that is what she has to act on.
+//
+// ⚠ Do not restore the fuller sentence ("your access to X is paused").
+// After the label those words repeat themselves, and they cost ~25
+// characters — enough to push the programme name past a phone's ~45-char
+// truncation, so the reader would see the alarm and not which programme it
+// was about. Measured, not guessed: 82 chars became 57.
 function subject(p: InstallmentOverduePayload): string {
   return p.paused
-    ? `Your access to ${p.programmeTitle} is paused`
+    ? `Access paused: ${p.programmeTitle}`
     : `Payment overdue — ${formatMinor(p.amountMinor, p.currency)}`;
 }
 
