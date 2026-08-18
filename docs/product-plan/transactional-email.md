@@ -1,10 +1,10 @@
 # Transactional Email — Trigger Registry
 
-*Status: **the spine is built and the drain now runs.** 3 of 24 emails wired
-(`payment.received`, `enrolment.tutor_added`, `waitlist.converted`), and as of
-2026-08-18 a pg_cron job sends what is due every five minutes — so the ⏰ half
-is unblocked and `payment.installment_due` (1b) is next with no structural
-question left in it. **All of it is on `main`; NONE of it is on `prod`.** This
+*Status: **the spine is built, the drain runs, and the ⏰ half has opened.**
+5 of 24 emails wired — `payment.received`, `enrolment.tutor_added`,
+`waitlist.converted`, and as of 2026-08-18 `payment.installment_due` +
+`payment.installment_overdue`, **the first time-driven emails the product has
+ever sent**. A pg_cron job knocks on the drain every five minutes. **All of it is on `main`; NONE of it is on `prod`.** This
 doc is the single source of truth for **every point in the app that should
 send an email**, and for **how a send works**. See [main.md](main.md) and
 [payments-and-enrolment.md](payments-and-enrolment.md).*
@@ -685,8 +685,8 @@ content release, or account state, ask "should this notify someone?" — if yes:
 |---|---|---|---|---|---|---|
 | `payment.received` | ⚡ | A **checkout** is paid — Paystack success OR tutor "mark paid" | student | **✅ BUILT 2026-08-11.** Receipt: amount, method, reference + one "what you now have" line per purpose in the checkout (incl. *you're enrolled*, folded in above), in three framings. Fingerprint = `checkout_group_id` | P1 | ✅ |
 | `payment.failed` | ⚡ | Paystack reports a failed/declined charge | student | Payment didn't go through, retry link | P1 | ✅ |
-| `payment.installment_due` | ⏰ | An installment is approaching its due date | student | Reminder + pay link | P1 | ⬜ (clock ✅ — see below) |
-| `payment.installment_overdue` | ⏰ | An installment passes its due date unpaid | student | Overdue notice + grace info | P1 | ✅ (state) / ⬜ (job) |
+| `payment.installment_due` | ⏰ | An installment is approaching its due date | student | **✅ BUILT 2026-08-18.** TWO reminders — `<n>:T-7` and `<n>:T-3` — enqueued by the nightly sweep. Names the tutor; the consequence line only appears on gated programmes | P1 | ✅ |
+| `payment.installment_overdue` | ⏰ | An installment passes its due date unpaid | student | **✅ BUILT 2026-08-18.** Sent the night the sweep acts, captured BEFORE the pause. Past tense — the pause has already happened. `paused` switches it between "access is paused" and "access is unaffected" | P1 | ✅ |
 | `payment.grace_set` | ⚡ | Tutor grants a first-payment / installment grace | student | "Your tutor extended your due date to X" | P2 | ✅ |
 | `payment.refunded` | ⚡ | A payment is refunded | student | Refund confirmation | P2 | ✅ |
 | `payment.tutor_received` | ⚡ | A student payment lands — Paystack success OR tutor "mark paid" | tutor | "Ama paid GHS X for Cohort Y" — payer, amount, plan, cohort. **Programme money only** (bank/readiness is QAcademy's). **Required on every payment**; per-event vs digest is a delivery choice (see open questions) | P1 | ✅ |
@@ -1120,7 +1120,130 @@ Both were the exact fault this layer exists to prevent, reproduced inside it:
 
 ---
 
-## ⏭ 1b — the shape, settled in discussion 2026-08-12 (no code yet)
+
+## ✅ 1b — BUILT 2026-08-18
+
+The sweep stops being silent. Migration `20260911120000_installment_reminders.sql`,
+two new templates, two new event keys. **Nothing student-visible outside email.**
+
+| When | Event | Stage |
+|---|---|---|
+| due in 7–8 days | `payment.installment_due` | `<n>:T-7` |
+| due in 3–4 days | `payment.installment_due` | `<n>:T-3` |
+| the night she is paused | `payment.installment_overdue` | `<n>:overdue` |
+
+### ⭐ The sum is now written ONCE — this REMOVED copies, it did not add one
+
+`nclex_enrolment_next_payment()` answers *when is her next payment due, how
+much, which position, and does this programme gate access* — and the pause
+step, both reminders and the overdue notice all read it. It replaces two
+inline copies inside the sweep; `lib/payments/schedule.ts` remains the TS
+half. The reminders would otherwise have been a fourth copy of the date the
+warning **quotes** and the pause **enforces**.
+
+ⓘ **The money was cheaper than feared.** Reminders only ever concern positions
+2..N, whose amount is a plain `total ÷ count`; `installmentSplit`'s rounding
+remainder lands on position 1, which is paid at checkout and never reminded
+about.
+
+⚠ **Verified before switching, and again with real overdue data.** The shared
+function and the old inline expression select the same enrolments with the
+same due dates — 0 disagreements. ⓘ The first comparison was **vacuous** (no
+enrolment on dev was both `ENROLLED` and owing) and said so; the second, after
+seeding, had a row that genuinely qualified.
+
+### The copy decisions, none of them incidental
+
+- **⭐ Past tense, not future.** Detecting overdue and pausing are the same
+  instant — the sweep never notices somebody is late and leaves them enrolled
+  — so *"you will be paused"* is never a true sentence.
+- **⭐ "Paying puts it back immediately — you do not need to ask anyone."**
+  Verified true in `activate.ts`, which recomputes the schedule after a
+  payment and clears the pause itself. The worst version of this email leaves
+  her thinking she must write to somebody and wait.
+- **⭐ The tutor is named** in all three. *"A system took your access"* becomes
+  *"there is a person here who knows you"* — which matters most for exactly
+  the student most likely to go quiet.
+- **⚠ The consequence line is CONDITIONAL.** On a programme with
+  `payment_gates_access = FALSE` nothing pauses; a blanket *"your access will
+  pause"* is a threat we do not carry out. Same for the overdue notice, whose
+  `paused` flag switches it between *"your access is paused"* and *"your
+  access is unaffected"*.
+- **No threat at T-7.** The consequence appears at T-3. The first thing she
+  ever hears about this money should not be what we will take away.
+- **Grace is offered at T-3 and at overdue, never at T-7.** Offering an
+  extension before anything has gone wrong invites delay; offering it once she
+  is struggling is kindness. The tutor really can do both — `resumeEnrolmentAction`
+  restores access and `installment_grace_until` moves the date.
+- **⭐ The paused subject leads with a label** (Sam): `Access paused: <programme>`.
+  ⚠ The fuller sentence was cut deliberately — after the label *"your access
+  to X is paused"* repeats itself and costs ~25 characters, enough to push the
+  programme name past a phone's ~45-character truncation. Measured on real
+  titles: 82 chars → 57. **Do not restore it.**
+
+### Who is deliberately left out
+
+**Grace-covered students get no overdue email at all.** Their tutor has just
+explicitly given them more time, and telling them they are overdue contradicts
+the thing the tutor did. If grace lapses unpaid they fall into the same select
+on a later night.
+
+⚠ **Students on non-gated programmes DO get all three** — they genuinely owe
+money — but every line about access is suppressed.
+
+### ⚠ The SQL path bypasses `enqueueEmail`, and one guard had to be copied
+
+These are the only two events enqueued from SQL rather than app code. That
+means they also skip the `@example.com` suppression in `outbox.ts`, so the
+guard is repeated in the migration. Dev holds **18** such addresses; without
+it a single sweep posts a wall of guaranteed hard bounces on a low-volume
+Resend account. ⓘ The payload contract is likewise unchecked — see the warning
+on `InstallmentDuePayload` in `types.ts`.
+
+### Tested on dev, against a seeded fixture
+
+Fixture removed afterwards; the two sent rows kept as evidence.
+
+- **T-7 sent** — *"Payment due 26 August 2026 — GHS 1,000"*, first attempt.
+- **Overdue sent**, with the enrolment going `PAUSED / INSTALLMENT_OVERDUE`
+  **in the same run** — which proves the notice is captured while she is still
+  `ENROLLED`, the ordering the whole step depends on.
+- **T-3 window verified to select correctly** and then deleted unsent; it is
+  the same template with a different literal.
+- **Three further sweep runs produced no duplicates.** The fingerprint holds.
+- Only **one** row came out of a table full of students: 18 `@example.com`
+  addresses and every already-paused enrolment correctly skipped.
+
+### ⚠⚠ Two process findings worth more than the feature
+
+- **The migration file was not what was tested.** A condensed version went to
+  dev; the commented one went to the file. Hash-comparing them (comments and
+  whitespace stripped) showed a difference, chased down to cosmetic spaces and
+  confirmed identical at 3,250 characters. **Harmless this time.** The file is
+  what ships to prod, and "resembles what I tested" is not "is" — do this
+  comparison whenever the two are typed separately.
+- **⭐ `tsc` reports nothing useful while `next dev` is running.** Half-written
+  files under `.next/dev/types` produce *syntax* errors, and tsc then skips
+  semantic checking entirely — hiding two genuine type errors in these
+  templates (`formatMinor`'s arguments reversed, four call sites). A green tsc
+  with the dev server up is **not evidence**. Stop the server and clear that
+  directory first.
+
+### Still open after 1b
+
+- **`enrolment.access_expiring` / `access_expired`** — the other half of the
+  pair rule, still blocked on the access-window discussion.
+- **`payment.installment_overdue` on non-gated programmes fires once per
+  position**, forever, until paid. That is intended, but nobody has watched it
+  run for months.
+- ⚠ **The `validation_error` misclassification matters more now.** Three
+  scheduled emails feed the queue, so a bad key means the drain marches
+  through and kills each one instead of holding them — and fixing the key
+  drains nothing.
+## 1b — the shape, settled in discussion 2026-08-12 — ✅ BUILT 2026-08-18
+
+ⓘ Kept as the design record. What was actually built is the section above;
+this is what was reasoned out beforehand, and it held.
 
 Sam's framing, and it generalises further than he pitched it.
 
