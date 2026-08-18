@@ -76,6 +76,13 @@ const FAILURE_BY_CODE: Record<string, FailureClass> = {
   monthly_quota_exceeded: 'QUOTA',
 
   // Not about this email. EVERY email is failing.
+  // ⓘ These three are kept but are NOT how a bad key actually arrives on
+  // a send — that is a 401 (see the failure line below). `missing_api_key`
+  // is raised by our OWN guard before Resend is called at all, and
+  // `restricted_api_key` was seen for real on 2026-08-11 — but from a
+  // READ (fetchDeliveryStatus), not from sending. Left in place because
+  // they cost nothing and the day Resend starts naming them, this is
+  // already right.
   missing_api_key: 'CONFIG',
   invalid_api_key: 'CONFIG',
   restricted_api_key: 'CONFIG',
@@ -191,7 +198,31 @@ async function postToResend(args: {
     ok: false,
     code,
     message: err?.message ?? `Resend returned HTTP ${response.status}.`,
-    failure: FAILURE_BY_CODE[code] ?? (response.status >= 500 ? 'TRANSIENT' : classify(code)),
+    // ⚠⚠ 401 IS CHECKED BEFORE THE CODE TABLE, AND THAT ORDER IS THE FIX
+    // (2026-08-18). Resend does NOT report a rejected key by name: every
+    // bad credential — malformed, well-formed-but-wrong, or empty — comes
+    // back as HTTP 401 carrying `validation_error` / "API key is invalid".
+    // Probed against the live API on all three shapes; they are identical.
+    //
+    // Read through the table first, that lands on validation_error →
+    // PERMANENT and the row DIES ON ITS FIRST ATTEMPT. Which is the exact
+    // opposite of the rule for a key problem: EVERY email is failing, so
+    // the queue must be held, not consumed, and drain by itself once the
+    // key is fixed. ⭐ Before the drain existed this was dormant — nothing
+    // re-read a failed row. Now a bad-key day would have the drain kill the
+    // queue every five minutes while the sweep refills it.
+    //
+    // ⚠ DO NOT 'simplify' this by mapping validation_error to CONFIG in the
+    // table. That name is also Resend's genuine code for a genuinely broken
+    // request (bad from-address, missing field), which really is permanent;
+    // reclassifying it wholesale would fill the queue with rows that can
+    // never succeed and retry forever. The HTTP status is what separates
+    // "our credentials were rejected" from "this email is malformed", and
+    // nothing else Resend returns for a send is a 401.
+    failure:
+      response.status === 401
+        ? 'CONFIG'
+        : FAILURE_BY_CODE[code] ?? (response.status >= 500 ? 'TRANSIENT' : classify(code)),
   };
 }
 

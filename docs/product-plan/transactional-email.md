@@ -1563,7 +1563,7 @@ the Invalid-Date landmine proven safe.
 ⓘ Also corrected: the comment said "four tries"; four delays schedule **five**
 attempts (2–5).
 
-### ⚠⚠ OPEN — a bad API key is classified as PERMANENT, and the drain makes it bite
+### ✅ A bad API key read as PERMANENT — FIXED 2026-08-18
 
 Found 2026-08-18 while forcing the failure above. Setting an invalid key,
 Resend did **not** answer with a key error. It returned:
@@ -1591,11 +1591,25 @@ that will methodically kill it. **Building the drain turned a dormant
 misclassification into an active one** — worth noting as a general shape: work
 that makes a system actually run promotes its latent bugs.
 
-**Before writing a rule:** only a *malformed* key has been observed. Check what
-Resend returns for a **revoked** or **restricted** key too — the fix is
-probably "treat a 401 as CONFIG whatever code it carries", or match on the
-message as well as the code, but that should be decided from evidence rather
-than from one sample.
+**✅ FIXED 2026-08-18.** `postToResend` now checks **HTTP 401 before the code
+table** and classifies it CONFIG. Probed against the live API first, and the
+answer was better than hoped: a **malformed** key, a **well-formed but wrong**
+key and an **empty** key all return the identical `401 / validation_error /
+"API key is invalid"`. Resend does not distinguish them, so there was no
+revoked-key case left to check.
+
+⚠ **The fix is deliberately narrow.** `validation_error` KEEPS its PERMANENT
+mapping everywhere else, because it is also Resend's genuine code for a
+genuinely broken request (bad from-address, missing field). Reclassifying the
+name wholesale would fill the queue with rows that can never succeed and
+retry forever — the opposite failure, and the reason PERMANENT exists. The
+HTTP status is what separates "our credentials were rejected" from "this
+email is malformed".
+
+**Proven, not just compiled**: with a wrong key in `.env.local`, a queued row
+came back `FAILED` with a retry a minute out — where before it went `DEAD` on
+attempt one. ⭐ And it composes with the strike counter: a key outage spends
+no strikes, so a long one cannot quietly exhaust an email's retry budget.
 
 ### ⚠ Prod has NONE of this
 
