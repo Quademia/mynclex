@@ -1415,6 +1415,84 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    > structural and unaffected. Both corrections came from Sam pushing back
    > rather than from the analysis.
 
+   > ### ✅ BUILT AND RELEASED 2026-08-19 — the screen names us
+   >
+   > Commit `9480328`, released as **PR #54**, `main` → `prod` as a merge
+   > commit. **One commit, NO migration** — app code only. Both workflows
+   > green (migrations 30 s with nothing to apply, deploy 2 m 49 s). Tracker
+   > untouched at **159**; the pre-release set comparison ran clean in both
+   > directions (159 rows ↔ 159 files, zero orphans).
+   >
+   > **What was built.** `app/login/google-actions.ts` builds Google's
+   > authorize URL itself (state, PKCE S256, `prompt=select_account`); a new
+   > `app/auth/google/callback/route.ts` catches her on our own domain,
+   > exchanges the code server-to-server with the client secret, and hands the
+   > ID token to Supabase via `signInWithIdToken`;
+   > `lib/auth/google-oauth.ts` holds what both ends need. The old
+   > `app/auth/callback/route.ts` was **deleted** — nothing else ever landed
+   > there, and a dead handler still calling `exchangeCodeForSession` would
+   > read as a live second door.
+   >
+   > ⭐⭐ **GOOGLE SHOWS THE REGISTRABLE DOMAIN, NOT THE HOSTNAME — AND THAT IS
+   > BETTER THAN THE PLAN PREDICTED.** Sam's observation on the prod screen:
+   > the `nclex.` is dropped and it reads **"to continue to quademia.com"**.
+   > The dev screen proves the same rule from the other side —
+   > `mynclex-dev.mybackpacc.workers.dev` displayed as
+   > `mybackpacc.workers.dev`, the ownable unit under the `workers.dev` public
+   > suffix. So the screen names the domain we *own*, one level up from the
+   > product.
+   > **Consequence for the family:** every future QAcademy product on a
+   > `quademia.com` subdomain — MyNMCLicensure, MyTeacher — inherits the exact
+   > same `quademia.com` consent screen for free. One company brand across all
+   > four products, obtained by owning a domain rather than by Google's
+   > verification queue, with no logo, no privacy policy and no incorporation
+   > on the critical path. It is the strongest form of the argument the
+   > reversal was making.
+   >
+   > **⚠ Two library contracts, checked in the installed source rather than
+   > assumed. Either would have failed confusingly:**
+   > - **NO `nonce` is sent.** `auth-js` compares the **SHA-256 hash** of the
+   >   nonce you hand `signInWithIdToken` against the token's claim (the Apple
+   >   native-sign-in shape — see the doc comment on
+   >   `SignInWithIdTokenCredentials`), so Google's verbatim nonce could never
+   >   match. The claim a nonce guards is ID-token substitution in the
+   >   *implicit* flow; we use the authorization-code flow with a client secret
+   >   and fetch the token ourselves over TLS, where `state` covers CSRF and
+   >   PKCE binds the code. There is no channel for a substituted token.
+   > - **`access_token` IS sent** alongside the ID token, because Google's
+   >   tokens carry an `at_hash` claim that `auth-js` checks — omit it and a
+   >   perfectly good token is rejected.
+   >
+   > ⭐ **The refusal changed messenger, not behaviour — and it was proven, not
+   > reasoned about.** `hook_reject_google_signups` still fires (a
+   > before-user-created hook is consulted for every user creation), but it now
+   > surfaces as a **failed `signInWithIdToken` in our own process** instead of
+   > an `?error=` on the callback URL. Sam drove both live tests on dev: the
+   > sign-in wrote `GOOGLE_LOGIN_OK` with his user id and a fresh
+   > `last_sign_in_at`; the stranger wrote `GOOGLE_BLOCKED` · `no_account` —
+   > and `auth.users` gained **0 rows in three hours**, google identities held
+   > at **1**, with his own `email` + `google` identities still carrying their
+   > original 2026-08-09 timestamps. So automatic linking reused the existing
+   > identity rather than creating a duplicate. Both tests repeated on prod.
+   >
+   > ⚠ **The callback path is registered per environment in the Google Cloud
+   > Console**, so renaming that route is a console edit, not a refactor. And
+   > `next` travels in a **cookie**, not a query parameter, because Google
+   > matches `redirect_uri` character for character and it cannot carry a
+   > varying query string.
+   >
+   > ⓘ **The client topology settled by doing it** (the doc's "one project
+   > under `admin@quademia.com`" was the intended end state, not what exists):
+   > **dev's client lives in the personal Google account, prod's in the
+   > workspace account** — one-to-one with every other vendor in the stack
+   > (personal = dev Cloudflare + dev Supabase; workspace = prod everything).
+   > Sam's call, and it is the right one: each environment's Supabase already
+   > trusts exactly one client ID, so reusing that client is what makes the
+   > id-token path work with **no** Supabase dashboard change. Claude proposed
+   > consolidating both into the workspace project and was wrong — it would
+   > have added a dashboard edit to buy tidiness that only ever mattered for
+   > prod's screen.
+
    Slice also carries:
    **refusing addresses that have no account here** (Google is sign-in
    only — see the settlement below), and the account-linking check (same
