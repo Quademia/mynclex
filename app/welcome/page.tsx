@@ -142,10 +142,18 @@ export default function WelcomePage() {
         <section className="auth-card">
           <div className="auth-header">
             <h1 className="auth-title">This link didn&apos;t work</h1>
+            {/* ⚠ Not "ask your tutor to add you again" — the duplicate
+                enrolment guard refuses that, so the old copy sent her to
+                a door the app holds shut. And deliberately says nothing
+                about her ENROLMENT being safe: this card is a
+                convergence point, and the pay-first buyer who lands here
+                has an account but no enrolment, no subscription and no
+                credits until she finishes. The account is the one thing
+                true for everybody who reaches it. */}
             <p className="auth-subtitle">
-              Your invite link may have expired or already been used. Ask your
-              tutor to add you again — or sign in if you&apos;ve already set up
-              your account.
+              Your invite link may have expired or already been used. Your
+              account already exists, so you can still get in — go to the
+              sign-in page and choose &quot;Email me a sign-in code&quot;.
             </p>
           </div>
           <div className="auth-footer">

@@ -63,6 +63,19 @@ export const CONFIG_DEFS: ConfigDef[] = [
       'This hides the figure from students, and from tutors on their own questions, and stops the nightly recount. Nothing is lost: the counts are rebuilt from the answers themselves the night after you turn it back on.',
   },
   {
+    key: 'email_drain_enabled',
+    label: 'Scheduled email delivery',
+    description:
+      'Checks the email queue every five minutes and sends whatever has come due — both email queued by a nightly job and retries of sends that failed. Receipts and enrolment emails do not wait for this: they go out on the student’s own visit, in seconds.',
+    type: 'boolean',
+    defaultValue: 'true',
+    // ⚠ The only off switch this job has. It runs every five minutes, so
+    // without an entry here stopping it would mean editing the database by
+    // hand — which is the thing the other three switches exist to avoid.
+    confirmOff:
+      'This stops all scheduled email and all automatic retries. Receipts and enrolment emails still send normally. But anything a nightly job queues — payment reminders, access-expiry notices — will sit unsent until you turn this back on, and a failed send will only go out if you press Retry on the Emails page yourself.',
+  },
+  {
     key: 'bank_optin_discount',
     label: 'Bank opt-in discount',
     description:

@@ -55,6 +55,7 @@ export const ADMIN_NAV: NavItem[] = [
   { key: 'reports',       label: 'Question Reports',    icon: 'flag',     href: '/admin/reports',       permission: 'BANK_CURATE' },
   { key: 'enquiries',     label: 'Programme Enquiries', icon: 'mail',     href: '/admin/enquiries',     permission: 'PROGRAMMES_VIEW' },
   { key: 'announcements', label: 'Announcements',       icon: 'alert',    href: '/admin/announcements', permission: 'COMMS_MANAGE' },
+  { key: 'emails',        label: 'Emails',              icon: 'mail',     href: '/admin/emails',        permission: 'COMMS_MANAGE' },
   { key: 'permissions',   label: 'Admin Permissions',   icon: 'shield',   href: '/admin/permissions',   permission: 'SUPER_ADMIN' },
   { key: 'config',        label: 'System Config',       icon: 'settings', href: '/admin/config',        permission: 'SYSTEM_MANAGE' },
 ];

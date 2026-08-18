@@ -15,6 +15,10 @@
 import 'server-only';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { formatCohortName } from '@/lib/cohorts/format';
+import { formatMinor } from '@/lib/products/money';
+import { enqueueAndSend } from '@/lib/email/send';
+import type { PaymentReceiptPayload, ReceiptFraming, ReceiptLineItem } from '@/lib/email/types';
+import { buildSchedule } from './schedule';
 import type { Currency, PaymentPurpose } from './types';
 import type { StrategyKind, FrozenStrategySnapshot } from '@/lib/strategies/types';
 
@@ -23,6 +27,10 @@ export type ReceiptLine = {
   name: string;
   meta: string | null;
   amountMinor: number;
+  // Added for the EMAILED receipt (2026-08-11): the screen groups by
+  // eye, but the email has to label each line by kind. Additive — the
+  // result screen ignores it.
+  purpose: PaymentPurpose;
 };
 
 export type PaymentReceipt = {
@@ -65,7 +73,19 @@ type Row = {
   enrolment_id: string | null;
   currency: Currency;
   amount_minor: number;
+  // Read for the emailed receipt. The screen doesn't need them: it is
+  // being looked at now, by someone who just paid, so "when" and "how"
+  // are self-evident. An email is read later and out of context.
+  checkout_group_id: string;
+  paystack_reference: string | null;
+  user_id: string | null;
+  paid_at: string | null;
+  collection_channel: 'PAYSTACK' | 'OFF_PLATFORM' | null;
 };
+
+const ROW_COLS = `payment_id, email, purpose, product_id, programme_id, cohort_id,
+   strategy_id, installment_index, enrolment_id, currency, amount_minor,
+   checkout_group_id, paystack_reference, user_id, paid_at, collection_channel`;
 
 // How many positions a plan has — mirrors schedule.ts positionsFor() without
 // needing a frozen snapshot (the receipt only needs the count for "k of N").
@@ -93,13 +113,41 @@ export async function getPaymentReceipt(reference: string): Promise<PaymentRecei
   const admin = createServiceRoleClient();
   const { data: payRows } = await admin
     .from('nclex_payments')
-    .select(
-      `payment_id, email, purpose, product_id, programme_id, cohort_id,
-       strategy_id, installment_index, enrolment_id, currency, amount_minor`
-    )
+    .select(ROW_COLS)
     .eq('paystack_reference', ref);
   const rows = (payRows ?? []) as Row[];
   if (rows.length === 0) return null;
+  return assembleReceipt(rows, ref);
+}
+
+/**
+ * The same receipt, found by CHECKOUT GROUP rather than by Paystack
+ * reference.
+ *
+ * ⭐ Needed by the emailed receipt, because the reference is not always
+ * there: a tutor recording money they collected themselves writes a
+ * payment row with `paystack_reference: null` and a freshly minted
+ * checkout_group_id. The group is the one identifier BOTH anchors have,
+ * which is also why it is what the email is fingerprinted on.
+ */
+export async function getPaymentReceiptByGroup(
+  checkoutGroupId: string
+): Promise<PaymentReceipt | null> {
+  const groupId = checkoutGroupId.trim();
+  if (!groupId) return null;
+
+  const admin = createServiceRoleClient();
+  const { data: payRows } = await admin
+    .from('nclex_payments')
+    .select(ROW_COLS)
+    .eq('checkout_group_id', groupId);
+  const rows = (payRows ?? []) as Row[];
+  if (rows.length === 0) return null;
+  return assembleReceipt(rows, rows[0].paystack_reference ?? '');
+}
+
+async function assembleReceipt(rows: Row[], ref: string): Promise<PaymentReceipt | null> {
+  const admin = createServiceRoleClient();
 
   // Gather the ids that need names.
   const programmeIds = [...new Set(rows.map((r) => r.programme_id).filter((x): x is string => !!x))];
@@ -214,7 +262,13 @@ export async function getPaymentReceipt(reference: string): Promise<PaymentRecei
         else if (strat.kind === 'DEPOSIT_BALANCE') metaBits.push('Deposit · balance to follow');
         else metaBits.push(`Payment 1 of ${planTotalPayments(strat.kind, strat.installmentCount)}`);
       }
-      return { key: r.payment_id, name, meta: metaBits.join(' · ') || null, amountMinor: r.amount_minor };
+      return {
+        key: r.payment_id,
+        name,
+        meta: metaBits.join(' · ') || null,
+        amountMinor: r.amount_minor,
+        purpose: r.purpose,
+      };
     }
     // Bank / readiness / programme bank opt-in.
     const name = (r.product_id && productNameById.get(r.product_id)) || 'Bank access';
@@ -224,7 +278,7 @@ export async function getPaymentReceipt(reference: string): Promise<PaymentRecei
         : r.purpose === 'BANK_OPTIN_AT_PROGRAMME'
           ? 'Added with your programme'
           : 'Question bank access';
-    return { key: r.payment_id, name, meta, amountMinor: r.amount_minor };
+    return { key: r.payment_id, name, meta, amountMinor: r.amount_minor, purpose: r.purpose };
   });
 
   const totalMinor = lines.reduce((sum, l) => sum + l.amountMinor, 0);
@@ -290,4 +344,293 @@ export async function getPaymentReceipt(reference: string): Promise<PaymentRecei
     isTutorLed,
     isReadinessOnly,
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// The EMAILED receipt
+// ─────────────────────────────────────────────────────────────────────
+// Everything above assembles what the buyer sees on screen. Everything
+// below turns the same facts into the frozen payload the email carries.
+//
+// ⭐ Built on getPaymentReceiptByGroup deliberately, rather than as a
+// second reader: the screen and the email are the same receipt, and if
+// they resolved names, cohorts and plan positions separately they would
+// eventually disagree about the same purchase.
+//
+// ⭐ WHAT IS ADDED HERE IS THE "WHAT YOU NOW HAVE" HALF, and it is the
+// only part that has to know the framing. The pay-first branch grants
+// NOTHING at payment time (activate.ts marks the group SETUP_REQUIRED
+// and creates no enrolment, no subscription, no credits until /welcome),
+// so under that framing every grants line is null — there is nothing
+// true to say yet, and a bank pass genuinely has no end date because
+// end_at is computed AT activation.
+
+const APP_ORIGIN = 'https://nclex.quademia.com';
+
+function formatDueDate(d: Date): string {
+  return d.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+/**
+ * Assemble the payload for `payment.received`.
+ *
+ * @param checkoutGroupId the charge — also the email's fingerprint.
+ * @param framing         how far the purchase actually got. The caller
+ *                        knows this; it is the outcome activate.ts just
+ *                        produced.
+ */
+export async function buildPaymentReceiptEmail(
+  checkoutGroupId: string,
+  framing: ReceiptFraming
+): Promise<{ payload: PaymentReceiptPayload; toEmail: string; toUserId: string | null } | null> {
+  const receipt = await getPaymentReceiptByGroup(checkoutGroupId);
+  if (!receipt) return null;
+
+  const admin = createServiceRoleClient();
+  const { data: payRows } = await admin
+    .from('nclex_payments')
+    .select(ROW_COLS)
+    .eq('checkout_group_id', checkoutGroupId);
+  const rows = (payRows ?? []) as Row[];
+  if (rows.length === 0) return null;
+
+  // Who it goes to. The ADDRESS is the recipient; the profile is looked
+  // up only for a first name, and legitimately will not exist for a
+  // pay-first buyer.
+  const toEmail = receipt.email;
+  const { data: profile } = await admin
+    .from('nclex_users')
+    .select('id, forename, name')
+    .ilike('email', toEmail.trim().toLowerCase())
+    .maybeSingle();
+  const recipientName =
+    (profile?.forename as string | null) ??
+    ((profile?.name as string | null)?.split(' ')[0] ?? null);
+
+  // ── grants, per purpose ──────────────────────────────────────────
+  const grantsByPaymentId = new Map<string, string | null>();
+
+  if (framing !== 'SETUP_REQUIRED') {
+    // Bank passes: the end date lives on the subscription, which only
+    // exists once activation has run.
+    const bankPaymentIds = rows
+      .filter((r) => r.purpose === 'BANK_PURCHASE' || r.purpose === 'BANK_OPTIN_AT_PROGRAMME')
+      .map((r) => r.payment_id);
+    if (bankPaymentIds.length) {
+      const { data: subs } = await admin
+        .from('nclex_subscriptions')
+        .select('payment_id, end_at')
+        .in('payment_id', bankPaymentIds);
+      for (const s of (subs ?? []) as { payment_id: string; end_at: string | null }[]) {
+        grantsByPaymentId.set(
+          s.payment_id,
+          s.end_at ? `Bank access until ${formatDueDate(new Date(s.end_at))}` : 'Bank access is now open'
+        );
+      }
+      // ⚠ Fallback when no subscription row is found. Today's
+      // activate.ts always writes one before marking a payment
+      // ACTIVATED, so this should not happen — but dev holds ACTIVATED
+      // bank payments with no subscription (older rows), and if that
+      // ever recurs the receipt would silently lose its entire "what you
+      // now have" section. Saying less is better than saying nothing:
+      // the payment IS activated, so access IS open; only the date is
+      // unknown.
+      for (const id of bankPaymentIds) {
+        if (!grantsByPaymentId.has(id)) grantsByPaymentId.set(id, 'Bank access is now open');
+      }
+    }
+
+    // Readiness: the count comes from the product, never from pack_type.
+    const readinessRows = rows.filter((r) => r.purpose === 'READINESS_PURCHASE' && r.product_id);
+    if (readinessRows.length) {
+      const { data: prods } = await admin
+        .from('nclex_products')
+        .select('product_id, readiness_credits')
+        .in('product_id', readinessRows.map((r) => r.product_id as string));
+      const creditsById = new Map(
+        ((prods ?? []) as { product_id: string; readiness_credits: number }[]).map((p) => [
+          p.product_id,
+          p.readiness_credits,
+        ])
+      );
+      for (const r of readinessRows) {
+        const n = creditsById.get(r.product_id as string) ?? 0;
+        grantsByPaymentId.set(
+          r.payment_id,
+          n > 0 ? `${n} readiness pack${n === 1 ? '' : 's'} added to your account` : null
+        );
+      }
+    }
+
+    // Programme money: where they stand on the plan, read from the
+    // enrolment's FROZEN snapshot — the same source the nightly sweep
+    // uses, so the receipt cannot quote a schedule the sweep disagrees
+    // with.
+    const progRows = rows.filter(
+      (r) => r.purpose === 'PROGRAMME_INITIAL' || r.purpose === 'PROGRAMME_INSTALLMENT'
+    );
+    if (progRows.length) {
+      // ⚠ enrolment_id can be missing even on an ACTIVATED row (dev has
+      // such rows). Everything below tolerates that and falls back to
+      // the programme name rather than dropping the section.
+      const linkedIds = progRows
+        .map((r) => r.enrolment_id)
+        .filter((x): x is string => !!x);
+      const { data: enrols } = linkedIds.length
+        ? await admin
+            .from('nclex_enrolments')
+            .select('enrolment_id, status, cohort_id, enrolled_at, strategy_snapshot_json')
+            .in('enrolment_id', linkedIds)
+        : { data: [] };
+
+      const enrolRows = (enrols ?? []) as {
+        enrolment_id: string;
+        status: string;
+        cohort_id: string | null;
+        enrolled_at: string;
+        strategy_snapshot_json: FrozenStrategySnapshot | null;
+      }[];
+      const enrolById = new Map(enrolRows.map((e) => [e.enrolment_id, e]));
+
+      // ⚠ The cohort has to come from the ENROLMENT, not from the
+      // payment row or its receipt line. A PROGRAMME_INSTALLMENT row
+      // carries cohort_id = NULL by the cohort_scope CHECK, so its line
+      // meta is just "Payment 2 of 4" — reading a place out of that
+      // produced "Enrolled in Payment 2 of 4". Found by reading the
+      // rendered text, 2026-08-11.
+      const cohortNameById = new Map<string, string>();
+      const enrolCohortIds = [
+        ...new Set(enrolRows.map((e) => e.cohort_id).filter((x): x is string => !!x)),
+      ];
+      if (enrolCohortIds.length) {
+        const { data: cs } = await admin
+          .from('nclex_cohorts')
+          .select('cohort_id, name, start_date, end_date')
+          .in('cohort_id', enrolCohortIds);
+        for (const c of (cs ?? []) as {
+          cohort_id: string;
+          name: string | null;
+          start_date: string;
+          end_date: string;
+        }[]) {
+          cohortNameById.set(c.cohort_id, formatCohortName(c));
+        }
+      }
+
+      for (const r of progRows) {
+        const line = receipt.lines.find((l) => l.key === r.payment_id);
+        const e = r.enrolment_id ? enrolById.get(r.enrolment_id) : undefined;
+
+        if (!e) {
+          // No enrolment to read a schedule from. The payment is
+          // activated, so the place is real — say that much and stop.
+          grantsByPaymentId.set(r.payment_id, `Enrolled in ${line?.name ?? 'your programme'}`);
+          continue;
+        }
+
+        // The cohort when there is one (tutor-led), otherwise the
+        // programme itself (self-paced enrolments have no cohort).
+        const place =
+          (e.cohort_id ? cohortNameById.get(e.cohort_id) : null) ?? line?.name ?? 'your programme';
+
+        if (e.status === 'PENDING_APPROVAL') {
+          grantsByPaymentId.set(r.payment_id, `A place in ${place}, once your tutor approves it`);
+          continue;
+        }
+
+        const snap = e.strategy_snapshot_json;
+        if (!snap) {
+          grantsByPaymentId.set(r.payment_id, `Enrolled in ${place}`);
+          continue;
+        }
+
+        const { count } = await admin
+          .from('nclex_payments')
+          .select('payment_id', { count: 'exact', head: true })
+          .eq('enrolment_id', e.enrolment_id)
+          .in('purpose', ['PROGRAMME_INITIAL', 'PROGRAMME_INSTALLMENT'])
+          .in('status', ['PAID', 'ACTIVATED']);
+
+        const schedule = buildSchedule(snap, new Date(e.enrolled_at), count ?? 0);
+        const remaining = schedule.payments
+          .slice(schedule.paidCount)
+          .reduce((sum, p) => sum + p.amountMinor, 0);
+
+        const bits = [`Enrolled in ${place}`];
+        if (schedule.next && remaining > 0) {
+          bits.push(
+            `${formatMinor(remaining, receipt.currency)} remaining, next due ${formatDueDate(schedule.next.dueDate)}`
+          );
+        } else {
+          bits.push('Paid in full');
+        }
+        grantsByPaymentId.set(r.payment_id, bits.join(' · '));
+      }
+    }
+  }
+
+  // ── the payload ──────────────────────────────────────────────────
+  const first = rows[0];
+  const paidAtISO = first.paid_at ?? new Date().toISOString();
+  const method: PaymentReceiptPayload['method'] =
+    first.collection_channel === 'OFF_PLATFORM' ? 'OFF_PLATFORM' : 'CARD';
+
+  const lineItems: ReceiptLineItem[] = receipt.lines.map((l) => ({
+    purpose: l.purpose as ReceiptLineItem['purpose'],
+    // The line's name plus its qualifier — "NCLEX Intensive — Cohort 3 ·
+    // Payment 2 of 4" reads as one thing out of context, which is how an
+    // email is read.
+    label: l.meta ? `${l.name} — ${l.meta}` : l.name,
+    amountMinor: l.amountMinor,
+    grants: grantsByPaymentId.get(l.key) ?? null,
+  }));
+
+  // ⚠ No call to action while setup is outstanding: every in-app
+  // destination would bounce her to a login she cannot complete yet.
+  const showCta = framing === 'ACTIVATED' && !!receipt.destinationHref;
+
+  return {
+    toEmail,
+    toUserId: (profile?.id as string | null) ?? first.user_id ?? null,
+    payload: {
+      framing,
+      recipientName,
+      currency: receipt.currency,
+      totalMinor: receipt.totalMinor,
+      paidAtISO,
+      reference: first.paystack_reference,
+      method,
+      lineItems,
+      ctaHref: showCta ? `${APP_ORIGIN}${receipt.destinationHref}` : null,
+      ctaLabel: showCta ? receipt.destinationLabel : null,
+    },
+  };
+}
+
+/** Queue the receipt for a checkout, and start sending it immediately. */
+export async function sendPaymentReceipt(
+  checkoutGroupId: string,
+  framing: ReceiptFraming
+): Promise<void> {
+  try {
+    const built = await buildPaymentReceiptEmail(checkoutGroupId, framing);
+    if (!built) return;
+    await enqueueAndSend({
+      eventKey: 'payment.received',
+      // ⭐ The CHECKOUT, not the payment row — one debit, one receipt.
+      subjectRef: checkoutGroupId,
+      toEmail: built.toEmail,
+      toUserId: built.toUserId,
+      payload: built.payload as unknown as Record<string, unknown>,
+    });
+  } catch (e) {
+    // The money landing outranks the receipt. Never let this throw into
+    // a payment path.
+    console.error('[email] receipt failed for checkout', checkoutGroupId, (e as Error).message);
+  }
 }

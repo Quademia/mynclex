@@ -112,6 +112,37 @@ const STATUS_ORDER: EnrolmentStatus[] = [
 type Tab = 'roster' | 'waitlist';
 type StatusFilter = EnrolmentStatus | 'ALL';
 
+/**
+ * The toast after a successful add or waitlist convert. Shared by both,
+ * because since the invite swap (2026-08-12) they send the same email
+ * and the two copies had already drifted apart once.
+ *
+ * ⭐ `emailQueued: false` is an ERROR TONE ON A SUCCESSFUL ACTION, and
+ * that is deliberate. The student IS enrolled — nothing rolled back —
+ * but nothing was sent, and for a brand-new account the email carries
+ * the only way in. The tutor is the one person who can act on that, and
+ * they are looking at this screen right now.
+ */
+function enrolToast(res: { invited: boolean; name: string; emailQueued: boolean }): {
+  tone: 'success' | 'error';
+  message: string;
+} {
+  if (!res.emailQueued) {
+    return {
+      tone: 'error',
+      message: res.invited
+        ? `Enrolled ${res.name}, but the invite email could not be sent — they have no way in yet. Check Admin → Emails.`
+        : `Enrolled ${res.name}, but the notification email could not be sent. Check Admin → Emails.`,
+    };
+  }
+  return {
+    tone: 'success',
+    message: res.invited
+      ? `Enrolled ${res.name} — emailed them a link to set up their account.`
+      : `Enrolled ${res.name} — emailed them the details (existing MyNclex account).`,
+  };
+}
+
 export function EnrolmentRosterView({
   programmeId,
   deliveryMode,
@@ -306,12 +337,7 @@ export function EnrolmentRosterView({
         return;
       }
       setAddOpen(false);
-      setToast({
-        tone: 'success',
-        message: res.invited
-          ? `Invited ${res.name} — they'll get an email to set up their account.`
-          : `Enrolled ${res.name} (existing MyNclex account).`,
-      });
+      setToast(enrolToast(res));
       router.refresh();
     });
   }
@@ -327,12 +353,7 @@ export function EnrolmentRosterView({
         return;
       }
       setWlConvert(null);
-      setToast({
-        tone: 'success',
-        message: res.invited
-          ? `Enrolled ${res.name} — invite sent to set up their account.`
-          : `Enrolled ${res.name} (existing MyNclex account).`,
-      });
+      setToast(enrolToast(res));
       router.refresh();
     });
   }

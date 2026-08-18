@@ -78,6 +78,10 @@ import '@/styles/mobile-nav.css';
 // The app-wide on-screen calculator widget (`calc-*`), mounted by the
 // runner today and any surface that renders <Calculator> later.
 import '@/styles/calculator.css';
+// The admin email monitor + template preview (`eml-*`). Note: the EMAILS
+// themselves are styled inline in lib/email/templates/ — mail clients
+// don't support CSS variables, so none of this reaches them.
+import '@/styles/email-admin.css';
 
 export const dynamic = 'force-dynamic';
 

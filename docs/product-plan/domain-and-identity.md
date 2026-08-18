@@ -973,6 +973,16 @@ references (rename debt above) and the Resend/SMTP work already scoped.
        page that neither listed as a dependency. Decision on where the
        legal pages live, and the rule for writing them: → *Legal pages*,
        below the build order.
+       ⭐ **UPDATE 2026-08-10 — the ROUTE exists; the DOCUMENT does not.**
+       `https://quademia.com/privacy` is live (own repo, own domain — see
+       *Legal pages*), so neither this nor Google's verification is
+       waiting on an address any more. Both now wait only on the prose —
+       which in turn waits on **company registration**, because a privacy
+       policy has to name a data controller. ⚠ "MyNclex has no
+       privacy-policy route at all" above is no longer the blocker, but
+       do not read the live URL as the item being unblocked: a page
+       reading *Coming soon* cannot carry Cloudflare's Privacy Addendum
+       reference.
      - ⓘ Refusal copy is one shared sentence — *"We could not verify your
        browser. Please refresh the page and try again."* Deliberately
        silent about which of the reasons applied, since they all have the
@@ -1321,11 +1331,12 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      the stated blocker. ⬜ **The code door has still never been driven on
      prod** — only on dev. Prod being empty by design keeps the blast
      radius near zero, but it is not verified there.
-5. **Google sign-in** — ✅ **BUILT AND PROVEN ON DEV 2026-08-09 (later
-   still)** (`aa0391f` 5a+5b, `2f370f0` 5c+5d; on `main` pending Sam's
-   approval, **deliberately NOT released to prod** — see *Releasing this*
-   below). Refusal, registration, linking and sign-in all driven by Sam
-   against a real Google account. Gated on the consent screen showing
+5. **Google sign-in** — ✅ **DONE AND LIVE ON PROD, 2026-08-09 (later
+   still)** (`aa0391f` 5a+5b, `2f370f0` 5c+5d, `42f3f7e` docs; released as
+   PR #52, tracker 154 → **155**). Refusal, registration, linking and
+   sign-in each driven by Sam against a real Google account on **both**
+   dev and prod. Branding deliberately deferred — see *Releasing this*
+   below. Gated on the consent screen showing
    Quademia, not a Supabase project ID (the gamma-era "sign in to
    <ref>.supabase.co" screen must never exist here). Settled 2026-08-05:
    **try the free fix first** — Google Cloud Console Branding +
@@ -1334,11 +1345,87 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    OAuth credentials and look at the actual screen before shipping).
    The Supabase custom-domain add-on (paid) is the **escalation only if
    branding alone still leaks the supabase.co URL** — judged too
-   expensive as a default for a cosmetic fix. Slice also carries:
+   expensive as a default for a cosmetic fix.
+
+   > ### ⚠⚠ REVERSED 2026-08-18 (Sam) — branding is NOT the cheap path
+   >
+   > The decision above survives as the record of what was believed; it is no
+   > longer the plan. **"Free" was only ever free in money.**
+   >
+   > Branding + Verification is blocked on, in order: a **published privacy
+   > policy** (nobody has written it), **terms**, an **official Quademia logo**
+   > (does not exist), **Google brand verification** (days of latency, a third
+   > party's decision, can be refused), and a company name that is **not
+   > incorporated** (see `lib/email/templates/footer.ts`). ⭐ **Every one of
+   > those dependencies sits outside our control.**
+   >
+   > ⚠ **And the outcome was never proven.** We would spend the logo, the legal
+   > pages and the verification wait and might still see `<ref>.supabase.co` —
+   > which is exactly why the paid add-on was kept as an escalation. Expensive
+   > in dependencies AND uncertain in result is the worst pair available.
+   >
+   > ⭐⭐ **What settled it: `qacademy-beta-b`.** Sam pointed at the schools
+   > project, which shows a clean consent screen with **no logo, no
+   > verification, no privacy policy and no registered company**. Checked
+   > directly (2026-08-18): it is **NextAuth v5 + `@auth/d1-adapter`, no
+   > Supabase anywhere**, and its OAuth callback lives at
+   > `src/app/api/auth/[...nextauth]/route.ts` — **on its own domain**. Its
+   > clean screen was never a branding achievement; it never needed Google's
+   > permission to look right, because Google was only ever reporting the host
+   > it redirects to.
+   >
+   > ### The plan now — own the redirect
+   >
+   > Register our own Google OAuth client against
+   > `https://nclex.quademia.com/auth/google/callback`, so the consent screen
+   > names **our domain**. Our route exchanges the code with Google
+   > server-side and hands the resulting ID token to Supabase via
+   > **`signInWithIdToken({ provider: 'google', token })`** — verified present
+   > in the installed `@supabase/supabase-js` 2.105.3, `google` among its
+   > supported providers.
+   >
+   > ⭐ **The stranger-refusal guard SURVIVES the swap.**
+   > `hook_reject_google_signups` is a GoTrue **before-user-created** hook, and
+   > migration `20260907120000` states it is *"consulted for EVERY user
+   > creation… structural, not a condition we hand-wrote carefully and hope is
+   > right."* The id-token path creates its user through GoTrue like every
+   > other door, so the hook fires. ⚠ **Prove it anyway** — five minutes on dev
+   > with one unknown Google address. It is the property that closed the
+   > half-built-account trap and it is live on prod.
+   >
+   > **Measured cost**, not estimated: `app/login/google-actions.ts` (64 lines)
+   > rewritten to build Google's authorize URL ourselves — state, nonce, PKCE,
+   > which is the genuinely fiddly part; **one new callback route**; and
+   > `app/auth/callback/route.ts` (124 lines) adapted, since it already knows
+   > how to write `GOOGLE_BLOCKED` / `GOOGLE_LOGIN_OK`. ⓘ **Unchanged:** the
+   > hook migration, `lib/auth/events.ts`, and `google-button.tsx`. One slice.
+   >
+   > ⓘ **The paid add-on drops to third**, not second: ~$120/year forever
+   > against one session once, and it leaves the Supabase dependency in place
+   > rather than removing it. ⓘ Owning the flow is also the right shape if
+   > cross-product SSO (item ⑦) ever happens — beta-b being NextAuth already
+   > makes that seam real.
+   >
+   > **Branding becomes optional polish**, worth doing when the logo and legal
+   > pages exist for their own reasons — not a blocker on anything.
+   >
+   > ⓘ **For the record, Claude argued branding-first and was wrong twice:**
+   > it called the option "free" when it is only free in money, and it claimed
+   > the swap risked reopening the half-built-account trap when the hook is
+   > structural and unaffected. Both corrections came from Sam pushing back
+   > rather than from the analysis.
+
+   Slice also carries:
    **refusing addresses that have no account here** (Google is sign-in
    only — see the settlement below), and the account-linking check (same
    email = same account, no duplicate).
-   **⚠ BLOCKED 2026-08-09 (later) — NOT ON THE CODE, ON A MISSING PAGE.**
+   **⚠ "BLOCKED ON A MISSING PAGE" — WRITTEN 2026-08-09 (later),
+   OVERTAKEN THE SAME DAY.** ⭐ Struck as a blocker: the slice was built,
+   released and published without the page. What the missing privacy policy
+   actually holds up is **brand verification** (the branded screen), not
+   publishing and not the feature. Left here because the reasoning below is
+   still sound and the correction is the useful part — *the document gates
+   the clock, never the code.*
    See *Legal pages* below. Google's consent-screen configuration wants a
    publicly reachable **privacy policy URL** (plus a homepage, usually
    terms) on the authorized domain, and **MyNclex has no privacy-policy
@@ -1446,16 +1533,17 @@ references (rename debt above) and the Resend/SMTP work already scoped.
      instead is a product decision Sam has not taken**, and was deliberately
      not smuggled into the slice.
 
-   ### Releasing this — the order is not optional
+   ### ✅ Released 2026-08-09 — and the order that made it safe
 
-   ⚠ **The prod Supabase switches must come AFTER the migration lands on
-   prod, never before.** As of 2026-08-09 prod has no
-   `hook_reject_google_signups` and still carries the old
-   `GOOGLE_FIRST_SIGNIN` constraint (both checked). Enabling the hook there
-   first would point it at a function that does not exist, and that hook is
-   consulted for **every** user creation — `/register`, tutor invites,
-   pay-first activation. The precise set of flows this slice exists to
-   protect.
+   ⚠ **The prod Supabase switches must come AFTER the migration lands,
+   never before** — the rule that shaped this release and the one to reuse
+   for any future auth hook. Before PR #52, prod had no
+   `hook_reject_google_signups` and still carried the old
+   `GOOGLE_FIRST_SIGNIN` constraint (both checked first). Enabling the hook
+   there first would have pointed it at a function that does not exist, and
+   that hook is consulted for **every** user creation — `/register`, tutor
+   invites, pay-first activation. The precise set of flows this slice
+   exists to protect.
 
    1. Google Console — safe any time, independent of the repo.
    2. Merge to `main`, then release `main` → `prod`. **The migration lands
@@ -1463,20 +1551,47 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    3. **Then** prod Supabase: Google provider · Redirect URLs
       (`https://nclex.quademia.com/**`) · the `before-user-created` toggle.
 
-   ⚠ **The toggle is the one that fails silently** — the function will be
-   sitting there from the migration, but a hook that is not switched on
-   simply does not run, and prod starts creating exactly the orphan rows
-   this was built to prevent. No error, no symptom, until someone's payment
-   fails weeks later. It belongs on the release checklist, not in memory.
+   ⚠ **The toggle is the one that fails silently** — the function ships with
+   the migration, but a hook that is not switched on simply does not run,
+   and prod starts creating exactly the orphan rows this was built to
+   prevent. No error, no symptom, until someone's payment fails weeks
+   later. **On the release checklist, never in memory.** ⓘ On 2026-08-09
+   the proof it was on was Sam's `GOOGLE_BLOCKED` row — a disabled hook
+   could not have produced one.
 
-   ⓘ **Prod release is HELD, and not on the code.** In Testing status the
-   button works for listed test users and refuses everyone else, so shipping
-   it to a live `nclex.quademia.com` puts a control on the login page that
-   turns away every real visitor. Publishing needs the privacy policy — see
-   *Legal pages*. ⭐ An environment-variable gate to ship it dark was
-   proposed and **dropped on 2026-08-09**: it was code written to avoid
-   waiting, and with two users on prod and no students there is nothing to
-   gain by rushing. `main` sitting ahead of `prod` is the normal state here.
+   ⭐ **THE HOLD WAS LIFTED BY SEPARATING COSMETICS FROM FUNCTION, not by
+   overriding the reasoning.** This section previously said hold prod until
+   the consent screen is published, because in Testing status the button
+   refuses everyone who is not a listed test user. Sam's call was that the
+   raw `dehspjcfmhoshcdtsmjq.supabase.co` screen is acceptable for now —
+   what matters is proving the flow works on prod; branding comes after.
+   The earlier framing had bundled the two together. ⓘ An environment
+   variable gate to ship the button dark was proposed and **dropped** the
+   same day: it was code written to avoid waiting, for a problem the plan
+   had already answered.
+
+   ✅ **THE PROD APP IS PUBLISHED** (confirmed 2026-08-09), so Google
+   sign-in is live for **real students**, not only listed test users. The
+   Testing-mode consequence this section spent a day reasoning about never
+   applied to the released state. ⓘ The log had already implied it: the
+   second account in Sam's `GOOGLE_BLOCKED` reached **our** hook, which a
+   Testing-mode app would have stopped at Google.
+
+   ⭐ **Which means publishing did NOT wait for the privacy policy.** The
+   earlier reasoning — that publishing needs a public privacy-policy URL —
+   did not hold in practice for an app requesting only `email` + `profile`.
+   Those are **non-sensitive scopes**, which need no verification, and it is
+   *verification* (the branded screen), not *publishing*, that the document
+   actually gates. Two things that had been treated as one. ⚠ The privacy
+   policy is still owed for its own reasons — Turnstile's invisible mode,
+   brand verification, and the plain fact that this product takes payments
+   and personal data across four jurisdictions.
+
+   ⓘ **Not explicitly confirmed:** whether a *"Google hasn't verified this
+   app"* interstitial appears en route. Not expected on non-sensitive
+   scopes, and Sam reported no obstacle, but he was not asked directly.
+   ⚠ Keep it separate from branding — the ugly URL is cosmetic, that screen
+   would not be.
 
    ### One Google Cloud project, one consent screen — settled 2026-08-09
 
@@ -1527,40 +1642,124 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    **Carries the invite rewrite** — see item 1's template note and the
    Supabase-managed section of `transactional-email.md`.
 7. Cross-product SSO — parked, revisit post-migration of sibling products.
+   ⓘ **It now has an obvious home.** As of 2026-08-10 the parent site
+   (`quademia.com`, its own repo — see *Legal pages*) runs the same stack
+   as this app, which is precisely why it was built as an application
+   rather than as static files. It carries no Supabase, no database and no
+   login today; SSO is the one thing that would change that, and it would
+   be a decision, not a slice.
+
+ⓘ **Not numbered, because it is not this app:** the **parent site** was
+built and released on 2026-08-10 — `quademia.com` + `www`, with
+`/privacy` and `/terms` as placeholders. It is a separate repo with its
+own branches and its own Workers. Nothing in the numbered list above
+depends on it except that the legal-page *addresses* now exist. → *Legal
+pages*, below.
 
 ---
 
 ## Legal pages (privacy policy + terms) — settled 2026-08-09 (later)
 
-**Two features are now blocked on one document nobody has written.** Google's
-OAuth consent screen wants a public privacy-policy URL before the brand
-verification that makes the screen say *Quademia* instead of a raw
-`<ref>.supabase.co`. And Turnstile's **invisible mode** was already parked on
+**One feature is blocked on a document nobody has written** — and it used to
+be two.
+
+⚠ **Corrected 2026-08-18.** This said *"two features"*, the second being
+Google's OAuth consent screen, which wanted a public privacy-policy URL
+before the brand verification that would make the screen say *Quademia*
+instead of a raw `<ref>.supabase.co`. **That dependency is gone**: the
+consent screen is being fixed by owning the redirect URI instead of by
+asking Google to re-brand the Supabase one — see the reversal under
+build-order item ⑤. ⭐ Which is itself an argument for the new approach:
+the old one made a cosmetic fix wait on a legal document. And Turnstile's **invisible mode** was already parked on
 the same thing — Cloudflare requires its Privacy Addendum be referenced in
 ours (see the 2d notes above, which recorded it as a launch-time question and
 did not connect it to anything else). One missing page, two stalled items,
 and neither had it as a named dependency.
 
-### Where they live: **in this repo, at `nclex.quademia.com/privacy` and `/terms`** — for now
+### ~~Where they live: **in this repo, at `nclex.quademia.com/privacy` and `/terms`** — for now~~
 
-Sam's question was whether to stand up a small site at `quademia.com`
+> ⚠⚠ **REVERSED BY SAM ON 2026-08-10, THE DAY AFTER IT WAS WRITTEN, AND THE
+> REVERSAL IS BUILT AND LIVE.** The legal pages are **not** in this repo.
+> They are at **`https://quademia.com/privacy`** and **`/terms`**, served by
+> a **second repo**, `QAcademy-Nurses/quademia-parent-site`. The original
+> reasoning is kept below, struck through, because it is wrong in an
+> instructive way — see *Where they actually live*, which follows it.
+
+~~Sam's question was whether to stand up a small site at `quademia.com`
 instead. Checked, and the root domain **serves nothing** — no apex record, no
 `www`, and the `.org` is dark. Only `nclex.quademia.com` resolves. So "a
 small repo at the root" is a new repo, build, Worker/Pages project, DNS and
-deploy pipeline, from zero.
+deploy pipeline, from zero.~~
 
-Decided in this repo because:
-- **Google is satisfied either way** — the authorized domain is
+~~Decided in this repo because:~~
+- ~~**Google is satisfied either way** — the authorized domain is
   `quademia.com`, which covers its subdomains. Hosting location does not
-  change the verification outcome, so this constraint does not decide it.
-- **It is the fastest route to a live URL**, and a live URL is the only
-  thing standing between us and a running verification clock.
-- **Moving later is cheap** — a redirect, and one URL edited in the Google
-  console.
-- **The root site is coming, but is not ready to be forced into existence.**
+  change the verification outcome, so this constraint does not decide it.~~
+- ~~**It is the fastest route to a live URL**, and a live URL is the only
+  thing standing between us and a running verification clock.~~
+- ~~**Moving later is cheap** — a redirect, and one URL edited in the Google
+  console.~~
+- ~~**The root site is coming, but is not ready to be forced into existence.**
   It needs brand decisions that have not been made (the About page, the
   "Qualified + Academia" story). A legal page should not drag those forward
-  half-finished.
+  half-finished.~~
+
+### Where they actually live: **`quademia.com/privacy` and `/terms`, in their own repo** — settled and shipped 2026-08-10
+
+Sam re-opened it the next morning with one sentence: *why do something now
+and redo it later?* Three things came out of that, and each reversed a
+claim above.
+
+- ⭐⭐ **THE COST WAS MIS-PRICED, NOT MIS-JUDGED.** "A new repo, build,
+  Worker/Pages project, DNS and deploy pipeline, from zero" costs a
+  *website*. Sam had asked for **two pages**. The actual build — repo,
+  three routes, pipeline, domain, live — took one session.
+- ⭐ **"Moving later is cheap" WAS THE WEAKEST LINE ON THE PAGE.** A
+  privacy-policy URL is *recorded by outsiders*: Google's OAuth consent
+  configuration, Cloudflare's Turnstile privacy-addendum requirement, the
+  payment provider, later an app store. Moving it means re-telling each,
+  and a Google brand verification may have to re-run. Worse, the move
+  would probably never happen — the root site needs brand decisions nobody
+  has made, so "for now" quietly becomes forever, and then a **MyTeacher**
+  user reads the *company's* privacy policy on a *nursing product's*
+  subdomain.
+- ⭐ **THE EXTRACTION RULE APPLIES IN REVERSE, AND THAT IS THE REAL
+  ARGUMENT.** Legal pages inside this repo do not break `cp -r mynclex/`
+  going *out*; they break it coming *back*. The **company's** documents
+  would depend on **one product's** deployment staying alive. And the
+  precedent is this project's own: `mynclex` was a folder in the gamma
+  repo, went stale, and had to be cut out on 2026-05-19.
+
+⓵ **A third option was designed and rejected.** Serving
+`quademia.com/privacy` from *this* Worker via Cloudflare zone routes needs
+**three** special cases — an asset carve-out (or the page arrives as
+unstyled text, because `/_next/*` would be swallowed by the apex redirect),
+a login-cookie scoping guard (a Supabase cookie set on the apex is sent to
+every subdomain), and a middleware exclusion. All three exist only because
+one app would be answering to two identities. When the clever option needs
+three special cases and the plain one needs none, the clever option is only
+cheaper this week.
+
+**What now exists** (full detail lives in that repo's `CLAUDE.md` and
+`README.md`, not here — this section is a pointer, not a second copy):
+
+- `QAcademy-Nurses/quademia-parent-site`, private. Same stack as this app
+  on purpose (Next 16 / React 19 / OpenNext on a Worker) so both migrate
+  together rather than becoming two things to understand. **No Supabase, no
+  database, no login, no secrets** — cross-product SSO (build order ⑦) is
+  the one thing that would change that.
+- `main` → dev Worker on the **personal** CF account. `prod` → live Worker
+  on the **workspace** account, serving `quademia.com` + `www`.
+  ⚠ The custom domain can only ever be on prod: the zone is on the
+  workspace account and Cloudflare will not route a custom domain across
+  accounts — the same rule that decided where the domain was bought.
+- `/`, `/privacy`, `/terms` are live. **The legal pages are "Coming soon"
+  placeholders** — the *address* was the urgent part, not the prose.
+
+⚠ **`@opennextjs/cloudflare` had to be pinned exactly (`1.19.6`) there, and
+now here too.** This repo's `^1.19.1` floats to 1.20.x, which requires
+`next >= 16.2.11` against our 16.2.4 — `npm install` fails outright, and
+only the lockfile was hiding it.
 
 ### ⭐ The rule that matters more than the hosting
 
@@ -1584,13 +1783,50 @@ across several jurisdictions (Ghana, US, UK, Canada). A professional should
 read it before it goes live. Recorded here so "Claude drafted it" is never
 mistaken for "it was reviewed".
 
-### Separately: the apex domain is dark
+### ⚠⚠ The document is blocked on COMPANY REGISTRATION (found 2026-08-10)
 
-Now the name is publicly discoverable (registration + certificate logs),
+A privacy policy has to name a **data controller** — the legal person
+answerable for the data. **Quademia Ltd is not incorporated** (§2:
+"Nothing is registered yet"), and "QAcademy Educational Consult" never was
+either. So there is currently **no entity to name**.
+
+⭐ This re-orders two lists that looked independent. The registration
+checklist in §2 is **upstream of the legal text**, not parallel to it —
+the Ghana ORC step in particular. Writing the policy first would mean
+drafting it around a company that does not exist and then amending the one
+document we least want to amend.
+
+ⓘ Same constraint, smaller: the parent site carries **no "Quademia Ltd"
+and no registration number on any page** for the same reason. That is
+written into its `CLAUDE.md` as a standing rule, not left to memory.
+
+### ~~Separately: the apex domain is dark~~ — ✅ FIXED 2026-08-10
+
+~~Now the name is publicly discoverable (registration + certificate logs),
 someone who hears "Quademia" and types `quademia.com` gets nothing. ⓘ **This
 needs no repo** — a DNS record plus a Cloudflare redirect rule to
 `nclex.quademia.com` fixes it with zero infrastructure. Low urgency, and a
-separate decision from where the legal pages live.
+separate decision from where the legal pages live.~~
+
+The parent site closed this as a side effect, and better than the planned
+redirect would have: `quademia.com` and `www.quademia.com` now serve a real
+holding page naming the company and linking to MyNclex, rather than
+bouncing a curious visitor into a nursing product. No redirect rule was
+needed. ⓘ The `.org` is still dark and still purely defensive.
+
+ⓘ **Two deployment behaviours worth knowing before the next domain change**,
+both observed on 2026-08-10:
+- **The first request to a route within ~30 s of a deploy can 404** while
+  Cloudflare rolls the new version across its edge. Seen on three separate
+  deploys, a different route each time, always stable afterwards. Not a
+  defect — but it means the first visitor after a release can catch a
+  stale edge.
+- ⚠ **A negative DNS answer outlives the fix.** The apex had been dark all
+  day, so the local network had cached "no address" and kept refusing
+  `quademia.com` for about an hour after it was live worldwide.
+  `ipconfig /flushdns` did not help — the stale entry was upstream. Verify
+  with `curl --doh-url https://cloudflare-dns.com/dns-query`, or from
+  mobile data, before concluding a domain has failed to attach.
 
 ---
 

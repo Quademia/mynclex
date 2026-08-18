@@ -2099,6 +2099,61 @@ CREATE INDEX idx_nclex_auth_events_occurred
   ON nclex_auth_events (occurred_at);
 
 
+-- ─────────────────────────────────────────────────────────────────────
+-- nclex_email_outbox — the queue every email we compose passes through
+-- (20260908120000_email_outbox.sql — email arc, slice 1a)
+-- ─────────────────────────────────────────────────────────────────────
+-- Nothing sends directly; everything writes a row here first, and a
+-- sender picks it up. Owns INTENT and ATTEMPT. Resend owns the DELIVERY
+-- outcome, joined on provider_message_id — which is why there is no
+-- "delivered"/"bounced" column: duplicating what they already answer
+-- would just give us a second version of the truth to keep in step.
+--
+-- ⚠ Does NOT cover Supabase Auth's identity mail (invite, reset,
+-- confirm). Those are composed in a dashboard from an address and a
+-- link, which is exactly why they can only ever say "you have an
+-- account" and never "for what".
+CREATE TABLE nclex_email_outbox (
+  email_id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  -- The fingerprint: which email · what it is about · which stage. The
+  -- unique index below is the duplicate-refuser, which is what makes
+  -- enqueuing safe to attempt repeatedly (Paystack retries its
+  -- webhooks). `stage` is NEVER blank — two NULLs are not equal to each
+  -- other in a Postgres uniqueness rule, so blanks would silently
+  -- disable the protection on exactly the instant emails that need it.
+  event_key           TEXT        NOT NULL,
+  subject_ref         TEXT        NOT NULL,  -- checkout group / enrolment; NOT the subject line
+  stage               TEXT        NOT NULL DEFAULT '-',
+  -- ⚠ The ADDRESS is the recipient, not a user reference: a pay-first
+  -- buyer has no nclex_users row when her receipt is queued, and an FK
+  -- here is the exact bug that left a June payment PAID and unlinked.
+  to_email            TEXT        NOT NULL,
+  to_user_id          UUID,                  -- convenience only; deliberately no FK
+  payload_json        JSONB       NOT NULL DEFAULT '{}'::jsonb,  -- frozen facts, never a lookup
+  rendered_subject    TEXT,                  -- as actually sent
+  status              TEXT        NOT NULL DEFAULT 'QUEUED',
+  attempts            INTEGER     NOT NULL DEFAULT 0,
+  last_error_code     TEXT,                  -- Resend's name; THIS decides the retry
+  last_error_message  TEXT,                  -- the sentence a human reads
+  send_after          TIMESTAMPTZ NOT NULL DEFAULT now(),  -- scheduling AND retry backoff
+  expires_at          TIMESTAMPTZ,           -- "too late to bother"; unused in slice 1a
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_attempt_at     TIMESTAMPTZ,
+  sent_at             TIMESTAMPTZ,
+  provider_message_id TEXT,                  -- the join to Resend's delivery data
+  -- SENT means Resend ACCEPTED it, not that it arrived.
+  CONSTRAINT nclex_email_outbox_status_ck
+    CHECK (status IN ('QUEUED', 'SENT', 'FAILED', 'DEAD', 'EXPIRED')),
+  CONSTRAINT nclex_email_outbox_stage_ck CHECK (stage <> '')
+);
+CREATE UNIQUE INDEX idx_nclex_email_outbox_fingerprint
+  ON nclex_email_outbox (event_key, subject_ref, stage);
+CREATE INDEX idx_nclex_email_outbox_due
+  ON nclex_email_outbox (status, send_after);
+CREATE INDEX idx_nclex_email_outbox_recipient
+  ON nclex_email_outbox (to_email, created_at DESC);
+
+
 -- RPC functions are large and tracked by their migration files
 -- (mynclex/db/migrations/mynclex_trend_save_rpc_slice_1_12b.sql).
 -- The function bodies are NOT mirrored into schema.sql to keep the

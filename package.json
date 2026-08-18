@@ -14,7 +14,7 @@
     "cf:deploy": "npx @opennextjs/cloudflare build -- --webpack && wrangler deploy"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.19.1",
+    "@opennextjs/cloudflare": "1.19.6",
     "@supabase/ssr": "^0.5.2",
     "@tiptap/extension-color": "^3.23.6",
     "@tiptap/extension-drag-handle-react": "^3.23.6",

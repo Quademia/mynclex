@@ -41,6 +41,19 @@
   // /reset-password and /welcome could not work on either deployed
   // Worker.)
   "vars": {
+    // The From line on every email we compose. NOT a secret — it is
+    // printed on each message — so it lives here rather than as a Worker
+    // secret, and is set once for dev and once in env.prod below.
+    //
+    // ⚠ Identical in both environments by decision (Sam, 2026-08-11):
+    // one verified domain, and the RESEND_API_KEY is what separates dev
+    // from prod, exactly as with the mynclex-dev-smtp / mynclex-prod-smtp
+    // pair. Runtime-only, so unlike NEXT_PUBLIC_* it needs NO entry in
+    // the build step's env: block in either deploy workflow.
+    //
+    // noreply@ because these are auto-generated. Replies are caught by
+    // the Reply-To header (support@quademia.com) in lib/email/send.ts.
+    "EMAIL_FROM": "MyNclex <noreply@quademia.com>",
     "NEXT_PUBLIC_SUPABASE_URL": "https://xkqxfzfsllxyxpdtcrja.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrcXhmemZzbGx4eXhwZHRjcmphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjk4ODYsImV4cCI6MjA5MjgwNTg4Nn0.yRC-HClidhjdUELZETOo9ndyKzzkV7k6Dn_QlyCjx9E",
     // Turnstile site key — public by design, it ships to every browser
@@ -156,7 +169,9 @@
         // nclex.quademia.com (listed early, for build-order item 4).
         // ⚠ Its secret is a Worker secret on the prod Worker and has to be
         // set there before this deploys, or Turnstile is off in prod.
-        "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAEKcS2eMshf8RS_u"
+        "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAEKcS2eMshf8RS_u",
+        // Same value as dev, on purpose — see the note on the dev copy.
+        "EMAIL_FROM": "MyNclex <noreply@quademia.com>"
       }
     }
   }

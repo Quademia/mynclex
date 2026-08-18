@@ -28,11 +28,19 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { buildSchedule, isOverdue } from '@/lib/payments/schedule';
+import { sendPaymentReceipt } from '@/lib/payments/result';
 import type { Currency } from '@/lib/payments/types';
+import type { EnrolmentReason } from '@/lib/email/types';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
+import { sendEnrolmentAddedEmail } from './enrol-email';
 
+// `emailQueued: false` = the student was enrolled but nothing was sent.
+// ⚠ Deliberately NOT an error: the enrolment is real and rolling it back
+// over a failed email would be far worse. It rides out on the success
+// result so the tutor — who is standing right there, and is the only
+// person who can do anything about it — is told in the same second.
 export type AddStudentResult =
-  | { ok: true; invited: boolean; name: string }
+  | { ok: true; invited: boolean; name: string; emailQueued: boolean }
   | { ok: false; error: string };
 
 const ACTIVE_STATUSES = ['PENDING_APPROVAL', 'ENROLLED', 'PAUSED'];
@@ -225,11 +233,17 @@ export async function addStudentAction(
     accessWindowDays: programme.access_window_days,
     plan: planRes.plan,
     tutorId: tutor.id,
+    reason: 'TUTOR_ADDED',
   });
   if (!res.ok) return res;
 
   revalidatePath(rosterPath(programme.programme_id));
-  return { ok: true, invited: res.invited, name: `${forename} ${surname}` };
+  return {
+    ok: true,
+    invited: res.invited,
+    name: `${forename} ${surname}`,
+    emailQueued: res.emailQueued,
+  };
 }
 
 /**
@@ -311,21 +325,39 @@ export async function addSelfPacedStudentAction(
     accessWindowDays: prog.access_window_days,
     plan: planRes.plan,
     tutorId: tutor.id,
+    reason: 'TUTOR_ADDED',
   });
   if (!res.ok) return res;
 
   revalidatePath(rosterPath(programmeId));
-  return { ok: true, invited: res.invited, name: `${forename} ${surname}` };
+  return {
+    ok: true,
+    invited: res.invited,
+    name: `${forename} ${surname}`,
+    emailQueued: res.emailQueued,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────
 // Shared invite-or-attach + enrol (used by Add-student — cohort AND
 // self-paced — plus Convert-waitlist). Caller MUST have already proven
 // the acting tutor owns the container (cohort or self-paced programme).
-// Existing account → attach + enrol; new email → Supabase invite +
-// profile + STUDENT role, then enrol. cohortId NULL = self-paced row.
+// Existing account → attach + enrol; new email → invite link + profile
+// + STUDENT role, then enrol. cohortId NULL = self-paced row.
 // Returns the new enrolment's id so the waitlist convert path can
 // link it.
+//
+// ⭐ THE INVITE SWAP (2026-08-12). This used to call
+// inviteUserByEmail(), which made SUPABASE send the email — and Supabase
+// sees an address and a link and nothing else, so the best it could ever
+// say was "you have an account", never what for. It now mints the same
+// link with generateLink() WITHOUT sending, and our own email carries
+// it. One email, and the rich one wins — Sam's rule, applied here for
+// the third time.
+//
+// ⚠ Which makes our email load-bearing: under the invited branch, the
+// link inside it is the ONLY way into the account. That is why a queue
+// failure is reported back to the tutor rather than swallowed.
 // ─────────────────────────────────────────────────────────────────
 async function inviteOrAttachAndEnrol(
   admin: ReturnType<typeof createServiceRoleClient>,
@@ -338,9 +370,12 @@ async function inviteOrAttachAndEnrol(
     accessWindowDays: number | null; // programme's window; NULL = lifetime
     plan?: ResolvedPlan | null; // optional payment plan to freeze on (2026-06-12)
     tutorId: string;
+    /** Dial 1 of the email — added out of the blue, or a waited-for place. */
+    reason: EnrolmentReason;
   },
 ): Promise<
-  { ok: true; invited: boolean; enrolmentId: string } | { ok: false; error: string }
+  | { ok: true; invited: boolean; enrolmentId: string; emailQueued: boolean }
+  | { ok: false; error: string }
 > {
   const { forename, surname, email, programmeId, cohortId, accessWindowDays, tutorId } = args;
   const plan = args.plan ?? null;
@@ -356,6 +391,9 @@ async function inviteOrAttachAndEnrol(
 
   let studentId: string;
   let invited = false;
+  // The one-time way in, minted below and carried by OUR email. Stays
+  // null on the existing-account branch, where she already has a way in.
+  let setUpUrl: string | null = null;
 
   if (existing) {
     studentId = existing.id;
@@ -364,18 +402,26 @@ async function inviteOrAttachAndEnrol(
     const h = await headers();
     const origin = h.get('origin') ?? 'http://localhost:3000';
 
-    const { data: inviteData, error: inviteErr } =
-      await admin.auth.admin.inviteUserByEmail(email, {
+    // generateLink, not inviteUserByEmail: it creates the account and
+    // hands back the link WITHOUT sending anything. Same account, same
+    // link, same /welcome landing — the only difference is who writes
+    // the email that carries it.
+    const { data: inviteData, error: inviteErr } = await admin.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: {
         redirectTo: `${origin}/welcome`,
         data: { full_name: fullName },
-      });
-    if (inviteErr || !inviteData?.user) {
+      },
+    });
+    if (inviteErr || !inviteData?.user || !inviteData.properties?.action_link) {
       return {
         ok: false,
-        error: inviteErr?.message ?? 'Could not send the invite.',
+        error: inviteErr?.message ?? 'Could not create the invite link.',
       };
     }
     studentId = inviteData.user.id;
+    setUpUrl = inviteData.properties.action_link;
     invited = true;
 
     const { error: profileErr } = await admin.from('nclex_users').insert({
@@ -420,6 +466,10 @@ async function inviteOrAttachAndEnrol(
   }
 
   const nowIso = new Date().toISOString();
+  // Computed ONCE: the row and the email must quote the same instant,
+  // and calling freezeAccessExpiry twice would drift them by however
+  // long the insert took.
+  const accessExpiresAt = freezeAccessExpiry(accessWindowDays);
   const { data: enrolRow, error: enrolErr } = await admin
     .from('nclex_enrolments')
     .insert({
@@ -431,7 +481,7 @@ async function inviteOrAttachAndEnrol(
       enrolled_by_user_id: tutorId,
       // Frozen from the programme's access window at enrolment time,
       // exactly like the paid path — NULL = lifetime-of-tutor-sub.
-      access_expires_at: freezeAccessExpiry(accessWindowDays),
+      access_expires_at: accessExpiresAt,
       // Plan frozen identically to checkout, so the schedule engine /
       // sweep / tile / Mark-paid can't tell a hand-added student apart.
       strategy_id: plan?.strategyId ?? null,
@@ -503,7 +553,32 @@ async function inviteOrAttachAndEnrol(
     }
   }
 
-  return { ok: true, invited, enrolmentId: enrolRow.enrolment_id };
+  // EMAIL-TRIGGER[enrolment.tutor_added / waitlist.converted]: the
+  // student — until now, being enrolled by a tutor was SILENT for anyone
+  // who already had an account (she found out by logging in and noticing
+  // a new programme), and for a new account it was Supabase's bare "you
+  // have an account", which cannot name what she was given.
+  //
+  // ⚠ THE LAST LINE, DELIBERATELY. Thirty lines above, the
+  // "payments already received" backfill DELETES this enrolment if its
+  // insert fails. Queued any earlier, we would tell her she is enrolled
+  // in something that no longer exists.
+  const { queued } = await sendEnrolmentAddedEmail({
+    reason: args.reason,
+    invited,
+    setUpUrl,
+    enrolmentId: enrolRow.enrolment_id,
+    toEmail: email,
+    toUserId: studentId,
+    recipientName: forename || null,
+    programmeId,
+    cohortId,
+    tutorId,
+    accessExpiresAtISO: accessExpiresAt,
+    plan: plan ? { snapshot: plan.snapshot, received: plan.received, currency: plan.currency } : null,
+  });
+
+  return { ok: true, invited, enrolmentId: enrolRow.enrolment_id, emailQueued: queued };
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -660,9 +735,12 @@ export async function markInstallmentPaidAction(
   if (!profile?.email) return { ok: false, error: 'Could not find the student account.' };
 
   const now = new Date().toISOString();
+  // Held in a variable rather than inlined: it is the receipt's
+  // fingerprint, and this path has no Paystack reference to fall back on.
+  const checkoutGroupId = crypto.randomUUID();
   const { error: insErr } = await admin.from('nclex_payments').insert({
     paystack_reference: null,
-    checkout_group_id: crypto.randomUUID(),
+    checkout_group_id: checkoutGroupId,
     user_id: enr.user_id,
     email: profile.email,
     purpose: 'PROGRAMME_INSTALLMENT',
@@ -702,6 +780,14 @@ export async function markInstallmentPaidAction(
         .eq('paused_reason', 'INSTALLMENT_OVERDUE');
     }
   }
+
+  // EMAIL-TRIGGER[payment.received]: the student — the second anchor for
+  // the receipt. The tutor collected this money directly, so nothing
+  // else would ever tell her it had been recorded against her plan.
+  // ACTIVATED because the row is written already settled: this path
+  // never passes through PAID, and the auto-unpause above has already
+  // run, so "what you now have" is true by the time this is called.
+  await sendPaymentReceipt(checkoutGroupId, 'ACTIVATED');
 
   revalidatePath(rosterPath(enr.programme_id));
   return { ok: true };
@@ -802,7 +888,7 @@ export async function giveMoreTimeAction(
 // ─────────────────────────────────────────────────────────────────
 
 export type ConvertWaitlistResult =
-  | { ok: true; invited: boolean; name: string }
+  | { ok: true; invited: boolean; name: string; emailQueued: boolean }
   | { ok: false; error: string };
 
 export async function convertWaitlistEntryAction(
@@ -874,6 +960,9 @@ export async function convertWaitlistEntryAction(
     accessWindowDays: convProg?.access_window_days ?? null,
     plan: planRes.plan,
     tutorId: tutor.id,
+    // She asked for this place, possibly weeks ago — the email opens on
+    // the waiting, not on the surprise.
+    reason: 'WAITLIST_CONVERTED',
   });
   if (!res.ok) return res;
 
@@ -894,7 +983,7 @@ export async function convertWaitlistEntryAction(
   }
 
   revalidatePath(rosterPath(lead.programme_id));
-  return { ok: true, invited: res.invited, name: fullName };
+  return { ok: true, invited: res.invited, name: fullName, emailQueued: res.emailQueued };
 }
 
 export async function dismissWaitlistEntryAction(

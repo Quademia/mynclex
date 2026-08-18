@@ -28,6 +28,7 @@ import { headers } from 'next/headers';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { buildSchedule, isOverdue } from './schedule';
 import { planActivationGrants } from './readiness-mint';
+import { sendPaymentReceipt } from './result';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
 
 type AdminClient = ReturnType<typeof createServiceRoleClient>;
@@ -441,7 +442,13 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
   // Pay-first guest: no account yet.
   if (!userId) {
     // Already invited on a prior pass → just wait for /welcome.
-    if (rows.some((r) => r.status === 'SETUP_REQUIRED')) return { ok: true, outcome: 'INVITE_SENT' };
+    if (rows.some((r) => r.status === 'SETUP_REQUIRED')) {
+      // EMAIL-TRIGGER[payment.received]: the buyer — a second chance to
+      // queue the receipt if the first pass failed to. Safe to repeat:
+      // the fingerprint makes it a no-op once one exists.
+      await sendPaymentReceipt(rows[0].checkout_group_id, 'SETUP_REQUIRED');
+      return { ok: true, outcome: 'INVITE_SENT' };
+    }
 
     // First time: one invite for the whole group. The profile + grants
     // happen when they finish /welcome (no name yet, so no profile here).
@@ -472,6 +479,17 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
       .update({ status: 'SETUP_REQUIRED' })
       .eq('checkout_group_id', rows[0].checkout_group_id);
     if (updErr) console.error('Pay-first SETUP_REQUIRED update failed:', updErr.message);
+
+    // EMAIL-TRIGGER[payment.received]: the buyer — she has paid and, at
+    // this instant, holds nothing: no enrolment, no subscription, no
+    // credits, and no account. The SETUP_REQUIRED framing says what she
+    // bought and what to do next rather than what she now has.
+    //
+    // ⭐ This is also the one message that reaches her if the invite
+    // above FAILED. In that case she has paid, cannot get in, and the
+    // screen tells her to contact support — the receipt is the only
+    // thing that arrives on its own.
+    await sendPaymentReceipt(rows[0].checkout_group_id, 'SETUP_REQUIRED');
     return { ok: true, outcome: 'INVITE_SENT' };
   }
 
@@ -482,6 +500,18 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
     if (!g.ok) return { ok: false, error: g.error };
     if (g.pending) anyPending = true;
   }
+
+  // EMAIL-TRIGGER[payment.received]: the buyer — the receipt, sent AFTER
+  // the grants so "what you now have" can read the subscription end date
+  // and the enrolment's schedule rather than guess at them.
+  //
+  // ⓘ Not sent on the ALREADY branch above: that is a page refresh, and
+  // the receipt went out when the activation actually happened.
+  await sendPaymentReceipt(
+    rows[0].checkout_group_id,
+    anyPending ? 'PENDING_APPROVAL' : 'ACTIVATED'
+  );
+
   return { ok: true, outcome: anyPending ? 'PENDING_APPROVAL' : 'ACTIVATED' };
 }
 

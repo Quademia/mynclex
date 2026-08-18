@@ -43,8 +43,15 @@ export async function finalizeWelcomeAction(
   if (!user) {
     return {
       ok: false,
+      // ⚠ This used to say "Ask your tutor to add you again", which the
+      // app refuses: she is already enrolled, and the duplicate-enrolment
+      // guard in lib/enrolments/actions.ts blocks a second add. Corrected
+      // 2026-08-12 once the code path was watched working from exactly
+      // this state — the account already exists, so /login's
+      // "Email me a sign-in code" gets her in without the link.
       error:
-        'Your setup link has expired. Ask your tutor to add you again.',
+        'Your setup link has expired. Go to the sign-in page and choose ' +
+        '"Email me a sign-in code" — your account already exists.',
     };
   }
 
