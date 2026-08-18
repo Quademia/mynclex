@@ -17,6 +17,14 @@ import {
   ENROLMENT_ADDED_FOOTER_CONTEXT,
   enrolmentAddedTemplate,
 } from './templates/enrolment-added';
+import {
+  PAYMENT_INSTALLMENT_DUE_FOOTER_CONTEXT,
+  paymentInstallmentDueTemplate,
+} from './templates/payment-installment-due';
+import {
+  PAYMENT_INSTALLMENT_OVERDUE_FOOTER_CONTEXT,
+  paymentInstallmentOverdueTemplate,
+} from './templates/payment-installment-overdue';
 
 export type Rendered = { subject: string; html: string; text: string };
 
@@ -33,6 +41,18 @@ const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: s
   'payment.received': {
     template: paymentReceivedTemplate,
     footerContext: PAYMENT_RECEIVED_FOOTER_CONTEXT,
+  },
+  // ⭐ Both are enqueued from SQL by the nightly sweep (migration
+  // 20260911120000), not by app code — the only two entries here that
+  // are. Their payloads are therefore unchecked at the boundary; see the
+  // warning on InstallmentDuePayload in types.ts.
+  'payment.installment_due': {
+    template: paymentInstallmentDueTemplate,
+    footerContext: PAYMENT_INSTALLMENT_DUE_FOOTER_CONTEXT,
+  },
+  'payment.installment_overdue': {
+    template: paymentInstallmentOverdueTemplate,
+    footerContext: PAYMENT_INSTALLMENT_OVERDUE_FOOTER_CONTEXT,
   },
   'enrolment.tutor_added': {
     template: enrolmentAddedTemplate,

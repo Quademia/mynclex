@@ -30,7 +30,12 @@ import type { Currency } from '@/lib/products/money';
 // weeks ago. Two keys so the admin queue reports which actually
 // happened, and so changing the wording of one cannot silently change
 // the other.
-export type EmailEventKey = 'payment.received' | 'enrolment.tutor_added' | 'waitlist.converted';
+export type EmailEventKey =
+  | 'payment.received'
+  | 'payment.installment_due'
+  | 'payment.installment_overdue'
+  | 'enrolment.tutor_added'
+  | 'waitlist.converted';
 
 // ─────────────────────────────────────────────────────────────────────
 // The outbox row
@@ -92,6 +97,57 @@ export type EnqueueInput = {
   sendAfter?: Date;
   /** If unsent by this moment, mark EXPIRED instead. Unused in slice 1a. */
   expiresAt?: Date;
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// The installment reminder + overdue payloads (slice 1b)
+// ─────────────────────────────────────────────────────────────────────
+// ⚠ THESE TWO ARE FILLED IN SQL, NOT IN TYPESCRIPT. The nightly sweep
+// builds them with jsonb_build_object (migration 20260911120000), so
+// TypeScript checks NOTHING about what actually arrives — this type is a
+// contract with the other side of a wall, not a guarantee. A key renamed
+// here and not there renders as nothing in somebody's inbox, which is
+// gamma's `{{expiryDate}}` failure exactly. Keep it thin, and change both
+// halves in one commit.
+
+/** Shared by both — everything that describes the debt and who owes it. */
+type InstallmentBase = {
+  /** Forename. Null-safe: the template greets without a name. */
+  recipientName: string | null;
+  programmeTitle: string;
+  /** Null for self-paced, and for cohorts the tutor never named. */
+  cohortName: string | null;
+  /** ⭐ Named deliberately: "a system took your access" becomes "a person". */
+  tutorName: string;
+  currency: Currency;
+  amountMinor: number;
+  /** ISO 8601, as Postgres renders a timestamptz into jsonb. */
+  dueAtISO: string;
+  positionNo: number;
+  totalPositions: number;
+  /** Builds the self-serve link: /checkout/installment/<enrolmentId>. */
+  enrolmentId: string;
+};
+
+/** T-7 and T-3. One template, two tones. */
+export type InstallmentDuePayload = InstallmentBase & {
+  lead: 'T-7' | 'T-3';
+  /**
+   * Whether a missed payment actually pauses access on this programme.
+   * FALSE for tutors who turned payment-gating off — and the consequence
+   * line must then be omitted, because for that reader it is not true.
+   */
+  gatesAccess: boolean;
+};
+
+/** Sent the night the sweep acts. */
+export type InstallmentOverduePayload = InstallmentBase & {
+  /**
+   * Whether she was actually paused in that run. FALSE on a non-gated
+   * programme: she is overdue and nothing happened to her access, so the
+   * email says so rather than claiming a pause that never occurred.
+   */
+  paused: boolean;
 };
 
 // ─────────────────────────────────────────────────────────────────────

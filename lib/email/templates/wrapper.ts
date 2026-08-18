@@ -26,6 +26,21 @@
  */
 export const SUPPORT_EMAIL = 'support@quademia.com';
 
+/**
+ * Where a link in an email points.
+ *
+ * ⚠ ALWAYS PROD, even in mail sent from dev. There is no request behind
+ * a scheduled send — the drain runs on a cron — so an origin cannot be
+ * derived the way an invite link derives one. Pre-existing behaviour
+ * (footer.ts carried the same literal); exported here in slice 1b so the
+ * reminder templates reuse it rather than adding a third copy.
+ *
+ * ⓘ Consequence for testing: a button in a dev test email lands on prod,
+ * where the enrolment does not exist. Fine for checking wording; not a
+ * way to test the checkout it points at.
+ */
+export const APP_ORIGIN = 'https://nclex.quademia.com';
+
 /** Brand colours, mirrored from styles/tokens.css (see rule 1 above). */
 export const BRAND = {
   primary: '#1e3a5f',

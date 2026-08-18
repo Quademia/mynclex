@@ -16,10 +16,10 @@
 // need their own footer with a real preference link; that is the point
 // to split this file, not before.
 
-import { BRAND, SUPPORT_EMAIL, esc } from './wrapper';
+import { APP_ORIGIN, BRAND, SUPPORT_EMAIL, esc } from './wrapper';
 
 const SITE = 'https://quademia.com';
-const APP = 'https://nclex.quademia.com';
+const APP = APP_ORIGIN;
 
 /**
  * @param context One line saying why this email reached them. Required —
