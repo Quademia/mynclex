@@ -53,7 +53,19 @@ export type OutboxRow = {
   payload_json: Record<string, unknown>;
   rendered_subject: string | null;
   status: EmailStatus;
+  /** Times tried, whatever the reason. The honest total. */
   attempts: number;
+  /**
+   * Strikes — TRANSIENT failures only, and the ONLY thing the automatic
+   * give-up rule reads.
+   *
+   * ⭐ Separate from `attempts` because the two numbers answer different
+   * questions and one column could not do both: the api-key branch needs
+   * a counter that keeps GROWING (it indexes its back-off by it) while
+   * the give-up rule needs one that ignores everything not the email's
+   * own fault. See migration 20260910120000.
+   */
+  transient_attempts: number;
   last_error_code: string | null;
   last_error_message: string | null;
   send_after: string;

@@ -24,16 +24,25 @@ const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
 /**
  * ⭐ THE AUTOMATIC WINDOW IS DELIBERATELY SHORT (settled with Sam,
- * 2026-08-11). Four tries spanning roughly an hour, then it stops and
- * becomes a support item.
+ * 2026-08-11). Roughly an hour, then it stops and becomes a support item.
  *
  * Sam's argument, which killed a longer schedule: a system that quietly
- * succeeds on attempt four has HIDDEN a day-long problem — you would
+ * succeeds on the last attempt has HIDDEN a day-long problem — you would
  * never learn Resend had a bad night, and "it silently stopped sending"
  * is the exact thing this whole layer exists to prevent. So the window
  * is short enough that anything real is still sitting on the admin page
  * where a person can see it, and long enough that a thirty-second blip
  * at 11pm fixes itself without waking anybody.
+ *
+ * ⓘ FOUR DELAYS IS FIVE TRIES. Each entry schedules the NEXT attempt, so
+ * the first failure buys attempt 2 and the fourth buys attempt 5; the
+ * fifth failure finds no delay left and dies. This comment said "four"
+ * until 2026-08-18 — harmless, but it is the number people quote.
+ *
+ * ⚠ These gaps are also why the drain must knock every few minutes. On an
+ * hourly knock the same four delays would span four hours, which is the
+ * concealment the short window exists to prevent. See the doorbell
+ * migration, 20260909120000.
  */
 const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000, 30 * 60_000];
 
@@ -254,8 +263,22 @@ export async function deliverOutboxRow(row: OutboxRow): Promise<DeliverResult> {
   }
 
   // ⭐ THE REASON DECIDES, NOT THE COUNT.
+  //
+  // ⭐ TWO COUNTERS, ONE JOB EACH (2026-08-18). `attempts` is the honest
+  // total of tries — it rises on every failure, feeds the admin page, and
+  // is what the CONFIG branch below indexes its back-off by.
+  // `transient_attempts` is strikes, and ONLY the TRANSIENT branch both
+  // increments and reads it.
+  //
+  // ⚠ They were one column until 2026-08-18, and the promise directly
+  // above the QUOTA branch was therefore false: five quota nights left a
+  // row on its last life, so the next ordinary hiccup killed it without
+  // ever retrying. Merging them again re-creates that; "just stop
+  // counting quota" does not work either, because CONFIG needs a number
+  // that keeps growing. See migration 20260910120000.
   let status: 'FAILED' | 'DEAD' = 'FAILED';
   let sendAfter = new Date();
+  let transientAttempts = row.transient_attempts;
 
   if (outcome.failure === 'PERMANENT') {
     // No point waiting a day to learn what Resend already told us.
@@ -263,16 +286,24 @@ export async function deliverOutboxRow(row: OutboxRow): Promise<DeliverResult> {
   } else if (outcome.failure === 'QUOTA') {
     // Not this email's fault, and not fixable by trying sooner. It also
     // must NOT count toward the death limit — five quota failures could
-    // be five days apart.
+    // be five days apart. ⭐ Now actually true: strikes are untouched here.
     sendAfter = nextUtcMidnight();
   } else if (outcome.failure === 'CONFIG') {
     // Every email is failing. Keep it alive so the backlog drains the
     // moment the key is fixed; never let it die of a problem that is
     // not about it.
+    //
+    // ⚠ This reads `attempts`, NOT strikes, and must keep doing so: it
+    // wants a number that grows on every failure so the gaps widen. A
+    // counter frozen at 0 would index RETRY_DELAYS_MS[-1] — undefined —
+    // and put an Invalid Date into send_after. That requirement is the
+    // whole reason there are two columns.
     sendAfter = new Date(Date.now() + RETRY_DELAYS_MS[Math.min(attempts - 1, RETRY_DELAYS_MS.length - 1)]);
   } else {
-    // TRANSIENT — the only class the attempt count applies to.
-    const delay = RETRY_DELAYS_MS[attempts - 1];
+    // TRANSIENT — the only class the give-up rule applies to, and now the
+    // only class that spends a strike.
+    transientAttempts = row.transient_attempts + 1;
+    const delay = RETRY_DELAYS_MS[transientAttempts - 1];
     if (delay == null) status = 'DEAD';
     else sendAfter = new Date(Date.now() + delay);
   }
@@ -282,6 +313,7 @@ export async function deliverOutboxRow(row: OutboxRow): Promise<DeliverResult> {
     .update({
       status,
       attempts,
+      transient_attempts: transientAttempts,
       last_attempt_at: nowISO,
       send_after: sendAfter.toISOString(),
       last_error_code: outcome.code,

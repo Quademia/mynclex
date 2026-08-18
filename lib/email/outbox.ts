@@ -157,6 +157,12 @@ export async function getOutboxRow(emailId: string): Promise<OutboxRow | null> {
  *
  * Attempts are reset so the row gets a fresh automatic window rather
  * than dying again on the next tick.
+ *
+ * ⚠ BOTH counters, not just `attempts`. Strikes are what the give-up rule
+ * reads, so resetting the total while leaving strikes at their limit
+ * would produce a Retry button that appears to work and kills the row on
+ * its very next hiccup — the silent-failure shape this layer exists to
+ * prevent, hiding inside the manual escape hatch.
  */
 export async function requeueEmail(emailId: string): Promise<{ ok: boolean; error?: string }> {
   const admin = createServiceRoleClient();
@@ -165,6 +171,7 @@ export async function requeueEmail(emailId: string): Promise<{ ok: boolean; erro
     .update({
       status: 'QUEUED',
       attempts: 0,
+      transient_attempts: 0,
       send_after: new Date().toISOString(),
       last_error_code: null,
       last_error_message: null,
