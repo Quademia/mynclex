@@ -1171,15 +1171,107 @@ timing.
 
 ### ⚠ Two things this does NOT solve
 
-- **The drain.** pg_cron can select and insert; it **cannot call Resend**. So
-  something outside still has to send what the sweep queued. This is the one
-  genuinely open decision before code. Precedent: `recalibrate.yml`, a GitHub
-  Actions schedule that calls in. ⓘ This repo has no `app/api/` — route
-  handlers sit top-level (`app/logout/route.ts`).
+- **The drain.** Something outside Postgres still has to send what the sweep
+  queued. This is the one genuinely open decision before code. Precedent:
+  `recalibrate.yml`, a GitHub Actions schedule that calls in. ⓘ This repo has
+  no `app/api/` — route handlers sit top-level (`app/logout/route.ts`).
+
+  ⚠ **Corrected 2026-08-18 — an earlier version of this bullet said pg_cron
+  "cannot call Resend". That is wrong, and the real wall is elsewhere.**
+  `pg_net` (async HTTP from SQL) is **available on the MyNclex projects**,
+  merely not enabled — `installed_version` is null, `default_version` 0.20.0.
+  So the database *can* make an outbound call. What it cannot do is **render**:
+  the templates are 300–400-line `.ts` files, and nothing inside Postgres can
+  execute them. ⭐ The distinction matters because it changes the menu — the
+  database is able to **ring a doorbell**, so "the trigger lives with the
+  sweep" can be satisfied literally (sweep's last act rings a private app URL)
+  rather than approximately. The app-layer rule survives untouched: ringing is
+  not sending.
 - **A sweep run is a burst.** Every send so far is one row, inline, under
   `waitUntil`, on somebody's request. A sweep queueing fifty rows at 02:00 has
   no request in flight, so for the **whole ⏰ half the drain is not the safety
   net — it is the only delivery path.**
+
+### ⭐ The listener — Sam's alternative, considered 2026-08-18, PARKED
+
+Sam: *"there can be something like a listener — when it hears a new row
+created, it does an activity. That's different from a sweeper, is that right?"*
+
+Right, and it has a name in this stack: **Supabase Database Webhooks**, which
+is a Postgres `AFTER INSERT` trigger plus `pg_net` calling a URL. Genuinely a
+different mechanism, not a rewording of the sweeper:
+
+| | **Listener** | **Sweeper** |
+|---|---|---|
+| Wakes on | a row being **written** | **time** passing |
+| Style | push — the queue taps you | pull — you go and look |
+| Latency | ~1 second | up to the poll interval |
+
+**⭐ It is stronger than it was pitched, and it legitimately reopens a closed
+decision.** Slice 1a rejected queue-and-flush for the receipt because *"a
+receipt arriving 5–15 minutes after payment is a worse product than one
+arriving in three seconds, and a scheduled flusher cannot beat that."* That
+reasoning kills **polling**. It does not touch a **listener**, which is about
+as fast as the inline path. So a listener could retire `waitUntil` entirely and
+give the product **one delivery path for ⚡ and ⏰ alike**, which is cleaner
+than the two we have.
+
+**⚠ But it cannot be the only mechanism — three things it structurally cannot
+hear.**
+
+- **Retries.** Decisive. On failure `deliverOutboxRow` **UPDATEs the existing
+  row** (`send.ts` — status `FAILED`, `send_after` pushed forward). Nothing is
+  inserted, so an insert-listener is deaf to every second attempt.
+- **Rows queued ahead of their time.** `send_after` exists precisely so a row
+  can be written now and sent later (`session.reminder` at T-1h is queued when
+  the session is scheduled, possibly days early). The listener fires at
+  creation — the wrong moment — and something must still come back at the right
+  one. ⓘ The 1a schema already assumes this: the outbox's index is
+  `(status, send_after)`, an index built for polling.
+- **A ring that does not land.** `pg_net` is fire-and-forget. Mid-deploy, or on
+  a failed call, the moment is simply gone. A sweeper's next run collects
+  whatever the last one dropped, for free.
+
+**⚠ And it makes the burst worse.** A webhook fires **per row**: fifty warnings
+at 02:00 become fifty simultaneous calls into the app and fifty at Resend. The
+sweeper takes 25 at a time in `send_after` order. ⓘ Check Resend's rate limit
+before ever choosing per-row fan-out.
+
+**⭐⭐ What settles it for 1b: the listener's only edge is latency, and ⏰ is
+the one class where latency is worthless.** A payment-due warning fires at
+02:00 while she is asleep; this doc's own rule is that a time-driven email is
+*"fine at 9am or 11am, wrong by a day."* So for the emails 1b actually sends,
+the single benefit buys nothing and all three blind spots apply.
+
+**Verdict: a listener is an accelerator, not a floor.** The periodic drain is
+needed regardless — for retries, for future-dated rows, and to catch a dropped
+ring. Once that floor exists the listener is optional, and its payoff is
+confined to the ⚡ half, which already goes out in three seconds by a route
+that works.
+
+ⓘ **Revisit when** either is true: receipts start feeling slow, or we want to
+retire the `waitUntil` path in favour of one route for everything. Neither is
+true today.
+
+ⓘ Like the pg_net doorbell above, this does **not** breach the app-layer rule
+carried in the outbox migration (*"SENDS STAY APP-LAYER, NEVER FROM A POSTGRES
+TRIGGER"*) — a trigger that rings our URL is not sending.
+
+### ⚠⚠ Found while weighing it: there is no automatic retry today
+
+The retry policy settled on 08-11 — reason-decides-not-count, ~1 hour of
+attempts, then stop and wait for a human — is **fully designed and not
+running**. `deliverOutboxRow` sets `FAILED` with a future `send_after` and
+returns; nothing ever reads that row again. The only second attempt in the
+product is a person clicking **Retry** on `/admin/emails`.
+
+⭐ **So the drain is not only 1b's delivery path — it is the missing half of a
+policy already agreed.** That raises its priority: it repairs the ⚡ emails
+that are live on `main` today, independently of anything scheduled.
+
+ⓘ Why this has been invisible: every send so far has succeeded on the first
+attempt (eight rows over two sessions, all `SENT`, all with a provider id), so
+the retry machinery has never been asked to run.
 
 ### ⚠ Adjacent, and worth doing before the ⏰ emails ship
 
