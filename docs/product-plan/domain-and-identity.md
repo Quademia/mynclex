@@ -983,6 +983,17 @@ references (rename debt above) and the Resend/SMTP work already scoped.
        do not read the live URL as the item being unblocked: a page
        reading *Coming soon* cannot carry Cloudflare's Privacy Addendum
        reference.
+       ⭐ **UPDATE 2026-08-19 — THE DOCUMENT EXISTS TOO.** Checked live, not
+       assumed: `/privacy` and `/terms` both answer **200** and carry real
+       prose — the policy is titled *"Privacy Policy — Quademia"* and names
+       a **data controller**, so it is not a *Coming soon* placeholder. The
+       "route exists, document does not" split above is **closed**. ⚠ What
+       remains for Turnstile's invisible mode is therefore narrower than
+       this bullet implies: whether the existing text **references
+       Cloudflare's Privacy Addendum** — a paragraph to add, not a document
+       to write. ⓘ And since the policy already names a controller, the
+       "waits on company registration" claim needs confirming against
+       reality before it is repeated; see the same correction under item ⑤.
      - ⓘ Refusal copy is one shared sentence — *"We could not verify your
        browser. Please refresh the page and try again."* Deliberately
        silent about which of the reasons applied, since they all have the
@@ -1363,6 +1374,34 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    > pages and the verification wait and might still see `<ref>.supabase.co` —
    > which is exactly why the paid add-on was kept as an escalation. Expensive
    > in dependencies AND uncertain in result is the worst pair available.
+   >
+   > > **⚠ CORRECTION 2026-08-19 — two of those five were ALREADY DONE when the
+   > > list was written.** Checked live rather than assumed:
+   > > `https://quademia.com/privacy` and `/terms` both answer **200** and are
+   > > real documents (the policy is titled *"Privacy Policy — Quademia"* and
+   > > names a data controller). They shipped with the parent-site repo on
+   > > **2026-08-10**, eight days before this list called the privacy policy
+   > > unwritten — see [[quademia-parent-site-repo]] and *Legal pages* below.
+   > >
+   > > ⓘ **The decision does not change** — owning the redirect was still
+   > > cheaper, still needed no third party, and is now shipped. But the honest
+   > > remaining cost of branding is **three items, not five**: an official
+   > > **logo** (still does not exist; a `claude/logo-design-ideas-kr8o0g`
+   > > branch exists on the remote), **incorporation** (the live policy names a
+   > > controller, so this may be further along than §2 records — confirm
+   > > before repeating the claim), and **Google's review** itself.
+   > >
+   > > ⭐ **What verification actually buys, stated plainly so nobody re-derives
+   > > it:** the app name and logo in place of the domain line. Expect a
+   > > **swap, not an addition** — we would be trading a string we control
+   > > (`quademia.com`, ours because we own the domain) for one Google grants.
+   > > And since the consent screen is per-PROJECT, branding the workspace
+   > > project once covers every product's client in it — the same
+   > > do-it-once economics as the domain itself.
+   > >
+   > > **Sequencing:** not a blocker on anything. Do it when the logo exists
+   > > for its own reasons (site, emails, the app all want one), at which point
+   > > branding is a short dashboard session plus a wait.
    >
    > ⭐⭐ **What settled it: `qacademy-beta-b`.** Sam pointed at the schools
    > project, which shows a clean consent screen with **no logo, no
