@@ -172,7 +172,7 @@ the full flow (forgot-password.html, reset-password.html, rate-limit tables)
 to crib from. **This is the top auth gap.**
 
 No Google / magic-link / OTP on MyNclex (gamma has Google + magic link;
-Beta-B has Google + Microsoft via NextAuth).
+MyExams has Google + Microsoft via NextAuth).
 
 ### Email
 
@@ -208,7 +208,7 @@ Beta-B has Google + Microsoft via NextAuth).
   in build-order item ⑤.
 - **True cross-product SSO: parked.** The three products sit on three
   separate identity systems (MyNclex Supabase pair, gamma Supabase pair,
-  Beta-B NextAuth+D1). Same parent domain keeps the door open; merging
+  MyExams NextAuth+D1). Same parent domain keeps the door open; merging
   identity systems is a large separate decision and cuts against the
   extraction rule.
 
