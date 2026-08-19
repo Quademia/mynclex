@@ -228,7 +228,69 @@ charge → one receipt, the way a receipt actually works. Money renders through
 `formatMinor()` — `GHS 350`, never `₵350`.
 
 ⓘ `payment.tutor_received` stays genuinely separate: the tutor's half concerns
-**programme money only**, since bank and readiness are QAcademy's money.
+**programme money only**, since bank and readiness are ours. ⚠ Its total is
+therefore **not** the receipt's total for the same checkout, and the two
+disagreeing is correct.
+
+> ### ⚠⚠ "Enrolled in" was a FALSE STATEMENT for a paused student
+>
+> Found 2026-08-19, on prod since the receipt shipped. The `PROGRAMME_*` rows
+> above branch on `PENDING_APPROVAL` and then fall through to
+> `Enrolled in <place>` for **every other status** — including `PAUSED`. So a
+> student behind on her plan, who paid, was told she was enrolled while she
+> was locked out. Not an omission: a false statement, to the one person who
+> had just handed over money and would find the door shut.
+>
+> ⭐ **The behaviour underneath is right and unchanged** (Sam): the access gate
+> asks *"are you current?"*, not *"did you just pay"*, so **one instalment
+> against two missed leaves the door shut**. Only the wording was wrong.
+>
+> ⭐ **It needs ONE day of pause, not the seventy-four the test row had.** Sam's
+> read — *"this probably occurred because we use test data"* — is right about
+> the extremity and not about the state: the three paused dev enrolments were
+> paused by the **live nightly sweep** (02:00 on 25 Jun, 22 Jul, 28 Jul), the
+> same code prod runs every night, and paying what you can afford is the most
+> ordinary thing an overdue student does.
+>
+> Now: `PAUSED` + `INSTALLMENT_OVERDUE` → *"Access to X is paused until the
+> plan is up to date"*; `PAUSED` for any other reason → *"Your place in X is
+> currently paused — your tutor can tell you more"*. ⚠ **Branch on
+> `paused_reason`, not on `PAUSED` alone** — a `TUTOR_MANUAL` pause has nothing
+> to do with arrears, and explaining it as money sends her to fix a bill that
+> is not the problem.
+>
+> ⚠ **Tense, both sides.** *"next due 6 June"* printed in August is the wrong
+> word for a date that has gone. Sam's phrasing, no jargon needed: **"the next
+> payment was due 6 June 2026."** The tutor's copy also gains *"Her access is
+> still paused — this payment did not clear the arrears"*, which is the line
+> that changes what a tutor does: **"money's in" alone reads as "she's fine"**
+> to the only person who can grant her grace.
+>
+> ⭐ **Both facts are computed at ENQUEUE and frozen**, never asked at render.
+> The template renders from the payload alone and may run on a retry hours
+> later, so *"is this date past?"* there would answer against a different
+> `now` than the payment did — one email making two claims about one moment.
+
+> ### ⚠ No subject may bolt a clause onto a name somebody typed
+>
+> Three instances, one session (2026-08-19), the third already on prod.
+> `enrolment.tutor_added` rendered *"You have been enrolled — NCLEX-RN Live —
+> The 8-Week Pass Plan"*. ⚠⚠ **Its guard comment already claimed to have
+> solved this** — *"ONE em-dash, and the programme name last"* — but it counted
+> only the dashes **we** write, while the title supplies its own. A guard aimed
+> at the wrong thing reads as a solved problem, which is why it survived and
+> why the same trap was then sprung twice more the same day.
+>
+> ⭐ **The rule: a subject interpolating a name somebody typed must READ AS ONE
+> SENTENCE AROUND IT.** Not "one separator" — the title is arbitrary text with
+> arbitrary punctuation, so the only safe count of *our* separators is **zero**.
+> A colon was tried and reverted in the same sitting: still ours.
+>
+> ```
+> You have been enrolled in <title>     A place has opened up in <title>
+> Your place in <title> is confirmed    About your place in <title>
+> <student> paid <amount> for <title>
+> ```
 
 ## Templates — one file per email, living in the repo
 
@@ -650,8 +712,86 @@ content release, or account state, ask "should this notify someone?" — if yes:
 | `enrolment.tutor_added` | ⚡ | Tutor manually adds a student (cohort add / self-paced add) | student | **✅ BUILT 2026-08-12.** "Your tutor enrolled you" — what she was given, who gave it, and the way in. Carries the **invite swap**: for a new account we mint the link ourselves and Supabase sends nothing | P1 | ✅ |
 | `waitlist.joined` | ⚡ | Student/lead joins a cohort waitlist | lead | Acknowledge waitlist position | P2 | ✅ |
 | `waitlist.converted` | ⚡ | Tutor converts a waitlisted lead to enrolled | student | **✅ BUILT 2026-08-12.** "A place has opened up." Its **own key, sharing `enrolment.tutor_added`'s template** — one dial turned. See below | P2 | ✅ |
+| `enrolment.approved` | ⚡ | Tutor approves a place a student PAID for | student | **✅ BUILT 2026-08-19.** "Your place is confirmed" — programme, cohort, start date, access window, button into the cohort. **Carries no money at all** (see below) | P1 | ✅ |
+| `enrolment.rejected` | ⚡ | Tutor refuses a place a student PAID for | student | **✅ BUILT 2026-08-19.** "About your place in X" — the tutor's own email and phone, so she can reach a person. **Promises nothing about a refund**, because nothing refunds her | P1 | ✅ |
 | `enrolment.access_expiring` | ⏰ | Access window is N days from expiry | student | Renew / heads-up before losing access | P2 | ⬜ ⚠ blocked |
 | `enrolment.access_expired` | ⏰ | Access window passes | student | Access ended, how to renew | P2 | ⬜ ⚠ blocked |
+
+> ### ⚠⚠ The 08-10 fold left the human half uncovered — and we PROMISED it
+>
+> Read the `enrolment.confirmed` note below first; this is its correction,
+> found 2026-08-19.
+>
+> Folding `enrolment.confirmed` into `payment.received` was right **on the
+> ACTIVATED path**, where the money and the place land in one instant for one
+> person. It does not hold on **`PENDING_APPROVAL`**, where the place is
+> confirmed **later, by a human**. That second moment is a different trigger,
+> a different sender and a different day — and it left the catalog with the
+> row that was deleted.
+>
+> ⭐ **Meanwhile the receipt had already promised it.** Its `PENDING_APPROVAL`
+> variant has told buyers, on prod since 2026-08-18: *"You will get another
+> email as soon as your tutor approves your place."* Nothing ever sent one.
+> Five dev enrolments were sitting in that state having been told so — one of
+> them from a test run an hour before this was found.
+>
+> ⚠ **The generalisable lesson: when an email's copy promises another email,
+> that promise is a catalog entry.** Nothing checked it, and nothing checks it
+> now — worth a pass over every template asking *"what does this sentence
+> commit us to sending?"* before the catalog is next declared complete.
+>
+> ⓘ A tutor-added enrolment is created `ENROLLED` and never passes through
+> `PENDING_APPROVAL`, so these two only ever reach the audience the receipt
+> made the promise to.
+
+> ### ⚠ The refusal cannot promise money back — nothing gives it back
+>
+> `nclex_reject_enrolment` sets `status`, `terminal_at` and `tutor_note`.
+> **That is all.** Her payment row stays `ACTIVATED`, `payment.refunded` is
+> unbuilt, and no process exists. So the email says nothing about a refund —
+> settled with Sam 2026-08-19 — and points her at the tutor for the
+> conversation instead, with support in the footer as the second route.
+>
+> ⭐⭐ **It carries the tutor's real email and phone, and that replaced a
+> safer-looking idea.** The first build linked the programme page's
+> *Contact the tutor* form: private, and landing in a queue the tutor already
+> reads. But `nclex_submit_enquiry` is **idempotent on (programme, email)** —
+> where an open lead exists it returns that lead and **never inserts the new
+> message**, while still showing her a success tick. A refused student is
+> *more* likely than average to have enquired before buying, so the one
+> message that most needed to arrive was the one most likely to vanish,
+> invisibly to both sides. Sam's call: *"we have to ensure communication is
+> easy."* A `mailto:` cannot fail quietly.
+>
+> ⚠ **That swallow is a live defect for every repeat enquirer**, not just
+> rejected students — anyone messaging a tutor twice while the first lead is
+> open. Shipped public path; wants its own slice.
+>
+> ⚠ **`phone_number` is empty for every tutor** (checked 2026-08-19) and no
+> screen collects it — `tutor/profile` calls contact fields "separate future
+> work". The row is built conditional and renders for nobody today. **Capturing
+> a tutor phone is the open follow-on**, and it matters more than it looks: the
+> core audience reaches for WhatsApp before email.
+>
+> ⚠ **The tutor's rejection note is NOT sent.** The RPC stores `p_note` in
+> `tutor_note` and nothing in the app has ever displayed it, so no tutor has
+> been given any reason to think a student reads it. A tutor who typed
+> *"didn't pay last time, avoid"* into what reads as an internal box must not
+> have it mailed to the person it is about. **To include it, relabel that box
+> in the roster first.**
+
+> ### ⭐ Why approved/rejected are TWO templates, not one with a dial
+>
+> `enrolment.tutor_added` and `waitlist.converted` share one file because they
+> are the same event with a different backstory — one dial turned. These are
+> **opposite outcomes**: different words, different destination, different
+> footer context. Sharing would mean branching on everything. They do share
+> one *reader* (`lib/enrolments/verdict-email.ts`), because the five facts
+> they need are identical and always change together.
+>
+> ⓘ **The approval deliberately carries no money.** She has the receipt for
+> the amount and the plan, and `payment.installment_due` handles what is owed
+> next. A third voice on one plan is how three emails start disagreeing.
 
 > ### ⭐ `enrolment.confirmed` was FOLDED INTO `payment.received` (2026-08-10)
 >
@@ -689,7 +829,7 @@ content release, or account state, ask "should this notify someone?" — if yes:
 | `payment.installment_overdue` | ⏰ | An installment passes its due date unpaid | student | **✅ BUILT 2026-08-18.** Sent the night the sweep acts, captured BEFORE the pause. Past tense — the pause has already happened. `paused` switches it between "access is paused" and "access is unaffected" | P1 | ✅ |
 | `payment.grace_set` | ⚡ | Tutor grants a first-payment / installment grace | student | "Your tutor extended your due date to X" | P2 | ✅ |
 | `payment.refunded` | ⚡ | A payment is refunded | student | Refund confirmation | P2 | ✅ |
-| `payment.tutor_received` | ⚡ | A student payment lands — Paystack success OR tutor "mark paid" | tutor | "Ama paid GHS X for Cohort Y" — payer, amount, plan, cohort. **Programme money only** (bank/readiness is QAcademy's). **Required on every payment**; per-event vs digest is a delivery choice (see open questions) | P1 | ✅ |
+| `payment.tutor_received` | ⚡ | A student payment lands — **unless the tutor recorded it themselves** | tutor | **✅ BUILT 2026-08-19.** "Ama paid GHS X for Cohort Y" — payer, amount, plan position, cohort, where the plan stands. **Programme money only** (bank/readiness is ours). **Per-event**, settled | P1 | ✅ |
 
 > ### ⭐ The due-date maths already exists — and must be SHARED, not re-derived
 >
@@ -752,9 +892,55 @@ content release, or account state, ask "should this notify someone?" — if yes:
 > **Every payment notifies BOTH sides.** A received payment is a paired send:
 > `payment.received` (the student's receipt) **and** `payment.tutor_received`
 > (the tutor's "money's in"). Both are P1 — neither side should be left in the
-> dark when money moves. Applies to the same anchor (Paystack success and the
-> tutor "mark paid" path); the tutor-side cadence (per-event vs daily digest) is
-> the only open delivery question, not whether it's sent.
+> dark when money moves.
+>
+> ### ⭐⭐ CORRECTED 2026-08-19 — the recipient must not be the actor
+>
+> This used to say the trigger was *"Paystack success **OR** tutor 'mark
+> paid'"*, both anchors. Read against the code that is wrong twice: a tutor who
+> hits **Mark paid**, and a tutor who records *"payments already received"*
+> while adding a student, would be emailed a fact they typed in thirty seconds
+> ago. **The first noisy transactional email is how people start ignoring the
+> rest.**
+>
+> ⭐ But it is **not** "skip the mark-paid anchor". A **SUPER_ADMIN** may
+> record a payment on a tutor's programme, and there it *is* news. So the test
+> is **who recorded it**, not which door it came through:
+> `recorded_by_user_id === programme.tutor_id` → stay silent. Verified against
+> dev: 16 groups send (Paystack, no recorder), 1 sends (an admin recorded it),
+> 2 suppress.
+>
+> ⭐ The rule reads `recorded_by_user_id` **off the payment row** rather than
+> taking it as an argument, so it lives in one place and no anchor can get it
+> wrong by forgetting to pass it. Paystack leaves the column null, so an online
+> payment always sends. All three anchors call in unconditionally.
+>
+> ⚠ **Consequence, intended:** a tutor on an **OFF_PLATFORM** programme — they
+> collect the cash by hand and add the students — receives **none** of these.
+> Correct. They are holding the money.
+>
+> ⓘ **Cadence settled: per-event, not a digest.** A digest needs its own
+> scheduled job and a "since last digest" ledger — a slice, not a variation —
+> and there is no volume to protect anyone from yet. Layerable later without
+> touching the anchor.
+>
+> ⓘ **Fingerprint is the checkout group with no stage**, safe *only* because
+> `lib/payments/init.ts` builds items from one target and refuses any
+> non-`ON_PLATFORM` programme, so one charge can never owe two tutors an email.
+> ⚠ **If a multi-programme cart is ever built, this fingerprint must gain the
+> tutor id as its stage or the second tutor is silently dropped.**
+>
+> ⚠ **A pay-first purchase sends `SETUP_REQUIRED` and nothing else** — the
+> later `ACTIVATED` enqueue is refused by the fingerprint. Told early on
+> purpose (activation may be days away, or never), so that wording explains the
+> roster gap on its own rather than promising a follow-up.
+>
+> ⚠ **Three method values, not two.** `CARD` · `ADMIN_RECORDED` ·
+> `OFF_PLATFORM`. The third is not padding: six settled dev rows carry
+> `collection_channel = 'OFF_PLATFORM'` with **no recorder**, from before that
+> column was populated. Captioning those "recorded by a Quademia admin" would
+> name a party nobody can evidence, **about money**. They read "Collected
+> off-platform" instead.
 
 ### Live sessions
 
@@ -1781,8 +1967,28 @@ rather than untrustworthy.
 
 **Still open:**
 
-- **Digest vs per-event** for tutor-facing volume (`payment.tutor_received`,
-  `enquiry.received`). Not *whether* — only cadence.
+- ~~**Digest vs per-event** for tutor-facing volume (`payment.tutor_received`,
+  `enquiry.received`).~~ **Settled per-event 2026-08-19** for
+  `payment.tutor_received` — see the Payments note. A digest is its own slice
+  and there is no volume to protect anyone from yet. `enquiry.received` is
+  still unbuilt and inherits the same reasoning by default.
+- **Capture a tutor phone number.** `nclex_users.phone_number` exists, is
+  **empty for every tutor**, and no screen collects it (`tutor/profile` calls
+  contact fields "separate future work"). `enrolment.rejected` already renders
+  the row conditionally, so the email is ready and the input is not. ⭐ Matters
+  more than it looks: the core audience reaches for WhatsApp before email.
+- ⚠ **The enquiry-form swallow.** `nclex_submit_enquiry` is idempotent on
+  (programme, email) — where an open lead exists it returns that lead and
+  **never inserts the new message**, while showing a success tick. Affects
+  **every repeat enquirer**, not just the rejected students who surfaced it.
+  Shipped public path; own slice.
+- ⚠ **"QAcademy" still reaches readers in 16 places** (home, programmes,
+  checkout, bank-access, `<title>`/meta, both footers, the payment-history
+  drawer) while the company is **Quademia**. Cosmetic, not misinforming, so
+  not urgent — but it undercuts the identity arc's one-name goal. ⓘ **Two of
+  the sixteen are the copyright line** ("QAcademy Educational Consult"), which
+  is a **legal-name** question, not a branding one — do not sweep those with
+  the rest.
 - **Templating + localisation** (GH/UK/CA audiences). ⓘ Gamma's approach is
   worth borrowing in shape but not in code: HTML files with `{{placeholder}}`
   substitution plus one shared `footer.html`, readable and editable by Sam. Two
