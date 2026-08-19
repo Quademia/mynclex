@@ -2,16 +2,19 @@
 
 *Status: **the spine is built, the drain runs, the ⏰ half has opened, and
 Supabase no longer writes any email of ours.**
-**8 of 24 emails wired; 5 of them on prod.** ✅ **On prod** (2026-08-18, PR
+**9 of 23 emails wired; 5 of them on prod.** ⓘ 23, not 24 — `session.scheduled`
+was dropped on 2026-08-20 rather than built. ✅ **On prod** (2026-08-18, PR
 #53 — proven by a real test-mode purchase whose receipt sent in 218 ms
 through prod's own key): `payment.received`, `enrolment.tutor_added`,
 `waitlist.converted`, `payment.installment_due`,
 `payment.installment_overdue` — the last two **the first time-driven emails
-the product has ever sent**. 🔨 **On `main`, not yet released** (2026-08-19):
-`payment.tutor_received`, `enrolment.approved`, `enrolment.rejected`, plus
-the **pay-first invite swap**, which is not a new email but changes a shipped
-one — `payment.received` now carries the setup link, so a guest purchase
-sends **one** email where it sent two. A pg_cron job knocks on the drain
+the product has ever sent**. 🔨 **On `main`, not yet released**: from
+2026-08-19, `payment.tutor_received`, `enrolment.approved`,
+`enrolment.rejected`, plus the **pay-first invite swap**, which is not a new
+email but changes a shipped one — `payment.received` now carries the setup
+link, so a guest purchase sends **one** email where it sent two; and from
+2026-08-20, **`session.reminder`**, the product's **first fan-out and first
+attachment**, on its own nightly cron. A pg_cron job knocks on the drain
 every five minutes. This
 doc is the single source of truth for **every point in the app that should
 send an email**, and for **how a send works**. See [main.md](main.md) and
@@ -957,6 +960,10 @@ That shape is not exercised by the first pair and needs its own thought
 (volume against Resend's daily cap, and whether one row per student or one row
 per cohort goes in the outbox).
 
+> ✅ **Both answered on 2026-08-20 by building `session.reminder`.** One row
+> **per student**; volume ~1 per student per week. Fan-out is no longer an
+> unproven shape — see the build note below.
+
 > ## ⭐⭐ DESIGN SETTLED 2026-08-19 — the schedule follows the student
 >
 > Not built. Worked out with Sam across four revisions, and the shape moved
@@ -1067,7 +1074,100 @@ per cohort goes in the outbox).
 > become an architecture decision. (Same rule the payment anchors follow:
 > three callers, one builder.)
 >
-> ### Still to settle before building
+> ### ✅ BUILT 2026-08-20 — and the four open questions answered
+>
+> Migration `20260912120000_session_reminders.sql`, on `main`. The design
+> above survived contact intact; what follows is what building it decided,
+> and the two things it got wrong first.
+>
+> **The four questions, all settled with Sam before a line was written:**
+>
+> | Question | Answer |
+> |---|---|
+> | Row shape | **One per student.** A bad address fails alone, and the outbox answers "who was told" |
+> | Rescheduling | **The time goes IN the fingerprint** — `<session_id>@<epoch>` — so a moved class re-sends by itself |
+> | `session.scheduled` | **Dropped.** She is told when the class nears; an announcement six weeks out duplicates the Sessions page |
+> | Scope | Nightly + `.ics` + the tutor's button, together |
+>
+> ⭐⭐ **The tutor's button is limited to ONE per class OCCURRENCE** (Sam's
+> call, and he was right to ask for it: an open button is a tutor emailing
+> twenty-five nurses four times about one lesson). The limit needs no
+> counter and no new state — **it IS the fingerprint the nightly pass
+> already uses**, so a second press inserts nothing.
+>
+> ⭐ And it **refills when the class moves**, because the fingerprint carries
+> the time. "Once per session id" would have gagged the one person who most
+> needs to speak after a reschedule. Ceiling: two emails per student per
+> occurrence — the nightly one and one deliberate.
+>
+> ⚠ **It returns the count, and the UI shows it.** A live control that
+> silently does nothing is a bug this repo has now shipped twice —
+> `nclex_submit_enquiry` tells a repeat enquirer it worked while dropping
+> the message, and the pay-first receipt was refused by the fingerprint with
+> nobody told. Pressing a spent button says so; a send that reaches nobody
+> new says *that*, rather than nothing.
+>
+> ### ⚠ ITS OWN CRON JOB — the one place this doc was wrong
+>
+> The design above says "a few more lines inside a job that already runs".
+> That reads well until you notice `nclex_enrolment_nightly_sweep()` is ONE
+> TRANSACTION which also **pauses students for arrears**. An exception
+> raised while building a calendar attachment would roll those pauses back
+> — a bug in a nicety silently disabling the money rule.
+>
+> ⭐ Sam, on being told: *"its a different job from the enrolment."* The four
+> existing pg_cron jobs are already one-per-concern; this is the fifth, at
+> **02:15**, and the isolation costs nothing. The claim the doc was really
+> making — *this needs no new infrastructure* — still holds: pg_cron was
+> already running.
+>
+> ### Two defects, both found by reading real output
+>
+> Neither was caught by tsc, eslint, or a passing render.
+>
+> - **The subject was 84 characters.** "Your `<programme>` class is on
+>   Tuesday 25 August at 19:00 GMT" pushes the time — the only fact she
+>   needs — past where a phone truncates. Now **47**, with **nothing
+>   interpolated**: which also makes the double-em-dash defect of 2026-08-19
+>   structurally impossible here rather than merely avoided. ⓘ The cost,
+>   accepted: a student in two programmes cannot tell them apart from the
+>   subject line alone.
+> - **`platform` is an ENUM.** The email said *"Where: ZOOM"*. ⭐ The reason
+>   it survived review is worth keeping: the sample fixture had been written
+>   with `'Zoom'` already humanised, **so the fixture hid the exact thing it
+>   existed to test**. It now holds the enum, like the database does.
+>
+> ### What was verified on dev, and how
+>
+> 3 nightly + 2 manual + 1 rescheduled, all SENT with provider ids and an
+> `.ics` Resend accepted. A second sweep adds nothing; a second manual press
+> returns 0; the ownership gate refuses a non-owner. **The reschedule proof
+> is the one worth repeating**: moving a class produced a new fingerprint,
+> a new email, the same `UID` and a **higher `SEQUENCE`** — which is the
+> combination that makes a phone calendar *update* rather than show two
+> classes. Restoring the original time then correctly added nothing, because
+> that fingerprint had already been used.
+>
+> ⓘ 13 students enrolled, 3 emailed: the other 11 are `@example.com` and
+> were skipped by the guard duplicated into the migration.
+>
+> ⚠ **`session_reminders_enabled` ships OFF in a new environment.** The
+> pg_cron knock calls the DEPLOYED Worker, so until the `session.reminder`
+> template is live there, a nightly pass would enqueue rows that environment
+> can only mark DEAD. Turn it on after the deploy, not before.
+>
+> ### Still open after the build
+>
+> - **The ⚡ change family is untouched** — `session.rescheduled`,
+>   `session.cancelled`, `session.recording_available`. ⚠ Cancellation
+>   genuinely cannot wait for a window, so it stays event-driven and is NOT
+>   replaced by the nightly pass. ⓘ A *reschedule* is now partly covered:
+>   the reminder re-sends by itself, so what `session.rescheduled` adds is
+>   the word "moved" for someone already told.
+> - **The tutor's button is untested in the browser** — the SQL gate and the
+>   count are proven; the control itself needs a tutor session.
+>
+> ### The questions as they stood before the build
 >
 > - **Outbox row shape.** One row per student (retry a single failed
 >   recipient, but 25 rows per session) or one per cohort (tidy, but one bad
@@ -1093,8 +1193,8 @@ per cohort goes in the outbox).
 
 | Event key | Kind | Trigger | Recipient | Purpose | Pri | Anchor |
 |---|---|---|---|---|---|---|
-| `session.scheduled` | ⚡ | Tutor schedules / announces a session date for a cohort | cohort students | "Live session set for <when>" + join details. ⚠ **Priority under review** — the nightly pass below tells her when the class nears, so this mostly duplicates the in-app Sessions page | P1 → ? | ✅ |
-| `session.reminder` | ⏰ | **Nightly: sessions falling in the next 7 days, to students not yet told** — plus a tutor's manual "Send reminder" button | cohort students | **DESIGN SETTLED 2026-08-19, not built.** "Your class is this Tuesday" + join link + **`.ics` calendar attachment**, so her own phone reminds her thereafter. ~1 email/student/week. ⚠ NOT triggered by scheduling — see below | P1 | ⬜ |
+| ~~`session.scheduled`~~ | ⚡ | Tutor schedules / announces a session date for a cohort | cohort students | **DROPPED 2026-08-20 (Sam).** The nightly pass tells her when the class nears, so an announcement six weeks out mostly duplicates the in-app Sessions page — and since tutors set the timetable when they CREATE the cohort, it would usually fire at an empty one. Struck through rather than deleted so the reasoning survives the next person who wonders where it went | ~~P1~~ | — |
+| `session.reminder` | ⏰ | **Nightly: sessions falling in the next 7 days, to students not yet told** — plus a tutor's manual "Send reminder" button, capped at ONE per class occurrence | cohort students | ✅ **BUILT 2026-08-20** (`20260912120000`, own cron job at 02:15). "Your class is on Tuesday" + join details + an **`.ics` attachment**, so her own phone reminds her thereafter. ~1 email/student/week. ⚠ NOT triggered by scheduling — see above. **The product's first fan-out, and its first attachment** | P1 | ✅ |
 | `session.rescheduled` | ⚡ | A scheduled session's date/time changes | cohort students | New time | P2 | ✅ |
 | `session.cancelled` | ⚡ | A scheduled session is removed | cohort students | It's off | P2 | ✅ |
 | `session.recording_available` | ⚡ | A recording URL is added to a held session | cohort students | "Recording's up" | P3 | ✅ |
@@ -1987,7 +2087,8 @@ same ledger **plus fan-out** · `enrolment.*` and `enquiry.*` are plain event
 sends.
 
 ⚠ **What the pair deliberately does NOT prove:** fan-out (stays unproven until
-sessions) · the **invite swap** (`inviteUserByEmail` → `generateLink`, below) —
+sessions — ✅ **proven 2026-08-20**, one row per student) · the **invite swap**
+(`inviteUserByEmail` → `generateLink`, below) —
 the one change that can leave an invited student with *nothing*, so it does not
 belong in the slice still finding bugs in the pipe · opt-out preferences,
 since neither of these is opt-out-able.
@@ -2173,10 +2274,14 @@ makes pay-first silently send nothing.
   `payment.tutor_received` — see the Payments note. A digest is its own slice
   and there is no volume to protect anyone from yet. `enquiry.received` is
   still unbuilt and inherits the same reasoning by default.
-- **Live sessions** — design settled 2026-08-19 (see the Live sessions
-  section), **not built**. The remaining unknowns are listed there: the outbox
-  row shape, rescheduling/`.ics` update semantics, and whether
-  `session.scheduled` still earns P1.
+- ~~**Live sessions**~~ — ✅ **`session.reminder` BUILT 2026-08-20.** All four
+  unknowns answered: one outbox row **per student**; rescheduling handled by
+  putting the time **in the fingerprint** (same `UID`, higher `.ics`
+  `SEQUENCE`, so calendars update rather than duplicate); `session.scheduled`
+  **dropped**; and the tutor's button shipped alongside, capped at one per
+  class occurrence. ⚠ What remains is the **⚡ change family** —
+  `session.rescheduled`, `session.cancelled`, `session.recording_available`.
+  Cancellation cannot wait for a window, so it stays event-driven.
 - **Capture a tutor phone number.** `nclex_users.phone_number` exists, is
   **empty for every tutor**, and no screen collects it (`tutor/profile` calls
   contact fields "separate future work"). `enrolment.rejected` already renders
