@@ -142,23 +142,29 @@ export default async function CheckoutCallbackPage({
       primary = loggedIn
         ? { href: dest, label: 'Track your enrolment' }
         : { href: '/login', label: 'Log in to track your enrolment' };
-    } else if (result.status === 'INVITE_SENT') {
-      tone = 'info';
-      icon = 'mail';
-      pill = 'Check your email';
+    } else if (result.status === 'INVITE_SENT' && result.setupEmailQueued === false) {
+      // ⭐⭐ THE STATE THAT COULD NOT EXIST BEFORE 2026-08-19. While the
+      // setup link travelled in Supabase's own invite, a failure of OUR
+      // receipt cost her nothing — the way in was already sent by another
+      // system. Since the swap this email carries the link, so when it
+      // does not reach the queue there is nothing behind it, and telling
+      // her "check your email" would be a plain falsehood.
+      //
+      // ⭐ But she is NOT locked out, and that is the only reason this
+      // page can be useful rather than apologetic: generateLink CREATED
+      // the account before the email was ever attempted. So the honest
+      // instruction is the one that works — the sign-in code — not
+      // "contact support and wait".
+      //
+      // ⚠ Names the /login control exactly as it is labelled there.
+      tone = 'warning';
+      icon = 'alert';
+      pill = 'Set up your account';
       heading = 'Payment received — one step left';
       body = receipt?.email
-        ? `We've emailed a setup link to ${receipt.email}. Open it to finish creating your account and unlock your access.`
-        : 'Check your email for a link to finish setting up your account — your access unlocks once you do.';
-      if (receipt?.isTutorLed) {
-        body += ' Once you finish setup, your tutor approves your place (usually within 24 hours).';
-      }
-      primary = null;
-      // EMAIL-TRIGGER[payment.setup_link_resend]: a one-click "resend setup
-      // email" belongs to the deferred transactional-email arc (the invite
-      // itself is sent by Supabase auth, but re-sending it isn't cleanly
-      // available without our own mailer). Until then, support is the path if
-      // the invite is lost.
+        ? `Your payment is safe and your account has been created for ${receipt.email}, but we could not send the setup email. You can still get in: go to the sign-in page and choose "Email me a sign-in code".`
+        : 'Your payment is safe and your account has been created, but we could not send the setup email. You can still get in: go to the sign-in page and choose "Email me a sign-in code".';
+      primary = { href: '/login', label: 'Go to sign in' };
       secondary = {
         href: `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
           'My setup email — ' + (receipt?.reference ?? reference)
@@ -166,7 +172,38 @@ export default async function CheckoutCallbackPage({
         label: 'Email support',
         external: true,
       };
-      note = "Can't find it? Check your spam folder, or email support and we'll help you finish setting up.";
+      note =
+        'Take a screenshot of this page. If the sign-in code does not arrive either, send it to support and we will finish the setup for you.';
+    } else if (result.status === 'INVITE_SENT') {
+      tone = 'info';
+      icon = 'mail';
+      pill = 'Check your email';
+      heading = 'Payment received — one step left';
+      // ⚠ ONE email now, not two. Until 2026-08-19 this said "a setup
+      // link" while a receipt arrived beside it, so she was looking for
+      // the wrong message — the branded one she had already opened was
+      // the one to keep. It is now the same email: receipt and way in.
+      body = receipt?.email
+        ? `We've emailed your receipt to ${receipt.email}, and it carries the link that finishes setting up your account. Open it to unlock your access.`
+        : 'We have emailed your receipt, and it carries the link that finishes setting up your account — your access unlocks once you open it.';
+      if (receipt?.isTutorLed) {
+        body += ' Once you finish setup, your tutor approves your place (usually within 24 hours).';
+      }
+      primary = null;
+      // EMAIL-TRIGGER[payment.setup_link_resend]: a one-click "resend
+      // setup email" is still deferred — but the reason has changed. It
+      // was "re-sending isn't cleanly available without our own mailer";
+      // we now have one, so it is a slice, not a blocker. Until then the
+      // sign-in code is the self-service path and support is the backstop.
+      secondary = {
+        href: `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
+          'My setup email — ' + (receipt?.reference ?? reference)
+        )}`,
+        label: 'Email support',
+        external: true,
+      };
+      note =
+        "Can't find it? Check your spam folder. If the link has expired, go to the sign-in page and choose \"Email me a sign-in code\" — your account already exists.";
     } else {
       // ACCESS_READY or ALREADY.
       tone = 'success';

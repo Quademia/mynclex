@@ -77,15 +77,47 @@ const FRAMING: Record<
       'Thank you — your payment went through. To reach what you have bought, ' +
       'you need to finish setting up your account.',
     grantsHeading: 'What you have paid for',
-    // ⚠ Deliberately does not promise the setup email has arrived. If
-    // inviteUserByEmail failed (activate.ts), this receipt is the ONLY
-    // message that reaches her — she has paid, has no account, and no
-    // invite is coming — so it must tell her what to do about that.
-    note:
-      'Look for a separate email inviting you to set up your account. ' +
-      'If it has not arrived within a few minutes, check your spam folder — ' +
-      `and if it is not there either, write to ${SUPPORT_EMAIL} and we will sort it out.`,
+    // ⭐⭐ THE NOTE FOR THIS FRAMING IS CHOSEN IN body(), NOT HERE.
+    // Until 2026-08-19 it read "Look for a separate email inviting you to
+    // set up your account" — because there was one: activate.ts called
+    // inviteUserByEmail and Supabase sent its generic body alongside this
+    // receipt. Two emails for one action, and the branded one pointed at
+    // the bare one. Since the swap, THIS email carries the link, so what
+    // the note should say depends on whether it has one — see SETUP_NOTE.
+    note: null,
   },
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// The setup note — two wordings, because the link is not guaranteed
+// ─────────────────────────────────────────────────────────────────────
+// ⚠ A note that says "the button above" when no button rendered sends
+// the reader hunting for a control that is not there. Two cases produce
+// a SETUP_REQUIRED receipt with no link, and both are real:
+//
+//   • A row queued BEFORE the swap deployed, drained after it. Its
+//     payload has ctaHref: null and it renders through this template.
+//   • The retry branch in activate.ts, which re-queues the receipt
+//     without minting a fresh link (see the comment there for why).
+//
+// ⭐ Neither is a lock-out, and that is the whole reason this shape is
+// safe: generateLink CREATES the account the moment it is called, so by
+// the time either wording is read, the account exists — and /login's
+// "Email me a sign-in code" only requires that. Proven working
+// 2026-08-12 against exactly this account state (invited, never
+// confirmed, no password) on the tutor path.
+//
+// ⚠ Names the button as it is actually labelled on /login.
+const SETUP_NOTE = {
+  withLink:
+    'The button above is your way in, and it works once. If it has already ' +
+    'expired, go to the sign-in page and choose "Email me a sign-in code" — ' +
+    'your account already exists, so a code will let you straight in.',
+  noLink:
+    'To set up your account, go to the sign-in page and choose "Email me a ' +
+    'sign-in code" — your account already exists, so a code will let you ' +
+    `straight in. If that does not work, write to ${SUPPORT_EMAIL} and we ` +
+    'will sort it out.',
 };
 
 // ─────────────────────────────────────────────────────────────────────
@@ -163,6 +195,13 @@ function body(p: PaymentReceiptPayload): string {
   const f = FRAMING[p.framing];
   const greeting = p.recipientName ? `Hi ${esc(p.recipientName)},` : 'Hi,';
   const grants = grantsList(p.lineItems);
+  const hasCta = !!(p.ctaHref && p.ctaLabel);
+
+  // Only SETUP_REQUIRED varies by whether a button rendered. The other
+  // two framings are fixed: ACTIVATED has no note, and PENDING_APPROVAL
+  // has no button.
+  const note =
+    p.framing === 'SETUP_REQUIRED' ? (hasCta ? SETUP_NOTE.withLink : SETUP_NOTE.noLink) : f.note;
 
   return `
     <p style="margin:0 0 8px;font-family:Helvetica,Arial,sans-serif;font-size:15px;
@@ -205,16 +244,16 @@ function body(p: PaymentReceiptPayload): string {
         : ''
     }
 
+    ${hasCta ? button(p.ctaHref as string, p.ctaLabel as string) : ''}
+
     ${
-      f.note
+      note
         ? `<p style="margin:20px 0 0;padding:12px 14px;background:${BRAND.bg};
                      border-left:3px solid ${BRAND.accent};border-radius:4px;
                      font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;
-                     color:${BRAND.ink};">${esc(f.note)}</p>`
+                     color:${BRAND.ink};">${esc(note)}</p>`
         : ''
     }
-
-    ${p.ctaHref && p.ctaLabel ? button(p.ctaHref, p.ctaLabel) : ''}
 
     <p style="margin:20px 0 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;
               line-height:1.6;color:${BRAND.muted};">
@@ -396,7 +435,38 @@ export const paymentReceivedTemplate: EmailTemplate<PaymentReceiptPayload> = {
       // ⭐ The branch that cannot say what the others say: no name (she
       // has no profile), and no end date on the bank pass, because
       // activation has not happened and that is when it is computed.
+      //
+      // ⭐⭐ Since 2026-08-19 it also carries the ONLY way into the
+      // account it just paid for. The href here is a shape, not a real
+      // link — the live one is a one-time token minted by generateLink.
       label: 'Setup required (pay-first, no account yet)',
+      payload: {
+        framing: 'SETUP_REQUIRED',
+        recipientName: null,
+        currency: 'GHS',
+        totalMinor: 35000,
+        paidAtISO: PAID_AT,
+        reference: 'nclx_51b0e9',
+        method: 'CARD',
+        lineItems: [
+          {
+            purpose: 'BANK_PURCHASE',
+            label: 'NCLEX Question Bank — 3 months',
+            amountMinor: 35000,
+            grants: null,
+          },
+        ],
+        ctaHref: 'https://nclex.quademia.com/welcome#example-one-time-link',
+        ctaLabel: 'Set up your account',
+      },
+    },
+    {
+      // ⚠ THE SAME STATE WITH NO LINK — the wording that has to stand on
+      // its own. Two things produce it: a receipt queued before the
+      // 2026-08-19 swap and drained after it, and activate.ts's retry
+      // branch. Without this fixture the first person to read a
+      // buttonless setup receipt would be a customer.
+      label: 'Setup required · no link (pre-swap row, or a retry)',
       payload: {
         framing: 'SETUP_REQUIRED',
         recipientName: null,

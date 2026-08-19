@@ -14,7 +14,7 @@
 //
 // Two identity cases (both purposes):
 //   • Buyer already has an account → grant immediately, mark ACTIVATED.
-//   • Pay-first guest (no account)  → send the Supabase invite, mark
+//   • Pay-first guest (no account)  → mint a setup link, mark
 //     SETUP_REQUIRED; the grant happens when they finish /welcome
 //     (activatePendingForEmail, called from the welcome action).
 //
@@ -51,7 +51,18 @@ type PaymentRow = {
 
 export type ActivateOutcome = 'ACTIVATED' | 'PENDING_APPROVAL' | 'ALREADY' | 'INVITE_SENT';
 export type ActivateResult =
-  | { ok: true; outcome: ActivateOutcome }
+  | {
+      ok: true;
+      outcome: ActivateOutcome;
+      /**
+       * INVITE_SENT only: did the email carrying her setup link reach the
+       * queue? Undefined on every other outcome, where no email is
+       * load-bearing. False means she has paid, has an account she has
+       * never seen, and nothing is coming to tell her — the callback page
+       * is the only place left to say so.
+       */
+      setupEmailQueued?: boolean;
+    }
   | { ok: false; error: string };
 
 const PAYMENT_COLS =
@@ -447,37 +458,69 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
       // EMAIL-TRIGGER[payment.received]: the buyer — a second chance to
       // queue the receipt if the first pass failed to. Safe to repeat:
       // the fingerprint makes it a no-op once one exists.
-      await sendPaymentReceipt(rows[0].checkout_group_id, 'SETUP_REQUIRED');
+      //
+      // ⚠ NO LINK IS MINTED HERE, deliberately. This branch runs on every
+      // re-hit — a refreshed callback page, Paystack's webhook landing
+      // beside it — so minting per pass would burn a one-time token on
+      // each refresh to produce an email the fingerprint then discards.
+      // In the ordinary case a receipt already exists and carries the
+      // link from the first pass. In the rare one (the first enqueue
+      // failed) she gets the buttonless wording, which stands on its own
+      // because the account already exists and /login's sign-in code
+      // reaches it — see SETUP_NOTE in the template.
+      const { queued } = await sendPaymentReceipt(rows[0].checkout_group_id, 'SETUP_REQUIRED');
       // EMAIL-TRIGGER[payment.tutor_received]: the tutor — the same
       // second chance, for the same reason.
       await sendTutorPaymentNotice(rows[0].checkout_group_id, 'SETUP_REQUIRED');
-      return { ok: true, outcome: 'INVITE_SENT' };
+      return { ok: true, outcome: 'INVITE_SENT', setupEmailQueued: queued };
     }
 
-    // First time: one invite for the whole group. The profile + grants
+    // First time: one way in for the whole group. The profile + grants
     // happen when they finish /welcome (no name yet, so no profile here).
     const h = await headers();
     const origin = h.get('origin') ?? 'http://localhost:3000';
-    const { data: invite, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${origin}/welcome`,
+
+    // ⭐⭐ THE INVITE SWAP, PAY-FIRST HALF (2026-08-19). This used to call
+    // inviteUserByEmail(), which made SUPABASE send the email — and
+    // Supabase sees an address and a link and nothing else, so the best
+    // it could ever say was "you have an account", never what for. She
+    // had just paid us; the email that arrived first did not mention it.
+    //
+    // ⚠ The duplication had a birthday: before the receipt was built
+    // (2026-08-11) Supabase's invite was the ONLY email a pay-first buyer
+    // got, so it was thin but not redundant. Adding the receipt beside it
+    // is what made two. The tutor path swapped the very next day
+    // (lib/enrolments/actions.ts) because its rich email was being
+    // written in the same session; this half was left behind and has run
+    // with both ever since.
+    //
+    // generateLink mints the SAME link and sends nothing — same account,
+    // same /welcome landing. The only difference is who writes the email
+    // that carries it, and ours knows what she bought.
+    const { data: invite, error: inviteErr } = await admin.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: { redirectTo: `${origin}/welcome` },
     });
-    if (inviteErr || !invite?.user) {
+    if (inviteErr || !invite?.user || !invite.properties?.action_link) {
       console.error('Pay-first invite failed:', inviteErr?.message);
       return {
         ok: false,
         error: 'Payment recorded, but we could not send the setup email. Please contact support.',
       };
     }
+    const setUpUrl = invite.properties.action_link;
     // Mark the group "awaiting setup". We deliberately do NOT link user_id
     // here: the invited account exists in auth.users but has no nclex_users
     // profile row yet (that's created at /welcome), and nclex_payments.user_id
     // FKs to nclex_users — so writing it now violates the FK and the whole
     // update is rejected. The user_id link is set when /welcome runs
     // activateGroup → grantAndActivateRow against the real profile (it resolves
-    // the buyer by email and stamps user_id on the ACTIVATED row). Surfacing
-    // the error rather than swallowing it: the invite is already out and
-    // /welcome re-matches the still-PAID row by email, so this is non-fatal,
-    // but we log it so a real failure doesn't go unnoticed.
+    // the buyer by email and stamps user_id on the ACTIVATED row). Logging
+    // the error rather than swallowing it: the ACCOUNT already exists
+    // (generateLink created it above) and /welcome re-matches the still-PAID
+    // row by email, so a failed status update is non-fatal — but we log it
+    // so a real failure doesn't go unnoticed.
     const { error: updErr } = await admin
       .from('nclex_payments')
       .update({ status: 'SETUP_REQUIRED' })
@@ -489,11 +532,16 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
     // credits, and no account. The SETUP_REQUIRED framing says what she
     // bought and what to do next rather than what she now has.
     //
-    // ⭐ This is also the one message that reaches her if the invite
-    // above FAILED. In that case she has paid, cannot get in, and the
-    // screen tells her to contact support — the receipt is the only
-    // thing that arrives on its own.
-    await sendPaymentReceipt(rows[0].checkout_group_id, 'SETUP_REQUIRED');
+    // ⭐⭐ AND, since the swap above, it carries the way in. This is now
+    // the ONLY email she gets — and the only link to an account she has
+    // already paid for. That is why its `queued` answer is kept and
+    // returned rather than dropped: it is the difference between "check
+    // your email" and telling her something that is not true.
+    const { queued } = await sendPaymentReceipt(
+      rows[0].checkout_group_id,
+      'SETUP_REQUIRED',
+      setUpUrl
+    );
 
     // EMAIL-TRIGGER[payment.tutor_received]: the tutor — money landed on
     // their programme from someone who has no account yet, so she will
@@ -506,7 +554,7 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
     // fingerprint when she finishes /welcome. The SETUP_REQUIRED wording
     // carries that on its own; see the note in the template.
     await sendTutorPaymentNotice(rows[0].checkout_group_id, 'SETUP_REQUIRED');
-    return { ok: true, outcome: 'INVITE_SENT' };
+    return { ok: true, outcome: 'INVITE_SENT', setupEmailQueued: queued };
   }
 
   // Buyer has a profile → grant each row now.

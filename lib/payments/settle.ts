@@ -30,5 +30,7 @@ export async function settlePayment(reference: string): Promise<SettleResult> {
         : a.outcome === 'ALREADY'
           ? 'ALREADY'
           : 'ACCESS_READY';
-  return { ok: true, status };
+  // Carried through untouched: on INVITE_SENT the receipt is the only
+  // way into the account, so whether it queued is the page's business.
+  return { ok: true, status, setupEmailQueued: a.setupEmailQueued };
 }

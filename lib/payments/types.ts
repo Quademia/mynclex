@@ -66,5 +66,16 @@ export type VerifyResult =
 //   INVITE_SENT       — paid; pay-first guest must finish setup via the emailed link
 //   ALREADY           — already settled (idempotent re-hit)
 export type SettleResult =
-  | { ok: true; status: 'ACCESS_READY' | 'PENDING_APPROVAL' | 'INVITE_SENT' | 'ALREADY' }
+  | {
+      ok: true;
+      status: 'ACCESS_READY' | 'PENDING_APPROVAL' | 'INVITE_SENT' | 'ALREADY';
+      /**
+       * INVITE_SENT only. Since 2026-08-19 the setup link travels inside
+       * our own receipt instead of a Supabase invite, so if that email
+       * never reached the queue there is no second email behind it. False
+       * here is what lets the callback page stop saying "check your
+       * email" and say what actually works instead.
+       */
+      setupEmailQueued?: boolean;
+    }
   | { ok: false; status: 'PENDING' | 'FAILED' | 'NOT_FOUND' | 'ERROR'; error: string };

@@ -386,7 +386,16 @@ function formatDueDate(d: Date): string {
  */
 export async function buildPaymentReceiptEmail(
   checkoutGroupId: string,
-  framing: ReceiptFraming
+  framing: ReceiptFraming,
+  /**
+   * The one-time setup link, for the pay-first guest only.
+   *
+   * ⚠ Passed IN rather than looked up, because it cannot be looked up:
+   * generateLink mints a secret that exists for one instant in
+   * activate.ts and is never stored anywhere this function could read.
+   * Every other field on this payload is derived from the database.
+   */
+  setUpUrl?: string | null
 ): Promise<{ payload: PaymentReceiptPayload; toEmail: string; toUserId: string | null } | null> {
   const receipt = await getPaymentReceiptByGroup(checkoutGroupId);
   if (!receipt) return null;
@@ -630,9 +639,19 @@ export async function buildPaymentReceiptEmail(
     grants: grantsByPaymentId.get(l.key) ?? null,
   }));
 
-  // ⚠ No call to action while setup is outstanding: every in-app
+  // ⚠ No IN-APP call to action while setup is outstanding: every in-app
   // destination would bounce her to a login she cannot complete yet.
   const showCta = framing === 'ACTIVATED' && !!receipt.destinationHref;
+
+  // ⭐⭐ THE ONE DESTINATION THAT DOES WORK BEFORE SHE HAS AN ACCOUNT
+  // (2026-08-19). The line above was right for as long as the only
+  // candidates were app pages — and it is why this slot sat empty for
+  // exactly the reader who most needed something to press. The setup
+  // link is not an app page: it mints her session on the way in. So
+  // SETUP_REQUIRED fills the SAME slot rather than growing a field of
+  // its own, which also means a receipt queued before this shipped
+  // (ctaHref null) renders exactly as it did before.
+  const setUpCta = framing === 'SETUP_REQUIRED' && !!setUpUrl;
 
   return {
     toEmail,
@@ -646,21 +665,49 @@ export async function buildPaymentReceiptEmail(
       reference: first.paystack_reference,
       method,
       lineItems,
-      ctaHref: showCta ? `${APP_ORIGIN}${receipt.destinationHref}` : null,
-      ctaLabel: showCta ? receipt.destinationLabel : null,
+      ctaHref: setUpCta
+        ? (setUpUrl as string)
+        : showCta
+          ? `${APP_ORIGIN}${receipt.destinationHref}`
+          : null,
+      ctaLabel: setUpCta ? 'Set up your account' : showCta ? receipt.destinationLabel : null,
     },
   };
 }
 
-/** Queue the receipt for a checkout, and start sending it immediately. */
+/**
+ * Queue the receipt for a checkout, and start sending it immediately.
+ *
+ * ⚠ STILL NEVER THROWS — the money landing outranks the receipt.
+ *
+ * ⭐ But it now REPORTS whether the row reached the queue, and that
+ * matters for one framing only. On ACTIVATED and PENDING_APPROVAL the
+ * receipt is a courtesy: she already holds what she bought, or a tutor
+ * does, and a lost receipt costs her nothing she cannot see in the app.
+ * On SETUP_REQUIRED since 2026-08-19 this email carries the ONLY link
+ * into an account she has already paid for — so a queue failure is the
+ * difference between "check your email" and total silence, and the one
+ * human who can act on it is looking at the callback page right now.
+ * Same reasoning that gave enqueueAndSend its `queued` flag on
+ * 2026-08-12 for the tutor path; the person present is different.
+ *
+ * ⚠ `queued: true` means QUEUED, not delivered — including the two
+ * outcomes enqueueEmail treats as success-with-nothing-to-send (a
+ * suppressed @example.com address, a duplicate the fingerprint refused).
+ * Both are correct here: neither is something to alarm a buyer about.
+ */
 export async function sendPaymentReceipt(
   checkoutGroupId: string,
-  framing: ReceiptFraming
-): Promise<void> {
+  framing: ReceiptFraming,
+  setUpUrl?: string | null
+): Promise<{ queued: boolean }> {
   try {
-    const built = await buildPaymentReceiptEmail(checkoutGroupId, framing);
-    if (!built) return;
-    await enqueueAndSend({
+    const built = await buildPaymentReceiptEmail(checkoutGroupId, framing, setUpUrl);
+    // No receipt could be built at all (the group vanished between the
+    // write and here). Nothing is going out, so say so rather than
+    // report a silent success.
+    if (!built) return { queued: false };
+    return await enqueueAndSend({
       eventKey: 'payment.received',
       // ⭐ The CHECKOUT, not the payment row — one debit, one receipt.
       subjectRef: checkoutGroupId,
@@ -672,5 +719,6 @@ export async function sendPaymentReceipt(
     // The money landing outranks the receipt. Never let this throw into
     // a payment path.
     console.error('[email] receipt failed for checkout', checkoutGroupId, (e as Error).message);
+    return { queued: false };
   }
 }
