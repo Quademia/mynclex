@@ -74,7 +74,13 @@ const METHOD_LABEL: Record<TutorPaymentReceivedPayload['method'], string> = {
   // ⓘ A tutor recording their own money never reaches this email — see
   // the suppression rule in lib/payments/tutor-notice.ts — so a named
   // recorder here is always somebody else.
-  ADMIN_RECORDED: 'Recorded by a QAcademy admin',
+  //
+  // ⚠ "Quademia", not "QAcademy" (Sam, 2026-08-19). The company is
+  // Quademia — it owns quademia.com, the wrapper's header band says
+  // Quademia, and Google's consent screen names it. QAcademy is the old
+  // name and survives internally (the repo org, code comments about
+  // whose money is whose); it must not reach a reader.
+  ADMIN_RECORDED: 'Recorded by a Quademia admin',
   // ⚠ Says only what is evidenced. The rows this covers carry no
   // recorder at all, so naming one would be invention.
   OFF_PLATFORM: 'Collected off-platform',

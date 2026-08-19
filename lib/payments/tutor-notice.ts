@@ -277,7 +277,7 @@ type Enrolment = {
  * `recorded_by_user_id` (checked 2026-08-19) — rows written before that
  * column was populated. Today's Mark-paid always stamps a recorder, so
  * nothing new lands there, but reading the channel alone would tell a
- * tutor "a QAcademy admin recorded this" about six payments where
+ * tutor "a Quademia admin recorded this" about six payments where
  * nobody can say who did. On money, say less rather than more.
  *
  * ⓘ By the time this runs, a recorder who IS the tutor has already been

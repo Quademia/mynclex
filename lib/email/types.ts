@@ -341,7 +341,7 @@ export type TutorPaymentReceivedPayload = {
    * How the money was recorded.
    *
    *   CARD           she paid online through the platform.
-   *   ADMIN_RECORDED a QAcademy admin typed it in on the tutor's behalf.
+   *   ADMIN_RECORDED a Quademia admin typed it in on the tutor's behalf.
    *   OFF_PLATFORM   collected outside the platform, recorder unknown.
    *
    * ⚠ THE THIRD VALUE IS NOT DEFENSIVE PADDING — dev holds six such rows
