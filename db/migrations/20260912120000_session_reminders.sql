@@ -259,16 +259,33 @@ SELECT cron.schedule(
 -- by the fingerprint while the caller was told nothing. Silence is not an
 -- acceptable answer to a deliberate act.
 
+-- ⚠⚠ RETURNS TWO NUMBERS, NOT ONE, AND THE SECOND IS THE POINT. "Queued 0"
+-- has two completely different meanings and a tutor must never be handed the
+-- wrong one:
+--   • everyone eligible has already been told   → nothing to do, all is well
+--   • the cohort has nobody we can email        → the class is unannounced
+-- Reporting the first when the second is true tells a tutor her students
+-- know about a class none of them has heard of.
+--
+-- ⭐ And the second case is NORMAL, not an edge one — it is the premise this
+-- whole design rests on. Tutors set the timetable WHEN THEY CREATE THE
+-- COHORT, before anyone has enrolled, so "send a reminder to an empty
+-- cohort" is a thing a careful tutor will do in her first ten minutes.
+-- (Found on 2026-08-20 while picking a cohort for Sam to test the button
+-- on: five students, every one of them on a suppressed address.)
 CREATE OR REPLACE FUNCTION nclex_tutor_send_session_reminder(p_session_id UUID)
-RETURNS INTEGER
+RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $fn$
 DECLARE
-  v_tutor UUID;
-  v_when  TIMESTAMPTZ;
+  v_tutor    UUID;
+  v_when     TIMESTAMPTZ;
+  v_cohort   UUID;
+  v_eligible INTEGER;
+  v_queued   INTEGER;
 BEGIN
-  SELECT p.tutor_id, ls.scheduled_at
-  INTO v_tutor, v_when
+  SELECT p.tutor_id, ls.scheduled_at, ls.cohort_id
+  INTO v_tutor, v_when, v_cohort
   FROM nclex_cohort_live_sessions ls
   JOIN nclex_cohorts    c ON c.cohort_id    = ls.cohort_id
   JOIN nclex_programmes p ON p.programme_id = c.programme_id
@@ -293,7 +310,19 @@ BEGIN
     RAISE EXCEPTION 'This class has already taken place.';
   END IF;
 
-  RETURN nclex_enqueue_session_reminders(p_session_id, TRUE);
+  -- Counted BEFORE the insert, and with the same two filters the builder
+  -- uses, or the two numbers would answer slightly different questions.
+  SELECT count(*)
+  INTO v_eligible
+  FROM nclex_enrolments e
+  JOIN nclex_users u ON u.id = e.user_id
+  WHERE e.cohort_id = v_cohort
+    AND e.status = 'ENROLLED'
+    AND lower(u.email) NOT LIKE '%@example.com';
+
+  v_queued := nclex_enqueue_session_reminders(p_session_id, TRUE);
+
+  RETURN jsonb_build_object('queued', v_queued, 'eligible', v_eligible);
 END;
 $fn$;
 

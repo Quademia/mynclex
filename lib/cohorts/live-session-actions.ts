@@ -103,8 +103,20 @@ export async function clearLiveSessionScheduleAction(
 // nobody told. The gate itself lives in SQL — UX is in TS, security is in
 // SQL — so this action is the message, not the guard.
 
+// ⚠⚠ TWO NUMBERS COME BACK, BECAUSE "0" IS AMBIGUOUS AND THE TWO MEANINGS
+// need opposite words:
+//   queued 0, eligible > 0  → everyone has already been told. Fine.
+//   eligible 0              → there is NOBODY we can email. The class is
+//                             unannounced, and the tutor must know that.
+//
+// ⭐ The second is not an edge case. Tutors set the timetable when they
+// create the cohort, before anyone enrols — that premise is the entire
+// reason the reminder is a nightly pass rather than a scheduling trigger.
+// So "send a reminder to a cohort with no students" is a thing a careful
+// tutor does early, and answering it with "everyone has already been told"
+// would tell her a class is announced when nobody has heard of it.
 export type SendReminderResult =
-  | { ok: true; queued: number }
+  | { ok: true; queued: number; eligible: number }
   | { ok: false; error: string };
 
 export async function sendSessionReminderAction(sessionId: string): Promise<SendReminderResult> {
@@ -125,5 +137,6 @@ export async function sendSessionReminderAction(sessionId: string): Promise<Send
     return { ok: false, error: error.message || 'Could not send the reminder.' };
   }
 
-  return { ok: true, queued: Number(data ?? 0) };
+  const r = (data ?? {}) as { queued?: number; eligible?: number };
+  return { ok: true, queued: Number(r.queued ?? 0), eligible: Number(r.eligible ?? 0) };
 }

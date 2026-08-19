@@ -100,11 +100,25 @@ export function CohortSessionsClient({
         setError(res.error);
         return;
       }
-      setSentAt((prev) => ({ ...prev, [s.activityId]: new Date().toISOString() }));
+      // ⚠ THREE OUTCOMES, NOT TWO. "Nobody was emailed" means opposite
+      // things depending on why, and only one of them is reassuring:
+      //   • no eligible students  → the class is UNANNOUNCED. Say so.
+      //   • all already told      → nothing left to do. Reassure.
+      // Tutors schedule before anyone enrols, so the first is an ordinary
+      // early action, not a fault — and calling it "already told" would
+      // report a class as announced that nobody has heard of.
+      //
+      // ⓘ The button is only marked spent when a send could actually have
+      // reached someone. An empty cohort must not burn the one allowance.
+      if (res.eligible > 0) {
+        setSentAt((prev) => ({ ...prev, [s.activityId]: new Date().toISOString() }));
+      }
       setNotice(
-        res.queued === 0
-          ? 'Everyone in this cohort has already been told about this class.'
-          : `Reminder sent to ${res.queued} student${res.queued === 1 ? '' : 's'}.`
+        res.eligible === 0
+          ? 'Nobody to email yet — no students are enrolled in this cohort with a reachable address.'
+          : res.queued === 0
+            ? 'Everyone in this cohort has already been told about this class.'
+            : `Reminder sent to ${res.queued} student${res.queued === 1 ? '' : 's'}.`
       );
       router.refresh();
     });
