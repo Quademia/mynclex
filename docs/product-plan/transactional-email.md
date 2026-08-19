@@ -949,10 +949,144 @@ That shape is not exercised by the first pair and needs its own thought
 (volume against Resend's daily cap, and whether one row per student or one row
 per cohort goes in the outbox).
 
+> ## ⭐⭐ DESIGN SETTLED 2026-08-19 — the schedule follows the student
+>
+> Not built. Worked out with Sam across four revisions, and the shape moved
+> materially each time — the reasoning matters more than the conclusion,
+> because three of the four earlier versions looked fine and were not.
+>
+> ### The rule
+>
+> **One nightly pass asks one question:** *which sessions fall in the next
+> **7 days**, and which students in those cohorts have not been told about
+> them yet?* Each match gets one email — *"your class is this Tuesday"* —
+> **carrying a calendar attachment (`.ics`)**.
+>
+> That is the whole mechanism.
+>
+> ### ⚠ Why NOT "send it when the tutor schedules it" — the version we nearly built
+>
+> Sam's question killed it: *"a student that joined 2 weeks after the tutor
+> finished setting up the cohort session times — will they receive the
+> emails?"* **No.** And it is not an edge case, it is the **normal** case: a
+> tutor sets up the cohort and its class times **when creating the cohort**,
+> before anyone has enrolled. An email anchored to that moment fans out to an
+> **empty cohort**. It would have shipped and reached almost nobody.
+>
+> ⭐ The first repair was *"whichever happens second fires it"* — she needs to
+> be in the cohort **and** the session needs a date, so whichever completes the
+> pair sends. Correct, but it needs **five** trigger points: the four doors
+> into a cohort (paid+activated · paid+approved · tutor-added ·
+> waitlist-converted) plus the scheduling action. **Five places to keep in
+> step is how a door quietly stops sending** — precisely the failure this
+> session found in the approval email, where the reasoning was walked down one
+> branch and not the others.
+>
+> ⭐⭐ **The nightly pass does not ADD to those five. It replaces all of them.**
+> It never asks how she got into the cohort, so there is no door to forget.
+> That is why the cron version is *simpler* than the event version, not more
+> complex — the opposite of the usual trade.
+>
+> ### It is not new infrastructure
+>
+> `nclex_enrolment_nightly_sweep()` already runs on pg_cron at 02:00 and
+> **already enqueues email** — the instalment reminders come from it. This is
+> a few more lines inside a job that already runs and is already watched.
+>
+> ⚠ Claude twice described the clock as missing during this discussion. It is
+> not. Only a **T-1h** reminder would need something genuinely new, and that
+> is deliberately dropped: it is the most infrastructure for the least
+> behaviour change, and it mostly reaches people who already knew.
+>
+> ### ⭐ The fingerprint does the bookkeeping, so the window is forgiving
+>
+> "Has this student been told about this session?" needs no new table —
+> **asking the outbox is the answer**, and the unique index refuses the
+> duplicate.
+>
+> ⭐ This makes the sessions job **fundamentally more forgiving than the
+> instalment reminders**, and the difference is worth understanding before
+> anyone copies one pattern to the other. Those had to tile their windows
+> exactly (*"due in the next 24h"*, never *"due today"*) because a missed
+> night meant somebody was **never** warned and then paused. Here a wide
+> window, an overlapping window or a missed night all self-correct: the next
+> run simply picks up whoever has not been told. **Nothing slips.**
+>
+> Hence **7 days** rather than 3 — a week is long enough to swap a shift or
+> arrange childcare, which is the actual point of notice, and the width costs
+> nothing.
+>
+> ### ⭐ Why a calendar attachment, and not just words
+>
+> She taps it once and **her own phone reminds her**, at whatever notice she
+> already uses for everything else, for every future occurrence. That is more
+> reliable than anything we can send: it survives a full inbox, and it lives
+> where she looks to see what she is doing tonight.
+>
+> For a recurring cohort (*"Evenings — Tuesdays 19:00"*) one repeating event
+> can cover the whole run. ⓘ `.ics` is plain text and Resend accepts
+> attachments — genuinely small.
+>
+> ### The volume, which is the reason any of this is affordable
+>
+> Roughly **one email per student per week**: a cohort of 25 costs ~25 a week,
+> comfortably inside Resend's free **100/day**. ⚠ Compare the version this
+> replaced — per-session T-24h **and** T-1h for 25 students is **50 emails per
+> class**, half a day's allowance on one class. **Sessions is still what
+> forces the Pro decision**, but this shape delays it by an order of
+> magnitude.
+>
+> ### The tutor's button stays
+>
+> One case the nightly pass cannot reach: a student who joins on the
+> **morning** of a class — last night's run has already been. That is what a
+> manual **Send reminder** button on the session is for, and it also covers
+> what no schedule can: *"we start in 30 minutes, the link has changed."*
+>
+> ⚠ **Its fingerprint must permit a deliberate second send.** With
+> `subject_ref = session_id` and a blank stage, the tutor's second reminder is
+> **silently swallowed** — they press send, see success, and nothing goes.
+> This exact shape has now bitten twice (the enquiry form; the pay-first
+> receipt). Proposal: **stage = the hour bucket of the send**
+> (`2026-08-19T14`), so a double-click dedupes and a genuine
+> day-before-then-hour-before send is two stages, with no counter to maintain.
+>
+> ### ⚠ One thing to get right on the first day
+>
+> The button and the nightly pass must call **the same send**. If the button
+> is wired straight to the email, the automatic path is later built twice and
+> the two drift. Manual-vs-automatic is a **trigger** decision; it must not
+> become an architecture decision. (Same rule the payment anchors follow:
+> three callers, one builder.)
+>
+> ### Still to settle before building
+>
+> - **Outbox row shape.** One row per student (retry a single failed
+>   recipient, but 25 rows per session) or one per cohort (tidy, but one bad
+>   address takes the send and you cannot tell who missed it). Per-student is
+>   the likely answer, which makes the fingerprint
+>   `session_id` + the student — decide which is `subject_ref` and which is
+>   `stage`.
+> - **Rescheduling.** A moved class must re-send, so the fingerprint cannot be
+>   the bare session id, or the correction is refused as a duplicate. `.ics`
+>   has its own update semantics (`SEQUENCE`/`UID`) worth using rather than
+>   inventing.
+> - **`session.cancelled` cannot wait for a window.** "It's off" must go
+>   immediately regardless of how far away it was — so the ⚡ change family
+>   (`scheduled` / `rescheduled` / `cancelled`) stays event-driven and is NOT
+>   replaced by the nightly pass.
+> - **Does `session.scheduled` still earn P1?** Under this design a student is
+>   told when the class enters the 7-day window, so an announcement 6 weeks
+>   out mostly duplicates the in-app **Sessions page**. Re-examine its
+>   priority against the nightly pass rather than assuming.
+> - ⓘ A late joiner is not stranded today: `/student/cohort/<id>/sessions`
+>   already shows the schedule. A floor, not the answer — "go and look" is
+>   what a reminder exists to replace.
+
 | Event key | Kind | Trigger | Recipient | Purpose | Pri | Anchor |
 |---|---|---|---|---|---|---|
-| `session.scheduled` | ⚡ | Tutor schedules / announces a session date for a cohort | cohort students | "Live session set for <when>" + join details | P1 | ✅ |
-| `session.reminder` | ⏰ | T-24h and/or T-1h before a scheduled session | cohort students | Reminder + join link | P1 | ⬜ |
+| `session.scheduled` | ⚡ | Tutor schedules / announces a session date for a cohort | cohort students | "Live session set for <when>" + join details. ⚠ **Priority under review** — the nightly pass below tells her when the class nears, so this mostly duplicates the in-app Sessions page | P1 → ? | ✅ |
+| `session.reminder` | ⏰ | **Nightly: sessions falling in the next 7 days, to students not yet told** — plus a tutor's manual "Send reminder" button | cohort students | **DESIGN SETTLED 2026-08-19, not built.** "Your class is this Tuesday" + join link + **`.ics` calendar attachment**, so her own phone reminds her thereafter. ~1 email/student/week. ⚠ NOT triggered by scheduling — see below | P1 | ⬜ |
 | `session.rescheduled` | ⚡ | A scheduled session's date/time changes | cohort students | New time | P2 | ✅ |
 | `session.cancelled` | ⚡ | A scheduled session is removed | cohort students | It's off | P2 | ✅ |
 | `session.recording_available` | ⚡ | A recording URL is added to a held session | cohort students | "Recording's up" | P3 | ✅ |
@@ -1972,6 +2106,10 @@ rather than untrustworthy.
   `payment.tutor_received` — see the Payments note. A digest is its own slice
   and there is no volume to protect anyone from yet. `enquiry.received` is
   still unbuilt and inherits the same reasoning by default.
+- **Live sessions** — design settled 2026-08-19 (see the Live sessions
+  section), **not built**. The remaining unknowns are listed there: the outbox
+  row shape, rescheduling/`.ics` update semantics, and whether
+  `session.scheduled` still earns P1.
 - **Capture a tutor phone number.** `nclex_users.phone_number` exists, is
   **empty for every tutor**, and no screen collects it (`tutor/profile` calls
   contact fields "separate future work"). `enrolment.rejected` already renders
