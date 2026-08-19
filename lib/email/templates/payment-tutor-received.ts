@@ -98,7 +98,17 @@ function subject(p: TutorPaymentReceivedPayload): string {
   const f = FRAMING[p.framing];
   // Who and how much, first. A tutor scanning an inbox of these needs
   // the two facts that tell them apart before the programme name.
-  const base = `${p.studentName} paid ${formatMinor(p.amountMinor, p.currency)} — ${p.programmeTitle}`;
+  //
+  // ⚠ "for", NOT an em-dash, and this is not a style preference. Real
+  // programme titles contain em-dashes — dev holds "NCLEX-RN Live — The
+  // 8-Week Pass Plan" and "Maternity & Newborn — Revision Notes" — so
+  // the obvious `paid GHS 1,250 — <title>` renders TWO em-dashes in one
+  // subject and reads as a mistake. The receipt hit the same trap from
+  // the other direction (see the subjectTail note in
+  // payment-received.ts); here the title supplies the second dash, so
+  // no amount of care on our side avoids it. A preposition cannot
+  // collide with anything a tutor types.
+  const base = `${p.studentName} paid ${formatMinor(p.amountMinor, p.currency)} for ${p.programmeTitle}`;
   return f.subjectTail ? `${base} (${f.subjectTail})` : base;
 }
 
@@ -196,14 +206,18 @@ export const paymentTutorReceivedTemplate: EmailTemplate<TutorPaymentReceivedPay
   body,
   previews: [
     {
+      // ⚠ Deliberately carries an em-dash in the title, because real
+      // ones do ("NCLEX-RN Live — The 8-Week Pass Plan" is on dev). It
+      // is the fixture that keeps the subject line honest — see the note
+      // on subject().
       label: 'Instalment · mid-plan · cohort',
       payload: {
         framing: 'ACTIVATED',
         tutorName: 'Grace',
         studentName: 'Ama Mensah',
         studentEmail: 'ama.mensah@gmail.com',
-        programmeTitle: 'NCLEX Intensive',
-        cohortName: 'Cohort 3',
+        programmeTitle: 'NCLEX-RN Live — The 8-Week Pass Plan',
+        cohortName: 'Weekends — Saturdays 10:00 GMT',
         currency: 'GHS',
         amountMinor: 20000,
         paidAtISO: PAID_AT,
