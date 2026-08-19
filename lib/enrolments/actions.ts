@@ -29,10 +29,12 @@ import { headers } from 'next/headers';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { buildSchedule, isOverdue } from '@/lib/payments/schedule';
 import { sendPaymentReceipt } from '@/lib/payments/result';
+import { sendTutorPaymentNotice } from '@/lib/payments/tutor-notice';
 import type { Currency } from '@/lib/payments/types';
 import type { EnrolmentReason } from '@/lib/email/types';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
 import { sendEnrolmentAddedEmail } from './enrol-email';
+import { sendEnrolmentApprovedEmail, sendEnrolmentRejectedEmail } from './verdict-email';
 
 // `emailQueued: false` = the student was enrolled but nothing was sent.
 // ⚠ Deliberately NOT an error: the enrolment is real and rolling it back
@@ -551,6 +553,19 @@ async function inviteOrAttachAndEnrol(
       console.error('add-with-plan: received-payments insert failed:', payErr.message);
       return { ok: false, error: 'Could not record the received payments. Try again.' };
     }
+
+    // EMAIL-TRIGGER[payment.tutor_received]: the tutor — same rule as
+    // Mark-paid, and on this path it will almost always stay silent,
+    // because the money being backfilled is money the tutor collected by
+    // hand and is now typing in. It sends only when someone ELSE (a
+    // SUPER_ADMIN) is doing the adding, which the tutor has no other way
+    // of learning. The test lives in sendTutorPaymentNotice.
+    //
+    // ⚠ After the rollback branch above, deliberately: thirty lines of
+    // failure handling can still delete this enrolment, and an email
+    // about money paid into something that no longer exists is worse
+    // than no email.
+    await sendTutorPaymentNotice(groupId, 'ACTIVATED');
   }
 
   // EMAIL-TRIGGER[enrolment.tutor_added / waitlist.converted]: the
@@ -622,9 +637,21 @@ export async function approveEnrolmentAction(
   programmeId: string,
   enrolmentId: string,
 ): Promise<TransitionResult> {
-  return callTransition(programmeId, 'nclex_approve_enrolment', {
+  const res = await callTransition(programmeId, 'nclex_approve_enrolment', {
     p_enrolment_id: enrolmentId,
   });
+  if (!res.ok) return res;
+
+  // EMAIL-TRIGGER[enrolment.approved]: the student — and this one is
+  // owed, not merely nice. Her receipt has been telling her since
+  // 2026-08-18 that "you will get another email as soon as your tutor
+  // approves your place", and until now nothing was ever sent.
+  //
+  // ⚠ AFTER the transition, and only on success: the email states the
+  // place as confirmed, so it must not go out on a run the database
+  // refused.
+  await sendEnrolmentApprovedEmail(enrolmentId);
+  return res;
 }
 
 export async function rejectEnrolmentAction(
@@ -632,10 +659,21 @@ export async function rejectEnrolmentAction(
   enrolmentId: string,
   note?: string,
 ): Promise<TransitionResult> {
-  return callTransition(programmeId, 'nclex_reject_enrolment', {
+  const res = await callTransition(programmeId, 'nclex_reject_enrolment', {
     p_enrolment_id: enrolmentId,
     p_note: note?.trim() ? note.trim() : null,
   });
+  if (!res.ok) return res;
+
+  // EMAIL-TRIGGER[enrolment.rejected]: the student — she paid, and the
+  // answer is no. Being refused in silence is the worse half of the
+  // promise the receipt made.
+  //
+  // ⚠ `note` is passed to the RPC and NOT to the email. It is stored in
+  // tutor_note, which nothing in the app displays, so no tutor has ever
+  // been told it could be read by a student. See EnrolmentRejectedPayload.
+  await sendEnrolmentRejectedEmail(enrolmentId);
+  return res;
 }
 
 export async function pauseEnrolmentAction(
@@ -788,6 +826,15 @@ export async function markInstallmentPaidAction(
   // never passes through PAID, and the auto-unpause above has already
   // run, so "what you now have" is true by the time this is called.
   await sendPaymentReceipt(checkoutGroupId, 'ACTIVATED');
+
+  // EMAIL-TRIGGER[payment.tutor_received]: the tutor — but ONLY when the
+  // person who recorded this is not the tutor themselves, which on this
+  // path is usually exactly who they are. The rule lives in
+  // sendTutorPaymentNotice (it reads recorded_by_user_id off the row),
+  // so this call is unconditional and the builder stays silent for a
+  // tutor's own entry. What it catches is the case that IS news: a
+  // SUPER_ADMIN recording a payment on someone else's programme.
+  await sendTutorPaymentNotice(checkoutGroupId, 'ACTIVATED');
 
   revalidatePath(rosterPath(enr.programme_id));
   return { ok: true };

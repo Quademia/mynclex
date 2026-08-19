@@ -99,11 +99,24 @@ function whatSheJoined(p: EnrolmentAddedPayload): string {
   return p.cohortName ? `${p.programmeName} (${p.cohortName})` : p.programmeName;
 }
 
-// ⚠ ONE em-dash, and the programme name last. The receipt shipped with a
-// two-em-dash subject on 08-11 that read as a mistake; this is the same
-// trap, so the heading stays a plain phrase and the join happens here.
+// ⚠⚠ THIS GUARD WAS AIMED AT THE WRONG DASH, and shipped that way on
+// 2026-08-12. It read "ONE em-dash, and the programme name last" —
+// counting only the dashes WE write, while the programme name supplies
+// its own: against a real title the subject rendered
+// "You have been enrolled — NCLEX-RN Live — The 8-Week Pass Plan".
+// Found 2026-08-19 by auditing every subject after the same trap was
+// sprung twice more in one session.
+//
+// ⭐ The rule, now stated so it cannot be misread: a subject that
+// interpolates a name somebody typed must READ AS ONE SENTENCE AROUND
+// IT — no dash, colon or pipe of ours bolting a clause on. The title is
+// arbitrary text with arbitrary punctuation, so the only safe count of
+// our own separators is zero.
+// ⓘ Both headings take "in" and become a real sentence, which is what
+// makes zero separators achievable rather than merely desirable:
+// "You have been enrolled in X" · "A place has opened up in X".
 function subject(p: EnrolmentAddedPayload): string {
-  return `${REASON[p.reason].heading} — ${p.programmeName}`;
+  return `${REASON[p.reason].heading} in ${p.programmeName}`;
 }
 
 function body(p: EnrolmentAddedPayload): string {

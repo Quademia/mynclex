@@ -29,6 +29,18 @@ export type PlannerSession = {
   typicalDurationMinutes: number | null;
   isCohortOnly: boolean;
   schedule: LiveSessionSchedule | null;
+  /**
+   * The reminder email's view of this row. Null when the session has no
+   * schedule row at all (nothing to remind anyone about yet).
+   *
+   * ⭐ `manualSentAt` is what makes the tutor's button honest. The
+   * allowance is one deliberate send per class OCCURRENCE, enforced by the
+   * outbox fingerprint rather than a counter — so without reading it back,
+   * a second press would insert nothing and look identical to a first.
+   * A live control that does nothing and says nothing is the bug that has
+   * now bitten this codebase twice.
+   */
+  reminder: { sessionId: string; manualSentAt: string | null } | null;
 };
 
 export type PlannerUnit = {
@@ -53,6 +65,7 @@ const PLATFORMS: ReadonlySet<string> = new Set([
 ]);
 
 type PlannerRow = {
+  session_id: string;
   marker_activity_id: string;
   scheduled_at: string | null;
   duration_minutes: number | null;
@@ -135,15 +148,39 @@ export async function getCohortSessionsPlanner(
     supabase
       .from('nclex_cohort_live_sessions')
       .select(
-        `marker_activity_id, scheduled_at, duration_minutes, platform,
+        `session_id, marker_activity_id, scheduled_at, duration_minutes, platform,
          join_url, meeting_id, passcode, joining_instructions, recording_url`
       )
       .eq('cohort_id', cohortId),
   ]);
 
   const scheduleByMarker = new Map<string, LiveSessionSchedule>();
+  const sessionIdByMarker = new Map<string, string>();
   for (const r of (plannerRes.data ?? []) as PlannerRow[]) {
     scheduleByMarker.set(r.marker_activity_id, toLiveSessionSchedule(r));
+    sessionIdByMarker.set(r.marker_activity_id, r.session_id);
+  }
+
+  // Which classes has the tutor already spent their one manual reminder on?
+  //
+  // ⚠ Its own round-trip, through a function, because the outbox is NOT
+  // tutor-readable and should not become so — it holds every email the
+  // product has ever sent to anyone. This one answers a single question
+  // about a single cohort, for its owner.
+  //
+  // ⓘ A failure here is not fatal and deliberately not treated as one: the
+  // button falls back to looking unsent, the tutor presses it, and the
+  // fingerprint refuses the duplicate. The restriction lives in the
+  // database; this map only decides what the button SAYS.
+  const { data: reminderRows } = await supabase.rpc('nclex_tutor_cohort_reminder_state', {
+    p_cohort_id: cohortId,
+  });
+  const manualSentByMarker = new Map<string, string>();
+  for (const r of (reminderRows ?? []) as Array<{
+    marker_activity_id: string;
+    manual_sent_at: string | null;
+  }>) {
+    if (r.manual_sent_at) manualSentByMarker.set(r.marker_activity_id, r.manual_sent_at);
   }
 
   type ActivityRow = {
@@ -179,6 +216,12 @@ export async function getCohortSessionsPlanner(
       typicalDurationMinutes: typicalDurationOf(a.payload),
       isCohortOnly: a.cohort_id != null,
       schedule: scheduleByMarker.get(a.activity_id) ?? null,
+      reminder: sessionIdByMarker.has(a.activity_id)
+        ? {
+            sessionId: sessionIdByMarker.get(a.activity_id) as string,
+            manualSentAt: manualSentByMarker.get(a.activity_id) ?? null,
+          }
+        : null,
     };
   });
 

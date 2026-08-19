@@ -14,7 +14,7 @@
 //
 // Two identity cases (both purposes):
 //   • Buyer already has an account → grant immediately, mark ACTIVATED.
-//   • Pay-first guest (no account)  → send the Supabase invite, mark
+//   • Pay-first guest (no account)  → mint a setup link, mark
 //     SETUP_REQUIRED; the grant happens when they finish /welcome
 //     (activatePendingForEmail, called from the welcome action).
 //
@@ -29,6 +29,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { buildSchedule, isOverdue } from './schedule';
 import { planActivationGrants } from './readiness-mint';
 import { sendPaymentReceipt } from './result';
+import { sendTutorPaymentNotice } from './tutor-notice';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
 
 type AdminClient = ReturnType<typeof createServiceRoleClient>;
@@ -50,7 +51,18 @@ type PaymentRow = {
 
 export type ActivateOutcome = 'ACTIVATED' | 'PENDING_APPROVAL' | 'ALREADY' | 'INVITE_SENT';
 export type ActivateResult =
-  | { ok: true; outcome: ActivateOutcome }
+  | {
+      ok: true;
+      outcome: ActivateOutcome;
+      /**
+       * INVITE_SENT only: did the email carrying her setup link reach the
+       * queue? Undefined on every other outcome, where no email is
+       * load-bearing. False means she has paid, has an account she has
+       * never seen, and nothing is coming to tell her — the callback page
+       * is the only place left to say so.
+       */
+      setupEmailQueued?: boolean;
+    }
   | { ok: false; error: string };
 
 const PAYMENT_COLS =
@@ -446,51 +458,139 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
       // EMAIL-TRIGGER[payment.received]: the buyer — a second chance to
       // queue the receipt if the first pass failed to. Safe to repeat:
       // the fingerprint makes it a no-op once one exists.
-      await sendPaymentReceipt(rows[0].checkout_group_id, 'SETUP_REQUIRED');
-      return { ok: true, outcome: 'INVITE_SENT' };
+      //
+      // ⚠ NO LINK IS MINTED HERE, deliberately. This branch runs on every
+      // re-hit — a refreshed callback page, pending-recheck polling — so
+      // minting per pass would burn a one-time token on each refresh to
+      // produce an email the fingerprint then discards.
+      //
+      // ⭐ Safe because of the ORDER below: the first pass queues the
+      // linked receipt BEFORE flipping the status this branch reads. So
+      // by the time anyone can arrive here, a receipt carrying the link
+      // already exists and this enqueue is refused — the linkless one
+      // cannot win.
+      //
+      // ⚠ It can still be the only receipt in one case: the first pass's
+      // enqueue FAILED and the status flipped anyway. Then she gets the
+      // buttonless wording, which stands on its own because the account
+      // already exists and /login's sign-in code reaches it — see
+      // SETUP_NOTE in the template.
+      const { queued } = await sendPaymentReceipt(rows[0].checkout_group_id, 'SETUP_REQUIRED');
+      // EMAIL-TRIGGER[payment.tutor_received]: the tutor — the same
+      // second chance, for the same reason.
+      await sendTutorPaymentNotice(rows[0].checkout_group_id, 'SETUP_REQUIRED');
+      return { ok: true, outcome: 'INVITE_SENT', setupEmailQueued: queued };
     }
 
-    // First time: one invite for the whole group. The profile + grants
+    // First time: one way in for the whole group. The profile + grants
     // happen when they finish /welcome (no name yet, so no profile here).
     const h = await headers();
     const origin = h.get('origin') ?? 'http://localhost:3000';
-    const { data: invite, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${origin}/welcome`,
+
+    // ⭐⭐ THE INVITE SWAP, PAY-FIRST HALF (2026-08-19). This used to call
+    // inviteUserByEmail(), which made SUPABASE send the email — and
+    // Supabase sees an address and a link and nothing else, so the best
+    // it could ever say was "you have an account", never what for. She
+    // had just paid us; the email that arrived first did not mention it.
+    //
+    // ⚠ The duplication had a birthday: before the receipt was built
+    // (2026-08-11) Supabase's invite was the ONLY email a pay-first buyer
+    // got, so it was thin but not redundant. Adding the receipt beside it
+    // is what made two. The tutor path swapped the very next day
+    // (lib/enrolments/actions.ts) because its rich email was being
+    // written in the same session; this half was left behind and has run
+    // with both ever since.
+    //
+    // generateLink mints the SAME link and sends nothing — same account,
+    // same /welcome landing. The only difference is who writes the email
+    // that carries it, and ours knows what she bought.
+    const { data: invite, error: inviteErr } = await admin.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: { redirectTo: `${origin}/welcome` },
     });
-    if (inviteErr || !invite?.user) {
+    if (inviteErr || !invite?.user || !invite.properties?.action_link) {
       console.error('Pay-first invite failed:', inviteErr?.message);
       return {
         ok: false,
         error: 'Payment recorded, but we could not send the setup email. Please contact support.',
       };
     }
-    // Mark the group "awaiting setup". We deliberately do NOT link user_id
-    // here: the invited account exists in auth.users but has no nclex_users
-    // profile row yet (that's created at /welcome), and nclex_payments.user_id
-    // FKs to nclex_users — so writing it now violates the FK and the whole
-    // update is rejected. The user_id link is set when /welcome runs
-    // activateGroup → grantAndActivateRow against the real profile (it resolves
-    // the buyer by email and stamps user_id on the ACTIVATED row). Surfacing
-    // the error rather than swallowing it: the invite is already out and
-    // /welcome re-matches the still-PAID row by email, so this is non-fatal,
-    // but we log it so a real failure doesn't go unnoticed.
-    const { error: updErr } = await admin
-      .from('nclex_payments')
-      .update({ status: 'SETUP_REQUIRED' })
-      .eq('checkout_group_id', rows[0].checkout_group_id);
-    if (updErr) console.error('Pay-first SETUP_REQUIRED update failed:', updErr.message);
+    const setUpUrl = invite.properties.action_link;
 
     // EMAIL-TRIGGER[payment.received]: the buyer — she has paid and, at
     // this instant, holds nothing: no enrolment, no subscription, no
     // credits, and no account. The SETUP_REQUIRED framing says what she
     // bought and what to do next rather than what she now has.
     //
-    // ⭐ This is also the one message that reaches her if the invite
-    // above FAILED. In that case she has paid, cannot get in, and the
-    // screen tells her to contact support — the receipt is the only
-    // thing that arrives on its own.
-    await sendPaymentReceipt(rows[0].checkout_group_id, 'SETUP_REQUIRED');
-    return { ok: true, outcome: 'INVITE_SENT' };
+    // ⭐⭐ AND, since the swap above, it carries the way in. This is now
+    // the ONLY email she gets — and the only link to an account she has
+    // already paid for. That is why its `queued` answer is kept and
+    // returned rather than dropped: it is the difference between "check
+    // your email" and telling her something that is not true.
+    //
+    // ⚠⚠ QUEUED BEFORE THE STATUS FLIPS, AND THE ORDER IS THE POINT.
+    // The status update used to run first. That left a window: the
+    // retry branch above is chosen by reading SETUP_REQUIRED, so a second
+    // pass landing between the update and this enqueue would take it,
+    // queue a receipt with NO link, and could win the fingerprint — the
+    // buyer's only email arriving without the only button that matters.
+    // Overlapping passes are not hypothetical: pending-recheck re-runs
+    // settle every few seconds while Paystack still says pending.
+    //
+    // ⭐ Enqueuing first removes the window rather than narrowing it. A
+    // concurrent pass now still reads PAID, so it takes THIS branch too
+    // and also carries a link — whichever wins, the receipt has one. The
+    // loser's link is simply never used, which costs nothing: it is
+    // one-time and expires on its own.
+    //
+    // ⓘ Found by reading real output, not by a test: four dev purchases
+    // on 2026-08-19, one of which (run against the deployed Worker, on
+    // the old code) showed what a linkless setup receipt looks like.
+    const { queued } = await sendPaymentReceipt(
+      rows[0].checkout_group_id,
+      'SETUP_REQUIRED',
+      setUpUrl
+    );
+
+    // Mark the group "awaiting setup". We deliberately do NOT link user_id
+    // here: the invited account exists in auth.users but has no nclex_users
+    // profile row yet (that's created at /welcome), and nclex_payments.user_id
+    // FKs to nclex_users — so writing it now violates the FK and the whole
+    // update is rejected. The user_id link is set when /welcome runs
+    // activateGroup → grantAndActivateRow against the real profile (it resolves
+    // the buyer by email and stamps user_id on the ACTIVATED row). Logging
+    // the error rather than swallowing it: the ACCOUNT already exists
+    // (generateLink created it above) and /welcome re-matches the still-PAID
+    // row by email, so a failed status update is non-fatal — but we log it
+    // so a real failure doesn't go unnoticed.
+    //
+    // ⚠ STAYS AHEAD OF THE TUTOR NOTICE, and only the receipt moved above
+    // it. That notice places the payment in the plan by counting
+    // ['PAID','ACTIVATED'] rows — a list SETUP_REQUIRED is deliberately
+    // not in. ⓘ On THIS branch the count is unreachable (readStanding
+    // returns null without an enrolment, and a pay-first buyer has none
+    // yet), so the order is a precaution rather than a live dependency —
+    // but it is a cheap one, and the day a pay-first purchase does carry
+    // an enrolment it stops being theoretical.
+    const { error: updErr } = await admin
+      .from('nclex_payments')
+      .update({ status: 'SETUP_REQUIRED' })
+      .eq('checkout_group_id', rows[0].checkout_group_id);
+    if (updErr) console.error('Pay-first SETUP_REQUIRED update failed:', updErr.message);
+
+    // EMAIL-TRIGGER[payment.tutor_received]: the tutor — money landed on
+    // their programme from someone who has no account yet, so she will
+    // NOT appear on their roster. Told now rather than at activation,
+    // which may be days away or may never come: the payment is real
+    // either way, and a tutor who learns of it late cannot chase her.
+    //
+    // ⚠ This is therefore the ONLY tutor email this checkout will ever
+    // produce — the ACTIVATED enqueue below is refused by the
+    // fingerprint when she finishes /welcome. The SETUP_REQUIRED wording
+    // carries that on its own; see the note in the template.
+    await sendTutorPaymentNotice(rows[0].checkout_group_id, 'SETUP_REQUIRED');
+    return { ok: true, outcome: 'INVITE_SENT', setupEmailQueued: queued };
   }
 
   // Buyer has a profile → grant each row now.
@@ -508,6 +608,19 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
   // ⓘ Not sent on the ALREADY branch above: that is a page refresh, and
   // the receipt went out when the activation actually happened.
   await sendPaymentReceipt(
+    rows[0].checkout_group_id,
+    anyPending ? 'PENDING_APPROVAL' : 'ACTIVATED'
+  );
+
+  // EMAIL-TRIGGER[payment.tutor_received]: the tutor — the other half of
+  // the same money. Sent AFTER the grants for the same reason the
+  // receipt is: the plan standing it quotes reads the enrolment, which
+  // does not exist until the loop above has run.
+  //
+  // ⓘ A bank- or readiness-only checkout returns here having sent
+  // nothing — that money is QAcademy's and involves no tutor. The
+  // builder decides; this line does not have to know.
+  await sendTutorPaymentNotice(
     rows[0].checkout_group_id,
     anyPending ? 'PENDING_APPROVAL' : 'ACTIVATED'
   );

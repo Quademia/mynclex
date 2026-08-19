@@ -18,7 +18,7 @@ product (the UWorld shape — nursing.uworld.com, medicine.uworld.com):
 |---|---|
 | MyNclex | `nclex.quademia.com` |
 | MyTeacher | `teacher.quademia.com` |
-| Schools platform (Beta-B) | `schools.quademia.com` |
+| MyExams (was Beta-B) | `exams.quademia.com` |
 | MyNMCLicensure | `licensure.quademia.com` |
 
 *Subdomain names settled 2026-08-05 (attached at each product's
@@ -34,10 +34,20 @@ migration time, so rename-before-attach stays cheap):*
   (`assessor`/`assess` considered — the product is really class-based
   assessment; revisit only at gamma-migration time if the brand itself
   is rethought.)
-- **`schools`** (plural) for Beta-B — the hub for many schools. The
-  white-label ambition strengthens this: a white-labeled school gets its
-  own subdomain (`<schoolname>.quademia.com`) or custom domain later, so
-  the hub name stays out of their way.
+- **`exams`** for MyExams — ⚠ **corrected 2026-08-19; this was `schools`.**
+  The original reasoning ("the hub for many schools") assumed a
+  school-only tenant, and that premise was wrong: any organisation that
+  runs formal exams is a tenant — training institutes, professional
+  bodies, employers. The product was renamed **MyExams** the same day
+  (`Quademia/myexams`, formerly `mybackpacc-byte/qacademy-beta-b`),
+  bringing it into the `My*` family alongside MyNclex, MyTeacher and
+  MyNMCLicensure. ⭐ **The schema had it right all along** — the tenant
+  table is `tenants`, never `schools`; only the UI wording says school
+  (706 occurrences across 47 files), a presentation-layer sweep still to
+  do. The white-label point survives intact: a white-labeled organisation
+  still gets its own subdomain (`<name>.quademia.com`) or custom domain
+  later, and a neutral hub name stays out of their way *better* than
+  `schools` did. Lineage doc: the renamed repo's own `README.md`.
 
 **Why one parent matters (not just branding):** browser cookies can be scoped
 to a parent domain and shared across its subdomains. Products on unrelated
@@ -162,7 +172,7 @@ the full flow (forgot-password.html, reset-password.html, rate-limit tables)
 to crib from. **This is the top auth gap.**
 
 No Google / magic-link / OTP on MyNclex (gamma has Google + magic link;
-Beta-B has Google + Microsoft via NextAuth).
+MyExams has Google + Microsoft via NextAuth).
 
 ### Email
 
@@ -198,7 +208,7 @@ Beta-B has Google + Microsoft via NextAuth).
   in build-order item ⑤.
 - **True cross-product SSO: parked.** The three products sit on three
   separate identity systems (MyNclex Supabase pair, gamma Supabase pair,
-  Beta-B NextAuth+D1). Same parent domain keeps the door open; merging
+  MyExams NextAuth+D1). Same parent domain keeps the door open; merging
   identity systems is a large separate decision and cuts against the
   extraction rule.
 
@@ -983,6 +993,17 @@ references (rename debt above) and the Resend/SMTP work already scoped.
        do not read the live URL as the item being unblocked: a page
        reading *Coming soon* cannot carry Cloudflare's Privacy Addendum
        reference.
+       ⭐ **UPDATE 2026-08-19 — THE DOCUMENT EXISTS TOO.** Checked live, not
+       assumed: `/privacy` and `/terms` both answer **200** and carry real
+       prose — the policy is titled *"Privacy Policy — Quademia"* and names
+       a **data controller**, so it is not a *Coming soon* placeholder. The
+       "route exists, document does not" split above is **closed**. ⚠ What
+       remains for Turnstile's invisible mode is therefore narrower than
+       this bullet implies: whether the existing text **references
+       Cloudflare's Privacy Addendum** — a paragraph to add, not a document
+       to write. ⓘ And since the policy already names a controller, the
+       "waits on company registration" claim needs confirming against
+       reality before it is repeated; see the same correction under item ⑤.
      - ⓘ Refusal copy is one shared sentence — *"We could not verify your
        browser. Please refresh the page and try again."* Deliberately
        silent about which of the reasons applied, since they all have the
@@ -1364,6 +1385,34 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    > which is exactly why the paid add-on was kept as an escalation. Expensive
    > in dependencies AND uncertain in result is the worst pair available.
    >
+   > > **⚠ CORRECTION 2026-08-19 — two of those five were ALREADY DONE when the
+   > > list was written.** Checked live rather than assumed:
+   > > `https://quademia.com/privacy` and `/terms` both answer **200** and are
+   > > real documents (the policy is titled *"Privacy Policy — Quademia"* and
+   > > names a data controller). They shipped with the parent-site repo on
+   > > **2026-08-10**, eight days before this list called the privacy policy
+   > > unwritten — see [[quademia-parent-site-repo]] and *Legal pages* below.
+   > >
+   > > ⓘ **The decision does not change** — owning the redirect was still
+   > > cheaper, still needed no third party, and is now shipped. But the honest
+   > > remaining cost of branding is **three items, not five**: an official
+   > > **logo** (still does not exist; a `claude/logo-design-ideas-kr8o0g`
+   > > branch exists on the remote), **incorporation** (the live policy names a
+   > > controller, so this may be further along than §2 records — confirm
+   > > before repeating the claim), and **Google's review** itself.
+   > >
+   > > ⭐ **What verification actually buys, stated plainly so nobody re-derives
+   > > it:** the app name and logo in place of the domain line. Expect a
+   > > **swap, not an addition** — we would be trading a string we control
+   > > (`quademia.com`, ours because we own the domain) for one Google grants.
+   > > And since the consent screen is per-PROJECT, branding the workspace
+   > > project once covers every product's client in it — the same
+   > > do-it-once economics as the domain itself.
+   > >
+   > > **Sequencing:** not a blocker on anything. Do it when the logo exists
+   > > for its own reasons (site, emails, the app all want one), at which point
+   > > branding is a short dashboard session plus a wait.
+   >
    > ⭐⭐ **What settled it: `qacademy-beta-b`.** Sam pointed at the schools
    > project, which shows a clean consent screen with **no logo, no
    > verification, no privacy policy and no registered company**. Checked
@@ -1414,6 +1463,84 @@ references (rename debt above) and the Resend/SMTP work already scoped.
    > the swap risked reopening the half-built-account trap when the hook is
    > structural and unaffected. Both corrections came from Sam pushing back
    > rather than from the analysis.
+
+   > ### ✅ BUILT AND RELEASED 2026-08-19 — the screen names us
+   >
+   > Commit `9480328`, released as **PR #54**, `main` → `prod` as a merge
+   > commit. **One commit, NO migration** — app code only. Both workflows
+   > green (migrations 30 s with nothing to apply, deploy 2 m 49 s). Tracker
+   > untouched at **159**; the pre-release set comparison ran clean in both
+   > directions (159 rows ↔ 159 files, zero orphans).
+   >
+   > **What was built.** `app/login/google-actions.ts` builds Google's
+   > authorize URL itself (state, PKCE S256, `prompt=select_account`); a new
+   > `app/auth/google/callback/route.ts` catches her on our own domain,
+   > exchanges the code server-to-server with the client secret, and hands the
+   > ID token to Supabase via `signInWithIdToken`;
+   > `lib/auth/google-oauth.ts` holds what both ends need. The old
+   > `app/auth/callback/route.ts` was **deleted** — nothing else ever landed
+   > there, and a dead handler still calling `exchangeCodeForSession` would
+   > read as a live second door.
+   >
+   > ⭐⭐ **GOOGLE SHOWS THE REGISTRABLE DOMAIN, NOT THE HOSTNAME — AND THAT IS
+   > BETTER THAN THE PLAN PREDICTED.** Sam's observation on the prod screen:
+   > the `nclex.` is dropped and it reads **"to continue to quademia.com"**.
+   > The dev screen proves the same rule from the other side —
+   > `mynclex-dev.mybackpacc.workers.dev` displayed as
+   > `mybackpacc.workers.dev`, the ownable unit under the `workers.dev` public
+   > suffix. So the screen names the domain we *own*, one level up from the
+   > product.
+   > **Consequence for the family:** every future QAcademy product on a
+   > `quademia.com` subdomain — MyNMCLicensure, MyTeacher — inherits the exact
+   > same `quademia.com` consent screen for free. One company brand across all
+   > four products, obtained by owning a domain rather than by Google's
+   > verification queue, with no logo, no privacy policy and no incorporation
+   > on the critical path. It is the strongest form of the argument the
+   > reversal was making.
+   >
+   > **⚠ Two library contracts, checked in the installed source rather than
+   > assumed. Either would have failed confusingly:**
+   > - **NO `nonce` is sent.** `auth-js` compares the **SHA-256 hash** of the
+   >   nonce you hand `signInWithIdToken` against the token's claim (the Apple
+   >   native-sign-in shape — see the doc comment on
+   >   `SignInWithIdTokenCredentials`), so Google's verbatim nonce could never
+   >   match. The claim a nonce guards is ID-token substitution in the
+   >   *implicit* flow; we use the authorization-code flow with a client secret
+   >   and fetch the token ourselves over TLS, where `state` covers CSRF and
+   >   PKCE binds the code. There is no channel for a substituted token.
+   > - **`access_token` IS sent** alongside the ID token, because Google's
+   >   tokens carry an `at_hash` claim that `auth-js` checks — omit it and a
+   >   perfectly good token is rejected.
+   >
+   > ⭐ **The refusal changed messenger, not behaviour — and it was proven, not
+   > reasoned about.** `hook_reject_google_signups` still fires (a
+   > before-user-created hook is consulted for every user creation), but it now
+   > surfaces as a **failed `signInWithIdToken` in our own process** instead of
+   > an `?error=` on the callback URL. Sam drove both live tests on dev: the
+   > sign-in wrote `GOOGLE_LOGIN_OK` with his user id and a fresh
+   > `last_sign_in_at`; the stranger wrote `GOOGLE_BLOCKED` · `no_account` —
+   > and `auth.users` gained **0 rows in three hours**, google identities held
+   > at **1**, with his own `email` + `google` identities still carrying their
+   > original 2026-08-09 timestamps. So automatic linking reused the existing
+   > identity rather than creating a duplicate. Both tests repeated on prod.
+   >
+   > ⚠ **The callback path is registered per environment in the Google Cloud
+   > Console**, so renaming that route is a console edit, not a refactor. And
+   > `next` travels in a **cookie**, not a query parameter, because Google
+   > matches `redirect_uri` character for character and it cannot carry a
+   > varying query string.
+   >
+   > ⓘ **The client topology settled by doing it** (the doc's "one project
+   > under `admin@quademia.com`" was the intended end state, not what exists):
+   > **dev's client lives in the personal Google account, prod's in the
+   > workspace account** — one-to-one with every other vendor in the stack
+   > (personal = dev Cloudflare + dev Supabase; workspace = prod everything).
+   > Sam's call, and it is the right one: each environment's Supabase already
+   > trusts exactly one client ID, so reusing that client is what makes the
+   > id-token path work with **no** Supabase dashboard change. Claude proposed
+   > consolidating both into the workspace project and was wrong — it would
+   > have added a dashboard edit to buy tidiness that only ever mattered for
+   > prod's screen.
 
    Slice also carries:
    **refusing addresses that have no account here** (Google is sign-in

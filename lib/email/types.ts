@@ -7,6 +7,9 @@
 // Doc: docs/product-plan/transactional-email.md
 
 import type { Currency } from '@/lib/products/money';
+import type { EmailAttachment } from './ics';
+
+export type { EmailAttachment };
 
 // ─────────────────────────────────────────────────────────────────────
 // Event keys
@@ -32,10 +35,18 @@ import type { Currency } from '@/lib/products/money';
 // the other.
 export type EmailEventKey =
   | 'payment.received'
+  | 'payment.tutor_received'
   | 'payment.installment_due'
   | 'payment.installment_overdue'
   | 'enrolment.tutor_added'
-  | 'waitlist.converted';
+  | 'enrolment.approved'
+  | 'enrolment.rejected'
+  | 'waitlist.converted'
+  /**
+   * ⭐ The first FAN-OUT email: one trigger, a whole cohort of recipients.
+   * Every key above it has exactly one. See SessionReminderPayload.
+   */
+  | 'session.reminder';
 
 // ─────────────────────────────────────────────────────────────────────
 // The outbox row
@@ -171,8 +182,59 @@ export type EmailTemplate<P = Record<string, unknown>> = {
   subject: (payload: P) => string;
   /** The inner body. The wrapper and footer are added by render.ts. */
   body: (payload: P) => string;
+  /**
+   * Files to travel with the email. Optional, and absent on all eight
+   * templates that predate it — an email without one behaves exactly as
+   * before, which is what made adding this safe to the shared sender.
+   *
+   * ⭐ Built HERE rather than frozen into the payload at enqueue, because
+   * an attachment is a *rendering* of the facts, not a fact. The payload
+   * stays plain JSON that SQL can write, and the .ics is assembled on the
+   * way out — the same reason the HTML is not stored either.
+   */
+  attachments?: (payload: P) => EmailAttachment[];
   /** Sample payloads for the admin preview — one per variant worth eyeballing. */
   previews: { label: string; payload: P }[];
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// The live-session reminder payload
+// ─────────────────────────────────────────────────────────────────────
+// ⚠ FILLED IN SQL, like the two installment payloads above — the nightly
+// sweep and the tutor's button both go through ONE plpgsql builder
+// (`nclex_enqueue_session_reminders`), so TypeScript checks nothing about
+// what actually arrives. This type is the contract, not the enforcement.
+//
+// ⭐ One builder, two triggers, on purpose. Wiring the button straight to
+// its own send is how the automatic path ends up written twice and the
+// two drift — the same rule the payment anchors follow.
+
+export type SessionReminderPayload = {
+  /** Her forename. Null only if a profile somehow has none. */
+  recipientName: string | null;
+  programmeTitle: string;
+  cohortName: string | null;
+  tutorName: string;
+  /** What the tutor called this class — the marker activity's title. */
+  sessionTitle: string;
+  scheduledAtISO: string;
+  durationMinutes: number | null;
+  /** 'Zoom' · 'Google Meet' · whatever the tutor typed. */
+  platform: string | null;
+  joinUrl: string | null;
+  meetingId: string | null;
+  passcode: string | null;
+  joiningInstructions: string | null;
+  /** ⭐ The .ics UID — stable across reschedules so her calendar UPDATES. */
+  sessionId: string;
+  /** ⭐ The .ics SEQUENCE — `updated_at` as epoch seconds, monotonic. */
+  sequence: number;
+  /**
+   * Which trigger produced this. Wording only — a nightly reminder
+   * announces itself as routine, a tutor's deliberate send should read as
+   * coming from a person, because it usually carries news.
+   */
+  trigger: 'NIGHTLY' | 'MANUAL';
 };
 
 // ─────────────────────────────────────────────────────────────────────
@@ -242,6 +304,126 @@ export type PaymentReceiptPayload = {
 };
 
 // ─────────────────────────────────────────────────────────────────────
+// The tutor's half of the same money
+// ─────────────────────────────────────────────────────────────────────
+// ⭐ EVERY PAYMENT NOTIFIES BOTH SIDES. The student gets the receipt
+// above; the tutor gets this. Two emails, one anchor, two audiences —
+// the tutor does not want a receipt, and the student does not want a
+// roster update.
+//
+// ⭐ PROGRAMME MONEY ONLY. A single checkout can carry a bank pass or
+// readiness credits alongside the programme fee; that money is
+// QAcademy's, not the tutor's, so those lines are excluded from both the
+// list and the total. `amountMinor` here is therefore NOT
+// PaymentReceiptPayload.totalMinor for the same checkout, and the two
+// disagreeing is correct.
+//
+// ⚠ IT SAYS "RECORDED", NEVER "PAID OUT". Payment splits between
+// QAcademy and tutors are an explicit v1 deferral (CLAUDE.md), so this
+// email must not imply money has reached the tutor's own account. It
+// reports that a payment was recorded against their programme, which is
+// the only thing the system actually knows.
+
+/**
+ * Where the student's plan stands AFTER this payment, read from the
+ * enrolment's frozen snapshot — the same source the nightly sweep uses,
+ * so the tutor is never quoted a schedule the sweep disagrees with.
+ *
+ * ⓘ Null when there is no plan to report: a pay-first buyer has no
+ * enrolment yet, and an UPFRONT_FULL purchase has no schedule to stand
+ * anywhere in.
+ */
+export type TutorPaymentStanding = {
+  /** Zero means paid in full, and the template says so in words. */
+  remainingMinor: number;
+  /** Null once fully paid — there is no next date. */
+  nextDueISO: string | null;
+  paidCount: number;
+  totalPayments: number;
+  /**
+   * Whether `nextDueISO` had ALREADY PASSED when the money arrived.
+   *
+   * ⚠ FROZEN AT ENQUEUE, NOT ASKED AT RENDER. The template renders from
+   * the payload alone and may run on a retry hours later, so evaluating
+   * "is this in the past?" there would answer against a different `now`
+   * than the payment did — the same email could then say two different
+   * things about one moment. Both are one boolean here instead.
+   */
+  nextDueOverdue: boolean;
+  /**
+   * She is paused RIGHT NOW for arrears, and this payment did not lift
+   * it — the gate asks "are you current?", not "did you just pay", so
+   * one instalment against two missed leaves the door shut.
+   *
+   * ⚠ Named for arrears specifically. A TUTOR_MANUAL pause is the
+   * tutor's own decision and has nothing to do with this money; folding
+   * the two together would explain their own action back to them as a
+   * payment problem.
+   */
+  accessPausedForArrears: boolean;
+};
+
+export type TutorPaymentReceivedPayload = {
+  /**
+   * ⭐ Reuses the STUDENT's framing rather than inventing a second dial.
+   * The caller already computed it, and each value is a fact the tutor
+   * has a distinct reason to want:
+   *   ACTIVATED        — she is on your roster, nothing to do.
+   *   PENDING_APPROVAL — she is waiting on YOU. Actionable.
+   *   SETUP_REQUIRED   — paid, but no account yet, so she will not
+   *                      appear on the roster until she finishes.
+   *
+   * ⚠ ONE EMAIL PER CHECKOUT, so the FIRST framing is the only one the
+   * tutor ever sees. A pay-first purchase enqueues SETUP_REQUIRED, and
+   * the ACTIVATED enqueue days later is refused by the fingerprint.
+   * That is why the SETUP_REQUIRED wording has to explain the roster
+   * gap on its own — no follow-up is coming to correct it.
+   */
+  framing: ReceiptFraming;
+  /** The tutor's forename, for the greeting. Null greets without a name. */
+  tutorName: string | null;
+  /**
+   * Who paid. Falls back to the address when there is no profile — a
+   * pay-first buyer genuinely has no name yet, and the tutor can still
+   * identify her by the email below.
+   */
+  studentName: string;
+  studentEmail: string;
+  programmeTitle: string;
+  /** Null on a self-paced programme, which has no cohort. */
+  cohortName: string | null;
+  currency: Currency;
+  /** Programme lines in this checkout only. See the note above. */
+  amountMinor: number;
+  paidAtISO: string;
+  /**
+   * How the money was recorded.
+   *
+   *   CARD           she paid online through the platform.
+   *   ADMIN_RECORDED a Quademia admin typed it in on the tutor's behalf.
+   *   OFF_PLATFORM   collected outside the platform, recorder unknown.
+   *
+   * ⚠ THE THIRD VALUE IS NOT DEFENSIVE PADDING — dev holds six such rows
+   * (checked 2026-08-19): `collection_channel = 'OFF_PLATFORM'` with
+   * `recorded_by_user_id` NULL, from before that column was populated.
+   * Folding them in with ADMIN_RECORDED would have this email name a
+   * party nobody can evidence, about money. Today's Mark-paid always
+   * stamps a recorder, so new rows never land here — but old ones exist
+   * and the honest answer is to say less.
+   *
+   * ⓘ There is no value for "the tutor recorded it": that case never
+   * reaches this email at all — see the suppression rule in
+   * lib/payments/tutor-notice.ts.
+   */
+  method: 'CARD' | 'ADMIN_RECORDED' | 'OFF_PLATFORM';
+  /** "Payment 2 of 4" · "Deposit" · "Paid in full". Null when unknown. */
+  planPosition: string | null;
+  standing: TutorPaymentStanding | null;
+  ctaHref: string;
+  ctaLabel: string;
+};
+
+// ─────────────────────────────────────────────────────────────────────
 // The tutor-enrolled payload
 // ─────────────────────────────────────────────────────────────────────
 // ⭐ TWO DIALS, NOT FOUR EMAILS (settled with Sam, 2026-08-12).
@@ -300,6 +482,103 @@ export type EnrolmentAddedPayload = {
   } | null;
   actionUrl: string;
   actionLabel: string;
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// The tutor's verdict on a place she paid for
+// ─────────────────────────────────────────────────────────────────────
+// ⭐⭐ THESE TWO CLOSE A PROMISE THAT WAS ALREADY SHIPPED. The receipt's
+// PENDING_APPROVAL variant has told buyers, on prod since 2026-08-18:
+// "You will get another email as soon as your tutor approves your
+// place." No such email existed. Five dev enrolments were sitting in
+// that state having been told so.
+//
+// ⭐ How the gap was made, since it was not carelessness: on 2026-08-10
+// `enrolment.confirmed` was deliberately FOLDED INTO `payment.received`
+// — right, because on a normal checkout the money and the place land in
+// the same instant for the same person. But that only holds on the
+// ACTIVATED path. On the PENDING_APPROVAL path the place is confirmed
+// LATER, BY A HUMAN, and that second moment went out of the catalog
+// with the row that was deleted.
+//
+// ⓘ Only ever reached by a PAID checkout. A tutor-added enrolment is
+// created ENROLLED and never passes through PENDING_APPROVAL — so the
+// audience for these is exactly the audience the receipt promised.
+//
+// ⚠ TWO KEYS, TWO TEMPLATES — deliberately NOT the one-file-two-dials
+// shape that enrolment.tutor_added and waitlist.converted share. Those
+// are one event with a different backstory; these are opposite outcomes
+// with different content, different destination and different footer.
+
+/** Shared by both verdicts — who, what place, and who decided. */
+type EnrolmentVerdictBase = {
+  /** Forename. Null-safe: the template greets without a name. */
+  recipientName: string | null;
+  programmeName: string;
+  /** Null on a self-paced programme, which has no cohort. */
+  cohortName: string | null;
+  /**
+   * ⚠ Not decoration. A verdict on money already paid, arriving from
+   * nobody in particular, is indistinguishable from a phishing email.
+   */
+  tutorName: string;
+};
+
+export type EnrolmentApprovedPayload = EnrolmentVerdictBase & {
+  /** The cohort's start date. Null for self-paced — it starts now. */
+  startsOnISO: string | null;
+  /** Frozen at enrolment. Null = lifetime, and prints nothing. */
+  accessExpiresAtISO: string | null;
+  actionUrl: string;
+  actionLabel: string;
+};
+
+// ⚠ NO REFUND IS PROMISED, AND NO REFUND HAPPENS. nclex_reject_enrolment
+// sets status, terminal_at and tutor_note — nothing else. Her payment row
+// stays ACTIVATED and `payment.refunded` is unbuilt, so the money has no
+// automatic next step. Settled with Sam 2026-08-19: point her at the
+// tutor for the conversation rather than write a commitment the software
+// cannot keep. The footer already offers support as the second route.
+export type EnrolmentRejectedPayload = EnrolmentVerdictBase & {
+  /**
+   * ⭐⭐ THE TUTOR'S REAL ADDRESS, DELIBERATELY (Sam, 2026-08-19):
+   * "we have to ensure communication is easy".
+   *
+   * ⚠ This REPLACED a button to the programme page's Contact-the-tutor
+   * form, which looked safer and was not. That RPC is idempotent on
+   * (programme, email): if an open lead already exists for the pair it
+   * returns the existing one and NEVER INSERTS the new message, while
+   * still showing her a green tick. A refused student is more likely
+   * than average to have enquired before buying, so the one message
+   * that most needs to arrive was the one most likely to vanish — with
+   * neither side able to tell. A mailto cannot fail silently.
+   *
+   * ⓘ It is a real disclosure: the tutor's account address, which may
+   * be personal, reaches a student who has been refused. Accepted
+   * knowingly — tutors are manually vetted in v1 and she has paid them
+   * money. If tutors ever get a separate public contact address, this
+   * is the field that should read it instead.
+   */
+  tutorEmail: string;
+  /**
+   * ⚠ NULL FOR EVERY TUTOR TODAY, and that is not a bug. `phone_number`
+   * exists on nclex_users but is empty for all of them (checked
+   * 2026-08-19), and no screen collects it — tutor/profile calls contact
+   * fields "separate future work". Built conditional so the line appears
+   * by itself the day a number exists, rather than needing this email
+   * reopened.
+   */
+  tutorPhone: string | null;
+  /**
+   * ⚠ THE TUTOR'S NOTE IS DELIBERATELY ABSENT, and this is why the field
+   * does not exist here. `nclex_reject_enrolment` stores `p_note` in
+   * `tutor_note`, and NOTHING in the app has ever displayed it — so no
+   * tutor has been given any reason to think it is read by a student.
+   * A tutor who typed "didn't pay last time, avoid" into what reads as
+   * an internal box must not have it mailed to the person it is about.
+   * To include it, relabel that box in the roster UI first.
+   */
+  tutorNoteIsNotSent?: never;
 };
 
 // ─────────────────────────────────────────────────────────────────────

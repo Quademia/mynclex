@@ -76,6 +76,26 @@ export const CONFIG_DEFS: ConfigDef[] = [
       'This stops all scheduled email and all automatic retries. Receipts and enrolment emails still send normally. But anything a nightly job queues — payment reminders, access-expiry notices — will sit unsent until you turn this back on, and a failed send will only go out if you press Retry on the Emails page yourself.',
   },
   {
+    key: 'session_reminders_enabled',
+    label: 'Live-class reminders',
+    description:
+      'Each morning at 07:00, emails every student whose live class falls in the next seven days — once per class, with a calendar file attached so their own phone reminds them nearer the time. Tutors can also send one reminder per class by hand from the cohort’s Sessions tab. This switch governs both.',
+    type: 'boolean',
+    defaultValue: 'true',
+    // ⚠ THE SWITCH MUST EXIST HERE OR IT EFFECTIVELY DOES NOT EXIST. The
+    // page renders CONFIG_DEFS, not the nclex_config table — a row added
+    // by a migration and not listed here is invisible, and turning it off
+    // would mean editing the database by hand. `email_drain_enabled` was
+    // missed exactly this way on its first pass.
+    //
+    // ⓘ It has a real deployment use, not just a panic use: a new
+    // environment must keep this OFF until the session.reminder template
+    // is deployed there, or the morning pass queues rows that environment
+    // can only mark DEAD.
+    confirmOff:
+      'Students will stop being told about their live classes, and tutors will not be able to send a reminder by hand either — the button will refuse while this is off. Nothing is lost and nothing needs catching up: the morning pass only ever emails students it has not already told, so whoever was missed while this was off is picked up by the first run after you turn it back on.',
+  },
+  {
     key: 'bank_optin_discount',
     label: 'Bank opt-in discount',
     description:

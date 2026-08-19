@@ -1,10 +1,21 @@
 # Transactional Email — Trigger Registry
 
-*Status: **the spine is built, the drain runs, and the ⏰ half has opened.**
-5 of 24 emails wired — `payment.received`, `enrolment.tutor_added`,
-`waitlist.converted`, and as of 2026-08-18 `payment.installment_due` +
-`payment.installment_overdue`, **the first time-driven emails the product has
-ever sent**. A pg_cron job knocks on the drain every five minutes. **Released to prod 2026-08-18 (PR #53) — live on BOTH projects, proven by a real test-mode purchase whose receipt sent in 218 ms through prod's own key.** This
+*Status: **the spine is built, the drain runs, the ⏰ half has opened, and
+Supabase no longer writes any email of ours.**
+**9 of 23 emails wired; 5 of them on prod.** ⓘ 23, not 24 — `session.scheduled`
+was dropped on 2026-08-20 rather than built. ✅ **On prod** (2026-08-18, PR
+#53 — proven by a real test-mode purchase whose receipt sent in 218 ms
+through prod's own key): `payment.received`, `enrolment.tutor_added`,
+`waitlist.converted`, `payment.installment_due`,
+`payment.installment_overdue` — the last two **the first time-driven emails
+the product has ever sent**. 🔨 **On `main`, not yet released**: from
+2026-08-19, `payment.tutor_received`, `enrolment.approved`,
+`enrolment.rejected`, plus the **pay-first invite swap**, which is not a new
+email but changes a shipped one — `payment.received` now carries the setup
+link, so a guest purchase sends **one** email where it sent two; and from
+2026-08-20, **`session.reminder`**, the product's **first fan-out and first
+attachment**, on its own nightly cron. A pg_cron job knocks on the drain
+every five minutes. This
 doc is the single source of truth for **every point in the app that should
 send an email**, and for **how a send works**. See [main.md](main.md) and
 [payments-and-enrolment.md](payments-and-enrolment.md).*
@@ -228,7 +239,69 @@ charge → one receipt, the way a receipt actually works. Money renders through
 `formatMinor()` — `GHS 350`, never `₵350`.
 
 ⓘ `payment.tutor_received` stays genuinely separate: the tutor's half concerns
-**programme money only**, since bank and readiness are QAcademy's money.
+**programme money only**, since bank and readiness are ours. ⚠ Its total is
+therefore **not** the receipt's total for the same checkout, and the two
+disagreeing is correct.
+
+> ### ⚠⚠ "Enrolled in" was a FALSE STATEMENT for a paused student
+>
+> Found 2026-08-19, on prod since the receipt shipped. The `PROGRAMME_*` rows
+> above branch on `PENDING_APPROVAL` and then fall through to
+> `Enrolled in <place>` for **every other status** — including `PAUSED`. So a
+> student behind on her plan, who paid, was told she was enrolled while she
+> was locked out. Not an omission: a false statement, to the one person who
+> had just handed over money and would find the door shut.
+>
+> ⭐ **The behaviour underneath is right and unchanged** (Sam): the access gate
+> asks *"are you current?"*, not *"did you just pay"*, so **one instalment
+> against two missed leaves the door shut**. Only the wording was wrong.
+>
+> ⭐ **It needs ONE day of pause, not the seventy-four the test row had.** Sam's
+> read — *"this probably occurred because we use test data"* — is right about
+> the extremity and not about the state: the three paused dev enrolments were
+> paused by the **live nightly sweep** (02:00 on 25 Jun, 22 Jul, 28 Jul), the
+> same code prod runs every night, and paying what you can afford is the most
+> ordinary thing an overdue student does.
+>
+> Now: `PAUSED` + `INSTALLMENT_OVERDUE` → *"Access to X is paused until the
+> plan is up to date"*; `PAUSED` for any other reason → *"Your place in X is
+> currently paused — your tutor can tell you more"*. ⚠ **Branch on
+> `paused_reason`, not on `PAUSED` alone** — a `TUTOR_MANUAL` pause has nothing
+> to do with arrears, and explaining it as money sends her to fix a bill that
+> is not the problem.
+>
+> ⚠ **Tense, both sides.** *"next due 6 June"* printed in August is the wrong
+> word for a date that has gone. Sam's phrasing, no jargon needed: **"the next
+> payment was due 6 June 2026."** The tutor's copy also gains *"Her access is
+> still paused — this payment did not clear the arrears"*, which is the line
+> that changes what a tutor does: **"money's in" alone reads as "she's fine"**
+> to the only person who can grant her grace.
+>
+> ⭐ **Both facts are computed at ENQUEUE and frozen**, never asked at render.
+> The template renders from the payload alone and may run on a retry hours
+> later, so *"is this date past?"* there would answer against a different
+> `now` than the payment did — one email making two claims about one moment.
+
+> ### ⚠ No subject may bolt a clause onto a name somebody typed
+>
+> Three instances, one session (2026-08-19), the third already on prod.
+> `enrolment.tutor_added` rendered *"You have been enrolled — NCLEX-RN Live —
+> The 8-Week Pass Plan"*. ⚠⚠ **Its guard comment already claimed to have
+> solved this** — *"ONE em-dash, and the programme name last"* — but it counted
+> only the dashes **we** write, while the title supplies its own. A guard aimed
+> at the wrong thing reads as a solved problem, which is why it survived and
+> why the same trap was then sprung twice more the same day.
+>
+> ⭐ **The rule: a subject interpolating a name somebody typed must READ AS ONE
+> SENTENCE AROUND IT.** Not "one separator" — the title is arbitrary text with
+> arbitrary punctuation, so the only safe count of *our* separators is **zero**.
+> A colon was tried and reverted in the same sitting: still ours.
+>
+> ```
+> You have been enrolled in <title>     A place has opened up in <title>
+> Your place in <title> is confirmed    About your place in <title>
+> <student> paid <amount> for <title>
+> ```
 
 ## Templates — one file per email, living in the repo
 
@@ -650,8 +723,86 @@ content release, or account state, ask "should this notify someone?" — if yes:
 | `enrolment.tutor_added` | ⚡ | Tutor manually adds a student (cohort add / self-paced add) | student | **✅ BUILT 2026-08-12.** "Your tutor enrolled you" — what she was given, who gave it, and the way in. Carries the **invite swap**: for a new account we mint the link ourselves and Supabase sends nothing | P1 | ✅ |
 | `waitlist.joined` | ⚡ | Student/lead joins a cohort waitlist | lead | Acknowledge waitlist position | P2 | ✅ |
 | `waitlist.converted` | ⚡ | Tutor converts a waitlisted lead to enrolled | student | **✅ BUILT 2026-08-12.** "A place has opened up." Its **own key, sharing `enrolment.tutor_added`'s template** — one dial turned. See below | P2 | ✅ |
+| `enrolment.approved` | ⚡ | Tutor approves a place a student PAID for | student | **✅ BUILT 2026-08-19.** "Your place is confirmed" — programme, cohort, start date, access window, button into the cohort. **Carries no money at all** (see below) | P1 | ✅ |
+| `enrolment.rejected` | ⚡ | Tutor refuses a place a student PAID for | student | **✅ BUILT 2026-08-19.** "About your place in X" — the tutor's own email and phone, so she can reach a person. **Promises nothing about a refund**, because nothing refunds her | P1 | ✅ |
 | `enrolment.access_expiring` | ⏰ | Access window is N days from expiry | student | Renew / heads-up before losing access | P2 | ⬜ ⚠ blocked |
 | `enrolment.access_expired` | ⏰ | Access window passes | student | Access ended, how to renew | P2 | ⬜ ⚠ blocked |
+
+> ### ⚠⚠ The 08-10 fold left the human half uncovered — and we PROMISED it
+>
+> Read the `enrolment.confirmed` note below first; this is its correction,
+> found 2026-08-19.
+>
+> Folding `enrolment.confirmed` into `payment.received` was right **on the
+> ACTIVATED path**, where the money and the place land in one instant for one
+> person. It does not hold on **`PENDING_APPROVAL`**, where the place is
+> confirmed **later, by a human**. That second moment is a different trigger,
+> a different sender and a different day — and it left the catalog with the
+> row that was deleted.
+>
+> ⭐ **Meanwhile the receipt had already promised it.** Its `PENDING_APPROVAL`
+> variant has told buyers, on prod since 2026-08-18: *"You will get another
+> email as soon as your tutor approves your place."* Nothing ever sent one.
+> Five dev enrolments were sitting in that state having been told so — one of
+> them from a test run an hour before this was found.
+>
+> ⚠ **The generalisable lesson: when an email's copy promises another email,
+> that promise is a catalog entry.** Nothing checked it, and nothing checks it
+> now — worth a pass over every template asking *"what does this sentence
+> commit us to sending?"* before the catalog is next declared complete.
+>
+> ⓘ A tutor-added enrolment is created `ENROLLED` and never passes through
+> `PENDING_APPROVAL`, so these two only ever reach the audience the receipt
+> made the promise to.
+
+> ### ⚠ The refusal cannot promise money back — nothing gives it back
+>
+> `nclex_reject_enrolment` sets `status`, `terminal_at` and `tutor_note`.
+> **That is all.** Her payment row stays `ACTIVATED`, `payment.refunded` is
+> unbuilt, and no process exists. So the email says nothing about a refund —
+> settled with Sam 2026-08-19 — and points her at the tutor for the
+> conversation instead, with support in the footer as the second route.
+>
+> ⭐⭐ **It carries the tutor's real email and phone, and that replaced a
+> safer-looking idea.** The first build linked the programme page's
+> *Contact the tutor* form: private, and landing in a queue the tutor already
+> reads. But `nclex_submit_enquiry` is **idempotent on (programme, email)** —
+> where an open lead exists it returns that lead and **never inserts the new
+> message**, while still showing her a success tick. A refused student is
+> *more* likely than average to have enquired before buying, so the one
+> message that most needed to arrive was the one most likely to vanish,
+> invisibly to both sides. Sam's call: *"we have to ensure communication is
+> easy."* A `mailto:` cannot fail quietly.
+>
+> ⚠ **That swallow is a live defect for every repeat enquirer**, not just
+> rejected students — anyone messaging a tutor twice while the first lead is
+> open. Shipped public path; wants its own slice.
+>
+> ⚠ **`phone_number` is empty for every tutor** (checked 2026-08-19) and no
+> screen collects it — `tutor/profile` calls contact fields "separate future
+> work". The row is built conditional and renders for nobody today. **Capturing
+> a tutor phone is the open follow-on**, and it matters more than it looks: the
+> core audience reaches for WhatsApp before email.
+>
+> ⚠ **The tutor's rejection note is NOT sent.** The RPC stores `p_note` in
+> `tutor_note` and nothing in the app has ever displayed it, so no tutor has
+> been given any reason to think a student reads it. A tutor who typed
+> *"didn't pay last time, avoid"* into what reads as an internal box must not
+> have it mailed to the person it is about. **To include it, relabel that box
+> in the roster first.**
+
+> ### ⭐ Why approved/rejected are TWO templates, not one with a dial
+>
+> `enrolment.tutor_added` and `waitlist.converted` share one file because they
+> are the same event with a different backstory — one dial turned. These are
+> **opposite outcomes**: different words, different destination, different
+> footer context. Sharing would mean branching on everything. They do share
+> one *reader* (`lib/enrolments/verdict-email.ts`), because the five facts
+> they need are identical and always change together.
+>
+> ⓘ **The approval deliberately carries no money.** She has the receipt for
+> the amount and the plan, and `payment.installment_due` handles what is owed
+> next. A third voice on one plan is how three emails start disagreeing.
 
 > ### ⭐ `enrolment.confirmed` was FOLDED INTO `payment.received` (2026-08-10)
 >
@@ -689,7 +840,7 @@ content release, or account state, ask "should this notify someone?" — if yes:
 | `payment.installment_overdue` | ⏰ | An installment passes its due date unpaid | student | **✅ BUILT 2026-08-18.** Sent the night the sweep acts, captured BEFORE the pause. Past tense — the pause has already happened. `paused` switches it between "access is paused" and "access is unaffected" | P1 | ✅ |
 | `payment.grace_set` | ⚡ | Tutor grants a first-payment / installment grace | student | "Your tutor extended your due date to X" | P2 | ✅ |
 | `payment.refunded` | ⚡ | A payment is refunded | student | Refund confirmation | P2 | ✅ |
-| `payment.tutor_received` | ⚡ | A student payment lands — Paystack success OR tutor "mark paid" | tutor | "Ama paid GHS X for Cohort Y" — payer, amount, plan, cohort. **Programme money only** (bank/readiness is QAcademy's). **Required on every payment**; per-event vs digest is a delivery choice (see open questions) | P1 | ✅ |
+| `payment.tutor_received` | ⚡ | A student payment lands — **unless the tutor recorded it themselves** | tutor | **✅ BUILT 2026-08-19.** "Ama paid GHS X for Cohort Y" — payer, amount, plan position, cohort, where the plan stands. **Programme money only** (bank/readiness is ours). **Per-event**, settled | P1 | ✅ |
 
 > ### ⭐ The due-date maths already exists — and must be SHARED, not re-derived
 >
@@ -752,9 +903,55 @@ content release, or account state, ask "should this notify someone?" — if yes:
 > **Every payment notifies BOTH sides.** A received payment is a paired send:
 > `payment.received` (the student's receipt) **and** `payment.tutor_received`
 > (the tutor's "money's in"). Both are P1 — neither side should be left in the
-> dark when money moves. Applies to the same anchor (Paystack success and the
-> tutor "mark paid" path); the tutor-side cadence (per-event vs daily digest) is
-> the only open delivery question, not whether it's sent.
+> dark when money moves.
+>
+> ### ⭐⭐ CORRECTED 2026-08-19 — the recipient must not be the actor
+>
+> This used to say the trigger was *"Paystack success **OR** tutor 'mark
+> paid'"*, both anchors. Read against the code that is wrong twice: a tutor who
+> hits **Mark paid**, and a tutor who records *"payments already received"*
+> while adding a student, would be emailed a fact they typed in thirty seconds
+> ago. **The first noisy transactional email is how people start ignoring the
+> rest.**
+>
+> ⭐ But it is **not** "skip the mark-paid anchor". A **SUPER_ADMIN** may
+> record a payment on a tutor's programme, and there it *is* news. So the test
+> is **who recorded it**, not which door it came through:
+> `recorded_by_user_id === programme.tutor_id` → stay silent. Verified against
+> dev: 16 groups send (Paystack, no recorder), 1 sends (an admin recorded it),
+> 2 suppress.
+>
+> ⭐ The rule reads `recorded_by_user_id` **off the payment row** rather than
+> taking it as an argument, so it lives in one place and no anchor can get it
+> wrong by forgetting to pass it. Paystack leaves the column null, so an online
+> payment always sends. All three anchors call in unconditionally.
+>
+> ⚠ **Consequence, intended:** a tutor on an **OFF_PLATFORM** programme — they
+> collect the cash by hand and add the students — receives **none** of these.
+> Correct. They are holding the money.
+>
+> ⓘ **Cadence settled: per-event, not a digest.** A digest needs its own
+> scheduled job and a "since last digest" ledger — a slice, not a variation —
+> and there is no volume to protect anyone from yet. Layerable later without
+> touching the anchor.
+>
+> ⓘ **Fingerprint is the checkout group with no stage**, safe *only* because
+> `lib/payments/init.ts` builds items from one target and refuses any
+> non-`ON_PLATFORM` programme, so one charge can never owe two tutors an email.
+> ⚠ **If a multi-programme cart is ever built, this fingerprint must gain the
+> tutor id as its stage or the second tutor is silently dropped.**
+>
+> ⚠ **A pay-first purchase sends `SETUP_REQUIRED` and nothing else** — the
+> later `ACTIVATED` enqueue is refused by the fingerprint. Told early on
+> purpose (activation may be days away, or never), so that wording explains the
+> roster gap on its own rather than promising a follow-up.
+>
+> ⚠ **Three method values, not two.** `CARD` · `ADMIN_RECORDED` ·
+> `OFF_PLATFORM`. The third is not padding: six settled dev rows carry
+> `collection_channel = 'OFF_PLATFORM'` with **no recorder**, from before that
+> column was populated. Captioning those "recorded by a Quademia admin" would
+> name a party nobody can evidence, **about money**. They read "Collected
+> off-platform" instead.
 
 ### Live sessions
 
@@ -763,10 +960,282 @@ That shape is not exercised by the first pair and needs its own thought
 (volume against Resend's daily cap, and whether one row per student or one row
 per cohort goes in the outbox).
 
+> ✅ **Both answered on 2026-08-20 by building `session.reminder`.** One row
+> **per student**; volume ~1 per student per week. Fan-out is no longer an
+> unproven shape — see the build note below.
+
+> ## ⭐⭐ DESIGN SETTLED 2026-08-19 — the schedule follows the student
+>
+> Not built. Worked out with Sam across four revisions, and the shape moved
+> materially each time — the reasoning matters more than the conclusion,
+> because three of the four earlier versions looked fine and were not.
+>
+> ### The rule
+>
+> **One nightly pass asks one question:** *which sessions fall in the next
+> **7 days**, and which students in those cohorts have not been told about
+> them yet?* Each match gets one email — *"your class is this Tuesday"* —
+> **carrying a calendar attachment (`.ics`)**.
+>
+> That is the whole mechanism.
+>
+> ### ⚠ Why NOT "send it when the tutor schedules it" — the version we nearly built
+>
+> Sam's question killed it: *"a student that joined 2 weeks after the tutor
+> finished setting up the cohort session times — will they receive the
+> emails?"* **No.** And it is not an edge case, it is the **normal** case: a
+> tutor sets up the cohort and its class times **when creating the cohort**,
+> before anyone has enrolled. An email anchored to that moment fans out to an
+> **empty cohort**. It would have shipped and reached almost nobody.
+>
+> ⭐ The first repair was *"whichever happens second fires it"* — she needs to
+> be in the cohort **and** the session needs a date, so whichever completes the
+> pair sends. Correct, but it needs **five** trigger points: the four doors
+> into a cohort (paid+activated · paid+approved · tutor-added ·
+> waitlist-converted) plus the scheduling action. **Five places to keep in
+> step is how a door quietly stops sending** — precisely the failure this
+> session found in the approval email, where the reasoning was walked down one
+> branch and not the others.
+>
+> ⭐⭐ **The nightly pass does not ADD to those five. It replaces all of them.**
+> It never asks how she got into the cohort, so there is no door to forget.
+> That is why the cron version is *simpler* than the event version, not more
+> complex — the opposite of the usual trade.
+>
+> ### It is not new infrastructure
+>
+> `nclex_enrolment_nightly_sweep()` already runs on pg_cron at 02:00 and
+> **already enqueues email** — the instalment reminders come from it. This is
+> a few more lines inside a job that already runs and is already watched.
+>
+> ⚠ Claude twice described the clock as missing during this discussion. It is
+> not. Only a **T-1h** reminder would need something genuinely new, and that
+> is deliberately dropped: it is the most infrastructure for the least
+> behaviour change, and it mostly reaches people who already knew.
+>
+> ### ⭐ The fingerprint does the bookkeeping, so the window is forgiving
+>
+> "Has this student been told about this session?" needs no new table —
+> **asking the outbox is the answer**, and the unique index refuses the
+> duplicate.
+>
+> ⭐ This makes the sessions job **fundamentally more forgiving than the
+> instalment reminders**, and the difference is worth understanding before
+> anyone copies one pattern to the other. Those had to tile their windows
+> exactly (*"due in the next 24h"*, never *"due today"*) because a missed
+> night meant somebody was **never** warned and then paused. Here a wide
+> window, an overlapping window or a missed night all self-correct: the next
+> run simply picks up whoever has not been told. **Nothing slips.**
+>
+> Hence **7 days** rather than 3 — a week is long enough to swap a shift or
+> arrange childcare, which is the actual point of notice, and the width costs
+> nothing.
+>
+> ### ⭐ Why a calendar attachment, and not just words
+>
+> She taps it once and **her own phone reminds her**, at whatever notice she
+> already uses for everything else, for every future occurrence. That is more
+> reliable than anything we can send: it survives a full inbox, and it lives
+> where she looks to see what she is doing tonight.
+>
+> For a recurring cohort (*"Evenings — Tuesdays 19:00"*) one repeating event
+> can cover the whole run. ⓘ `.ics` is plain text and Resend accepts
+> attachments — genuinely small.
+>
+> ### The volume, which is the reason any of this is affordable
+>
+> Roughly **one email per student per week**: a cohort of 25 costs ~25 a week,
+> comfortably inside Resend's free **100/day**. ⚠ Compare the version this
+> replaced — per-session T-24h **and** T-1h for 25 students is **50 emails per
+> class**, half a day's allowance on one class. **Sessions is still what
+> forces the Pro decision**, but this shape delays it by an order of
+> magnitude.
+>
+> ### The tutor's button stays
+>
+> One case the nightly pass cannot reach: a student who joins on the
+> **morning** of a class — last night's run has already been. That is what a
+> manual **Send reminder** button on the session is for, and it also covers
+> what no schedule can: *"we start in 30 minutes, the link has changed."*
+>
+> ⚠ **Its fingerprint must permit a deliberate second send.** With
+> `subject_ref = session_id` and a blank stage, the tutor's second reminder is
+> **silently swallowed** — they press send, see success, and nothing goes.
+> This exact shape has now bitten twice (the enquiry form; the pay-first
+> receipt). Proposal: **stage = the hour bucket of the send**
+> (`2026-08-19T14`), so a double-click dedupes and a genuine
+> day-before-then-hour-before send is two stages, with no counter to maintain.
+>
+> ### ⚠ One thing to get right on the first day
+>
+> The button and the nightly pass must call **the same send**. If the button
+> is wired straight to the email, the automatic path is later built twice and
+> the two drift. Manual-vs-automatic is a **trigger** decision; it must not
+> become an architecture decision. (Same rule the payment anchors follow:
+> three callers, one builder.)
+>
+> ### ✅ BUILT 2026-08-20 — and the four open questions answered
+>
+> Migration `20260912120000_session_reminders.sql`, on `main`. The design
+> above survived contact intact; what follows is what building it decided,
+> and the two things it got wrong first.
+>
+> **The four questions, all settled with Sam before a line was written:**
+>
+> | Question | Answer |
+> |---|---|
+> | Row shape | **One per student.** A bad address fails alone, and the outbox answers "who was told" |
+> | Rescheduling | **The time goes IN the fingerprint** — `<session_id>@<epoch>` — so a moved class re-sends by itself |
+> | `session.scheduled` | **Dropped.** She is told when the class nears; an announcement six weeks out duplicates the Sessions page |
+> | Scope | Nightly + `.ics` + the tutor's button, together |
+>
+> ⭐⭐ **The tutor's button is limited to ONE per class OCCURRENCE** (Sam's
+> call, and he was right to ask for it: an open button is a tutor emailing
+> twenty-five nurses four times about one lesson). The limit needs no
+> counter and no new state — **it IS the fingerprint the nightly pass
+> already uses**, so a second press inserts nothing.
+>
+> ⭐ And it **refills when the class moves**, because the fingerprint carries
+> the time. "Once per session id" would have gagged the one person who most
+> needs to speak after a reschedule. Ceiling: two emails per student per
+> occurrence — the nightly one and one deliberate.
+>
+> ⚠ **It returns the count, and the UI shows it.** A live control that
+> silently does nothing is a bug this repo has now shipped twice —
+> `nclex_submit_enquiry` tells a repeat enquirer it worked while dropping
+> the message, and the pay-first receipt was refused by the fingerprint with
+> nobody told. Pressing a spent button says so; a send that reaches nobody
+> new says *that*, rather than nothing.
+>
+> ### ⚠ ITS OWN CRON JOB — the one place this doc was wrong
+>
+> The design above says "a few more lines inside a job that already runs".
+> That reads well until you notice `nclex_enrolment_nightly_sweep()` is ONE
+> TRANSACTION which also **pauses students for arrears**. An exception
+> raised while building a calendar attachment would roll those pauses back
+> — a bug in a nicety silently disabling the money rule.
+>
+> ⭐ Sam, on being told: *"its a different job from the enrolment."* The four
+> existing pg_cron jobs are already one-per-concern; this is the fifth, at
+> **07:00**, and the isolation costs nothing. The claim the doc was really
+> making — *this needs no new infrastructure* — still holds: pg_cron was
+> already running.
+>
+> ⭐ **And it runs at 07:00, not overnight with the others** (Sam,
+> 2026-08-20). The first draft sat at 02:15, a quarter hour behind the
+> enrolment sweep, on the reasoning that the nightly jobs should be done
+> before anyone is awake. That is right for the others and wrong for this
+> one: they change **state** — pausing an enrolment, expiring a pass — and
+> nobody needs to witness the moment. This job's entire output is a
+> notification on somebody's phone, and Ghana is GMT, so 02:15 buzzes a
+> nurse at two in the morning about a class a week away.
+>
+> ⓘ The reminder actually leaves around 07:05, on the next drain knock. That
+> gap belongs to the queue, not the schedule — which is precisely why the
+> hour can be chosen for the reader instead of for the machine. **A job that
+> only enqueues is free to run whenever suits the person reading it.**
+>
+> ### Two defects, both found by reading real output
+>
+> Neither was caught by tsc, eslint, or a passing render.
+>
+> - **The subject was 84 characters.** "Your `<programme>` class is on
+>   Tuesday 25 August at 19:00 GMT" pushes the time — the only fact she
+>   needs — past where a phone truncates. Now **47**, with **nothing
+>   interpolated**: which also makes the double-em-dash defect of 2026-08-19
+>   structurally impossible here rather than merely avoided. ⓘ The cost,
+>   accepted: a student in two programmes cannot tell them apart from the
+>   subject line alone.
+> - **`platform` is an ENUM.** The email said *"Where: ZOOM"*. ⭐ The reason
+>   it survived review is worth keeping: the sample fixture had been written
+>   with `'Zoom'` already humanised, **so the fixture hid the exact thing it
+>   existed to test**. It now holds the enum, like the database does.
+>
+> ### What was verified on dev, and how
+>
+> 3 nightly + 2 manual + 1 rescheduled, all SENT with provider ids and an
+> `.ics` Resend accepted. A second sweep adds nothing; a second manual press
+> returns 0; the ownership gate refuses a non-owner. **The reschedule proof
+> is the one worth repeating**: moving a class produced a new fingerprint,
+> a new email, the same `UID` and a **higher `SEQUENCE`** — which is the
+> combination that makes a phone calendar *update* rather than show two
+> classes. Restoring the original time then correctly added nothing, because
+> that fingerprint had already been used.
+>
+> ⓘ 13 students enrolled, 3 emailed: the other 11 are `@example.com` and
+> were skipped by the guard duplicated into the migration.
+>
+> ⚠ **`session_reminders_enabled` ships OFF in a new environment.** The
+> pg_cron knock calls the DEPLOYED Worker, so until the `session.reminder`
+> template is live there, a nightly pass would enqueue rows that environment
+> can only mark DEAD. Turn it on after the deploy, not before. ⓘ It is on
+> `/admin/config` — **a `nclex_config` row alone is invisible**, because that
+> page renders `CONFIG_DEFS` and not the table. `email_drain_enabled` was
+> missed the same way; this one was too, until Sam asked.
+>
+> ⭐⭐ **The switch governs the tutor's button as well, and the first version
+> did not.** Exempting it looked right — the switch means *stop the
+> AUTOMATIC reminders*, and a person pressing a button is not automation.
+> That holds for one of the switch's two jobs and fails for the other:
+>
+> | The switch means | Exempting the button is |
+> |---|---|
+> | editorial — *stop sending automatic reminders* | fine |
+> | operational — *this environment cannot render this yet* | **a lie** |
+>
+> The operational meaning is not hypothetical: it is how a new environment
+> is brought up, and the state dev sat in throughout this build. There, an
+> exempt button queues rows the Worker can only mark DEAD **while telling
+> the tutor "Reminder sent to 12 students"** — the same failure this slice
+> had already fixed twice (the enquiry form's success tick over a dropped
+> message; the "queued 0" that could not tell *all done* from *nobody
+> there*), re-entering through the one door left open.
+>
+> ⓘ Order matters: ownership is checked BEFORE the switch, so a tutor
+> probing someone else's session learns nothing about site configuration.
+> The cost of the change, accepted: an admin pausing the automation also
+> silences tutors — rarer than a botched deploy, and it fails as *"the
+> button says no"* rather than *"the button lies"*.
+>
+> ### Still open after the build
+>
+> - **The ⚡ change family is untouched** — `session.rescheduled`,
+>   `session.cancelled`, `session.recording_available`. ⚠ Cancellation
+>   genuinely cannot wait for a window, so it stays event-driven and is NOT
+>   replaced by the nightly pass. ⓘ A *reschedule* is now partly covered:
+>   the reminder re-sends by itself, so what `session.rescheduled` adds is
+>   the word "moved" for someone already told.
+> - **The tutor's button is untested in the browser** — the SQL gate and the
+>   count are proven; the control itself needs a tutor session.
+>
+> ### The questions as they stood before the build
+>
+> - **Outbox row shape.** One row per student (retry a single failed
+>   recipient, but 25 rows per session) or one per cohort (tidy, but one bad
+>   address takes the send and you cannot tell who missed it). Per-student is
+>   the likely answer, which makes the fingerprint
+>   `session_id` + the student — decide which is `subject_ref` and which is
+>   `stage`.
+> - **Rescheduling.** A moved class must re-send, so the fingerprint cannot be
+>   the bare session id, or the correction is refused as a duplicate. `.ics`
+>   has its own update semantics (`SEQUENCE`/`UID`) worth using rather than
+>   inventing.
+> - **`session.cancelled` cannot wait for a window.** "It's off" must go
+>   immediately regardless of how far away it was — so the ⚡ change family
+>   (`scheduled` / `rescheduled` / `cancelled`) stays event-driven and is NOT
+>   replaced by the nightly pass.
+> - **Does `session.scheduled` still earn P1?** Under this design a student is
+>   told when the class enters the 7-day window, so an announcement 6 weeks
+>   out mostly duplicates the in-app **Sessions page**. Re-examine its
+>   priority against the nightly pass rather than assuming.
+> - ⓘ A late joiner is not stranded today: `/student/cohort/<id>/sessions`
+>   already shows the schedule. A floor, not the answer — "go and look" is
+>   what a reminder exists to replace.
+
 | Event key | Kind | Trigger | Recipient | Purpose | Pri | Anchor |
 |---|---|---|---|---|---|---|
-| `session.scheduled` | ⚡ | Tutor schedules / announces a session date for a cohort | cohort students | "Live session set for <when>" + join details | P1 | ✅ |
-| `session.reminder` | ⏰ | T-24h and/or T-1h before a scheduled session | cohort students | Reminder + join link | P1 | ⬜ |
+| ~~`session.scheduled`~~ | ⚡ | Tutor schedules / announces a session date for a cohort | cohort students | **DROPPED 2026-08-20 (Sam).** The nightly pass tells her when the class nears, so an announcement six weeks out mostly duplicates the in-app Sessions page — and since tutors set the timetable when they CREATE the cohort, it would usually fire at an empty one. Struck through rather than deleted so the reasoning survives the next person who wonders where it went | ~~P1~~ | — |
+| `session.reminder` | ⏰ | **Nightly: sessions falling in the next 7 days, to students not yet told** — plus a tutor's manual "Send reminder" button, capped at ONE per class occurrence | cohort students | ✅ **BUILT 2026-08-20** (`20260912120000`, own cron job at 07:00 GMT). "Your class is on Tuesday" + join details + an **`.ics` attachment**, so her own phone reminds her thereafter. ~1 email/student/week. ⚠ NOT triggered by scheduling — see above. **The product's first fan-out, and its first attachment** | P1 | ✅ |
 | `session.rescheduled` | ⚡ | A scheduled session's date/time changes | cohort students | New time | P2 | ✅ |
 | `session.cancelled` | ⚡ | A scheduled session is removed | cohort students | It's off | P2 | ✅ |
 | `session.recording_available` | ⚡ | A recording URL is added to a held session | cohort students | "Recording's up" | P3 | ✅ |
@@ -864,9 +1333,11 @@ account-holder, true. **For a pay-first guest, false**, and the receipt would
 have stated something that had not happened.
 
 `activateGroup` in `lib/payments/activate.ts`: when no profile is found it
-sends ONE invite, marks the group `SETUP_REQUIRED`, and creates **no
-enrolment, no subscription, no credits**. The grants happen at `/welcome`,
-possibly days later.
+mints ONE setup link for the whole group, marks it `SETUP_REQUIRED`, and
+creates **no enrolment, no subscription, no credits**. The grants happen at
+`/welcome`, possibly days later. (Until 2026-08-19 it *sent* one invite, via
+Supabase; since the swap it mints the link and this receipt carries it —
+which is also why the receipt is queued before the status flips.)
 
 So the money half is constant and the *"what you now have"* half is
 **state-aware** — `ACTIVATED`, `PENDING_APPROVAL`, `SETUP_REQUIRED`. Under the
@@ -1657,10 +2128,17 @@ same ledger **plus fan-out** · `enrolment.*` and `enquiry.*` are plain event
 sends.
 
 ⚠ **What the pair deliberately does NOT prove:** fan-out (stays unproven until
-sessions) · the **invite swap** (`inviteUserByEmail` → `generateLink`, below) —
+sessions — ✅ **proven 2026-08-20**, one row per student) · the **invite swap**
+(`inviteUserByEmail` → `generateLink`, below) —
 the one change that can leave an invited student with *nothing*, so it does not
 belong in the slice still finding bugs in the pipe · opt-out preferences,
 since neither of these is opt-out-able.
+
+> ⓘ **The deferral held, and both halves have since landed** — tutor-add
+> 2026-08-12, pay-first 2026-08-19. Waiting was right: the pay-first half
+> turned out to hinge on the queue reporting whether it accepted the row,
+> a signal that did not exist until 08-12 and would have had to be
+> invented mid-slice here. See *Invite* below.
 
 ### Folders this arc needs (agreed 2026-08-10, ✅ all created 2026-08-11)
 
@@ -1747,18 +2225,69 @@ IS the email; the password link is a detail inside it.
 
 **How** — the two invite call sites
 ([`lib/enrolments/actions.ts`](../../lib/enrolments/actions.ts),
-[`lib/payments/activate.ts`](../../lib/payments/activate.ts)) currently use
+[`lib/payments/activate.ts`](../../lib/payments/activate.ts)) used
 `admin.auth.admin.inviteUserByEmail`, which sends Supabase's generic body
-as a side effect. Swap to `admin.auth.admin.generateLink({ type: 'invite' })`,
-which mints the **same** set-password link and sends nothing — then our
-worker sends one branded email carrying both.
+as a side effect. Both now call `admin.auth.admin.generateLink({ type:
+'invite' })`, which mints the **same** set-password link and sends nothing
+— and our own email carries it.
 
-⚠ **Do not delete or disable the Supabase invite template before that
-lands.** Until this arc is built it is the only email an invited student
-receives; removing it early makes tutor-add and pay-first silently send
-nothing. It stays deliberately unbranded in the meantime — and since the
-SMTP switch it already sends **from** Quademia, so it reads unstyled
-rather than untrustworthy.
+#### ✅ Both halves done — tutor-add 2026-08-12, pay-first 2026-08-19
+
+⭐⭐ **The gap between those dates is the lesson, not the delay.** The
+tutor-add swap shipped the same day its rich email was written, so that
+path went from *only Supabase's invite* to *only ours* with no moment in
+between. The pay-first receipt had shipped a day earlier, on 08-11, **and
+its swap did not follow** — so from 08-11 to 08-19 every guest purchase
+sent **two** emails: Supabase's *"you have an account"*, which arrived
+first and did not mention the payment, and our receipt beside it, whose
+note then told her to go and look for the thin one.
+
+⭐ **The duplication had a birthday, and it was the arrival of the GOOD
+email.** Before 08-11 Supabase's invite was the only thing a pay-first
+buyer received — thin, but not redundant. Adding the receipt is what made
+two. Worth remembering when the next rich email is written beside a
+generic one: shipping the better half first *creates* the problem it is
+meant to solve, and nothing fails or warns.
+
+**What the pay-first half changed** (all in `activateGroup`):
+
+- The receipt's **CTA slot, previously left null on purpose**, now carries
+  the link. The old comment — *"no call to action while setup is
+  outstanding: every in-app destination would bounce her to a login she
+  cannot complete yet"* — was right about app pages, which is precisely
+  why the one reader who most needed a button had none. A setup link is
+  not an app page; it mints her session on the way in. Reusing the slot
+  rather than adding a field also means a receipt queued **before** the
+  swap renders exactly as it did before.
+- ⚠ **The failure mode inverted.** `sendPaymentReceipt` swallowed every
+  failure by design — the money outranks the receipt, and the way in was
+  sent by Supabase regardless. Now this email **is** the way in, so it
+  reports whether it queued, and the callback page has a state for
+  `false`. She is not locked out: `generateLink` creates the account
+  before the send is attempted, so `/login` → *"Email me a sign-in code"*
+  reaches it. Saying *"check your email"* there would be a falsehood.
+- ⚠ **Order matters more than it looks.** The receipt is queued **before**
+  the status flips to `SETUP_REQUIRED`, because that status is what
+  selects the retry branch — and the retry branch mints no link. Queuing
+  second left a window in which a concurrent pass (pending-recheck
+  re-runs settle every few seconds) could queue a **linkless** receipt and
+  win the fingerprint. Enqueuing first removes the window: a concurrent
+  pass still reads `PAID`, takes the same branch, and also carries a link.
+- The template therefore carries **two** setup wordings, because two real
+  cases still produce a buttonless receipt: a row queued before the swap
+  deployed, and the retry branch after a failed first enqueue.
+
+⭐ **Proven on dev 2026-08-19** across all three guest purchases —
+programme (with bank opt-in), bank alone, readiness alone. The decisive
+evidence was `auth.users.confirmation_sent_at`: **null** on every account
+created by the new path, because Supabase sent nothing. A fourth purchase
+run against the deployed Worker, still on the old code, carried a
+timestamp there and produced the old two-email pair — an accidental but
+exact control.
+
+⚠ **Only now may the Supabase invite template be disabled — and not until
+this is on prod**, where it is still the live way in. Removing it early
+makes pay-first silently send nothing.
 
 ---
 
@@ -1781,8 +2310,36 @@ rather than untrustworthy.
 
 **Still open:**
 
-- **Digest vs per-event** for tutor-facing volume (`payment.tutor_received`,
-  `enquiry.received`). Not *whether* — only cadence.
+- ~~**Digest vs per-event** for tutor-facing volume (`payment.tutor_received`,
+  `enquiry.received`).~~ **Settled per-event 2026-08-19** for
+  `payment.tutor_received` — see the Payments note. A digest is its own slice
+  and there is no volume to protect anyone from yet. `enquiry.received` is
+  still unbuilt and inherits the same reasoning by default.
+- ~~**Live sessions**~~ — ✅ **`session.reminder` BUILT 2026-08-20.** All four
+  unknowns answered: one outbox row **per student**; rescheduling handled by
+  putting the time **in the fingerprint** (same `UID`, higher `.ics`
+  `SEQUENCE`, so calendars update rather than duplicate); `session.scheduled`
+  **dropped**; and the tutor's button shipped alongside, capped at one per
+  class occurrence. ⚠ What remains is the **⚡ change family** —
+  `session.rescheduled`, `session.cancelled`, `session.recording_available`.
+  Cancellation cannot wait for a window, so it stays event-driven.
+- **Capture a tutor phone number.** `nclex_users.phone_number` exists, is
+  **empty for every tutor**, and no screen collects it (`tutor/profile` calls
+  contact fields "separate future work"). `enrolment.rejected` already renders
+  the row conditionally, so the email is ready and the input is not. ⭐ Matters
+  more than it looks: the core audience reaches for WhatsApp before email.
+- ⚠ **The enquiry-form swallow.** `nclex_submit_enquiry` is idempotent on
+  (programme, email) — where an open lead exists it returns that lead and
+  **never inserts the new message**, while showing a success tick. Affects
+  **every repeat enquirer**, not just the rejected students who surfaced it.
+  Shipped public path; own slice.
+- ⚠ **"QAcademy" still reaches readers in 16 places** (home, programmes,
+  checkout, bank-access, `<title>`/meta, both footers, the payment-history
+  drawer) while the company is **Quademia**. Cosmetic, not misinforming, so
+  not urgent — but it undercuts the identity arc's one-name goal. ⓘ **Two of
+  the sixteen are the copyright line** ("QAcademy Educational Consult"), which
+  is a **legal-name** question, not a branding one — do not sweep those with
+  the rest.
 - **Templating + localisation** (GH/UK/CA audiences). ⓘ Gamma's approach is
   worth borrowing in shape but not in code: HTML files with `{{placeholder}}`
   substitution plus one shared `footer.html`, readable and editable by Sam. Two

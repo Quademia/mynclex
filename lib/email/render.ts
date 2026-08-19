@@ -6,7 +6,7 @@
 //
 // Doc: docs/product-plan/transactional-email.md
 
-import type { EmailTemplate, OutboxRow } from './types';
+import type { EmailAttachment, EmailTemplate, OutboxRow } from './types';
 import { wrap } from './templates/wrapper';
 import { footer } from './templates/footer';
 import {
@@ -18,6 +18,18 @@ import {
   enrolmentAddedTemplate,
 } from './templates/enrolment-added';
 import {
+  ENROLMENT_APPROVED_FOOTER_CONTEXT,
+  enrolmentApprovedTemplate,
+} from './templates/enrolment-approved';
+import {
+  ENROLMENT_REJECTED_FOOTER_CONTEXT,
+  enrolmentRejectedTemplate,
+} from './templates/enrolment-rejected';
+import {
+  PAYMENT_TUTOR_RECEIVED_FOOTER_CONTEXT,
+  paymentTutorReceivedTemplate,
+} from './templates/payment-tutor-received';
+import {
   PAYMENT_INSTALLMENT_DUE_FOOTER_CONTEXT,
   paymentInstallmentDueTemplate,
 } from './templates/payment-installment-due';
@@ -25,8 +37,25 @@ import {
   PAYMENT_INSTALLMENT_OVERDUE_FOOTER_CONTEXT,
   paymentInstallmentOverdueTemplate,
 } from './templates/payment-installment-overdue';
+import {
+  SESSION_REMINDER_FOOTER_CONTEXT,
+  sessionReminderTemplate,
+} from './templates/session-reminder';
 
-export type Rendered = { subject: string; html: string; text: string };
+export type Rendered = {
+  subject: string;
+  html: string;
+  text: string;
+  /**
+   * Files travelling with it. Present only for templates that declare
+   * `attachments` — one, at the time of writing (`session.reminder`).
+   *
+   * ⚠ Resolved HERE, on the same pass that builds the HTML, so a retry
+   * rebuilds the attachment from the same frozen payload and cannot send
+   * a calendar file that disagrees with the words beside it.
+   */
+  attachments?: EmailAttachment[];
+};
 
 /**
  * Every wired template, by event key.
@@ -42,6 +71,13 @@ const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: s
     template: paymentReceivedTemplate,
     footerContext: PAYMENT_RECEIVED_FOOTER_CONTEXT,
   },
+  // ⭐ NOT an alias of payment.received. Same anchor, same money, but a
+  // different recipient reading for a different reason — so it is its own
+  // template with its own words, and the two are free to diverge.
+  'payment.tutor_received': {
+    template: paymentTutorReceivedTemplate,
+    footerContext: PAYMENT_TUTOR_RECEIVED_FOOTER_CONTEXT,
+  },
   // ⭐ Both are enqueued from SQL by the nightly sweep (migration
   // 20260911120000), not by app code — the only two entries here that
   // are. Their payloads are therefore unchecked at the boundary; see the
@@ -54,9 +90,29 @@ const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: s
     template: paymentInstallmentOverdueTemplate,
     footerContext: PAYMENT_INSTALLMENT_OVERDUE_FOOTER_CONTEXT,
   },
+  // ⭐ The first FAN-OUT entry, and the first template with an
+  // attachment. Its payload is also written in SQL — by ONE plpgsql
+  // builder that both the nightly sweep and the tutor's button call, so
+  // the two triggers cannot drift into two different emails.
+  'session.reminder': {
+    template: sessionReminderTemplate,
+    footerContext: SESSION_REMINDER_FOOTER_CONTEXT,
+  },
   'enrolment.tutor_added': {
     template: enrolmentAddedTemplate,
     footerContext: ENROLMENT_ADDED_FOOTER_CONTEXT,
+  },
+  // ⭐ The two halves of a tutor's verdict on a place already paid for.
+  // Two templates, NOT one with a dial: an approval and a refusal share
+  // their facts but nothing else — different words, different
+  // destination, different footer.
+  'enrolment.approved': {
+    template: enrolmentApprovedTemplate,
+    footerContext: ENROLMENT_APPROVED_FOOTER_CONTEXT,
+  },
+  'enrolment.rejected': {
+    template: enrolmentRejectedTemplate,
+    footerContext: ENROLMENT_REJECTED_FOOTER_CONTEXT,
   },
   // ⭐ An ALIAS, not a second template. Same file, same words, one dial
   // turned — see enrolment-added.ts. Both keys must render, because a
@@ -131,8 +187,9 @@ export function renderOutboxRow(row: Pick<OutboxRow, 'event_key' | 'payload_json
   const subject = entry.template.subject(payload);
   const inner = entry.template.body(payload);
   const html = wrap({ heading: subject, body: inner, footer: footer(entry.footerContext) });
+  const attachments = entry.template.attachments?.(payload);
 
-  return { subject, html, text: toPlainText(html) };
+  return { subject, html, text: toPlainText(html), attachments };
 }
 
 export type PreviewVariant = {

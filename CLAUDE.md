@@ -356,6 +356,31 @@ slice.
   `curl -s <origin>/login | grep -oE '/_next/static/chunks/app/login/[^"]+\.js'`
   then grep that chunk for the expected value.
 
+- **⚠ A dashboard "Variable" is DELETED BY THE NEXT DEPLOY. Server-side
+  values must be added as encrypted SECRETS.** Cloudflare stores the two
+  differently: `wrangler deploy` sets the Worker's plaintext variables to
+  exactly what `wrangler.jsonc` declares, so anything added in the dashboard
+  as a **Variable** and not present in that file is **wiped on the next
+  deploy**. **Secrets** are stored separately and survive. Found 2026-08-19
+  adding `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: both were set on
+  `mynclex-dev` before the merge, the deploy three minutes later removed
+  them, and the door reported itself unconfigured.
+  - **The value being public is not a reason to use a Variable.** The Google
+    client ID is public by design, but stored as a Variable it still
+    vanishes. Either put it in `wrangler.jsonc` `vars` (committed, and then
+    it survives) or make it a Secret — not the dashboard's Variable box.
+  - ⭐ **Give every new server-side config a distinct "not configured"
+    answer** and the diagnosis costs one click instead of a hunt. Here
+    `lib/auth/google-oauth.ts` returns null unless it sees **both** values,
+    which routes to `/login?error=google_unavailable` — visibly different
+    from a real Google failure, so "the secrets are missing" is
+    distinguishable from "the handshake broke" from outside, with no
+    dashboard access. Same idea as the email drain's 503-vs-401 split.
+  - ⓘ Secrets apply to the running Worker immediately (no redeploy) and are
+    one-time per Worker. See also the CRON_SECRET episode (2026-08-18): the
+    dashboard also has a save-without-deploy draft trap, where the first
+    attempt silently never lands and re-adding fixes it.
+
 - **⚠ REAL TURNSTILE KEYS ON DEV MAKE `/login`, `/register` AND
   `/forgot-password` UNREACHABLE TO CLAUDE — THE BROWSER PANE HANGS ON
   THEM.** Not a bug and not fixable. Turnstile exists to detect an

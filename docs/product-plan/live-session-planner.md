@@ -88,6 +88,23 @@ A future, larger feature: cross-cohort **calendar**, automated
 meetings, auto-pull recordings), **attendance** tracking, a searchable
 **recordings library**, reschedule/cancel notices. Built so it *extends*
 the thin planner's data (same rows, enriched) rather than replacing it.
+
+> ✅ **Two of those arrived early, on 2026-08-20** — and from the email arc
+> rather than from here, which is why this section no longer describes the
+> whole gap. **`session.reminder`** sends a nightly reminder for any class
+> inside the next 7 days, carrying an **`.ics` attachment**; the tutor also
+> gets a **Send reminder** button on this planner, capped at one press per
+> class occurrence. Both read the planner's own rows unchanged — no schema
+> was added.
+>
+> ⭐ The `.ics` quietly removes a chunk of what "managed sessions" was for:
+> she taps it once and her own phone handles every reminder afterwards, so
+> a calendar feature no longer has to earn its place by doing that.
+>
+> ⚠ Still outstanding here: **reschedule/cancel notices**. A moved class
+> re-reminds itself (the reminder's fingerprint carries the time), but
+> nothing yet says *"this class is off"* — and cancellation cannot wait for
+> a nightly window. See `transactional-email.md` → Live sessions.
 **Attendance is pulled forward as a near-term follow-on — see below.**
 
 ---

@@ -386,7 +386,16 @@ function formatDueDate(d: Date): string {
  */
 export async function buildPaymentReceiptEmail(
   checkoutGroupId: string,
-  framing: ReceiptFraming
+  framing: ReceiptFraming,
+  /**
+   * The one-time setup link, for the pay-first guest only.
+   *
+   * ⚠ Passed IN rather than looked up, because it cannot be looked up:
+   * generateLink mints a secret that exists for one instant in
+   * activate.ts and is never stored anywhere this function could read.
+   * Every other field on this payload is derived from the database.
+   */
+  setUpUrl?: string | null
 ): Promise<{ payload: PaymentReceiptPayload; toEmail: string; toUserId: string | null } | null> {
   const receipt = await getPaymentReceiptByGroup(checkoutGroupId);
   if (!receipt) return null;
@@ -484,13 +493,15 @@ export async function buildPaymentReceiptEmail(
       const { data: enrols } = linkedIds.length
         ? await admin
             .from('nclex_enrolments')
-            .select('enrolment_id, status, cohort_id, enrolled_at, strategy_snapshot_json')
+            .select('enrolment_id, status, paused_reason, cohort_id, enrolled_at, strategy_snapshot_json')
             .in('enrolment_id', linkedIds)
         : { data: [] };
 
       const enrolRows = (enrols ?? []) as {
         enrolment_id: string;
         status: string;
+        /** Why she is paused. 'INSTALLMENT_OVERDUE' | 'TUTOR_MANUAL' | null. */
+        paused_reason: string | null;
         cohort_id: string | null;
         enrolled_at: string;
         strategy_snapshot_json: FrozenStrategySnapshot | null;
@@ -545,7 +556,14 @@ export async function buildPaymentReceiptEmail(
 
         const snap = e.strategy_snapshot_json;
         if (!snap) {
-          grantsByPaymentId.set(r.payment_id, `Enrolled in ${place}`);
+          // ⚠ Same "Enrolled in" trap as below — a paused student
+          // reaches this branch too when her plan has no snapshot, and
+          // the statement would be just as false. No schedule here, so
+          // it says the state and stops.
+          grantsByPaymentId.set(
+            r.payment_id,
+            e.status === 'PAUSED' ? `Your place in ${place} is currently paused` : `Enrolled in ${place}`
+          );
           continue;
         }
 
@@ -561,10 +579,41 @@ export async function buildPaymentReceiptEmail(
           .slice(schedule.paidCount)
           .reduce((sum, p) => sum + p.amountMinor, 0);
 
-        const bits = [`Enrolled in ${place}`];
+        // ⚠⚠ A PAUSED ENROLMENT IS NOT "Enrolled in". Found 2026-08-19
+        // by reading a real receipt: a student 74 days behind paid one
+        // instalment, stayed locked out — the gate asks "are you
+        // current?", not "did you just pay" — and her receipt told her
+        // "Enrolled in Q3 Upcoming Cohort". Not an omission: a false
+        // statement, to the one person who had just paid.
+        //
+        // ⭐ It needs ONE day of pause, not seventy-four. The extremity
+        // was seed data; the state is not — the nightly sweep pauses
+        // people on prod every night, and paying what you can afford is
+        // the most ordinary thing an overdue student does.
+        //
+        // ⚠ Branch on paused_reason, not just on PAUSED. A TUTOR_MANUAL
+        // pause has nothing to do with arrears, and explaining it as
+        // money would send her to fix a bill that is not the problem.
+        const paused = e.status === 'PAUSED';
+        const pausedForArrears = paused && e.paused_reason === 'INSTALLMENT_OVERDUE';
+
+        const bits = [
+          pausedForArrears
+            ? `Access to ${place} is paused until the plan is up to date`
+            : paused
+              ? `Your place in ${place} is currently paused — your tutor can tell you more`
+              : `Enrolled in ${place}`,
+        ];
         if (schedule.next && remaining > 0) {
+          // ⚠ TENSE. "next due 6 June" printed in August is the wrong
+          // word for a date that has gone. Sam's phrasing, and it needs
+          // no jargon: the payment WAS due.
+          const due = schedule.next.dueDate;
           bits.push(
-            `${formatMinor(remaining, receipt.currency)} remaining, next due ${formatDueDate(schedule.next.dueDate)}`
+            `${formatMinor(remaining, receipt.currency)} remaining, ` +
+              (due.getTime() < Date.now()
+                ? `the next payment was due ${formatDueDate(due)}`
+                : `next due ${formatDueDate(due)}`)
           );
         } else {
           bits.push('Paid in full');
@@ -590,9 +639,19 @@ export async function buildPaymentReceiptEmail(
     grants: grantsByPaymentId.get(l.key) ?? null,
   }));
 
-  // ⚠ No call to action while setup is outstanding: every in-app
+  // ⚠ No IN-APP call to action while setup is outstanding: every in-app
   // destination would bounce her to a login she cannot complete yet.
   const showCta = framing === 'ACTIVATED' && !!receipt.destinationHref;
+
+  // ⭐⭐ THE ONE DESTINATION THAT DOES WORK BEFORE SHE HAS AN ACCOUNT
+  // (2026-08-19). The line above was right for as long as the only
+  // candidates were app pages — and it is why this slot sat empty for
+  // exactly the reader who most needed something to press. The setup
+  // link is not an app page: it mints her session on the way in. So
+  // SETUP_REQUIRED fills the SAME slot rather than growing a field of
+  // its own, which also means a receipt queued before this shipped
+  // (ctaHref null) renders exactly as it did before.
+  const setUpCta = framing === 'SETUP_REQUIRED' && !!setUpUrl;
 
   return {
     toEmail,
@@ -606,21 +665,49 @@ export async function buildPaymentReceiptEmail(
       reference: first.paystack_reference,
       method,
       lineItems,
-      ctaHref: showCta ? `${APP_ORIGIN}${receipt.destinationHref}` : null,
-      ctaLabel: showCta ? receipt.destinationLabel : null,
+      ctaHref: setUpCta
+        ? (setUpUrl as string)
+        : showCta
+          ? `${APP_ORIGIN}${receipt.destinationHref}`
+          : null,
+      ctaLabel: setUpCta ? 'Set up your account' : showCta ? receipt.destinationLabel : null,
     },
   };
 }
 
-/** Queue the receipt for a checkout, and start sending it immediately. */
+/**
+ * Queue the receipt for a checkout, and start sending it immediately.
+ *
+ * ⚠ STILL NEVER THROWS — the money landing outranks the receipt.
+ *
+ * ⭐ But it now REPORTS whether the row reached the queue, and that
+ * matters for one framing only. On ACTIVATED and PENDING_APPROVAL the
+ * receipt is a courtesy: she already holds what she bought, or a tutor
+ * does, and a lost receipt costs her nothing she cannot see in the app.
+ * On SETUP_REQUIRED since 2026-08-19 this email carries the ONLY link
+ * into an account she has already paid for — so a queue failure is the
+ * difference between "check your email" and total silence, and the one
+ * human who can act on it is looking at the callback page right now.
+ * Same reasoning that gave enqueueAndSend its `queued` flag on
+ * 2026-08-12 for the tutor path; the person present is different.
+ *
+ * ⚠ `queued: true` means QUEUED, not delivered — including the two
+ * outcomes enqueueEmail treats as success-with-nothing-to-send (a
+ * suppressed @example.com address, a duplicate the fingerprint refused).
+ * Both are correct here: neither is something to alarm a buyer about.
+ */
 export async function sendPaymentReceipt(
   checkoutGroupId: string,
-  framing: ReceiptFraming
-): Promise<void> {
+  framing: ReceiptFraming,
+  setUpUrl?: string | null
+): Promise<{ queued: boolean }> {
   try {
-    const built = await buildPaymentReceiptEmail(checkoutGroupId, framing);
-    if (!built) return;
-    await enqueueAndSend({
+    const built = await buildPaymentReceiptEmail(checkoutGroupId, framing, setUpUrl);
+    // No receipt could be built at all (the group vanished between the
+    // write and here). Nothing is going out, so say so rather than
+    // report a silent success.
+    if (!built) return { queued: false };
+    return await enqueueAndSend({
       eventKey: 'payment.received',
       // ⭐ The CHECKOUT, not the payment row — one debit, one receipt.
       subjectRef: checkoutGroupId,
@@ -632,5 +719,6 @@ export async function sendPaymentReceipt(
     // The money landing outranks the receipt. Never let this throw into
     // a payment path.
     console.error('[email] receipt failed for checkout', checkoutGroupId, (e as Error).message);
+    return { queued: false };
   }
 }
