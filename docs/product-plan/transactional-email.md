@@ -1168,7 +1168,34 @@ per cohort goes in the outbox).
 > ⚠ **`session_reminders_enabled` ships OFF in a new environment.** The
 > pg_cron knock calls the DEPLOYED Worker, so until the `session.reminder`
 > template is live there, a nightly pass would enqueue rows that environment
-> can only mark DEAD. Turn it on after the deploy, not before.
+> can only mark DEAD. Turn it on after the deploy, not before. ⓘ It is on
+> `/admin/config` — **a `nclex_config` row alone is invisible**, because that
+> page renders `CONFIG_DEFS` and not the table. `email_drain_enabled` was
+> missed the same way; this one was too, until Sam asked.
+>
+> ⭐⭐ **The switch governs the tutor's button as well, and the first version
+> did not.** Exempting it looked right — the switch means *stop the
+> AUTOMATIC reminders*, and a person pressing a button is not automation.
+> That holds for one of the switch's two jobs and fails for the other:
+>
+> | The switch means | Exempting the button is |
+> |---|---|
+> | editorial — *stop sending automatic reminders* | fine |
+> | operational — *this environment cannot render this yet* | **a lie** |
+>
+> The operational meaning is not hypothetical: it is how a new environment
+> is brought up, and the state dev sat in throughout this build. There, an
+> exempt button queues rows the Worker can only mark DEAD **while telling
+> the tutor "Reminder sent to 12 students"** — the same failure this slice
+> had already fixed twice (the enquiry form's success tick over a dropped
+> message; the "queued 0" that could not tell *all done* from *nobody
+> there*), re-entering through the one door left open.
+>
+> ⓘ Order matters: ownership is checked BEFORE the switch, so a tutor
+> probing someone else's session learns nothing about site configuration.
+> The cost of the change, accepted: an admin pausing the automation also
+> silences tutors — rarer than a botched deploy, and it fails as *"the
+> button says no"* rather than *"the button lies"*.
 >
 > ### Still open after the build
 >

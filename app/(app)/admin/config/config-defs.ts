@@ -79,7 +79,7 @@ export const CONFIG_DEFS: ConfigDef[] = [
     key: 'session_reminders_enabled',
     label: 'Live-class reminders',
     description:
-      'Each morning at 07:00, emails every student whose live class falls in the next seven days — once per class, with a calendar file attached so their own phone reminds them nearer the time. Tutors can also send one reminder per class by hand from the cohort’s Sessions tab; that button is not affected by this switch.',
+      'Each morning at 07:00, emails every student whose live class falls in the next seven days — once per class, with a calendar file attached so their own phone reminds them nearer the time. Tutors can also send one reminder per class by hand from the cohort’s Sessions tab. This switch governs both.',
     type: 'boolean',
     defaultValue: 'true',
     // ⚠ THE SWITCH MUST EXIST HERE OR IT EFFECTIVELY DOES NOT EXIST. The
@@ -93,7 +93,7 @@ export const CONFIG_DEFS: ConfigDef[] = [
     // is deployed there, or the morning pass queues rows that environment
     // can only mark DEAD.
     confirmOff:
-      'Students will stop being told about their live classes. Nothing is lost and nothing needs catching up — the morning pass only ever emails students it has not already told, so whoever was missed while this was off is picked up by the first run after you turn it back on. Tutors can still send a reminder by hand in the meantime.',
+      'Students will stop being told about their live classes, and tutors will not be able to send a reminder by hand either — the button will refuse while this is off. Nothing is lost and nothing needs catching up: the morning pass only ever emails students it has not already told, so whoever was missed while this was off is picked up by the first run after you turn it back on.',
   },
   {
     key: 'bank_optin_discount',

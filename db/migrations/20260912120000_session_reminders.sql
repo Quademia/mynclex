@@ -320,6 +320,36 @@ BEGIN
     RAISE EXCEPTION 'This class has already taken place.';
   END IF;
 
+  -- ⚠⚠ THE BUTTON RESPECTS THE SWITCH TOO, and the first version did not.
+  -- The reasoning for exempting it was that the switch means "stop the
+  -- AUTOMATIC reminders" and a tutor pressing a button is a deliberate act,
+  -- not automation. That is true of one of the switch's two jobs and false
+  -- of the other:
+  --
+  --   editorial   "stop sending automatic reminders"        exemption is fine
+  --   operational "this environment cannot render this yet"  exemption is a LIE
+  --
+  -- The second is not hypothetical — it is how a new environment is brought
+  -- up, and the state dev sat in while this was built. There, an exempt
+  -- button queues rows the Worker can only mark DEAD while telling the tutor
+  -- "Reminder sent to 12 students".
+  --
+  -- ⭐ That is the same failure this slice has already fixed twice: the
+  -- enquiry form's success tick over a dropped message, and the "queued 0"
+  -- that could not tell "all done" from "nobody there". An exemption that
+  -- can report success for an email that will never send is the same bug
+  -- through the one door left open.
+  --
+  -- ⓘ The cost, accepted: an admin pausing the automation also silences
+  -- tutors. Rarer than a botched deploy, and it fails as "the button says
+  -- no" rather than "the button lies".
+  IF COALESCE(
+       (SELECT value FROM nclex_config WHERE key = 'session_reminders_enabled'),
+       'true'
+     ) = 'false' THEN
+    RAISE EXCEPTION 'Live-class reminders are switched off for the whole site. An administrator can turn them back on in Admin settings.';
+  END IF;
+
   -- Counted BEFORE the insert, and with the same two filters the builder
   -- uses, or the two numbers would answer slightly different questions.
   SELECT count(*)
