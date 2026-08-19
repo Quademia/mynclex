@@ -1,10 +1,18 @@
 # Transactional Email — Trigger Registry
 
-*Status: **the spine is built, the drain runs, and the ⏰ half has opened.**
-5 of 24 emails wired — `payment.received`, `enrolment.tutor_added`,
-`waitlist.converted`, and as of 2026-08-18 `payment.installment_due` +
-`payment.installment_overdue`, **the first time-driven emails the product has
-ever sent**. A pg_cron job knocks on the drain every five minutes. **Released to prod 2026-08-18 (PR #53) — live on BOTH projects, proven by a real test-mode purchase whose receipt sent in 218 ms through prod's own key.** This
+*Status: **the spine is built, the drain runs, the ⏰ half has opened, and
+Supabase no longer writes any email of ours.**
+**8 of 24 emails wired; 5 of them on prod.** ✅ **On prod** (2026-08-18, PR
+#53 — proven by a real test-mode purchase whose receipt sent in 218 ms
+through prod's own key): `payment.received`, `enrolment.tutor_added`,
+`waitlist.converted`, `payment.installment_due`,
+`payment.installment_overdue` — the last two **the first time-driven emails
+the product has ever sent**. 🔨 **On `main`, not yet released** (2026-08-19):
+`payment.tutor_received`, `enrolment.approved`, `enrolment.rejected`, plus
+the **pay-first invite swap**, which is not a new email but changes a shipped
+one — `payment.received` now carries the setup link, so a guest purchase
+sends **one** email where it sent two. A pg_cron job knocks on the drain
+every five minutes. This
 doc is the single source of truth for **every point in the app that should
 send an email**, and for **how a send works**. See [main.md](main.md) and
 [payments-and-enrolment.md](payments-and-enrolment.md).*
@@ -1184,9 +1192,11 @@ account-holder, true. **For a pay-first guest, false**, and the receipt would
 have stated something that had not happened.
 
 `activateGroup` in `lib/payments/activate.ts`: when no profile is found it
-sends ONE invite, marks the group `SETUP_REQUIRED`, and creates **no
-enrolment, no subscription, no credits**. The grants happen at `/welcome`,
-possibly days later.
+mints ONE setup link for the whole group, marks it `SETUP_REQUIRED`, and
+creates **no enrolment, no subscription, no credits**. The grants happen at
+`/welcome`, possibly days later. (Until 2026-08-19 it *sent* one invite, via
+Supabase; since the swap it mints the link and this receipt carries it —
+which is also why the receipt is queued before the status flips.)
 
 So the money half is constant and the *"what you now have"* half is
 **state-aware** — `ACTIVATED`, `PENDING_APPROVAL`, `SETUP_REQUIRED`. Under the
@@ -1982,6 +1992,12 @@ the one change that can leave an invited student with *nothing*, so it does not
 belong in the slice still finding bugs in the pipe · opt-out preferences,
 since neither of these is opt-out-able.
 
+> ⓘ **The deferral held, and both halves have since landed** — tutor-add
+> 2026-08-12, pay-first 2026-08-19. Waiting was right: the pay-first half
+> turned out to hinge on the queue reporting whether it accepted the row,
+> a signal that did not exist until 08-12 and would have had to be
+> invented mid-slice here. See *Invite* below.
+
 ### Folders this arc needs (agreed 2026-08-10, ✅ all created 2026-08-11)
 
 **New folders — two certain, one likely:**
@@ -2067,18 +2083,69 @@ IS the email; the password link is a detail inside it.
 
 **How** — the two invite call sites
 ([`lib/enrolments/actions.ts`](../../lib/enrolments/actions.ts),
-[`lib/payments/activate.ts`](../../lib/payments/activate.ts)) currently use
+[`lib/payments/activate.ts`](../../lib/payments/activate.ts)) used
 `admin.auth.admin.inviteUserByEmail`, which sends Supabase's generic body
-as a side effect. Swap to `admin.auth.admin.generateLink({ type: 'invite' })`,
-which mints the **same** set-password link and sends nothing — then our
-worker sends one branded email carrying both.
+as a side effect. Both now call `admin.auth.admin.generateLink({ type:
+'invite' })`, which mints the **same** set-password link and sends nothing
+— and our own email carries it.
 
-⚠ **Do not delete or disable the Supabase invite template before that
-lands.** Until this arc is built it is the only email an invited student
-receives; removing it early makes tutor-add and pay-first silently send
-nothing. It stays deliberately unbranded in the meantime — and since the
-SMTP switch it already sends **from** Quademia, so it reads unstyled
-rather than untrustworthy.
+#### ✅ Both halves done — tutor-add 2026-08-12, pay-first 2026-08-19
+
+⭐⭐ **The gap between those dates is the lesson, not the delay.** The
+tutor-add swap shipped the same day its rich email was written, so that
+path went from *only Supabase's invite* to *only ours* with no moment in
+between. The pay-first receipt had shipped a day earlier, on 08-11, **and
+its swap did not follow** — so from 08-11 to 08-19 every guest purchase
+sent **two** emails: Supabase's *"you have an account"*, which arrived
+first and did not mention the payment, and our receipt beside it, whose
+note then told her to go and look for the thin one.
+
+⭐ **The duplication had a birthday, and it was the arrival of the GOOD
+email.** Before 08-11 Supabase's invite was the only thing a pay-first
+buyer received — thin, but not redundant. Adding the receipt is what made
+two. Worth remembering when the next rich email is written beside a
+generic one: shipping the better half first *creates* the problem it is
+meant to solve, and nothing fails or warns.
+
+**What the pay-first half changed** (all in `activateGroup`):
+
+- The receipt's **CTA slot, previously left null on purpose**, now carries
+  the link. The old comment — *"no call to action while setup is
+  outstanding: every in-app destination would bounce her to a login she
+  cannot complete yet"* — was right about app pages, which is precisely
+  why the one reader who most needed a button had none. A setup link is
+  not an app page; it mints her session on the way in. Reusing the slot
+  rather than adding a field also means a receipt queued **before** the
+  swap renders exactly as it did before.
+- ⚠ **The failure mode inverted.** `sendPaymentReceipt` swallowed every
+  failure by design — the money outranks the receipt, and the way in was
+  sent by Supabase regardless. Now this email **is** the way in, so it
+  reports whether it queued, and the callback page has a state for
+  `false`. She is not locked out: `generateLink` creates the account
+  before the send is attempted, so `/login` → *"Email me a sign-in code"*
+  reaches it. Saying *"check your email"* there would be a falsehood.
+- ⚠ **Order matters more than it looks.** The receipt is queued **before**
+  the status flips to `SETUP_REQUIRED`, because that status is what
+  selects the retry branch — and the retry branch mints no link. Queuing
+  second left a window in which a concurrent pass (pending-recheck
+  re-runs settle every few seconds) could queue a **linkless** receipt and
+  win the fingerprint. Enqueuing first removes the window: a concurrent
+  pass still reads `PAID`, takes the same branch, and also carries a link.
+- The template therefore carries **two** setup wordings, because two real
+  cases still produce a buttonless receipt: a row queued before the swap
+  deployed, and the retry branch after a failed first enqueue.
+
+⭐ **Proven on dev 2026-08-19** across all three guest purchases —
+programme (with bank opt-in), bank alone, readiness alone. The decisive
+evidence was `auth.users.confirmation_sent_at`: **null** on every account
+created by the new path, because Supabase sent nothing. A fourth purchase
+run against the deployed Worker, still on the old code, carried a
+timestamp there and produced the old two-email pair — an accidental but
+exact control.
+
+⚠ **Only now may the Supabase invite template be disabled — and not until
+this is on prod**, where it is still the live way in. Removing it early
+makes pay-first silently send nothing.
 
 ---
 
