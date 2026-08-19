@@ -18,7 +18,7 @@ product (the UWorld shape — nursing.uworld.com, medicine.uworld.com):
 |---|---|
 | MyNclex | `nclex.quademia.com` |
 | MyTeacher | `teacher.quademia.com` |
-| Schools platform (Beta-B) | `schools.quademia.com` |
+| MyExams (was Beta-B) | `exams.quademia.com` |
 | MyNMCLicensure | `licensure.quademia.com` |
 
 *Subdomain names settled 2026-08-05 (attached at each product's
@@ -34,10 +34,20 @@ migration time, so rename-before-attach stays cheap):*
   (`assessor`/`assess` considered — the product is really class-based
   assessment; revisit only at gamma-migration time if the brand itself
   is rethought.)
-- **`schools`** (plural) for Beta-B — the hub for many schools. The
-  white-label ambition strengthens this: a white-labeled school gets its
-  own subdomain (`<schoolname>.quademia.com`) or custom domain later, so
-  the hub name stays out of their way.
+- **`exams`** for MyExams — ⚠ **corrected 2026-08-19; this was `schools`.**
+  The original reasoning ("the hub for many schools") assumed a
+  school-only tenant, and that premise was wrong: any organisation that
+  runs formal exams is a tenant — training institutes, professional
+  bodies, employers. The product was renamed **MyExams** the same day
+  (`Quademia/myexams`, formerly `mybackpacc-byte/qacademy-beta-b`),
+  bringing it into the `My*` family alongside MyNclex, MyTeacher and
+  MyNMCLicensure. ⭐ **The schema had it right all along** — the tenant
+  table is `tenants`, never `schools`; only the UI wording says school
+  (706 occurrences across 47 files), a presentation-layer sweep still to
+  do. The white-label point survives intact: a white-labeled organisation
+  still gets its own subdomain (`<name>.quademia.com`) or custom domain
+  later, and a neutral hub name stays out of their way *better* than
+  `schools` did. Lineage doc: the renamed repo's own `README.md`.
 
 **Why one parent matters (not just branding):** browser cookies can be scoped
 to a parent domain and shared across its subdomains. Products on unrelated
