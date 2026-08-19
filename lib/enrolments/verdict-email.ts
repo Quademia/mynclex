@@ -35,6 +35,10 @@ type Facts = {
   cohortName: string | null;
   cohortStartISO: string | null;
   tutorName: string;
+  /** Null only if the tutor somehow has no profile row — see readFacts. */
+  tutorEmail: string | null;
+  /** Empty for every tutor today; no screen collects it yet. */
+  tutorPhone: string | null;
   accessExpiresAtISO: string | null;
 };
 
@@ -99,12 +103,21 @@ export async function sendEnrolmentRejectedEmail(enrolmentId: string): Promise<v
     const f = await readFacts(enrolmentId);
     if (!f) return;
 
+    // ⚠ Without an address there is no way to reach the tutor, and the
+    // email's whole second half is "talk to them". Rather than print a
+    // contact block with nothing in it, fall back to support alone —
+    // the template already handles a null address that way.
+    if (!f.tutorEmail) {
+      console.error('[email] rejection: no tutor address for enrolment', enrolmentId);
+    }
+
     const payload: EnrolmentRejectedPayload = {
       recipientName: f.recipientName,
       programmeName: f.programmeName,
       cohortName: f.cohortName,
       tutorName: f.tutorName,
-      contactUrl: `${APP_ORIGIN}/programmes/${f.programmeId}#contact-tutor`,
+      tutorEmail: f.tutorEmail ?? '',
+      tutorPhone: f.tutorPhone,
     };
 
     await enqueueAndSend({
@@ -177,9 +190,11 @@ async function readFacts(enrolmentId: string): Promise<Facts | null> {
     return null;
   }
 
+  // ⭐ email + phone as well as the name: the rejection email hands them
+  // to the student directly. See EnrolmentRejectedPayload.
   const { data: tutor } = await admin
     .from('nclex_users')
-    .select('name')
+    .select('name, email, phone_number')
     .eq('id', prog.data?.tutor_id as string)
     .maybeSingle();
 
@@ -202,6 +217,8 @@ async function readFacts(enrolmentId: string): Promise<Facts | null> {
     // becomes the product name rather than an empty string, because
     // " has confirmed your place" reads as broken software.
     tutorName: (tutor?.name as string | null)?.trim() || 'Your tutor',
+    tutorEmail: (tutor?.email as string | null)?.trim() || null,
+    tutorPhone: (tutor?.phone_number as string | null)?.trim() || null,
     accessExpiresAtISO: (enr.access_expires_at as string | null) ?? null,
   };
 }

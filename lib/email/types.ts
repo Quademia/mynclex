@@ -482,17 +482,34 @@ export type EnrolmentApprovedPayload = EnrolmentVerdictBase & {
 // cannot keep. The footer already offers support as the second route.
 export type EnrolmentRejectedPayload = EnrolmentVerdictBase & {
   /**
-   * The programme page's "Contact the tutor" form (#contact-tutor),
-   * which lands in the tutor's existing enquiry queue.
+   * ⭐⭐ THE TUTOR'S REAL ADDRESS, DELIBERATELY (Sam, 2026-08-19):
+   * "we have to ensure communication is easy".
    *
-   * ⭐ A real destination, not a mailto: it reaches a queue the tutor
-   * already reads, and it does not publish their personal address.
+   * ⚠ This REPLACED a button to the programme page's Contact-the-tutor
+   * form, which looked safer and was not. That RPC is idempotent on
+   * (programme, email): if an open lead already exists for the pair it
+   * returns the existing one and NEVER INSERTS the new message, while
+   * still showing her a green tick. A refused student is more likely
+   * than average to have enquired before buying, so the one message
+   * that most needs to arrive was the one most likely to vanish — with
+   * neither side able to tell. A mailto cannot fail silently.
    *
-   * ⚠ That form only accepts PUBLISHED programmes. If hers has since
-   * been archived the link still opens but cannot submit — which is the
-   * case the footer's support address exists to catch.
+   * ⓘ It is a real disclosure: the tutor's account address, which may
+   * be personal, reaches a student who has been refused. Accepted
+   * knowingly — tutors are manually vetted in v1 and she has paid them
+   * money. If tutors ever get a separate public contact address, this
+   * is the field that should read it instead.
    */
-  contactUrl: string;
+  tutorEmail: string;
+  /**
+   * ⚠ NULL FOR EVERY TUTOR TODAY, and that is not a bug. `phone_number`
+   * exists on nclex_users but is empty for all of them (checked
+   * 2026-08-19), and no screen collects it — tutor/profile calls contact
+   * fields "separate future work". Built conditional so the line appears
+   * by itself the day a number exists, rather than needing this email
+   * reopened.
+   */
+  tutorPhone: string | null;
   /**
    * ⚠ THE TUTOR'S NOTE IS DELIBERATELY ABSENT, and this is why the field
    * does not exist here. `nclex_reject_enrolment` stores `p_note` in
