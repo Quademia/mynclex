@@ -34,6 +34,7 @@ import type { Currency } from '@/lib/payments/types';
 import type { EnrolmentReason } from '@/lib/email/types';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
 import { sendEnrolmentAddedEmail } from './enrol-email';
+import { sendEnrolmentApprovedEmail, sendEnrolmentRejectedEmail } from './verdict-email';
 
 // `emailQueued: false` = the student was enrolled but nothing was sent.
 // ⚠ Deliberately NOT an error: the enrolment is real and rolling it back
@@ -636,9 +637,21 @@ export async function approveEnrolmentAction(
   programmeId: string,
   enrolmentId: string,
 ): Promise<TransitionResult> {
-  return callTransition(programmeId, 'nclex_approve_enrolment', {
+  const res = await callTransition(programmeId, 'nclex_approve_enrolment', {
     p_enrolment_id: enrolmentId,
   });
+  if (!res.ok) return res;
+
+  // EMAIL-TRIGGER[enrolment.approved]: the student — and this one is
+  // owed, not merely nice. Her receipt has been telling her since
+  // 2026-08-18 that "you will get another email as soon as your tutor
+  // approves your place", and until now nothing was ever sent.
+  //
+  // ⚠ AFTER the transition, and only on success: the email states the
+  // place as confirmed, so it must not go out on a run the database
+  // refused.
+  await sendEnrolmentApprovedEmail(enrolmentId);
+  return res;
 }
 
 export async function rejectEnrolmentAction(
@@ -646,10 +659,21 @@ export async function rejectEnrolmentAction(
   enrolmentId: string,
   note?: string,
 ): Promise<TransitionResult> {
-  return callTransition(programmeId, 'nclex_reject_enrolment', {
+  const res = await callTransition(programmeId, 'nclex_reject_enrolment', {
     p_enrolment_id: enrolmentId,
     p_note: note?.trim() ? note.trim() : null,
   });
+  if (!res.ok) return res;
+
+  // EMAIL-TRIGGER[enrolment.rejected]: the student — she paid, and the
+  // answer is no. Being refused in silence is the worse half of the
+  // promise the receipt made.
+  //
+  // ⚠ `note` is passed to the RPC and NOT to the email. It is stored in
+  // tutor_note, which nothing in the app displays, so no tutor has ever
+  // been told it could be read by a student. See EnrolmentRejectedPayload.
+  await sendEnrolmentRejectedEmail(enrolmentId);
+  return res;
 }
 
 export async function pauseEnrolmentAction(

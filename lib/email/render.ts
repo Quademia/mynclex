@@ -18,6 +18,14 @@ import {
   enrolmentAddedTemplate,
 } from './templates/enrolment-added';
 import {
+  ENROLMENT_APPROVED_FOOTER_CONTEXT,
+  enrolmentApprovedTemplate,
+} from './templates/enrolment-approved';
+import {
+  ENROLMENT_REJECTED_FOOTER_CONTEXT,
+  enrolmentRejectedTemplate,
+} from './templates/enrolment-rejected';
+import {
   PAYMENT_TUTOR_RECEIVED_FOOTER_CONTEXT,
   paymentTutorReceivedTemplate,
 } from './templates/payment-tutor-received';
@@ -68,6 +76,18 @@ const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: s
   'enrolment.tutor_added': {
     template: enrolmentAddedTemplate,
     footerContext: ENROLMENT_ADDED_FOOTER_CONTEXT,
+  },
+  // ⭐ The two halves of a tutor's verdict on a place already paid for.
+  // Two templates, NOT one with a dial: an approval and a refusal share
+  // their facts but nothing else — different words, different
+  // destination, different footer.
+  'enrolment.approved': {
+    template: enrolmentApprovedTemplate,
+    footerContext: ENROLMENT_APPROVED_FOOTER_CONTEXT,
+  },
+  'enrolment.rejected': {
+    template: enrolmentRejectedTemplate,
+    footerContext: ENROLMENT_REJECTED_FOOTER_CONTEXT,
   },
   // ⭐ An ALIAS, not a second template. Same file, same words, one dial
   // turned — see enrolment-added.ts. Both keys must render, because a

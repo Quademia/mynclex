@@ -36,6 +36,8 @@ export type EmailEventKey =
   | 'payment.installment_due'
   | 'payment.installment_overdue'
   | 'enrolment.tutor_added'
+  | 'enrolment.approved'
+  | 'enrolment.rejected'
   | 'waitlist.converted';
 
 // ─────────────────────────────────────────────────────────────────────
@@ -421,6 +423,86 @@ export type EnrolmentAddedPayload = {
   } | null;
   actionUrl: string;
   actionLabel: string;
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// The tutor's verdict on a place she paid for
+// ─────────────────────────────────────────────────────────────────────
+// ⭐⭐ THESE TWO CLOSE A PROMISE THAT WAS ALREADY SHIPPED. The receipt's
+// PENDING_APPROVAL variant has told buyers, on prod since 2026-08-18:
+// "You will get another email as soon as your tutor approves your
+// place." No such email existed. Five dev enrolments were sitting in
+// that state having been told so.
+//
+// ⭐ How the gap was made, since it was not carelessness: on 2026-08-10
+// `enrolment.confirmed` was deliberately FOLDED INTO `payment.received`
+// — right, because on a normal checkout the money and the place land in
+// the same instant for the same person. But that only holds on the
+// ACTIVATED path. On the PENDING_APPROVAL path the place is confirmed
+// LATER, BY A HUMAN, and that second moment went out of the catalog
+// with the row that was deleted.
+//
+// ⓘ Only ever reached by a PAID checkout. A tutor-added enrolment is
+// created ENROLLED and never passes through PENDING_APPROVAL — so the
+// audience for these is exactly the audience the receipt promised.
+//
+// ⚠ TWO KEYS, TWO TEMPLATES — deliberately NOT the one-file-two-dials
+// shape that enrolment.tutor_added and waitlist.converted share. Those
+// are one event with a different backstory; these are opposite outcomes
+// with different content, different destination and different footer.
+
+/** Shared by both verdicts — who, what place, and who decided. */
+type EnrolmentVerdictBase = {
+  /** Forename. Null-safe: the template greets without a name. */
+  recipientName: string | null;
+  programmeName: string;
+  /** Null on a self-paced programme, which has no cohort. */
+  cohortName: string | null;
+  /**
+   * ⚠ Not decoration. A verdict on money already paid, arriving from
+   * nobody in particular, is indistinguishable from a phishing email.
+   */
+  tutorName: string;
+};
+
+export type EnrolmentApprovedPayload = EnrolmentVerdictBase & {
+  /** The cohort's start date. Null for self-paced — it starts now. */
+  startsOnISO: string | null;
+  /** Frozen at enrolment. Null = lifetime, and prints nothing. */
+  accessExpiresAtISO: string | null;
+  actionUrl: string;
+  actionLabel: string;
+};
+
+// ⚠ NO REFUND IS PROMISED, AND NO REFUND HAPPENS. nclex_reject_enrolment
+// sets status, terminal_at and tutor_note — nothing else. Her payment row
+// stays ACTIVATED and `payment.refunded` is unbuilt, so the money has no
+// automatic next step. Settled with Sam 2026-08-19: point her at the
+// tutor for the conversation rather than write a commitment the software
+// cannot keep. The footer already offers support as the second route.
+export type EnrolmentRejectedPayload = EnrolmentVerdictBase & {
+  /**
+   * The programme page's "Contact the tutor" form (#contact-tutor),
+   * which lands in the tutor's existing enquiry queue.
+   *
+   * ⭐ A real destination, not a mailto: it reaches a queue the tutor
+   * already reads, and it does not publish their personal address.
+   *
+   * ⚠ That form only accepts PUBLISHED programmes. If hers has since
+   * been archived the link still opens but cannot submit — which is the
+   * case the footer's support address exists to catch.
+   */
+  contactUrl: string;
+  /**
+   * ⚠ THE TUTOR'S NOTE IS DELIBERATELY ABSENT, and this is why the field
+   * does not exist here. `nclex_reject_enrolment` stores `p_note` in
+   * `tutor_note`, and NOTHING in the app has ever displayed it — so no
+   * tutor has been given any reason to think it is read by a student.
+   * A tutor who typed "didn't pay last time, avoid" into what reads as
+   * an internal box must not have it mailed to the person it is about.
+   * To include it, relabel that box in the roster UI first.
+   */
+  tutorNoteIsNotSent?: never;
 };
 
 // ─────────────────────────────────────────────────────────────────────
