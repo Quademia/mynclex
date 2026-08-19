@@ -6,7 +6,7 @@
 //
 // Doc: docs/product-plan/transactional-email.md
 
-import type { EmailTemplate, OutboxRow } from './types';
+import type { EmailAttachment, EmailTemplate, OutboxRow } from './types';
 import { wrap } from './templates/wrapper';
 import { footer } from './templates/footer';
 import {
@@ -37,8 +37,25 @@ import {
   PAYMENT_INSTALLMENT_OVERDUE_FOOTER_CONTEXT,
   paymentInstallmentOverdueTemplate,
 } from './templates/payment-installment-overdue';
+import {
+  SESSION_REMINDER_FOOTER_CONTEXT,
+  sessionReminderTemplate,
+} from './templates/session-reminder';
 
-export type Rendered = { subject: string; html: string; text: string };
+export type Rendered = {
+  subject: string;
+  html: string;
+  text: string;
+  /**
+   * Files travelling with it. Present only for templates that declare
+   * `attachments` — one, at the time of writing (`session.reminder`).
+   *
+   * ⚠ Resolved HERE, on the same pass that builds the HTML, so a retry
+   * rebuilds the attachment from the same frozen payload and cannot send
+   * a calendar file that disagrees with the words beside it.
+   */
+  attachments?: EmailAttachment[];
+};
 
 /**
  * Every wired template, by event key.
@@ -72,6 +89,14 @@ const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: s
   'payment.installment_overdue': {
     template: paymentInstallmentOverdueTemplate,
     footerContext: PAYMENT_INSTALLMENT_OVERDUE_FOOTER_CONTEXT,
+  },
+  // ⭐ The first FAN-OUT entry, and the first template with an
+  // attachment. Its payload is also written in SQL — by ONE plpgsql
+  // builder that both the nightly sweep and the tutor's button call, so
+  // the two triggers cannot drift into two different emails.
+  'session.reminder': {
+    template: sessionReminderTemplate,
+    footerContext: SESSION_REMINDER_FOOTER_CONTEXT,
   },
   'enrolment.tutor_added': {
     template: enrolmentAddedTemplate,
@@ -162,8 +187,9 @@ export function renderOutboxRow(row: Pick<OutboxRow, 'event_key' | 'payload_json
   const subject = entry.template.subject(payload);
   const inner = entry.template.body(payload);
   const html = wrap({ heading: subject, body: inner, footer: footer(entry.footerContext) });
+  const attachments = entry.template.attachments?.(payload);
 
-  return { subject, html, text: toPlainText(html) };
+  return { subject, html, text: toPlainText(html), attachments };
 }
 
 export type PreviewVariant = {

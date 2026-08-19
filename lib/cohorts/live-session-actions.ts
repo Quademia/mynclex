@@ -78,3 +78,52 @@ export async function clearLiveSessionScheduleAction(
   }
   return { ok: true };
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// "Send reminder" — the one case the nightly pass cannot reach
+// ─────────────────────────────────────────────────────────────────────
+// A student who joins on the MORNING of a class is past last night's run,
+// and no schedule covers "we start in 30 minutes and the link has
+// changed". This is the escape valve for both.
+//
+// ⚠ ONCE PER OCCURRENCE (Sam, 2026-08-19). An always-open button is a
+// tutor emailing twenty-five nurses four times about one lesson, and the
+// first noisy transactional email is how people start ignoring the rest.
+// The limit needs no counter: it IS the outbox fingerprint the nightly
+// pass already uses, so a second press inserts nothing and returns 0.
+//
+// ⭐ The allowance refills when the CLASS MOVES, because the fingerprint
+// carries the scheduled time. Otherwise the one person who most needs to
+// speak after a reschedule would be the only one gagged.
+//
+// ⚠ THE COUNT IS RETURNED AND THE UI MUST SHOW IT. A tutor pressing a
+// live button and seeing nothing is the third instance of one bug here:
+// nclex_submit_enquiry reports success while dropping a repeat enquirer's
+// message, and the pay-first receipt was refused by the fingerprint with
+// nobody told. The gate itself lives in SQL — UX is in TS, security is in
+// SQL — so this action is the message, not the guard.
+
+export type SendReminderResult =
+  | { ok: true; queued: number }
+  | { ok: false; error: string };
+
+export async function sendSessionReminderAction(sessionId: string): Promise<SendReminderResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Not signed in.' };
+
+  const { data, error } = await supabase.rpc('nclex_tutor_send_session_reminder', {
+    p_session_id: sessionId,
+  });
+
+  if (error) {
+    // The RPC raises a sentence per refusal (not yours · no date yet ·
+    // already happened), and each is worth showing verbatim — a tutor who
+    // is told "already taken place" stops looking for a bug.
+    return { ok: false, error: error.message || 'Could not send the reminder.' };
+  }
+
+  return { ok: true, queued: Number(data ?? 0) };
+}

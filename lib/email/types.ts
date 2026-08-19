@@ -7,6 +7,9 @@
 // Doc: docs/product-plan/transactional-email.md
 
 import type { Currency } from '@/lib/products/money';
+import type { EmailAttachment } from './ics';
+
+export type { EmailAttachment };
 
 // ─────────────────────────────────────────────────────────────────────
 // Event keys
@@ -38,7 +41,12 @@ export type EmailEventKey =
   | 'enrolment.tutor_added'
   | 'enrolment.approved'
   | 'enrolment.rejected'
-  | 'waitlist.converted';
+  | 'waitlist.converted'
+  /**
+   * ⭐ The first FAN-OUT email: one trigger, a whole cohort of recipients.
+   * Every key above it has exactly one. See SessionReminderPayload.
+   */
+  | 'session.reminder';
 
 // ─────────────────────────────────────────────────────────────────────
 // The outbox row
@@ -174,8 +182,59 @@ export type EmailTemplate<P = Record<string, unknown>> = {
   subject: (payload: P) => string;
   /** The inner body. The wrapper and footer are added by render.ts. */
   body: (payload: P) => string;
+  /**
+   * Files to travel with the email. Optional, and absent on all eight
+   * templates that predate it — an email without one behaves exactly as
+   * before, which is what made adding this safe to the shared sender.
+   *
+   * ⭐ Built HERE rather than frozen into the payload at enqueue, because
+   * an attachment is a *rendering* of the facts, not a fact. The payload
+   * stays plain JSON that SQL can write, and the .ics is assembled on the
+   * way out — the same reason the HTML is not stored either.
+   */
+  attachments?: (payload: P) => EmailAttachment[];
   /** Sample payloads for the admin preview — one per variant worth eyeballing. */
   previews: { label: string; payload: P }[];
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// The live-session reminder payload
+// ─────────────────────────────────────────────────────────────────────
+// ⚠ FILLED IN SQL, like the two installment payloads above — the nightly
+// sweep and the tutor's button both go through ONE plpgsql builder
+// (`nclex_enqueue_session_reminders`), so TypeScript checks nothing about
+// what actually arrives. This type is the contract, not the enforcement.
+//
+// ⭐ One builder, two triggers, on purpose. Wiring the button straight to
+// its own send is how the automatic path ends up written twice and the
+// two drift — the same rule the payment anchors follow.
+
+export type SessionReminderPayload = {
+  /** Her forename. Null only if a profile somehow has none. */
+  recipientName: string | null;
+  programmeTitle: string;
+  cohortName: string | null;
+  tutorName: string;
+  /** What the tutor called this class — the marker activity's title. */
+  sessionTitle: string;
+  scheduledAtISO: string;
+  durationMinutes: number | null;
+  /** 'Zoom' · 'Google Meet' · whatever the tutor typed. */
+  platform: string | null;
+  joinUrl: string | null;
+  meetingId: string | null;
+  passcode: string | null;
+  joiningInstructions: string | null;
+  /** ⭐ The .ics UID — stable across reschedules so her calendar UPDATES. */
+  sessionId: string;
+  /** ⭐ The .ics SEQUENCE — `updated_at` as epoch seconds, monotonic. */
+  sequence: number;
+  /**
+   * Which trigger produced this. Wording only — a nightly reminder
+   * announces itself as routine, a tutor's deliberate send should read as
+   * coming from a person, because it usually carries news.
+   */
+  trigger: 'NIGHTLY' | 'MANUAL';
 };
 
 // ─────────────────────────────────────────────────────────────────────

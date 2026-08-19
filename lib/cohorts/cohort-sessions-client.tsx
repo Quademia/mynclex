@@ -12,9 +12,11 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { unitLabel } from '@/lib/curriculum/format';
 import { ErrorToast } from '@/lib/toast/error-toast';
+import { InfoToast } from '@/lib/toast/info-toast';
 import { LiveSessionScheduleModal } from './live-session-schedule-modal';
 import { LiveSessionAddModal } from './live-session-add-modal';
 import { deleteCohortOnlyActivityAction } from './actions';
+import { sendSessionReminderAction } from './live-session-actions';
 import type {
   CohortSessionsPlanner,
   PlannerSession,
@@ -33,6 +35,13 @@ function formatWhen(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+// A class already held cannot be reminded about. Compared here as well as
+// in SQL so the control is simply absent rather than present-and-refused.
+function isFuture(iso: string): boolean {
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) && t > Date.now();
 }
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -57,6 +66,49 @@ export function CohortSessionsClient({
   const [removing, setRemoving] = useState<PlannerSession | null>(null);
   const [removePending, startRemove] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  // ── "Send reminder" ──────────────────────────────────────────────
+  // ⚠ ONE PER CLASS OCCURRENCE (Sam, 2026-08-19). The limit is the outbox
+  // fingerprint, not a counter here — so this state is only about what the
+  // button SAYS. It starts from the server's answer and is updated in
+  // place after a send, so the row settles without a full refresh.
+  //
+  // ⭐⭐ EVERY OUTCOME IS SPOKEN, including "0". A deliberate press that
+  // silently does nothing is the bug this codebase has now shipped twice:
+  // nclex_submit_enquiry shows a success tick while dropping a repeat
+  // enquirer's message, and the pay-first receipt was refused by the
+  // fingerprint with nobody told. Zero here is a real answer — everyone
+  // has already been told — and it is said out loud.
+  const [sentAt, setSentAt] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      planner.sessions
+        .filter((s) => s.reminder?.manualSentAt)
+        .map((s) => [s.activityId, s.reminder!.manualSentAt as string])
+    )
+  );
+  const [remindingId, setRemindingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [remindPending, startRemind] = useTransition();
+
+  function handleSendReminder(s: PlannerSession) {
+    if (!s.reminder) return;
+    setRemindingId(s.activityId);
+    startRemind(async () => {
+      const res = await sendSessionReminderAction(s.reminder!.sessionId);
+      setRemindingId(null);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setSentAt((prev) => ({ ...prev, [s.activityId]: new Date().toISOString() }));
+      setNotice(
+        res.queued === 0
+          ? 'Everyone in this cohort has already been told about this class.'
+          : `Reminder sent to ${res.queued} student${res.queued === 1 ? '' : 's'}.`
+      );
+      router.refresh();
+    });
+  }
 
   function handleRemove() {
     if (!removing) return;
@@ -143,6 +195,29 @@ export function CohortSessionsClient({
                   >
                     {isScheduled ? 'Scheduled' : 'Unscheduled'}
                   </span>
+                  {/* ⓘ Only where it can do something: a class needs a date
+                      to describe and must still be ahead. The SQL refuses
+                      both cases anyway — this just avoids offering a
+                      control whose only outcome is an error. */}
+                  {isScheduled && isFuture(s.schedule!.scheduledAt!) && s.reminder && (
+                    <button
+                      type="button"
+                      className="prog-btn prog-btn-ghost"
+                      disabled={!!sentAt[s.activityId] || remindPending}
+                      onClick={() => handleSendReminder(s)}
+                      title={
+                        sentAt[s.activityId]
+                          ? `Reminder already sent ${formatWhen(sentAt[s.activityId])}. Moving the class allows another.`
+                          : 'Email everyone in this cohort about this class. Once per class.'
+                      }
+                    >
+                      {remindingId === s.activityId
+                        ? 'Sending…'
+                        : sentAt[s.activityId]
+                          ? 'Reminder sent'
+                          : 'Send reminder'}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="prog-btn prog-btn-ghost"
@@ -230,6 +305,7 @@ export function CohortSessionsClient({
       )}
 
       <ErrorToast error={error} onDismiss={() => setError(null)} />
+      <InfoToast message={notice} onDismiss={() => setNotice(null)} />
     </>
   );
 }

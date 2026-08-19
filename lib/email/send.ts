@@ -18,7 +18,13 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { enqueueEmail } from './outbox';
 import { renderOutboxRow } from './render';
 import { SUPPORT_EMAIL } from './templates/wrapper';
-import type { EnqueueInput, FailureClass, OutboxRow, SendOutcome } from './types';
+import type {
+  EmailAttachment,
+  EnqueueInput,
+  FailureClass,
+  OutboxRow,
+  SendOutcome,
+} from './types';
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
@@ -111,6 +117,12 @@ async function postToResend(args: {
   html: string;
   text: string;
   idempotencyKey: string;
+  /**
+   * ⚠ OPTIONAL, AND OMITTED ENTIRELY WHEN EMPTY — see the send body. Eight
+   * templates predate attachments and none declares one; they must post
+   * the byte-identical request they always did.
+   */
+  attachments?: EmailAttachment[];
 }): Promise<SendOutcome> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
@@ -162,6 +174,12 @@ async function postToResend(args: {
         subject: args.subject,
         html: args.html,
         text: args.text,
+        // ⭐ Spread, not a plain key. `attachments: undefined` would still
+        // serialise the property away, but an empty ARRAY would not — and
+        // Resend answers `invalid_attachment` (already PERMANENT in the
+        // code table) for one. This keeps every pre-existing email posting
+        // exactly the body it posted before attachments existed.
+        ...(args.attachments?.length ? { attachments: args.attachments } : {}),
       }),
     });
   } catch (e) {
@@ -268,6 +286,7 @@ export async function deliverOutboxRow(row: OutboxRow): Promise<DeliverResult> {
     subject: rendered.subject,
     html: rendered.html,
     text: rendered.text,
+    attachments: rendered.attachments,
     // The fingerprint IS the idempotency key — the same three facts the
     // database uniqueness rule uses.
     idempotencyKey: `${row.event_key}:${row.subject_ref}:${row.stage}`,
