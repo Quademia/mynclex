@@ -29,10 +29,24 @@ function formatDate(iso: string): string {
 }
 
 function subject(p: EnrolmentApprovedPayload): string {
-  // The place is the news, so the place leads. "for" rather than an
-  // em-dash for the same reason as the tutor notice: real programme
-  // titles supply their own dash.
-  return `You're in — your place for ${p.programmeName} is confirmed`;
+  // ⚠⚠ NO SEPARATOR OF OUR OWN, ANYWHERE IN A SUBJECT THAT INTERPOLATES
+  // A NAME SOMEBODY TYPED. This is the SECOND time the same trap was
+  // sprung in one session — the tutor notice hit it first — and the
+  // second time it was sprung deliberately, by writing "You're in — your
+  // place for <title> is confirmed" while the fix for the identical
+  // problem sat one file away. Against a real programme
+  // ("NCLEX-RN Live — The 8-Week Pass Plan") it renders TWO em-dashes
+  // and reads as a mistake.
+  //
+  // ⭐ The rule that generalises, so there is no third time: the title
+  // is arbitrary text with arbitrary punctuation, so a subject must
+  // READ AS ONE SENTENCE AROUND IT rather than bolt a clause on with a
+  // dash, colon or pipe. "Your place in X is confirmed" cannot collide
+  // with anything a tutor types, and says the same thing.
+  //
+  // ⓘ It costs the warmth of "You're in" — which moves to the body's
+  // opening line, where nothing can collide with it.
+  return `Your place in ${p.programmeName} is confirmed`;
 }
 
 function body(p: EnrolmentApprovedPayload): string {
@@ -44,7 +58,10 @@ function body(p: EnrolmentApprovedPayload): string {
               line-height:1.6;color:${BRAND.ink};">${greeting}</p>
     <p style="margin:0 0 20px;font-family:Helvetica,Arial,sans-serif;font-size:15px;
               line-height:1.6;color:${BRAND.ink};">
-      ${esc(`${p.tutorName} has confirmed your place in ${place}. Everything is ready — you can open it now.`)}
+      <!-- ⓘ "You're in" lives here now, not in the subject: inside a
+           sentence of our own it cannot collide with a programme title's
+           punctuation. See the note on subject(). -->
+      ${esc(`You're in. ${p.tutorName} has confirmed your place in ${place}, and everything is ready to open.`)}
     </p>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
