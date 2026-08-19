@@ -1117,9 +1117,23 @@ per cohort goes in the outbox).
 >
 > ⭐ Sam, on being told: *"its a different job from the enrolment."* The four
 > existing pg_cron jobs are already one-per-concern; this is the fifth, at
-> **02:15**, and the isolation costs nothing. The claim the doc was really
+> **07:00**, and the isolation costs nothing. The claim the doc was really
 > making — *this needs no new infrastructure* — still holds: pg_cron was
 > already running.
+>
+> ⭐ **And it runs at 07:00, not overnight with the others** (Sam,
+> 2026-08-20). The first draft sat at 02:15, a quarter hour behind the
+> enrolment sweep, on the reasoning that the nightly jobs should be done
+> before anyone is awake. That is right for the others and wrong for this
+> one: they change **state** — pausing an enrolment, expiring a pass — and
+> nobody needs to witness the moment. This job's entire output is a
+> notification on somebody's phone, and Ghana is GMT, so 02:15 buzzes a
+> nurse at two in the morning about a class a week away.
+>
+> ⓘ The reminder actually leaves around 07:05, on the next drain knock. That
+> gap belongs to the queue, not the schedule — which is precisely why the
+> hour can be chosen for the reader instead of for the machine. **A job that
+> only enqueues is free to run whenever suits the person reading it.**
 >
 > ### Two defects, both found by reading real output
 >
@@ -1194,7 +1208,7 @@ per cohort goes in the outbox).
 | Event key | Kind | Trigger | Recipient | Purpose | Pri | Anchor |
 |---|---|---|---|---|---|---|
 | ~~`session.scheduled`~~ | ⚡ | Tutor schedules / announces a session date for a cohort | cohort students | **DROPPED 2026-08-20 (Sam).** The nightly pass tells her when the class nears, so an announcement six weeks out mostly duplicates the in-app Sessions page — and since tutors set the timetable when they CREATE the cohort, it would usually fire at an empty one. Struck through rather than deleted so the reasoning survives the next person who wonders where it went | ~~P1~~ | — |
-| `session.reminder` | ⏰ | **Nightly: sessions falling in the next 7 days, to students not yet told** — plus a tutor's manual "Send reminder" button, capped at ONE per class occurrence | cohort students | ✅ **BUILT 2026-08-20** (`20260912120000`, own cron job at 02:15). "Your class is on Tuesday" + join details + an **`.ics` attachment**, so her own phone reminds her thereafter. ~1 email/student/week. ⚠ NOT triggered by scheduling — see above. **The product's first fan-out, and its first attachment** | P1 | ✅ |
+| `session.reminder` | ⏰ | **Nightly: sessions falling in the next 7 days, to students not yet told** — plus a tutor's manual "Send reminder" button, capped at ONE per class occurrence | cohort students | ✅ **BUILT 2026-08-20** (`20260912120000`, own cron job at 07:00 GMT). "Your class is on Tuesday" + join details + an **`.ics` attachment**, so her own phone reminds her thereafter. ~1 email/student/week. ⚠ NOT triggered by scheduling — see above. **The product's first fan-out, and its first attachment** | P1 | ✅ |
 | `session.rescheduled` | ⚡ | A scheduled session's date/time changes | cohort students | New time | P2 | ✅ |
 | `session.cancelled` | ⚡ | A scheduled session is removed | cohort students | It's off | P2 | ✅ |
 | `session.recording_available` | ⚡ | A recording URL is added to a held session | cohort students | "Recording's up" | P3 | ✅ |

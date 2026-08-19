@@ -228,15 +228,25 @@ VALUES (
 )
 ON CONFLICT (key) DO NOTHING;
 
--- 02:15, a quarter hour after the enrolment sweep. Far enough apart that the
--- two are never diagnosed as one another, close enough that both are done
--- before anyone is awake to read the result.
+-- ⭐ 07:00, NOT 02:15 WITH THE OTHER JOBS (Sam, 2026-08-20). The first draft
+-- put this a quarter hour behind the enrolment sweep, on the reasoning that
+-- the overnight jobs should finish before anyone is awake. That reasoning is
+-- right for the others and wrong for this one: they change STATE (pausing an
+-- enrolment, expiring a pass) and nobody needs to witness the moment. This
+-- one's entire output is a notification on somebody's phone, and Ghana is
+-- GMT — so 02:15 buzzes a nurse at two in the morning about a class a week
+-- away.
+--
+-- ⓘ The drain knocks every five minutes, so the reminder actually leaves at
+-- roughly 07:05. The gap between "written" and "sent" is a property of the
+-- queue, not of this schedule — which is exactly why the hour can be chosen
+-- for the reader rather than for the machine.
 SELECT cron.unschedule('nclex-session-reminders-nightly')
 WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'nclex-session-reminders-nightly');
 
 SELECT cron.schedule(
   'nclex-session-reminders-nightly',
-  '15 2 * * *',
+  '0 7 * * *',
   $cron$ SELECT public.nclex_session_reminder_sweep(); $cron$
 );
 
