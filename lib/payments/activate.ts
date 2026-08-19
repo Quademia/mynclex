@@ -460,14 +460,21 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
       // the fingerprint makes it a no-op once one exists.
       //
       // ⚠ NO LINK IS MINTED HERE, deliberately. This branch runs on every
-      // re-hit — a refreshed callback page, Paystack's webhook landing
-      // beside it — so minting per pass would burn a one-time token on
-      // each refresh to produce an email the fingerprint then discards.
-      // In the ordinary case a receipt already exists and carries the
-      // link from the first pass. In the rare one (the first enqueue
-      // failed) she gets the buttonless wording, which stands on its own
-      // because the account already exists and /login's sign-in code
-      // reaches it — see SETUP_NOTE in the template.
+      // re-hit — a refreshed callback page, pending-recheck polling — so
+      // minting per pass would burn a one-time token on each refresh to
+      // produce an email the fingerprint then discards.
+      //
+      // ⭐ Safe because of the ORDER below: the first pass queues the
+      // linked receipt BEFORE flipping the status this branch reads. So
+      // by the time anyone can arrive here, a receipt carrying the link
+      // already exists and this enqueue is refused — the linkless one
+      // cannot win.
+      //
+      // ⚠ It can still be the only receipt in one case: the first pass's
+      // enqueue FAILED and the status flipped anyway. Then she gets the
+      // buttonless wording, which stands on its own because the account
+      // already exists and /login's sign-in code reaches it — see
+      // SETUP_NOTE in the template.
       const { queued } = await sendPaymentReceipt(rows[0].checkout_group_id, 'SETUP_REQUIRED');
       // EMAIL-TRIGGER[payment.tutor_received]: the tutor — the same
       // second chance, for the same reason.
@@ -510,22 +517,6 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
       };
     }
     const setUpUrl = invite.properties.action_link;
-    // Mark the group "awaiting setup". We deliberately do NOT link user_id
-    // here: the invited account exists in auth.users but has no nclex_users
-    // profile row yet (that's created at /welcome), and nclex_payments.user_id
-    // FKs to nclex_users — so writing it now violates the FK and the whole
-    // update is rejected. The user_id link is set when /welcome runs
-    // activateGroup → grantAndActivateRow against the real profile (it resolves
-    // the buyer by email and stamps user_id on the ACTIVATED row). Logging
-    // the error rather than swallowing it: the ACCOUNT already exists
-    // (generateLink created it above) and /welcome re-matches the still-PAID
-    // row by email, so a failed status update is non-fatal — but we log it
-    // so a real failure doesn't go unnoticed.
-    const { error: updErr } = await admin
-      .from('nclex_payments')
-      .update({ status: 'SETUP_REQUIRED' })
-      .eq('checkout_group_id', rows[0].checkout_group_id);
-    if (updErr) console.error('Pay-first SETUP_REQUIRED update failed:', updErr.message);
 
     // EMAIL-TRIGGER[payment.received]: the buyer — she has paid and, at
     // this instant, holds nothing: no enrolment, no subscription, no
@@ -537,11 +528,56 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
     // already paid for. That is why its `queued` answer is kept and
     // returned rather than dropped: it is the difference between "check
     // your email" and telling her something that is not true.
+    //
+    // ⚠⚠ QUEUED BEFORE THE STATUS FLIPS, AND THE ORDER IS THE POINT.
+    // The status update used to run first. That left a window: the
+    // retry branch above is chosen by reading SETUP_REQUIRED, so a second
+    // pass landing between the update and this enqueue would take it,
+    // queue a receipt with NO link, and could win the fingerprint — the
+    // buyer's only email arriving without the only button that matters.
+    // Overlapping passes are not hypothetical: pending-recheck re-runs
+    // settle every few seconds while Paystack still says pending.
+    //
+    // ⭐ Enqueuing first removes the window rather than narrowing it. A
+    // concurrent pass now still reads PAID, so it takes THIS branch too
+    // and also carries a link — whichever wins, the receipt has one. The
+    // loser's link is simply never used, which costs nothing: it is
+    // one-time and expires on its own.
+    //
+    // ⓘ Found by reading real output, not by a test: four dev purchases
+    // on 2026-08-19, one of which (run against the deployed Worker, on
+    // the old code) showed what a linkless setup receipt looks like.
     const { queued } = await sendPaymentReceipt(
       rows[0].checkout_group_id,
       'SETUP_REQUIRED',
       setUpUrl
     );
+
+    // Mark the group "awaiting setup". We deliberately do NOT link user_id
+    // here: the invited account exists in auth.users but has no nclex_users
+    // profile row yet (that's created at /welcome), and nclex_payments.user_id
+    // FKs to nclex_users — so writing it now violates the FK and the whole
+    // update is rejected. The user_id link is set when /welcome runs
+    // activateGroup → grantAndActivateRow against the real profile (it resolves
+    // the buyer by email and stamps user_id on the ACTIVATED row). Logging
+    // the error rather than swallowing it: the ACCOUNT already exists
+    // (generateLink created it above) and /welcome re-matches the still-PAID
+    // row by email, so a failed status update is non-fatal — but we log it
+    // so a real failure doesn't go unnoticed.
+    //
+    // ⚠ STAYS AHEAD OF THE TUTOR NOTICE, and only the receipt moved above
+    // it. That notice places the payment in the plan by counting
+    // ['PAID','ACTIVATED'] rows — a list SETUP_REQUIRED is deliberately
+    // not in. ⓘ On THIS branch the count is unreachable (readStanding
+    // returns null without an enrolment, and a pay-first buyer has none
+    // yet), so the order is a precaution rather than a live dependency —
+    // but it is a cheap one, and the day a pay-first purchase does carry
+    // an enrolment it stops being theoretical.
+    const { error: updErr } = await admin
+      .from('nclex_payments')
+      .update({ status: 'SETUP_REQUIRED' })
+      .eq('checkout_group_id', rows[0].checkout_group_id);
+    if (updErr) console.error('Pay-first SETUP_REQUIRED update failed:', updErr.message);
 
     // EMAIL-TRIGGER[payment.tutor_received]: the tutor — money landed on
     // their programme from someone who has no account yet, so she will
