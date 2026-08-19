@@ -29,6 +29,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { buildSchedule, isOverdue } from './schedule';
 import { planActivationGrants } from './readiness-mint';
 import { sendPaymentReceipt } from './result';
+import { sendTutorPaymentNotice } from './tutor-notice';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
 
 type AdminClient = ReturnType<typeof createServiceRoleClient>;
@@ -447,6 +448,9 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
       // queue the receipt if the first pass failed to. Safe to repeat:
       // the fingerprint makes it a no-op once one exists.
       await sendPaymentReceipt(rows[0].checkout_group_id, 'SETUP_REQUIRED');
+      // EMAIL-TRIGGER[payment.tutor_received]: the tutor — the same
+      // second chance, for the same reason.
+      await sendTutorPaymentNotice(rows[0].checkout_group_id, 'SETUP_REQUIRED');
       return { ok: true, outcome: 'INVITE_SENT' };
     }
 
@@ -490,6 +494,18 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
     // screen tells her to contact support — the receipt is the only
     // thing that arrives on its own.
     await sendPaymentReceipt(rows[0].checkout_group_id, 'SETUP_REQUIRED');
+
+    // EMAIL-TRIGGER[payment.tutor_received]: the tutor — money landed on
+    // their programme from someone who has no account yet, so she will
+    // NOT appear on their roster. Told now rather than at activation,
+    // which may be days away or may never come: the payment is real
+    // either way, and a tutor who learns of it late cannot chase her.
+    //
+    // ⚠ This is therefore the ONLY tutor email this checkout will ever
+    // produce — the ACTIVATED enqueue below is refused by the
+    // fingerprint when she finishes /welcome. The SETUP_REQUIRED wording
+    // carries that on its own; see the note in the template.
+    await sendTutorPaymentNotice(rows[0].checkout_group_id, 'SETUP_REQUIRED');
     return { ok: true, outcome: 'INVITE_SENT' };
   }
 
@@ -508,6 +524,19 @@ async function activateGroup(admin: AdminClient, rows: PaymentRow[]): Promise<Ac
   // ⓘ Not sent on the ALREADY branch above: that is a page refresh, and
   // the receipt went out when the activation actually happened.
   await sendPaymentReceipt(
+    rows[0].checkout_group_id,
+    anyPending ? 'PENDING_APPROVAL' : 'ACTIVATED'
+  );
+
+  // EMAIL-TRIGGER[payment.tutor_received]: the tutor — the other half of
+  // the same money. Sent AFTER the grants for the same reason the
+  // receipt is: the plan standing it quotes reads the enrolment, which
+  // does not exist until the loop above has run.
+  //
+  // ⓘ A bank- or readiness-only checkout returns here having sent
+  // nothing — that money is QAcademy's and involves no tutor. The
+  // builder decides; this line does not have to know.
+  await sendTutorPaymentNotice(
     rows[0].checkout_group_id,
     anyPending ? 'PENDING_APPROVAL' : 'ACTIVATED'
   );

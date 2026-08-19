@@ -18,6 +18,10 @@ import {
   enrolmentAddedTemplate,
 } from './templates/enrolment-added';
 import {
+  PAYMENT_TUTOR_RECEIVED_FOOTER_CONTEXT,
+  paymentTutorReceivedTemplate,
+} from './templates/payment-tutor-received';
+import {
   PAYMENT_INSTALLMENT_DUE_FOOTER_CONTEXT,
   paymentInstallmentDueTemplate,
 } from './templates/payment-installment-due';
@@ -41,6 +45,13 @@ const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: s
   'payment.received': {
     template: paymentReceivedTemplate,
     footerContext: PAYMENT_RECEIVED_FOOTER_CONTEXT,
+  },
+  // ⭐ NOT an alias of payment.received. Same anchor, same money, but a
+  // different recipient reading for a different reason — so it is its own
+  // template with its own words, and the two are free to diverge.
+  'payment.tutor_received': {
+    template: paymentTutorReceivedTemplate,
+    footerContext: PAYMENT_TUTOR_RECEIVED_FOOTER_CONTEXT,
   },
   // ⭐ Both are enqueued from SQL by the nightly sweep (migration
   // 20260911120000), not by app code — the only two entries here that

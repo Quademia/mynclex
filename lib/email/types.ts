@@ -32,6 +32,7 @@ import type { Currency } from '@/lib/products/money';
 // the other.
 export type EmailEventKey =
   | 'payment.received'
+  | 'payment.tutor_received'
   | 'payment.installment_due'
   | 'payment.installment_overdue'
   | 'enrolment.tutor_added'
@@ -239,6 +240,105 @@ export type PaymentReceiptPayload = {
   /** Where to go next, when there is somewhere. Absolute URL. */
   ctaHref: string | null;
   ctaLabel: string | null;
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// The tutor's half of the same money
+// ─────────────────────────────────────────────────────────────────────
+// ⭐ EVERY PAYMENT NOTIFIES BOTH SIDES. The student gets the receipt
+// above; the tutor gets this. Two emails, one anchor, two audiences —
+// the tutor does not want a receipt, and the student does not want a
+// roster update.
+//
+// ⭐ PROGRAMME MONEY ONLY. A single checkout can carry a bank pass or
+// readiness credits alongside the programme fee; that money is
+// QAcademy's, not the tutor's, so those lines are excluded from both the
+// list and the total. `amountMinor` here is therefore NOT
+// PaymentReceiptPayload.totalMinor for the same checkout, and the two
+// disagreeing is correct.
+//
+// ⚠ IT SAYS "RECORDED", NEVER "PAID OUT". Payment splits between
+// QAcademy and tutors are an explicit v1 deferral (CLAUDE.md), so this
+// email must not imply money has reached the tutor's own account. It
+// reports that a payment was recorded against their programme, which is
+// the only thing the system actually knows.
+
+/**
+ * Where the student's plan stands AFTER this payment, read from the
+ * enrolment's frozen snapshot — the same source the nightly sweep uses,
+ * so the tutor is never quoted a schedule the sweep disagrees with.
+ *
+ * ⓘ Null when there is no plan to report: a pay-first buyer has no
+ * enrolment yet, and an UPFRONT_FULL purchase has no schedule to stand
+ * anywhere in.
+ */
+export type TutorPaymentStanding = {
+  /** Zero means paid in full, and the template says so in words. */
+  remainingMinor: number;
+  /** Null once fully paid — there is no next date. */
+  nextDueISO: string | null;
+  paidCount: number;
+  totalPayments: number;
+};
+
+export type TutorPaymentReceivedPayload = {
+  /**
+   * ⭐ Reuses the STUDENT's framing rather than inventing a second dial.
+   * The caller already computed it, and each value is a fact the tutor
+   * has a distinct reason to want:
+   *   ACTIVATED        — she is on your roster, nothing to do.
+   *   PENDING_APPROVAL — she is waiting on YOU. Actionable.
+   *   SETUP_REQUIRED   — paid, but no account yet, so she will not
+   *                      appear on the roster until she finishes.
+   *
+   * ⚠ ONE EMAIL PER CHECKOUT, so the FIRST framing is the only one the
+   * tutor ever sees. A pay-first purchase enqueues SETUP_REQUIRED, and
+   * the ACTIVATED enqueue days later is refused by the fingerprint.
+   * That is why the SETUP_REQUIRED wording has to explain the roster
+   * gap on its own — no follow-up is coming to correct it.
+   */
+  framing: ReceiptFraming;
+  /** The tutor's forename, for the greeting. Null greets without a name. */
+  tutorName: string | null;
+  /**
+   * Who paid. Falls back to the address when there is no profile — a
+   * pay-first buyer genuinely has no name yet, and the tutor can still
+   * identify her by the email below.
+   */
+  studentName: string;
+  studentEmail: string;
+  programmeTitle: string;
+  /** Null on a self-paced programme, which has no cohort. */
+  cohortName: string | null;
+  currency: Currency;
+  /** Programme lines in this checkout only. See the note above. */
+  amountMinor: number;
+  paidAtISO: string;
+  /**
+   * How the money was recorded.
+   *
+   *   CARD           she paid online through the platform.
+   *   ADMIN_RECORDED a QAcademy admin typed it in on the tutor's behalf.
+   *   OFF_PLATFORM   collected outside the platform, recorder unknown.
+   *
+   * ⚠ THE THIRD VALUE IS NOT DEFENSIVE PADDING — dev holds six such rows
+   * (checked 2026-08-19): `collection_channel = 'OFF_PLATFORM'` with
+   * `recorded_by_user_id` NULL, from before that column was populated.
+   * Folding them in with ADMIN_RECORDED would have this email name a
+   * party nobody can evidence, about money. Today's Mark-paid always
+   * stamps a recorder, so new rows never land here — but old ones exist
+   * and the honest answer is to say less.
+   *
+   * ⓘ There is no value for "the tutor recorded it": that case never
+   * reaches this email at all — see the suppression rule in
+   * lib/payments/tutor-notice.ts.
+   */
+  method: 'CARD' | 'ADMIN_RECORDED' | 'OFF_PLATFORM';
+  /** "Payment 2 of 4" · "Deposit" · "Paid in full". Null when unknown. */
+  planPosition: string | null;
+  standing: TutorPaymentStanding | null;
+  ctaHref: string;
+  ctaLabel: string;
 };
 
 // ─────────────────────────────────────────────────────────────────────

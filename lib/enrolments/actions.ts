@@ -29,6 +29,7 @@ import { headers } from 'next/headers';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { buildSchedule, isOverdue } from '@/lib/payments/schedule';
 import { sendPaymentReceipt } from '@/lib/payments/result';
+import { sendTutorPaymentNotice } from '@/lib/payments/tutor-notice';
 import type { Currency } from '@/lib/payments/types';
 import type { EnrolmentReason } from '@/lib/email/types';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
@@ -551,6 +552,19 @@ async function inviteOrAttachAndEnrol(
       console.error('add-with-plan: received-payments insert failed:', payErr.message);
       return { ok: false, error: 'Could not record the received payments. Try again.' };
     }
+
+    // EMAIL-TRIGGER[payment.tutor_received]: the tutor — same rule as
+    // Mark-paid, and on this path it will almost always stay silent,
+    // because the money being backfilled is money the tutor collected by
+    // hand and is now typing in. It sends only when someone ELSE (a
+    // SUPER_ADMIN) is doing the adding, which the tutor has no other way
+    // of learning. The test lives in sendTutorPaymentNotice.
+    //
+    // ⚠ After the rollback branch above, deliberately: thirty lines of
+    // failure handling can still delete this enrolment, and an email
+    // about money paid into something that no longer exists is worse
+    // than no email.
+    await sendTutorPaymentNotice(groupId, 'ACTIVATED');
   }
 
   // EMAIL-TRIGGER[enrolment.tutor_added / waitlist.converted]: the
@@ -788,6 +802,15 @@ export async function markInstallmentPaidAction(
   // never passes through PAID, and the auto-unpause above has already
   // run, so "what you now have" is true by the time this is called.
   await sendPaymentReceipt(checkoutGroupId, 'ACTIVATED');
+
+  // EMAIL-TRIGGER[payment.tutor_received]: the tutor — but ONLY when the
+  // person who recorded this is not the tutor themselves, which on this
+  // path is usually exactly who they are. The rule lives in
+  // sendTutorPaymentNotice (it reads recorded_by_user_id off the row),
+  // so this call is unconditional and the builder stays silent for a
+  // tutor's own entry. What it catches is the case that IS news: a
+  // SUPER_ADMIN recording a payment on someone else's programme.
+  await sendTutorPaymentNotice(checkoutGroupId, 'ACTIVATED');
 
   revalidatePath(rosterPath(enr.programme_id));
   return { ok: true };
