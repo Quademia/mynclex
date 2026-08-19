@@ -337,6 +337,40 @@ export const paymentReceivedTemplate: EmailTemplate<PaymentReceiptPayload> = {
       },
     },
     {
+      // ⚠⚠ THE VARIANT THAT WAS A FALSE STATEMENT UNTIL 2026-08-19.
+      // A paused student's grants line read "Enrolled in <cohort>",
+      // because result.ts branched on PENDING_APPROVAL and let every
+      // other status fall through. She had just paid, was still locked
+      // out, and this told her she was in. Fixed at the source; this
+      // fixture is here so it cannot come back unseen.
+      //
+      // ⓘ The wording is FROZEN AT ENQUEUE by result.ts, not chosen
+      // here — so this preview is a sample of what that produces, and a
+      // change there must be mirrored here or the two drift.
+      label: 'Instalment · still paused (arrears not cleared)',
+      payload: {
+        framing: 'ACTIVATED',
+        recipientName: 'Ama',
+        currency: 'GHS',
+        totalMinor: 100000,
+        paidAtISO: PAID_AT,
+        reference: null,
+        method: 'OFF_PLATFORM',
+        lineItems: [
+          {
+            purpose: 'PROGRAMME_INSTALLMENT',
+            label: 'NCLEX 4-Week Tutor-Led Bootcamp — Payment 2 of 4',
+            amountMinor: 100000,
+            grants:
+              'Access to Q3 Upcoming Cohort is paused until the plan is up to date · ' +
+              'GHS 2,000 remaining, the next payment was due 6 June 2026',
+          },
+        ],
+        ctaHref: 'https://nclex.quademia.com/student/cohort',
+        ctaLabel: 'Go to your programme',
+      },
+    },
+    {
       label: 'Awaiting tutor approval',
       payload: {
         framing: 'PENDING_APPROVAL',

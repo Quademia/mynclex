@@ -123,11 +123,35 @@ function standingLine(p: TutorPaymentReceivedPayload): string {
   if (!p.standing) return '';
   const s = p.standing;
 
+  // ⚠ TENSE, and it is not cosmetic. "next due 6 June" printed in
+  // August describes a date that has gone, to the one person whose job
+  // is chasing it. Sam's phrasing — no jargon, and the past tense does
+  // all the work.
+  const dueWords = s.nextDueISO
+    ? s.nextDueOverdue
+      ? `, the next payment was due ${formatDate(s.nextDueISO)}.`
+      : `, next due ${formatDate(s.nextDueISO)}.`
+    : '.';
+
   const words =
     s.remainingMinor <= 0
       ? 'Paid in full — nothing further is due.'
-      : `${formatMinor(s.remainingMinor, p.currency)} still to come` +
-        (s.nextDueISO ? `, next due ${formatDate(s.nextDueISO)}.` : '.');
+      : `${formatMinor(s.remainingMinor, p.currency)} still to come${dueWords}`;
+
+  // ⭐⭐ THE LINE THAT CHANGES WHAT A TUTOR DOES. Paying one instalment
+  // against two missed does NOT reopen access — the gate asks whether
+  // she is current, not whether she just paid — so "money's in" without
+  // this reads as "she's fine" and she stays locked out in silence.
+  // Confirmed with Sam 2026-08-19: the behaviour is right, the wording
+  // was the gap.
+  const pausedNote = s.accessPausedForArrears
+    ? `
+      <p style="margin:10px 0 0;font-family:Helvetica,Arial,sans-serif;font-size:15px;
+                line-height:1.6;color:${BRAND.ink};">
+        <strong>Her access is still paused.</strong> This payment did not clear the
+        arrears, so the programme stays closed to her until the plan is up to date.
+      </p>`
+    : '';
 
   return `
     <h2 style="margin:24px 0 8px;font-family:Helvetica,Arial,sans-serif;font-size:16px;
@@ -135,7 +159,8 @@ function standingLine(p: TutorPaymentReceivedPayload): string {
     <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:15px;
               line-height:1.6;color:${BRAND.ink};">
       ${esc(`${s.paidCount} of ${s.totalPayments} payments received. ${words}`)}
-    </p>`;
+    </p>
+    ${pausedNote}`;
 }
 
 function body(p: TutorPaymentReceivedPayload): string {
@@ -228,6 +253,8 @@ export const paymentTutorReceivedTemplate: EmailTemplate<TutorPaymentReceivedPay
           nextDueISO: '2026-10-05T00:00:00.000Z',
           paidCount: 2,
           totalPayments: 4,
+          nextDueOverdue: false,
+          accessPausedForArrears: false,
         },
         ctaHref: 'https://nclex.quademia.com/tutor/payments',
         ctaLabel: 'View payments',
@@ -252,6 +279,8 @@ export const paymentTutorReceivedTemplate: EmailTemplate<TutorPaymentReceivedPay
           nextDueISO: null,
           paidCount: 4,
           totalPayments: 4,
+          nextDueOverdue: false,
+          accessPausedForArrears: false,
         },
         ctaHref: 'https://nclex.quademia.com/tutor/payments',
         ctaLabel: 'View payments',
@@ -278,6 +307,8 @@ export const paymentTutorReceivedTemplate: EmailTemplate<TutorPaymentReceivedPay
           nextDueISO: null,
           paidCount: 1,
           totalPayments: 1,
+          nextDueOverdue: false,
+          accessPausedForArrears: false,
         },
         ctaHref: 'https://nclex.quademia.com/tutor/payments',
         ctaLabel: 'View payments',
@@ -302,6 +333,8 @@ export const paymentTutorReceivedTemplate: EmailTemplate<TutorPaymentReceivedPay
           nextDueISO: '2026-09-05T00:00:00.000Z',
           paidCount: 1,
           totalPayments: 4,
+          nextDueOverdue: false,
+          accessPausedForArrears: false,
         },
         ctaHref: 'https://nclex.quademia.com/tutor/payments',
         ctaLabel: 'View payments',
@@ -348,6 +381,8 @@ export const paymentTutorReceivedTemplate: EmailTemplate<TutorPaymentReceivedPay
           nextDueISO: '2026-11-05T00:00:00.000Z',
           paidCount: 3,
           totalPayments: 4,
+          nextDueOverdue: false,
+          accessPausedForArrears: false,
         },
         ctaHref: 'https://nclex.quademia.com/tutor/payments',
         ctaLabel: 'View payments',
@@ -375,6 +410,39 @@ export const paymentTutorReceivedTemplate: EmailTemplate<TutorPaymentReceivedPay
           nextDueISO: '2026-10-05T00:00:00.000Z',
           paidCount: 2,
           totalPayments: 4,
+          nextDueOverdue: false,
+          accessPausedForArrears: false,
+        },
+        ctaHref: 'https://nclex.quademia.com/tutor/payments',
+        ctaLabel: 'View payments',
+      },
+    },
+    {
+      // ⭐ THE REAL ONE. Copied field-for-field from the payload the
+      // 2026-08-19 dev test actually produced: a student 74 days behind,
+      // an admin records one instalment, and she stays locked out
+      // because position 3 was already due. Both new facts fire here and
+      // nowhere else — the past-tense due date AND the pause note.
+      label: 'Overdue · still paused after paying',
+      payload: {
+        framing: 'ACTIVATED',
+        tutorName: 'Steven',
+        studentName: 'Samuel Owusu-Ansah',
+        studentEmail: 'mybackpacc+checkout@gmail.com',
+        programmeTitle: 'NCLEX 4-Week Tutor-Led Bootcamp',
+        cohortName: 'Q3 Upcoming Cohort',
+        currency: 'GHS',
+        amountMinor: 100000,
+        paidAtISO: PAID_AT,
+        method: 'ADMIN_RECORDED',
+        planPosition: 'Payment 2 of 4',
+        standing: {
+          remainingMinor: 200000,
+          nextDueISO: '2026-06-06T18:36:52.643Z',
+          paidCount: 2,
+          totalPayments: 4,
+          nextDueOverdue: true,
+          accessPausedForArrears: true,
         },
         ctaHref: 'https://nclex.quademia.com/tutor/payments',
         ctaLabel: 'View payments',
@@ -399,6 +467,8 @@ export const paymentTutorReceivedTemplate: EmailTemplate<TutorPaymentReceivedPay
           nextDueISO: '2026-10-05T00:00:00.000Z',
           paidCount: 2,
           totalPayments: 4,
+          nextDueOverdue: false,
+          accessPausedForArrears: false,
         },
         ctaHref: 'https://nclex.quademia.com/tutor/payments',
         ctaLabel: 'View payments',

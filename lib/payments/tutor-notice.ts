@@ -210,16 +210,11 @@ export async function buildTutorPaymentNotice(
   const { data: enr } = enrolmentId
     ? await admin
         .from('nclex_enrolments')
-        .select('enrolment_id, cohort_id, enrolled_at, strategy_snapshot_json')
+        .select('enrolment_id, status, paused_reason, cohort_id, enrolled_at, strategy_snapshot_json')
         .eq('enrolment_id', enrolmentId)
         .maybeSingle()
     : { data: null };
-  const enrolment = enr as {
-    enrolment_id: string;
-    cohort_id: string | null;
-    enrolled_at: string;
-    strategy_snapshot_json: FrozenStrategySnapshot | null;
-  } | null;
+  const enrolment = enr as Enrolment | null;
 
   // ⚠ The cohort comes from the ENROLMENT first. A PROGRAMME_INSTALLMENT
   // row carries cohort_id = NULL by the cohort_scope CHECK, so reading
@@ -262,6 +257,17 @@ export async function buildTutorPaymentNotice(
 // ─────────────────────────────────────────────────────────────────────
 
 type AdminClient = ReturnType<typeof createServiceRoleClient>;
+
+/** The enrolment facts this email needs. Read once, used by two readers. */
+type Enrolment = {
+  enrolment_id: string;
+  status: string;
+  /** 'INSTALLMENT_OVERDUE' | 'TUTOR_MANUAL' | null. */
+  paused_reason: string | null;
+  cohort_id: string | null;
+  enrolled_at: string;
+  strategy_snapshot_json: FrozenStrategySnapshot | null;
+};
 
 /**
  * How to describe the way this money arrived.
@@ -306,7 +312,7 @@ async function readCohortName(admin: AdminClient, cohortId: string): Promise<str
  */
 async function readStanding(
   admin: AdminClient,
-  enrolment: { enrolment_id: string; enrolled_at: string; strategy_snapshot_json: FrozenStrategySnapshot | null } | null
+  enrolment: Enrolment | null
 ): Promise<TutorPaymentStanding | null> {
   if (!enrolment?.strategy_snapshot_json) return null;
 
@@ -334,6 +340,15 @@ async function readStanding(
     nextDueISO: schedule.next?.dueDate.toISOString() ?? null,
     paidCount: schedule.paidCount,
     totalPayments: schedule.totalPayments,
+    // ⭐ Both answered HERE, at the moment the money moved, and frozen.
+    // See the note on TutorPaymentStanding for why the template must
+    // not ask these questions itself.
+    nextDueOverdue: schedule.next ? schedule.next.dueDate.getTime() < Date.now() : false,
+    // ⚠ Read AFTER the anchor has done its auto-unpause, so a payment
+    // that DID catch her up reports false — which is the whole point.
+    // Arrears only: a TUTOR_MANUAL pause is not this payment's business.
+    accessPausedForArrears:
+      enrolment.status === 'PAUSED' && enrolment.paused_reason === 'INSTALLMENT_OVERDUE',
   };
 }
 

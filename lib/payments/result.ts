@@ -484,13 +484,15 @@ export async function buildPaymentReceiptEmail(
       const { data: enrols } = linkedIds.length
         ? await admin
             .from('nclex_enrolments')
-            .select('enrolment_id, status, cohort_id, enrolled_at, strategy_snapshot_json')
+            .select('enrolment_id, status, paused_reason, cohort_id, enrolled_at, strategy_snapshot_json')
             .in('enrolment_id', linkedIds)
         : { data: [] };
 
       const enrolRows = (enrols ?? []) as {
         enrolment_id: string;
         status: string;
+        /** Why she is paused. 'INSTALLMENT_OVERDUE' | 'TUTOR_MANUAL' | null. */
+        paused_reason: string | null;
         cohort_id: string | null;
         enrolled_at: string;
         strategy_snapshot_json: FrozenStrategySnapshot | null;
@@ -545,7 +547,14 @@ export async function buildPaymentReceiptEmail(
 
         const snap = e.strategy_snapshot_json;
         if (!snap) {
-          grantsByPaymentId.set(r.payment_id, `Enrolled in ${place}`);
+          // ⚠ Same "Enrolled in" trap as below — a paused student
+          // reaches this branch too when her plan has no snapshot, and
+          // the statement would be just as false. No schedule here, so
+          // it says the state and stops.
+          grantsByPaymentId.set(
+            r.payment_id,
+            e.status === 'PAUSED' ? `Your place in ${place} is currently paused` : `Enrolled in ${place}`
+          );
           continue;
         }
 
@@ -561,10 +570,41 @@ export async function buildPaymentReceiptEmail(
           .slice(schedule.paidCount)
           .reduce((sum, p) => sum + p.amountMinor, 0);
 
-        const bits = [`Enrolled in ${place}`];
+        // ⚠⚠ A PAUSED ENROLMENT IS NOT "Enrolled in". Found 2026-08-19
+        // by reading a real receipt: a student 74 days behind paid one
+        // instalment, stayed locked out — the gate asks "are you
+        // current?", not "did you just pay" — and her receipt told her
+        // "Enrolled in Q3 Upcoming Cohort". Not an omission: a false
+        // statement, to the one person who had just paid.
+        //
+        // ⭐ It needs ONE day of pause, not seventy-four. The extremity
+        // was seed data; the state is not — the nightly sweep pauses
+        // people on prod every night, and paying what you can afford is
+        // the most ordinary thing an overdue student does.
+        //
+        // ⚠ Branch on paused_reason, not just on PAUSED. A TUTOR_MANUAL
+        // pause has nothing to do with arrears, and explaining it as
+        // money would send her to fix a bill that is not the problem.
+        const paused = e.status === 'PAUSED';
+        const pausedForArrears = paused && e.paused_reason === 'INSTALLMENT_OVERDUE';
+
+        const bits = [
+          pausedForArrears
+            ? `Access to ${place} is paused until the plan is up to date`
+            : paused
+              ? `Your place in ${place} is currently paused — your tutor can tell you more`
+              : `Enrolled in ${place}`,
+        ];
         if (schedule.next && remaining > 0) {
+          // ⚠ TENSE. "next due 6 June" printed in August is the wrong
+          // word for a date that has gone. Sam's phrasing, and it needs
+          // no jargon: the payment WAS due.
+          const due = schedule.next.dueDate;
           bits.push(
-            `${formatMinor(remaining, receipt.currency)} remaining, next due ${formatDueDate(schedule.next.dueDate)}`
+            `${formatMinor(remaining, receipt.currency)} remaining, ` +
+              (due.getTime() < Date.now()
+                ? `the next payment was due ${formatDueDate(due)}`
+                : `next due ${formatDueDate(due)}`)
           );
         } else {
           bits.push('Paid in full');

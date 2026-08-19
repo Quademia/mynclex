@@ -279,6 +279,27 @@ export type TutorPaymentStanding = {
   nextDueISO: string | null;
   paidCount: number;
   totalPayments: number;
+  /**
+   * Whether `nextDueISO` had ALREADY PASSED when the money arrived.
+   *
+   * ⚠ FROZEN AT ENQUEUE, NOT ASKED AT RENDER. The template renders from
+   * the payload alone and may run on a retry hours later, so evaluating
+   * "is this in the past?" there would answer against a different `now`
+   * than the payment did — the same email could then say two different
+   * things about one moment. Both are one boolean here instead.
+   */
+  nextDueOverdue: boolean;
+  /**
+   * She is paused RIGHT NOW for arrears, and this payment did not lift
+   * it — the gate asks "are you current?", not "did you just pay", so
+   * one instalment against two missed leaves the door shut.
+   *
+   * ⚠ Named for arrears specifically. A TUTOR_MANUAL pause is the
+   * tutor's own decision and has nothing to do with this money; folding
+   * the two together would explain their own action back to them as a
+   * payment problem.
+   */
+  accessPausedForArrears: boolean;
 };
 
 export type TutorPaymentReceivedPayload = {
