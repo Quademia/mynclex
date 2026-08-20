@@ -295,6 +295,54 @@ button.programme-switcher-item {
   margin-top: 6px;
 }
 
+/* ── The switcher overlay on a phone ──────────────────────────────────
+ * ⚠ The cohort row could not shrink, so the whole popup overflowed itself:
+ * `.programme-switcher-cohort` is a flex ROW whose right-hand group is
+ * `flex-shrink: 0` and whose dates are `white-space: nowrap`. That gives
+ * the row a min-content width wider than a 375px panel, and since flex
+ * items default to `min-width: auto` the excess had nowhere to go — 64
+ * elements sat past the panel's right edge, the cohort name was crushed
+ * to five stacked words, and the dates ran off the screen.
+ *
+ * Stacking the row removes the horizontal pressure entirely: the name gets
+ * the full width, the pill and dates sit under it.
+ *
+ * ⓘ Verified mobile-only before writing this — at 1198px the panel is
+ * 560px with scrollWidth === clientWidth and nothing past the edge. Unlike
+ * the week list, this one genuinely did not belong in the base rule.
+ * ─────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* 24px of backdrop each side costs 48 of 375. */
+  .programme-switcher-backdrop { padding: 12px; }
+  .programme-switcher-panel { max-height: 88vh; }
+
+  .programme-switcher-cohort {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .programme-switcher-cohort-right {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .programme-switcher-cohort-dates { white-space: normal; }
+
+  /* 24×29px, and it is the only way out of a modal on a touch screen.
+   * Hit area rather than size — same treatment as the mobile chrome. */
+  .programme-switcher-close { position: relative; }
+  .programme-switcher-close::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+  }
+}
+
 /* Installment "pay next" affordance (Slice 7d). Reused on the future
  * My-Payments page; styles may migrate to a payments stylesheet then. */
 .inst-cta {
