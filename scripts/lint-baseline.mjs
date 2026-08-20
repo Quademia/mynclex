@@ -31,28 +31,63 @@
 // THE GATE IS ERRORS ONLY. Warnings are reported when they drift, but never
 // fail the check. Errors are the line being held.
 //
+// ⚠ `--staged` EXISTS BECAUSE THE FULL RUN IS TOO SLOW TO BE A HOOK. Linting
+// the whole repo takes ~71s. A pre-commit hook that costs 71s is a hook people
+// learn to pass `--no-verify` to, which is worse than no hook at all — it
+// teaches the bypass. `--staged` lints only the files in the commit and
+// compares just those against the baseline, which takes a few seconds. It is
+// no less strict for a session's own work: these rules are file-local, so a
+// new error lands in a file you changed.
+//
+// ⚠ RENAMES WILL TRIP IT. The baseline is keyed by file path, so moving a file
+// that carries known errors reads as "the old path was fixed, the new path is
+// new". Nothing is wrong — re-run `npm run lint:baseline` as part of the
+// rename commit. It fails loudly rather than quietly, which is the right way
+// round, but the first person to hit it will otherwise think it is broken.
+//
 // Usage:
-//   npm run lint:check     compare against the baseline (fails if worse)
+//   npm run lint:check     compare the whole repo against the baseline
+//   npm run lint:staged    same, but only files staged for commit (the hook)
 //   npm run lint:baseline  re-record the baseline (do this deliberately)
 
 import { ESLint } from 'eslint';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative } from 'node:path';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const baselinePath = join(repoRoot, '.eslint-baseline.json');
-const mode = process.argv.includes('--update') ? 'update' : 'check';
+const mode = process.argv.includes('--update')
+  ? 'update'
+  : process.argv.includes('--staged')
+    ? 'staged'
+    : 'check';
+
+/** Extensions ESLint is configured to read. Anything else in a commit is skipped. */
+const LINTABLE = /\.(m?[jt]sx?|cjs)$/;
+
+/** Files staged for the current commit (added/copied/modified/renamed — not deleted). */
+function stagedFiles() {
+  const out = execFileSync(
+    'git',
+    ['diff', '--cached', '--name-only', '--diff-filter=ACMR'],
+    { cwd: repoRoot, encoding: 'utf8' },
+  );
+  return out.split('\n').map((s) => s.trim()).filter((s) => s && LINTABLE.test(s));
+}
 
 /** Repo-relative, forward slashes — so a baseline is portable across machines. */
 function relKey(absPath) {
   return relative(repoRoot, absPath).split('\\').join('/');
 }
 
-/** Run ESLint over the whole project and tally errors/warnings per file+rule. */
-async function collect() {
-  const eslint = new ESLint({ cwd: repoRoot });
-  const results = await eslint.lintFiles(['.']);
+/** Run ESLint over `targets` and tally errors/warnings per file+rule. */
+async function collect(targets = ['.']) {
+  // `warnIgnored: false` keeps a staged-but-ignored file (say, something under
+  // `.claude/`) from reporting as a problem of its own.
+  const eslint = new ESLint({ cwd: repoRoot, warnIgnored: false });
+  const results = await eslint.lintFiles(targets);
 
   const counts = {};
   let errors = 0;
@@ -92,7 +127,16 @@ function sortDeep(counts) {
   return out;
 }
 
-const { counts, errors, warnings } = await collect();
+let targets = ['.'];
+if (mode === 'staged') {
+  targets = stagedFiles();
+  if (targets.length === 0) {
+    console.log('No lintable files staged — nothing to check.');
+    process.exit(0);
+  }
+}
+
+const { counts, errors, warnings } = await collect(targets);
 
 if (mode === 'update') {
   const baseline = {
@@ -132,17 +176,26 @@ for (const [file, rules] of Object.entries(counts)) {
   }
 }
 
-for (const [file, rules] of Object.entries(base)) {
-  for (const [rule, entry] of Object.entries(rules)) {
-    const nowErrors = counts[file]?.[rule]?.errors ?? 0;
-    if (nowErrors < (entry.errors ?? 0)) fixed.push({ file, rule, was: entry.errors, now: nowErrors });
+// Only meaningful for a whole-repo run. In `--staged` mode the files that were
+// not linted are absent from `counts`, and reading that as "fixed" would report
+// the entire backlog as repaired on every commit.
+if (mode !== 'staged') {
+  for (const [file, rules] of Object.entries(base)) {
+    for (const [rule, entry] of Object.entries(rules)) {
+      const nowErrors = counts[file]?.[rule]?.errors ?? 0;
+      if (nowErrors < (entry.errors ?? 0)) fixed.push({ file, rule, was: entry.errors, now: nowErrors });
+    }
   }
 }
 
 const wasTotal = baseline.totals?.errors ?? 0;
 
 if (added.length > 0) {
-  console.error(`\nNEW lint errors — ${wasTotal} known, ${errors} now:\n`);
+  console.error(
+    mode === 'staged'
+      ? `\nNEW lint errors in the files you are committing:\n`
+      : `\nNEW lint errors — ${wasTotal} known, ${errors} now:\n`,
+  );
   for (const a of added) {
     console.error(`  ${a.file}`);
     console.error(`      ${a.rule}: ${a.was} → ${a.now}`);
@@ -166,5 +219,9 @@ if (warnDrift.length > 0) {
   process.exit(0);
 }
 
-console.log(`No new lint errors. ${errors} known errors, ${warnings} warnings — unchanged.`);
+console.log(
+  mode === 'staged'
+    ? `No new lint errors in ${targets.length} staged file${targets.length === 1 ? '' : 's'}.`
+    : `No new lint errors. ${errors} known errors, ${warnings} warnings — unchanged.`,
+);
 process.exit(0);

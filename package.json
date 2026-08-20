@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "lint:check": "node scripts/lint-baseline.mjs",
+    "lint:staged": "node scripts/lint-baseline.mjs --staged",
     "lint:baseline": "node scripts/lint-baseline.mjs --update",
     "test": "vitest run",
     "test:watch": "vitest",

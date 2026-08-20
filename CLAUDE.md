@@ -487,17 +487,32 @@ mapping is 1-to-1.
 2. Build the requested slice / fix on the auto-created session
    branch. Commit there freely.
 
-   **Before committing, run the lint guard:**
+   **A pre-commit hook runs the lint guard for you.** `.githooks/pre-commit`
+   calls `npm run lint:staged`, which lints only the staged files
+   (~4 s) and refuses the commit if any of them carries a **new**
+   error, naming the file and rule. It is enabled per machine with
+   `git config core.hooksPath .githooks` — already set here, and
+   worktrees share it. `git commit --no-verify` bypasses it; if you
+   use that, **say so in the session log**.
+
+   To check the whole repo deliberately — worth doing once a session,
+   since the hook only ever sees files you touched:
 
    ```powershell
    npm run lint:check
    ```
 
-   It compares against `.eslint-baseline.json` and fails **only** on
-   problems this session added, naming the file and rule. A known
-   backlog is recorded there deliberately — see the header of
-   `scripts/lint-baseline.mjs` for how it got there and why the
-   baseline counts rather than pins line numbers.
+   Both compare against `.eslint-baseline.json` and fail **only** on
+   problems this session added. A known backlog is recorded there
+   deliberately — see the header of `scripts/lint-baseline.mjs` for how
+   it got there, why the baseline counts rather than pins line numbers,
+   and why the hook is staged-only (a 71-second hook teaches the
+   bypass).
+
+   ⚠ **Renaming a file that carries known errors trips a false alarm** —
+   the baseline is keyed by path, so a move reads as "old path fixed,
+   new path new". Nothing is wrong: re-run `npm run lint:baseline` as
+   part of the rename commit.
 
    ⚠ **Never re-baseline to make the check pass.** `npm run
    lint:baseline` is for *banking a fix*, not for absorbing a new
