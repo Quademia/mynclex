@@ -537,33 +537,52 @@
   .hist-bank .hist-search-form { flex: 1 1 100%; margin-left: 0; }
   .hist-bank .hist-search { flex: 1; width: auto; }
 
-  .hist-bank .hist-card { box-shadow: none; }
+  /* ⚠ The stacking core below is shared with the PROGRAMME quiz-history
+   * table (`.hist-programme`), which was left out when this was written and
+   * so kept a 652px seven-column table inside a 341px `overflow: hidden`
+   * card — Result, State and the Review link were not merely hard to reach,
+   * they were CLIPPED AWAY. Extra selectors rather than a copied block, so
+   * the two tables cannot drift apart — the same reason this treatment has
+   * no second markup tree. Bank-only rules keep the `.hist-bank` prefix. */
+  .hist-bank .hist-card,
+  .hist-programme .hist-card { box-shadow: none; }
 
-  .hist-bank .hist-table thead { display: none; }
+  .hist-bank .hist-table thead,
+  .hist-programme .hist-table thead { display: none; }
   .hist-bank .hist-table,
   .hist-bank .hist-table tbody,
   .hist-bank .hist-table tr,
-  .hist-bank .hist-table td { display: block; width: 100%; }
+  .hist-bank .hist-table td,
+  .hist-programme .hist-table,
+  .hist-programme .hist-table tbody,
+  .hist-programme .hist-table tr,
+  .hist-programme .hist-table td { display: block; width: 100%; }
 
-  .hist-bank .hist-table tr {
+  .hist-bank .hist-table tr,
+  .hist-programme .hist-table tr {
     padding: 12px 14px;
     border-bottom: 1px solid var(--border);
   }
-  .hist-bank .hist-table tr:last-child { border-bottom: 0; }
+  .hist-bank .hist-table tr:last-child,
+  .hist-programme .hist-table tr:last-child { border-bottom: 0; }
 
-  .hist-bank .hist-table td {
+  .hist-bank .hist-table td,
+  .hist-programme .hist-table td {
     border: 0;
     padding: 2px 0;
   }
 
-  /* The session summary leads the card — it's what identifies the row. */
-  .hist-bank .hist-table td.hist-session {
+  /* The row's identity leads the card: the session summary on the bank side,
+   * the activity on the programme side. Both drop their label. */
+  .hist-bank .hist-table td.hist-session,
+  .hist-programme .hist-table td.hist-activity {
     font-size: 14px;
     font-weight: 600;
     padding-bottom: 6px;
   }
 
-  .hist-bank .hist-table td[data-label]:not(.hist-session)::before {
+  .hist-bank .hist-table td[data-label]:not(.hist-session)::before,
+  .hist-programme .hist-table td[data-label]:not(.hist-activity)::before {
     content: attr(data-label) ' ';
     display: inline-block;
     min-width: 62px;
@@ -585,12 +604,17 @@
     content: ' · ';
   }
 
-  .hist-bank .hist-action-cell {
+  .hist-bank .hist-action-cell,
+  .hist-programme .hist-action-cell {
     text-align: left;
     margin-top: 8px;
   }
-  .hist-bank .hist-action-cell .hist-action-link {
-    display: inline-block;
+  .hist-bank .hist-action-cell .hist-action-link,
+  .hist-programme .hist-action-cell .hist-action-link {
+    display: inline-flex;
+    align-items: center;
+    /* Review/Resume is the only way from this list into the attempt. */
+    min-height: 44px;
     padding: 8px 14px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -619,4 +643,10 @@
   }
 
   .hist-bank .hist-pager-link { padding: 10px 14px; }
+
+  /* Programme-side filter chrome. Scoped rather than shared: the bank side
+   * filters with chips and a search form, which have their own rules above,
+   * and only this surface was re-checked at 375px. */
+  .hist-programme .hist-activity-filter select { min-height: 44px; }
+  .hist-programme .hist-toggle { min-height: 44px; }
 }
