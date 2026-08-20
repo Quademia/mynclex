@@ -1404,6 +1404,20 @@
      whole face is already a link — and gains the hit area instead. Its only
      neighbour is a status pill, which is not interactive, so nothing can
      lose a tap to it. */
+  /* The policy toggle is 42x24 and shared by four surfaces (enrolments,
+     the programme and cohort modals, the payment-gating field), so it is
+     fixed here where `.prog-switch` is defined rather than per-surface.
+     A 44px toggle stops reading as a toggle, so the area grows instead.
+     ⚠ It MUST be `::before`: `::after` is the switch's KNOB, and
+     `.prog-switch.is-on::after` is what slides it across. Grows left and
+     vertically only — on the enrolments header the switch sits flush
+     against the content's right edge. */
+  .prog-switch::before {
+    content: '';
+    position: absolute;
+    inset: -11px 0 -11px -4px;
+  }
+
   .programme-card-menu-btn { position: relative; }
   .programme-card-menu-btn::after {
     content: '';
