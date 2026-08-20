@@ -795,3 +795,36 @@
   background: transparent;
   color: var(--text-muted);
 }
+
+/* ── Phones ──────────────────────────────────────────────
+ *
+ * The layout of the badge strip itself lives in `styles/quiz.css` — this
+ * file only adds tone variants — so the wrapping and the 44px badges are
+ * inherited, not repeated here. What is left is what this surface owns.
+ */
+@media (max-width: 768px) {
+  /* `.prow-badge-sep` is a 1x16px vertical rule that divides the meta text
+     FROM the badges while they share a line. At 375px the subline wraps,
+     so it was stranded on a line of its own — a floating tick with
+     nothing on either side of it. A divider between two things that are
+     no longer beside each other is not a divider. */
+  .prow-badge-sep { display: none; }
+
+  /* `nowrap` + `text-overflow: clip` at 216px inside 215: the tail of the
+     last word was cut with no ellipsis to admit it had happened. */
+  .prow-meta-text { white-space: normal; }
+
+  /* The quiz title is the row's primary target and 19px tall. Its size IS
+     the design — it is a text link, not a button — so the hit area grows
+     rather than the text. Safe in both directions here: the badges do not
+     start until y650, ~100px below, and Remove sits in another column. */
+  .prow-link { position: relative; display: inline-block; }
+  .prow-link::after {
+    content: '';
+    position: absolute;
+    inset: -14px 0;
+  }
+
+  .prow-remove,
+  .pq-btn { min-height: 44px; }
+}

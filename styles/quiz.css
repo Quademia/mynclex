@@ -1980,19 +1980,16 @@
   .quizzes-archived-toggle { min-height: 44px; }
 
   /* The badges are 24px tall and 73px+ wide, so only the short axis needs
-     help. Vertical only: they sit in a row 4px apart, and widening them
-     would make three neighbours fight over the same taps. */
-  .qc-badge::after {
-    content: '';
-    position: absolute;
-    /* Up only 10px — the row has 9px of padding and `.quiz-card-hit`, the
-       link that opens the editor, starts immediately above it. Down 18px
-       into the card padding and the 14px inter-card gap, which is dead
-       space (23px of it), so the target clears 44 without taking a tap
-       from anything. ⚠ Declared inset over-delivers by ~2px a side once
-       subpixel rects are rounded, so this is measured, not calculated. */
-    inset: -10px 0 -18px;
-  }
+     help — and it is SIZED rather than given an invisible hit area.
+     ⚠ That is a correction. An earlier pass here used an `::after` inset,
+     which is only safe while the badges stay on ONE line. They do not:
+     `.qc-foot-badges` wraps, and on the programme-quizzes surface it
+     already wraps to two lines 4px apart, so each badge's area reached
+     over the badge below and the two fought for the same taps. The card
+     surface is one long tag name from the identical fault — its badges
+     measure 302 inside 302 today. If a chip strip can wrap, size the
+     chips; do not grow invisible areas into a 4px gap. */
+  .qc-badge { min-height: 44px; }
 
   /* Matches the programmes card kebab: size kept, hit area grown left and
      vertically. Never rightward — that is what put a phantom +8px on the
