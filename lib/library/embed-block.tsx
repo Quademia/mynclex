@@ -223,7 +223,17 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extens
   // and the filled-block footer. Disabled once the block hits its max
   // — so neither Pick nor Create can push it over (no orphaned
   // questions from a full block).
-  function AddControl({ variant }: { variant: 'accent' | 'ghost' }) {
+  //
+  // ⚠ This is a render HELPER (called: `renderAddControl('accent')`), not a
+  // component (`<AddControl />`). It used to be the latter, declared right
+  // here inside the view — which meant React saw a brand-new component TYPE
+  // on every render of the block, threw the previous one away and mounted a
+  // fresh one. The open/closed Add menu is state inside that subtree, so it
+  // collapsed mid-interaction whenever anything above it re-rendered.
+  // Calling the function inlines the elements into this view instead, so
+  // they reconcile normally. Keep it a call, or hoist it to module scope
+  // with its closure passed as props — but do not re-declare a component here.
+  function renderAddControl(variant: 'accent' | 'ghost') {
     return (
       <div className="eq-addwrap" ref={menuWrapRef}>
         <button
@@ -289,7 +299,7 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extens
               Drop in 1–{EMBED_BLOCK_HARD_CAP} of your own bank questions as
               inline practice — a “now try these”.
             </div>
-            {editable && <AddControl variant="accent" />}
+            {editable && renderAddControl('accent')}
           </div>
         ) : (
           <>
@@ -317,7 +327,7 @@ function EmbedQuestionsView({ node, updateAttributes, editor, deleteNode, extens
             </div>
             {editable && (
               <div className="eq-block__foot">
-                <AddControl variant="ghost" />
+                {renderAddControl('ghost')}
                 <span className={`eq-counter${counterCls}`} style={{ marginLeft: 'auto' }}>
                   <span className="lbl">block</span>
                   {total} / {maxPerBlock}

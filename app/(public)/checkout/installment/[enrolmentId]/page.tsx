@@ -111,6 +111,11 @@ export default async function InstallmentCheckoutPage({
             amountMinor: schedule.next.amountMinor,
             currency,
             dueDateIso: schedule.next.dueDate.toISOString(),
+            // See the same note in the runner's page.tsx: `react-hooks/purity`
+            // treats this as a browser render. It is an async SERVER component
+            // — the clock is read once per request, server-side, to decide
+            // whether an instalment is overdue.
+            // eslint-disable-next-line react-hooks/purity
             isOverdue: schedule.next.dueDate.getTime() < Date.now(),
             graceUntilIso: null,
           }}
