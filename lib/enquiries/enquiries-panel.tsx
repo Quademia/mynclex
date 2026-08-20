@@ -215,6 +215,40 @@ export function EnquiriesPanel({
 
   const setSelectedId = setSelectedIdRaw;
 
+  // ── Mobile drill-in ────────────────────────────────────────────────
+  // Below the split's stack breakpoint the two panes become one column,
+  // so "selected" has to mean something it does not mean on desktop.
+  // `selectedId` above always resolves to a row — falling back to the
+  // first — which is right when the detail sits in its own column and
+  // must never be empty. On a phone that same fallback would drop the
+  // tutor straight into lead #1's detail on load and she would never
+  // see her own list. So the drill-in keys off her ACTUAL pick, not the
+  // derived one, and a pick that has been filtered out stops counting —
+  // which also returns her to the list when an action moves a lead out
+  // of the current filter. Derived, not stored: no second source of truth.
+  const entered =
+    selectedIdRaw !== null && shown.some((e) => e.enquiry_id === selectedIdRaw);
+
+  // ⚠ Swapping the panes is not enough on its own. `.ti-stats` (335px) and
+  // `.ti-toolbar` (164px) sit above the split, so it starts ~813px down —
+  // below the fold on an 812px screen. Without this the drill-in would
+  // still look like nothing happened, which is the whole bug. Scroll on
+  // BOTH transitions: entering shows the detail, leaving shows the list.
+  // An effect rather than the click handler because at click time the
+  // panes have not swapped yet, so there is nothing correct to scroll to.
+  const splitRef = useRef<HTMLDivElement>(null);
+  const drillFirstRun = useRef(true);
+  useEffect(() => {
+    // ⚠ Skip the mount run, or arriving on the page scrolls it straight
+    // past its own header and stats to a list nobody asked to see.
+    if (drillFirstRun.current) {
+      drillFirstRun.current = false;
+      return;
+    }
+    if (!window.matchMedia('(max-width: 900px)').matches) return;
+    splitRef.current?.scrollIntoView({ block: 'start' });
+  }, [entered]);
+
   // Run a server action under the action transition. Errors surface in
   // the toast; on success the route refreshes so re-derivations pick up
   // the new status.
@@ -287,7 +321,7 @@ export function EnquiriesPanel({
         </label>
       </div>
 
-      <div className="ti-split">
+      <div ref={splitRef} className={`ti-split${entered ? ' is-entered' : ''}`}>
         <aside className="ti-list-col" aria-label="Enquiry list">
           <EnquiryList
             rows={shown}
@@ -299,6 +333,15 @@ export function EnquiriesPanel({
           />
         </aside>
         <section className="ti-detail-col" aria-label="Enquiry detail">
+          {/* Phone-only: the way back out of the drill-in. Hidden above the
+              stack breakpoint, where the list is still on screen beside it. */}
+          <button
+            type="button"
+            className="ti-back"
+            onClick={() => setSelectedId(null)}
+          >
+            ← All enquiries
+          </button>
           {selected ? (
             <EnquiryDetail
               enquiry={selected}

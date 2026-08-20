@@ -996,6 +996,12 @@
   background: var(--white);
 }
 
+/* The back control belongs to the drill-in only: above the stack
+   breakpoint the list is still on screen beside the detail, so a "back"
+   that goes nowhere would be a lie. Declared BEFORE the media block —
+   equal specificity, so source order decides which one wins. */
+.ti-back { display: none; }
+
 @media (max-width: 900px) {
   .ti-split {
     grid-template-columns: 1fr;
@@ -1006,6 +1012,43 @@
     border-right: none;
   }
   .ti-list-col { border-bottom: 1px solid var(--border); }
+
+  /* ── Drill-in ────────────────────────────────────────────────────
+   * ⚠ These rules live INSIDE the stacking block on purpose, at 900px
+   * rather than the house 768px. The drill-in exists only because the
+   * two panes stack, so it has to begin exactly where the stacking
+   * does — split across two breakpoints, the 769-900px band would keep
+   * the original bug and nobody would think to look there.
+   *
+   * The bug: stacked, the detail is ~988px tall and starts ~1600px down
+   * the page — two full screens below the row you tapped. Tapping an
+   * enquiry produced no visible change at all.
+   *
+   * The list is the default view and the detail replaces it, per the
+   * two-pane drill-in in docs/product-plan/mobile-responsive.md
+   * ("Reuse this drill-in for future two-pane surfaces"). `is-entered`
+   * is set only by a real pick — see `entered` in enquiries-panel.tsx. */
+  .ti-detail-col { display: none; }
+  .ti-list-col { border-bottom: none; }
+
+  .ti-split.is-entered .ti-list-col { display: none; }
+  .ti-split.is-entered .ti-detail-col { display: block; }
+
+  .ti-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 4px;
+    margin-bottom: 4px;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+  }
 }
 
 /* ─── List ─── */
