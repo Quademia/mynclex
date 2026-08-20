@@ -18,6 +18,12 @@ const eslintConfig = defineConfig([
     // None of it ships, none of it is imported, and linting it only ever
     // reports on code we must not "fix" without breaking the reference.
     "docs/product-plan/design-handoff/**",
+    // Claude Code's own directory — skill definitions and the plain Node
+    // CommonJS helper scripts behind the question-transcription skill.
+    // Tooling, not application code: never imported, never bundled, and
+    // run by `node`, not by Next. The app's module rules (no `require`)
+    // describe a bundler these files never meet.
+    ".claude/**",
   ]),
 ]);
 
