@@ -487,6 +487,32 @@ mapping is 1-to-1.
 2. Build the requested slice / fix on the auto-created session
    branch. Commit there freely.
 
+   **Before committing, run the lint guard:**
+
+   ```powershell
+   npm run lint:check
+   ```
+
+   It compares against `.eslint-baseline.json` and fails **only** on
+   problems this session added, naming the file and rule. A known
+   backlog is recorded there deliberately — see the header of
+   `scripts/lint-baseline.mjs` for how it got there and why the
+   baseline counts rather than pins line numbers.
+
+   ⚠ **Never re-baseline to make the check pass.** `npm run
+   lint:baseline` is for *banking a fix*, not for absorbing a new
+   error. A genuinely unavoidable one gets an `eslint-disable` **at
+   the line, with the reason written next to it**, so the judgement
+   survives for whoever reads it next.
+
+   ⚠ **Do not write the error count into this file or a session log.**
+   It goes stale the first time someone fixes something, and then it
+   quietly gives the wrong answer. The count lives in the baseline
+   file, which regenerates. If a session note describes lint at all,
+   it must say what was actually checked — "clean on the files I
+   touched" is not "clean", and describing the first as the second is
+   exactly how a 47-error backlog went unnoticed for four months.
+
 3. Sam tests the change in the browser at `localhost:3000`.
 
 4. **Always ask Sam for explicit approval before merging to `main`.**
