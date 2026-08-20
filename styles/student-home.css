@@ -476,4 +476,49 @@
   .sho-continue-action,
   .sho-continue-action .student-activity-action { width: 100%; }
   .sho-continue-action .student-activity-launch { width: 100%; }
+
+  /* ⭐ The week list was showing the progress bar more of the row than the
+   * week title. `.sho-week-name` was pinned at `width: 118px; flex-shrink: 0`
+   * while `.sho-week-bar` took `flex: 1`, so on a 375px screen the bar got
+   * 121px and the title got 118 — and all 52 titles truncated mid-word
+   * ("Infection control…", "Fluids and electr…"). Invert the priority: the
+   * title takes the row, the bar shrinks to a fixed indicator. `min-width: 0`
+   * is what actually lets a flex item ellipsis instead of forcing the row
+   * wider than its parent. */
+  .sho-week { gap: 10px; }
+  .sho-week-name {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .sho-week-bar { flex: 0 0 56px; }
+
+  /* Widening the column alone still clipped the longer titles at one line
+   * ("The six rights of medication administrat…"). Two lines is what makes
+   * the list actually scannable — telling the weeks apart is the entire job
+   * of this list, and a uniform row height is worth less than that. */
+  .sho-week-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* 44px targets. "Join session" and the library row are buttons, so they
+   * simply grow; the card links are type, and their size is the design — so
+   * they keep their look and gain the target through the hit area. */
+  .sho-feature-btn,
+  .sho-lib-continue { min-height: 44px; }
+
+  .sho-card-link { position: relative; }
+  .sho-card-link::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: max(100%, 44px);
+    height: 44px;
+  }
 }
