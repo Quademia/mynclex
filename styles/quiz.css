@@ -1939,3 +1939,68 @@
   font-size: 12px;
   color: var(--danger);
 }
+
+/* ── Phones ──────────────────────────────────────────────
+ *
+ * ⚠ `.quizzes-stats` was `repeat(4, 1fr)` — the THIRD sighting of this
+ * trap in one sweep, after the tutor home and the programmes grid. `1fr`
+ * is `minmax(auto, 1fr)` and that `auto` floor is min-content, so four
+ * stat cards demanded 521px inside 343 and dragged the whole page into
+ * 162px of sideways scroll. Two columns, and each track allowed to
+ * actually shrink.
+ *
+ * ⓘ The badge rows are NOT fixed here, because they were never broken.
+ * `.qc-foot-badges` reported +131 and `.qc-badge-host` +156, but that is
+ * `.qc-peek` — a 236px popover that is `opacity: 0` and absolutely
+ * positioned while closed, and so inflates the scrollWidth of everything
+ * above it without being visible or reachable. Opened for real it clamps
+ * itself into the viewport (measured: shifted -98.6px, landing at
+ * x127-363 inside 375) via the `--shift` useLayoutEffect in
+ * `lib/tutor-quiz/quiz-card-badges.tsx`. An invisible absolutely-
+ * positioned element reads as overflow and is not one. */
+@media (max-width: 768px) {
+  .quizzes-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* A CLOSED peek still occupies layout — absolutely positioned, opacity 0,
+     236px wide — so the ones on right-hand badges reached to x462 and let
+     the page be dragged 87px sideways into blank space. Parking them
+     against their host's right edge keeps them inside the card.
+     `.is-open` is absent here, so the OPEN state is untouched: it still
+     uses `left: calc(-6px + var(--shift))` and the useLayoutEffect clamp
+     that was measured putting it back inside the viewport. `left` is not
+     in the transition list, so the switch happens in one frame while the
+     peek is still at opacity 0 — nothing visibly moves. */
+  .qc-peek:not(.is-open) { left: auto; right: 0; }
+
+  .quizzes-new-btn,
+  .quizzes-search input,
+  .quizzes-seg button,
+  .quizzes-select,
+  .quizzes-select select,
+  .quizzes-archived-toggle { min-height: 44px; }
+
+  /* The badges are 24px tall and 73px+ wide, so only the short axis needs
+     help. Vertical only: they sit in a row 4px apart, and widening them
+     would make three neighbours fight over the same taps. */
+  .qc-badge::after {
+    content: '';
+    position: absolute;
+    /* Up only 10px — the row has 9px of padding and `.quiz-card-hit`, the
+       link that opens the editor, starts immediately above it. Down 18px
+       into the card padding and the 14px inter-card gap, which is dead
+       space (23px of it), so the target clears 44 without taking a tap
+       from anything. ⚠ Declared inset over-delivers by ~2px a side once
+       subpixel rects are rounded, so this is measured, not calculated. */
+    inset: -10px 0 -18px;
+  }
+
+  /* Matches the programmes card kebab: size kept, hit area grown left and
+     vertically. Never rightward — that is what put a phantom +8px on the
+     scrollWidth there before it was corrected. */
+  .quiz-card-menu-btn { position: relative; }
+  .quiz-card-menu-btn::after {
+    content: '';
+    position: absolute;
+    inset: -10px 0 -10px -18px;
+  }
+}
