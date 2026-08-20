@@ -1,8 +1,16 @@
-# Mobile-responsive navigation
+# Mobile-responsive: navigation, content, and how to measure it
 
 The reference for how MyNclex behaves on phones. Built 2026-06-21 from
 the Claude Design "Mobile Navigation Redesign" prototype. See also the
 CLAUDE.md UI Convention "Surfaces must be mobile-friendly".
+
+⚠ **The filename still says "navigation" and the scope no longer does.**
+Nav came first (2026-06-21); the per-surface content sweeps followed
+(students and tutors, both 2026-08-20) and brought the touch-target and
+measurement rules with them. The file keeps its name because CLAUDE.md
+and several stylesheets point at it. Read *Touch targets* and *Measuring
+a surface* before starting a sweep — they exist because every rule in
+them was paid for by a wrong answer.
 
 ## Why
 
@@ -59,7 +67,7 @@ Everything is additive to the existing shell; desktop is unchanged.
 | Student · Programme | hybrid | Curriculum · Library · Quizzes · History |
 | Student · Cohort | hybrid | Curriculum · Sessions · Library · Quizzes |
 | Tutor · Global | drawer | — |
-| Tutor · Programme | drawer | — (Cohorts under a "Delivery" divider) |
+| Tutor · Programme | drawer + `drawerHeader` | — (Cohorts under a "Delivery" divider) |
 | Admin | drawer | — (permission-filtered before MobileNav) |
 
 ## Gotchas / decisions
@@ -76,10 +84,24 @@ Everything is additive to the existing shell; desktop is unchanged.
   one is interactive.
 - **Scroll-lock is inside the breakpoint** so a lingering `m-nav-locked`
   class can never freeze the desktop layout.
-- **Students switch programme via the topbar pill**, so the drawer uses
-  the default (wordmark + role badge) header in every context. A
-  programme-name drawer header (per the CD mock) is a deferred polish —
-  it'd need the shell to fetch the title.
+- **Students switch programme via the topbar pill** (`centerSlot`), so
+  for them the drawer can keep the default wordmark + role-badge header.
+  ⚠ **This was written as a general rule and is only true of students.**
+  It once read "a programme-name drawer header is a deferred polish —
+  it'd need the shell to fetch the title", and both halves failed on the
+  tutor side: tutors have no pill, and `programme-shell.tsx` already held
+  `programmeTitle` (it passes it to `<TutorBackPill>`). The consequence
+  was not cosmetic — inside a programme every drawer row points DEEPER
+  into that programme, and the only route out (`<TutorBackPill>`, passed
+  as `rightSlot`) renders into `.shell-topbar`, which a phone hides. A
+  tutor who opened a programme on her phone had no signposted way back.
+  Fixed 2026-08-20 by passing `drawerHeader` — the slot `MobileNav` had
+  defined for exactly this and that no caller had ever used. See
+  `components/nav/tutor/drawer-header.tsx`.
+  ⭐ **The lesson is the deferral, not the header.** A decision reasoned
+  through one audience was recorded as applying to all of them, and it
+  removed another audience's only exit. When a shell passes `rightSlot`
+  on desktop, ask what the phone equivalent is — `rightSlot` is not it.
 - **Admin Profile** row in the account sheet is disabled until an
   `/admin/profile` route exists (tutor/student already have one).
 
@@ -90,6 +112,13 @@ Everything is additive to the existing shell; desktop is unchanged.
 - **Slice 2** (student bottom tabs) — built.
 - **Slice 3** (polish: scroll-lock fix, resize-close, focus-on-open) +
   this doc + the CLAUDE.md convention.
+- **Content sweep — students** (2026-08-20): seven surfaces measured and
+  fixed at 375px. Library skipped.
+- **Content sweep — tutors** (2026-08-20): eleven surfaces. Home,
+  Programmes, Quizzes, Programme quizzes, Payments, Enquiries (+ drill-in),
+  Enrolments, Curriculum, Cohort analytics, Cohort tabs, and the programme
+  drawer header. Bank area and Library excluded. All nine live surfaces
+  measure zero sideways scroll; the other two are "Coming soon" placeholders.
 
 ## Non-nav content reflow (started 2026-06-21)
 
@@ -108,6 +137,140 @@ side-by-side (CD's mock used a cramped horizontal week-strip — rejected):
   an `is-entered` class on the pane).
 
 Reuse this drill-in for future two-pane surfaces.
+
+**Third instance: tutor Enquiries (2026-08-20).** `lib/enquiries/enquiries-panel.tsx`
++ `styles/enquiries.css`. Three things it settled that the first two did not:
+
+- ⚠ **Match the breakpoint to where the panes STACK, not to 768px.** The
+  enquiries split stacks at 900px, so the drill-in is at 900px too, and its
+  rules live *inside* that same `@media` block. The drill-in exists only
+  because the panes stack; split across two breakpoints, the 769–900px band
+  keeps the original bug and nobody thinks to look there. Same block, so
+  they cannot drift apart.
+- ⚠ **A derived "always something selected" default is not an entered
+  state.** `selectedId` falls back to the first row — correct when the
+  detail owns a column and must never be empty, and wrong once stacked,
+  where it means a full detail for a lead the tutor never chose. `is-entered`
+  must key off the user's ACTUAL pick, and a pick that has been filtered out
+  should stop counting (which also returns her to the list when an action
+  moves a lead out of the current filter).
+- ⚠⚠ **Swapping the panes is not the whole fix — check where the split
+  STARTS.** Here 499px of stats and toolbar sit above it, so the detail
+  landed correct and still below the fold, which is the original symptom
+  exactly. Scroll the split into view on BOTH transitions, from an effect
+  rather than the click handler (at click time the panes have not swapped
+  yet), and skip the mount run or arriving on the page scrolls past its own
+  header.
+
+**Choosing drill-in vs inline expansion.** Sam proposed opening the detail
+under the tapped row. The deciding number was the detail's height: 988px,
+about 1.2 screens, holding an editable notes field and message templates.
+Inline expansion suits a SHORT disclosure; a full record with its own form
+state belongs in a drill-in, which also gives it the whole width.
+
+## Touch targets — 44px, and how to get there
+
+Settled across the student sweep (2026-08-20) and refined by the tutor
+sweep the same day.
+
+⭐ **GROW the control where growing it is invisible; EXTEND THE HIT AREA
+where the control size IS the design.** A transparent icon button can just
+become 44px. A segmented pill in a 54px bar, a status chip, a text link or
+a toggle cannot — those keep their look and gain an invisible `::after`.
+
+⭐⭐ **Refinement: if the strip can WRAP, SIZE the controls instead.** An
+invisible area only works while its neighbours stay far enough away. The
+quiz badges were given an `::after` that measured perfectly on the card
+surface and collided on the programme surface, where the same badges wrap
+to two lines **4px apart** — each badge reached over the one below, and the
+lower one (painted later) took the taps. The card surface was one long tag
+name from the identical fault: its badges measure 302 inside 302. If a
+container has `flex-wrap: wrap`, assume it will wrap and size the chips.
+Same reasoning for controls that sit 6–7px apart in a table row.
+
+⚠ **Never extend outward past the control's container.** An absolutely
+positioned `::after` contributes to the scrollWidth of its ancestors, so an
+outward hit area *invents an overflow* — done twice in one sweep, one commit
+apart (`.unit-item-head` +10px, `.programme-card-head` +8px). Grow inward,
+or vertically, or into known dead space; then re-measure the container.
+
+⚠ **A declared inset is not the delivered hit area.** Subpixel rects round
+away roughly 2px a side, so `inset: -10px` on a 24px control does not give
+44. Measure the result; do not calculate it.
+
+⚠⚠ **Check what the pseudo-element is already doing.** `.prog-switch::after`
+is the toggle's KNOB (`.is-on::after` slides it). Reaching for the usual
+`::after` there would have replaced the moving part of a switch with an
+invisible rectangle. Use `::before`, and verify the knob still animates.
+
+⚠ **An enlarged target must not steal a neighbour's taps.** After every
+extension, probe the neighbours too: on the quiz cards, that the editor
+link still owns its own bottom edge and the next card its top.
+
+## Measuring a surface — and five ways the measurement lies
+
+The tutor sweep's most reusable output. Each of these produced a confident
+wrong answer that only a second check caught.
+
+⭐⭐ **`document.scrollWidth` is not the signal.** The tutor home reported a
+clean 375 while 52 elements sat past the right edge, because `overflow:
+hidden` ancestors swallow the excess before it reaches the document.
+Measure each CONTAINER's own `scrollWidth` vs `clientWidth`, and classify:
+**SIDEWAYS** (reachable but wrong) · **CLIPPED** (destroyed — an
+`overflow: hidden` box with no scroll) · **TRUNCATED** (`text-overflow:
+ellipsis` + `nowrap`, usually deliberate and not a bug).
+
+1. ⚠ **Off-screen elements report a false PASS.** `elementFromPoint` cannot
+   test outside the viewport, so anything below the fold silently reports
+   its visual size as its hit area. Scroll each control into view first.
+2. ⚠ **A closed popover inflates everything above it.** `.qc-peek` is 236px,
+   `opacity: 0` and absolutely positioned, so it added +131/+156 to its
+   ancestors while being invisible and unreachable. It also self-clamps
+   into the viewport when opened, so the "off-screen popup" it looked like
+   was not real either.
+3. ⚠ **Hit tests during a CSS transition fail.** Probing the drawer's back
+   link mid-slide-in reported "not hittable"; the rect was still moving.
+4. ⚠ **A labelled input's real target is its `<label>`.** The enquiries
+   search measured 178x20 and sits in a label measuring 220x44 — tapping
+   anywhere on it focuses the field. Check for a wrapping `<label>` before
+   filing a bare `<input>` as too small.
+5. ⚠ **An element under the fixed topbar reads as an overlap.** `.m-topbar`
+   is z:30; a control scrolled beneath it fails "owns its own centre".
+
+⭐ **Measure DESKTOP first, on every surface.** The student sweep found a
+bug that was worse at 1198px than at 375px, which moved that fix into the
+base rule. The answer differs surface by surface, so check rather than
+assume the fix is phone-only.
+
+⭐ **An empty surface measures clean.** Three tutor routes are "Coming soon"
+placeholders and passed every test by having no content. Detect and report
+that, or emptiness reads as health.
+
+⚠ **`1fr` is `minmax(auto, 1fr)`, and that `auto` floor is min-content** —
+so a track cannot shrink below its content however narrow the screen gets.
+Found four times in one sweep, twice INSIDE a `@media` block written to
+rescue narrow screens; in the programmes case the override to `1fr` removed
+a fixed 340px minimum that had been capping the damage, producing a 782px
+column inside 343. **An existing breakpoint is not evidence that a surface
+was ever measured.** Use `minmax(0, 1fr)`.
+
+⚠ **But do not reach for it reflexively.** Payments looked like a fifth
+sighting and was not: `minmax(0, 1fr)` and `min-width: 0` both changed
+nothing. The cause was `.tpay-page` having `max-width` and `margin: 0 auto`
+but no `width` — `.product-content` is a COLUMN flex, so auto cross-axis
+margins cancel the stretch and the box sizes to its WIDEST CHILD (633px
+inside 375). `styles/cat.css` already carried a written comment about this
+exact failure; assume other page wrappers are missing the same line.
+
+⚠ **`flex-wrap: wrap` alone does nothing to an `inline-flex` with
+`flex: none`** — it sizes to max-content and never meets a width its
+children can wrap against. It needs `max-width: 100%` as well.
+
+⚠ **`max-width: 100%` bounds a box against its PARENT, not against a
+sibling.** Applied to the enquiries scope picker it made things worse — the
+select grew to the parent's full width beside a 78px label, turning a 3px
+overflow into 84. When a control must yield to a sibling, it needs to
+shrink: `flex: 1 1 0` + `min-width: 0`.
 
 ## The runner — its own doc
 
@@ -134,11 +297,29 @@ stylesheet — is this doc's rules.
 ## Not done (future)
 
 - Tutor/admin bottom tabs (deferred by design).
-- Remaining non-nav content surfaces (bank tables, editors, dashboards)
-  still need their own per-surface `@media (max-width: 768px)` passes —
-  the curriculum two-panes are done; the rest are pending.
+- ⬜ **Library — the last unswept surface, and deferred on BOTH audiences.**
+  Skipped by the student sweep and again by the tutor sweep, so it is a
+  deliberate gap rather than an oversight on either side. It needs its own
+  session: the rail keeps its 218px at 375px, squeezing the content pane to
+  **57px wide** with stat cards at 36px. One file, `styles/library.css`,
+  serves the tutor, programme and student shells, so one drill-in fixes all
+  three — `lib/library/home-shell.tsx` already carries a `railed` /
+  `is-railed` state to key off.
+- ⬜ **The bank / curator area** (`/tutor/bank/*` and the authoring editors)
+  — excluded from the tutor sweep by Sam as its own arc; dense editors,
+  closer in shape to the runner than to a list page, and similar to the
+  gamma bank side.
+- Admin surfaces have had no content sweep at all — nav only.
 - Picker mobile treatment. (`(focused)` — i.e. the runner — is now
   in progress; see *The runner* above.)
 - Full focus-trap (Tab cycling) in the drawer/sheet — currently
   focus-on-open only.
-- Programme-name drawer header.
+- ⚠ **The inner scroll container.** `.shell-root` is `height: 100dvh`, so
+  the DOCUMENT never scrolls — `.product-content` does. On a phone the
+  address bar therefore never collapses (~60–100px lost on every page),
+  with no pull-to-refresh and no tap-status-bar-to-top. Shell-level,
+  touching all three audiences at once, and several things position against
+  the locked shell. Its own session.
+- ⬜ `.ti-stats` is 335px, so half a phone screen of KPI cards sits between
+  the tutor and her enquiry queue on every visit. A layout judgement rather
+  than a responsive defect — noted, not actioned.
