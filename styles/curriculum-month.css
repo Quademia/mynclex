@@ -407,6 +407,13 @@ button.cmv-chip:disabled {
 /* ── Mobile reflow (≤768px) ──────────────────────────────────────── */
 
 @media (max-width: 768px) {
+  /* The Weeks/Month switch is 30px tall — it is how the student changes
+   * what this whole page shows, so it earns the 44px target. */
+  .cmv-toggle-btn {
+    height: auto;
+    min-height: 44px;
+  }
+
   .cmv-band {
     align-items: flex-start;
     flex-direction: column;

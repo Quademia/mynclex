@@ -1728,5 +1728,30 @@ button.programme-switcher-item {
     font-weight: 600;
     color: var(--accent);
     cursor: pointer;
+    /* 32px, and in the drill-in it is the ONLY way back to the week list —
+     * the rail is display:none while a week is open. */
+    min-height: 44px;
+  }
+
+  /* The activity title was getting 91px of a 283px row while the icon and
+   * the two pills ("LIVE SESSION", "Event") took 182px between them — the
+   * badges describing the activity had twice the room of the activity's own
+   * name, which wrapped to three lines in the gap they left.
+   *
+   * `order: 1` puts the title last among otherwise-order-0 siblings, so the
+   * icon and both pills keep one row and the title takes the next at full
+   * width. ⓘ Phone-only by measurement: at 1198px the same title gets 239px
+   * on one line, so the base rule is right as it stands. */
+  .student-activity-head {
+    flex-wrap: wrap;
+  }
+  .student-activity-title {
+    order: 1;
+    flex: 1 0 100%;
+  }
+
+  /* "Open" is the point of the card. */
+  .student-activity-launch {
+    min-height: 44px;
   }
 }
