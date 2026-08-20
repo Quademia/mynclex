@@ -2326,3 +2326,32 @@
   border-radius: var(--radius);
   background: var(--white);
 }
+
+/* ── Phones ──────────────────────────────────────────────
+ *
+ * ⚠ `.cohort-tabs` is `flex-wrap: nowrap` and needed 427px in 343, which
+ * put SETTINGS at x364-443 — entirely past the right edge, with the row
+ * not scrollable either. Cohort settings could not be reached on a phone
+ * at all.
+ *
+ * These wrap rather than scroll, and the distinction is deliberate: the
+ * week strip earlier in this sweep scrolls because it is a sequence you
+ * read left to right and the later days are expected to be out of sight.
+ * A tab row is navigation — every destination has to be visible, or the
+ * one that isn't stops existing. Two rows cost 38px and hide nothing.
+ */
+@media (max-width: 768px) {
+  .cohort-tabs { flex-wrap: wrap; }
+  .cohort-tab { min-height: 44px; }
+
+  /* Both are text links whose size IS the design, and both have clear
+     space around them, so the area grows and the text does not. */
+  .cohort-detail-back,
+  .cohort-overview-link { position: relative; }
+  .cohort-detail-back::after,
+  .cohort-overview-link::after {
+    content: '';
+    position: absolute;
+    inset: -14px 0;
+  }
+}
