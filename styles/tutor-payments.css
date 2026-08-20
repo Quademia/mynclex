@@ -10,6 +10,15 @@
 .tpay-page {
   max-width: 1280px;
   margin: 0 auto;
+  /* ⚠ Load-bearing, not cosmetic — and the same bug `styles/cat.css` already
+   * carries a comment about. `.product-content` is a COLUMN flex, so `margin:
+   * 0 auto` (auto cross-axis margins) cancels the default stretch, and with
+   * no definite width this box sizes to its WIDEST CHILD instead of the
+   * viewport. Here that was the programme filter row, which made the page
+   * 633px wide inside 375 and scrolled the whole content area sideways by
+   * 290px. A definite 100% pins it to the viewport so wide content has to
+   * scroll inside its own container (CLAUDE.md UI #3). */
+  width: 100%;
   padding: 28px 24px 60px;
 }
 
@@ -636,4 +645,51 @@
   .tpay-search { flex: 1 1 100%; min-width: 0; }
   .tpay-table-wrap { display: none; }
   .tpay-cards { display: block; }
+
+  /* ⚠ `1fr 1fr` above is fine only because the page now has a definite
+     width; before that fix the band was two 296px tracks inside 315. */
+
+  /* The segmented filters are `flex: none` with `nowrap` labels, so four
+     programme names held 579px in a 313px toolbar. They are filters, not a
+     strip to swipe — wrapping keeps every one of them reachable. */
+  /* ⚠ `flex-wrap` ALONE does nothing here. `.tpay-seg` is an `inline-flex`
+     with `flex: none`, so it sizes to max-content and never reaches a width
+     its children could wrap against — it stayed 579px wide after wrapping
+     was switched on. The `max-width` is what makes the wrap real. */
+  .tpay-seg {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .tpay-seg-btn { min-width: 44px; }
+
+  /* ⚠ `nowrap` + `text-overflow: CLIP` in a 146px column: a payer's name
+     and email were cut mid-character with no ellipsis to admit it, and
+     spilled 98px past the card besides. Emails have no spaces to break
+     on, hence `anywhere`. */
+  .tpay-name,
+  .tpay-email {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* The programme a payment belongs to is the card's subject; at 220px it
+     was ellipsised out of usefulness ("NCLEX-RN Live — The 8-Week…"). */
+  .tpay-prog { white-space: normal; }
+
+  .tpay-export,
+  .tpay-seg-btn,
+  .tpay-select,
+  .tpay-search input { min-height: 44px; }
+
+  /* The instalment-history clock is 22px and the only control in its meta
+     row, so it keeps its size and grows its hit area. Left and vertical
+     only: it sits flush against the row's right edge, and reaching past
+     that is what put a phantom scrollWidth on two earlier surfaces. Its
+     left-hand neighbours are plain text, so no tap changes owner. */
+  .tpay-clock { position: relative; }
+  .tpay-clock::after {
+    content: '';
+    position: absolute;
+    inset: -14px 0 -14px -24px;
+  }
 }
