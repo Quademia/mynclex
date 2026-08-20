@@ -1535,3 +1535,58 @@
     padding: 14px 16px 40px;
   }
 }
+
+/* ── Phones ──────────────────────────────────────────────
+ *
+ * ⚠ The unit title was 14px wide for 97px of text. `.cur-detail-title`
+ * already carried `flex: 1; min-width: 0` — correct on its own — but
+ * `.cur-detail-actions` is `flex-shrink: 0`, so Edit + Unpublish + Delete
+ * held 283px of a 309px row and the title absorbed the entire shortfall.
+ * The heading of the screen was a 14px column of broken words. Wrapping
+ * costs one line and gives the title all 309.
+ *
+ * ⚠⚠ Worse, and not a size problem at all: `.act-controls` is `opacity: 0`
+ * until `:hover` or `:focus-within`. A phone has no hover, so an activity's
+ * reorder arrows and its actions menu were INVISIBLE — present, hittable,
+ * and impossible to know about. Reordering and deleting an activity had no
+ * discoverable path on a phone at all. A hover-only affordance is not a
+ * small target; it is a missing one. */
+@media (max-width: 768px) {
+  .cur-detail-titlerow { flex-wrap: wrap; }
+  .cur-detail-title { flex: 1 1 100%; }
+  .cur-detail-actions { flex: 1 0 100%; }
+
+  .cur-btn-ghost-sm,
+  .cur-btn-accent-sm,
+  .cur-btn-danger-sm { min-height: 44px; }
+
+  /* The activity's controls become permanently visible, and take their own
+     line so they can be 44px without starving the title — widening them in
+     place would have cost `.act-text` the room it is already short of. */
+  .act { flex-wrap: wrap; }
+  .act-controls {
+    opacity: 1;
+    flex: 1 0 100%;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+  .act-controls .cur-icon-btn { width: 44px; height: 44px; }
+
+  .cur-rail-add,
+  .cur-units-btn,
+  .cur-add-btn { min-height: 44px; }
+
+  /* The week kebab keeps its 24px — growing it would bloat every rail row,
+     where the size IS the design — and gains an invisible hit area instead.
+     Its nearest control is ~99px away, so nothing can steal its taps.
+     ⚠ It grows INWARD (left), not outward: an `inset: -10px` on all four
+     sides reached past the row and put a phantom +10px on the scrollWidth
+     of `.unit-item-head` — a hit area that invents an overflow is one bug
+     traded for another, and the next sweep would have flagged it as one. */
+  .unit-item .cur-menu-wrap > .cur-icon-btn { position: relative; }
+  .unit-item .cur-menu-wrap > .cur-icon-btn::after {
+    content: '';
+    position: absolute;
+    inset: -10px 0 -10px -20px;
+  }
+}
