@@ -2,9 +2,15 @@
 //
 // Student curriculum — two-pane master/detail (2026-06 redesign, CD
 // "Student Curriculum"). Replaces the old horizontal <StudentUnitTabs>
-// strip. A left WEEK RAIL (status + progress per unit) and a right
+// strip. A left UNIT RAIL (status + progress per unit) and a right
 // DETAIL pane showing the selected unit's activities. One unit visible
 // at a time, same as the tabs — just a richer presentation.
+//
+// "Unit" is the generic; the programme picks the word. Tutor-led cohorts
+// label units WEEK, self-paced programmes label them MODULE, and the rail
+// items arrive already carrying it ("Week 1" / "Module 1"). The back link
+// and the rail's spoken names derive the plural from those labels rather
+// than hardcoding one — see `unitsLabel` below.
 //
 // Selected unit rides the existing `?unit=N` URL state (1-based), so
 // refresh + deep links preserve position. Desktop always shows BOTH
@@ -13,10 +19,10 @@
 //
 // Mobile (≤768px) — DRILL-IN (per the 2026-06-21 design call; CD's
 // horizontal week-strip was rejected as cramped on a phone). The
-// PRESENCE of `?unit` is the "entered a week" signal:
-//   • no `?unit`  → show the week LIST (rail full-width), detail hidden.
-//   • `?unit=N`   → show that week's DETAIL full-width + a "← Weeks"
-//                   back link; rail hidden.
+// PRESENCE of `?unit` is the "entered a unit" signal:
+//   • no `?unit`  → show the unit LIST (rail full-width), detail hidden.
+//   • `?unit=N`   → show that unit's DETAIL full-width + a "← Weeks" /
+//                   "← Modules" back link; rail hidden.
 // The desktop/mobile switch is pure CSS (the `is-entered` class + the
 // ≤768 media block in styles/student-curriculum.css); this component
 // just owns the class + the URL transitions. Because we enter with a
@@ -123,10 +129,26 @@ export function StudentCurriculumPane({
     paneRef.current?.scrollIntoView({ block: 'start' });
   }
 
+  // The rail's own labels already carry the programme's unit noun — "Week 1"
+  // on a tutor-led cohort, "Module 1" on a self-paced one — so the heading can
+  // be derived from data the component already has, with no new prop threaded
+  // through every caller.
+  //
+  // ⚠ This is why it mattered: the back link below is `display: none` on
+  // desktop and only appears in the phone drill-in, so a self-paced student
+  // was the only person who could see it, and it told her "← Weeks" while
+  // every other word on the page said Module.
+  //
+  // `+ 's'` is safe because the noun is not free text: nclex_programmes has
+  // CHECK (unit_label IN ('WEEK','MODULE')). A third value would need a
+  // migration, which is the moment to revisit this.
+  const unitNoun = rail[0]?.label.trim().split(/\s+/)[0] ?? 'Unit';
+  const unitsLabel = `${unitNoun}s`;
+
   return (
     <div className={'scp' + (entered ? ' is-entered' : '')} ref={paneRef}>
-      <aside className="scp-rail" aria-label="Weeks">
-        <div className="scp-rail-list" role="tablist" aria-label="Weeks">
+      <aside className="scp-rail" aria-label={unitsLabel}>
+        <div className="scp-rail-list" role="tablist" aria-label={unitsLabel}>
           {rail.map((u) => {
             const isActive = u.index === selected;
             return (
@@ -176,7 +198,7 @@ export function StudentCurriculumPane({
 
       <div className="scp-detail">
         <button type="button" className="scp-back" onClick={backToList}>
-          ← Weeks
+          ← {unitsLabel}
         </button>
         <div className="scp-detail-scroll" ref={detailScrollRef}>
           {sections.map((node, i) => (
