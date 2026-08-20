@@ -234,7 +234,21 @@
   transition: background 0.12s ease;
 }
 .sho-week:hover { background: var(--bg); text-decoration: none; }
-.sho-week-name { width: 118px; flex-shrink: 0; }
+/* ⭐ The title takes the row; the bar is a fixed indicator beside it.
+ *
+ * This was `width: 118px; flex-shrink: 0` against a `flex: 1` bar, which on
+ * a 515px desktop row handed 322px to a 7px-tall progress bar and 118px to
+ * the title — so ALL 52 titles truncated, every one, including "The five
+ * rights of delegation" (it needs 120px). The phone was the surface that
+ * made it visible, but desktop had the same bug and had it worse.
+ *
+ * 100px is deliberate: the longest title on this cohort measures 329px
+ * natural, and capping the bar there leaves the title ~340px, so none of
+ * the 52 truncates. The bar loses nothing — it is a 7px rule whose only job
+ * is relative fill. ⚠ This is sized against real content, not a guarantee:
+ * a tutor can always write a longer title, and the ellipsis is still the
+ * right fallback when they do. */
+.sho-week-name { flex: 1 1 auto; min-width: 0; }
 .sho-week-label {
   font-size: 10.5px;
   font-weight: 700;
@@ -251,7 +265,7 @@
   text-overflow: ellipsis;
 }
 .sho-week-bar {
-  flex: 1;
+  flex: 0 0 100px;
   height: 7px;
   border-radius: 999px;
   background: var(--bg-soft);
@@ -477,26 +491,16 @@
   .sho-continue-action .student-activity-action { width: 100%; }
   .sho-continue-action .student-activity-launch { width: 100%; }
 
-  /* ⭐ The week list was showing the progress bar more of the row than the
-   * week title. `.sho-week-name` was pinned at `width: 118px; flex-shrink: 0`
-   * while `.sho-week-bar` took `flex: 1`, so on a 375px screen the bar got
-   * 121px and the title got 118 — and all 52 titles truncated mid-word
-   * ("Infection control…", "Fluids and electr…"). Invert the priority: the
-   * title takes the row, the bar shrinks to a fixed indicator. `min-width: 0`
-   * is what actually lets a flex item ellipsis instead of forcing the row
-   * wider than its parent. */
+  /* The title/bar priority is now the BASE rule (see .sho-week-name) — it
+   * was never a phone-only problem. The phone only needs the bar smaller
+   * still, and room for two lines. */
   .sho-week { gap: 10px; }
-  .sho-week-name {
-    width: auto;
-    flex: 1 1 auto;
-    min-width: 0;
-  }
   .sho-week-bar { flex: 0 0 56px; }
 
-  /* Widening the column alone still clipped the longer titles at one line
-   * ("The six rights of medication administrat…"). Two lines is what makes
-   * the list actually scannable — telling the weeks apart is the entire job
-   * of this list, and a uniform row height is worth less than that. */
+  /* 375px cannot fit the long titles on one line even with the column
+   * widened ("The six rights of medication administrat…"), and telling the
+   * weeks apart is the entire job of this list — so here, and only here, a
+   * title may take two lines. A uniform row height is worth less than that. */
   .sho-week-title {
     white-space: normal;
     display: -webkit-box;
