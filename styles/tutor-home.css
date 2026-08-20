@@ -486,3 +486,44 @@ a.th-kpi:hover .th-kpi-go { opacity: 1; }
   .th-ws-grid { grid-template-columns: 1fr; }
   .th-fresh-steps { grid-template-columns: 1fr; }
 }
+
+/* ── Phones ──────────────────────────────────────────────
+ *
+ * ⚠ The Reply button sat at x=378-437 on a 375px screen — entirely off
+ * the right edge. A tutor could not answer an enquiry from her phone,
+ * and the home screen exists largely to hand her that button.
+ *
+ * ⚠⚠ `.th-attn-group` was ALREADY told to use one column below 900px, and
+ * still laid out a 398.7px column inside a 273px container. `1fr` is
+ * `minmax(auto, 1fr)`, and that `auto` floor is the item's min-content —
+ * so the column could not shrink no matter how narrow the screen got.
+ * This is the grid twin of the `min-width: 0` flex bug this sweep keeps
+ * finding: the container yields, the track does not. An existing
+ * breakpoint is not evidence that a surface was ever measured. */
+@media (max-width: 768px) {
+  .th-attn-group { grid-template-columns: minmax(0, 1fr); }
+
+  /* The week strip cannot honestly fit seven days in 273px — that is 32px
+     a day, and "THU" alone needs ~46px. It stays a week, read left to
+     right, and scrolls; squeezing it would make every day illegible and
+     stacking it would turn one card into 900px of mostly-empty rows.
+     ⚠ `repeat(7, 1fr)` is the same `auto`-floor trap as above, which is
+     why the strip overflowed its card by 240px rather than scrolling. */
+  .th-timeline {
+    grid-template-columns: repeat(7, minmax(112px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  /* Reply is the whole point of the row; New programme was 19px tall. */
+  .th-attn-cta { min-height: 44px; display: inline-flex; align-items: center; }
+  .th-sec-action { min-height: 44px; display: inline-flex; align-items: center; }
+
+  /* Both lines were `nowrap` + ellipsis, which is right on a wide row and
+     wrong here: once the row is 273px it ate the enquiry's AGE ("· 1 we…")
+     and the programme name a cohort row is named after. Vertical space is
+     the cheap axis on a phone; horizontal is the scarce one. */
+  .th-attn-line1 { flex-wrap: wrap; }
+  .th-attn-prog { white-space: normal; overflow: visible; }
+  .th-attn-line2 { white-space: normal; overflow: visible; }
+}
