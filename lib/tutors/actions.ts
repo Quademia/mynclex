@@ -451,6 +451,35 @@ export async function reinstateTutorAction(userId: string): Promise<TutorStandin
     };
   }
 
+  // The mirror of the suspension notice. ⚠ Sent AFTER the role is back:
+  // the email's only content is a link into the workspace, so arriving
+  // before the door reopens would invite a refusal.
+  const { count: programmeCount } = await admin
+    .from('nclex_programmes')
+    .select('programme_id', { count: 'exact', head: true })
+    .eq('tutor_id', userId);
+
+  const { data: person } = await admin
+    .from('nclex_users')
+    .select('email')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (person?.email) {
+    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nclex.quademia.com';
+    await enqueueAndSend({
+      eventKey: 'tutor.reinstated',
+      subjectRef: userId,
+      toEmail: person.email,
+      toUserId: userId,
+      payload: {
+        recipientName: name === 'That tutor' ? null : name,
+        hasProgrammes: (programmeCount ?? 0) > 0,
+        workspaceUrl: `${origin}/tutor`,
+      },
+    });
+  }
+
   revalidatePath('/admin/tutors');
   return { ok: true, changed: true, name };
 }

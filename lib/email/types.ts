@@ -58,7 +58,14 @@ export type EmailEventKey =
    * key above it is good news or neutral admin; this one tells someone
    * their standing with us has been withdrawn. Tutor-onboarding 1d.
    */
-  | 'tutor.suspended';
+  | 'tutor.suspended'
+  /**
+   * ⭐ The counterpart, and the first pair in the catalog where one key
+   * exists only because the other does. Sam spotted that suspension told
+   * someone their standing was withdrawn and nothing told them when it
+   * came back. Tutor-onboarding 1d.
+   */
+  | 'tutor.reinstated';
 
 // ─────────────────────────────────────────────────────────────────────
 // The tutor welcome (tutor-onboarding slice 1c)
@@ -111,6 +118,25 @@ export type TutorSuspendedPayload = {
    * they had none, or they will wonder what they lost.
    */
   hasActiveStudents: boolean;
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// Reinstatement (tutor-onboarding slice 1d)
+// ─────────────────────────────────────────────────────────────────────
+// ⚠ NO reason field, and it is not an oversight. Reinstatement takes no
+// reason — nclex_tutor_record_decision requires one only for SUSPENDED
+// and REJECTED, because undoing a restriction needs no justification the
+// way imposing one does. There is nothing here to render.
+export type TutorReinstatedPayload = {
+  /** Null when the account has no profile name yet. */
+  recipientName: string | null;
+  /**
+   * Whether they own any programmes. Renders "your programmes are listed
+   * again" ONLY when true — a tutor suspended before publishing anything
+   * would otherwise go looking for a catalogue they never had.
+   */
+  hasProgrammes: boolean;
+  workspaceUrl: string;
 };
 
 // ─────────────────────────────────────────────────────────────────────
