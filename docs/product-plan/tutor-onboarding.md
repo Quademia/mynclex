@@ -480,18 +480,59 @@ whether the public profile has been filled in. No actions yet.
 - **Ships alone:** yes — "who are our tutors?" is a question nothing
   in the product answers today.
 
-**1c — promote an existing user.** ⭐ **The sub-slice that unblocks
-tutor #2.** `grantTutorRole()` plus an "Add tutor" action taking the
-email of someone who already has an account: writes the
-`nclex_tutors` row (`APPROVED`, `ADMIN_PROMOTION`, decided by the
-admin) and the `nclex_user_roles` row, idempotently. Plus
+**1c — add a tutor.** ⭐ **The sub-slice that unblocks tutor #2.**
+`grantTutorRole()` plus the "Add tutor" flow on the directory page:
+writes the `nclex_tutors` row (`APPROVED`, `ADMIN_PROMOTION`, decided
+by the admin) and the `nclex_user_roles` row, idempotently. Plus
 `tutor.added_by_admin`.
 
-- **Touches:** `lib/tutors/actions.ts` · the directory page · one
-  email template
+**The UI is a dropdown, then a mode-specific form** (Sam, 2026-08-21).
+Clicking "Add tutor" offers two choices — **existing user** or **new
+user** — each opening its own form. They need different inputs, which
+is why one clever field does not work: promoting needs only an
+identity (search and pick), while inviting needs email *plus* forename
+and surname, because a user record is being created from nothing.
+
+- ⭐ **Each path needs an escape hatch to the other**, or the dropdown
+  asks the admin to know something they may not — whether this person
+  ever registered. Search finds nothing → *"Not found — invite them
+  instead"*. New-user email matches an account → *"Already has an
+  account — promote them instead"*. With both hatches a wrong branch
+  costs one click; without them it is a dead end and a guess.
+- The new-user email field **checks as you type**, so the answer
+  arrives before the name fields are filled in, not on submit.
+- ⚠ **THE LOOKUP NEEDS A `SECURITY DEFINER` RPC — RLS BLOCKS BOTH
+  HALVES OTHERWISE.** `nclex_users_self_read` is
+  `USING (id = auth.uid() OR nclex_user_has_role('SUPER_ADMIN'))`, so
+  **only a SUPER_ADMIN can read another user's row**. An admin holding
+  `TUTORS_MANAGE` can neither search users nor check an email. It works
+  today only because Sam is the sole SUPER_ADMIN and
+  `nclex_admin_permissions` is empty — i.e. the design would quietly
+  depend on one person's role, and break the first time it is
+  delegated. Use the repo's existing pattern (the id generators, the
+  roster's ownership-then-service-role reads).
+  - **Narrow, not a directory.** It answers "does this email have an
+    account, and if so who?" — it must not return a browsable user
+    list. An email-existence endpoint is an account-enumeration vector,
+    and the narrower it is the less it can become one.
+  - **Gated server-side on `TUTORS_MANAGE`**, not merely hidden behind
+    an admin page — UI-only gating is what the layered-access rule
+    exists to prevent.
+- ⓘ **Until slice 3 exists, the new-user path ends in an instruction,**
+  not a dead end: *"No MyNclex account for that email yet. Ask them to
+  register, then add them here."* That is a working stopgap — the
+  person registers as a student and is promoted — and it matches how v1
+  vetting actually happens, in a conversation that is already taking
+  place. Slice 3 removes the extra step; it does **not** add a second
+  button (see below).
+- **Touches:** `lib/tutors/actions.ts` · a lookup RPC (migration) · the
+  directory page · one email template
 - **Verify:** promote a dev student, sign in as them, confirm the
   workspace switcher appears and `/tutor` opens. Re-run the action and
-  confirm it is a **no-op, not a duplicate-key error**.
+  confirm it is a **no-op, not a duplicate-key error**. Check the
+  lookup as a non-SUPER_ADMIN holding `TUTORS_MANAGE`, which is the
+  case the RPC exists for and the one that silently works when tested
+  only as Sam.
 - ⚠ The grant must never remove existing roles (§4, invariant 2).
 
 **1d — suspend and reinstate.** The status transitions, plus the
@@ -558,15 +599,43 @@ auth user, the `nclex_users` row, the `nclex_tutors` row
   every account-setup flow, carrying the `?code=` vs `#access_token=`
   trap. Uses the existing setup-link machinery, **not**
   `inviteUserByEmail`, which was deliberately removed.
-- **Deliberately last:** least needed (1c already onboards anyone who
-  can register) and most able to break something that works.
+- ⭐ **It fills 1c's "new user" branch — it does NOT add a second
+  button.** To an admin, "add a tutor" is one action; whether the
+  person already has an account is our implementation detail. So this
+  slice replaces the instruction in 1c's new-user form with the real
+  thing, behind the same dropdown. Built as its own separate flow it
+  would leave two buttons doing one job, which never gets merged back.
+- ⚠ **This is probably the COMMON case, not the edge one** (Sam,
+  2026-08-21): most tutors are expected to be people from outside who
+  have never touched the platform, not existing students who want to
+  teach. It is still sequenced last, deliberately — being the common
+  case does not shrink the `/welcome` risk, and 1c builds
+  `grantTutorRole()`, which this slice calls at the end anyway. But if
+  the polished flow is wanted **before** tutor recruitment starts, this
+  is the slice to move up, knowing it is the one most able to break
+  something that currently works.
+- **Deliberately last:** 1c plus its instruction already onboards
+  anyone who can register, and this is the only path touching the
+  convergence point.
 
 ### If only one thing gets built
 
-**1a, then 1c.** 1a is the foundation every other sub-slice reads; 1c
-is what makes a second tutor possible. 1b and 1d are genuinely useful,
-but neither is on the critical path to *"Sam can make someone a
-tutor."*
+**1a, then 1b, then 1c** — in that order, and 1b is not skippable.
+
+⚠ **Corrected 2026-08-21.** This section previously read "1a, then 1c",
+contradicting the lettering four paragraphs above. It was answering a
+different question — *which single sub-slice carries the most value?* —
+and 1c genuinely does. But that ignored the dependency: **1b and 1c are
+the same page.** 1b is `/admin/tutors` read-only; 1c adds the "Add
+tutor" flow to it. Building 1c first does not skip 1b, it forces most
+of 1b to be built anyway just to host the button, and leaves a state
+where an admin can *add* a tutor but not *see* who is one. The list is
+not decoration there — it is the feedback loop for the action. Without
+it the only way to confirm a promotion worked is to query the database,
+which is the exact thing this arc exists to stop.
+
+1d is genuinely useful but is not on the critical path to *"Sam can
+make someone a tutor."*
 
 ---
 
