@@ -17,6 +17,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AddTutorModal } from './add-tutor-modal';
+import { SuspendModal } from './suspend-modal';
+import { reinstateTutorAction } from '@/lib/tutors/actions';
 import {
   hasPublicProfile,
   sourceClass,
@@ -79,6 +81,9 @@ export function AdminTutorsBoard({
   const [drawerId, setDrawerId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  /** user_id whose suspend modal is open, or null. */
+  const [suspending, setSuspending] = useState<string | null>(null);
+  const [reinstating, setReinstating] = useState(false);
 
   // Auto-dismiss at ~5s, the house convention for every toast in the app.
   useEffect(() => {
@@ -101,6 +106,26 @@ export function AdminTutorsBoard({
   }, [rows, q, statusFilter]);
 
   const open = drawerId ? (rows.find((r) => r.user_id === drawerId) ?? null) : null;
+  const suspendRow = suspending ? (rows.find((r) => r.user_id === suspending) ?? null) : null;
+
+  /**
+   * Reinstatement has no modal — undoing a restriction needs no
+   * justification the way imposing one does — so the click IS the
+   * confirmation and this guards against a double one.
+   */
+  async function reinstate(userId: string) {
+    if (reinstating) return;
+    setReinstating(true);
+    const res = await reinstateTutorAction(userId);
+    setReinstating(false);
+    setToast(
+      !res.ok
+        ? res.error
+        : res.changed
+          ? `${res.name} reinstated — TUTOR restored, programmes back in the catalogue.`
+          : `${res.name} was not suspended — nothing changed.`,
+    );
+  }
 
   return (
     <>
@@ -188,7 +213,31 @@ export function AdminTutorsBoard({
         </div>
       </div>
 
-      {open && <TutorDrawer row={open} onClose={() => setDrawerId(null)} />}
+      {open && (
+        <TutorDrawer
+          row={open}
+          onClose={() => setDrawerId(null)}
+          onSuspend={() => setSuspending(open.user_id)}
+          onReinstate={() => void reinstate(open.user_id)}
+          busy={reinstating}
+        />
+      )}
+
+      {suspending && suspendRow && (
+        <SuspendModal
+          userId={suspendRow.user_id}
+          name={suspendRow.name}
+          onClose={() => setSuspending(null)}
+          onDone={(message) => {
+            setSuspending(null);
+            setToast(message);
+            // The drawer stays open on purpose — the admin should see the
+            // status pill and the new trail entry land on the record they
+            // just acted on, rather than be returned to a list and left
+            // to trust it worked.
+          }}
+        />
+      )}
 
       {addOpen && (
         <AddTutorModal
@@ -313,7 +362,20 @@ function trailTone(to: TutorStatus): string {
   return '';
 }
 
-function TutorDrawer({ row, onClose }: { row: TutorDirectoryRow; onClose: () => void }) {
+function TutorDrawer({
+  row,
+  onClose,
+  onSuspend,
+  onReinstate,
+  busy,
+}: {
+  row: TutorDirectoryRow;
+  onClose: () => void;
+  onSuspend: () => void;
+  /** Reinstate has no modal — one click, per the design. */
+  onReinstate: () => void;
+  busy: boolean;
+}) {
   const approved = formatDate(row.approved_at);
   const firstApplied = formatDate(row.first_applied_at);
 
@@ -425,7 +487,25 @@ function TutorDrawer({ row, onClose }: { row: TutorDirectoryRow; onClose: () => 
         </div>
 
         <div className="adt-drawer-foot">
-          {/* Suspend / Reinstate land here in 1d. Read-only in 1b. */}
+          {/* One button, never both: the only two standings this drawer
+              can act on are APPROVED and SUSPENDED, and each has exactly
+              one move. A PENDING or REJECTED row belongs to the
+              applications queue (2b), so it gets neither. */}
+          {row.status === 'SUSPENDED' && (
+            <button
+              type="button"
+              className="btn btn-accent btn-sm"
+              onClick={onReinstate}
+              disabled={busy}
+            >
+              {busy ? 'Reinstating…' : 'Reinstate tutor'}
+            </button>
+          )}
+          {row.status === 'APPROVED' && (
+            <button type="button" className="btn btn-danger btn-sm" onClick={onSuspend}>
+              Suspend…
+            </button>
+          )}
           <button type="button" className="btn btn-sm adt-foot-end" onClick={onClose}>
             Close
           </button>
