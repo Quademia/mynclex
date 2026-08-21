@@ -1,0 +1,544 @@
+# Tutor Onboarding — becoming a tutor, and staying one
+
+Canonical home for how a person becomes a tutor on MyNclex, what
+record that creates, and how their standing changes afterwards
+(approval, suspension, re-application). Created 2026-08-21, when an
+investigation into "what does the programme side need before real
+tutors can use it" found that **there is no way to create a tutor at
+all**.
+
+Sibling docs own their domains. `admin-management.md` owns *who may do
+what* and the admin permission model — its §4 "Users & tutor
+management" points here for everything tutor-onboarding. This doc owns
+the tutor record, the four ways in, and the lifecycle.
+
+⚠ **Not in this doc, deliberately:** tutor plans, quotas and billing
+(§12), and the shared account surface (§14). Both are named so nobody
+assumes they were forgotten.
+
+---
+
+## 1. The problem (verified 2026-08-21)
+
+**Nothing in the product can create a tutor.** All three code paths
+that write a role hardcode `'STUDENT'`:
+
+- `app/register/actions.ts` — self-registration
+- `app/welcome/actions.ts` — invite / setup acceptance
+- `lib/enrolments/actions.ts` — `ensureStudentRole`, on tutor-add
+
+Nothing anywhere inserts `TUTOR`. `/admin/tutors`, `/admin/users` and
+`/admin/applications` are 20-line `<Placeholder>` files. The public
+nav's "For tutors" is an inert `<span className="link-soon">`
+(`components/public/public-nav.tsx`).
+
+RLS already permits the write — `nclex_roles_admin_write` (SUPER_ADMIN
+only); the self-insert policy is restricted to `role = 'STUDENT'`. So
+**the gap is a missing surface, not a missing permission.** Prod's
+single `TUTOR` row was created by hand against the database.
+
+⚠ `admin-management.md` §4 previously claimed tutor invites "run
+through the existing token/`/welcome` path without an admin surface".
+That was wrong — following it produces a student. Corrected
+2026-08-21 (commit `d720f74`).
+
+**What already exists and is reused, not rebuilt:**
+
+- `nclex_users.public_profile` — the tutor's outward-facing bag
+  (headline, speciality, years, bio, business branding), added slice
+  3.5. **Tutors already edit it themselves** at `/tutor/profile`.
+- Multi-role works end to end. `app/router/page.tsx` honours an
+  active-role cookie and falls through to `/pick-role`; the tutor
+  layout is a plain `roles.includes('TUTOR')` check. Granting TUTOR to
+  an existing student account takes effect on next sign-in via the
+  existing workspace switcher, with no other wiring.
+- `PERM_TUTORS_MANAGE` exists in `lib/access/constants.ts`, and the
+  admin sidebar already carries "Tutors" and "Tutor Applications" rows
+  gated on it (`lib/nav/admin.ts`). The nav is wired; only the pages
+  are empty.
+
+---
+
+## 2. The model — one row per person <span>settled 2026-08-21</span>
+
+**`nclex_tutors`, one row per person**, adopted from the sibling
+product MyTeacher's `teacher_profiles` (Sam's call — see §13 for the
+alternative that was rejected).
+
+Today "tutor" does not exist in our database. It is an *implication*:
+a role string in a join table plus a JSONB bag on `nclex_users` that
+only tutors use. There is no row that says "this person is a tutor of
+ours", which is why there is nowhere to hang approval, suspension, or
+a plan.
+
+**This table is the tutor record. The application is its birth
+certificate.** It is not an application table — an application table
+is transient and one-row-per-request; this is permanent and
+one-row-per-person, and `public_profile` means it is read on public
+programme pages by strangers long after the application is forgotten.
+
+It answers three questions:
+
+| Question | Columns | Lifetime |
+|---|---|---|
+| Who are our tutors, and what do students see? | `public_profile` | permanent, public |
+| What is their standing right now? | `status`, `source` | permanent — gates workspace + catalogue |
+| How did they get here, and who decided? | application + decision fields | permanent, updated on re-application |
+
+It looks application-heavy by column count because a tutor currently
+*is* very little that a user isn't — a bio and a standing. That is an
+honest reflection of today, not a shape to pad out with speculative
+columns.
+
+---
+
+## 3. Schema
+
+```sql
+CREATE TABLE nclex_tutors (
+  -- Identity: the person. No email/name copy — that is nclex_users.
+  -- (MyTeacher duplicated both; we have a real FK.)
+  user_id            UUID PRIMARY KEY REFERENCES nclex_users(id) ON DELETE CASCADE,
+
+  -- ── Axis 1: standing with us (vetting / conduct) ──────────────
+  status             TEXT NOT NULL
+                     CHECK (status IN ('PENDING','APPROVED','REJECTED','SUSPENDED')),
+  source             TEXT NOT NULL
+                     CHECK (source IN ('SELF_APPLICATION','ADMIN_PROMOTION',
+                                       'ADMIN_INVITE','REGISTRATION')),
+
+  -- ── Public-facing (lifted from nclex_users.public_profile) ────
+  -- PUBLIC-ONLY by rule; the invariant is encoded in the NAME (see
+  -- migration 20260530120000). Never put vetting or private data here.
+  public_profile     JSONB NOT NULL DEFAULT '{}'::jsonb,
+
+  -- ── Application payload (what you vet on) ─────────────────────
+  organisation       TEXT,
+  request_note       TEXT,
+  submission_count   SMALLINT NOT NULL DEFAULT 1,
+  first_applied_at   TIMESTAMPTZ,
+  last_applied_at    TIMESTAMPTZ,
+
+  -- ── Decision ──────────────────────────────────────────────────
+  -- approved_* is the permanent vetting fact, set once on FIRST
+  -- approval and never overwritten: "who let this person in".
+  -- decided_* is the LAST decision of any kind, suspension included.
+  approved_at        TIMESTAMPTZ,
+  approved_by        UUID REFERENCES nclex_users(id) ON DELETE SET NULL,
+  decided_at         TIMESTAMPTZ,
+  decided_by         UUID REFERENCES nclex_users(id) ON DELETE SET NULL,
+  decision_reason    TEXT,
+
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+**No money, no expiry, no plan.** See §12 — that omission is load-bearing.
+
+**No `phone_number`.** Every user has a phone; it belongs on
+`nclex_users`. The application form merely *populates* it there. The
+boundary rule: **a field goes in `nclex_tutors` only if a non-tutor
+would never need it.**
+
+### Migrating `public_profile`
+
+Moving the bag off `nclex_users` touches five call sites plus one view:
+
+- `app/(app)/tutor/profile/page.tsx`, `public-profile-form.tsx`,
+  `actions.ts`
+- `lib/discovery/types.ts` (the `PublicProfile` type stays as-is)
+- the `nclex_public_programmes` view (`db/rls.sql`), which selects
+  `u.public_profile AS tutor_profile` — the join moves to `nclex_tutors`
+
+Backfill is trivial: 5 tutors on dev, 1 on prod (as at 2026-08-21).
+
+⚠ **Public reads go through views with explicit column lists**
+(`nclex_public_programmes`, `nclex_public_units`). That is what makes
+it safe to hold public and private data in one row: private columns
+are simply never listed. The residual risk is app-side — a careless
+`select('*')` could over-fetch. The public surface cannot.
+
+ⓘ This abandons the "any user may show a public profile" intent
+recorded on the original column. Nothing non-tutor uses it today, so
+the intent was speculative; if student public profiles are ever
+wanted, they get their own column.
+
+---
+
+## 4. Invariants
+
+These four rules are what keep the design from being rebuilt. Break
+one and the rest stops holding.
+
+1. **The role stays in `nclex_user_roles`.** This table *explains* the
+   tutorship; the role *grants* access. Role table = "can they get
+   in"; tutors table = "who they are and what we decided". Every
+   existing gate (`requireTutor`, the tutor layout, all RLS) keeps
+   working untouched.
+2. **One grant primitive.** `grantTutorRole(userId, source, decidedBy)`
+   — idempotent, additive, **never removes other roles** (a tutor can
+   legitimately be a student in someone else's cohort). Every path
+   calls it. It is the only code that writes a TUTOR role.
+3. **Registration never grants the role.** The account is always
+   created as a student or as nothing; TUTOR is written only on
+   approval. This is MyTeacher's load-bearing idea, and it is why
+   `/register` and `/welcome` need **no changes at all** for the
+   self-serve doorway.
+4. **Every path writes a row** — including the ones with no approval
+   step. Admin promotion writes an `APPROVED` row with
+   `source = ADMIN_PROMOTION`, decided by the admin, decided now. It
+   is tempting to skip the record when there is nothing to approve;
+   don't. Skip it and `/admin/tutors` must read the role table for
+   some tutors and this table for others, and every new doorway
+   changes the read side. Write it always and the admin screen is one
+   query against one table, forever.
+
+---
+
+## 5. The four doorways
+
+All four end at the same act — *grant TUTOR to this person*. They
+differ only in how the account comes into existence and whether a
+human says yes first.
+
+| `source` | Who starts it | Account | Approval | Slice |
+|---|---|---|---|---|
+| `ADMIN_PROMOTION` | admin, on an existing user | already exists | implicit — writing the row *is* the decision | 1 |
+| `SELF_APPLICATION` | the person, from the public "For tutors" page | exists or is created | required | 2 |
+| `REGISTRATION` | the person, register-as-tutor toggle | created now | required | 2 |
+| `ADMIN_INVITE` | admin, by email | created by us | implicit | 3 |
+
+**`REGISTRATION` writes `nclex_users` + `nclex_tutors`, and NO role.**
+That is the whole mechanism — see §8 for what the applicant then sees.
+
+`SELF_APPLICATION` and `REGISTRATION` are the same machinery behind two
+doorways: MyTeacher's own comment notes the register toggle "puts them
+straight into the approval queue — no separate access-request step
+needed". Build one, get both.
+
+---
+
+## 6. States and transitions
+
+```
+                 ┌─────────┐
+   apply ───────▶│ PENDING │◀──── re-apply (updates row, count+1)
+                 └────┬────┘
+            approve │  │ reject
+                    ▼  ▼
+       ┌──────────┐    ┌──────────┐
+       │ APPROVED │    │ REJECTED │
+       └────┬─────┘    └────┬─────┘
+   suspend  │   ▲           │
+            ▼   │ reinstate │
+       ┌───────────┐        │
+       │ SUSPENDED │        │
+       └───────────┘        │
+                            ▼
+              (may convert to plain STUDENT — §8)
+```
+
+`REJECTED` is **not terminal** — the CHECK must allow REJECTED →
+PENDING. A constraint is the expensive kind of thing to change later.
+
+The TUTOR role is written on entry to `APPROVED` and revoked on entry
+to `SUSPENDED`.
+
+---
+
+## 7. Suspension <span>settled 2026-08-21 — "keep materials, stop new joins"</span>
+
+Suspending a tutor fires four separable switches. Sam's decision:
+
+| Switch | On suspend |
+|---|---|
+| New students joining | **stopped** — programme leaves the public catalogue, checkout blocked |
+| Money in flight | **stopped** — instalment collection halts |
+| Tutor's workspace | **revoked** — TUTOR role dropped |
+| Existing students' access | **kept** — curriculum, library and quizzes stay available |
+
+**Rationale.** There is a real distinction between *materials* and
+*live delivery*. The curriculum, library notes and quizzes are rows in
+our database that the student paid for, and we can serve them with no
+tutor present. Live cohort sessions genuinely cannot continue. Cutting
+off materials punishes the student for the tutor's conduct and creates
+a refund liability; pretending future sessions will still happen is a
+lie the product would be telling.
+
+**Consequence for the schema: suspension does NOT cascade into
+`nclex_enrolments`.** It is contained entirely in `nclex_tutors`.
+
+⚠ **Implementation note.** `nclex_users.is_active` already gates the
+three public views (`db/rls.sql` — `WHERE p.status = 'PUBLISHED' AND
+u.is_active`) and appears **nowhere else** — not in login, not in any
+access gate. So it hides programmes and does nothing more. Suspension
+needs a **tutor-level** filter in those views rather than reusing that
+blunt person-level switch, which would also be wrong for a tutor who
+is still a student elsewhere.
+
+---
+
+## 8. Pending and rejected applicants <span>settled 2026-08-21</span>
+
+There are **two kinds of pending applicant**, and only one is
+role-less. Both read the same row.
+
+**A. Role-less (registered as a tutor, brand new)** — has an account,
+no roles, a PENDING row. Auto-creating a STUDENT role to give them
+somewhere to stand was considered and rejected: it grants a role they
+never asked for, and leaves a rejected applicant silently a student
+forever.
+
+The hook already exists — `app/router/page.tsx`:
+
+```
+if (roles.length === 0) {
+  redirect('/no-access');
+}
+```
+
+Split it: no roles **and** a `nclex_tutors` row → the application
+page; no roles and nothing else → `/no-access` as today.
+
+**The application page** serves three states:
+
+- `PENDING` — "Request #N, pending review"
+- `REJECTED` — the outcome and `decision_reason`, plus **"Update and
+  resubmit"** (§9)
+- `REJECTED` → conversion: *"We're not taking you on as a tutor right
+  now — but you can use MyNclex as a student."* One button, grants
+  STUDENT, drops them at `/student/picker`. A rejection should not be
+  a dead end.
+
+**B. Existing student who applies** — keeps STUDENT, gains a PENDING
+row. We cannot hijack their login; they have real enrolments to reach.
+They get a small **"Tutor application — pending"** card on
+`/student/picker`, which is where they already land.
+
+ⓘ `/student/picker` handles the empty case well already (programmes
+list + a bank "Get access" CTA), so a brand-new applicant given a
+student account would land somewhere sane. That is why option A is a
+modelling preference, not a rescue.
+
+---
+
+## 9. Re-application <span>settled 2026-08-21</span>
+
+**Allowed, and it updates the row in place** — the MyTeacher flow,
+which was verified in `access-request.html` rather than assumed:
+
+- reads the existing row first and branches on `request_status`
+- `PENDING` → "Your request is pending review", showing **"Request #N"**
+- `REJECTED` → "You can update your details and resubmit below"
+- **"Update and resubmit"** reveals the form **pre-filled** from the
+  previous submission
+- on submit, if a row exists → update it, `submission_count + 1`,
+  status back to `PENDING`
+
+**Keep deliberately:** the pre-fill (a rejected applicant should not
+retype everything to fix one thing) and showing the count (**"Request
+#2"** is honest — it says we know you have asked before).
+
+**Resubmit is in v1.** The application page exists anyway for §8, so
+resubmit is the same form plus an increment.
+
+**Keep `decision_reason`** — someone re-applying without knowing what
+was wrong wastes everyone's time.
+
+**No events table in v1.** Full decision history (from → to, when,
+why, by whom) would need its own append-only table; the existing audit
+log **cannot** do it — `nclex_audit_log.action` is CHECK-constrained to
+`('created','updated')` with no before/after columns, so it records
+authorship, not transitions. `submission_count` answers the question
+that actually gets asked ("have they tried before?"). An events table
+is purely additive later and changes nothing about this row — worth it
+around the point tutor numbers make "did I reject this person before,
+and why?" un-rememberable.
+
+---
+
+## 10. Emails
+
+Built **inline with the slice that needs them**, per the standing rule
+that email is no longer an arc of its own. Registry:
+`docs/product-plan/transactional-email.md`.
+
+| Trigger | Recipient | When | Slice |
+|---|---|---|---|
+| `tutor.added_by_admin` | new tutor | admin promotion / invite | 1 |
+| `tutor.application_received` | applicant | on submit — "we have it, Request #N" | 2 |
+| `tutor.application_submitted_admin` | **admin** | on submit | 2 |
+| `tutor.application_approved` | applicant | on approve | 2 |
+| `tutor.application_rejected` | applicant | on reject, carrying the reason | 2 |
+| `tutor.suspended` | tutor | on suspend | 1 or 2 |
+
+⚠ The **admin** notification matters — recipient ≠ actor. Without it a
+queue fills up that nobody knows about.
+
+`application_approved` / `application_rejected` mirror the existing
+`enrolment-approved` / `enrolment-rejected` templates, so those two are
+largely shape-reuse.
+
+---
+
+## 11. Slices
+
+**Slice 1 — the table and the way in.** Migration (create
+`nclex_tutors`, lift `public_profile`, backfill, update the public
+views) + `grantTutorRole()` + `/admin/tutors` as a directory with
+"Add tutor" (promote an existing user by email) + suspend/reinstate +
+`tutor.added_by_admin`. **The only migration in the arc.** Unblocks
+tutor #2 immediately.
+
+**Slice 2 — the self-serve doorways.** Public "For tutors" page
+(replacing the inert nav `<span>`) + the register-as-tutor toggle +
+the application page (pending / rejected / resubmit) + the PENDING
+queue on `/admin/applications` + the four application emails.
+
+**Slice 3 — invite by email.** The only path touching `/welcome`, and
+therefore last, deliberately: that file is the convergence point for
+every account-setup flow and carries the `?code=` vs `#access_token=`
+trap. Uses the existing setup-link machinery — **not**
+`inviteUserByEmail`, which was deliberately removed.
+
+Each slice adds a doorway; none rewrites the one before it.
+
+---
+
+## 12. Out of scope — tutor plans and quotas <span>open, 2026-08-21</span>
+
+**Not designed, deliberately.** The "$29/month" figure predates any
+real thinking and may not survive it.
+
+**Tutor plans are quota tiers, not durations** — e.g. free: 50
+students / 1 programme; mid: 100 students / 10 programmes; paid:
+unlimited. That does not fit what exists:
+
+- `nclex_products` is built entirely around consumer purchases —
+  `duration_days`, `readiness_credits`, dual-currency prices. Every
+  column that does real work answers *"how long"* or *"how many
+  credits"*. Nothing expresses a quota.
+- `nclex_subscriptions` answers *"does this person have access, until
+  when?"* — a boolean with a time window, one row per granted period.
+- **The free tier breaks the cardinality.** Subscription rows come
+  from a purchase or a grant and a user may hold zero. But **every
+  tutor is always on exactly one plan**, including one who never pays.
+  Either every tutor gets a FREE subscription row — at which point the
+  row stops being evidence of a transaction — or free tutors' limits
+  live nowhere and get hardcoded, which means you cannot change the
+  free tier or grandfather anyone without a deploy.
+- **Enforcement has no home.** "50 students, 1 programme" must be
+  checked at programme creation, cohort creation and every enrolment
+  path. That is an arc, not a column.
+
+⚠ **Do not model a tutor plan as a `nclex_products` row just because
+products exist.** Adding `TUTOR_PRO` with a `duration_days` jams a
+quota tier into a duration model. That is the rebuild this doc exists
+to avoid.
+
+### Settled principle — admission ≠ plan assignment
+
+**They are two operations. A UI may combine them ("Approve and set
+plan"); the model must not.**
+
+You cannot sell someone a plan before deciding to admit them: if a
+self-applicant picks a paid plan and is then rejected, either you owe
+a refund to someone you turned down, or the "selection" was never
+binding. So:
+
+- **approval puts everyone on the free tier automatically** — no plan
+  choice at any doorway
+- **upgrading is a separate, self-serve act** by the tutor, from a
+  billing page, at the moment a limit actually bites
+- **admin can grant a plan** to an existing tutor (comp, deal) — an
+  action *against a tutor*, not part of admitting one
+
+If *"which plan are you interested in?"* is ever wanted on the
+application form, it is a form field in the application payload — an
+intent, not an entitlement.
+
+This is the same axis separation as §7's status/subscription split.
+Every time the two were merged during design it produced a bug: the
+suspended tutor who pays and returns active, and the rejected
+applicant who paid.
+
+### Questions to answer before designing it
+
+1. What is metered — students, programmes, cohorts, quizzes, storage?
+2. Are limits **hard** (blocked) or **soft** (warned, then chased)?
+3. **The sharp one — what happens on downgrade?** A tutor with 200
+   students moves to the 100 plan. Block, grandfather, or force a cut?
+   Every quota model lives or dies on this, and it should be decided
+   before the schema.
+4. Subscription at all, or **revenue share** — a percentage of what
+   tutors collect? CLAUDE.md already defers "payment splits /
+   marketplace billing", so this is a live alternative, not a new
+   idea. A fixed monthly USD fee is a real barrier for a Ghanaian
+   tutor with no students yet; a cut of collected fees costs them
+   nothing until they earn, and aligns us with their success.
+
+**Nothing in this arc depends on the answer.** `nclex_tutors` holds no
+money, no expiry and no plan, so whatever model lands attaches to a
+tutor by `user_id` without touching this table, the grant, the
+application flow or the admin surfaces.
+
+---
+
+## 13. Decisions, and what was rejected
+
+| Decision | Rejected alternative | Why |
+|---|---|---|
+| One `nclex_tutors` row per person | `nclex_tutor_applications`, one row per request | A request table records the *application* and still leaves no row representing *the tutor* — nowhere to hang approval, suspension or a plan. (Sam's call; the applications table was the first proposal and was wrong.) |
+| `public_profile` lifted into it | Leave it on `nclex_users` | It is tutor-specific in practice, and the record it belongs to now exists. Public reads already go through column-list views, so the merge is safe. |
+| Role stays in `nclex_user_roles` | Fold the grant into `nclex_tutors.status` | Keeps every existing gate and RLS policy working untouched. |
+| `EXPIRED` **not** a `status` value | Add it alongside PENDING/APPROVED/… | Vetting standing and commercial standing are independent axes. Concretely: suspend a tutor → subscription lapses → sweep sets EXPIRED → they pay → system sets APPROVED → **a suspended tutor is teaching again**. `nclex_enrolments` does store EXPIRED, but an enrolment has one axis; a tutor has two. |
+| Subscriptions live outside this table | `plan_type` + `access_expires_at` columns | Would be a second, competing copy of what `nclex_subscriptions` already models — two places to ask "is this tutor paid up?". (Proposed, then withdrawn, same session.) |
+| `submission_count` on the row | An append-only events table | The existing audit log cannot record transitions (§9), and a counter answers the question actually asked. Events table is additive later. |
+| No `email` / `name` copy | Denormalise like MyTeacher | We have a real FK; MyTeacher's copies exist because its schema predates one. |
+
+**Three things from MyTeacher deliberately not copied:** its single
+`users.role` column (overwriting it stops a teacher being a student —
+ours grants additively); its silent failure on the request insert
+(logs to console and proceeds, so the person is told "pending" when no
+row exists — ours must fail loudly or not at all); and the
+denormalised email/name.
+
+---
+
+## 14. Knock-on, and things found next door
+
+- ⚠ **CLAUDE.md lists "Public self-serve tutor signup (tutors are
+  manually vetted in v1)" under *Explicit Deferrals — Not v1*.** Sam
+  re-opened it on 2026-08-21 — slices 2 and 3 build it. **That line
+  needs updating**; it was left alone pending explicit sign-off, so
+  until then CLAUDE.md and this doc contradict each other.
+- **The account surface is NOT part of this arc** (Sam, 2026-08-21).
+  The boundary settled while deciding where the profile lives:
+  credentials = `auth.users`; account/identity = `nclex_users`
+  (everyone); public profile = `nclex_tutors` (tutors only). The test
+  is *who is the audience* — private (account) vs strangers (public
+  profile).
+- ⚠ **No user of any audience can manage their account today.**
+  `/tutor/profile` hosts only the public-profile editor;
+  `/student/bank/profile` is a placeholder; admin has no profile route.
+  Worse, the student one sits in the **bank** nav behind
+  `requireActiveBankSubscription()`, while both student programme
+  shells hardcode it as the Profile destination
+  (`components/nav/student/programme-shell.tsx`,
+  `cohort-shell.tsx`) — so **a programme student without a bank
+  subscription taps "Profile" and gets `/no-access?need=bank`**, an
+  advert for a product they did not buy. Recommendation when it is
+  picked up: one shared `<AccountSettings>` component over
+  `nclex_users`, rendered inside each audience's own chrome.
+- **`/tutor/students` ("My Students") is a reachable dead end** — a
+  placeholder linked from both the sidebar (`lib/nav/tutor.ts`) and
+  the tutor Home card (`lib/home/tutor/tutor-home.tsx`). The other four
+  programme placeholders were delisted in the 2026-06-07 declutter and
+  are genuinely unreachable.
+- ⚠ **`bankAccessForUser` queries `.in('pack_type',
+  ['BANK_DURATION','TRIAL'])` but the CHECK on that column was
+  narrowed to `pack_type = 'BANK_DURATION'` only.** No row can ever be
+  `TRIAL`, so that arm is dead code — consistent with "trial unwired",
+  but now structurally impossible rather than merely unused. Its own
+  look, sometime.
