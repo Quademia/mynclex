@@ -45,6 +45,9 @@ import '@/styles/student-quizzes.css';
 import '@/styles/enrolments.css';
 import '@/styles/tutor-payments.css';
 import '@/styles/enquiries.css';
+// The two TUTORS_MANAGE surfaces — the tutor directory and the
+// applications queue. `adt-*`.
+import '@/styles/admin-tutors.css';
 import '@/styles/analytics.css';
 import '@/styles/audit.css';
 import '@/styles/tutor-home.css';

@@ -70,6 +70,10 @@ CREATE TABLE nclex_admin_permissions (
 -- GRANTS access. Holds no money, expiry or plan by design (see
 -- docs/product-plan/tutor-onboarding.md §12, and §13 for why EXPIRED is
 -- not a status value).
+-- ⓘ A fifth source, LEGACY, existed for one migration (20260913120000)
+-- and was retired by 20260914120000: those tutors turned out to be
+-- datable from nclex_user_roles.granted_at, so they are ADMIN_PROMOTION
+-- with real dates. A NULL approved_at now means only "not approved yet".
 -- ⚠ public_profile MOVED here from nclex_users; the old column is not
 -- dropped until its own migration, a release later.
 -- ⚠ UPDATE is column-restricted for `authenticated` — public_profile and
@@ -80,7 +84,7 @@ CREATE TABLE nclex_tutors (
                      CHECK (status IN ('PENDING','APPROVED','REJECTED','SUSPENDED')),
   source             TEXT NOT NULL
                      CHECK (source IN ('SELF_APPLICATION','ADMIN_PROMOTION',
-                                       'ADMIN_INVITE','REGISTRATION','LEGACY')),
+                                       'ADMIN_INVITE','REGISTRATION')),
   public_profile     JSONB NOT NULL DEFAULT '{}'::jsonb,
   organisation       TEXT,
   request_note       TEXT,
