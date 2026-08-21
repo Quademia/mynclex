@@ -410,15 +410,42 @@ applications arriving with no way to decide them.
 
 ### Slice 1 — the table, and the way in
 
-**1a — the table and the lift.** ⏭ **FIRST.** Migration + refactor, no
-new UI. Create `nclex_tutors`; backfill one row per existing
-TUTOR-role holder; copy `public_profile` across; re-point
-`nclex_public_programmes` and `nclex_public_units` to join
-`nclex_tutors` for the profile; update the three profile call sites to
-read and write the new home.
+**1a — the table and the lift.** ✅ **BUILT 2026-08-21**, migration
+`20260913120000_tutor_record.sql`, dev-applied. Create `nclex_tutors`;
+backfill one row per existing TUTOR-role holder; copy `public_profile`
+across; re-point `nclex_public_programmes` to join `nclex_tutors` for
+the profile; update the three profile call sites to read and write the
+new home.
 
-- **Touches:** one new migration · `db/rls.sql` (two views) ·
-  `app/(app)/tutor/profile/{page.tsx,public-profile-form.tsx,actions.ts}`
+- **Touches:** one new migration · `db/schema.sql` + `db/rls.sql`
+  (snapshots) · `app/(app)/tutor/profile/{page.tsx,public-profile-form.tsx,actions.ts}`
+- ⚠ **ONE view, not two** — corrected while building. Only
+  `nclex_public_programmes` selects the profile bag.
+  `nclex_public_units` and `nclex_public_cohorts` join `nclex_users`
+  purely for the `is_active` check and select no profile; they are a
+  **1d** concern (the tutor-level suspension filter), not 1a.
+- ⚠ **The join is LEFT, with `COALESCE(t.public_profile, '{}')`.** A
+  programme whose tutor somehow has no tutor row must still appear in
+  the catalogue with an empty profile — an inner join would let a
+  missing row silently **unpublish** someone's programme.
+- ⭐⭐ **THE SELF-APPROVAL GUARD — found while building, and the reason
+  this sub-slice mattered more than it looked.** The old home,
+  `nclex_users`, has a **whole-row** self-update policy, which is
+  harmless there because that row grants no privilege. `nclex_tutors`
+  holds **`status`**. Move the same shape across and any signed-in
+  tutor could run `update({ status: 'APPROVED' })` on their own row —
+  self-approval, and self-un-suspension. **RLS cannot express "these
+  columns but not those"**, so the row policy is not enough alone.
+  Fixed with Postgres **column privileges**, which PostgREST honours:
+  `REVOKE UPDATE ON nclex_tutors FROM authenticated`, then
+  `GRANT UPDATE (public_profile, updated_at)`. Status transitions
+  belong exclusively to 1c/1d under `TUTORS_MANAGE`. ⓘ **First
+  column-level grant in the repo** — there were none before; this is
+  the pattern if another table ever needs it.
+- ⓘ **Also handled:** an UPDATE matching no rows is not an error to
+  PostgREST, so a tutor with no record would have seen "Saved" and lost
+  the work. The action now `.select()`s and reports a distinct message
+  naming the cause.
 - ⚠ **Do NOT drop `nclex_users.public_profile` in this migration.**
   Moving and deleting in one step leaves no rollback. The DROP is its
   own migration (**1a-drop**), after prod has run on the new home for
@@ -429,10 +456,17 @@ read and write the new home.
   of `source` — so the CHECK gains a fifth value, **`LEGACY`**, and
   those rows carry `status = 'APPROVED'` with `approved_at` /
   `approved_by` left **NULL**, which is the truth: nobody knows.
-- **Verify:** the tutor profile editor still round-trips; a public
-  programme page still renders the tutor's bio (dev has 11 published
-  programmes to check against); the view returns the same shape as
-  before.
+- **Verified 2026-08-21 on dev:** backfill faithful — **5 of 5** bags
+  identical to their source, all `LEGACY` / `APPROVED`, none wrongly
+  stamped with an `approved_at` · the **rendered** public programme page
+  serves the tutor's headline and bio from the new home · the editor's
+  read and write round-trip under RLS as the tutor (simulated with that
+  tutor's own JWT claims; **1 row** written, value read back, restored) ·
+  the guard **proven to bite** — as `authenticated`, `public_profile` is
+  writable and `status` is refused with `insufficient_privilege` · tsc at
+  the known `scoring-roundtrip` errors, lint clean against baseline.
+- ⬜ **Not verified:** the editor clicked in a browser as a signed-in
+  tutor — needs Sam, since the session had no tutor credentials.
 - ⓘ **Invisible to users — a pure move.** That is exactly why it lands
   alone: it is the only sub-slice that touches *existing working
   features*, so a regression is easy to attribute.

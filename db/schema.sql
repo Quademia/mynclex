@@ -62,6 +62,43 @@ CREATE TABLE nclex_admin_permissions (
 );
 
 
+-- 3b. The tutor record (tutor-onboarding slice 1a, 20260913120000)
+-- One row per person who has ever asked to be, or been made, a tutor.
+-- NOT an application log: permanent, one row per PERSON, updated in
+-- place by re-application. The TUTOR role itself stays in
+-- nclex_user_roles above — this table EXPLAINS the tutorship, the role
+-- GRANTS access. Holds no money, expiry or plan by design (see
+-- docs/product-plan/tutor-onboarding.md §12, and §13 for why EXPIRED is
+-- not a status value).
+-- ⚠ public_profile MOVED here from nclex_users; the old column is not
+-- dropped until its own migration, a release later.
+-- ⚠ UPDATE is column-restricted for `authenticated` — public_profile and
+-- updated_at only — or a tutor could set their own status to APPROVED.
+CREATE TABLE nclex_tutors (
+  user_id            UUID PRIMARY KEY REFERENCES nclex_users(id) ON DELETE CASCADE,
+  status             TEXT NOT NULL
+                     CHECK (status IN ('PENDING','APPROVED','REJECTED','SUSPENDED')),
+  source             TEXT NOT NULL
+                     CHECK (source IN ('SELF_APPLICATION','ADMIN_PROMOTION',
+                                       'ADMIN_INVITE','REGISTRATION','LEGACY')),
+  public_profile     JSONB NOT NULL DEFAULT '{}'::jsonb,
+  organisation       TEXT,
+  request_note       TEXT,
+  submission_count   SMALLINT NOT NULL DEFAULT 1,
+  first_applied_at   TIMESTAMPTZ,
+  last_applied_at    TIMESTAMPTZ,
+  approved_at        TIMESTAMPTZ,
+  approved_by        UUID REFERENCES nclex_users(id) ON DELETE SET NULL,
+  decided_at         TIMESTAMPTZ,
+  decided_by         UUID REFERENCES nclex_users(id) ON DELETE SET NULL,
+  decision_reason    TEXT,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX nclex_tutors_status_idx ON nclex_tutors (status);
+
+
 -- =========================================================
 -- MyNclex — Bank schema (second migration)
 -- Adds the 7 bank tables per docs/product-plan/bank.md.

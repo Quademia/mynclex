@@ -1,8 +1,13 @@
 // mynclex/app/(app)/tutor/profile/public-profile-form.tsx
 //
 // The "Public profile" editor — the section of the tutor profile page
-// that edits nclex_users.public_profile (slice 3.5). Single-use, lives
-// next to its only caller (page.tsx).
+// that edits nclex_tutors.public_profile (slice 3.5; the bag moved off
+// nclex_users in tutor-onboarding slice 1a). Single-use, lives next to
+// its only caller (page.tsx).
+//
+// This component is storage-agnostic: it takes the bag as a prop and
+// hands it back to savePublicProfileAction, so the 1a move needed no
+// change here beyond this comment.
 //
 // One explicit Save (not inline auto-save), so save-safety here is:
 // dirty-tracking to gate the button + a beforeunload guard against

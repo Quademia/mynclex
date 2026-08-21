@@ -120,6 +120,51 @@ CREATE POLICY nclex_users_self_insert ON nclex_users FOR INSERT
 CREATE POLICY nclex_users_admin_delete ON nclex_users FOR DELETE
   USING (nclex_user_has_role('SUPER_ADMIN'));
 
+-- ─────────────────────────────────────────────────────────
+-- nclex_tutors  (tutor-onboarding slice 1a, 20260913120000)
+-- ─────────────────────────────────────────────────────────
+-- Reads: yourself, or an admin holding TUTORS_MANAGE (the helper ORs
+-- SUPER_ADMIN in, so the standing bypass still applies).
+--
+-- ⓘ The PUBLIC needs no policy here. nclex_public_programmes is a view
+-- with security_invoker = false (owner rights) — which is why anon can
+-- already read tutor names out of the locked-down nclex_users — and the
+-- same applies to this table now the view joins it.
+
+ALTER TABLE nclex_tutors ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY nclex_tutors_self_read ON nclex_tutors FOR SELECT
+  USING (user_id = auth.uid() OR nclex_user_has_permission('TUTORS_MANAGE'));
+
+-- A tutor may update their OWN row. WHICH COLUMNS is restricted
+-- separately by the column grants below — read those before touching
+-- this policy.
+CREATE POLICY nclex_tutors_self_update ON nclex_tutors FOR UPDATE
+  USING (user_id = auth.uid() OR nclex_user_has_permission('TUTORS_MANAGE'));
+
+-- Creating and removing tutor records is an admin act. Self-application
+-- (slice 2a) goes through a SECURITY DEFINER RPC rather than loosening
+-- this, so an applicant can only ever create a PENDING row for
+-- themselves and can never choose their own status.
+CREATE POLICY nclex_tutors_admin_insert ON nclex_tutors FOR INSERT
+  WITH CHECK (nclex_user_has_permission('TUTORS_MANAGE'));
+
+CREATE POLICY nclex_tutors_admin_delete ON nclex_tutors FOR DELETE
+  USING (nclex_user_has_permission('TUTORS_MANAGE'));
+
+-- ⚠ THE SELF-APPROVAL GUARD. RLS cannot say "these columns but not
+-- those", and this table holds `status`. Without the two lines below, a
+-- signed-in tutor could run
+--     update nclex_tutors set status = 'APPROVED' where user_id = me
+-- and approve themselves, or lift their own suspension. Column
+-- privileges are the right tool and PostgREST honours them: revoke
+-- UPDATE wholesale, hand back exactly the column a tutor owns.
+-- Status transitions belong to the admin actions (slices 1c/1d).
+-- ⓘ First column-level grant in this repo; if another table ever needs
+-- the same treatment, this is the pattern.
+REVOKE UPDATE ON nclex_tutors FROM authenticated;
+GRANT  UPDATE (public_profile, updated_at) ON nclex_tutors TO authenticated;
+
 
 -- ─────────────────────────────────────────────────────────
 -- nclex_user_roles
@@ -1504,7 +1549,12 @@ SELECT
   u.avatar_url     AS tutor_avatar_url,
   oc.next_cohort_start,
   COALESCE(oc.open_cohort_count, 0) AS open_cohort_count,
-  u.public_profile AS tutor_profile,  -- slice 3.5
+  -- slice 3.5; MOVED off nclex_users to nclex_tutors in tutor-onboarding
+  -- slice 1a (20260913120000). LEFT JOIN + COALESCE below: a programme
+  -- whose tutor somehow has no tutor row must still appear in the
+  -- catalogue with an empty profile. An inner join would let a missing
+  -- row silently unpublish someone's programme.
+  COALESCE(t.public_profile, '{}'::jsonb) AS tutor_profile,
   COALESCE(
     (SELECT s.total_price_minor
        FROM nclex_programme_payment_strategies s
@@ -1527,6 +1577,7 @@ SELECT
   )                AS headline_is_upfront     -- slice 7e
 FROM nclex_programmes p
 JOIN nclex_users u ON u.id = p.tutor_id
+LEFT JOIN nclex_tutors t ON t.user_id = p.tutor_id
 LEFT JOIN LATERAL (
   -- "Open" = joinable: not cancelled, not yet ended, and either
   -- upcoming or in-progress with late-join allowed.
