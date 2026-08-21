@@ -362,6 +362,52 @@ export async function suspendTutorAction(
     };
   }
 
+  // ⓘ Told only when true, so the email does not reassure someone about
+  // students they never had — the rule tutor-added-by-admin set with
+  // keepsStudentRole. Counts current enrolments across every programme
+  // they own; a head count is not needed, only whether there is anyone.
+  const { data: theirProgrammes } = await admin
+    .from('nclex_programmes')
+    .select('programme_id')
+    .eq('tutor_id', userId);
+
+  let hasActiveStudents = false;
+  const programmeIds = (theirProgrammes ?? []).map((p) => p.programme_id);
+  if (programmeIds.length > 0) {
+    const { count } = await admin
+      .from('nclex_enrolments')
+      .select('enrolment_id', { count: 'exact', head: true })
+      .in('programme_id', programmeIds)
+      .eq('status', 'ENROLLED');
+    hasActiveStudents = (count ?? 0) > 0;
+  }
+
+  const { data: person } = await admin
+    .from('nclex_users')
+    .select('email')
+    .eq('id', userId)
+    .maybeSingle();
+
+  // ⭐ enqueueAndSend: an admin is standing there and could act on a
+  // failure. ⚠ But the email is NOT allowed to fail the suspension —
+  // the standing change and the role revocation have already happened,
+  // and reporting an error now would invite the admin to click again on
+  // something that already worked. A suspension nobody was told about is
+  // recoverable; an admin who believes the suspension failed is not.
+  if (person?.email) {
+    await enqueueAndSend({
+      eventKey: 'tutor.suspended',
+      subjectRef: userId,
+      toEmail: person.email,
+      toUserId: userId,
+      payload: {
+        recipientName: name === 'That tutor' ? null : name,
+        reason: reason.trim(),
+        hasActiveStudents,
+      },
+    });
+  }
+
   revalidatePath('/admin/tutors');
   return { ok: true, changed: true, name };
 }

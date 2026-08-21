@@ -52,7 +52,13 @@ export type EmailEventKey =
    * their place in a class — and the first onboarding: nothing else
    * welcomes a new tutor. Tutor-onboarding slice 1c.
    */
-  | 'tutor.added_by_admin';
+  | 'tutor.added_by_admin'
+  /**
+   * ⭐ The first email we send that the recipient will not want. Every
+   * key above it is good news or neutral admin; this one tells someone
+   * their standing with us has been withdrawn. Tutor-onboarding 1d.
+   */
+  | 'tutor.suspended';
 
 // ─────────────────────────────────────────────────────────────────────
 // The tutor welcome (tutor-onboarding slice 1c)
@@ -80,6 +86,31 @@ export type TutorAddedByAdminPayload = {
   keepsStudentRole: boolean;
   workspaceUrl: string;
   profileUrl: string;
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// Suspension (tutor-onboarding slice 1d)
+// ─────────────────────────────────────────────────────────────────────
+// ⚠ NO suspendedByName, for the same reason the welcome email carries no
+// addedByName — and more so. A staff member's personal name on a conduct
+// decision invites them to be contacted about it personally. Support is
+// the route back; the decision is the organisation's.
+export type TutorSuspendedPayload = {
+  /** Null when the account has no profile name yet. */
+  recipientName: string | null;
+  /**
+   * ⭐ Always present. The RPC refuses a suspension without one, so this
+   * is not optional — and a suspension notice with no reason leaves the
+   * recipient with no possible action but to write and ask why.
+   */
+  reason: string;
+  /**
+   * Whether anyone is currently enrolled with them. Renders the "your
+   * students keep their access" reassurance ONLY when true, per the rule
+   * keepsStudentRole set above: do not tell someone what they keep when
+   * they had none, or they will wonder what they lost.
+   */
+  hasActiveStudents: boolean;
 };
 
 // ─────────────────────────────────────────────────────────────────────

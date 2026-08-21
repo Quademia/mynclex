@@ -45,6 +45,10 @@ import {
   TUTOR_ADDED_BY_ADMIN_FOOTER_CONTEXT,
   tutorAddedByAdminTemplate,
 } from './templates/tutor-added-by-admin';
+import {
+  TUTOR_SUSPENDED_FOOTER_CONTEXT,
+  tutorSuspendedTemplate,
+} from './templates/tutor-suspended';
 
 export type Rendered = {
   subject: string;
@@ -130,6 +134,10 @@ const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: s
   'tutor.added_by_admin': {
     template: tutorAddedByAdminTemplate,
     footerContext: TUTOR_ADDED_BY_ADMIN_FOOTER_CONTEXT,
+  },
+  'tutor.suspended': {
+    template: tutorSuspendedTemplate,
+    footerContext: TUTOR_SUSPENDED_FOOTER_CONTEXT,
   },
 };
 
