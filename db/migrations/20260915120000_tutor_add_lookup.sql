@@ -109,7 +109,11 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $fn$
 DECLARE
   addr TEXT;
-  found RECORD;
+  -- ⚠ NOT named `found`: plpgsql has a special FOUND variable, and a
+  -- declaration of that name shadows it, so `IF NOT FOUND` compares a
+  -- RECORD against a boolean and the function throws on EVERY call.
+  -- Caught 2026-08-21 by exercising the RPC; tsc and lint cannot see it.
+  hit RECORD;
 BEGIN
   IF NOT nclex_user_has_permission('TUTORS_MANAGE') THEN
     RAISE EXCEPTION 'nclex_tutor_email_check: TUTORS_MANAGE required';
@@ -123,7 +127,7 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT u.id, u.name INTO found
+  SELECT u.id, u.name INTO hit
     FROM nclex_users u
    WHERE lower(u.email) = addr
    LIMIT 1;
@@ -135,12 +139,12 @@ BEGIN
 
   RETURN QUERY
   SELECT
-    CASE WHEN EXISTS (SELECT 1 FROM nclex_tutors t WHERE t.user_id = found.id)
+    CASE WHEN EXISTS (SELECT 1 FROM nclex_tutors t WHERE t.user_id = hit.id)
          THEN 'tutor' ELSE 'user' END,
-    found.id,
-    found.name,
+    hit.id,
+    hit.name,
     COALESCE(
-      ARRAY(SELECT r.role FROM nclex_user_roles r WHERE r.user_id = found.id ORDER BY r.role),
+      ARRAY(SELECT r.role FROM nclex_user_roles r WHERE r.user_id = hit.id ORDER BY r.role),
       '{}'::TEXT[]
     );
 END;

@@ -25,8 +25,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
+  checkEmailForTutorAddAction,
   findUsersForTutorAddAction,
   promoteUserToTutorAction,
+  type EmailVerdict,
   type TutorSearchHit,
 } from '@/lib/tutors/actions';
 
@@ -41,9 +43,12 @@ function initials(name: string): string {
 export function AddTutorModal({
   onClose,
   onAdded,
+  onOpenTutor,
 }: {
   onClose: () => void;
   onAdded: (message: string) => void;
+  /** "Already a tutor" -> close and show that person's record. */
+  onOpenTutor: (userId: string) => void;
 }) {
   const [mode, setMode] = useState<Mode>(null);
   const [query, setQuery] = useState('');
@@ -54,6 +59,11 @@ export function AddTutorModal({
   // have flashed the previous query's results on the way to the new ones.
   const [hits, setHits] = useState<{ q: string; rows: TutorSearchHit[] } | null>(null);
   const [picked, setPicked] = useState<TutorSearchHit | null>(null);
+  const [email, setEmail] = useState('');
+  // Same shape as the search results, and for the same reason: the answer
+  // carries the address it is about, so "is this verdict current?" is
+  // derived at render instead of a flag that can disagree with it.
+  const [check, setCheck] = useState<{ addr: string; result: EmailVerdict | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,11 +90,52 @@ export function AddTutorModal({
     return () => clearTimeout(t);
   }, [needle, tooShort, mode]);
 
+  // An address is worth asking about only once it is shaped like one.
+  // Before that the honest state is "still typing", not "free to use" —
+  // telling someone an address is available while they are half way
+  // through typing it would be wrong more often than right.
+  const addr = email.trim().toLowerCase();
+  const looksLikeEmail = /.+@.+\..+/.test(addr);
+  const emailSeq = useRef(0);
+
+  useEffect(() => {
+    if (mode !== 'NEW' || !looksLikeEmail) return;
+    const mine = ++emailSeq.current;
+    const t = setTimeout(() => {
+      checkEmailForTutorAddAction(addr)
+        .then((result) => {
+          if (emailSeq.current === mine) setCheck({ addr, result });
+        })
+        .catch(() => {
+          if (emailSeq.current === mine) setCheck({ addr, result: null });
+        });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [addr, looksLikeEmail, mode]);
+
+  const verdict = check?.addr === addr ? check.result : null;
+  const checking = looksLikeEmail && check?.addr !== addr;
+
+  /** The taken-address hatch: hand the found account to the confirm step. */
+  function promoteFromVerdict() {
+    if (!verdict?.user_id) return;
+    setPicked({
+      user_id: verdict.user_id,
+      name: verdict.name ?? addr,
+      email: addr,
+      roles: verdict.roles ?? [],
+      is_tutor: false,
+    });
+    setMode('EXISTING');
+  }
+
   function backToChooser() {
     setMode(null);
     setQuery('');
     setHits(null);
     setPicked(null);
+    setEmail('');
+    setCheck(null);
     setError(null);
   }
 
@@ -284,30 +335,105 @@ export function AddTutorModal({
             <button type="button" className="adt-back" onClick={backToChooser}>
               ‹ Both ways
             </button>
-            <div className="adt-modal-title">
-              Add someone with no account
-            </div>
-
-            {/* ⚠ NOT A DEAD END — a working instruction. Invite-by-email is
-                slice 3, and it will replace this copy IN PLACE, behind this
-                same form, rather than adding a second button. */}
-            <div className="adt-stopgap">
-              <strong>Invite by email is not built yet.</strong> Ask them to
-              register at <code>/register</code>, then add them here as an
-              existing user. One extra step, and it matches how vetting
-              actually happens today — in a conversation you are already
-              having.
-            </div>
-            <p className="form-hint">
-              Slice 3 replaces this instruction in place, behind this same
-              form — not with a second button.
+            <div className="adt-modal-title">Add someone with no account</div>
+            <p className="adt-modal-sub">
+              We check the address as you type, so you find out before filling
+              in anything else.
             </p>
+
+            <input
+              className="adt-search"
+              type="email"
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="their@email.com"
+              aria-label="Email address"
+            />
+
+            {/* Four states. The two "taken" ones are NOT errors — they mean
+                the wrong branch of the chooser was picked, and each offers
+                the way across rather than a dead end. */}
+            {!looksLikeEmail ? (
+              email.trim().length > 0 ? (
+                <div className="adt-verdict is-checking">
+                  <span className="adt-verdict-dot" />
+                  <span>Checking as you type…</span>
+                </div>
+              ) : null
+            ) : checking ? (
+              <div className="adt-verdict is-checking">
+                <span className="adt-verdict-dot" />
+                <span>Checking as you type…</span>
+              </div>
+            ) : verdict?.verdict === 'tutor' ? (
+              <>
+                <div className="adt-verdict is-tutor">
+                  <span className="adt-verdict-dot" />
+                  <span>Already a tutor on MyNclex.</span>
+                </div>
+                <div className="adt-hatch">
+                  <span className="adt-hatch-txt">
+                    <strong>{verdict.name ?? addr}</strong> already holds the
+                    TUTOR role, so there is nothing to add.
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => verdict.user_id && onOpenTutor(verdict.user_id)}
+                  >
+                    Open their record →
+                  </button>
+                </div>
+              </>
+            ) : verdict?.verdict === 'user' ? (
+              <>
+                <div className="adt-verdict is-taken">
+                  <span className="adt-verdict-dot" />
+                  <span>
+                    This email already has an account
+                    {verdict.name ? ` — ${verdict.name}` : ''}
+                    {verdict.roles?.length ? ` (${verdict.roles.join(' · ')})` : ''}.
+                  </span>
+                </div>
+                <div className="adt-hatch">
+                  <span className="adt-hatch-txt">
+                    <strong>{verdict.name ?? addr}</strong> already has an
+                    account, so there is nothing to create.
+                  </span>
+                  <button type="button" className="btn btn-accent btn-sm" onClick={promoteFromVerdict}>
+                    Promote them instead →
+                  </button>
+                </div>
+              </>
+            ) : verdict?.verdict === 'none' ? (
+              <>
+                <div className="adt-verdict is-free">
+                  <span className="adt-verdict-dot" />
+                  <span>No account with this email.</span>
+                </div>
+                {/* ⚠ NOT A DEAD END — a working instruction. Invite-by-email
+                    is slice 3, and it replaces this copy IN PLACE, behind
+                    this same form, rather than adding a second button. */}
+                <div className="adt-stopgap">
+                  <strong>Invite by email is not built yet.</strong> Ask them
+                  to register at <code>/register</code> with this address, then
+                  add them here as an existing user. One extra step, and it
+                  matches how vetting actually happens today — in a
+                  conversation you are already having.
+                </div>
+              </>
+            ) : (
+              <p className="form-hint">
+                That address could not be checked. Try again in a moment.
+              </p>
+            )}
 
             <div className="adt-modal-foot">
               <button type="button" className="btn btn-sm" onClick={() => setMode('EXISTING')}>
                 They have registered → search
               </button>
-              <button type="button" className="btn btn-accent btn-sm" onClick={onClose}>
+              <button type="button" className="btn btn-sm" onClick={onClose}>
                 Close
               </button>
             </div>

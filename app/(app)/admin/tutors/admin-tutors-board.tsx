@@ -191,6 +191,10 @@ export function AdminTutorsBoard({
       {addOpen && (
         <AddTutorModal
           onClose={() => setAddOpen(false)}
+          onOpenTutor={(userId) => {
+            setAddOpen(false);
+            setDrawerId(userId);
+          }}
           onAdded={(message) => {
             setAddOpen(false);
             setToast(message);

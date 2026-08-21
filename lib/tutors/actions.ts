@@ -64,6 +64,48 @@ export async function findUsersForTutorAddAction(
 }
 
 /**
+ * What an address turns out to be — the new-user path's as-you-type
+ * check (sub-slice 1c-ii).
+ *
+ * Three answers because the admin needs three different next steps, and
+ * two of them are ESCAPE HATCHES rather than errors: an address that is
+ * already taken is not a mistake, it means they picked the wrong branch
+ * of the chooser, and the fix is one click sideways.
+ */
+export type EmailVerdict = {
+  verdict: 'none' | 'user' | 'tutor';
+  user_id: string | null;
+  name: string | null;
+  roles: string[];
+};
+
+/**
+ * Ask about ONE exact address. Never a prefix, never a list — see the
+ * migration's note: an email-existence endpoint is an enumeration vector
+ * and the narrowness is what stops it becoming one.
+ */
+export async function checkEmailForTutorAddAction(
+  email: string,
+): Promise<EmailVerdict | null> {
+  await requireAdminPermission(PERM_TUTORS_MANAGE);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('nclex_tutor_email_check', {
+    p_email: email,
+  });
+
+  if (error) {
+    console.error('[tutors] email check failed:', error.message);
+    return null;
+  }
+  // The RPC returns no rows for an address that is not even shaped like
+  // one — which is "keep typing", not "free to use". Distinguishing those
+  // two is the whole point of the faint checking state.
+  const row = (data ?? [])[0] as EmailVerdict | undefined;
+  return row ?? null;
+}
+
+/**
  * Grant the TUTOR role. Idempotent and ADDITIVE.
  *
  * ⚠ Never removes another role. A tutor can legitimately be a student in
