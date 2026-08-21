@@ -103,11 +103,9 @@ CREATE TABLE nclex_tutors (
   -- ── Axis 1: standing with us (vetting / conduct) ──────────────
   status             TEXT NOT NULL
                      CHECK (status IN ('PENDING','APPROVED','REJECTED','SUSPENDED')),
-  -- LEGACY = the hand-made tutors that predate this table; their
-  -- approved_at/approved_by are NULL because nobody knows (see 11.1a).
   source             TEXT NOT NULL
                      CHECK (source IN ('SELF_APPLICATION','ADMIN_PROMOTION',
-                                       'ADMIN_INVITE','REGISTRATION','LEGACY')),
+                                       'ADMIN_INVITE','REGISTRATION')),
 
   -- ── Public-facing (lifted from nclex_users.public_profile) ────
   -- PUBLIC-ONLY by rule; the invariant is encoded in the NAME (see
@@ -137,6 +135,21 @@ CREATE TABLE nclex_tutors (
 ```
 
 **No money, no expiry, no plan.** See §12 — that omission is load-bearing.
+
+⭐ **Four sources, not five.** A `LEGACY` value shipped in 1a for the
+hand-made tutors and was retired the same day (`20260914120000`) after
+Sam asked why the code should carry a branch for six rows that can never
+occur again. Checking found the premise was wrong, and it was mine:
+`nclex_user_roles.granted_at` had recorded when each of them became a
+tutor all along, so they are `ADMIN_PROMOTION` with real April dates.
+Only `approved_by` was inferred, only where no granter was recorded, and
+only on dev — prod's single tutor carries a real one.
+
+⭐ **The better reason was the column, not the branch.** With LEGACY rows
+present a NULL `approved_at` meant *either* "not approved yet" *or*
+"predates the record" — two unrelated things reading identically. It now
+means exactly one, which is why the column stays nullable: a PENDING or
+REJECTED applicant has no approval date by definition.
 
 **No `phone_number`.** Every user has a phone; it belongs on
 `nclex_users`. The application form merely *populates* it there. The
@@ -382,7 +395,7 @@ that email is no longer an arc of its own. Registry:
 
 | Trigger | Recipient | When | Slice |
 |---|---|---|---|
-| `tutor.added_by_admin` | new tutor | admin promotion / invite | 1 |
+| `tutor.added_by_admin` ✅ | new tutor | admin promotion / invite | 1c-i |
 | `tutor.application_received` | applicant | on submit — "we have it, Request #N" | 2 |
 | `tutor.application_submitted_admin` | **admin** | on submit | 2 |
 | `tutor.application_approved` | applicant | on approve | 2 |
@@ -391,6 +404,22 @@ that email is no longer an arc of its own. Registry:
 
 ⚠ The **admin** notification matters — recipient ≠ actor. Without it a
 queue fills up that nobody knows about.
+
+⭐ **Built ones use `enqueueAndSend`, not `enqueueEmail`** (Sam,
+2026-08-21). The rule the code already carried and this arc confirmed:
+**send instantly when a human is standing there who could fix a
+failure; queue plainly when nobody is.** An admin promoting a tutor is
+looking at the screen. The row is written first so the drain can retry
+(`claimDueEmails` takes QUEUED *and* FAILED), then delivery is attempted
+at once — measured at 0.5s from enqueue to SENT on dev.
+⚠ It still returns *queued*, never *delivered* — the send runs after the
+response under `waitUntil`. Toasts must not claim it arrived.
+
+ⓘ `tutor.added_by_admin` **does not name the admin who did it** (Sam,
+2026-08-21). Which admin promoted them is our provenance, visible in the
+directory and on `approved_by`; a staff member's personal name in an
+outward email is a disclosure that would have been made by accident the
+first time `TUTORS_MANAGE` was delegated.
 
 `application_approved` / `application_rejected` mirror the existing
 `enrolment-approved` / `enrolment-rejected` templates, so those two are
@@ -450,15 +479,18 @@ new home.
   Moving and deleting in one step leaves no rollback. The DROP is its
   own migration (**1a-drop**), after prod has run on the new home for
   a release.
-- ⚠ **Backfill provenance.** The existing tutors were made by hand,
-  before any of this existed. Labelling them `ADMIN_PROMOTION` invents
-  a decision that never happened, and provenance is the entire point
-  of `source` — so the CHECK gains a fifth value, **`LEGACY`**, and
-  those rows carry `status = 'APPROVED'` with `approved_at` /
-  `approved_by` left **NULL**, which is the truth: nobody knows.
+- ⚠ **Backfill provenance — and this shipped WRONG.** 1a gave the
+  pre-existing tutors a fifth source value, `LEGACY`, with NULL
+  `approved_at`, on the stated grounds that "nobody knows when these
+  people were approved". Nobody had looked at the table next door:
+  `nclex_user_roles.granted_at` is NOT NULL and had recorded every one
+  of those dates. The UI spent a few hours rendering "Unknown ·
+  predates the record" over data we held. Retired by
+  `20260914120000` — see §3 and §13.
 - **Verified 2026-08-21 on dev:** backfill faithful — **5 of 5** bags
-  identical to their source, all `LEGACY` / `APPROVED`, none wrongly
-  stamped with an `approved_at` · the **rendered** public programme page
+  identical to their source, all `APPROVED` (as `LEGACY` at the time,
+  `ADMIN_PROMOTION` after the same-day correction above) · the
+  **rendered** public programme page
   serves the tutor's headline and bio from the new home · the editor's
   read and write round-trip under RLS as the tutor (simulated with that
   tutor's own JWT claims; **1 row** written, value read back, restored) ·
@@ -483,7 +515,8 @@ new home.
   alone: it is the only sub-slice that touches *existing working
   features*, so a regression is easy to attribute.
 
-**1b — the directory.** `/admin/tutors` replaces its placeholder with
+**1b — the directory.** ✅ **BUILT 2026-08-21** (`3c49145`).
+`/admin/tutors` replaces its placeholder with
 a read-only list: name, email, status, source, programme count, and
 whether the public profile has been filled in. No actions yet.
 
@@ -492,7 +525,22 @@ whether the public profile has been filled in. No actions yet.
 - **Ships alone:** yes — "who are our tutors?" is a question nothing
   in the product answers today.
 
-**1c — add a tutor.** ⭐ **The sub-slice that unblocks tutor #2.**
+**1c — add a tutor.** ✅ **BUILT 2026-08-21**, and SPLIT IN TWO while
+building: **1c-i** (`fca499e`) — the two lookups, `grantTutorRole()`,
+the chooser and the search path, the welcome email; **1c-ii**
+(`c657975`) — the new-user path with the as-you-type check, its four
+verdicts and both escape hatches. Migration `20260915120000` carries
+both RPCs.
+
+⚠ **A defect worth remembering: `nclex_tutor_email_check` threw on
+every call** for one commit. It declared a variable named `found`,
+which shadows plpgsql's special `FOUND`, so `IF NOT FOUND` compared a
+RECORD against a boolean. It shipped typechecked, linted and
+**unexercised** — invisible to every tool in the repo, and obvious the
+first time anything called it. Fixed in the original migration rather
+than a follow-up, since it had only ever run on dev.
+
+⭐ **The sub-slice that unblocks tutor #2.**
 `grantTutorRole()` plus the "Add tutor" flow on the directory page:
 writes the `nclex_tutors` row (`APPROVED`, `ADMIN_PROMOTION`, decided
 by the admin) and the `nclex_user_roles` row, idempotently. Plus
@@ -741,6 +789,8 @@ application flow or the admin surfaces.
 | Subscriptions live outside this table | `plan_type` + `access_expires_at` columns | Would be a second, competing copy of what `nclex_subscriptions` already models — two places to ask "is this tutor paid up?". (Proposed, then withdrawn, same session.) |
 | `submission_count` on the row | An append-only events table | The existing audit log cannot record transitions (§9), and a counter answers the question actually asked. Events table is additive later. |
 | No `email` / `name` copy | Denormalise like MyTeacher | We have a real FK; MyTeacher's copies exist because its schema predates one. |
+| Four sources — `LEGACY` retired the day it shipped | Keep it for the pre-existing tutors | The premise ("nobody knows when they were approved") was false: `nclex_user_roles.granted_at` had every date. And removing it disambiguated `approved_at`, which had come to mean both "not yet" and "unknowable". (Sam pushed; the mistake was mine.) |
+| The welcome email names no admin | Say who promoted them | Provenance is ours, not the recipient's. Harmless with one admin, an accidental disclosure the moment `TUTORS_MANAGE` is delegated. Compare `enrolment-rejected`, which discloses a tutor's address deliberately, because a student who paid them needs to reach them. |
 
 **Three things from MyTeacher deliberately not copied:** its single
 `users.role` column (overwriting it stops a teacher being a student —

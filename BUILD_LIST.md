@@ -1,39 +1,74 @@
 # MyNclex Build List
 
-> ## ⏭ DESIGNED 2026-08-21 — **tutor onboarding: the four ways in**
+> ## 🔨 IN PROGRESS 2026-08-21 — **tutor onboarding: the four ways in**
 >
-> **Design only — NOTHING BUILT.** Doc:
-> **`docs/product-plan/tutor-onboarding.md`**. One commit (`5152bfc`), no
-> code, no migration.
+> **Slice 1 is 4/5 built; only 1d remains.** Doc:
+> **`docs/product-plan/tutor-onboarding.md`**. ⚠ **ON BRANCH** —
+> `claude/server-setup-12ef87`, unmerged. **Four migrations, all
+> dev-applied, NONE on prod.**
 >
-> - **⭐ The gap that started it: there is no way to create a tutor.** All
->   three role-writing paths hardcode `STUDENT`; `/admin/tutors`,
->   `/admin/users` and `/admin/applications` are placeholders. Prod's single
->   `TUTOR` row was written by hand against the database. ⚠
->   `admin-management.md` claimed invites ran through `/welcome` — following
->   that sentence produces a **student** (corrected, `d720f74`).
-> - **One `nclex_tutors` row per person** (Sam's call, from MyTeacher's
->   `teacher_profiles`) — NOT the per-request applications table proposed
->   first: a request table records the application and still leaves no row
->   representing *the tutor*. `public_profile` lifts in from `nclex_users`;
->   the role stays in `nclex_user_roles` — the table explains the tutorship,
->   the role grants access.
-> - **Registration never grants the role**, which is why `/register` and
->   `/welcome` need no changes at all.
-> - ⭐ **Two proposals were withdrawn mid-design and recorded as rejected** —
->   `EXPIRED` as a `status` value (suspend → lapse → pay → back to APPROVED
->   = a suspended tutor teaching again) and subscription columns on the
->   table (a second copy of what `nclex_subscriptions` already models).
-> - **Tutor plans/quotas explicitly OUT**, with the downgrade question and
->   the "don't jam it into `nclex_products`" warning captured. Nothing in
->   this arc depends on the answer — the table holds no money.
-> - **⏭ NEXT: slice 1a** — scoped 2026-08-21 into **ten sub-slices**, each
->   independently committable. **1a = the table + the profile lift**
->   (migration, two view re-points, three call sites) — invisible to users,
->   and the only sub-slice touching existing working features, so it lands
->   alone. Then **1c**, which is what actually unblocks tutor #2. ⚠ 1a does
->   NOT drop the old column: move-and-delete in one migration leaves no
->   rollback.
+> | Sub-slice | What | Commit |
+> |---|---|---|
+> | **1a** ✅ | `nclex_tutors`, the `public_profile` lift, the column-privilege guard | `15e16f5` |
+> | **1b** ✅ | the `/admin/tutors` directory + drawer | `3c49145` |
+> | **1c-i** ✅ | two lookup RPCs, `grantTutorRole()`, the chooser + search path, the welcome email | `fca499e` |
+> | **1c-ii** ✅ | the new-user path: as-you-type check, four verdicts, both escape hatches | `c657975` |
+> | **1d** ⏭ | suspend / reinstate + the tutor-level filter in the public views | — |
+>
+> - **⭐ The gap is closed for anyone with an account.** When the day
+>   started nothing in the product could create a tutor — all three
+>   role-writing paths hardcode `STUDENT`, and prod’s single `TUTOR`
+>   row had been written by hand. An admin can now do it from a screen.
+> - **⭐⭐ THREE DEFECTS, NONE VISIBLE TO tsc, LINT OR TESTS**, which is
+>   this repo’s standing pattern:
+>   ① **self-approval.** `public_profile` moved onto a table that also
+>   holds `status`, and the old home’s whole-row self-update policy came
+>   with it — any tutor could have run `update({ status: 'APPROVED' })`
+>   on their own row. RLS cannot express "these columns but not those",
+>   so it took Postgres **column privileges** (the first in this repo).
+>   Proven to bite: as `authenticated`, the profile write succeeds and
+>   the status write raises `insufficient_privilege`.
+>   ② **`found` shadowed plpgsql’s `FOUND`**, so the email-check RPC
+>   threw on *every* call — shipped typechecked, linted and
+>   **unexercised**, obvious the first time anything ran it.
+>   ③ **two-line table cells rendered side by side** because they were
+>   `<span>`s. Sam saw it; the fix was to reuse the enquiries board’s
+>   own `.ao-cell-lead` rather than keep a second copy.
+> - **⭐ `LEGACY` was retired the day it shipped.** Sam asked why the code
+>   should carry a branch for six rows that can never recur. Checking
+>   found the premise was mine and wrong: `nclex_user_roles.granted_at`
+>   had recorded when every one of them became a tutor, so the UI was
+>   rendering "Unknown · predates the record" over data we held. The
+>   better reason was the column — a NULL `approved_at` had come to mean
+>   both "not approved yet" and "unknowable", and now means only the first.
+> - **Built from a Claude Design handoff that had read the plan doc** and
+>   encoded its invariants. Six changes, each a convention it could not
+>   see from outside: `minmax(0, …)` on every `fr` track · a fixed root
+>   under the drawer · the toast top-right per UI convention #1 · a
+>   `.ao-kpi-subline` that does not exist, scoped to `.adt-` · the
+>   `<span>` fix · and the directory reading through the service role,
+>   because `nclex_users` is SUPER_ADMIN-only and a `TUTORS_MANAGE` admin
+>   would have seen every name and email blank.
+> - ⚠ **The same RLS wall shapes 1c.** Both halves of the add flow need a
+>   `SECURITY DEFINER` lookup, narrow by construction — the search
+>   refuses a fragment under two characters, the email check demands an
+>   exact address — so an admin surface cannot become an
+>   account-enumeration endpoint. Both re-check the permission *inside*
+>   the function; a STUDENT is refused, proven by test.
+> - **Emails send instantly, with the queue as the safety net** (Sam):
+>   `enqueueAndSend` when a human is standing there who could fix a
+>   failure, plain `enqueueEmail` when nobody is. Measured 0.5s from
+>   enqueue to SENT. The welcome email **names no admin** — provenance is
+>   ours, and a staff name in an outward mail is a disclosure made by
+>   accident the first time `TUTORS_MANAGE` is delegated.
+> - ⬜ **Not built:** 1d · all of slice 2 (the self-serve doorways) ·
+>   slice 3 (invite by email — the new-user path ends in an honest
+>   instruction until then) · tutor plans and quotas, parked with the
+>   downgrade question named (doc §12).
+> - **⏭ NEXT: 1d** — suspend / reinstate. ⚠ The only sub-slice that
+>   changes what the **public** can see, and it must NOT reuse
+>   `nclex_users.is_active`: that is person-level and wrong for a tutor
+>   who is also somebody’s student.
 >
 > ---
 >

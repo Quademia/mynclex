@@ -2,7 +2,11 @@
 
 *Status: **the spine is built, the drain runs, the ⏰ half has opened, and
 Supabase no longer writes any email of ours.**
-**9 of 23 emails wired; 5 of them on prod.** ⓘ 23, not 24 — `session.scheduled`
+**10 of 29 emails wired; 5 of them on prod.**
+⭐ **29, not 23 — the TUTOR family (6) joined the catalog on 2026-08-21**
+with the tutor-onboarding arc; see *Tutor lifecycle* below. The first of
+them, `tutor.added_by_admin`, is **built and on a branch**, not on `main`.
+ⓘ The 23 it grew from was itself 23 and not 24, because `session.scheduled`
 was dropped on 2026-08-20 rather than built. ✅ **On prod** (2026-08-18, PR
 #53 — proven by a real test-mode purchase whose receipt sent in 218 ms
 through prod's own key): `payment.received`, `enrolment.tutor_added`,
@@ -1253,6 +1257,60 @@ per cohort goes in the outbox).
 |---|---|---|---|---|---|---|
 | `account.welcome` | ⚡ | First successful account setup at `/welcome` | student | Welcome + orientation (distinct from the Supabase invite) | P2 | ✅ |
 | `tutor.invited` | ⚡ | Admin vets + invites a tutor to the platform | tutor | "You've been approved as a MyNclex tutor" + setup | P2 | ⬜ |
+
+### Tutor lifecycle (tutor-onboarding, 2026-08-21)
+
+Six triggers, added with the arc that needed them — the standing rule
+that an email is written **when a feature needs one**, inline with that
+feature, rather than as an arc of its own. Plan:
+[tutor-onboarding.md](tutor-onboarding.md) §10.
+
+⭐ **The first emails about someone’s STANDING** rather than their money
+or their place in a class. `tutor.added_by_admin` is also the first that
+is *the entire onboarding*: there is no welcome screen behind it and
+nobody walks a new tutor in.
+
+| Event key | Kind | Trigger | Recipient | Purpose | Pri | Anchor |
+|---|---|---|---|---|---|---|
+| `tutor.added_by_admin` | ⚡ | Admin promotes an existing user, or invites one (slice 3) | new tutor | **✅ BUILT 2026-08-21** (`fca499e`), ⚠ **on branch, not on `main`**. "You are now a tutor" — what happened, that their student account is untouched, and the ONE thing worth doing first: writing the public profile. **Names no admin** and **promises nothing about tiers** | P1 | ✅ |
+| `tutor.application_submitted_admin` | ⚡ | Someone applies to be a tutor | **admin** | A queue nobody knows filled up is a queue nobody works. ⚠ recipient ≠ actor | P1 | ⬜ (2a) |
+| `tutor.application_received` | ⚡ | Someone applies to be a tutor | applicant | "We have it" — carries **Request #N**, so a resubmission is acknowledged as one | P2 | ⬜ (2a) |
+| `tutor.application_approved` | ⚡ | Admin approves an application | applicant | Mirrors `enrolment.approved`’s shape. Grants TUTOR; says what opens | P1 | ⬜ (2b) |
+| `tutor.application_rejected` | ⚡ | Admin rejects an application | applicant | Mirrors `enrolment.rejected`. Carries `decision_reason`, and says the door is not shut — they may update and resubmit, or use MyNclex as a student | P1 | ⬜ (2b) |
+| `tutor.suspended` | ⚡ | Admin suspends a tutor | tutor | Their workspace is closed and their programmes have left the catalogue — **while their existing students keep their materials** (tutor-onboarding §7). Says which switches fired | P1 | ⬜ (1d) |
+
+> #### ⭐ These send INSTANTLY — and that is a rule, not a preference
+>
+> Settled with Sam 2026-08-21, and it turned out the code already carried
+> it: `enqueueAndSend` enqueues the row **first**, so the drain can retry
+> (`claimDueEmails` takes `QUEUED` *and* `FAILED`), then attempts delivery
+> immediately under `waitUntil`. Measured **0.5s** from enqueue to `SENT`
+> on dev.
+>
+> **The rule that generalises:** send instantly when a human is standing
+> there who could fix a failure; queue plainly when nobody is. A payment
+> receipt fires after the money has moved and there is nobody to tell — a
+> plain `enqueueEmail`. An admin promoting a tutor is looking at the
+> screen, and is the one person who could act on a failure.
+>
+> ⚠ **It still returns `queued`, never `delivered`.** The send runs after
+> the response, so a toast that says "sent" is guessing. Ours says
+> **queued**, and reports separately when the *enqueue itself* failed —
+> the one case where no row exists and no drain will ever retry.
+
+> #### ⓘ The welcome email names no admin — a disclosure decision
+>
+> Sam, 2026-08-21. Which admin promoted someone is **our** provenance: it
+> lives on `nclex_tutors.approved_by` and shows in the admin directory. In
+> an outward email it is a staff member’s personal name reaching someone
+> with no reason to need it — harmless while there is one admin, and an
+> accidental disclosure the first time `TUTORS_MANAGE` is delegated.
+>
+> Compare `enrolment.rejected`, which **does** disclose the tutor’s real
+> address. That was argued through and accepted knowingly, because a
+> student who paid them needs to reach a person. There is no equivalent
+> need here — and the difference between the two is the test to apply to
+> the next one.
 
 ### Engagement / nudges (P3 — design later)
 
