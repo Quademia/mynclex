@@ -205,12 +205,26 @@ human says yes first.
 | `source` | Who starts it | Account | Approval | Slice |
 |---|---|---|---|---|
 | `ADMIN_PROMOTION` | admin, on an existing user | already exists | implicit — writing the row *is* the decision | 1 |
-| `SELF_APPLICATION` | the person, from the public "For tutors" page | exists or is created | required | 2 |
+| `SELF_APPLICATION` | the person, already signed in, from the public "For tutors" page | already exists | required | 2 |
 | `REGISTRATION` | the person, register-as-tutor toggle | created now | required | 2 |
 | `ADMIN_INVITE` | admin, by email | created by us | implicit | 3 |
 
 **`REGISTRATION` writes `nclex_users` + `nclex_tutors`, and NO role.**
 That is the whole mechanism — see §8 for what the applicant then sees.
+
+**Routing rule — which of the two self-serve doorways you land in is
+decided by whether you are signed in.** The public "For tutors" page
+sends a **logged-out** visitor into register-as-tutor (`REGISTRATION`
+— account and application created together, no role) and a **signed-in**
+one into the application form (`SELF_APPLICATION` — account already
+exists, existing roles kept). Same destination, two entry states.
+
+ⓘ The distinction is thin and **nothing branches on `source`** — it is
+metadata for the admin directory, and §8's branching keys off *roles*,
+not source. It is kept because provenance cannot be reconstructed later
+(once approved, a cold registrant who later enrols is indistinguishable
+from a student who applied) and because "was already our student" is a
+real vetting signal. Collapsing the two values loses only that signal.
 
 `SELF_APPLICATION` and `REGISTRATION` are the same machinery behind two
 doorways: MyTeacher's own comment notes the register toggle "puts them
