@@ -110,9 +110,23 @@ what exists:
   detail (roles, enrolments, payments), support actions. Unbuilt.
 - **Tutors** (`/admin/tutors` + `/admin/applications`,
   `TUTORS_MANAGE`): the vetting pipeline (v1 tutors are manually
-  vetted), tutor directory, invite flow. Unbuilt as admin UI —
-  tutor invites currently run through the existing token/`/welcome`
-  path without an admin surface.
+  vetted), tutor directory, invite flow. Unbuilt as admin UI.
+  ⚠ **CORRECTED 2026-08-21 — there is NO tutor-creation path in the
+  product at all.** This bullet used to say tutor invites "run through
+  the existing token/`/welcome` path without an admin surface". They do
+  not, and following that sentence produces a STUDENT. Every one of the
+  three code paths that writes a role hardcodes `'STUDENT'`:
+  `app/register/actions.ts` (self-registration), `app/welcome/actions.ts`
+  (invite/setup acceptance) and `lib/enrolments/actions.ts`
+  (`ensureStudentRole`, on tutor-add). Nothing in the repo ever inserts
+  `TUTOR`. The only way to make a tutor today is writing the
+  `nclex_user_roles` row by hand against the database — which RLS does
+  permit (`nclex_roles_admin_write`, SUPER_ADMIN only; the self-insert
+  policy is restricted to `role = 'STUDENT'`), so the gap is a missing
+  surface, not a missing permission. **Prod's single `TUTOR` row was
+  created that way.** The minimum that unblocks a second tutor is far
+  smaller than this whole wing: grant `TUTOR` to an existing user from
+  an admin surface — the vetting pipeline can follow later.
 - Revisit the **SUPER_ADMIN RLS bypasses** on tutor tables when these
   surfaces ship (the standing intentional-v1 note).
 
