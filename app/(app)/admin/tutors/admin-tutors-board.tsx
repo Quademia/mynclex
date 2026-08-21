@@ -17,12 +17,16 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AddTutorModal } from './add-tutor-modal';
+import { SuspendModal } from './suspend-modal';
+import { ReinstateModal } from './reinstate-modal';
 import {
   hasPublicProfile,
   sourceClass,
   sourceLabel,
   type TutorDirectoryRow,
   type TutorDirectoryStats,
+  type TutorStatus,
+  type TutorTrailEntry,
 } from '@/lib/tutors/types';
 
 function initials(name: string): string {
@@ -77,6 +81,9 @@ export function AdminTutorsBoard({
   const [drawerId, setDrawerId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  /** user_id whose suspend / reinstate modal is open, or null. */
+  const [suspending, setSuspending] = useState<string | null>(null);
+  const [reinstating, setReinstating] = useState<string | null>(null);
 
   // Auto-dismiss at ~5s, the house convention for every toast in the app.
   useEffect(() => {
@@ -99,6 +106,8 @@ export function AdminTutorsBoard({
   }, [rows, q, statusFilter]);
 
   const open = drawerId ? (rows.find((r) => r.user_id === drawerId) ?? null) : null;
+  const suspendRow = suspending ? (rows.find((r) => r.user_id === suspending) ?? null) : null;
+  const reinstateRow = reinstating ? (rows.find((r) => r.user_id === reinstating) ?? null) : null;
 
   return (
     <>
@@ -186,7 +195,42 @@ export function AdminTutorsBoard({
         </div>
       </div>
 
-      {open && <TutorDrawer row={open} onClose={() => setDrawerId(null)} />}
+      {open && (
+        <TutorDrawer
+          row={open}
+          onClose={() => setDrawerId(null)}
+          onSuspend={() => setSuspending(open.user_id)}
+          onReinstate={() => setReinstating(open.user_id)}
+        />
+      )}
+
+      {reinstateRow && (
+        <ReinstateModal
+          userId={reinstateRow.user_id}
+          name={reinstateRow.name}
+          onClose={() => setReinstating(null)}
+          onDone={(message) => {
+            setReinstating(null);
+            setToast(message);
+          }}
+        />
+      )}
+
+      {suspending && suspendRow && (
+        <SuspendModal
+          userId={suspendRow.user_id}
+          name={suspendRow.name}
+          onClose={() => setSuspending(null)}
+          onDone={(message) => {
+            setSuspending(null);
+            setToast(message);
+            // The drawer stays open on purpose — the admin should see the
+            // status pill and the new trail entry land on the record they
+            // just acted on, rather than be returned to a list and left
+            // to trust it worked.
+          }}
+        />
+      )}
 
       {addOpen && (
         <AddTutorModal
@@ -284,9 +328,51 @@ function TutorRow({ row, onOpen }: { row: TutorDirectoryRow; onOpen: () => void 
   );
 }
 
-function TutorDrawer({ row, onClose }: { row: TutorDirectoryRow; onClose: () => void }) {
+/**
+ * What one trail entry says. Every entry is a transition, so the wording
+ * comes from where it LANDED plus, where it matters, where it came from:
+ * APPROVED means two different events depending on whether the previous
+ * status was SUSPENDED, and calling a reinstatement "Approved as a tutor"
+ * would hide the suspension it undoes.
+ */
+function trailLabel(e: TutorTrailEntry): string {
+  switch (e.to) {
+    case 'APPROVED':
+      return e.from === 'SUSPENDED' ? 'Reinstated' : 'Approved as a tutor';
+    case 'SUSPENDED':
+      return 'Suspended';
+    case 'REJECTED':
+      return 'Application rejected';
+    case 'PENDING':
+      return e.from ? 'Re-applied' : 'Applied to become a tutor';
+  }
+}
+
+/** Ring colour on the timeline. PENDING is neither good nor bad. */
+function trailTone(to: TutorStatus): string {
+  if (to === 'APPROVED') return 'is-good';
+  if (to === 'SUSPENDED' || to === 'REJECTED') return 'is-bad';
+  return '';
+}
+
+function TutorDrawer({
+  row,
+  onClose,
+  onSuspend,
+  onReinstate,
+}: {
+  row: TutorDirectoryRow;
+  onClose: () => void;
+  onSuspend: () => void;
+  /**
+   * ⚠ Both foot buttons only OPEN a dialog; neither acts. Reinstate used
+   * to fire on click, per the design — it gained a confirm step because
+   * it sits beside Close and, since 1d-i, a stray click leaves a
+   * permanent trail entry. See reinstate-modal.tsx.
+   */
+  onReinstate: () => void;
+}) {
   const approved = formatDate(row.approved_at);
-  const decided = formatDate(row.decided_at);
   const firstApplied = formatDate(row.first_applied_at);
 
   // The applications line has to distinguish three genuinely different
@@ -368,36 +454,49 @@ function TutorDrawer({ row, onClose }: { row: TutorDirectoryRow; onClose: () => 
 
           <section>
             <div className="adt-sec-title">Decision trail</div>
-            {/* Derived from the columns that exist — there is no events
-                table in v1 (§9) — so this shows at most one prior
-                decision beside the record's creation. */}
+            {/* Read from nclex_tutors.decision_history (slice 1d-i). This
+                used to be DERIVED from approved_at/decided_at, which could
+                only ever show one prior decision — fine while no row could
+                have two, wrong the moment suspend/reinstate exists. Older
+                rows were backfilled to say exactly what the derivation
+                said, so nothing changed for them. */}
             <ul className="adt-trail">
-              {decided && row.decided_at !== row.approved_at && (
-                <li className={row.status === 'SUSPENDED' ? 'is-bad' : 'is-good'}>
-                  {row.status === 'SUSPENDED' ? 'Suspended' : 'Decision recorded'}
-                  {row.decided_by_name ? ` by ${row.decided_by_name}` : ''}
-                  {row.decision_reason ? ` — “${row.decision_reason}”` : ''}
-                  <span className="adt-trail-when">{decided}</span>
-                </li>
-              )}
-              {approved ? (
-                <li className="is-good">
-                  Approved as a tutor
-                  {row.approved_by_name ? ` by ${row.approved_by_name}` : ''}
-                  <span className="adt-trail-when">{approved}</span>
-                </li>
-              ) : (
+              {row.trail.length === 0 ? (
                 <li>
-                  Applied — no decision recorded yet
+                  No decisions recorded
                   <span className="adt-trail-when">{firstApplied ?? '—'}</span>
                 </li>
+              ) : (
+                // Newest at the top. The array itself is append-ordered
+                // and must not be sorted by date — see queries.ts.
+                [...row.trail].reverse().map((e, i) => (
+                  <li key={`${e.at}-${i}`} className={trailTone(e.to)}>
+                    {trailLabel(e)}
+                    {e.by_name ? ` by ${e.by_name}` : ''}
+                    {e.reason ? ` — “${e.reason}”` : ''}
+                    <span className="adt-trail-when">{formatDate(e.at) ?? '—'}</span>
+                  </li>
+                ))
               )}
             </ul>
           </section>
         </div>
 
         <div className="adt-drawer-foot">
-          {/* Suspend / Reinstate land here in 1d. Read-only in 1b. */}
+          {/* One button, never both: the only two standings this drawer
+              can act on are APPROVED and SUSPENDED, and each has exactly
+              one move. A PENDING or REJECTED row belongs to the
+              applications queue (2b), so it gets neither. */}
+          {row.status === 'SUSPENDED' && (
+            <button type="button" className="btn btn-accent btn-sm" onClick={onReinstate}>
+              Reinstate…
+            </button>
+          )}
+          {row.status === 'APPROVED' && (
+            <button type="button" className="btn btn-danger btn-sm" onClick={onSuspend}>
+              Suspend…
+            </button>
+          )}
           <button type="button" className="btn btn-sm adt-foot-end" onClick={onClose}>
             Close
           </button>

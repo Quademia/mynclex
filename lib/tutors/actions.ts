@@ -139,6 +139,32 @@ async function grantTutorRole(
 }
 
 /**
+ * Take the TUTOR role away — and ONLY the TUTOR role (sub-slice 1d).
+ *
+ * ⭐ The mirror of grantTutorRole, and the only code that removes one.
+ * ⚠ A tutor is very often somebody else's student: deleting by user_id
+ * alone would revoke access to programmes they PAID for, as a
+ * side-effect of a decision about their teaching. The `.eq('role',
+ * 'TUTOR')` is the whole safety of this function.
+ *
+ * Idempotent: removing a role that is not there is success, not an
+ * error — a suspension re-run must not fail on its second attempt.
+ */
+async function revokeTutorRole(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await admin
+    .from('nclex_user_roles')
+    .delete()
+    .eq('user_id', userId)
+    .eq('role', 'TUTOR');
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+/**
  * Make an existing user a tutor.
  *
  * Order matters: the record first, then the role. If the role write
@@ -231,4 +257,243 @@ export async function promoteUserToTutorAction(userId: string): Promise<AddTutor
   // getting the role without the email is recoverable, not being made a
   // tutor because an email failed is not.
   return { ok: true, name: user.name, keptStudent, emailQueued: queued };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Sub-slice 1d — suspend and reinstate
+// ─────────────────────────────────────────────────────────────────────
+//
+// ⭐ BOTH GO THROUGH nclex_tutor_record_decision, never an .update().
+// The RPC writes the status and appends the history entry in ONE
+// statement, which is what stops the record and its narrative drifting
+// (migration 20260917120000). It also enforces the reason, the
+// permission and the no-deciding-on-yourself rule at the layer that
+// cannot be skipped by calling from somewhere else.
+//
+// ⚠ TWO WRITES, AND THE ORDER IS DELIBERATE — the record first, then
+// the role, matching promoteUserToTutorAction. If the role write fails
+// after a suspension, the tutor is out of the public catalogue (the
+// switch that matters) and merely still has a workspace, which is
+// visible and fixable. The reverse order would leave a suspended tutor
+// listed and joinable.
+
+export type TutorStandingResult =
+  | { ok: true; changed: boolean; name: string }
+  | { ok: false; error: string };
+
+/**
+ * Turn a plpgsql RAISE into something an admin can act on.
+ *
+ * The RPC's messages are precise but shaped for a log — they carry the
+ * function name and a uuid. These are the three a person can actually
+ * hit through the UI; anything else is a bug and keeps its raw text
+ * rather than being flattened into a soothing generic.
+ */
+function decisionError(message: string): string {
+  if (message.includes('own tutor record')) {
+    return 'You cannot suspend or reinstate your own tutor record. Ask another admin.';
+  }
+  if (message.includes('requires a reason')) {
+    return 'A reason is required.';
+  }
+  if (message.includes('TUTORS_MANAGE required')) {
+    return 'You no longer have permission to manage tutors.';
+  }
+  return message;
+}
+
+/** Look up a name for the toast. Never blocks the decision. */
+async function tutorName(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userId: string,
+): Promise<string> {
+  const { data } = await admin
+    .from('nclex_users')
+    .select('name')
+    .eq('id', userId)
+    .maybeSingle();
+  return data?.name ?? 'That tutor';
+}
+
+/**
+ * Suspend a tutor: standing to SUSPENDED, TUTOR role revoked.
+ *
+ * §7 — this stops new students joining, stops money in flight and closes
+ * the workspace, and deliberately does NOT touch nclex_enrolments.
+ * Students they already have keep their curriculum, library and quizzes:
+ * those are rows the student paid for and we can serve with no tutor
+ * present, and cutting them off punishes the student for the tutor's
+ * conduct.
+ */
+export async function suspendTutorAction(
+  userId: string,
+  reason: string,
+): Promise<TutorStandingResult> {
+  await requireAdminPermission(PERM_TUTORS_MANAGE);
+
+  // The authed client, not the service role: the RPC checks the CALLER's
+  // permission and reads auth.uid() for both the actor and the
+  // self-decision guard. Through the service role there is no caller.
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('nclex_tutor_record_decision', {
+    p_user_id: userId,
+    p_to_status: 'SUSPENDED',
+    p_reason: reason,
+  });
+
+  if (error) return { ok: false, error: decisionError(error.message) };
+
+  const outcome = (data ?? [])[0] as { changed: boolean } | undefined;
+  const admin = createServiceRoleClient();
+  const name = await tutorName(admin, userId);
+
+  // Already suspended — say so plainly rather than reporting a second
+  // suspension that did not happen.
+  if (!outcome?.changed) {
+    revalidatePath('/admin/tutors');
+    return { ok: true, changed: false, name };
+  }
+
+  const revoked = await revokeTutorRole(admin, userId);
+  if (!revoked.ok) {
+    return {
+      ok: false,
+      error: `${name} was suspended and has left the catalogue, but the TUTOR role could not be revoked: ${revoked.error}`,
+    };
+  }
+
+  // ⓘ Told only when true, so the email does not reassure someone about
+  // students they never had — the rule tutor-added-by-admin set with
+  // keepsStudentRole. Counts current enrolments across every programme
+  // they own; a head count is not needed, only whether there is anyone.
+  const { data: theirProgrammes } = await admin
+    .from('nclex_programmes')
+    .select('programme_id')
+    .eq('tutor_id', userId);
+
+  let hasActiveStudents = false;
+  const programmeIds = (theirProgrammes ?? []).map((p) => p.programme_id);
+  if (programmeIds.length > 0) {
+    const { count } = await admin
+      .from('nclex_enrolments')
+      .select('enrolment_id', { count: 'exact', head: true })
+      .in('programme_id', programmeIds)
+      .eq('status', 'ENROLLED');
+    hasActiveStudents = (count ?? 0) > 0;
+  }
+
+  const { data: person } = await admin
+    .from('nclex_users')
+    .select('email')
+    .eq('id', userId)
+    .maybeSingle();
+
+  // ⭐ enqueueAndSend: an admin is standing there and could act on a
+  // failure. ⚠ But the email is NOT allowed to fail the suspension —
+  // the standing change and the role revocation have already happened,
+  // and reporting an error now would invite the admin to click again on
+  // something that already worked. A suspension nobody was told about is
+  // recoverable; an admin who believes the suspension failed is not.
+  if (person?.email) {
+    await enqueueAndSend({
+      eventKey: 'tutor.suspended',
+      subjectRef: userId,
+      toEmail: person.email,
+      toUserId: userId,
+      payload: {
+        recipientName: name === 'That tutor' ? null : name,
+        reason: reason.trim(),
+        hasActiveStudents,
+      },
+    });
+  }
+
+  revalidatePath('/admin/tutors');
+  return { ok: true, changed: true, name };
+}
+
+/**
+ * Reinstate: standing back to APPROVED, TUTOR role re-granted.
+ *
+ * ⭐ THE NOTE IS OPTIONAL, AND THAT IS THE WHOLE DISTINCTION. The design
+ * argued reinstatement needs no modal because "undoing a restriction
+ * needs no justification the way imposing one does" — an argument about
+ * REQUIRING A REASON, not about CONFIRMING. Sam asked for a confirm step
+ * anyway (2026-08-21) and he is right for a different reason: this
+ * button sits next to Close and fires instantly, so it is the easier of
+ * the two to hit by accident, and since 1d-i a stray click leaves a
+ * PERMANENT trail entry that suspending again cannot remove. State is
+ * recoverable; history is not. So: confirm, but never demand a reason.
+ *
+ * ⚠ approved_at/by are NOT rewritten (the RPC coalesces): "who first let
+ * this person in" is a permanent fact, and a reinstatement is not it.
+ */
+export async function reinstateTutorAction(
+  userId: string,
+  note?: string,
+): Promise<TutorStandingResult> {
+  const ctx = await requireAdminPermission(PERM_TUTORS_MANAGE);
+
+  // Empty or whitespace becomes null: the RPC stores NULLIF(btrim(...))
+  // anyway, and an empty string in the trail would render as an entry
+  // with a dash where a sentence should be.
+  const cleanNote = (note ?? '').trim() || null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('nclex_tutor_record_decision', {
+    p_user_id: userId,
+    p_to_status: 'APPROVED',
+    p_reason: cleanNote,
+  });
+
+  if (error) return { ok: false, error: decisionError(error.message) };
+
+  const outcome = (data ?? [])[0] as { changed: boolean } | undefined;
+  const admin = createServiceRoleClient();
+  const name = await tutorName(admin, userId);
+
+  if (!outcome?.changed) {
+    revalidatePath('/admin/tutors');
+    return { ok: true, changed: false, name };
+  }
+
+  const granted = await grantTutorRole(admin, userId, ctx.user.id);
+  if (!granted.ok) {
+    return {
+      ok: false,
+      error: `${name} was reinstated and is back in the catalogue, but the TUTOR role could not be re-granted: ${granted.error}`,
+    };
+  }
+
+  // The mirror of the suspension notice. ⚠ Sent AFTER the role is back:
+  // the email's only content is a link into the workspace, so arriving
+  // before the door reopens would invite a refusal.
+  const { count: programmeCount } = await admin
+    .from('nclex_programmes')
+    .select('programme_id', { count: 'exact', head: true })
+    .eq('tutor_id', userId);
+
+  const { data: person } = await admin
+    .from('nclex_users')
+    .select('email')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (person?.email) {
+    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nclex.quademia.com';
+    await enqueueAndSend({
+      eventKey: 'tutor.reinstated',
+      subjectRef: userId,
+      toEmail: person.email,
+      toUserId: userId,
+      payload: {
+        recipientName: name === 'That tutor' ? null : name,
+        hasProgrammes: (programmeCount ?? 0) > 0,
+        workspaceUrl: `${origin}/tutor`,
+      },
+    });
+  }
+
+  revalidatePath('/admin/tutors');
+  return { ok: true, changed: true, name };
 }

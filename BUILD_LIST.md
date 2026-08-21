@@ -1,11 +1,83 @@
 # MyNclex Build List
 
-> ## 🔨 IN PROGRESS 2026-08-21 — **tutor onboarding: the four ways in**
+> ## ✅ DONE 2026-08-21 (later) — **tutor onboarding slice 1d: suspend & reinstate**
+>
+> **Slice 1 is COMPLETE and Sam-tested.** **On `main`** — 11 commits,
+> **five migrations** (`20260916`–`20260920`), dev-applied and **not yet
+> on prod**. Doc:
+> **`docs/product-plan/tutor-onboarding.md`** §7, §10, §11.1d.
+>
+> | Sub-slice | What | Commit |
+> |---|---|---|
+> | **1d-i** ✅ | `decision_history` — an append-only trail | `ac890ee` |
+> | **1d-ii** ✅ | the decision RPC, `revokeTutorRole`, both actions, the suspend modal | `7d87818` |
+> | **1d-iii** ✅ | four public views, two public RPCs, **and the checkout gate** | `d66acf0` |
+> | **1d-iv/v** ✅ | `tutor.suspended` + the sweep exclusion | `e0d12d9` |
+> | **+** ✅ | `tutor.reinstated` (Sam spotted the gap) | `e0118ca` |
+> | **+** ✅ | the reinstate confirm dialog (Sam) | `2bc0da3` |
+> | **fix** ✅ | the 07:00 class reminders stop for a suspended tutor | `d734066` |
+>
+> - **⭐ A schema change the plan did not have: `decision_history`** (Sam's
+>   call). Until 1d no row could carry more than ONE decision, so the
+>   drawer's derived trail was sufficient *by accident*. Append-only JSONB
+>   array, **not** the events table §13 rejected. The rule settled with
+>   it: *a JSONB array is right while a history is short, bounded and read
+>   whole; a table is earned the day something queries across rows.*
+>   The scalars stay authoritative and ONE statement writes both.
+> - **⚠ The new RPC re-opened the hole 1a closed.** `SECURITY DEFINER`
+>   runs as the definer, so any tutor who also holds `TUTORS_MANAGE`
+>   could have lifted their own suspension through it. It now refuses to
+>   decide on the caller's own record.
+> - **⚠⚠ "The same two views" was an undercount — four views and two
+>   RPCs. And checkout reads NONE of them:** `startCheckout` resolves
+>   from base tables through the service role, so filtering every view in
+>   the database would not have stopped one sale. "Checkout blocked"
+>   needed its own gate.
+> - **⚠⚠ "Money in flight stops" was not the reminder emails.** Step 2c
+>   of the nightly sweep PAUSES students for arrears — stopping the
+>   reminders alone would have meant we quietly stop asking for the money
+>   and then lock the student out for not paying it.
+> - **⭐⭐ The last hole came from Sam asking what the STUDENT sees.** The
+>   07:00 cron kept emailing a suspended tutor's students *"your live
+>   class is tomorrow"* — §7's forbidden lie, on a schedule. Fixed in TWO
+>   places; ⚠ the tutor's own "send reminder now" button gated on
+>   **ownership**, which a suspended tutor still passes (suspension
+>   revokes the ROLE, it does not reassign their programmes). ⭐ Missed
+>   originally because **§7's table of consequences has four rows and this
+>   is a fifth** — *a table of consequences is a summary, not an
+>   inventory.*
+> - **He also asked whether suspension should unpublish their
+>   programmes** — argued down (it destroys which-were-already-drafts and
+>   writes our decision into their editorial column), **but the cost he
+>   was pointing at is real**: two switches means every public surface
+>   must remember both, and one was already forgotten. ⏭ **Follow-up:**
+>   make "is this programme publicly live?" answerable in ONE place
+>   rather than re-derived by hand in seven.
+> - **⏭ STILL OPEN:** nothing in the **student** interface says the tutor
+>   is suspended. ⚠ The reminder fix cannot close it — reminders go out 7
+>   days ahead, once per class, so a student may already hold a "see you
+>   Tuesday" for a class that is not happening. Scoped in the doc under
+>   §7 → *OPEN — the student is never told*.
+> - **Still not built:** slice 2 (self-serve doorways) · slice 3 (invite
+>   by email) · the `1a-drop` migration · tutor plans (doc §12).
+>
+> ---
+>
+> ## ✅ DONE 2026-08-21 — **tutor onboarding: the four ways in**
 >
 > **Slice 1 is 4/5 built; only 1d remains.** Doc:
-> **`docs/product-plan/tutor-onboarding.md`**. ⚠ **ON BRANCH** —
-> `claude/server-setup-12ef87`, unmerged. **Four migrations, all
-> dev-applied, NONE on prod.**
+> **`docs/product-plan/tutor-onboarding.md`**. ✅ **ON `main`, AND
+> RELEASED TO `prod`** — release `ce10dfa`, 2026-08-21 19:14. **Three
+> migrations**, dev-applied and now prod-applied (`tutor_record`,
+> `tutor_record_retire_legacy`, `tutor_add_lookup`).
+>
+> ⚠ **This block said "ON BRANCH — `claude/server-setup-12ef87`,
+> unmerged. Four migrations, all dev-applied, NONE on prod."** It was
+> stale five minutes after it was written — `main` merged and released
+> the same evening — and **the count was wrong from the start**:
+> `c657975` (1c-ii) *edited* `20260915120000_tutor_add_lookup.sql`
+> rather than adding a fourth file. Three is what the disk, dev and
+> prod all say. Corrected 2026-08-21 (later).
 >
 > | Sub-slice | What | Commit |
 > |---|---|---|
@@ -65,10 +137,7 @@
 >   slice 3 (invite by email — the new-user path ends in an honest
 >   instruction until then) · tutor plans and quotas, parked with the
 >   downgrade question named (doc §12).
-> - **⏭ NEXT: 1d** — suspend / reinstate. ⚠ The only sub-slice that
->   changes what the **public** can see, and it must NOT reuse
->   `nclex_users.is_active`: that is person-level and wrong for a tutor
->   who is also somebody’s student.
+> - ~~**⏭ NEXT: 1d**~~ — **built the same day**, see the entry above.
 >
 > ---
 >

@@ -45,6 +45,34 @@ export type TutorPublicProfile = {
 };
 
 /**
+ * One step in a tutor's story — added in slice 1d-i.
+ *
+ * ⭐ ONE SHAPE FOR THE WHOLE STORY. Every event is a status transition,
+ * re-application included (it returns the row to PENDING), so
+ * applied → rejected → re-applied → approved → suspended → reinstated is
+ * six of these and the renderer needs no special cases.
+ *
+ * ⚠ This is the NARRATIVE, not the state. `TutorDirectoryRow.status` and
+ * the decided_* fields remain authoritative for what is true now; these
+ * entries say how it got that way. Never derive current standing by
+ * reading the last entry — the column is indexed and this is not.
+ *
+ * `from` is null on the first entry of a row (there was no prior status)
+ * and `by` is null where nobody is recorded — an application is an act of
+ * the applicant, not a decision by an admin.
+ */
+export type TutorDecisionEntry = {
+  at: string;
+  by: string | null;
+  from: TutorStatus | null;
+  to: TutorStatus;
+  reason: string | null;
+};
+
+/** A trail entry with its actor's name resolved for display. */
+export type TutorTrailEntry = TutorDecisionEntry & { by_name: string | null };
+
+/**
  * One row of the /admin/tutors directory: the tutor record joined to the
  * identity that stays on nclex_users, plus the live programme count.
  */
@@ -75,6 +103,15 @@ export type TutorDirectoryRow = {
   last_applied_at: string | null;
   submission_count: number;
   created_at: string;
+  /**
+   * The full decision trail, oldest first, actor names resolved.
+   *
+   * Every row backfilled in 20260916120000 has at least the entries the
+   * drawer used to derive; rows created after it accumulate one entry per
+   * transition. An empty array is legitimate — a record with no
+   * application date and no decision has nothing to tell.
+   */
+  trail: TutorTrailEntry[];
 };
 
 /** Counts for the directory's stat strip. */

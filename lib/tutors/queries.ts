@@ -19,6 +19,7 @@
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import type {
+  TutorDecisionEntry,
   TutorDirectoryRow,
   TutorDirectoryStats,
   TutorPublicProfile,
@@ -40,6 +41,7 @@ type TutorRecordRow = {
   last_applied_at: string | null;
   submission_count: number;
   created_at: string;
+  decision_history: TutorDecisionEntry[] | null;
 };
 
 /**
@@ -62,7 +64,8 @@ export async function loadTutorDirectory(): Promise<{
     .select(
       `user_id, status, source, public_profile,
        approved_at, approved_by, decided_at, decided_by, decision_reason,
-       first_applied_at, last_applied_at, submission_count, created_at`,
+       first_applied_at, last_applied_at, submission_count, created_at,
+       decision_history`,
     )
     .order('created_at', { ascending: false });
 
@@ -78,6 +81,14 @@ export async function loadTutorDirectory(): Promise<{
     identityIds.add(r.user_id);
     if (r.approved_by) identityIds.add(r.approved_by);
     if (r.decided_by) identityIds.add(r.decided_by);
+    // ⚠ The trail's actors too, not just the latest decision. A tutor
+    // suspended by one admin and reinstated by another has a name in the
+    // history that appears in neither scalar column — miss these and the
+    // drawer renders an unattributed entry for a decision we do know the
+    // author of. Same fetch, no extra round trip.
+    for (const e of r.decision_history ?? []) {
+      if (e.by) identityIds.add(e.by);
+    }
   }
 
   const { data: users } = await admin
@@ -124,6 +135,14 @@ export async function loadTutorDirectory(): Promise<{
       last_applied_at: r.last_applied_at,
       submission_count: r.submission_count,
       created_at: r.created_at,
+      // Oldest first — the column is appended to, so array order is
+      // already chronological and must not be re-sorted by date: two
+      // decisions in the same second would swap, and the order they
+      // happened in is the one thing a trail must not get wrong.
+      trail: (r.decision_history ?? []).map((e) => ({
+        ...e,
+        by_name: e.by ? (byId.get(e.by)?.name ?? null) : null,
+      })),
     };
   });
 
