@@ -161,11 +161,36 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
   } else {
     const { data: prog, error } = await admin
       .from('nclex_programmes')
-      .select('programme_id, title, price_currency, payment_collection_mode, delivery_mode, status')
+      .select('programme_id, title, tutor_id, price_currency, payment_collection_mode, delivery_mode, status')
       .eq('programme_id', input.target.programmeId)
       .maybeSingle();
     if (error || !prog) return { ok: false, error: 'Programme not found.' };
     if (prog.status !== 'PUBLISHED') return { ok: false, error: 'This programme is not open for enrolment.' };
+
+    // ⚠ THE TUTOR'S STANDING (tutor-onboarding 1d). This is the ONLY
+    // thing that stops a suspended tutor still taking money.
+    //
+    // Suspension filters the four public views, which removes the
+    // programme from discovery — but checkout does not read those views.
+    // It reads the base tables through the service role, so a direct
+    // link, a stale tab or a bookmarked checkout would have sailed
+    // straight past the catalogue and sold a place with a suspended
+    // tutor. "Checkout blocked" is one of the four switches the suspend
+    // dialog promises an admin; without this check the dialog is lying.
+    //
+    // Fail closed, like the views: no tutor record means no record that
+    // we approved this person, not permission by default.
+    const { data: tutorStanding } = await admin
+      .from('nclex_tutors')
+      .select('status')
+      .eq('user_id', prog.tutor_id)
+      .maybeSingle();
+    if (tutorStanding?.status !== 'APPROVED') {
+      // Deliberately the same wording as an unpublished programme: a
+      // stranger at the checkout has no business learning that a
+      // particular tutor has been suspended.
+      return { ok: false, error: 'This programme is not open for enrolment.' };
+    }
     if (prog.payment_collection_mode !== 'ON_PLATFORM') {
       return { ok: false, error: 'This programme does not accept online payment.' };
     }

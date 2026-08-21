@@ -1599,7 +1599,15 @@ LEFT JOIN LATERAL (
     AND (c.start_date >= CURRENT_DATE OR c.allow_late_join)
 ) oc ON TRUE
 WHERE p.status = 'PUBLISHED'
-  AND u.is_active;
+  AND u.is_active
+  -- ⭐ tutor-onboarding 1d, and it FAILS CLOSED. The join above stays
+  -- LEFT so the column list is untouched, but a row is required here.
+  -- 1a made it LEFT reasoning that a missing tutor record must not
+  -- unpublish a programme — true while the row meant "a profile bag",
+  -- whose absence is cosmetic. The row now records whether we approved
+  -- this person to take students at all, so "no record" must not read
+  -- as "yes".
+  AND t.status = 'APPROVED';
 
 GRANT SELECT ON nclex_public_programmes TO anon, authenticated;
 
@@ -1614,6 +1622,7 @@ SELECT
 FROM nclex_programme_units pu
 JOIN nclex_programmes p ON p.programme_id = pu.programme_id
 JOIN nclex_users u      ON u.id = p.tutor_id
+JOIN nclex_tutors t     ON t.user_id = p.tutor_id AND t.status = 'APPROVED'  -- 1d
 WHERE p.status = 'PUBLISHED'
   AND u.is_active
   AND pu.is_published;
@@ -1633,6 +1642,7 @@ SELECT
 FROM nclex_cohorts c
 JOIN nclex_programmes p ON p.programme_id = c.programme_id
 JOIN nclex_users u      ON u.id = p.tutor_id
+JOIN nclex_tutors t     ON t.user_id = p.tutor_id AND t.status = 'APPROVED'  -- 1d
 WHERE p.status = 'PUBLISHED'
   AND u.is_active
   AND c.cancelled_at IS NULL;
