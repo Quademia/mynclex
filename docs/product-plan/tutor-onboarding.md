@@ -341,13 +341,23 @@ A student enrolled with a suspended tutor keeps their curriculum,
 library and quizzes exactly as intended, and has no way to learn that
 nobody is coming to the live sessions.
 
-⚠⚠ **And one part of this is a live defect, not a future feature.**
-`nclex_enqueue_session_reminders` (20260912120000) joins `nclex_users`
-for the tutor and has **no tutor-standing check**, so the 07:00 cron
-keeps emailing a suspended tutor's students *"your live class is
-tomorrow"*. That is the forbidden lie, sent by us, on a schedule. It was
-missed in 1d-v because §7 lists four switches and this is a fifth
-consequence. **Fix before the student-facing design, not with it.**
+~~⚠⚠ **And one part of this is a live defect, not a future feature.**~~
+✅ **FIXED 2026-08-21, migration `20260920120000`.**
+`nclex_enqueue_session_reminders` joined `nclex_users` for the tutor's
+*name* and never asked their standing, so the 07:00 cron kept emailing a
+suspended tutor's students *"your live class is tomorrow"* — the
+forbidden lie, sent by us, on a schedule. Missed in 1d-v because §7
+enumerates four switches and this is a **fifth** consequence. ⭐ *A
+four-row table of consequences is a summary, not an inventory.*
+- Two places, not one. ⚠ The tutor's **"send reminder now"** button gated
+  on *ownership* (`v_tutor = auth.uid()`), which a suspended tutor still
+  passes — suspension revokes the role, it does not reassign their
+  programmes. Unreachable through the UI, accepted by the RPC.
+- ⚠ **It does not unsend anything.** Reminders go out up to 7 days ahead
+  and each class is announced exactly once, so a student may already hold
+  a "see you Tuesday" for a class that is now not happening. Only the
+  student-facing notice below closes that week-long window — the fix
+  stops the leak, it does not mop up.
 
 To decide when it is picked up — deliberately NOT decided now:
 - **What the student sees, and where** — cohort/programme overview,
