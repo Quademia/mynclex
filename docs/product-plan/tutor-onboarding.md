@@ -465,8 +465,20 @@ new home.
   the guard **proven to bite** — as `authenticated`, `public_profile` is
   writable and `status` is refused with `insufficient_privilege` · tsc at
   the known `scoring-roundtrip` errors, lint clean against baseline.
-- ⬜ **Not verified:** the editor clicked in a browser as a signed-in
-  tutor — needs Sam, since the session had no tutor credentials.
+- ✅ **Confirmed by Sam in the browser, signed in as a tutor** (Steven
+  Harris, 2026-08-21 15:21): the page loaded his existing profile from
+  the new home, an edit saved (headline, speciality, years 5 → 10, and
+  a `business_name` added), and it rendered on the **public** programme
+  page through `nclex_public_programmes`.
+  ⭐ **And the guard held under the real write, not just a synthetic
+  one:** after the save, `status`, `source`, `approved_at`,
+  `approved_by`, `decided_at` and `submission_count` were all
+  unchanged — the UPDATE moved the profile bag and `updated_at` and
+  nothing else, which is exactly what the column grant permits.
+  ⓘ One false alarm worth recording so it is not re-chased: the old
+  headline string still appears once on the public page. It is inside
+  the **bio text** ("...now a Pediatric ICU nurse..."), which was not
+  edited — not a stale read from the un-dropped `nclex_users` column.
 - ⓘ **Invisible to users — a pure move.** That is exactly why it lands
   alone: it is the only sub-slice that touches *existing working
   features*, so a regression is easy to attribute.
