@@ -103,9 +103,11 @@ CREATE TABLE nclex_tutors (
   -- ── Axis 1: standing with us (vetting / conduct) ──────────────
   status             TEXT NOT NULL
                      CHECK (status IN ('PENDING','APPROVED','REJECTED','SUSPENDED')),
+  -- LEGACY = the hand-made tutors that predate this table; their
+  -- approved_at/approved_by are NULL because nobody knows (see 11.1a).
   source             TEXT NOT NULL
                      CHECK (source IN ('SELF_APPLICATION','ADMIN_PROMOTION',
-                                       'ADMIN_INVITE','REGISTRATION')),
+                                       'ADMIN_INVITE','REGISTRATION','LEGACY')),
 
   -- ── Public-facing (lifted from nclex_users.public_profile) ────
   -- PUBLIC-ONLY by rule; the invariant is encoded in the NAME (see
@@ -204,9 +206,9 @@ human says yes first.
 
 | `source` | Who starts it | Account | Approval | Slice |
 |---|---|---|---|---|
-| `ADMIN_PROMOTION` | admin, on an existing user | already exists | implicit — writing the row *is* the decision | 1 |
-| `SELF_APPLICATION` | the person, already signed in, from the public "For tutors" page | already exists | required | 2 |
-| `REGISTRATION` | the person, register-as-tutor toggle | created now | required | 2 |
+| `ADMIN_PROMOTION` | admin, on an existing user | already exists | implicit — writing the row *is* the decision | 1c |
+| `SELF_APPLICATION` | the person, already signed in, from the public "For tutors" page | already exists | required | 2a |
+| `REGISTRATION` | the person, register-as-tutor toggle | created now | required | 2d |
 | `ADMIN_INVITE` | admin, by email | created by us | implicit | 3 |
 
 **`REGISTRATION` writes `nclex_users` + `nclex_tutors`, and NO role.**
@@ -396,27 +398,141 @@ largely shape-reuse.
 
 ---
 
-## 11. Slices
+## 11. Slices <span>scoped into sub-slices 2026-08-21</span>
 
-**Slice 1 — the table and the way in.** Migration (create
-`nclex_tutors`, lift `public_profile`, backfill, update the public
-views) + `grantTutorRole()` + `/admin/tutors` as a directory with
-"Add tutor" (promote an existing user by email) + suspend/reinstate +
-`tutor.added_by_admin`. **The only migration in the arc.** Unblocks
-tutor #2 immediately.
+Ten sub-slices across three slices. **Each is independently
+committable and leaves the app working**, and the boundaries are drawn
+so no later one rewrites an earlier one.
 
-**Slice 2 — the self-serve doorways.** Public "For tutors" page
-(replacing the inert nav `<span>`) + the register-as-tutor toggle +
-the application page (pending / rejected / resubmit) + the PENDING
-queue on `/admin/applications` + the four application emails.
+⚠ **Read the order as a dependency chain, not a preference.** 1a is
+the foundation every other sub-slice reads. 2a before 2b would leave
+applications arriving with no way to decide them.
 
-**Slice 3 — invite by email.** The only path touching `/welcome`, and
-therefore last, deliberately: that file is the convergence point for
-every account-setup flow and carries the `?code=` vs `#access_token=`
-trap. Uses the existing setup-link machinery — **not**
-`inviteUserByEmail`, which was deliberately removed.
+### Slice 1 — the table, and the way in
 
-Each slice adds a doorway; none rewrites the one before it.
+**1a — the table and the lift.** ⏭ **FIRST.** Migration + refactor, no
+new UI. Create `nclex_tutors`; backfill one row per existing
+TUTOR-role holder; copy `public_profile` across; re-point
+`nclex_public_programmes` and `nclex_public_units` to join
+`nclex_tutors` for the profile; update the three profile call sites to
+read and write the new home.
+
+- **Touches:** one new migration · `db/rls.sql` (two views) ·
+  `app/(app)/tutor/profile/{page.tsx,public-profile-form.tsx,actions.ts}`
+- ⚠ **Do NOT drop `nclex_users.public_profile` in this migration.**
+  Moving and deleting in one step leaves no rollback. The DROP is its
+  own migration (**1a-drop**), after prod has run on the new home for
+  a release.
+- ⚠ **Backfill provenance.** The existing tutors were made by hand,
+  before any of this existed. Labelling them `ADMIN_PROMOTION` invents
+  a decision that never happened, and provenance is the entire point
+  of `source` — so the CHECK gains a fifth value, **`LEGACY`**, and
+  those rows carry `status = 'APPROVED'` with `approved_at` /
+  `approved_by` left **NULL**, which is the truth: nobody knows.
+- **Verify:** the tutor profile editor still round-trips; a public
+  programme page still renders the tutor's bio (dev has 11 published
+  programmes to check against); the view returns the same shape as
+  before.
+- ⓘ **Invisible to users — a pure move.** That is exactly why it lands
+  alone: it is the only sub-slice that touches *existing working
+  features*, so a regression is easy to attribute.
+
+**1b — the directory.** `/admin/tutors` replaces its placeholder with
+a read-only list: name, email, status, source, programme count, and
+whether the public profile has been filled in. No actions yet.
+
+- **Touches:** `app/(app)/admin/tutors/page.tsx` · new `lib/tutors/`
+- **Verify:** the backfilled tutors appear (5 on dev, 1 on prod).
+- **Ships alone:** yes — "who are our tutors?" is a question nothing
+  in the product answers today.
+
+**1c — promote an existing user.** ⭐ **The sub-slice that unblocks
+tutor #2.** `grantTutorRole()` plus an "Add tutor" action taking the
+email of someone who already has an account: writes the
+`nclex_tutors` row (`APPROVED`, `ADMIN_PROMOTION`, decided by the
+admin) and the `nclex_user_roles` row, idempotently. Plus
+`tutor.added_by_admin`.
+
+- **Touches:** `lib/tutors/actions.ts` · the directory page · one
+  email template
+- **Verify:** promote a dev student, sign in as them, confirm the
+  workspace switcher appears and `/tutor` opens. Re-run the action and
+  confirm it is a **no-op, not a duplicate-key error**.
+- ⚠ The grant must never remove existing roles (§4, invariant 2).
+
+**1d — suspend and reinstate.** The status transitions, plus the
+**tutor-level filter in the public views** so a suspended tutor's
+programmes leave the catalogue. Revokes the TUTOR role; restores it on
+reinstate. Plus `tutor.suspended`.
+
+- **Touches:** `lib/tutors/actions.ts` · `db/rls.sql` (the same two
+  views again) · one email template
+- ⚠ **The only sub-slice that changes what the public can see.**
+  Suspension must **not** reuse `nclex_users.is_active` (§7) — that is
+  a person-level switch, and wrong for a tutor who is also a student.
+- **Verify:** suspend a dev tutor who has a published programme. The
+  programme leaves `/programmes`, **while an enrolled student still
+  reaches its curriculum, library and quizzes** — that is the §7 rule,
+  and it is the assertion worth writing a test around. Reinstate and
+  confirm both reverse.
+
+### Slice 2 — the self-serve doorways
+
+**2a — capture an application.** The public "For tutors" page
+(replacing the inert nav `<span>`), with the form for a **signed-in**
+user: writes a PENDING row, `source = SELF_APPLICATION`. Plus
+`tutor.application_received` and `tutor.application_submitted_admin`.
+
+- ⚠ **Nothing can decide these yet.** Do not ship 2a to prod without
+  2b, or applications arrive as dead letters.
+
+**2b — decide.** `/admin/applications` replaces its placeholder with
+the PENDING queue: approve (→ `grantTutorRole`) or reject with a
+reason. Plus `tutor.application_approved` and
+`tutor.application_rejected`.
+
+- ⭐ **Approve is 1c's action with a different trigger.** If it needs
+  new code, 1c was built too narrowly — that is the check on whether
+  the grant primitive was factored properly.
+
+**2c — the applicant's view.** Split the `roles.length === 0` branch
+in `app/router/page.tsx`; the application page rendering PENDING
+("Request #N"), REJECTED (with the reason) and the conversion offer to
+a plain student account; the picker card for an existing student who
+applied; and **resubmit** — the same form pre-filled, incrementing
+`submission_count` and returning the row to PENDING.
+
+- **Touches:** `app/router/page.tsx` · a new application route ·
+  `/student/picker`
+
+**2d — the register-as-tutor toggle.** The second doorway onto 2a's
+machinery: the toggle on `/register`, the three extra fields, and
+`source = REGISTRATION` — writing `nclex_users` + `nclex_tutors` and
+**no role**.
+
+- ⚠ **Last in slice 2, deliberately.** It is the only one touching
+  `/register`, and **2c must exist first** or a role-less applicant
+  lands on `/no-access` with no way to learn their own status.
+
+### Slice 3 — invite by email
+
+**3 — invite.** Admin enters an email with no account: creates the
+auth user, the `nclex_users` row, the `nclex_tutors` row
+(`ADMIN_INVITE`, APPROVED), grants the role, sends the setup link.
+
+- ⚠ **The only path touching `/welcome`** — the convergence point for
+  every account-setup flow, carrying the `?code=` vs `#access_token=`
+  trap. Uses the existing setup-link machinery, **not**
+  `inviteUserByEmail`, which was deliberately removed.
+- **Deliberately last:** least needed (1c already onboards anyone who
+  can register) and most able to break something that works.
+
+### If only one thing gets built
+
+**1a, then 1c.** 1a is the foundation every other sub-slice reads; 1c
+is what makes a second tutor possible. 1b and 1d are genuinely useful,
+but neither is on the critical path to *"Sam can make someone a
+tutor."*
 
 ---
 

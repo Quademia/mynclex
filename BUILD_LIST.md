@@ -27,9 +27,13 @@
 > - **Tutor plans/quotas explicitly OUT**, with the downgrade question and
 >   the "don't jam it into `nclex_products`" warning captured. Nothing in
 >   this arc depends on the answer — the table holds no money.
-> - **⏭ NEXT: slice 1** — the migration + `grantTutorRole()` +
->   `/admin/tutors` (directory · promote · suspend). The only migration in
->   the arc; unblocks tutor #2.
+> - **⏭ NEXT: slice 1a** — scoped 2026-08-21 into **ten sub-slices**, each
+>   independently committable. **1a = the table + the profile lift**
+>   (migration, two view re-points, three call sites) — invisible to users,
+>   and the only sub-slice touching existing working features, so it lands
+>   alone. Then **1c**, which is what actually unblocks tutor #2. ⚠ 1a does
+>   NOT drop the old column: move-and-delete in one migration leaves no
+>   rollback.
 >
 > ---
 >
