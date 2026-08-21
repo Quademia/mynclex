@@ -1,5 +1,38 @@
 # MyNclex Build List
 
+> ## ⏭ DESIGNED 2026-08-21 — **tutor onboarding: the four ways in**
+>
+> **Design only — NOTHING BUILT.** Doc:
+> **`docs/product-plan/tutor-onboarding.md`**. One commit (`5152bfc`), no
+> code, no migration.
+>
+> - **⭐ The gap that started it: there is no way to create a tutor.** All
+>   three role-writing paths hardcode `STUDENT`; `/admin/tutors`,
+>   `/admin/users` and `/admin/applications` are placeholders. Prod's single
+>   `TUTOR` row was written by hand against the database. ⚠
+>   `admin-management.md` claimed invites ran through `/welcome` — following
+>   that sentence produces a **student** (corrected, `d720f74`).
+> - **One `nclex_tutors` row per person** (Sam's call, from MyTeacher's
+>   `teacher_profiles`) — NOT the per-request applications table proposed
+>   first: a request table records the application and still leaves no row
+>   representing *the tutor*. `public_profile` lifts in from `nclex_users`;
+>   the role stays in `nclex_user_roles` — the table explains the tutorship,
+>   the role grants access.
+> - **Registration never grants the role**, which is why `/register` and
+>   `/welcome` need no changes at all.
+> - ⭐ **Two proposals were withdrawn mid-design and recorded as rejected** —
+>   `EXPIRED` as a `status` value (suspend → lapse → pay → back to APPROVED
+>   = a suspended tutor teaching again) and subscription columns on the
+>   table (a second copy of what `nclex_subscriptions` already models).
+> - **Tutor plans/quotas explicitly OUT**, with the downgrade question and
+>   the "don't jam it into `nclex_products`" warning captured. Nothing in
+>   this arc depends on the answer — the table holds no money.
+> - **⏭ NEXT: slice 1** — the migration + `grantTutorRole()` +
+>   `/admin/tutors` (directory · promote · suspend). The only migration in
+>   the arc; unblocks tutor #2.
+>
+> ---
+>
 > ## ✅ DONE 2026-07-30 — the **review scoring strip**
 >
 > **On `main`.** Doc: **`docs/product-plan/scoring-strip.md`**. **7 commits,

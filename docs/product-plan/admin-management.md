@@ -106,6 +106,13 @@ Fills the existing `/admin/permissions` placeholder. SUPER_ADMIN-only
 Captured so the doc owns the whole wing; nothing settled yet beyond
 what exists:
 
+⭐ **Tutor onboarding has its own canonical doc since 2026-08-21 —
+`docs/product-plan/tutor-onboarding.md`.** It owns the `nclex_tutors`
+record, the four ways in (admin promotion · self-application ·
+register-as-tutor · invite), suspension and re-application. This
+section keeps the permission/UI framing only; anything about *how
+someone becomes a tutor* belongs there.
+
 - **Users** (`/admin/users`, `USERS_MANAGE`): directory, per-user
   detail (roles, enrolments, payments), support actions. Unbuilt.
 - **Tutors** (`/admin/tutors` + `/admin/applications`,

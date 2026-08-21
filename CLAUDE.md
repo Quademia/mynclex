@@ -602,7 +602,11 @@ session was open.
 ## Explicit Deferrals (Not v1)
 
 - NGN item types (case studies, bow-tie, drag-and-drop, extended multi-response)
-- Public self-serve tutor signup (tutors are manually vetted in v1)
+- ~~Public self-serve tutor signup (tutors are manually vetted in v1)~~ —
+  ⭐ **RE-OPENED 2026-08-21 (Sam).** The self-serve application and the
+  register-as-tutor toggle are now slice 2 of the tutor-onboarding arc.
+  Design: `docs/product-plan/tutor-onboarding.md`. Left in this list,
+  struck through, so the reversal is visible rather than silent.
 - Payment splits / marketplace billing between QAcademy and tutors
 - Migration of MyNMCLicensure or MyTeacher onto this stack
 
