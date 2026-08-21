@@ -3,9 +3,18 @@
 > ## 🔨 IN PROGRESS 2026-08-21 — **tutor onboarding: the four ways in**
 >
 > **Slice 1 is 4/5 built; only 1d remains.** Doc:
-> **`docs/product-plan/tutor-onboarding.md`**. ⚠ **ON BRANCH** —
-> `claude/server-setup-12ef87`, unmerged. **Four migrations, all
-> dev-applied, NONE on prod.**
+> **`docs/product-plan/tutor-onboarding.md`**. ✅ **ON `main`, AND
+> RELEASED TO `prod`** — release `ce10dfa`, 2026-08-21 19:14. **Three
+> migrations**, dev-applied and now prod-applied (`tutor_record`,
+> `tutor_record_retire_legacy`, `tutor_add_lookup`).
+>
+> ⚠ **This block said "ON BRANCH — `claude/server-setup-12ef87`,
+> unmerged. Four migrations, all dev-applied, NONE on prod."** It was
+> stale five minutes after it was written — `main` merged and released
+> the same evening — and **the count was wrong from the start**:
+> `c657975` (1c-ii) *edited* `20260915120000_tutor_add_lookup.sql`
+> rather than adding a fourth file. Three is what the disk, dev and
+> prod all say. Corrected 2026-08-21 (later).
 >
 > | Sub-slice | What | Commit |
 > |---|---|---|
