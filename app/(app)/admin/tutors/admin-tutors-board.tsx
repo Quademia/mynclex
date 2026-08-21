@@ -1,0 +1,408 @@
+// mynclex/app/(app)/admin/tutors/admin-tutors-board.tsx
+//
+// Client half of the tutor directory (sub-slice 1b). Single-use, so it
+// lives next to its only caller per the folder convention.
+//
+// Filtering is client-side over the loaded rows: this page sees five rows
+// on dev and one on prod, and the plan doc's whole point is that §4.4
+// ("every doorway writes a row") makes the directory ONE query. Adding
+// round trips to filter six rows would undo that.
+//
+// The drawer is a drawer and not a /admin/tutors/[id] route on purpose:
+// the record is small — a tutor "currently is very little that a user
+// isn't, a bio and a standing" (§2) — and the admin's job here is
+// scanning several, not dwelling on one.
+
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { AddTutorModal } from './add-tutor-modal';
+import {
+  hasPublicProfile,
+  sourceClass,
+  sourceLabel,
+  type TutorDirectoryRow,
+  type TutorDirectoryStats,
+} from '@/lib/tutors/types';
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  const first = parts[0][0] ?? '';
+  const last = parts.length > 1 ? (parts[parts.length - 1][0] ?? '') : '';
+  return (first + last).toUpperCase();
+}
+
+function formatDate(iso: string | null): string | null {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+/** The profile cell's two lines, or the "not filled in" state. */
+function profileLines(row: TutorDirectoryRow): { main: string; sub: string } {
+  if (!hasPublicProfile(row.profile)) {
+    // A first-class row state, not an empty cell: a promoted or invited
+    // tutor has a standing and no bio, and that gap is the admin's next
+    // nudge. It is why 1b lists this as a column at all.
+    return {
+      main: 'Profile not filled in yet',
+      sub: 'No headline, speciality or bio',
+    };
+  }
+  const bits: string[] = [];
+  if (row.profile.speciality) bits.push(row.profile.speciality);
+  if (row.profile.years_experience) {
+    bits.push(`${row.profile.years_experience} years tutoring`);
+  }
+  return {
+    main: row.profile.headline ?? '',
+    sub: bits.join(' · ') || '—',
+  };
+}
+
+export function AdminTutorsBoard({
+  rows,
+  stats,
+}: {
+  rows: TutorDirectoryRow[];
+  stats: TutorDirectoryStats;
+}) {
+  const [q, setQ] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'SUSPENDED'>('ALL');
+  const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  // Auto-dismiss at ~5s, the house convention for every toast in the app.
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const shown = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (statusFilter !== 'ALL' && r.status !== statusFilter) return false;
+      if (!needle) return true;
+      return (
+        r.name.toLowerCase().includes(needle) ||
+        r.email.toLowerCase().includes(needle) ||
+        (r.profile.headline ?? '').toLowerCase().includes(needle)
+      );
+    });
+  }, [rows, q, statusFilter]);
+
+  const open = drawerId ? (rows.find((r) => r.user_id === drawerId) ?? null) : null;
+
+  return (
+    <>
+      <div className="adt-head-row">
+        <header className="ao-page-head">
+          <h1 className="ao-page-title">Tutors</h1>
+          <p className="ao-page-sub">
+            Everyone who has ever been made, or asked to be, a tutor — with
+            the standing they are in and who let them in. Tutors write their
+            own public profile; this page does not edit it.
+          </p>
+        </header>
+        <div className="adt-head-actions">
+          <button type="button" className="btn btn-accent" onClick={() => setAddOpen(true)}>
+            + Add tutor
+          </button>
+        </div>
+      </div>
+
+      <div className="adt-stats">
+        <div className="ao-kpi-card">
+          <div className="ao-kpi-label">Approved</div>
+          <div className="ao-kpi-value">{stats.approved}</div>
+          <div className="adt-stat-sub">Hold the TUTOR role · listed in the catalogue</div>
+        </div>
+        <div className="ao-kpi-card">
+          <div className="ao-kpi-label">Pending applications</div>
+          <div className="ao-kpi-value">{stats.pending}</div>
+          <a className="adt-stat-link" href="/admin/applications">
+            Review the queue →
+          </a>
+        </div>
+        <div className="ao-kpi-card">
+          <div className="ao-kpi-label">Suspended</div>
+          {/* Red only when non-zero — a permanent red zero reads as a
+              fault rather than a clean slate. */}
+          <div className={`ao-kpi-value${stats.suspended > 0 ? ' is-danger' : ''}`}>
+            {stats.suspended}
+          </div>
+          <div className="adt-stat-sub">Role revoked · existing students keep materials</div>
+        </div>
+      </div>
+
+      <div className="adt-toolbar">
+        <input
+          className="adt-search"
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search name, email, headline…"
+          aria-label="Search tutors"
+        />
+        <select
+          className="ao-select"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+          aria-label="Filter by status"
+        >
+          <option value="ALL">All statuses</option>
+          <option value="APPROVED">Approved</option>
+          <option value="SUSPENDED">Suspended</option>
+        </select>
+        <span className="ao-table-count">{shown.length} shown</span>
+      </div>
+
+      <div className="adt-table-scroll">
+        <div className="ao-table">
+          <div className="ao-table-row head adt-cols">
+            <span>Tutor</span>
+            <span>Public profile</span>
+            <span>Source</span>
+            <span>Progr.</span>
+            <span>First approved</span>
+            <span>Status</span>
+            <span className="ao-th-actions">Actions</span>
+          </div>
+
+          {shown.length === 0 ? (
+            <div className="ao-table-empty">No tutors match this filter.</div>
+          ) : (
+            shown.map((r) => (
+              <TutorRow key={r.user_id} row={r} onOpen={() => setDrawerId(r.user_id)} />
+            ))
+          )}
+        </div>
+      </div>
+
+      {open && <TutorDrawer row={open} onClose={() => setDrawerId(null)} />}
+
+      {addOpen && (
+        <AddTutorModal
+          onClose={() => setAddOpen(false)}
+          onOpenTutor={(userId) => {
+            setAddOpen(false);
+            setDrawerId(userId);
+          }}
+          onAdded={(message) => {
+            setAddOpen(false);
+            setToast(message);
+            // The server action revalidates /admin/tutors, so the new row
+            // arrives on the next render — which is exactly why 1b (the
+            // list) had to exist before 1c (the action).
+          }}
+        />
+      )}
+
+      {toast && (
+        <div className="adt-toast" role="status" onClick={() => setToast(null)}>
+          {toast}
+        </div>
+      )}
+    </>
+  );
+}
+
+function TutorRow({ row, onOpen }: { row: TutorDirectoryRow; onOpen: () => void }) {
+  const prof = profileLines(row);
+  const approved = formatDate(row.approved_at);
+
+  return (
+    <div
+      className="ao-table-row body adt-cols adt-row-btn"
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+    >
+      {/* Reuses the shipped two-line lead cell verbatim
+          (.ao-cell-lead / -text / -name / -email in enquiries.css) rather
+          than restyling one — it is the same shape the enquiries board
+          already renders. Avatar is .ao-tutor-avatar alone: the grey
+          .ao-lead-avatar override is for non-tutors. */}
+      <div className="ao-cell-lead">
+        <div className="ao-tutor-avatar">{initials(row.name)}</div>
+        <div className="ao-cell-lead-text">
+          <div className="ao-cell-lead-name">{row.name}</div>
+          <div className="ao-cell-lead-email">{row.email}</div>
+        </div>
+      </div>
+
+      <div className="adt-cell">
+        <div className="adt-cell-main">{prof.main}</div>
+        <div className="adt-cell-sub">{prof.sub}</div>
+      </div>
+
+      <div className="adt-cell">
+        <span className={`adt-source${sourceClass(row.source)}`}>
+          {sourceLabel(row.source)}
+        </span>
+      </div>
+
+      <div className="adt-num">{row.programme_count || '—'}</div>
+
+      <div className="adt-cell">
+        {/* NULL here now means one thing only — not approved yet — since
+            the LEGACY rows were dated from nclex_user_roles.granted_at
+            (migration 20260914120000). */}
+        <div className="adt-cell-main">{approved ?? 'Not yet'}</div>
+        <div className="adt-cell-sub">
+          {approved ? (row.approved_by_name ? `by ${row.approved_by_name}` : '—') : 'awaiting a decision'}
+        </div>
+      </div>
+
+      <div className="adt-cell">
+        {row.status === 'SUSPENDED' ? (
+          <span className="ao-pill adt-pill-susp">Suspended</span>
+        ) : row.status === 'APPROVED' ? (
+          <span className="ao-pill ao-pill-done">Approved</span>
+        ) : (
+          <span className="ao-pill">{row.status === 'PENDING' ? 'Pending' : 'Rejected'}</span>
+        )}
+      </div>
+
+      <div className="ao-th-actions">
+        <span className="ao-action-link">Open →</span>
+      </div>
+    </div>
+  );
+}
+
+function TutorDrawer({ row, onClose }: { row: TutorDirectoryRow; onClose: () => void }) {
+  const approved = formatDate(row.approved_at);
+  const decided = formatDate(row.decided_at);
+  const firstApplied = formatDate(row.first_applied_at);
+
+  // The applications line has to distinguish three genuinely different
+  // things, or a row with no known decision gets described as a doorway
+  // that had an implicit one.
+  const applications =
+    row.source === 'ADMIN_PROMOTION' || row.source === 'ADMIN_INVITE'
+      ? 'None — no approval step on this doorway'
+      : `Request #${row.submission_count}${firstApplied ? ` · first applied ${firstApplied}` : ''}`;
+
+  return (
+    <div className="adt-drawer-root">
+      <div className="adt-scrim" onClick={onClose} />
+      <aside className="adt-drawer" role="dialog" aria-label={`${row.name} — tutor record`}>
+        <div className="adt-drawer-head">
+          <div className="ao-tutor-avatar">{initials(row.name)}</div>
+          <div className="adt-drawer-id">
+            <span className="adt-drawer-name">{row.name}</span>
+            <span className="adt-drawer-email">{row.email}</span>
+          </div>
+          <button type="button" className="adt-drawer-x" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+
+        <div className="adt-drawer-body">
+          <section>
+            <div className="adt-sec-title">Standing</div>
+            <dl className="adt-kv">
+              <dt>Status</dt>
+              <dd>
+                {row.status === 'SUSPENDED' ? (
+                  <span className="ao-pill adt-pill-susp">Suspended</span>
+                ) : row.status === 'APPROVED' ? (
+                  <span className="ao-pill ao-pill-done">Approved</span>
+                ) : (
+                  <span className="ao-pill">{row.status}</span>
+                )}
+              </dd>
+              <dt>Source</dt>
+              <dd>
+                <span className={`adt-source${sourceClass(row.source)}`}>
+                  {sourceLabel(row.source)}
+                </span>
+              </dd>
+              <dt>First approved</dt>
+              <dd>
+                {approved
+                  ? `${approved}${row.approved_by_name ? ` · by ${row.approved_by_name}` : ''}`
+                  : 'Not yet — awaiting a decision'}
+              </dd>
+              <dt>Applications</dt>
+              <dd>{applications}</dd>
+            </dl>
+          </section>
+
+          <section>
+            <div className="adt-sec-title">Public profile</div>
+            <dl className="adt-kv">
+              <dt>Headline</dt>
+              <dd>{row.profile.headline || '—'}</dd>
+              <dt>Speciality</dt>
+              <dd>{row.profile.speciality || '—'}</dd>
+              <dt>Experience</dt>
+              <dd>
+                {row.profile.years_experience
+                  ? `${row.profile.years_experience} years tutoring`
+                  : '—'}
+              </dd>
+              <dt>Programmes</dt>
+              <dd className="adt-num">{row.programme_count}</dd>
+            </dl>
+            {/* Admin does not edit this. The tutor owns it, and the
+                column grant from 1a means only they can write it. */}
+            <p className="adt-drawer-hint">
+              Tutors edit this themselves at /tutor/profile
+            </p>
+          </section>
+
+          <section>
+            <div className="adt-sec-title">Decision trail</div>
+            {/* Derived from the columns that exist — there is no events
+                table in v1 (§9) — so this shows at most one prior
+                decision beside the record's creation. */}
+            <ul className="adt-trail">
+              {decided && row.decided_at !== row.approved_at && (
+                <li className={row.status === 'SUSPENDED' ? 'is-bad' : 'is-good'}>
+                  {row.status === 'SUSPENDED' ? 'Suspended' : 'Decision recorded'}
+                  {row.decided_by_name ? ` by ${row.decided_by_name}` : ''}
+                  {row.decision_reason ? ` — “${row.decision_reason}”` : ''}
+                  <span className="adt-trail-when">{decided}</span>
+                </li>
+              )}
+              {approved ? (
+                <li className="is-good">
+                  Approved as a tutor
+                  {row.approved_by_name ? ` by ${row.approved_by_name}` : ''}
+                  <span className="adt-trail-when">{approved}</span>
+                </li>
+              ) : (
+                <li>
+                  Applied — no decision recorded yet
+                  <span className="adt-trail-when">{firstApplied ?? '—'}</span>
+                </li>
+              )}
+            </ul>
+          </section>
+        </div>
+
+        <div className="adt-drawer-foot">
+          {/* Suspend / Reinstate land here in 1d. Read-only in 1b. */}
+          <button type="button" className="btn btn-sm adt-foot-end" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </aside>
+    </div>
+  );
+}

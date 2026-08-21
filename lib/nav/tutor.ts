@@ -91,10 +91,17 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   // apart. Any future single-mode tab joins this bottom section.
   { key: 'cohorts',     label: 'Cohorts',       icon: 'users',    href: '/tutor/programme/:programmeId/cohorts', section: 'Delivery' },
   // Removed from the sidebar 2026-06-07 (MVP declutter): Live Sessions,
-  // Assignments, Results. Their placeholder routes still exist (the tutor
-  // Home "This week" block links to /sessions), so re-adding any is a
-  // one-line restore. Live Sessions returns via the cohort-planner
-  // redesign; Results via programme-level analytics; Assignments is TBD.
+  // Assignments, Results. Their placeholder routes still exist, so
+  // re-adding any is a one-line restore. Live Sessions returns via the
+  // cohort-planner redesign; Results via programme-level analytics;
+  // Assignments is TBD.
+  // ⚠ Corrected 2026-08-21: this comment claimed the tutor Home "This
+  // week" block links to /sessions, which was the one thing keeping that
+  // placeholder reachable. It does not — the cohort-planner work
+  // repointed it at the cohort Sessions TAB
+  // (`/tutor/programme/:id/cohorts?cohort=…&tab=sessions`, see
+  // lib/home/tutor/tutor-home.tsx). All four delisted placeholders are
+  // now unreachable from anywhere in the UI.
   // Removed 2026-06-12: Students — overtaken by Enrolments (admin roster,
   // cohort + self-paced) and cohort Analytics (performance); the future
   // per-student 360 likely lives at the GLOBAL My Students page instead.

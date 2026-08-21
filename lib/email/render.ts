@@ -41,6 +41,10 @@ import {
   SESSION_REMINDER_FOOTER_CONTEXT,
   sessionReminderTemplate,
 } from './templates/session-reminder';
+import {
+  TUTOR_ADDED_BY_ADMIN_FOOTER_CONTEXT,
+  tutorAddedByAdminTemplate,
+} from './templates/tutor-added-by-admin';
 
 export type Rendered = {
   subject: string;
@@ -122,6 +126,10 @@ const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: s
   'waitlist.converted': {
     template: enrolmentAddedTemplate,
     footerContext: ENROLMENT_ADDED_FOOTER_CONTEXT,
+  },
+  'tutor.added_by_admin': {
+    template: tutorAddedByAdminTemplate,
+    footerContext: TUTOR_ADDED_BY_ADMIN_FOOTER_CONTEXT,
   },
 };
 

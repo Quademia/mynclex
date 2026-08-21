@@ -1288,7 +1288,14 @@
   .programmes-grid,
   .programmes-archived-grid,
   .programmes-onboard-modes {
-    grid-template-columns: 1fr;
+    /* ⚠ NOT `1fr`. `1fr` is `minmax(auto, 1fr)`, and that `auto` floor is the
+       card's min-content — which `.programme-card-tagline`, being `nowrap`,
+       set to the width of a whole 640px sentence. So this rule, written to
+       rescue narrow screens, laid out a 782px column inside 343px and
+       overflowed the page by 423 — the worst number in the tutor sweep.
+       The base rule's fixed 340px minimum had been CAPPING the damage;
+       replacing it with `1fr` removed the cap. */
+    grid-template-columns: minmax(0, 1fr);
   }
   .prog-field-row {
     grid-template-columns: 1fr;
@@ -1357,4 +1364,68 @@
   font-size: 12px;
   color: var(--text-muted);
   line-height: 1.5;
+}
+
+/* ── Phones ──────────────────────────────────────────────
+ *
+ * The grid's own fix is at its source in the 640px block above, so that
+ * the wrong value cannot be read as deliberate. What is left here is what
+ * only a phone gets wrong.
+ *
+ * The tagline stays one line on a wide card by design, and that design
+ * stops paying at 343px: it was showing 217 of 640px — about a third of
+ * a sentence — as the card's only description. Two lines is still a card
+ * and is roughly twice the sentence. It also removes the pathological
+ * min-content that made the grid bug possible in the first place. */
+@media (max-width: 768px) {
+  .programme-card-tagline {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  /* The mode segments were 350px in a 343px row — 7px, but the segment
+     that overflowed is "Self-paced", one of the two things this bar is
+     for. Each segment takes an equal share of a full-width row instead. */
+  .programmes-segments { display: flex; width: 100%; }
+  .programmes-segments button { flex: 1; min-width: 0; justify-content: center; }
+
+  .programmes-new-btn,
+  .programmes-segments button,
+  .programmes-controls input,
+  .programmes-controls select,
+  .programmes-controls button,
+  .programmes-archived-toggle { min-height: 44px; }
+  /* "All" is 40px wide; a chip is as tappable as its narrowest side. */
+  .programmes-controls button { min-width: 44px; }
+
+  /* The card kebab keeps its 28px — it is a quiet control on a card whose
+     whole face is already a link — and gains the hit area instead. Its only
+     neighbour is a status pill, which is not interactive, so nothing can
+     lose a tap to it. */
+  /* The policy toggle is 42x24 and shared by four surfaces (enrolments,
+     the programme and cohort modals, the payment-gating field), so it is
+     fixed here where `.prog-switch` is defined rather than per-surface.
+     A 44px toggle stops reading as a toggle, so the area grows instead.
+     ⚠ It MUST be `::before`: `::after` is the switch's KNOB, and
+     `.prog-switch.is-on::after` is what slides it across. Grows left and
+     vertically only — on the enrolments header the switch sits flush
+     against the content's right edge. */
+  .prog-switch::before {
+    content: '';
+    position: absolute;
+    inset: -11px 0 -11px -4px;
+  }
+
+  .programme-card-menu-btn { position: relative; }
+  .programme-card-menu-btn::after {
+    content: '';
+    position: absolute;
+    /* ⚠ Left and vertical only. Extending RIGHT crossed `.programme-card-head`
+       and put +8px on its scrollWidth — the same regression this sweep made
+       once already on the curriculum kebab. The pill it now reaches over is
+       not interactive, so nothing can lose a tap to it. */
+    inset: -10px 0 -10px -18px;
+  }
 }

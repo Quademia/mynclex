@@ -5,6 +5,11 @@ import fs from "node:fs";
 // Only initialise Cloudflare dev bindings when running locally (npm run dev).
 // In production, Cloudflare provides bindings automatically via the Worker runtime.
 if (process.env.NODE_ENV === "development") {
+  // `require` is deliberate here, and an `import` cannot replace it: imports
+  // are hoisted and evaluated unconditionally, so the dev-only Cloudflare
+  // shim would be pulled into production builds as well. The conditional
+  // load is the whole point of this block.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { initOpenNextCloudflareForDev } = require("@opennextjs/cloudflare");
   initOpenNextCloudflareForDev();
 }

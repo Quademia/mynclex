@@ -775,6 +775,35 @@
     grid-template-columns: 1fr;
     gap: 18px;
   }
+
+  /* 40px of desktop head-room costs a seventh of an 812px phone screen
+   * before the greeting is even reached. */
+  .picker {
+    padding-top: 20px;
+  }
+
+  /* 44px targets (mobile-responsive.md). These were 30–38px, and the two
+   * that measured smallest were the two that matter most: `Enter →` is
+   * the only way into a programme, and `Pay now` is a payment.
+   *
+   * NOT scoped to .picker on purpose — <ProgrammeList> also renders these
+   * rows inside the programme switcher overlay, which is reachable from
+   * every student surface. Scoping here would fix the button on the
+   * picker and leave the same button 30px in the popup. */
+  .pcard-enter,
+  .pcard-enter.is-sm,
+  .bank-rail-cta,
+  .inst-cta-pay {
+    min-height: 44px;
+  }
+
+  /* inline-flex already centres the label; the pay button is a plain
+   * button, so give it the same centring once it has height to spare. */
+  .inst-cta-pay {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 /* ─────────────────────────────────────────────────────

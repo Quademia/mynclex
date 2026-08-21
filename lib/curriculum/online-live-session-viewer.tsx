@@ -13,6 +13,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import { ViewerModalShell } from './viewer-modal-shell';
 import { providerLabelFor, safeHttpUrl } from './format';
 import type {
@@ -93,9 +94,16 @@ export function OnlineLiveSessionViewer({
   // Status — Upcoming / Happening now / Ended, snapshotted when the
   // modal opens. With no duration the end falls back to the start
   // instant (reads as Ended right after it starts).
+  //
+  // The snapshot is a lazy `useState` initialiser, which runs ONCE per mount.
+  // It used to be a bare `Date.now()` in the render body — so despite what
+  // this comment claimed, the clock was re-read on every re-render, and the
+  // status could change under a student who had done nothing but resize the
+  // window. Reading it once is what "snapshotted when the modal opens" was
+  // always meant to say.
+  const [now] = useState(() => Date.now());
   let status: SessionStatus | null = null;
   if (startValid) {
-    const now = Date.now();
     const startMs = start!.getTime();
     const endMs = end ? end.getTime() : startMs;
     if (now < startMs) status = 'UPCOMING';

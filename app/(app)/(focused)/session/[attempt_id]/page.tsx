@@ -107,12 +107,15 @@ export default async function SessionPage({ params }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  let { data: attempt, error: aErr } = await supabase
+  // `attempt` alone is reassigned (the expiry path below refetches it), so it
+  // is split out as the only `let` — the error is read once and never rebound.
+  const { data: attemptRow, error: aErr } = await supabase
     .from('nclex_attempts')
     .select('*')
     .eq('attempt_id', attempt_id)
     .maybeSingle();
-  if (aErr || !attempt) notFound();
+  if (aErr || !attemptRow) notFound();
+  let attempt = attemptRow;
 
   // Bank entitlement gate (Slice 5.6): a bank (CUSTOM_BUILT) attempt needs
   // active bank access — full-lock on lapse covers the runner too, including
@@ -151,9 +154,17 @@ export default async function SessionPage({ params }: PageProps) {
     const isEngagementClock =
       attempt.intent === 'STUDY' && attempt.mode === 'TIMED_FREE_NAV';
 
+    // `react-hooks/purity` reads this file as a browser render and objects to
+    // the clock. It is not one — this is an async SERVER component, run once
+    // per request on the server, where reading the time is both ordinary and
+    // the only way to know an attempt has run out. There is no re-render to
+    // be inconsistent with.
+    // eslint-disable-next-line react-hooks/purity
+    const nowMs = Date.now();
+
     const expired = isEngagementClock
       ? (attempt.engaged_seconds_used ?? 0) >= attempt.duration_seconds
-      : Date.now() >= Date.parse(attempt.started_at) + attempt.duration_seconds * 1000;
+      : nowMs >= Date.parse(attempt.started_at) + attempt.duration_seconds * 1000;
 
     if (expired) {
       const r = await expireAttemptAction(attempt_id);
@@ -242,7 +253,7 @@ export default async function SessionPage({ params }: PageProps) {
   // narrow follow-up scoped to ONLY items whose answer row is finalised
   // (SUBMITTED / AUTO_SUBMITTED / SKIPPED — never DRAFT). Pillar 2 holds:
   // not-yet-answered items never enter this set.
-  let seededUnseal: Record<string, PerItemUnseal> = {};
+  const seededUnseal: Record<string, PerItemUnseal> = {};
   if (isLive) {
     const finalisedIds = ((answers.data ?? []) as unknown as AnswerRow[])
       .filter((a) => a.submission_status !== 'DRAFT')

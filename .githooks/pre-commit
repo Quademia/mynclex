@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# Refuses a commit that adds a NEW lint error to the files being committed.
+#
+# Checks only the staged files, not the repo — the whole-repo run takes ~71s,
+# and a hook that costs 71s is one people learn to bypass, which teaches the
+# habit this is meant to prevent. Staged-only takes a few seconds and is no
+# less strict for your own work: these rules are file-local, so a new error
+# lands in a file you changed.
+#
+# Enable once per machine (worktrees share the setting):
+#     git config core.hooksPath .githooks
+#
+# Escape hatch, for when you genuinely need the commit to land anyway:
+#     git commit --no-verify
+#
+# ⚠ If you use it, say so in the session log. The backlog this guards against
+# grew precisely because nobody could see it growing.
+
+npm run --silent lint:staged || {
+  echo ""
+  echo "Commit refused: the lint guard found something new."
+  echo "Fix it, or disable it AT THE LINE with the reason written next to it."
+  echo "Bypass with --no-verify only if you mean it, and note it in the log."
+  exit 1
+}

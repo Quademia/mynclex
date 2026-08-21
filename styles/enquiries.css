@@ -996,6 +996,12 @@
   background: var(--white);
 }
 
+/* The back control belongs to the drill-in only: above the stack
+   breakpoint the list is still on screen beside the detail, so a "back"
+   that goes nowhere would be a lie. Declared BEFORE the media block —
+   equal specificity, so source order decides which one wins. */
+.ti-back { display: none; }
+
 @media (max-width: 900px) {
   .ti-split {
     grid-template-columns: 1fr;
@@ -1006,6 +1012,43 @@
     border-right: none;
   }
   .ti-list-col { border-bottom: 1px solid var(--border); }
+
+  /* ── Drill-in ────────────────────────────────────────────────────
+   * ⚠ These rules live INSIDE the stacking block on purpose, at 900px
+   * rather than the house 768px. The drill-in exists only because the
+   * two panes stack, so it has to begin exactly where the stacking
+   * does — split across two breakpoints, the 769-900px band would keep
+   * the original bug and nobody would think to look there.
+   *
+   * The bug: stacked, the detail is ~988px tall and starts ~1600px down
+   * the page — two full screens below the row you tapped. Tapping an
+   * enquiry produced no visible change at all.
+   *
+   * The list is the default view and the detail replaces it, per the
+   * two-pane drill-in in docs/product-plan/mobile-responsive.md
+   * ("Reuse this drill-in for future two-pane surfaces"). `is-entered`
+   * is set only by a real pick — see `entered` in enquiries-panel.tsx. */
+  .ti-detail-col { display: none; }
+  .ti-list-col { border-bottom: none; }
+
+  .ti-split.is-entered .ti-list-col { display: none; }
+  .ti-split.is-entered .ti-detail-col { display: block; }
+
+  .ti-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 4px;
+    margin-bottom: 4px;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+  }
 }
 
 /* ─── List ─── */
@@ -1382,3 +1425,51 @@
   color: var(--text);
 }
 .ti-btn-ghost:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Phones ──────────────────────────────────────────────
+ *
+ * This surface reflows correctly already — its three pre-existing
+ * breakpoints do the layout work. What it never had was a pass on the
+ * size of the things a thumb has to hit, and almost every control here
+ * is one: the whole page is a queue you triage by tapping.
+ */
+@media (max-width: 768px) {
+  /* `.ti-scope` is `flex-shrink: 0`, so the programme picker held 346px in
+     a 343px header. Three pixels — but they were the page's only sideways
+     scroll, and a header that cannot shrink is the same fault as the rest
+     of this sweep, just small enough to look like a rounding error. */
+  .ti-scope { flex-shrink: 1; min-width: 0; }
+  /* ⚠ NOT `max-width: 100%` — that was tried and made it worse. 100% of
+     `.ti-scope` is the full 343, but the scope also holds a 78px label, so
+     the select grew to 341 and the row needed 427: three pixels of
+     overflow became eighty-four. The select has to SHRINK, so it is given
+     a flex basis of 0 and allowed below its intrinsic minimum. */
+  .ti-scope-select {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+  }
+
+  /* The search box was 32px tall with a 20px input inside it — the
+     smallest control on a surface whose job is finding one enquiry among
+     eleven. `min-height` beats the declared `height: 36px` on the select. */
+  .ti-search { min-height: 44px; }
+  .ti-scope-select,
+  .ti-chip,
+  .ti-cta,
+  .ti-btn-ghost { min-height: 44px; }
+
+  /* The enquirer's email is a bare `mailto:` link — no class of its own —
+     19px tall and the only control in its row, so nothing can lose a tap
+     to it. Its size IS the design (it is body text), so the area grows
+     and the text does not. */
+  .ti-detail-sub a {
+    position: relative;
+    display: inline-block;
+  }
+  .ti-detail-sub a::after {
+    content: '';
+    position: absolute;
+    inset: -14px 0;
+  }
+}

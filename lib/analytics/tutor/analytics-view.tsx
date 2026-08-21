@@ -253,17 +253,17 @@ export function CohortAnalyticsView({ data }: { data: CohortAnalytics }) {
                         </div>
                       </div>
                     </td>
-                    <td><CompletionBar pct={s.completionPct} status={s.status} /></td>
-                    <td><StatusPill status={s.status} /></td>
+                    <td data-label="Completion"><CompletionBar pct={s.completionPct} status={s.status} /></td>
+                    <td data-label="Status"><StatusPill status={s.status} /></td>
                     {showPerf && (
-                      <td>
+                      <td data-label="Latest quiz">
                         <ScoreChip
                           score={perf!.byStudent[s.userId]?.latestScore ?? null}
                           pass={perf!.byStudent[s.userId]?.latestPass ?? null}
                         />
                       </td>
                     )}
-                    <td className="num" style={{ color: s.lastActiveDays != null && s.lastActiveDays >= 7 ? 'var(--warning)' : 'var(--text-muted)' }}>
+                    <td className="num" data-label="Last active" style={{ color: s.lastActiveDays != null && s.lastActiveDays >= 7 ? 'var(--warning)' : 'var(--text-muted)' }}>
                       {s.lastActiveDays == null ? '—' : s.lastActiveDays === 0 ? 'today' : `${s.lastActiveDays}d ago`}
                     </td>
                   </tr>

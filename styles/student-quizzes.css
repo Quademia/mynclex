@@ -314,3 +314,51 @@
   color: var(--text-muted);
   border-color: var(--border);
 }
+
+/* ── Phone (≤768px) ───────────────────────────────────────────────────
+ * The file's first media query — it had none, which is why the row kept
+ * its desktop shape all the way down to 375px.
+ *
+ * ⚠ `.sq-row-right` is `flex-shrink: 0` at a natural ~133px. That is
+ * nothing against a 923px desktop row, but on a 343px one it took 45% and
+ * left `.sq-row-body` 160px to hold the title, the kind pill, the meta line
+ * AND the "Linked to Unit 5 · …" hint — so a two-word quiz name wrapped and
+ * the curriculum link ran to three lines. Stacking gives the body the row
+ * and puts the action under it, full width, where a thumb expects it.
+ *
+ * ⓘ Phone-only by measurement: at 1198px the body gets 740px and the title
+ * sits on one line, so the base rule is right as it stands.
+ * ─────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sq-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .sq-row-body,
+  .sq-row-right {
+    flex: 1 0 100%;
+  }
+
+  /* The action was pinned to the right edge of a column that is now the
+   * full width; stretch it instead of stranding it in the corner. */
+  .sq-row-right {
+    align-items: stretch;
+  }
+  .sq-action {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* 39px, and it is the way into the quiz. */
+  .sq-row-link {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  /* 28px — the Kind and State filters. */
+  .sq-segmented-btn {
+    min-height: 44px;
+  }
+}

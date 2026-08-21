@@ -21,9 +21,19 @@ import { assemble, computeMarks } from './build.mjs';
 import type { BankItemAnswer } from '@/lib/scoring';
 
 const here = dirname(fileURLToPath(import.meta.url));
+// The two `any`s below are deliberate, and a "proper" type would be worse.
+// Both values hold a DIFFERENT SHAPE per question type — `correct.answer` for
+// MCQ, `correct.cells` for MATRIX, `correct.left/centre/right` for BOWTIE, and
+// so on. The union that describes that honestly is `BankItemCorrect`, and
+// `tsc` already rejects it here on lines 47 and 52 for precisely this reason:
+// a value narrowed to one variant is not assignable to the union. Naming a
+// type that TypeScript is telling us does not fit would document a shape this
+// fixture does not have. The `any` says "heterogeneous by design", which is true.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sample = JSON.parse(readFileSync(join(here, 'data', '_sample.json'), 'utf8')) as any[];
 
 // Build the fully-correct answer for an assembled item, per @/lib/scoring types.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fullyCorrect(type: string, correct: any): BankItemAnswer {
   switch (type) {
     case 'MCQ': case 'TF': return correct.answer;

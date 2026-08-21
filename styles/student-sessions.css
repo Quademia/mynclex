@@ -536,3 +536,52 @@
     margin-bottom: 18px;
   }
 }
+
+/* ── Phone (≤768px) ───────────────────────────────────────────────────
+ * ⓘ Deliberately a SECOND breakpoint rather than folding into the 860
+ * above. 860 is where the two-column grid stops fitting; 768 is the
+ * product's phone breakpoint (CLAUDE.md) and what these rules are about.
+ * Collapsing them would silently restyle every tablet between the two.
+ *
+ * ⚠ The session ROW squeezed its own title. `.ss-row-main` already had
+ * `flex: 1; min-width: 0`, so it was doing the right thing — the problem
+ * was what sat beside it: a 30px marker, 28px of gaps, and a third slot
+ * holding 74–113px, which on a 343px row left the title 138–177px and
+ * wrapped "Infection control: the four precaution types" onto three lines.
+ * Giving that third slot its own line hands the title the row.
+ *
+ * ⓘ Phone-only by measurement: at 1198px the row is 518px and the title
+ * gets 338–352px on ONE line, so the base rule is right as it stands.
+ * ─────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ss-row {
+    flex-wrap: wrap;
+  }
+
+  /* The three things that can occupy the row's third slot. Stacked as one
+   * set so rows keep a single shape whichever of them they carry —
+   * alternating inline/stacked down the list reads as ragged. */
+  .ss-rec-link,
+  .ss-rec-none,
+  .ss-countdown {
+    flex: 1 0 100%;
+    text-align: left;
+  }
+
+  /* 19px, and for a past session it is the only thing to DO with the row. */
+  .ss-rec-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  /* 35px — the List/Timeline switch. */
+  .ss-seg {
+    min-height: 44px;
+  }
+
+  /* 42px: two short, and it is the button the whole panel is built around. */
+  .ss-next-join {
+    min-height: 44px;
+  }
+}

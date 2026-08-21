@@ -121,7 +121,12 @@ export function ProgrammeHistoryTable({
   ).length;
 
   return (
-    <>
+    // `hist-programme` is the hook the phone layout hangs off: at ≤768px
+    // history.css reflows this table into one stacked card per attempt,
+    // labelling each cell from its `data-label`. Without the wrapper the
+    // seven columns stay a 652px table inside a clipping card, and Result,
+    // State and the Review link are cut off with no way to scroll to them.
+    <div className="hist-programme">
       <div className="hist-filter-row">
         <label className="hist-activity-filter">
           <span className="hist-activity-filter-label">Activity</span>
@@ -177,7 +182,10 @@ export function ProgrammeHistoryTable({
                 const verdict = passFailHint(r);
                 return (
                   <tr key={r.attempt_id}>
-                    <td className="hist-when">
+                    {/* data-label feeds the ≤768px stacked layout's ::before
+                        labels — see history.css. The activity cell needs none:
+                        it leads the card and identifies the row. */}
+                    <td className="hist-when" data-label="When">
                       {formatRelativeDate(r.created_at)}
                     </td>
                     <td className="hist-activity">
@@ -198,15 +206,15 @@ export function ProgrammeHistoryTable({
                         {r.unit_title ? ` · ${r.unit_title}` : ''}
                       </div>
                     </td>
-                    <td className="hist-attempt">
+                    <td className="hist-attempt" data-label="Attempt">
                       {formatAttempt(r.attempt_ordinal, r.max_attempts)}
                     </td>
-                    <td>
+                    <td data-label="Mode">
                       <span className="hist-pill hist-pill-mode">
                         {r.mode_label}
                       </span>
                     </td>
-                    <td className="hist-result">
+                    <td className="hist-result" data-label="Result">
                       {formatScore(r.final_score)}
                       {verdict && (
                         <span
@@ -221,12 +229,12 @@ export function ProgrammeHistoryTable({
                         </span>
                       )}
                     </td>
-                    <td>
+                    <td data-label="State">
                       <span className={STATUS_PILL_CLASS[r.status]}>
                         {STATUS_LABEL[r.status]}
                       </span>
                     </td>
-                    <td>
+                    <td className="hist-action-cell">
                       <ActionCell row={r} />
                     </td>
                   </tr>
@@ -242,6 +250,6 @@ export function ProgrammeHistoryTable({
         left off. Completed and timed-out attempts are reviewable.
         Discarded attempts can&apos;t be reopened.
       </p>
-    </>
+    </div>
   );
 }

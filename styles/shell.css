@@ -293,3 +293,27 @@
 .shell-footer a {
   color: var(--accent);
 }
+
+/* ─────────────────────────────────────────────────────
+ * Phone (≤768px) — topbar touch targets
+ * ───────────────────────────────────────────────────── */
+
+/* Most surfaces hide this topbar on a phone and render <MobileNav>
+ * instead — mobile-nav.css does that behind `.shell-root:has(.m-topbar)`.
+ * The pages WITHOUT a MobileNav (the student picker) keep this bar, so on
+ * those it is the real phone header and its controls have to be tappable:
+ * the avatar measured 34px and the role chip 29px, against the 44px rule
+ * in mobile-responsive.md.
+ *
+ * The guard is the exact inverse of mobile-nav.css's, so the two can never
+ * both apply — where the desktop topbar is hidden, these rules are inert.  */
+@media (max-width: 768px) {
+  .shell-root:not(:has(.m-topbar)) .user-menu-trigger {
+    width: 44px;
+    height: 44px;
+  }
+
+  .shell-root:not(:has(.m-topbar)) .role-chip {
+    min-height: 44px;
+  }
+}

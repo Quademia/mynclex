@@ -1,0 +1,389 @@
+/* mynclex/styles/admin-tutors.css
+ *
+ * Skin for the two TUTORS_MANAGE surfaces: /admin/tutors (the directory,
+ * sub-slice 1b + the add flow in 1c) and /admin/applications (the queue,
+ * 2b). Plan: docs/product-plan/tutor-onboarding.md §11.
+ *
+ * Runs on tokens.css and reuses the admin vocabulary that already shipped
+ * in enquiries.css (.ao-page, .ao-kpi-card, .ao-table, .ao-pill,
+ * .ao-select, .ao-action-link, .ao-cell-lead, .ao-tutor-avatar).
+ * Everything new here is scoped .adt-.
+ *
+ * Ported from the Claude Design handoff "Admin — Tutors & Tutor
+ * Applications" (2026-08-21). Verbatim except for six deliberate
+ * changes, each of which is a house convention the prototype could not
+ * have known from outside the repo (5 and 6 are noted at their rules
+ * rather than here):
+ *
+ *   1. ⚠ EVERY `fr` TRACK IS `minmax(0, …)`. The handoff used bare `1fr`
+ *      in six places. `1fr` means `minmax(auto, 1fr)`, and that `auto`
+ *      floor is min-content — so a track holding a long email or a
+ *      free-text note refuses to shrink and blows the grid out. This
+ *      repo learned that four separate times during the 2026-08-20 phone
+ *      sweeps (mobile-responsive.md) and now uses `minmax(0, …)` in ~48
+ *      places. Three tracks here are genuinely exposed: .adt-cols holds
+ *      emails, .adt-queue's right pane holds the request note, and
+ *      .adt-kv's value column holds arbitrary profile text.
+ *
+ *   2. THE DRAWER GAINED A FIXED ROOT. The handoff had .adt-scrim and
+ *      .adt-drawer as `position: absolute` with nothing positioned above
+ *      them — which works in the prototype's own frame but not here:
+ *      nothing in the shell chain is `position: relative`, .shell-root is
+ *      `height: 100dvh; overflow: hidden`, and .product-content is the
+ *      scroll container. An absolute overlay would scroll away with the
+ *      content. Fixed root + absolute children is the shape already used
+ *      by .cp-drawer-root in cat-pool.css.
+ *
+ *   3. THE TOAST IS TOP-RIGHT AND FIXED, not bottom-centre. CLAUDE.md UI
+ *      convention #1 puts every toast at the top-right of the viewport,
+ *      and .enrol-toast / .cfg-toast / .auth-toast all sit at
+ *      `fixed; top: 24px; right: 24px`. The handoff's *copy* is kept
+ *      though — its toasts are receipts that name each consequence
+ *      ("TUTOR revoked, programmes off the catalogue, instalments
+ *      paused"), which is better than "Saved" and worth carrying over.
+ *
+ *   4. Tables that can overflow get a scroll container rather than
+ *      collapsing their fixed columns (see .adt-table-scroll).
+ */
+
+/* ── Page head with a primary action ─────────────────────────── */
+.adt-head-row { display: flex; align-items: flex-start; gap: 16px; }
+.adt-head-row .ao-page-head { flex: 1; margin-bottom: 0; }
+.adt-head-actions { display: flex; gap: 8px; flex-shrink: 0; padding-top: 2px; }
+
+/* ── Stat strip (3-up variant of the ao-kpi grid) ─────────────── */
+.adt-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+/* The handoff used `.ao-kpi-subline` for this, but no such class ships —
+ * enquiries.css has label/value/unit/delta and no subline. Scoped .adt-
+ * rather than adding a new .ao-: a feature stylesheet should not extend
+ * the shared admin vocabulary out from under the board that owns it. */
+.adt-stat-sub { font-size: 11.5px; line-height: 1.45; color: var(--text-muted); margin-top: 6px; }
+.adt-stat-link { font-size: 12px; font-weight: 600; color: var(--accent); margin-top: 4px; display: inline-block; }
+.adt-stat-link:hover { text-decoration: underline; }
+
+/* ── Toolbar ──────────────────────────────────────────────────── */
+.adt-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.adt-search {
+  flex: 0 1 280px; padding: 6px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 12.5px; font-family: inherit; background: var(--white); color: var(--text);
+}
+.adt-search:focus { outline: none; border-color: var(--accent); }
+
+/* ── Directory table: column grid layered onto .ao-table-row ─── */
+/* minmax(0, …) on both fr tracks — the first holds a name over an email,
+ * the second a headline over "speciality · years". Either can be long. */
+.adt-cols { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.5fr) 140px 78px 150px 104px 82px; }
+/* Two-line cells: a main line over its metadata. `display: block` is not
+ * decorative — these were spans first and rendered side by side on one
+ * line. `min-width: 0` lets the ellipsis actually fire inside a grid
+ * track, which is the same reason the fr tracks are minmax(0, …). */
+.adt-cell { min-width: 0; }
+.adt-cell-sub { display: block; min-width: 0; font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adt-cell-main { display: block; min-width: 0; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adt-num { font-variant-numeric: tabular-nums; }
+.adt-row-btn { cursor: pointer; }
+
+/* The fixed columns total ~554px; below that the grid would crush them.
+ * Scroll the table instead of collapsing it — these are desktop admin
+ * surfaces, and a squashed row is worse than a horizontal scroll. */
+.adt-table-scroll { overflow-x: auto; }
+.adt-table-scroll .ao-table { min-width: 940px; }
+
+/* Source chip — provenance is metadata, so it stays quiet.
+ * Nothing in the system branches on `source` (plan doc §5); it must not
+ * compete with `status` for attention, hence a dot and not a pill. */
+.adt-source {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 500; color: var(--text-muted); white-space: nowrap;
+}
+.adt-source::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: var(--border-strong); }
+.adt-source.is-self::before   { background: var(--accent); }
+.adt-source.is-reg::before    { background: #7c3aed; }
+.adt-source.is-invite::before { background: #2563eb; }
+
+/* Status pills — extends the ao-pill tones */
+.adt-pill-susp { background: #fef2f2; color: #b91c1c; }
+
+/* Resubmission count */
+.adt-req-badge {
+  display: inline-flex; align-items: center;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em;
+  padding: 2px 7px; border-radius: 999px;
+  background: var(--primary-light); color: var(--primary);
+  white-space: nowrap;
+}
+
+/* ── Right drawer (tutor detail) ──────────────────────────────── */
+/* Fixed root, absolute children — see header note 2. */
+.adt-drawer-root { position: fixed; inset: 0; z-index: 50; }
+.adt-scrim {
+  position: absolute; inset: 0;
+  background: rgba(15, 23, 42, 0.28);
+}
+.adt-drawer {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 420px; max-width: 92%;
+  background: var(--white); border-left: 1px solid var(--border);
+  box-shadow: -12px 0 40px rgba(15, 23, 42, 0.14);
+  display: flex; flex-direction: column;
+}
+.adt-drawer-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
+}
+.adt-drawer-id { min-width: 0; }
+.adt-drawer-name { display: block; font-size: 15px; font-weight: 700; color: var(--text); }
+.adt-drawer-email { display: block; font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; }
+/* Wraps, unlike the table's one-line cells. */
+.adt-drawer-hint { font-size: 11.5px; line-height: 1.45; color: var(--text-muted); margin-top: 10px; }
+.adt-foot-end { margin-left: auto; }
+.adt-drawer-x {
+  margin-left: auto; border: none; background: transparent; cursor: pointer;
+  color: var(--text-muted); font-size: 16px; line-height: 1; padding: 6px; border-radius: 6px;
+}
+.adt-drawer-x:hover { background: var(--bg-soft); color: var(--text); }
+.adt-drawer-body { flex: 1; overflow: auto; padding: 16px 18px 24px; display: flex; flex-direction: column; gap: 18px; }
+.adt-drawer-foot { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+
+.adt-sec-title {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-faint); margin-bottom: 8px;
+}
+.adt-kv { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 6px 12px; font-size: 12.5px; }
+.adt-kv dt { color: var(--text-muted); }
+.adt-kv dd { color: var(--text); margin: 0; }
+
+/* Decision trail — DERIVED from the columns that exist, not stored.
+ * v1 has no events table and nclex_audit_log records authorship, not
+ * transitions (plan doc §9), so this shows at most one prior decision. */
+.adt-trail { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+.adt-trail li { position: relative; padding: 0 0 14px 20px; font-size: 12.5px; }
+.adt-trail li::before {
+  content: ""; position: absolute; left: 4px; top: 5px;
+  width: 8px; height: 8px; border-radius: 999px;
+  background: var(--white); border: 2px solid var(--border-strong);
+}
+.adt-trail li::after {
+  content: ""; position: absolute; left: 7px; top: 16px; bottom: 0;
+  width: 2px; background: var(--bg-soft);
+}
+.adt-trail li:last-child { padding-bottom: 0; }
+.adt-trail li:last-child::after { display: none; }
+.adt-trail li.is-good::before { border-color: var(--success); }
+.adt-trail li.is-bad::before  { border-color: var(--danger); }
+.adt-trail-when { color: var(--text-faint); font-size: 11px; display: block; }
+
+/* ── Modals ───────────────────────────────────────────────────── */
+.adt-modal-wrap {
+  position: fixed; inset: 0; z-index: 55;
+  background: rgba(15, 23, 42, 0.32);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.adt-modal {
+  width: 480px; max-width: 100%; max-height: 100%; overflow: auto;
+  background: var(--white); border-radius: 12px; box-shadow: var(--shadow-lg);
+  padding: 20px 22px;
+}
+.adt-modal-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.adt-modal-sub { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px; }
+.adt-modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+/* Add tutor — mode chooser (existing user vs new user) */
+.adt-modes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-top: 4px; }
+.adt-mode {
+  display: flex; flex-direction: column; gap: 4px; text-align: left;
+  padding: 14px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--white); font-family: inherit; cursor: pointer;
+  transition: border-color 120ms, background 120ms;
+}
+.adt-mode:hover { border-color: var(--accent); background: var(--primary-light); }
+.adt-mode-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.adt-mode-sub { font-size: 11.5px; line-height: 1.45; color: var(--text-muted); }
+
+/* Back-to-chooser link */
+.adt-back {
+  border: none; background: transparent; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 11.5px; font-weight: 600; color: var(--text-muted);
+}
+.adt-back:hover { color: var(--text); text-decoration: underline; }
+
+/* Inline field verdict — the as-you-type email check */
+.adt-verdict {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 12px; line-height: 1.5; margin-top: 6px;
+}
+.adt-verdict-dot { width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0; margin-top: 5px; }
+.adt-verdict.is-checking { color: var(--text-faint); }
+.adt-verdict.is-checking .adt-verdict-dot { background: var(--text-faint); }
+.adt-verdict.is-free { color: #15803d; }
+.adt-verdict.is-free .adt-verdict-dot { background: var(--success); }
+.adt-verdict.is-taken { color: #b45309; }
+.adt-verdict.is-taken .adt-verdict-dot { background: var(--warning); }
+.adt-verdict.is-tutor { color: var(--text-muted); }
+.adt-verdict.is-tutor .adt-verdict-dot { background: var(--border-strong); }
+
+/* Escape hatch — the cross-link between the two paths. Not polish:
+ * without it the chooser asks the admin to know whether this person ever
+ * registered, and a wrong branch becomes a dead end (plan doc §11.1c). */
+.adt-hatch {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 10px 12px; margin-top: 10px;
+  font-size: 12.5px; line-height: 1.5; color: var(--text);
+}
+.adt-hatch-txt { flex: 1; min-width: 160px; }
+
+/* Inline form error. There is no shared class for this — every surface
+ * scopes its own (.enrol-form-error, .lib-field-error, .cs-error) — so
+ * this matches their shape rather than inventing a global. */
+.adt-form-error {
+  margin: 10px 0 0;
+  padding: 9px 11px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  color: #7f1d1d;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* The search field inside the modal fills its row, unlike the toolbar's. */
+.adt-modal .adt-search { width: 100%; flex: none; }
+.adt-modal .adt-modal-title { margin-top: 8px; }
+
+/* Slice-1c stopgap: the new-user path ends in an instruction */
+.adt-stopgap {
+  background: #fffbeb; border: 1px solid #fcd34d; border-radius: var(--radius);
+  padding: 12px 14px; margin-top: 10px;
+  font-size: 12.5px; line-height: 1.55; color: #92400e;
+}
+.adt-stopgap strong { color: #78350f; }
+
+.adt-names { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+
+/* Add tutor — user search results */
+.adt-user-list { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 10px; }
+.adt-user-opt {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 12px; border: none; border-bottom: 1px solid var(--border);
+  background: var(--white); font-family: inherit; text-align: left; cursor: pointer;
+}
+.adt-user-opt:last-child { border-bottom: none; }
+.adt-user-opt:hover { background: var(--bg); }
+.adt-user-opt-id { flex: 1; }
+.adt-role-chip {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  padding: 1px 6px; border-radius: 4px;
+  background: var(--bg-soft); color: var(--text-muted);
+}
+
+/* What-this-does receipt inside confirms. It exists because one click
+ * writes a row, grants a role, assigns a tier and sends an email — an
+ * admin should not have to read the spec to know that. */
+.adt-receipt {
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; font-size: 12.5px; line-height: 1.55; color: var(--text);
+}
+.adt-receipt ul { margin: 6px 0 0; padding-left: 18px; }
+.adt-receipt li { margin-bottom: 3px; }
+.adt-receipt code {
+  font-family: ui-monospace, Menlo, monospace; font-size: 11px;
+  background: var(--bg-soft); border-radius: 4px; padding: 1px 4px;
+}
+
+/* Suspension — the four switches (tutor-onboarding.md §7). Showing all
+ * four is the point: the admin must see which one ISN'T firing, or they
+ * will assume they just cut paying students off. */
+.adt-switches { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin: 10px 0 14px; }
+.adt-sw {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; font-size: 12.5px; border-bottom: 1px solid var(--border);
+  background: var(--white);
+}
+.adt-sw:last-child { border-bottom: none; }
+.adt-sw-what { flex: 1; color: var(--text); }
+.adt-sw-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+}
+.adt-sw-badge.stop { background: #fef2f2; color: #b91c1c; }
+.adt-sw-badge.keep { background: #f0fdf4; color: #15803d; }
+
+/* ── Applications queue ───────────────────────────────────────── */
+.adt-tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: var(--white); border: 1px solid var(--border); }
+.adt-tab {
+  border: none; background: transparent; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--text-muted);
+  padding: 6px 14px; border-radius: 7px; white-space: nowrap;
+}
+.adt-tab.is-on { background: var(--primary); color: var(--white); }
+
+.adt-queue { display: grid; grid-template-columns: 350px minmax(0, 1fr); gap: 16px; align-items: start; }
+.adt-app-list { display: flex; flex-direction: column; gap: 8px; }
+.adt-app-card {
+  display: flex; flex-direction: column; gap: 6px; width: 100%;
+  background: var(--white); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; font-family: inherit; text-align: left; cursor: pointer;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+.adt-app-card:hover { border-color: var(--border-strong); }
+.adt-app-card.is-sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.adt-app-card-top { display: flex; align-items: center; gap: 10px; }
+.adt-app-card-name { font-weight: 600; font-size: 13px; color: var(--text); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adt-app-card-meta { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-muted); }
+
+.adt-detail {
+  background: var(--white); border: 1px solid var(--border); border-radius: 10px;
+  padding: 18px 20px; display: flex; flex-direction: column; gap: 16px;
+}
+.adt-detail-head { display: flex; align-items: center; gap: 12px; }
+.adt-callout {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: var(--primary-light); border-radius: var(--radius);
+  padding: 10px 12px; font-size: 12.5px; line-height: 1.5; color: var(--primary);
+}
+.adt-note {
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; font-size: 13px; line-height: 1.6; color: var(--text);
+}
+.adt-prev-decision {
+  border-left: 3px solid var(--danger); background: #fef2f2; border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 10px 12px; font-size: 12.5px; line-height: 1.5; color: #7f1d1d;
+}
+.adt-decide { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.adt-decide-note { font-size: 11.5px; color: var(--text-muted); line-height: 1.5; width: 100%; }
+
+/* Decided table */
+.adt-decided-cols { grid-template-columns: minmax(0, 1.6fr) 120px 140px minmax(0, 1.8fr) 100px; }
+
+/* Empty state */
+.adt-empty {
+  background: var(--white); border: 1px dashed var(--border-strong); border-radius: 10px;
+  padding: 40px 20px; text-align: center;
+}
+.adt-empty-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.adt-empty-sub { font-size: 12.5px; color: var(--text-muted); }
+
+/* ── Toast receipt ────────────────────────────────────────────── */
+/* Top-right and fixed, per CLAUDE.md UI convention #1 and every other
+ * toast in this repo (.enrol-toast, .cfg-toast, .auth-toast). The
+ * handoff placed it bottom-centre; only the position changed — the copy
+ * stays a receipt that names each consequence. */
+.adt-toast {
+  position: fixed; top: 24px; right: 24px; z-index: 1000;
+  background: #111827; color: #f9fafb;
+  font-size: 12.5px; line-height: 1.5;
+  padding: 10px 16px; border-radius: 10px; box-shadow: var(--shadow-lg);
+  max-width: min(520px, calc(100vw - 48px));
+}
+.adt-toast code { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #a7f3d0; }
+
+/* ── Narrow widths ────────────────────────────────────────────── */
+/* Admin is desktop-first (mobile-responsive.md: tutor/admin must be
+ * navigable, not perfect), but these two must not overlap themselves. */
+@media (max-width: 900px) {
+  .adt-stats { grid-template-columns: minmax(0, 1fr); }
+  .adt-queue { grid-template-columns: minmax(0, 1fr); }
+  .adt-modes, .adt-names { grid-template-columns: minmax(0, 1fr); }
+}

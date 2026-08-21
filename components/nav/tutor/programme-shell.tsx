@@ -19,6 +19,7 @@ import { SidebarFrame } from '@/components/nav/shared/sidebar-frame';
 import { SidebarUserBar } from '@/components/nav/shared/sidebar-user-bar';
 import { TutorProgrammeSidebar } from './programme-sidebar';
 import { TutorBackPill } from './back-pill';
+import { TutorDrawerHeader } from './drawer-header';
 import { MobileNav } from '@/components/shell/mobile/mobile-nav';
 import { TUTOR_PROGRAMME_NAV } from '@/lib/nav/tutor';
 import { getProgrammeForShell } from '@/lib/programmes/queries';
@@ -64,6 +65,11 @@ export async function TutorProgrammeShell({
           availableRoles={chrome.roles}
           items={items}
           profileHref="/tutor/profile"
+          // Without this the drawer has no way back: `rightSlot` (the
+          // desktop back-pill) lives in `.shell-topbar`, which a phone
+          // hides, and every row in `items` points deeper into this
+          // same programme.
+          drawerHeader={<TutorDrawerHeader programmeTitle={programmeTitle} />}
         />
       }
     >

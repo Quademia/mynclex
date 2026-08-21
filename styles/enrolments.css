@@ -1168,3 +1168,34 @@
   padding: 0;
   gap: 10px;
 }
+
+/* ── Phones ──────────────────────────────────────────────
+ *
+ * Targets only. `.cw-roster` scrolls horizontally inside its own box
+ * (client 341 / scroll 1200) and is LEFT ALONE — a genuinely wide table
+ * scrolling in its own container is the rule (CLAUDE.md UI #3), not a
+ * defect. Nothing here is clipped; everything was merely too small.
+ */
+@media (max-width: 768px) {
+  .enrol-btn,
+  .cw-tab,
+  .cw-filter,
+  .cw-cohort-select,
+  .cw-search { min-height: 44px; }
+
+  /* Roster row controls are SIZED, not given invisible hit areas. The pay
+     button and its history clock sit 7px apart and the row actions 6px, so
+     areas grown into those gaps would overlap and the neighbours would
+     fight over the same taps — the fault this sweep already had to undo on
+     the quiz badges. Sizing costs nothing here: the row is 64px tall, and
+     the table already scrolls sideways, so the extra width lands inside a
+     gesture that exists. Rows themselves are not clickable, so nothing is
+     taken from them. */
+  .cw-pay-btn,
+  .enrol-action { min-height: 44px; }
+  .cw-pay-history,
+  .cw-row-menu-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

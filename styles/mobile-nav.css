@@ -90,9 +90,39 @@
   z-index: 30;
 }
 
+/* ── 44px touch targets (mobile-responsive.md) ────────────────────────
+ * Everything in this file is phone-only, so these are plain values — no
+ * nested media query needed.
+ *
+ * Two treatments, one rule of thumb: GROW the control where growing it is
+ * invisible (a transparent icon button), and EXTEND THE HIT AREA with a
+ * pseudo-element where the control's size IS the design. The switcher is a
+ * segmented control in a 54px bar — 44px pills would make it 50px tall and
+ * swallow the topbar — and the avatar and sheet-close are sized to match
+ * their desktop twins. Those three keep their looks and gain the target.
+ * ─────────────────────────────────────────────────────────────────────── */
+.m-avatar,
+.m-sheet-close,
+.m-topbar .switcher-pill {
+  position: relative;
+}
+.m-avatar::after,
+.m-sheet-close::after,
+.m-topbar .switcher-pill::after {
+  content: '';
+  position: absolute;
+  /* centres a >=44px box on the control without touching layout */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: max(100%, 44px);
+  height: 44px;
+}
+
 .m-icon-btn {
-  width: 40px;
-  height: 40px;
+  /* transparent — growing it costs nothing visually */
+  width: 44px;
+  height: 44px;
   border: none;
   background: transparent;
   border-radius: 9px;
@@ -208,6 +238,40 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+/* Context drawer header (tutor programme) — replaces the wordmark when a
+ * shell passes `drawerHeader`. The back link is the ONLY route out of a
+ * context whose every nav row leads further in, so it is a real 44px
+ * target and it leads, above the name it is leaving. */
+.m-drawer-ctx {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.m-drawer-back {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 7px;
+  min-height: 44px;
+  padding-right: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+.m-drawer-back svg {
+  flex-shrink: 0;
+}
+.m-drawer-ctx-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  /* A long programme name wraps rather than truncating: this is the only
+     place on a phone that says which programme the drawer belongs to. */
+  overflow-wrap: anywhere;
 }
 
 .m-role-badge {

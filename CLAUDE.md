@@ -487,6 +487,47 @@ mapping is 1-to-1.
 2. Build the requested slice / fix on the auto-created session
    branch. Commit there freely.
 
+   **A pre-commit hook runs the lint guard for you.** `.githooks/pre-commit`
+   calls `npm run lint:staged`, which lints only the staged files
+   (~4 s) and refuses the commit if any of them carries a **new**
+   error, naming the file and rule. It is enabled per machine with
+   `git config core.hooksPath .githooks` — already set here, and
+   worktrees share it. `git commit --no-verify` bypasses it; if you
+   use that, **say so in the session log**.
+
+   To check the whole repo deliberately — worth doing once a session,
+   since the hook only ever sees files you touched:
+
+   ```powershell
+   npm run lint:check
+   ```
+
+   Both compare against `.eslint-baseline.json` and fail **only** on
+   problems this session added. A known backlog is recorded there
+   deliberately — see the header of `scripts/lint-baseline.mjs` for how
+   it got there, why the baseline counts rather than pins line numbers,
+   and why the hook is staged-only (a 71-second hook teaches the
+   bypass).
+
+   ⚠ **Renaming a file that carries known errors trips a false alarm** —
+   the baseline is keyed by path, so a move reads as "old path fixed,
+   new path new". Nothing is wrong: re-run `npm run lint:baseline` as
+   part of the rename commit.
+
+   ⚠ **Never re-baseline to make the check pass.** `npm run
+   lint:baseline` is for *banking a fix*, not for absorbing a new
+   error. A genuinely unavoidable one gets an `eslint-disable` **at
+   the line, with the reason written next to it**, so the judgement
+   survives for whoever reads it next.
+
+   ⚠ **Do not write the error count into this file or a session log.**
+   It goes stale the first time someone fixes something, and then it
+   quietly gives the wrong answer. The count lives in the baseline
+   file, which regenerates. If a session note describes lint at all,
+   it must say what was actually checked — "clean on the files I
+   touched" is not "clean", and describing the first as the second is
+   exactly how a 47-error backlog went unnoticed for four months.
+
 3. Sam tests the change in the browser at `localhost:3000`.
 
 4. **Always ask Sam for explicit approval before merging to `main`.**
@@ -561,7 +602,11 @@ session was open.
 ## Explicit Deferrals (Not v1)
 
 - NGN item types (case studies, bow-tie, drag-and-drop, extended multi-response)
-- Public self-serve tutor signup (tutors are manually vetted in v1)
+- ~~Public self-serve tutor signup (tutors are manually vetted in v1)~~ —
+  ⭐ **RE-OPENED 2026-08-21 (Sam).** The self-serve application and the
+  register-as-tutor toggle are now slice 2 of the tutor-onboarding arc.
+  Design: `docs/product-plan/tutor-onboarding.md`. Left in this list,
+  struck through, so the reversal is visible rather than silent.
 - Payment splits / marketplace billing between QAcademy and tutors
 - Migration of MyNMCLicensure or MyTeacher onto this stack
 

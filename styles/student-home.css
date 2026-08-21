@@ -234,7 +234,21 @@
   transition: background 0.12s ease;
 }
 .sho-week:hover { background: var(--bg); text-decoration: none; }
-.sho-week-name { width: 118px; flex-shrink: 0; }
+/* ⭐ The title takes the row; the bar is a fixed indicator beside it.
+ *
+ * This was `width: 118px; flex-shrink: 0` against a `flex: 1` bar, which on
+ * a 515px desktop row handed 322px to a 7px-tall progress bar and 118px to
+ * the title — so ALL 52 titles truncated, every one, including "The five
+ * rights of delegation" (it needs 120px). The phone was the surface that
+ * made it visible, but desktop had the same bug and had it worse.
+ *
+ * 100px is deliberate: the longest title on this cohort measures 329px
+ * natural, and capping the bar there leaves the title ~340px, so none of
+ * the 52 truncates. The bar loses nothing — it is a 7px rule whose only job
+ * is relative fill. ⚠ This is sized against real content, not a guarantee:
+ * a tutor can always write a longer title, and the ellipsis is still the
+ * right fallback when they do. */
+.sho-week-name { flex: 1 1 auto; min-width: 0; }
 .sho-week-label {
   font-size: 10.5px;
   font-weight: 700;
@@ -251,7 +265,7 @@
   text-overflow: ellipsis;
 }
 .sho-week-bar {
-  flex: 1;
+  flex: 0 0 100px;
   height: 7px;
   border-radius: 999px;
   background: var(--bg-soft);
@@ -476,4 +490,39 @@
   .sho-continue-action,
   .sho-continue-action .student-activity-action { width: 100%; }
   .sho-continue-action .student-activity-launch { width: 100%; }
+
+  /* The title/bar priority is now the BASE rule (see .sho-week-name) — it
+   * was never a phone-only problem. The phone only needs the bar smaller
+   * still, and room for two lines. */
+  .sho-week { gap: 10px; }
+  .sho-week-bar { flex: 0 0 56px; }
+
+  /* 375px cannot fit the long titles on one line even with the column
+   * widened ("The six rights of medication administrat…"), and telling the
+   * weeks apart is the entire job of this list — so here, and only here, a
+   * title may take two lines. A uniform row height is worth less than that. */
+  .sho-week-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* 44px targets. "Join session" and the library row are buttons, so they
+   * simply grow; the card links are type, and their size is the design — so
+   * they keep their look and gain the target through the hit area. */
+  .sho-feature-btn,
+  .sho-lib-continue { min-height: 44px; }
+
+  .sho-card-link { position: relative; }
+  .sho-card-link::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: max(100%, 44px);
+    height: 44px;
+  }
 }

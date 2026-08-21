@@ -473,3 +473,54 @@
   .an-kpis.has-perf { grid-template-columns: repeat(2, 1fr); }
   .an-act { grid-template-columns: 24px 1fr auto 120px; }
 }
+
+/* Phones — the per-student table stops being a table.
+ *
+ * ⚠ `.an-card` is `overflow: hidden`, so at 375px the five-column table did
+ * not merely overflow: Status and Last active were CLIPPED AWAY, with no
+ * gesture that could reach them. Nothing above the card admitted it — the
+ * document reported a clean scrollWidth of 375, and the only evidence was
+ * the card's own 475-inside-341. A tutor could not see whether a student
+ * had started, which is the one thing this table exists to say.
+ *
+ * Same treatment as the quiz-history tables (`styles/history.css`): each row
+ * becomes a card and every value carries its column name, because hiding the
+ * header row is exactly what would otherwise leave a bare "—" unexplained.
+ * The `<tr>` keeps its click handler — block display does not disturb it. */
+@media (max-width: 768px) {
+  .an-tbl thead { display: none; }
+
+  .an-tbl,
+  .an-tbl tbody,
+  .an-tbl tr,
+  .an-tbl td { display: block; width: 100%; }
+
+  .an-tbl tr { padding: 12px 14px; }
+  .an-tbl td { border: 0; padding: 3px 0; }
+
+  /* The student leads the card unlabelled — the name IS the row. */
+  .an-tbl td:first-child { padding-bottom: 7px; }
+
+  /* Label and value sit on one line; the label cannot shrink, the value can.
+     (The failure this whole sweep keeps finding is the reverse.) */
+  .an-tbl td[data-label] { display: flex; align-items: center; gap: 8px; }
+  .an-tbl td[data-label]::before {
+    content: attr(data-label);
+    flex: none;
+    min-width: 74px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+  }
+  .an-tbl td[data-label] > * { min-width: 0; }
+  .an-tbl td[data-label] .an-bar { flex: 1; }
+
+  /* Right-alignment would strand a value at the far edge from its label. */
+  .an-tbl td.num { text-align: left; }
+
+  /* Filter chips and the sort control are the only way to re-cut this list. */
+  .an-tool { min-height: 44px; }
+  .an-select { min-height: 44px; }
+}
