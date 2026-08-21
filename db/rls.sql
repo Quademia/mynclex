@@ -165,6 +165,13 @@ CREATE POLICY nclex_tutors_admin_delete ON nclex_tutors FOR DELETE
 REVOKE UPDATE ON nclex_tutors FROM authenticated;
 GRANT  UPDATE (public_profile, updated_at) ON nclex_tutors TO authenticated;
 
+-- ⭐ AND IT COVERS NEW COLUMNS FOR FREE. decision_history (slice 1d-i,
+-- 20260916120000) carries no grant because the list above names two
+-- columns and it is not one of them — so a tutor cannot rewrite their own
+-- history. ⚠ Do NOT "complete" the grant list when adding a column: the
+-- omission IS the protection. Only a column a tutor genuinely owns, like
+-- public_profile, belongs there.
+
 
 -- ─────────────────────────────────────────────────────────
 -- nclex_user_roles

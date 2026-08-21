@@ -23,6 +23,8 @@ import {
   sourceLabel,
   type TutorDirectoryRow,
   type TutorDirectoryStats,
+  type TutorStatus,
+  type TutorTrailEntry,
 } from '@/lib/tutors/types';
 
 function initials(name: string): string {
@@ -284,9 +286,35 @@ function TutorRow({ row, onOpen }: { row: TutorDirectoryRow; onOpen: () => void 
   );
 }
 
+/**
+ * What one trail entry says. Every entry is a transition, so the wording
+ * comes from where it LANDED plus, where it matters, where it came from:
+ * APPROVED means two different events depending on whether the previous
+ * status was SUSPENDED, and calling a reinstatement "Approved as a tutor"
+ * would hide the suspension it undoes.
+ */
+function trailLabel(e: TutorTrailEntry): string {
+  switch (e.to) {
+    case 'APPROVED':
+      return e.from === 'SUSPENDED' ? 'Reinstated' : 'Approved as a tutor';
+    case 'SUSPENDED':
+      return 'Suspended';
+    case 'REJECTED':
+      return 'Application rejected';
+    case 'PENDING':
+      return e.from ? 'Re-applied' : 'Applied to become a tutor';
+  }
+}
+
+/** Ring colour on the timeline. PENDING is neither good nor bad. */
+function trailTone(to: TutorStatus): string {
+  if (to === 'APPROVED') return 'is-good';
+  if (to === 'SUSPENDED' || to === 'REJECTED') return 'is-bad';
+  return '';
+}
+
 function TutorDrawer({ row, onClose }: { row: TutorDirectoryRow; onClose: () => void }) {
   const approved = formatDate(row.approved_at);
-  const decided = formatDate(row.decided_at);
   const firstApplied = formatDate(row.first_applied_at);
 
   // The applications line has to distinguish three genuinely different
@@ -368,29 +396,29 @@ function TutorDrawer({ row, onClose }: { row: TutorDirectoryRow; onClose: () => 
 
           <section>
             <div className="adt-sec-title">Decision trail</div>
-            {/* Derived from the columns that exist — there is no events
-                table in v1 (§9) — so this shows at most one prior
-                decision beside the record's creation. */}
+            {/* Read from nclex_tutors.decision_history (slice 1d-i). This
+                used to be DERIVED from approved_at/decided_at, which could
+                only ever show one prior decision — fine while no row could
+                have two, wrong the moment suspend/reinstate exists. Older
+                rows were backfilled to say exactly what the derivation
+                said, so nothing changed for them. */}
             <ul className="adt-trail">
-              {decided && row.decided_at !== row.approved_at && (
-                <li className={row.status === 'SUSPENDED' ? 'is-bad' : 'is-good'}>
-                  {row.status === 'SUSPENDED' ? 'Suspended' : 'Decision recorded'}
-                  {row.decided_by_name ? ` by ${row.decided_by_name}` : ''}
-                  {row.decision_reason ? ` — “${row.decision_reason}”` : ''}
-                  <span className="adt-trail-when">{decided}</span>
-                </li>
-              )}
-              {approved ? (
-                <li className="is-good">
-                  Approved as a tutor
-                  {row.approved_by_name ? ` by ${row.approved_by_name}` : ''}
-                  <span className="adt-trail-when">{approved}</span>
-                </li>
-              ) : (
+              {row.trail.length === 0 ? (
                 <li>
-                  Applied — no decision recorded yet
+                  No decisions recorded
                   <span className="adt-trail-when">{firstApplied ?? '—'}</span>
                 </li>
+              ) : (
+                // Newest at the top. The array itself is append-ordered
+                // and must not be sorted by date — see queries.ts.
+                [...row.trail].reverse().map((e, i) => (
+                  <li key={`${e.at}-${i}`} className={trailTone(e.to)}>
+                    {trailLabel(e)}
+                    {e.by_name ? ` by ${e.by_name}` : ''}
+                    {e.reason ? ` — “${e.reason}”` : ''}
+                    <span className="adt-trail-when">{formatDate(e.at) ?? '—'}</span>
+                  </li>
+                ))
               )}
             </ul>
           </section>
