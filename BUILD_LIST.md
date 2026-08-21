@@ -2,8 +2,8 @@
 
 > ## ✅ DONE 2026-08-21 (later) — **tutor onboarding slice 1d: suspend & reinstate**
 >
-> **Slice 1 is COMPLETE.** On the session branch, **six commits, four
-> migrations** (`20260916`–`20260919`), all dev-applied. Doc:
+> **Slice 1 is COMPLETE and Sam-tested.** On the session branch, **nine
+> commits, five migrations** (`20260916`–`20260920`), all dev-applied. Doc:
 > **`docs/product-plan/tutor-onboarding.md`** §7, §10, §11.1d.
 >
 > | Sub-slice | What | Commit |
@@ -14,6 +14,7 @@
 > | **1d-iv/v** ✅ | `tutor.suspended` + the sweep exclusion | `e0d12d9` |
 > | **+** ✅ | `tutor.reinstated` (Sam spotted the gap) | `e0118ca` |
 > | **+** ✅ | the reinstate confirm dialog (Sam) | `2bc0da3` |
+> | **fix** ✅ | the 07:00 class reminders stop for a suspended tutor | `d734066` |
 >
 > - **⭐ A schema change the plan did not have: `decision_history`** (Sam's
 >   call). Until 1d no row could carry more than ONE decision, so the
@@ -35,11 +36,27 @@
 >   of the nightly sweep PAUSES students for arrears — stopping the
 >   reminders alone would have meant we quietly stop asking for the money
 >   and then lock the student out for not paying it.
-> - **⏭ OPEN, and one part is a DEFECT:** nothing in the **student**
->   interface says the tutor is suspended, and
->   `nclex_enqueue_session_reminders` has no standing check, so the 07:00
->   cron still emails their students *"your live class is tomorrow"*.
->   Scoped in the doc under §7 → *OPEN — the student is never told*.
+> - **⭐⭐ The last hole came from Sam asking what the STUDENT sees.** The
+>   07:00 cron kept emailing a suspended tutor's students *"your live
+>   class is tomorrow"* — §7's forbidden lie, on a schedule. Fixed in TWO
+>   places; ⚠ the tutor's own "send reminder now" button gated on
+>   **ownership**, which a suspended tutor still passes (suspension
+>   revokes the ROLE, it does not reassign their programmes). ⭐ Missed
+>   originally because **§7's table of consequences has four rows and this
+>   is a fifth** — *a table of consequences is a summary, not an
+>   inventory.*
+> - **He also asked whether suspension should unpublish their
+>   programmes** — argued down (it destroys which-were-already-drafts and
+>   writes our decision into their editorial column), **but the cost he
+>   was pointing at is real**: two switches means every public surface
+>   must remember both, and one was already forgotten. ⏭ **Follow-up:**
+>   make "is this programme publicly live?" answerable in ONE place
+>   rather than re-derived by hand in seven.
+> - **⏭ STILL OPEN:** nothing in the **student** interface says the tutor
+>   is suspended. ⚠ The reminder fix cannot close it — reminders go out 7
+>   days ahead, once per class, so a student may already hold a "see you
+>   Tuesday" for a class that is not happening. Scoped in the doc under
+>   §7 → *OPEN — the student is never told*.
 > - **Still not built:** slice 2 (self-serve doorways) · slice 3 (invite
 >   by email) · the `1a-drop` migration · tutor plans (doc §12).
 >

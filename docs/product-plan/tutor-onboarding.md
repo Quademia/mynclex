@@ -331,6 +331,35 @@ The table above is right about the *decisions* and undercounted the
   and subscription expiry deliberately do NOT (that window is what the
   student bought; passes are sold by us, not the tutor).
 
+### ⚠ Settled: suspension does NOT touch the programmes (Sam asked, 2026-08-21)
+
+Sam asked whether suspension should unpublish the tutor's programmes,
+reasoning that nearly everything already keys off `p.status =
+'PUBLISHED'`, so **one** switch would be harder to miss than two.
+**Argued down, on this arc's own principle for the third time:**
+
+- **It destroys information we cannot recover.** Reinstatement would have
+  to republish — but *which* ones? Some were already drafts, deliberately.
+  Getting it right needs a hidden "was published before we suspended
+  them" flag on every programme: a second piece of state, worse than the
+  one we were avoiding.
+- **It writes OUR decision into THEIR column.** Published-ness is the
+  tutor's editorial judgement ("this is ready"); standing is ours. Fold
+  them together and neither can be read honestly afterwards — their
+  programme history would show them unpublishing work they never touched.
+  Same axis separation that killed `EXPIRED`-as-status and the plan
+  columns (§13).
+
+⭐ **But he was right about the cost, and it had already bitten.** Two
+switches means every public surface must remember both — and the
+session-reminder defect above is exactly that failure. ⏭ **Follow-up
+(not built):** make *"is this programme publicly live?"* answerable in
+**one** place rather than re-derived by hand in seven, so a new surface
+inherits both conditions whether or not its author knows suspension
+exists. ⚠ It cannot be a plain SQL function called from a view's `WHERE`
+— that runs as the invoker and would hit `nclex_tutors`' RLS as `anon`,
+emptying the catalogue. It has to be a view, or a documented join.
+
 ### ⏭ OPEN — the student is never told (Sam, 2026-08-21)
 
 **Settled in principle, undesigned, NOT built.** §7's rationale already
