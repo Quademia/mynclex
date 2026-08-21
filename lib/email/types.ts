@@ -46,7 +46,41 @@ export type EmailEventKey =
    * ⭐ The first FAN-OUT email: one trigger, a whole cohort of recipients.
    * Every key above it has exactly one. See SessionReminderPayload.
    */
-  | 'session.reminder';
+  | 'session.reminder'
+  /**
+   * The first email about SOMEONE'S STANDING rather than their money or
+   * their place in a class — and the first onboarding: nothing else
+   * welcomes a new tutor. Tutor-onboarding slice 1c.
+   */
+  | 'tutor.added_by_admin';
+
+// ─────────────────────────────────────────────────────────────────────
+// The tutor welcome (tutor-onboarding slice 1c)
+// ─────────────────────────────────────────────────────────────────────
+// ⚠ NOTHING ABOUT PLANS OR LIMITS. Tutor plans and quotas are
+// deliberately unmodelled (tutor-onboarding.md §12), and admission is not
+// plan assignment — so there is no tier field here to render a promise
+// the software cannot keep.
+export type TutorAddedByAdminPayload = {
+  /** Null when the account has no profile name yet. */
+  recipientName: string | null;
+  /**
+   * ⚠ NO addedByName, deliberately (Sam, 2026-08-21). Which admin
+   * promoted them is OUR provenance — it lives on
+   * nclex_tutors.approved_by and shows in the admin directory. Putting
+   * a staff member's personal name in an outward email is a
+   * disclosure decision, and it would have been made by accident the
+   * first time TUTORS_MANAGE was delegated.
+   */
+  /**
+   * Whether they were already a student. Renders a reassurance ONLY when
+   * true: someone who never had a student account should not be told
+   * what they keep, or they will wonder what they lost.
+   */
+  keepsStudentRole: boolean;
+  workspaceUrl: string;
+  profileUrl: string;
+};
 
 // ─────────────────────────────────────────────────────────────────────
 // The outbox row

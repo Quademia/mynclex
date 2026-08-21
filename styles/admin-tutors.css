@@ -234,6 +234,24 @@
 }
 .adt-hatch-txt { flex: 1; min-width: 160px; }
 
+/* Inline form error. There is no shared class for this — every surface
+ * scopes its own (.enrol-form-error, .lib-field-error, .cs-error) — so
+ * this matches their shape rather than inventing a global. */
+.adt-form-error {
+  margin: 10px 0 0;
+  padding: 9px 11px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  color: #7f1d1d;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* The search field inside the modal fills its row, unlike the toolbar's. */
+.adt-modal .adt-search { width: 100%; flex: none; }
+.adt-modal .adt-modal-title { margin-top: 8px; }
+
 /* Slice-1c stopgap: the new-user path ends in an instruction */
 .adt-stopgap {
   background: #fffbeb; border: 1px solid #fcd34d; border-radius: var(--radius);
@@ -253,6 +271,7 @@
 }
 .adt-user-opt:last-child { border-bottom: none; }
 .adt-user-opt:hover { background: var(--bg); }
+.adt-user-opt-id { flex: 1; }
 .adt-role-chip {
   font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
   padding: 1px 6px; border-radius: 4px;

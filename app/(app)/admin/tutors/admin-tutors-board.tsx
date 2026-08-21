@@ -15,7 +15,8 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { AddTutorModal } from './add-tutor-modal';
 import {
   hasPublicProfile,
   sourceClass,
@@ -74,6 +75,15 @@ export function AdminTutorsBoard({
   const [q, setQ] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'SUSPENDED'>('ALL');
   const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  // Auto-dismiss at ~5s, the house convention for every toast in the app.
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -101,6 +111,11 @@ export function AdminTutorsBoard({
             own public profile; this page does not edit it.
           </p>
         </header>
+        <div className="adt-head-actions">
+          <button type="button" className="btn btn-accent" onClick={() => setAddOpen(true)}>
+            + Add tutor
+          </button>
+        </div>
       </div>
 
       <div className="adt-stats">
@@ -172,6 +187,25 @@ export function AdminTutorsBoard({
       </div>
 
       {open && <TutorDrawer row={open} onClose={() => setDrawerId(null)} />}
+
+      {addOpen && (
+        <AddTutorModal
+          onClose={() => setAddOpen(false)}
+          onAdded={(message) => {
+            setAddOpen(false);
+            setToast(message);
+            // The server action revalidates /admin/tutors, so the new row
+            // arrives on the next render — which is exactly why 1b (the
+            // list) had to exist before 1c (the action).
+          }}
+        />
+      )}
+
+      {toast && (
+        <div className="adt-toast" role="status" onClick={() => setToast(null)}>
+          {toast}
+        </div>
+      )}
     </>
   );
 }
