@@ -2,8 +2,9 @@
 
 > ## ✅ DONE 2026-08-21 (later) — **tutor onboarding slice 1d: suspend & reinstate**
 >
-> **Slice 1 is COMPLETE and Sam-tested.** On the session branch, **nine
-> commits, five migrations** (`20260916`–`20260920`), all dev-applied. Doc:
+> **Slice 1 is COMPLETE and Sam-tested.** **On `main`** — 11 commits,
+> **five migrations** (`20260916`–`20260920`), dev-applied and **not yet
+> on prod**. Doc:
 > **`docs/product-plan/tutor-onboarding.md`** §7, §10, §11.1d.
 >
 > | Sub-slice | What | Commit |
