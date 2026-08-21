@@ -18,7 +18,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AddTutorModal } from './add-tutor-modal';
 import { SuspendModal } from './suspend-modal';
-import { reinstateTutorAction } from '@/lib/tutors/actions';
+import { ReinstateModal } from './reinstate-modal';
 import {
   hasPublicProfile,
   sourceClass,
@@ -81,9 +81,9 @@ export function AdminTutorsBoard({
   const [drawerId, setDrawerId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  /** user_id whose suspend modal is open, or null. */
+  /** user_id whose suspend / reinstate modal is open, or null. */
   const [suspending, setSuspending] = useState<string | null>(null);
-  const [reinstating, setReinstating] = useState(false);
+  const [reinstating, setReinstating] = useState<string | null>(null);
 
   // Auto-dismiss at ~5s, the house convention for every toast in the app.
   useEffect(() => {
@@ -107,25 +107,7 @@ export function AdminTutorsBoard({
 
   const open = drawerId ? (rows.find((r) => r.user_id === drawerId) ?? null) : null;
   const suspendRow = suspending ? (rows.find((r) => r.user_id === suspending) ?? null) : null;
-
-  /**
-   * Reinstatement has no modal — undoing a restriction needs no
-   * justification the way imposing one does — so the click IS the
-   * confirmation and this guards against a double one.
-   */
-  async function reinstate(userId: string) {
-    if (reinstating) return;
-    setReinstating(true);
-    const res = await reinstateTutorAction(userId);
-    setReinstating(false);
-    setToast(
-      !res.ok
-        ? res.error
-        : res.changed
-          ? `${res.name} reinstated — TUTOR restored, programmes back in the catalogue.`
-          : `${res.name} was not suspended — nothing changed.`,
-    );
-  }
+  const reinstateRow = reinstating ? (rows.find((r) => r.user_id === reinstating) ?? null) : null;
 
   return (
     <>
@@ -218,8 +200,19 @@ export function AdminTutorsBoard({
           row={open}
           onClose={() => setDrawerId(null)}
           onSuspend={() => setSuspending(open.user_id)}
-          onReinstate={() => void reinstate(open.user_id)}
-          busy={reinstating}
+          onReinstate={() => setReinstating(open.user_id)}
+        />
+      )}
+
+      {reinstateRow && (
+        <ReinstateModal
+          userId={reinstateRow.user_id}
+          name={reinstateRow.name}
+          onClose={() => setReinstating(null)}
+          onDone={(message) => {
+            setReinstating(null);
+            setToast(message);
+          }}
         />
       )}
 
@@ -367,14 +360,17 @@ function TutorDrawer({
   onClose,
   onSuspend,
   onReinstate,
-  busy,
 }: {
   row: TutorDirectoryRow;
   onClose: () => void;
   onSuspend: () => void;
-  /** Reinstate has no modal — one click, per the design. */
+  /**
+   * ⚠ Both foot buttons only OPEN a dialog; neither acts. Reinstate used
+   * to fire on click, per the design — it gained a confirm step because
+   * it sits beside Close and, since 1d-i, a stray click leaves a
+   * permanent trail entry. See reinstate-modal.tsx.
+   */
   onReinstate: () => void;
-  busy: boolean;
 }) {
   const approved = formatDate(row.approved_at);
   const firstApplied = formatDate(row.first_applied_at);
@@ -492,13 +488,8 @@ function TutorDrawer({
               one move. A PENDING or REJECTED row belongs to the
               applications queue (2b), so it gets neither. */}
           {row.status === 'SUSPENDED' && (
-            <button
-              type="button"
-              className="btn btn-accent btn-sm"
-              onClick={onReinstate}
-              disabled={busy}
-            >
-              {busy ? 'Reinstating…' : 'Reinstate tutor'}
+            <button type="button" className="btn btn-accent btn-sm" onClick={onReinstate}>
+              Reinstate…
             </button>
           )}
           {row.status === 'APPROVED' && (

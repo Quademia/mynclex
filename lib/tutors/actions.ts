@@ -415,21 +415,35 @@ export async function suspendTutorAction(
 /**
  * Reinstate: standing back to APPROVED, TUTOR role re-granted.
  *
- * No modal and no reason — undoing a restriction needs no justification
- * the way imposing one does. The suspension's reason stays in the trail,
- * which is the record anyone reviewing this later actually needs.
+ * ⭐ THE NOTE IS OPTIONAL, AND THAT IS THE WHOLE DISTINCTION. The design
+ * argued reinstatement needs no modal because "undoing a restriction
+ * needs no justification the way imposing one does" — an argument about
+ * REQUIRING A REASON, not about CONFIRMING. Sam asked for a confirm step
+ * anyway (2026-08-21) and he is right for a different reason: this
+ * button sits next to Close and fires instantly, so it is the easier of
+ * the two to hit by accident, and since 1d-i a stray click leaves a
+ * PERMANENT trail entry that suspending again cannot remove. State is
+ * recoverable; history is not. So: confirm, but never demand a reason.
  *
  * ⚠ approved_at/by are NOT rewritten (the RPC coalesces): "who first let
  * this person in" is a permanent fact, and a reinstatement is not it.
  */
-export async function reinstateTutorAction(userId: string): Promise<TutorStandingResult> {
+export async function reinstateTutorAction(
+  userId: string,
+  note?: string,
+): Promise<TutorStandingResult> {
   const ctx = await requireAdminPermission(PERM_TUTORS_MANAGE);
+
+  // Empty or whitespace becomes null: the RPC stores NULLIF(btrim(...))
+  // anyway, and an empty string in the trail would render as an entry
+  // with a dash where a sentence should be.
+  const cleanNote = (note ?? '').trim() || null;
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('nclex_tutor_record_decision', {
     p_user_id: userId,
     p_to_status: 'APPROVED',
-    p_reason: null,
+    p_reason: cleanNote,
   });
 
   if (error) return { ok: false, error: decisionError(error.message) };
