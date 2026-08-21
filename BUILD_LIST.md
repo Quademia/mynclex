@@ -1,6 +1,51 @@
 # MyNclex Build List
 
-> ## 🔨 IN PROGRESS 2026-08-21 — **tutor onboarding: the four ways in**
+> ## ✅ DONE 2026-08-21 (later) — **tutor onboarding slice 1d: suspend & reinstate**
+>
+> **Slice 1 is COMPLETE.** On the session branch, **six commits, four
+> migrations** (`20260916`–`20260919`), all dev-applied. Doc:
+> **`docs/product-plan/tutor-onboarding.md`** §7, §10, §11.1d.
+>
+> | Sub-slice | What | Commit |
+> |---|---|---|
+> | **1d-i** ✅ | `decision_history` — an append-only trail | `ac890ee` |
+> | **1d-ii** ✅ | the decision RPC, `revokeTutorRole`, both actions, the suspend modal | `7d87818` |
+> | **1d-iii** ✅ | four public views, two public RPCs, **and the checkout gate** | `d66acf0` |
+> | **1d-iv/v** ✅ | `tutor.suspended` + the sweep exclusion | `e0d12d9` |
+> | **+** ✅ | `tutor.reinstated` (Sam spotted the gap) | `e0118ca` |
+> | **+** ✅ | the reinstate confirm dialog (Sam) | `2bc0da3` |
+>
+> - **⭐ A schema change the plan did not have: `decision_history`** (Sam's
+>   call). Until 1d no row could carry more than ONE decision, so the
+>   drawer's derived trail was sufficient *by accident*. Append-only JSONB
+>   array, **not** the events table §13 rejected. The rule settled with
+>   it: *a JSONB array is right while a history is short, bounded and read
+>   whole; a table is earned the day something queries across rows.*
+>   The scalars stay authoritative and ONE statement writes both.
+> - **⚠ The new RPC re-opened the hole 1a closed.** `SECURITY DEFINER`
+>   runs as the definer, so any tutor who also holds `TUTORS_MANAGE`
+>   could have lifted their own suspension through it. It now refuses to
+>   decide on the caller's own record.
+> - **⚠⚠ "The same two views" was an undercount — four views and two
+>   RPCs. And checkout reads NONE of them:** `startCheckout` resolves
+>   from base tables through the service role, so filtering every view in
+>   the database would not have stopped one sale. "Checkout blocked"
+>   needed its own gate.
+> - **⚠⚠ "Money in flight stops" was not the reminder emails.** Step 2c
+>   of the nightly sweep PAUSES students for arrears — stopping the
+>   reminders alone would have meant we quietly stop asking for the money
+>   and then lock the student out for not paying it.
+> - **⏭ OPEN, and one part is a DEFECT:** nothing in the **student**
+>   interface says the tutor is suspended, and
+>   `nclex_enqueue_session_reminders` has no standing check, so the 07:00
+>   cron still emails their students *"your live class is tomorrow"*.
+>   Scoped in the doc under §7 → *OPEN — the student is never told*.
+> - **Still not built:** slice 2 (self-serve doorways) · slice 3 (invite
+>   by email) · the `1a-drop` migration · tutor plans (doc §12).
+>
+> ---
+>
+> ## ✅ DONE 2026-08-21 — **tutor onboarding: the four ways in**
 >
 > **Slice 1 is 4/5 built; only 1d remains.** Doc:
 > **`docs/product-plan/tutor-onboarding.md`**. ✅ **ON `main`, AND
@@ -74,10 +119,7 @@
 >   slice 3 (invite by email — the new-user path ends in an honest
 >   instruction until then) · tutor plans and quotas, parked with the
 >   downgrade question named (doc §12).
-> - **⏭ NEXT: 1d** — suspend / reinstate. ⚠ The only sub-slice that
->   changes what the **public** can see, and it must NOT reuse
->   `nclex_users.is_active`: that is person-level and wrong for a tutor
->   who is also somebody’s student.
+> - ~~**⏭ NEXT: 1d**~~ — **built the same day**, see the entry above.
 >
 > ---
 >

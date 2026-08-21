@@ -306,6 +306,67 @@ needs a **tutor-level** filter in those views rather than reusing that
 blunt person-level switch, which would also be wrong for a tutor who
 is still a student elsewhere.
 
+### ⚠ What "four switches" turned out to mean when it was built (1d)
+
+The table above is right about the *decisions* and undercounted the
+*places*. Recorded here because the next person will trust the table:
+
+- **It is FOUR VIEWS AND TWO FUNCTIONS, not "the three public views"** —
+  `nclex_public_programmes` · `_units` · `_cohorts` ·
+  `_payment_strategies` · `nclex_join_waitlist` · `nclex_submit_enquiry`.
+  Filtering only the programmes view leaves the units, cohorts and
+  **prices** publicly readable.
+- **⭐⭐ CHECKOUT READS NONE OF THEM.** `lib/payments/init.ts` resolves
+  the programme and the plan from the **base tables** through the service
+  role and checks only that the programme is `PUBLISHED`. Filtering every
+  view in the database would not have stopped one sale — a direct link or
+  a stale tab bypasses discovery entirely. "Checkout blocked" needed its
+  own gate inside `startCheckout`.
+- **⭐⭐ "Money in flight stops" is NOT the two reminder emails.** Step 2c
+  of the nightly sweep PAUSES a student for arrears. Stopping the
+  reminders alone would have meant we quietly stop asking for the money
+  and then lock the student out for not paying it — the exact outcome the
+  rationale above forbids. Three blocks skip a suspended tutor: due
+  reminders, overdue reminders, **and the pause**. Access-window expiry
+  and subscription expiry deliberately do NOT (that window is what the
+  student bought; passes are sold by us, not the tutor).
+
+### ⏭ OPEN — the student is never told (Sam, 2026-08-21)
+
+**Settled in principle, undesigned, NOT built.** §7's rationale already
+says *"pretending future sessions will still happen is a lie the product
+would be telling"* — and 1d only implemented the half that faces the
+public and the tutor. **Nothing in the student interface says a word.**
+A student enrolled with a suspended tutor keeps their curriculum,
+library and quizzes exactly as intended, and has no way to learn that
+nobody is coming to the live sessions.
+
+⚠⚠ **And one part of this is a live defect, not a future feature.**
+`nclex_enqueue_session_reminders` (20260912120000) joins `nclex_users`
+for the tutor and has **no tutor-standing check**, so the 07:00 cron
+keeps emailing a suspended tutor's students *"your live class is
+tomorrow"*. That is the forbidden lie, sent by us, on a schedule. It was
+missed in 1d-v because §7 lists four switches and this is a fifth
+consequence. **Fix before the student-facing design, not with it.**
+
+To decide when it is picked up — deliberately NOT decided now:
+- **What the student sees, and where** — cohort/programme overview,
+  the curriculum list, the live-sessions surface, or all three.
+- **How much to say.** "Your tutor is currently unavailable" is honest
+  and vague; naming a suspension discloses a conduct decision to
+  someone with no need for it. ⭐ The disclosure test is the one the
+  emails already use: is this a fact the recipient needs in order to
+  act? A student needs to know **no sessions are coming**; they do not
+  need to know why.
+- **Whether it is an email as well as a screen.** A student who never
+  logs in between suspension and their next scheduled class learns
+  nothing from a banner.
+- **What happens on reinstatement** — the notice has to come down, and
+  a student told "no sessions" needs telling when they resume.
+- **Refunds and instalments.** Out of scope here and named in §7 only
+  as "creates a refund liability". A student mid-instalment on a
+  suspended tutor's programme is a commercial question, not a UI one.
+
 ---
 
 ## 8. Pending and rejected applicants <span>settled 2026-08-21</span>
@@ -400,10 +461,38 @@ that email is no longer an arc of its own. Registry:
 | `tutor.application_submitted_admin` | **admin** | on submit | 2 |
 | `tutor.application_approved` | applicant | on approve | 2 |
 | `tutor.application_rejected` | applicant | on reject, carrying the reason | 2 |
-| `tutor.suspended` | tutor | on suspend | 1 or 2 |
+| `tutor.suspended` ✅ | tutor | on suspend, carrying the reason | 1d-iv |
+| `tutor.reinstated` ✅ | tutor | on reinstate | 1d |
 
 ⚠ The **admin** notification matters — recipient ≠ actor. Without it a
 queue fills up that nobody knows about.
+
+⭐ **`tutor.reinstated` was not in this table until it was built** (Sam,
+2026-08-21). The list had an email for taking someone's standing away and
+none for giving it back, so a reinstated tutor would have found out by
+discovering the workspace worked again. **An account that writes to you
+when it removes something and goes silent when it restores it reads as
+punitive** — and leaves the person unsure whether the decision was
+reversed or they merely got lucky. Worth checking every future pair for
+the same asymmetry: approve/reject has both, suspend/reinstate did not.
+
+ⓘ The two suspension emails are **deliberate opposites**, and the
+differences are the design:
+- **Reason**: `tutor.suspended` carries it — telling someone they are
+  suspended without saying why leaves them no possible action but to
+  write and ask. `tutor.reinstated` has no reason **field at all**,
+  because reinstatement takes none (§7's rule: undoing a restriction
+  needs no justification the way imposing one does).
+- **Button**: suspension has none — every link would point at a door we
+  just locked. Reinstatement is all button; the workspace link *is* the
+  message.
+- **Actor**: neither names an admin, and the suspension notice most of
+  all. A staff name on a *conduct* decision invites them to be contacted
+  about it personally.
+- ⚠ Reinstatement **does not apologise and does not explain**. We may
+  reinstate because we were wrong, because they fixed something, or
+  because the suspension was always meant to be temporary — the record
+  does not distinguish those, so the email must not imply one.
 
 ⭐ **Built ones use `enqueueAndSend`, not `enqueueEmail`** (Sam,
 2026-08-21). The rule the code already carried and this arc confirmed:
@@ -595,13 +684,41 @@ and surname, because a user record is being created from nothing.
   only as Sam.
 - ⚠ The grant must never remove existing roles (§4, invariant 2).
 
-**1d — suspend and reinstate.** The status transitions, plus the
-**tutor-level filter in the public views** so a suspended tutor's
-programmes leave the catalogue. Revokes the TUTOR role; restores it on
-reinstate. Plus `tutor.suspended`.
+**1d — suspend and reinstate.** ✅ **BUILT 2026-08-21** — `ac890ee`
+(the trail), `7d87818` (the transitions), `d66acf0` (the public filter +
+checkout gate), `e0d12d9` (the emails + the sweep), `e0118ca`
+(`tutor.reinstated`), `2bc0da3` (the reinstate confirm). **Four
+migrations**, `20260916`–`20260919`.
 
-- **Touches:** `lib/tutors/actions.ts` · `db/rls.sql` (the same two
-  views again) · one email template
+⭐ **It carried a schema change the plan did not have: `decision_history`**
+(Sam's call). Until 1d no row could hold more than ONE decision, so the
+drawer's derived trail was sufficient *by accident*; suspend/reinstate
+makes a second, a third and a fourth, and a scalar `decision_reason`
+keeps only the latest. It is an **append-only JSONB array on
+`nclex_tutors`**, not the events table §13 rejected — the rule settled
+alongside it: *a JSONB array is right while a history is short, bounded
+and read whole; a table is earned the day something queries across rows.*
+⚠ The scalars stay authoritative for current state, and ONE SQL statement
+writes both, so they cannot drift.
+
+⚠ **And a hole the new RPC re-opened.** §1a's column privileges stop a
+tutor approving themselves through a direct update — but a
+`SECURITY DEFINER` function runs as its definer, so any tutor who also
+holds `TUTORS_MANAGE` could have lifted their own suspension through it.
+`nclex_tutor_record_decision` refuses to decide on the caller's own
+record. **Every future SECURITY DEFINER write against this table must
+re-check that**; the column grant does not protect it.
+
+ⓘ The reinstate confirm dialog was **added against the design** (Sam),
+which said reinstatement needs no modal. Its reasoning was about
+requiring a *reason*, not about *confirming* — so the note is optional
+and the rule survives. The new fact the design could not weigh: with an
+append-only trail, a misclick is **permanent in the record** even after
+the state is corrected.
+
+- **Touches:** `lib/tutors/actions.ts` · **four** public views and **two**
+  public RPCs · `lib/payments/init.ts` · the nightly sweep · two email
+  templates · two modals — ⚠ *not* "the same two views again", see §7
 - ⚠ **The only sub-slice that changes what the public can see.**
   Suspension must **not** reuse `nclex_users.is_active` (§7) — that is
   a person-level switch, and wrong for a tutor who is also a student.
