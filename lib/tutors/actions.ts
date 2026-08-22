@@ -314,6 +314,52 @@ function decisionError(
   return message;
 }
 
+/**
+ * ⭐⭐ THE STAGE THAT MAKES A DECISION EMAIL UNIQUE TO *THAT* DECISION.
+ *
+ * The outbox de-duplicates on `(event_key, subject_ref, stage)` and reads
+ * a unique violation as SUCCESS — which is what makes Paystack's webhook
+ * retries harmless. `stage` defaults to `'-'`, which outbox.ts documents
+ * as "a one-off".
+ *
+ * ⚠ THAT DEFAULT IS WRONG WHENEVER subject_ref IS A PERSON. An enrolment
+ * is approved once and a checkout gets one receipt, so `'-'` is right
+ * there. But a person can be suspended, reinstated and suspended again —
+ * and every one of these emails used `subject_ref = user_id` with the
+ * default stage, so the SECOND one silently vanished. Not an error
+ * anywhere: the insert was refused, the refusal was read as success, and
+ * the action reported that it had emailed somebody it had not.
+ *
+ * Found 2026-08-22 when Sam suspended a tutor who had already been
+ * suspended the day before and no email arrived. It had been true since
+ * 1d shipped, and it is on prod. ⚠ The worst case was NOT suspension: §9
+ * designs for an applicant being rejected, fixing their application and
+ * being rejected again — and the rejection email is the only thing
+ * carrying the new reason.
+ *
+ * So the stage is the decision's own timestamp, taken from the entry
+ * `nclex_tutor_record_decision` just appended. Every transition appends
+ * exactly one, so it identifies this decision and no other.
+ *
+ * ⓘ The fallback is `now()` rather than `'-'` on purpose: if the trail
+ * could not be read, a stage nothing can collide with sends the email
+ * twice at worst, where `'-'` would send it never. For a notice about
+ * somebody's standing, duplicated beats missing.
+ */
+async function decisionStage(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  userId: string,
+): Promise<string> {
+  const { data } = await admin
+    .from('nclex_tutors')
+    .select('decision_history')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  const trail = (data?.decision_history ?? []) as { at?: string }[];
+  return trail[trail.length - 1]?.at ?? new Date().toISOString();
+}
+
 /** Look up a name for the toast. Never blocks the decision. */
 async function tutorName(
   admin: ReturnType<typeof createServiceRoleClient>,
@@ -410,6 +456,8 @@ export async function suspendTutorAction(
     await enqueueAndSend({
       eventKey: 'tutor.suspended',
       subjectRef: userId,
+      // A tutor can be suspended more than once. See decisionStage.
+      stage: await decisionStage(admin, userId),
       toEmail: person.email,
       toUserId: userId,
       payload: {
@@ -496,6 +544,9 @@ export async function reinstateTutorAction(
     await enqueueAndSend({
       eventKey: 'tutor.reinstated',
       subjectRef: userId,
+      // Suspended → reinstated → suspended → reinstated is an ordinary
+      // history, and every step of it has to reach the person.
+      stage: await decisionStage(admin, userId),
       toEmail: person.email,
       toUserId: userId,
       payload: {
@@ -601,6 +652,8 @@ export async function approveApplicationAction(
     await enqueueAndSend({
       eventKey: 'tutor.application_approved',
       subjectRef: userId,
+      // Rejected, resubmitted, approved — and possibly round again.
+      stage: await decisionStage(admin, userId),
       toEmail: person.email,
       toUserId: userId,
       payload: {
@@ -672,6 +725,11 @@ export async function rejectApplicationAction(
     await enqueueAndSend({
       eventKey: 'tutor.application_rejected',
       subjectRef: userId,
+      // ⚠ THE ONE THIS BUG WOULD HAVE HURT MOST. §9 exists so a rejected
+      // applicant can fix their application and resubmit — so a second
+      // rejection is expected, and this email is the only thing carrying
+      // the new reason.
+      stage: await decisionStage(admin, userId),
       toEmail: person.email,
       toUserId: userId,
       payload: {

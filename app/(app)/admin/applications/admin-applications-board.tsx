@@ -253,9 +253,12 @@ function ApplicationDetail({
     // "changed: false" means another admin already decided it, or this is
     // a second click. Reporting an approval that did not happen here
     // would be the same lie the suspend modal refuses to tell.
+    // ⚠ "queued", not "emailed". enqueueAndSend returns once the row is
+    // written; the send runs after the response, so a toast that claims
+    // delivery is claiming something we do not yet know.
     onDone(
       res.changed
-        ? `${res.name} approved — TUTOR granted, free tier, and they have been emailed.`
+        ? `${res.name} approved — TUTOR granted, free tier, approval email queued.`
         : `${res.name} was already approved — nothing changed.`,
     );
   }
@@ -274,7 +277,7 @@ function ApplicationDetail({
 
     onDone(
       res.changed
-        ? `${res.name}'s application rejected — they have been emailed the reason and can resubmit.`
+        ? `${res.name}'s application rejected — the reason is on their record, email queued, and they can resubmit.`
         : `${res.name}'s application was already decided — nothing changed.`,
     );
   }
