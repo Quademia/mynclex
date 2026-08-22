@@ -34,6 +34,19 @@ const ibmPlexMono = IBM_Plex_Mono({
 // 2026-08-19, swept 2026-08-22; see lib/email/templates/wrapper.ts,
 // which has said Quademia since the decision was made).
 export const metadata: Metadata = {
+  // ⚠⚠ WITHOUT metadataBase, og:image RESOLVES AGAINST localhost:3000 IN
+  // PRODUCTION. Next needs an absolute URL for social images and, with
+  // nothing set, falls back to http://localhost:3000 unless VERCEL_URL
+  // exists — and on Cloudflare it never does. The tag would ship
+  // pointing at a host the crawler cannot reach, so a shared link would
+  // show no picture while every local check looked perfect. Added with
+  // the OG card, 2026-08-22.
+  //
+  // ⓘ Same shape as every other origin in this repo (lib/tutors,
+  // lib/enrolments): NEXT_PUBLIC_SITE_URL is not set in wrangler.jsonc,
+  // .env.local or either workflow, so the fallback is what actually
+  // runs. It is kept anyway so setting the variable would work.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://nclex.quademia.com"),
   title: "MyNclex-RN — Launching 2026 | Quademia",
   description:
     "MyNclex-RN — NCLEX-RN exam prep for internationally-trained nurses. A Quademia product, launching 2026.",
