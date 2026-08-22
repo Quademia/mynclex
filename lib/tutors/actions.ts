@@ -701,6 +701,65 @@ export async function submitApplicationAction(
   return { ok: true, created: outcome.created, submissionCount: count };
 }
 
+/**
+ * "We're not taking you on as a tutor — but you can use MyNclex as a
+ * student." One button, and it is sub-slice 2c's whole point (§8).
+ *
+ * ⭐ A REJECTION SHOULD NOT BE A DEAD END. Someone who applied to teach
+ * clearly wants to be here; sending them to a page that says no and
+ * nothing else throws away a person who was ready to pay us.
+ *
+ * ⭐⭐ NO SERVICE ROLE, AND NO MIGRATION — because `nclex_roles_self_insert
+ * _student` already permits exactly this and nothing more:
+ * `user_id = auth.uid() AND role = 'STUDENT'`. The policy cannot be
+ * talked into granting TUTOR, so the database enforces the shape of this
+ * action rather than trusting it. That is the opposite of the arrangement
+ * grantTutorRole needs, and the reason this one is three lines.
+ *
+ * ⚠ THE TUTOR RECORD IS NOT DELETED OR ALTERED. They remain a rejected
+ * applicant who is now also a student — §9 lets them come back and
+ * resubmit later, and that needs the row, the reason and the count
+ * intact. Converting is additive, like every other role grant here.
+ */
+export async function convertToStudentAction(): Promise<
+  { ok: true } | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false, error: 'Sign in first.' };
+
+  // ⚠ Only from REJECTED. Offered nowhere else, but the check belongs at
+  // the layer that cannot be skipped: a PENDING applicant taking this
+  // would give themselves a role while we are still deciding, and an
+  // APPROVED tutor has one already.
+  const { data: record } = await supabase
+    .from('nclex_tutors')
+    .select('status')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (record?.status !== 'REJECTED') {
+    return { ok: false, error: 'That offer does not apply to your account.' };
+  }
+
+  const { error } = await supabase
+    .from('nclex_user_roles')
+    .insert({ user_id: user.id, role: 'STUDENT' });
+
+  // 23505 = they already had it (a second click, or two tabs). That is
+  // the outcome we wanted, so it is success.
+  if (error && error.code !== '23505') {
+    return { ok: false, error: 'Could not set up your student account. Please try again.' };
+  }
+
+  revalidatePath(TUTOR_APPLICATION_PATH);
+  return { ok: true };
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // The applications queue (sub-slice 2b)
 // ─────────────────────────────────────────────────────────────────────

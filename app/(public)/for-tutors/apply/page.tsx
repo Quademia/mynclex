@@ -29,6 +29,7 @@ import { createClient } from '@/lib/supabase/server';
 import { loadMyTutorRecord } from '@/lib/tutors/queries';
 import { TUTOR_APPLICATION_PATH } from '@/lib/tutors/types';
 import { ApplyForm } from './apply-form';
+import { ConvertOffer } from './convert-offer';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +57,15 @@ export default async function ApplyPage() {
   }
 
   const record = await loadMyTutorRecord();
+
+  // For the rejection branch's conversion offer (§8). Read here rather
+  // than inside the component so the button never renders for somebody
+  // who already holds the role.
+  const { data: roleRows } = await supabase
+    .from('nclex_user_roles')
+    .select('role')
+    .eq('user_id', user.id);
+  const alreadyStudent = (roleRows ?? []).some((r) => r.role === 'STUDENT');
 
   // ── APPROVED — nothing to apply for ────────────────────────────────
   if (record?.status === 'APPROVED') {
@@ -170,14 +180,12 @@ export default async function ApplyPage() {
           nextSubmissionCount={record.submission_count + 1}
         />
 
-        {/* ⭐ A rejection should not be a dead end (§8). The conversion to
-            a plain student account lands in 2c — until then this says so
-            honestly rather than pretending the option does not exist. */}
-        <p className="ft-aside">
-          Not sure you want to reapply? You can still use MyNclex as a
-          student — <Link href="/register">create a student account</Link> or{' '}
-          <Link href="/programmes">browse programmes</Link>.
-        </p>
+        {/* ⭐ A rejection should not be a dead end (§8). Offered only to
+            someone who does NOT already hold the role — a rejected
+            applicant who was our student all along has nothing to accept,
+            and showing them a button that grants what they have would be
+            an offer with no content. */}
+        {!alreadyStudent && <ConvertOffer />}
       </main>
     );
   }
