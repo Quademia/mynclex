@@ -65,7 +65,30 @@ export type EmailEventKey =
    * someone their standing was withdrawn and nothing told them when it
    * came back. Tutor-onboarding 1d.
    */
-  | 'tutor.reinstated';
+  | 'tutor.reinstated'
+  /**
+   * The verdict on a self-application. Tutor-onboarding slice 2b.
+   *
+   * ⚠ NOT an alias of tutor.added_by_admin, though the outcome is the
+   * same row. That one welcomes someone an admin CHOSE; these two answer
+   * someone who ASKED — and the rejection has no counterpart at all.
+   * Same split, and the same reason, as enrolment.approved /
+   * enrolment.rejected: shared facts, nothing else in common.
+   */
+  | 'tutor.application_approved'
+  | 'tutor.application_rejected'
+  /**
+   * Acknowledgement to the applicant. Tutor-onboarding 2a-i.
+   */
+  | 'tutor.application_received'
+  /**
+   * ⭐ THE FIRST EMAIL THIS PRODUCT SENDS TO ITSELF. Every key above it
+   * goes to a student or a tutor; this one tells US that a queue has
+   * something in it. Recipient ≠ actor — without it the applications
+   * page fills up and nobody knows, which is the whole reason the plan
+   * doc lists it (§10). Tutor-onboarding 2a-i.
+   */
+  | 'tutor.application_submitted_admin';
 
 // ─────────────────────────────────────────────────────────────────────
 // The tutor welcome (tutor-onboarding slice 1c)
@@ -137,6 +160,84 @@ export type TutorReinstatedPayload = {
    */
   hasProgrammes: boolean;
   workspaceUrl: string;
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// The verdict on an application (tutor-onboarding slice 2b)
+// ─────────────────────────────────────────────────────────────────────
+// ⚠ NEITHER NAMES THE ADMIN — the third and fourth outings for the rule
+// tutor-added-by-admin set. Who decided is our provenance
+// (nclex_tutors.decided_by and the trail); a staff name on a refusal
+// invites the applicant to take it up with that person.
+
+export type TutorApplicationApprovedPayload = {
+  /** Null when the account has no profile name yet. */
+  recipientName: string | null;
+  /**
+   * Whether they already held STUDENT. Renders the "you keep your student
+   * access" reassurance ONLY when true — the rule keepsStudentRole set in
+   * tutor-added-by-admin. A role-less registrant never had it, and telling
+   * them what they keep makes them wonder what they lost.
+   */
+  keepsStudentRole: boolean;
+  workspaceUrl: string;
+  profileUrl: string;
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// Submission (tutor-onboarding slice 2a-i)
+// ─────────────────────────────────────────────────────────────────────
+
+export type TutorApplicationReceivedPayload = {
+  /** Null when the account has no profile name yet. */
+  recipientName: string | null;
+  /**
+   * Shown as "Request #N" — a user-facing number, per §9. It is honest
+   * about the fact that we know they have asked before, which is the
+   * MyTeacher precedent this arc verified rather than assumed.
+   */
+  submissionCount: number;
+  /**
+   * ⚠ Whether this replaces an earlier attempt. The copy MUST differ:
+   * "thanks for applying" to somebody resubmitting a rejected
+   * application reads as though we lost the first one.
+   */
+  isResubmission: boolean;
+  applicationUrl: string;
+};
+
+/**
+ * ⚠ INTERNAL. The only payload in this file whose recipient is us, which
+ * is why it may carry the applicant's own words — there is no disclosure
+ * question when the reader is the person deciding.
+ */
+export type TutorApplicationSubmittedAdminPayload = {
+  applicantName: string;
+  applicantEmail: string;
+  organisation: string | null;
+  submissionCount: number;
+  /** What they wrote. Saves the admin a click to triage. */
+  requestNote: string;
+  /** Straight into the queue. */
+  queueUrl: string;
+};
+
+export type TutorApplicationRejectedPayload = {
+  /** Null when the account has no profile name yet. */
+  recipientName: string | null;
+  /**
+   * ⭐ Always present. nclex_tutor_record_decision refuses REJECTED
+   * without one, so this cannot be null — and per §9 the applicant is
+   * shown it, because someone re-applying without knowing what was wrong
+   * wastes everyone's time.
+   */
+  reason: string;
+  /**
+   * Where to update and resubmit (§9). ⚠ A FORWARD REFERENCE while 2b is
+   * built first: the route lands with 2a-i/2c, and the two release
+   * together, so nothing real is ever sent to a 404.
+   */
+  applicationUrl: string;
 };
 
 // ─────────────────────────────────────────────────────────────────────

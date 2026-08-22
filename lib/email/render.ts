@@ -53,6 +53,22 @@ import {
   TUTOR_REINSTATED_FOOTER_CONTEXT,
   tutorReinstatedTemplate,
 } from './templates/tutor-reinstated';
+import {
+  TUTOR_APPLICATION_APPROVED_FOOTER_CONTEXT,
+  tutorApplicationApprovedTemplate,
+} from './templates/tutor-application-approved';
+import {
+  TUTOR_APPLICATION_REJECTED_FOOTER_CONTEXT,
+  tutorApplicationRejectedTemplate,
+} from './templates/tutor-application-rejected';
+import {
+  TUTOR_APPLICATION_RECEIVED_FOOTER_CONTEXT,
+  tutorApplicationReceivedTemplate,
+} from './templates/tutor-application-received';
+import {
+  TUTOR_APPLICATION_SUBMITTED_ADMIN_FOOTER_CONTEXT,
+  tutorApplicationSubmittedAdminTemplate,
+} from './templates/tutor-application-submitted-admin';
 
 export type Rendered = {
   subject: string;
@@ -146,6 +162,28 @@ const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: s
   'tutor.reinstated': {
     template: tutorReinstatedTemplate,
     footerContext: TUTOR_REINSTATED_FOOTER_CONTEXT,
+  },
+  // ⭐ The verdict pair for someone who ASKED, as opposed to
+  // tutor.added_by_admin above, which greets someone an admin chose.
+  // Deliberately NOT an alias of it — see tutor-application-approved.ts.
+  'tutor.application_approved': {
+    template: tutorApplicationApprovedTemplate,
+    footerContext: TUTOR_APPLICATION_APPROVED_FOOTER_CONTEXT,
+  },
+  'tutor.application_rejected': {
+    template: tutorApplicationRejectedTemplate,
+    footerContext: TUTOR_APPLICATION_REJECTED_FOOTER_CONTEXT,
+  },
+  'tutor.application_received': {
+    template: tutorApplicationReceivedTemplate,
+    footerContext: TUTOR_APPLICATION_RECEIVED_FOOTER_CONTEXT,
+  },
+  // ⭐ The only entry in this table whose recipient is us. See the
+  // template for why its disclosure rules are the inverse of every
+  // other one here.
+  'tutor.application_submitted_admin': {
+    template: tutorApplicationSubmittedAdminTemplate,
+    footerContext: TUTOR_APPLICATION_SUBMITTED_ADMIN_FOOTER_CONTEXT,
   },
 };
 

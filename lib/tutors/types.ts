@@ -73,18 +73,80 @@ export type TutorDecisionEntry = {
 export type TutorTrailEntry = TutorDecisionEntry & { by_name: string | null };
 
 /**
- * One row of the /admin/tutors directory: the tutor record joined to the
- * identity that stays on nclex_users, plus the live programme count.
+ * What one trail entry says.
+ *
+ * ⭐ The wording comes from where it LANDED plus, where it matters, where
+ * it came from: APPROVED means two different events depending on whether
+ * the previous status was SUSPENDED, and calling a reinstatement
+ * "Approved as a tutor" would hide the suspension it undoes.
+ *
+ * ⓘ Lived in admin-tutors-board.tsx until 2b, when the applications
+ * drawer needed the same sentences. Moved here rather than copied — two
+ * renderings of one trail that could drift is exactly the bug this
+ * function exists to prevent.
  */
-export type TutorDirectoryRow = {
+export function trailLabel(e: TutorDecisionEntry): string {
+  switch (e.to) {
+    case 'APPROVED':
+      return e.from === 'SUSPENDED' ? 'Reinstated' : 'Approved as a tutor';
+    case 'SUSPENDED':
+      return 'Suspended';
+    case 'REJECTED':
+      return 'Application rejected';
+    case 'PENDING':
+      return e.from ? 'Re-applied' : 'Applied to become a tutor';
+  }
+}
+
+/** Ring colour on the timeline. PENDING is neither good nor bad. */
+export function trailTone(to: TutorStatus): string {
+  if (to === 'APPROVED') return 'is-good';
+  if (to === 'SUSPENDED' || to === 'REJECTED') return 'is-bad';
+  return '';
+}
+
+/**
+ * ONE PERSON'S WHOLE TUTOR RECORD — the nclex_tutors row joined to the
+ * identity that stays on nclex_users, plus the roles they hold and a live
+ * programme count.
+ *
+ * ⭐ ONE TYPE FOR BOTH SURFACES (settled with Sam, 2026-08-22). The
+ * directory and the applications queue used to have a row type each,
+ * carrying the half of the record their own drawer rendered. That quietly
+ * contradicted §2 — `nclex_tutors` is ONE ROW PER PERSON, and two partial
+ * views of one row leave an admin to wonder which is the truth. It also
+ * taxed every future column with a "which surface does this belong to?"
+ * decision that would be answered inconsistently forever.
+ *
+ * ⚠ So a loader must never fetch a subset. A drawer section that hides
+ * itself when a field is empty cannot distinguish "they wrote no note"
+ * from "this page did not ask for the note" — the invisible-to-tsc
+ * failure this repo keeps meeting.
+ */
+export type TutorRecord = {
   user_id: string;
   name: string;
   email: string;
+  /** From nclex_users — a phone is not tutor-specific, so it lives there. */
+  phone: string | null;
   status: TutorStatus;
   source: TutorSource;
   profile: TutorPublicProfile;
   /** Programmes they own, any status. `0` renders as an em dash. */
   programme_count: number;
+  /** ── The application payload, null for doorways with no approval step. */
+  organisation: string | null;
+  request_note: string | null;
+  /**
+   * Every role they hold right now.
+   *
+   * ⭐ §8 branches on ROLES, not on `source` — an existing student who
+   * applied keeps STUDENT and lands on /student/picker, while a role-less
+   * registrant has nowhere to stand and goes to the application page.
+   * Reading `source` instead would be wrong the moment someone registers
+   * as a tutor from an account that already had a role.
+   */
+  roles: string[];
   /**
    * The permanent vetting fact — set once on first approval, never
    * overwritten.
@@ -120,6 +182,49 @@ export type TutorDirectoryStats = {
   pending: number;
   suspended: number;
 };
+
+/**
+ * Where a person applies, checks their standing, and resubmits — ONE
+ * route with five states (plan doc §8). Slice 2b only *links* to it; 2a-i
+ * and 2c build it.
+ *
+ * ⭐ It is a constant because two places outside the route itself point
+ * at it — the rejection email's "Update and resubmit" button and (in 2c)
+ * the /student/picker card — and the name is still open. Sam left the
+ * choice between this and `/tutor-application` as "a string, not a
+ * design"; keeping it here makes changing his mind a one-line edit
+ * instead of a search.
+ */
+export const TUTOR_APPLICATION_PATH = '/for-tutors/apply';
+
+/** Counts behind the queue's two tabs. */
+export type TutorApplicationStats = {
+  pending: number;
+  decided: number;
+};
+
+/**
+ * True when this applicant has no role at all — the §8-A case.
+ *
+ * Kept as a function rather than a column so there is one definition of
+ * "role-less" for the callout, and it cannot drift from what the router
+ * will branch on in 2c.
+ */
+export function isRolelessApplicant(row: TutorRecord): boolean {
+  return row.roles.length === 0;
+}
+
+/**
+ * Did anybody actually apply for this record?
+ *
+ * The same test the queue's loader uses, so the drawer's application
+ * section appears for exactly the rows that page lists. An admin
+ * promotion or an invite has no approval step (§5) and never stamps
+ * `first_applied_at`, so there is nothing to show for one.
+ */
+export function hasApplication(row: TutorRecord): boolean {
+  return row.first_applied_at !== null;
+}
 
 /** Whether the tutor has written anything students would see. */
 export function hasPublicProfile(profile: TutorPublicProfile): boolean {

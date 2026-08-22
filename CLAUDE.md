@@ -603,10 +603,16 @@ session was open.
 
 - NGN item types (case studies, bow-tie, drag-and-drop, extended multi-response)
 - ~~Public self-serve tutor signup (tutors are manually vetted in v1)~~ —
-  ⭐ **RE-OPENED 2026-08-21 (Sam).** The self-serve application and the
-  register-as-tutor toggle are now slice 2 of the tutor-onboarding arc.
-  Design: `docs/product-plan/tutor-onboarding.md`. Left in this list,
-  struck through, so the reversal is visible rather than silent.
+  ⭐ **RE-OPENED 2026-08-21 (Sam), and ✅ BUILT 2026-08-22** as slice 2 of
+  the tutor-onboarding arc: `/for-tutors`, an application route, the
+  `/admin/applications` queue, and four emails. **Vetting is still a
+  human decision** — the change is that it is now made on a screen
+  instead of by hand-written SQL, and that a tutor can ask without
+  knowing somebody. ⚠ The register-as-tutor toggle named here was
+  **dropped** during design; the door lives on the tutors page, not on
+  `/register`. Canonical: `docs/product-plan/tutor-onboarding.md`.
+  Left in this list, struck through, so the reversal is visible rather
+  than silent.
 - Payment splits / marketplace billing between QAcademy and tutors
 - Migration of MyNMCLicensure or MyTeacher onto this stack
 

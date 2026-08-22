@@ -16,6 +16,18 @@ the tutor record, the four ways in, and the lifecycle.
 (§12), and the shared account surface (§14). Both are named so nobody
 assumes they were forgotten.
 
+⭐ **Slice 2 was redesigned, built and Sam-tested on 2026-08-22.** One
+door instead of two, entered by **email first**; the register-as-tutor
+toggle is **dropped**; the form and the applicant's status page are **one
+route**. §5, §8, §9 and §11 carry the changes, each with the superseded
+version left visible rather than quietly overwritten.
+
+**Status: slices 1 and 2 are complete.** Slice 1 is on `prod`
+(`ce10dfa` + `70502a1`); slice 2 is built and tested on dev, on a branch,
+**not yet on `main`**. ⚠ That last clause is the line in this file most
+likely to rot — check `git log origin/prod` rather than trusting it.
+Slice 3 (invite by email) is the only part of the arc not built.
+
 ---
 
 ## 1. The problem (verified 2026-08-21)
@@ -220,19 +232,101 @@ human says yes first.
 | `source` | Who starts it | Account | Approval | Slice |
 |---|---|---|---|---|
 | `ADMIN_PROMOTION` | admin, on an existing user | already exists | implicit — writing the row *is* the decision | 1c |
-| `SELF_APPLICATION` | the person, already signed in, from the public "For tutors" page | already exists | required | 2a |
-| `REGISTRATION` | the person, register-as-tutor toggle | created now | required | 2d |
+| `SELF_APPLICATION` | the person, already signed in | already exists | required | 2a-i |
+| `REGISTRATION` | the person, logged out, no account yet | created now | required | 2a-ii |
 | `ADMIN_INVITE` | admin, by email | created by us | implicit | 3 |
 
 **`REGISTRATION` writes `nclex_users` + `nclex_tutors`, and NO role.**
 That is the whole mechanism — see §8 for what the applicant then sees.
 
-**Routing rule — which of the two self-serve doorways you land in is
-decided by whether you are signed in.** The public "For tutors" page
-sends a **logged-out** visitor into register-as-tutor (`REGISTRATION`
-— account and application created together, no role) and a **signed-in**
-one into the application form (`SELF_APPLICATION` — account already
-exists, existing roles kept). Same destination, two entry states.
+### Routing rule <span>rewritten 2026-08-22 — email first, not session state · BUILT, with one correction below</span>
+
+**There is ONE form. Which branch you are in is decided by the EMAIL you
+type, not by whether you happened to be signed in when you arrived.**
+
+⭐ **APPLYING IS A LOGGED-OUT ACT** (Sam, 2026-08-22, while reviewing the
+build). The person who reaches "For tutors" heard about MyNclex, arrived
+as a stranger, and clicked. Signed-in traffic to that route is real but
+it is people coming **back** — a pending applicant checking where they
+stand, a rejected one resubmitting, a student following the card on their
+picker. So: *applying is a logged-out act; checking your application is a
+signed-in one.* Design the page around the first and the second still
+works; do it the other way round and the common visitor meets a form
+built for the rare one.
+
+**As built:**
+
+| Arriving as | Sees |
+|---|---|
+| A stranger | **One field: your email** |
+| …no account on that address | Name + password → then their application |
+| …address already has an account | *"You already have an account — sign in to continue"*, with the address prefilled |
+| Already signed in | *"Signed in as …"*, then the form or their status |
+
+⚠ **CORRECTION TO THE ORIGINAL DESIGN — WHERE THE ANSWER COMES FROM.**
+This section first said step 1 *resolves* the email. It does not. The
+plan was to check it behind a Turnstile pass so the check cost an
+attacker exactly what `/register` costs them. **That is not buildable
+here**, and `lib/auth/turnstile.ts` says why in capitals: a Turnstile
+token can be validated exactly ONCE and **Supabase** must be the one to
+spend it — calling Cloudflare ourselves would hand Supabase a spent token
+and refuse every signup on the site. So our own check can only confirm
+that a token *arrived*; a script sends any string. The thresholds in
+`lib/auth/thresholds.ts` do not close it either, because they are keyed
+by **email**, which is precisely what an enumerator varies.
+
+So the email is still asked first — that is the UX, and it carries into
+step 2 — but the **answer** about whether the account exists comes from
+the signup attempt, which Supabase verifies for real.
+
+⭐ **Which is why step 2 is deliberately SHORT: a name and a password.**
+If the address turns out to be taken, the applicant has lost two fields
+rather than a 400-word application — and that, not the number of steps,
+was the whole point of asking for the email first.
+
+⭐ **Why this replaced the old rule.** The previous version branched on
+*whether you are signed in*, and read: *"The public 'For tutors' page
+sends a logged-out visitor into register-as-tutor and a signed-in one
+into the application form."* It has a case it never noticed — **logged
+out, but you already have an account** — and that case is not exotic: it
+is an existing MyNclex student, on her phone, not signed in, tapping
+"become a tutor". The old rule walks her into `signUp`, which fails with
+*"User already registered"* **after** she has filled a long form
+including three tutor-specific fields. A dead end at the end of the work,
+for exactly the applicant §5 below calls a real vetting signal.
+
+⚠ **The email routes; it never authorises.** The `nclex_tutors` row is
+ALWAYS written from `auth.uid()`, never from the typed address. Without
+that rule, §9's *update the row in place* makes this a takedown rather
+than a leak: a stranger typing a live tutor's address would knock their
+APPROVED row back to PENDING and overwrite their profile with text they
+never wrote. Proving identity means signing in — the same way it does
+everywhere else in the product.
+
+ⓘ **Enumeration — matches `/register`, not `/forgot-password`.** Telling
+a visitor "this address already has an account" is what
+`lib/auth/account-lookup.ts` forbids in strong terms ("NOTHING THIS
+RETURNS MAY EVER REACH THE USER"). But `/register` **already** discloses
+it, returning Supabase's own *"User already registered"* verbatim — also
+settled with Sam, the same day. The two decisions do not conflict:
+forgot-password protects a door where the visitor does not need the
+answer, and account creation is a door where they do. So this form adds
+no capability an attacker lacks at the front door, and it reads the
+signup error rather than that function, leaving its rule literally true —
+`account-lookup.ts` is never called from this flow.
+
+ⓘ `source` **needs no schema change and keeps its vetting signal** —
+`REGISTRATION` vs `SELF_APPLICATION` is derived rather than passed.
+
+⭐ **And it is derivable EXACTLY, which is better than the URL flag the
+build first reached for.** Every other way of getting an account here
+grants a role on the way in: `/register` grants STUDENT, the pay-first
+setup at `/welcome` grants STUDENT, admin promotion grants TUTOR. So
+somebody holding **no role at all** at the moment they submit can only
+have arrived through this form. ⚠ It was briefly a parameter the client
+passed, which let the applicant write a fact about *our* provenance —
+and while nothing branches on `source`, "was already our student" is a
+vetting signal they should not be able to set for themselves.
 
 ⓘ The distinction is thin and **nothing branches on `source`** — it is
 metadata for the admin directory, and §8's branching keys off *roles*,
@@ -241,10 +335,11 @@ not source. It is kept because provenance cannot be reconstructed later
 from a student who applied) and because "was already our student" is a
 real vetting signal. Collapsing the two values loses only that signal.
 
-`SELF_APPLICATION` and `REGISTRATION` are the same machinery behind two
-doorways: MyTeacher's own comment notes the register toggle "puts them
+`SELF_APPLICATION` and `REGISTRATION` are the same machinery — and
+since 2026-08-22 they are the same **form**, not two doorways sharing
+parts. MyTeacher's own comment notes its register toggle "puts them
 straight into the approval queue — no separate access-request step
-needed". Build one, get both.
+needed"; we take that conclusion without taking its toggle (§11 → 2a).
 
 ---
 
@@ -273,6 +368,17 @@ PENDING. A constraint is the expensive kind of thing to change later.
 
 The TUTOR role is written on entry to `APPROVED` and revoked on entry
 to `SUSPENDED`.
+
+⚠ **`SUSPENDED` is NOT a source for re-apply** <span>settled
+2026-08-22</span>. The only arrow into `PENDING` is from `REJECTED` (or
+from nothing at all, on a first application). Allowing
+`SUSPENDED → PENDING` would let a suspended tutor launder their own
+standing: re-apply, sit in the queue as an ordinary applicant, and be
+re-approved by an admin who does not check the history. **This is the
+same rule `nclex_tutor_record_decision` already enforces on the admin
+side** — it refuses *every* transition to PENDING, because returning a
+row to PENDING is a re-application and must never be a way to un-decide
+something. Two doors, one rule. See §9 for where it is enforced.
 
 ---
 
@@ -430,15 +536,69 @@ if (roles.length === 0) {
 Split it: no roles **and** a `nclex_tutors` row → the application
 page; no roles and nothing else → `/no-access` as today.
 
-**The application page** serves three states:
+### ⭐ The form and the status page are ONE route <span>settled 2026-08-22</span>
 
-- `PENDING` — "Request #N, pending review"
-- `REJECTED` — the outcome and `decision_reason`, plus **"Update and
-  resubmit"** (§9)
-- `REJECTED` → conversion: *"We're not taking you on as a tutor right
-  now — but you can use MyNclex as a student."* One button, grants
-  STUDENT, drops them at `/student/picker`. A rejection should not be
-  a dead end.
+Earlier drafts of this section described "the application page" as a
+surface separate from the application *form*. **They are the same
+route.** It has to read the caller's `nclex_tutors` row before it can
+render anything — that is how the SUSPENDED refusal below works — and
+once it is doing that, the form is simply the state it shows when it
+finds no row. This is what §9 already observed MyTeacher doing:
+*"reads the existing row first and branches on `request_status`."*
+
+| Row found | What the route shows |
+|---|---|
+| **none** | The form, blank |
+| `PENDING` | "Request #N — pending review". **No form.** |
+| `REJECTED` | The outcome + `decision_reason`, **"Update and resubmit"** (§9 — the same form, pre-filled), **and** the conversion offer below |
+| `SUSPENDED` | Refusal + a contact route. No form. |
+| `APPROVED` | "You are already a tutor" → their workspace |
+
+- **`REJECTED` → conversion:** *"We're not taking you on as a tutor
+  right now — but you can use MyNclex as a student."* One button, grants
+  STUDENT, drops them at `/student/picker`. A rejection should not be a
+  dead end.
+- **`SUSPENDED`** — telling *them* discloses nothing new: §1d settled
+  (visibility option (i)) that a tutor can read their own row, and that
+  reasons are written as if the subject will read them. ⚠ Note there is
+  deliberately **no appeal mechanism** in v1; the exit is "contact us".
+- **`APPROVED` should be unreachable** in practice — they hold the role
+  and `/router` sends them to their workspace. It is a state here so the
+  route never renders a blank application form to a working tutor.
+
+⭐ **Consequence: resubmit is not a screen.** It is the `REJECTED` state
+of a page the applicant has already seen, reusing the same form
+component with values loaded. This drops slice 2's surface count from
+two to one, and removes the "which page am I supposed to be on?"
+question entirely. The *work* does not shrink — the states still have to
+be built.
+
+### ⚠ Every signed-in state needs to say who you are <span>found in testing, 2026-08-22</span>
+
+Sam, looking at the built page: *"they don't see they are logged in, and
+how to log out or go somewhere."*
+
+⭐ **For a role-less applicant THIS ROUTE IS THE WHOLE PRODUCT.**
+`/router` sends them here, there is no sidebar, no account menu and
+nowhere else to go. Before the fix they read "your application is with
+us" underneath a nav button inviting them to **Log in** — which they
+already were — with no way to sign out and no indication of which account
+they were even looking at. A person with two addresses could not tell
+which one we were talking about.
+
+So a strip sits above **all five** signed-in states: *signed in as
+&lt;email&gt;* · a way back into the product **only when they hold a
+role** (an applicant holds none, and a link that bounces them straight
+back here is worse than no link) · **sign out**.
+
+⚠ **It is NOT a session-aware public nav**, which would have fixed it on
+every public page at once. Checked rather than assumed: every page in the
+`(public)` group answers `Cache-Control: no-cache, must-revalidate` —
+**no `private`** — so putting a name in the shared nav would put per-user
+content on every marketing page behind a header that does not say it is
+per-user. That is its own change, with its own headers to settle first.
+This route is already `force-dynamic` and already renders the caller's
+own application, so session UI *here* changes nothing about caching.
 
 **B. Existing student who applies** — keeps STUDENT, gains a PENDING
 row. We cannot hijack their login; they have real enrolments to reach.
@@ -465,15 +625,53 @@ which was verified in `access-request.html` rather than assumed:
 - on submit, if a row exists → update it, `submission_count + 1`,
   status back to `PENDING`
 
+### ⚠ Only `REJECTED` may re-apply <span>added 2026-08-22</span>
+
+The list above branches on `PENDING` and `REJECTED` and is silent on the
+other two states. **A suspended tutor must be refused outright** — see
+§6 for why (they would otherwise launder a suspension back into the
+queue). `APPROVED` is refused too, for the duller reason that they are
+already a tutor.
+
+**Enforced in two layers, per the standing rule that we gate at every
+one — and both are built:**
+
+1. **The route** reads the row and renders the refusal instead of a
+   form (§8's state table).
+2. **`nclex_tutor_submit_application` refuses it** — `SUSPENDED` and
+   `APPROVED` both raise, whatever the UI did. Proven on dev in
+   rolled-back transactions, 2026-08-22, alongside the refusal of any
+   `source` that is not one of the two self-serve values.
+
+⚠ **The sign-in bounce is routing, NOT security.** It is tempting to
+think a suspended tutor is stopped by "that address already has an
+account — sign in", but suspension revokes the **role**, not the
+account: they can still log in, and they may still be a student
+elsewhere. The bounce merely delivers them to the branch where the real
+check has to happen. Layer 2 is the one that matters, because layer 1
+can be bypassed.
+
 **Keep deliberately:** the pre-fill (a rejected applicant should not
 retype everything to fix one thing) and showing the count (**"Request
 #2"** is honest — it says we know you have asked before).
 
-**Resubmit is in v1.** The application page exists anyway for §8, so
-resubmit is the same form plus an increment.
+**Resubmit is in v1.** The route exists anyway for §8, so resubmit is
+the same form plus an increment — and since 2026-08-22 it is not even a
+separate screen, just the `REJECTED` state of the page they already
+know.
 
 **Keep `decision_reason`** — someone re-applying without knowing what
 was wrong wastes everyone's time.
+
+⚠ **SUPERSEDED 2026-08-22 — read the paragraph below as history.** It
+was written before 1d, which built exactly the trail it says v1 would go
+without: **`decision_history`, an append-only JSONB array** of
+`{at, by, from, to, reason}` on the row itself. Its conclusion still
+holds — *no events **table*** — and the rule banked with it is the
+reason: *a JSONB array is right while a history is short, bounded and
+read whole; a table is earned the day something needs to query across
+rows.* Left in place because the reasoning about `nclex_audit_log` is
+still true and still worth knowing.
 
 **No events table in v1.** Full decision history (from → to, when,
 why, by whom) would need its own append-only table; the existing audit
@@ -496,15 +694,62 @@ that email is no longer an arc of its own. Registry:
 | Trigger | Recipient | When | Slice |
 |---|---|---|---|
 | `tutor.added_by_admin` ✅ | new tutor | admin promotion / invite | 1c-i |
-| `tutor.application_received` | applicant | on submit — "we have it, Request #N" | 2 |
-| `tutor.application_submitted_admin` | **admin** | on submit | 2 |
-| `tutor.application_approved` | applicant | on approve | 2 |
-| `tutor.application_rejected` | applicant | on reject, carrying the reason | 2 |
+| `tutor.application_received` ✅ | applicant | on submit — "we have it, Request #N" | 2a-i |
+| `tutor.application_submitted_admin` ✅ | **admin** | on submit | 2a-i |
+| `tutor.application_approved` ✅ | applicant | on approve | 2b |
+| `tutor.application_rejected` ✅ | applicant | on reject, carrying the reason | 2b |
 | `tutor.suspended` ✅ | tutor | on suspend, carrying the reason | 1d-iv |
 | `tutor.reinstated` ✅ | tutor | on reinstate | 1d |
 
+**All seven are built.** The four from slice 2 were each observed
+sending on dev, 2026-08-22.
+
 ⚠ The **admin** notification matters — recipient ≠ actor. Without it a
 queue fills up that nobody knows about.
+
+⭐ **It is the first email this product sends to ITSELF**, and its
+disclosure rules are the INVERSE of every other template in the folder.
+The outward ones withhold the admin's name and are written knowing a
+stranger reads them; this one carries the applicant's name, address,
+organisation and their own words, because the reader is the person about
+to decide. ⚠ It still carries **no decision link** — nothing in an inbox
+approves anybody; that belongs behind a login and a permission check.
+ⓘ The address is the constant `SUPPORT_EMAIL`, not a fan-out to everyone
+holding `TUTORS_MANAGE` (Sam, 2026-08-22): a fan-out is a feature nobody
+needs while there is one admin, and an address in the code cannot
+silently go nowhere the way an unset env var can.
+
+### ⚠⚠ `stage` — the bug that made a second email vanish <span>found 2026-08-22</span>
+
+Sam suspended a tutor who had already been suspended the day before and
+no email arrived. The action was fine; **the fingerprint was wrong**, and
+the lesson generalises well beyond this arc.
+
+The outbox de-duplicates on `(event_key, subject_ref, stage)` and reads a
+unique violation as **success** — which is what makes Paystack's webhook
+retries harmless. `stage` defaults to `'-'`, which `outbox.ts` documents
+as *"a one-off"*.
+
+⭐ **That default is right when a subject can only experience an event
+once — and WRONG whenever `subject_ref` is a PERSON.** An enrolment is
+approved once and a checkout gets one receipt. A person can be suspended,
+reinstated and suspended again. All of these emails used
+`subject_ref = user_id` with the default stage, so **the second one
+silently vanished**: the insert was refused, the refusal read as success,
+and the action reported that it had emailed somebody it had not.
+
+⚠ **The worst case was not suspension.** §9 exists so a rejected
+applicant can fix their application and resubmit — so a *second*
+rejection is designed for, and that email is the only thing carrying the
+new reason.
+
+**Fixed:** the four decision emails take the decision's own timestamp
+from the trail entry `nclex_tutor_record_decision` just appended (every
+transition appends exactly one, so it names that decision and no other);
+the two submission emails take `s<submission_count>`. ⓘ The fallback is
+`now()` rather than `'-'` — for a notice about somebody's standing,
+duplicated beats missing. `tutor.added_by_admin` keeps `'-'`, because
+promotion refuses when a row already exists.
 
 ⭐ **`tutor.reinstated` was not in this table until it was built** (Sam,
 2026-08-21). The list had an email for taking someone's standing away and
@@ -767,43 +1012,168 @@ the state is corrected.
   and it is the assertion worth writing a test around. Reinstate and
   confirm both reverse.
 
-### Slice 2 — the self-serve doorways
+### Slice 2 — the self-serve door <span>✅ BUILT 2026-08-22 — re-cut, built and Sam-tested the same day</span>
 
-**2a — capture an application.** The public "For tutors" page
-(replacing the inert nav `<span>`), with the form for a **signed-in**
-user: writes a PENDING row, `source = SELF_APPLICATION`. Plus
-`tutor.application_received` and `tutor.application_submitted_admin`.
+⚠ **Re-cut with Sam before any of it was built.** The previous cut —
+2a (form) · 2b (decide) · 2c (applicant's view) · **2d (the
+register-as-tutor toggle)** — assumed two doorways and two surfaces.
+The new shape has **one door, one route, and no toggle**. §5's routing
+rule and §8's state table are the substance; this is only the build
+order. ⚠ **2d no longer exists.** Its content — creating the account —
+is now the second half of 2a.
 
-- ⚠ **Nothing can decide these yet.** Do not ship 2a to prod without
-  2b, or applications arrive as dead letters.
+**Two routes total:** `/for-tutors` (the pitch) and
+**`/for-tutors/apply`** (settled — it lives in the `(public)` group, so
+it inherits the public nav and footer; route groups do not affect the
+URL). The path is exported once as `TUTOR_APPLICATION_PATH` in
+`lib/tutors/types.ts`, because the rejection email and the picker card
+both point at it.
 
-**2b — decide.** `/admin/applications` replaces its placeholder with
-the PENDING queue: approve (→ `grantTutorRole`) or reject with a
-reason. Plus `tutor.application_approved` and
+⭐ **ONE MIGRATION FOR THE WHOLE SLICE** — `20260921120000_tutor_self
+_application.sql`, and only 2a-i needed it. Everything else was already
+there: 1d's decision RPC already accepted `APPROVED` and `REJECTED` with
+every guard, `grantTutorRole` was already the only code that writes the
+role, 1b had already shipped the queue's stylesheet, and
+`nclex_roles_self_insert_student` was already shaped for 2c's conversion.
+
+**Build order was 2b → 2a-i → 2c → 2a-ii**, not the order below. The
+queue was built first on the reasoning that a queue waiting for
+applications is harmless while applications arriving with nothing able to
+decide them are dead letters — the doc's constraint is about *shipping*,
+not about which to write first.
+
+**2a-i — the door, for people who are already signed in.** ✅ Built. The
+pitch page replacing the inert nav `<span>` at
+`components/public/public-nav.tsx:25`, plus the application route with
+**all five** states of §8 (the `REJECTED` one and its pre-filled form
+came here rather than waiting for 2c), the `/student/picker` card, the
+submit RPC, and `tutor.application_received` +
+`tutor.application_submitted_admin`.
+
+- ⚠ **Nothing can decide these yet.** Do not ship to prod without 2b,
+  or applications arrive as dead letters. *(Moot in the end — 2b was
+  built first.)*
+- ⓘ **It creates no role-less applicants**, which is what made it safe
+  to build before 2c.
+- ⭐ **THE MIGRATION IS THE SLICE.** `nclex_tutors`' INSERT policy is
+  `TUTORS_MANAGE`, so an applicant cannot write their own row, and the
+  self-UPDATE policy is narrowed by 1a's column privileges to
+  `public_profile` alone. Opening either would hand the applicant the
+  `status` column. So: `nclex_tutor_submit_application`, and **it takes
+  no user id** — everything is written from `auth.uid()`, which makes
+  §5's identity rule structural rather than a check somebody could
+  forget. ⚠ Being `SECURITY DEFINER` it re-checks what the column grants
+  would have stopped (the 1d lesson): it writes `PENDING` as a literal
+  and never touches `approved_*`, `decided_*` or `decision_reason`.
+- ⚠ **`SUSPENDED` and `APPROVED` are refused by the RPC**, not merely
+  hidden by the UI. See §9.
+- ⭐ **The pitch page stays purely presentational** — copy, headings and
+  a button, with no application logic in it. Claude Design will design
+  it properly later, and that should replace a template, not force a
+  rewrite. It is a marketing surface, which is more than "replace the
+  inert span" implied.
+
+**2b — decide.** ✅ Built. `/admin/applications` replaces its placeholder
+with the queue: a Pending pane (the applicant's note, their history, the
+decision) and a Decided tab. Approve (→ `grantTutorRole`) or reject with
+a reason. Plus `tutor.application_approved` and
 `tutor.application_rejected`.
 
-- ⭐ **Approve is 1c's action with a different trigger.** If it needs
-  new code, 1c was built too narrowly — that is the check on whether
-  the grant primitive was factored properly.
+- ⭐ **Approve is 1c's action with a different trigger, and the check
+  PASSED.** No new code was needed for the grant, and no migration for
+  the decision — 1d's `nclex_tutor_record_decision` already took
+  `APPROVED` and `REJECTED` with every guard. Had it needed either, 1c
+  was built too narrowly.
+- ⓘ First thing in the arc that can produce a `REJECTED` row.
+- ⚠ **The queue is "did anybody apply" (`first_applied_at IS NOT NULL`),
+  NOT `status IN ('PENDING','REJECTED')`.** An approved applicant's row
+  becomes `APPROVED` and is then indistinguishable from an admin
+  promotion by status alone — so a status filter would lose every
+  approval the queue ever made, which is the one thing an admin looks
+  back for.
+- ⚠ **The placeholder promised the wrong thing** and was corrected: it
+  described this page as *"approve + trigger setup-link email"*. There is
+  no setup link on this path — a self-serve applicant either had an
+  account or made one with their own password. Setup links belong to
+  slice 3.
+- ⭐ **Decided rows OPEN, and it is the same drawer `/admin/tutors`
+  opens.** They were dead text beside a tab where records are clickable —
+  and five columns cannot answer what the tab exists for. The two drawers
+  merged; see §14.
 
-**2c — the applicant's view.** Split the `roles.length === 0` branch
-in `app/router/page.tsx`; the application page rendering PENDING
-("Request #N"), REJECTED (with the reason) and the conversion offer to
-a plain student account; the picker card for an existing student who
-applied; and **resubmit** — the same form pre-filled, incrementing
-`submission_count` and returning the row to PENDING.
+**2c — rejection, resubmission, and the way back in.** ✅ Built.
 
-- **Touches:** `app/router/page.tsx` · a new application route ·
-  `/student/picker`
+⚠ **Smaller than this plan expected, and the reason is structural.** The
+`REJECTED` state, the pre-filled resubmit form and the `/student/picker`
+card all landed in **2a-i**, because they are states of a route 2a-i had
+to build anyway (§8). What was genuinely left:
 
-**2d — the register-as-tutor toggle.** The second doorway onto 2a's
-machinery: the toggle on `/register`, the three extra fields, and
-`source = REGISTRATION` — writing `nclex_users` + `nclex_tutors` and
-**no role**.
+- **The router split.** *"No roles"* used to mean one thing; since the
+  self-serve doorway it means two. ⚠ Without this branch **every
+  self-serve applicant lands on `/no-access` on every sign-in** — a page
+  telling the person we are actively deciding about that they do not
+  belong here. Now: no roles **and** a tutor record → their own status
+  page; no roles and nothing else → `/no-access`, as before.
+- **The conversion offer** (§8): *use MyNclex as a student instead*.
+  ⭐ **No migration and no service role**, because
+  `nclex_roles_self_insert_student` already permits exactly this and
+  nothing more — `user_id = auth.uid() AND role = 'STUDENT'`. Proven
+  against the live policy, each rolled back: granting themselves TUTOR is
+  **refused**, granting STUDENT to somebody else is **refused**, granting
+  themselves STUDENT **succeeds**. The database enforces the shape of the
+  action rather than trusting it, which is why it is three lines — the
+  opposite of the arrangement `grantTutorRole` needs.
+- ⚠ **The tutor record is not deleted or altered** by converting. They
+  remain a rejected applicant who is now also a student, because §9 lets
+  them come back and resubmit and that needs the row, the reason and the
+  count intact.
+- ⓘ Offered only to someone who does **not** already hold STUDENT — a
+  rejected applicant who was our student all along has nothing to accept.
 
-- ⚠ **Last in slice 2, deliberately.** It is the only one touching
-  `/register`, and **2c must exist first** or a role-less applicant
-  lands on `/no-access` with no way to learn their own status.
+**2a-ii — the logged-out branch.** ✅ Built. Step 1's email field, the
+*"you already have an account — sign in"* bounce, and the new-account
+path: `signUp` behind Turnstile, `nclex_users`, **no role**, then the
+application. Three short steps; see §5 for why the middle one exists and
+where the account-exists answer really comes from.
+
+- ⚠ **Last, deliberately** — it is the first thing that creates
+  **role-less applicants**, and **2c must exist first** or they land on
+  `/no-access` with no way to learn their own status. ⭐ Note this
+  dependency did not disappear when the toggle did; **it moved**. Under
+  the old cut it constrained 2d; it now constrains this.
+- ⚠ **A first cut of this put a six-field form in front of the visitor**
+  and discovered the collision at submit. It was rejected by Sam on
+  sight, and correctly: it designed the page around the rare visitor
+  (already signed in, decides to apply) and made the common one — a
+  stranger — work for it. ⭐ **The rework DELETED code rather than adding
+  it**: with the email asked first, nobody writes an application before
+  we know who they are, so the sessionStorage draft hand-off, its effect,
+  a hydration argument and an `eslint-disable` all disappeared. *When the
+  thing you argued hardest for vanishes under the alternative, the
+  alternative was right.*
+- ⓘ **The account is created BEFORE the application is written**, which
+  an earlier cut avoided so as not to leave role-less orphans behind
+  anyone who wandered off mid-form. That worry is handled where it
+  belongs: 2c routes any role-less person to this page, so an abandoned
+  signup lands on the form it abandoned.
+- ⭐ **No `/welcome`, no setup link, no confirmation email.** Verified
+  against the code on 2026-08-22: `/register` does **not** confirm by
+  email today — it calls `signUp`, writes the profile and role *using
+  the new user's own session*, then redirects to `/router`. So email
+  confirmation is switched **off** on the project, and "check your
+  email" would have meant either turning it on project-wide (⚠ which
+  **breaks `/register`**, whose inserts depend on the session that
+  confirmation withholds) or building a confirm step that reaches into
+  `/welcome` — the convergence point slice 3 is sequenced last to avoid.
+  Signing them in at submit is what the existing machinery already does.
+- ⓘ **What that gives up:** the address is never verified. Same
+  exposure `/register` and 1c-ii already carry, and it self-corrects —
+  approval mails that address, so a bogus one never hears back. Real
+  verification for tutors is a legitimate future call, but it is slice
+  3's `/welcome` work pulled forward and should be decided as such.
+- ⚠ **Turnstile must be on this form.** Dev's Supabase project has the
+  captcha switch ON, so a signup without a pass is refused. A form that
+  forgets the widget submits and is silently rejected.
 
 ### Slice 3 — invite by email
 
@@ -835,6 +1205,10 @@ auth user, the `nclex_users` row, the `nclex_tutors` row
   convergence point.
 
 ### If only one thing gets built
+
+ⓘ **HISTORICAL as of 2026-08-22** — slices 1 and 2 are both built, so
+this no longer advises anybody. Kept because the reasoning is the useful
+part and it was corrected once already; the correction is the point.
 
 **1a, then 1b, then 1c** — in that order, and 1b is not skippable.
 
@@ -947,6 +1321,14 @@ application flow or the admin surfaces.
 | No `email` / `name` copy | Denormalise like MyTeacher | We have a real FK; MyTeacher's copies exist because its schema predates one. |
 | Four sources — `LEGACY` retired the day it shipped | Keep it for the pre-existing tutors | The premise ("nobody knows when they were approved") was false: `nclex_user_roles.granted_at` had every date. And removing it disambiguated `approved_at`, which had come to mean both "not yet" and "unknowable". (Sam pushed; the mistake was mine.) |
 | The welcome email names no admin | Say who promoted them | Provenance is ours, not the recipient's. Harmless with one admin, an accidental disclosure the moment `TUTORS_MANAGE` is delegated. Compare `enrolment-rejected`, which discloses a tutor's address deliberately, because a student who paid them needs to reach them. |
+| **One form, routed by EMAIL** <span>2026-08-22</span> | Route by whether you are signed in (the original §5 rule) | The old rule has no answer for *logged out but already has an account* — the commonest real applicant — and walks her into a `signUp` that fails after she has filled the whole form. (Sam's call.) |
+| **No register-as-tutor toggle** <span>2026-08-22</span> | MyTeacher's toggle beside the student signup on `/register` | `/register` is on a path to retirement — students increasingly arrive through checkout and set up at `/welcome` — so the toggle builds the tutor door onto a surface we expect to remove. It also deletes slice 2's largest risk: 2d existed as a separate sub-slice *because* it was the only thing touching `/register`. (Sam's call.) |
+| **Sign them in at submit** <span>2026-08-22</span> | "Check your email" after applying | Verified in code: `/register` does not confirm by email, and its profile/role inserts run on the new user's own session — so enabling confirmation project-wide **breaks `/register`**, and doing it for tutors alone means building `/welcome` work that slice 3 is sequenced last to avoid. Costs email verification, which self-corrects (approval mails the address). |
+| **The apply form and the status page are one route** <span>2026-08-22</span> | A form surface plus a separate application page | The route must read the row before rendering anything (that is how the SUSPENDED refusal works), so the form is just the state where no row is found. Resubmit stops being a screen and becomes the `REJECTED` state. |
+| **ONE record drawer for both admin surfaces** <span>built 2026-08-22</span> | A drawer per page — the directory's showing the profile, the queue's showing the application | Sam asked; I argued for keeping them apart ("different lens") and was wrong. `nclex_tutors` is ONE ROW PER PERSON (§2) — two partial views of it leave an admin with two screens for one record and no way to tell which is authoritative, and a rejected applicant appears in **both** surfaces already. It also taxed every future column with a "which drawer?" decision. ⚠ Forces both loaders to fetch every column: a section that hides itself when a field is empty cannot tell "they wrote no note" from "this page did not ask for the note". |
+| **The queue keeps its Decided tab — for now** <span>open, 2026-08-22</span> | Delete it; the directory is already the searchable archive of decided applications | Sam's call to stop: the overlap is real but nothing is broken by it. ⏭ The open question is whether `/admin/applications` should become a pure **inbox that empties** — a to-do list that keeps completed items forever has stopped being one — with the directory answering "did we say no to this person before?", which it does better (it has search). Deferred until both pages have been used in anger. The directory's status filter gained Pending and Rejected in the meantime, which was most of why the two felt like duplicates rather than layers. |
+| **The email-existence answer comes from `signUp`** <span>2026-08-22</span> | A captcha-gated "is this address taken?" check on step 1 | ⚠ Not buildable. `lib/auth/turnstile.ts`: a Turnstile token validates exactly ONCE and Supabase must spend it, so our own check can only confirm a token *arrived* — a script sends any string. Thresholds are keyed by email, which is what an enumerator varies. So the email is asked first for the UX, and Supabase answers it for real one step later. |
+| **`source` is derived, not passed** <span>2026-08-22</span> | A parameter from the client (or a `?new=1` flag) | Every other route into an account grants a role on the way in, so holding **no role** at submit means they came through this form. A client-supplied value would let an applicant write a fact about *our* provenance. |
 
 **Three things from MyTeacher deliberately not copied:** its single
 `users.role` column (overwriting it stops a teacher being a student —
@@ -959,11 +1341,32 @@ denormalised email/name.
 
 ## 14. Knock-on, and things found next door
 
-- ⚠ **CLAUDE.md lists "Public self-serve tutor signup (tutors are
-  manually vetted in v1)" under *Explicit Deferrals — Not v1*.** Sam
-  re-opened it on 2026-08-21 — slices 2 and 3 build it. **That line
-  needs updating**; it was left alone pending explicit sign-off, so
-  until then CLAUDE.md and this doc contradict each other.
+- ✅ **CLAUDE.md's "Public self-serve tutor signup" deferral is now
+  corrected** (2026-08-22). It was struck through when Sam re-opened it
+  on 08-21; now that slice 2 is built it records that, with the original
+  deferral still visible so the reversal reads as history rather than as
+  a line nobody ever wrote.
+- ⏭ **`/admin/applications` may be over-lapping `/admin/tutors`.** Both
+  list the same rows; the directory has search and the full record. See
+  §13 — the open question is whether the queue should shrink to a pure
+  inbox. Not urgent, and better judged after the pages have been used.
+- ⚠⚠ **EVERY PAGE IN THIS APP ANSWERS `Cache-Control: no-cache,
+  must-revalidate` — INCLUDING AUTHENTICATED ONES** (measured
+  2026-08-22, localhost). CLAUDE.md rule #4 says authenticated pages must
+  respond `private, no-store`; nothing implements that half, anywhere.
+  Repo-wide and pre-existing, not introduced by this arc — but this arc
+  is what surfaced it, because `/for-tutors/apply` renders a person's own
+  application (their status, their reason, their own words) and sits in
+  the **public** route group. ⓘ `no-cache` does force revalidation, which
+  mitigates much of it; the missing word is `private`. Needs checking
+  against the deployed Worker before anything is changed, since the
+  OpenNext pipeline may differ from localhost.
+- ⏭ **The public nav hides every link below 760px**
+  (`styles/discovery.css`, `@media (max-width: 760px)` →
+  `.pub-nav .links { display: none; }`). So on a phone the tutor doorway
+  is reachable only by typing the URL. Pre-existing and affects all four
+  public links; worth a decision now that one of them is a door we want
+  people to walk through, and the audience is phone-first.
 - **The account surface is NOT part of this arc** (Sam, 2026-08-21).
   The boundary settled while deciding where the profile lives:
   credentials = `auth.users`; account/identity = `nclex_users`

@@ -467,6 +467,40 @@
   margin-bottom: 22px;
 }
 
+/* ── Tutor application notice (tutor-onboarding §8B) ──────────────────
+ * An existing student who applies to teach keeps their student account
+ * and lands here, so this strip is the only place they would learn the
+ * application exists.
+ *
+ * ⚠ Deliberately QUIET. It sits above someone's programmes on the page
+ * they use to get to work; a loud card would make an application they
+ * are waiting on compete with the studying they came to do. It is a
+ * signpost, and the answer is one tap away. */
+.picker-tutor-app {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 18px; padding: 10px 14px;
+  background: var(--white);
+  border: 1px solid var(--border); border-left: 3px solid var(--primary);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: border-color 120ms;
+}
+.picker-tutor-app:hover { border-color: var(--border-strong); border-left-color: var(--primary); }
+.picker-tutor-app-label {
+  flex: 1; min-width: 0;
+  font-size: 13px; font-weight: 600; color: var(--text);
+}
+.picker-tutor-app-cta {
+  font-size: 12.5px; font-weight: 600; color: var(--accent); white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  /* Stack rather than squeeze: the label is a sentence and the cue must
+   * stay a real touch target rather than a word crushed against it. */
+  .picker-tutor-app { gap: 4px; padding: 12px 14px; }
+  .picker-tutor-app-label { flex-basis: 100%; }
+}
+
 /* ── Rails layout: programmes lane + the constant Bank rail ── */
 .picker-rails {
   display: grid;

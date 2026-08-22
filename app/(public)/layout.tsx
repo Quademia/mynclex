@@ -15,6 +15,7 @@ import '@/styles/bank-public.css';
 import '@/styles/readiness-public.css';
 import '@/styles/programmes-public.css';
 import '@/styles/help.css';
+import '@/styles/for-tutors.css';
 import { PublicNav } from '@/components/public/public-nav';
 import { PublicFooter } from '@/components/public/public-footer';
 

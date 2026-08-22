@@ -2,10 +2,16 @@
 
 *Status: **the spine is built, the drain runs, the ⏰ half has opened, and
 Supabase no longer writes any email of ours.**
-**10 of 29 emails wired; 5 of them on prod.**
-⭐ **29, not 23 — the TUTOR family (6) joined the catalog on 2026-08-21**
-with the tutor-onboarding arc; see *Tutor lifecycle* below. The first of
-them, `tutor.added_by_admin`, is **built and on a branch**, not on `main`.
+**15 of 30 emails wired; 11 of them on prod.**
+⭐ **30, not 23 — the TUTOR family (7) joined the catalog on 2026-08-21**
+with the tutor-onboarding arc; see *Tutor lifecycle* below. ⓘ It was
+listed as 6: `tutor.reinstated` was added while 1d was being built, when
+Sam noticed the catalog had an email for taking someone's standing away
+and none for giving it back.
+**All seven tutor emails are now built.** Three (`added_by_admin`,
+`suspended`, `reinstated`) are on `prod` with slice 1; the four
+application emails are on a branch with slice 2, built and observed
+sending on dev 2026-08-22.
 ⓘ The 23 it grew from was itself 23 and not 24, because `session.scheduled`
 was dropped on 2026-08-20 rather than built. ✅ **On prod** (2026-08-18, PR
 #53 — proven by a real test-mode purchase whose receipt sent in 218 ms
@@ -1272,12 +1278,37 @@ nobody walks a new tutor in.
 
 | Event key | Kind | Trigger | Recipient | Purpose | Pri | Anchor |
 |---|---|---|---|---|---|---|
-| `tutor.added_by_admin` | ⚡ | Admin promotes an existing user, or invites one (slice 3) | new tutor | **✅ BUILT 2026-08-21** (`fca499e`), ⚠ **on branch, not on `main`**. "You are now a tutor" — what happened, that their student account is untouched, and the ONE thing worth doing first: writing the public profile. **Names no admin** and **promises nothing about tiers** | P1 | ✅ |
-| `tutor.application_submitted_admin` | ⚡ | Someone applies to be a tutor | **admin** | A queue nobody knows filled up is a queue nobody works. ⚠ recipient ≠ actor | P1 | ⬜ (2a) |
-| `tutor.application_received` | ⚡ | Someone applies to be a tutor | applicant | "We have it" — carries **Request #N**, so a resubmission is acknowledged as one | P2 | ⬜ (2a) |
-| `tutor.application_approved` | ⚡ | Admin approves an application | applicant | Mirrors `enrolment.approved`’s shape. Grants TUTOR; says what opens | P1 | ⬜ (2b) |
-| `tutor.application_rejected` | ⚡ | Admin rejects an application | applicant | Mirrors `enrolment.rejected`. Carries `decision_reason`, and says the door is not shut — they may update and resubmit, or use MyNclex as a student | P1 | ⬜ (2b) |
-| `tutor.suspended` | ⚡ | Admin suspends a tutor | tutor | Their workspace is closed and their programmes have left the catalogue — **while their existing students keep their materials** (tutor-onboarding §7). Says which switches fired | P1 | ⬜ (1d) |
+| `tutor.added_by_admin` | ⚡ | Admin promotes an existing user, or invites one (slice 3) | new tutor | **✅ BUILT 2026-08-21** (`fca499e`), **✅ ON PROD** (`ce10dfa`). "You are now a tutor" — what happened, that their student account is untouched, and the ONE thing worth doing first: writing the public profile. **Names no admin** and **promises nothing about tiers** | P1 | ✅ |
+| `tutor.application_submitted_admin` | ⚡ | Someone applies to be a tutor | **admin** | **✅ BUILT 2026-08-22** (2a-i, on branch). A queue nobody knows filled up is a queue nobody works. ⚠ recipient ≠ actor. ⭐ **The first email this product sends to ITSELF**, and its disclosure rules are the INVERSE of every other template here: it carries the applicant's name, address and own words, because the reader is the person deciding. Still carries **no decision link** — nothing in an inbox approves anybody. Goes to the `SUPPORT_EMAIL` constant, not a fan-out to `TUTORS_MANAGE` holders | P1 | ✅ |
+| `tutor.application_received` | ⚡ | Someone applies to be a tutor | applicant | **✅ BUILT 2026-08-22** (2a-i, on branch). "We have it" — carries **Request #N**, so a resubmission is acknowledged as one, with different opening copy: thanking somebody for applying when they are RE-applying reads as though we lost the first one. ⚠ Promises no timescale — there is no SLA in the product | P2 | ✅ |
+| `tutor.application_approved` | ⚡ | Admin approves an application | applicant | **✅ BUILT 2026-08-22** (2b, on branch). ⚠ Deliberately **not an alias** of `tutor.added_by_admin`, though both end at the same row: that one greets somebody an admin CHOSE, this answers somebody who ASKED. Same split, same reason, as `enrolment.approved` | P1 | ✅ |
+| `tutor.application_rejected` | ⚡ | Admin rejects an application | applicant | **✅ BUILT 2026-08-22** (2b, on branch). Carries `decision_reason` and leads with **"this is not final"** — §6 makes REJECTED non-terminal and an email that closed the door would contradict the schema. ⓘ The conversion-to-student offer lives on the application PAGE, not here: an email cannot grant a role | P1 | ✅ |
+| `tutor.suspended` | ⚡ | Admin suspends a tutor | tutor | **✅ BUILT 2026-08-21** (1d-iv), **✅ ON PROD** (`70502a1`). Their workspace is closed and their programmes have left the catalogue — **while their existing students keep their materials** (tutor-onboarding §7). Says which switches fired | P1 | ✅ |
+| `tutor.reinstated` | ⚡ | Admin lifts a suspension | tutor | **✅ BUILT 2026-08-21** (1d), **✅ ON PROD** (`70502a1`). ⭐ Not in the original catalog — Sam spotted that we emailed on taking a standing away and went silent on giving it back, which reads as punitive. Deliberate opposite of the suspension notice: no reason field, all button, and it **does not apologise or explain** | P1 | ✅ |
+
+> #### ⚠⚠ `stage` — the field that made a second email vanish <span>2026-08-22</span>
+>
+> The outbox de-duplicates on `(event_key, subject_ref, stage)` and reads
+> a unique violation as **success** — which is what makes Paystack's
+> webhook retries harmless. `stage` defaults to `'-'`, documented in
+> `outbox.ts` as *"a one-off"*.
+>
+> ⭐ **That default is right when a subject can experience an event only
+> once, and WRONG whenever `subject_ref` is a PERSON.** An enrolment is
+> approved once; a checkout gets one receipt. A person can be suspended,
+> reinstated and suspended again — and every tutor email used
+> `subject_ref = user_id` with the default, so the **second one silently
+> sent nothing**: refused insert, refusal read as success, action
+> reporting that it had emailed somebody it had not.
+>
+> Found when Sam suspended a tutor twice. It had been true since 1d
+> shipped and **is on prod**. Fixed on the branch: decision emails take
+> the decision's own timestamp from `decision_history`; submission emails
+> take `s<submission_count>`.
+>
+> **The rule for any future email:** if `subject_ref` names a person
+> rather than a thing that happens once, `stage` must say *which
+> occurrence*.
 
 > #### ⭐ These send INSTANTLY — and that is a rule, not a preference
 >
