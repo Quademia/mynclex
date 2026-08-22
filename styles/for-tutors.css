@@ -214,6 +214,26 @@
 .ft-counter {
   font-size: 12px; color: var(--text-muted); margin: 6px 0 0;
 }
+
+/* The guest form is long enough to need signposting — account details
+ * and the application itself are two different kinds of question, and an
+ * unbroken run of eight fields reads as one endless chore. */
+.ft-form-section { margin-bottom: 26px; }
+.ft-form-section:last-of-type { margin-bottom: 16px; }
+.ft-form-section-title {
+  font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted);
+  margin: 0 0 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* A button that has to read as prose ("use a different one"), because it
+ * sits mid-sentence. Not a link: it changes state, it does not navigate. */
+.ft-linkish {
+  background: none; border: none; padding: 0;
+  font: inherit; color: var(--accent); cursor: pointer;
+  text-decoration: underline;
+}
 .ft-error {
   margin: 4px 0 14px; padding: 10px 12px;
   border-left: 3px solid var(--danger); background: #fef2f2;

@@ -18,8 +18,16 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { createClient as createSbClient } from '@supabase/supabase-js';
 import { requireAdminPermission, PERM_TUTORS_MANAGE } from '@/lib/access';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { logAuthEvent } from '@/lib/auth/events';
+import {
+  readTurnstileTicket,
+  isCaptchaRejection,
+  TURNSTILE_FIELD,
+  TURNSTILE_FAILED_MESSAGE,
+} from '@/lib/auth/turnstile';
 import { enqueueAndSend } from '@/lib/email/send';
 // ⓘ Imported rather than re-typed: a second copy of the address is a
 // second thing to change, and the one that gets missed is the one nobody
@@ -605,7 +613,6 @@ function applicationError(message: string): string {
 export async function submitApplicationAction(
   organisation: string,
   requestNote: string,
-  source: 'SELF_APPLICATION' | 'REGISTRATION' = 'SELF_APPLICATION',
 ): Promise<SubmitApplicationResult> {
   const supabase = await createClient();
 
@@ -616,6 +623,25 @@ export async function submitApplicationAction(
   if (!user) {
     return { ok: false, error: 'Sign in to apply.' };
   }
+
+  // ⭐ SOURCE IS DERIVED, NOT PASSED — and it is derivable exactly.
+  // Every other way of getting an account here grants STUDENT on the way
+  // in: /register does, the pay-first setup at /welcome does, and admin
+  // promotion grants TUTOR. So somebody holding NO ROLE AT ALL can only
+  // have arrived through the tutor form itself, which is what
+  // REGISTRATION means (§5).
+  //
+  // ⚠ It used to be a parameter. A client-supplied value describing OUR
+  // provenance is a fact about us that the caller gets to write — and
+  // while nothing branches on source, "was already our student" is a
+  // vetting signal an applicant should not be able to set for themselves.
+  const { data: roleRows } = await supabase
+    .from('nclex_user_roles')
+    .select('role')
+    .eq('user_id', user.id);
+
+  const source: 'SELF_APPLICATION' | 'REGISTRATION' =
+    (roleRows ?? []).length === 0 ? 'REGISTRATION' : 'SELF_APPLICATION';
 
   const { data, error } = await supabase.rpc('nclex_tutor_submit_application', {
     p_organisation: organisation,
@@ -699,6 +725,184 @@ export async function submitApplicationAction(
   revalidateTutorSurfaces();
 
   return { ok: true, created: outcome.created, submissionCount: count };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Applying with no account (sub-slice 2a-ii)
+// ─────────────────────────────────────────────────────────────────────
+
+export type GuestApplyResult =
+  | { ok: true }
+  /**
+   * ⭐ NOT AN ERROR — A ROUTE. The address already has an account, so the
+   * form's job now is to send them to sign in and bring them back. §5's
+   * whole point: one door, and which branch you are in is decided by the
+   * EMAIL, not by whether you happened to be signed in when you arrived.
+   */
+  | { ok: false; accountExists: true }
+  | { ok: false; accountExists?: false; error: string };
+
+/**
+ * Create an account AND lodge the application, in one submit — the
+ * REGISTRATION doorway of §5.
+ *
+ * ⭐⭐ WHY THE "DOES THIS ADDRESS HAVE AN ACCOUNT?" TEST IS THE SIGNUP
+ * ATTEMPT ITSELF, and not a lookup. The design settled that this form
+ * discloses a collision, matching `/register` (which returns Supabase's
+ * own "User already registered") rather than `/forgot-password` (which
+ * must never). The obvious implementation is to ask first — but:
+ *
+ *   ⚠ `lib/auth/account-lookup.ts` states in terms that NOTHING it
+ *     returns may reach the user, and it is right: it is a service-role
+ *     read with no gate in front of it.
+ *   ⚠⚠ And a bare "is this email taken?" endpoint would be a BETTER
+ *     enumeration oracle than /register, not an equal one — because
+ *     /register makes an attacker solve a Turnstile challenge for every
+ *     address they test, and that captcha is the thing separating a
+ *     person from a script walking a list.
+ *
+ * So the collision is discovered exactly where /register discovers it:
+ * at signUp, behind the same captcha, disclosing exactly what is already
+ * disclosed. No new surface, and account-lookup's rule stays literally
+ * true because this never calls it.
+ *
+ * ⓘ ACCOUNT AND APPLICATION ARE WRITTEN TOGETHER, per §5, and that is
+ * deliberate rather than convenient: creating the account first and
+ * asking for the note afterwards leaves a role-less orphan account
+ * behind every person who wanders off mid-form — an account that grants
+ * nothing, explains nothing, and sends its owner to /no-access forever.
+ *
+ * ⚠ NO ROLE IS GRANTED. §4's third invariant, and the reason 2c's router
+ * split had to exist before this sub-slice could ship.
+ */
+export async function applyAsGuestAction(formData: FormData): Promise<GuestApplyResult> {
+  const forename = String(formData.get('forename') ?? '').trim();
+  const surname = String(formData.get('surname') ?? '').trim();
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const password = String(formData.get('password') ?? '');
+  const organisation = String(formData.get('organisation') ?? '');
+  const requestNote = String(formData.get('requestNote') ?? '');
+
+  if (!forename || !surname || !email || !password) {
+    return { ok: false, error: 'All fields except organisation are required.' };
+  }
+  if (password.length < 8) {
+    return { ok: false, error: 'Password must be at least 8 characters.' };
+  }
+  if (requestNote.trim().length < 40) {
+    return { ok: false, error: 'Please tell us a little more about yourself.' };
+  }
+
+  // Same gate as every other account-creating form. ⚠ Dev runs
+  // Cloudflare's TESTING pair, so this passes locally by design — it is
+  // still the real code path, and prod validates for real.
+  const turnstile = readTurnstileTicket(formData.get(TURNSTILE_FIELD));
+  if (!turnstile.ok) {
+    await logAuthEvent({
+      eventType: 'REGISTER_REJECTED',
+      email,
+      reason: `turnstile:${turnstile.reason}`,
+    });
+    return { ok: false, error: TURNSTILE_FAILED_MESSAGE };
+  }
+
+  const supabase = await createClient();
+
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { full_name: `${forename} ${surname}` },
+      captchaToken: turnstile.token,
+    },
+  });
+
+  if (signUpError) {
+    if (isCaptchaRejection(signUpError.message)) {
+      await logAuthEvent({
+        eventType: 'REGISTER_REJECTED',
+        email,
+        reason: `turnstile:${signUpError.message}`,
+      });
+      return { ok: false, error: TURNSTILE_FAILED_MESSAGE };
+    }
+
+    const alreadyRegistered = /already registered/i.test(signUpError.message);
+
+    await logAuthEvent({
+      eventType: 'REGISTER_REJECTED',
+      email,
+      userExists: alreadyRegistered ? true : null,
+      reason: `tutor_apply_signup_failed: ${signUpError.message}`,
+    });
+
+    // The branch, not a failure. The form swaps to "sign in to continue".
+    if (alreadyRegistered) return { ok: false, accountExists: true };
+
+    return { ok: false, error: signUpError.message };
+  }
+
+  const authUser = signUpData.user;
+  if (!authUser) {
+    await logAuthEvent({ eventType: 'REGISTER_REJECTED', email, reason: 'no_user_returned' });
+    return { ok: false, error: 'Could not create your account. Please try again.' };
+  }
+
+  // ⓘ The per-request client carries the new session from here, which is
+  // what lets both of the writes below pass RLS as the new user — the
+  // same mechanism /register relies on for its profile insert.
+  const { error: profileError } = await supabase.from('nclex_users').insert({
+    id: authUser.id,
+    email,
+    forename,
+    surname,
+    name: `${forename} ${surname}`,
+    signup_source: 'MYNCLEX',
+  });
+
+  if (profileError) {
+    await rollbackAuthUser(authUser.id);
+    await logAuthEvent({
+      eventType: 'REGISTER_REJECTED',
+      email,
+      reason: `tutor_apply_profile_failed: ${profileError.message}`,
+    });
+    return { ok: false, error: 'Could not create your account. Please try again.' };
+  }
+
+  await logAuthEvent({ eventType: 'REGISTERED', email, userId: authUser.id });
+
+  // ⚠ NO nclex_user_roles INSERT. Not an omission — §4, invariant 3.
+
+  const lodged = await submitApplicationAction(organisation, requestNote);
+
+  if (!lodged.ok) {
+    // ⚠ The account is REAL and STAYS. Rolling it back would delete an
+    // auth user who now has a password they chose and an email they can
+    // sign in with — and the failure here is the application write, not
+    // the account. They land on the apply page signed in, with the form
+    // in front of them and their draft in hand.
+    return {
+      ok: false,
+      error: `Your account was created, but the application did not save: ${lodged.error} Try submitting it again below.`,
+    };
+  }
+
+  return { ok: true };
+}
+
+/** Undo a half-made account. Mirrors app/register/actions.ts. */
+async function rollbackAuthUser(authUserId: string): Promise<void> {
+  try {
+    const admin = createSbClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    await admin.auth.admin.deleteUser(authUserId);
+  } catch {
+    console.error('[tutor-apply] rollback deleteUser failed for', authUserId);
+  }
 }
 
 /**

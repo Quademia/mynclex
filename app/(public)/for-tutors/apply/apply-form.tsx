@@ -16,9 +16,10 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { submitApplicationAction } from '@/lib/tutors/actions';
+import { APPLY_DRAFT_KEY } from './guest-apply';
 
 /** Enough to judge on, short enough that nobody abandons it. */
 const NOTE_MIN = 40;
@@ -40,6 +41,51 @@ export function ApplyForm({
   const [note, setNote] = useState(initialNote);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ⭐ THE OTHER HALF OF THE SIGN-IN BOUNCE (2a-ii). Somebody who typed
+  // their application while logged out, hit "you already have an
+  // account", signed in and came back arrives HERE — and if the form were
+  // empty they would have to write the whole thing again, which is the
+  // dead end the email-first routing exists to remove.
+  //
+  // ⚠ Only fills EMPTY fields. A resubmission (§9) arrives pre-filled
+  // from the previous submission, and a stale draft must never overwrite
+  // what the applicant actually sent us last time.
+  //
+  // ⓘ Cleared as soon as it is read: it is a hand-off across one
+  // navigation, not a saved draft, and leaving it behind would repopulate
+  // a form they had deliberately emptied.
+  // ⚠ THE TWO DISABLES BELOW ARE DELIBERATE, and this is the reason so it
+  // survives. `react-hooks/set-state-in-effect` is right in general —
+  // setState in an effect body causes a cascading render. It cannot see
+  // the case it is looking at: sessionStorage is exactly the "external
+  // system" React's own guidance says effects are FOR, and reading it
+  // any earlier is not available to us. A lazy useState initialiser runs
+  // during server rendering, where `window` does not exist; guarding it
+  // with `typeof window` instead produces server HTML that says "empty"
+  // and client HTML that says "here is your draft", which is a hydration
+  // mismatch. One extra render on the one navigation where a draft
+  // exists is the cheaper of the two.
+  useEffect(() => {
+    let draft: { organisation?: string; note?: string } | null = null;
+    try {
+      const raw = window.sessionStorage.getItem(APPLY_DRAFT_KEY);
+      if (!raw) return;
+      window.sessionStorage.removeItem(APPLY_DRAFT_KEY);
+      draft = JSON.parse(raw) as { organisation?: string; note?: string };
+    } catch {
+      // Unparseable, or storage unavailable. Nothing is lost that was
+      // not already lost, so this stays silent.
+      return;
+    }
+    // ⓘ One disable, not two: the rule reports once per effect body, and
+    // an unused directive is itself a warning here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
+    if (draft.organisation && !initialOrganisation) setOrganisation(draft.organisation);
+    if (draft.note && !initialNote) setNote(draft.note);
+    // Once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const trimmed = note.trim();
   const ready = trimmed.length >= NOTE_MIN;

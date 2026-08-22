@@ -23,13 +23,14 @@
 // URL, so this is still /for-tutors/apply, which is what
 // TUTOR_APPLICATION_PATH and the rejection email both point at.
 
+// ⓘ No `redirect` any more: 2a-ii replaced the logged-out bounce with
+// the guest form, so nothing on this route sends anybody away.
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { loadMyTutorRecord } from '@/lib/tutors/queries';
-import { TUTOR_APPLICATION_PATH } from '@/lib/tutors/types';
 import { ApplyForm } from './apply-form';
 import { ConvertOffer } from './convert-offer';
+import { GuestApply } from './guest-apply';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,11 +50,23 @@ export default async function ApplyPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // ⚠ 2a-i's plain login gate, and 2a-ii replaces exactly this line with
-  // the email-first step. `next` brings them back here rather than to
-  // /router, so signing in does not lose the thing they came to do.
+  // ⭐ 2a-ii. This used to redirect to /login — 2a-i's plain gate. It now
+  // shows the same door a signed-in person sees: one form, and whether we
+  // create an account or send them to sign in is decided by the EMAIL
+  // they type, not by the fact that they arrived logged out (§5).
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent(TUTOR_APPLICATION_PATH)}`);
+    return (
+      <main className="ft-page ft-narrow">
+        <div className="ft-state">
+          <h1 className="ft-state-title">Apply to teach on MyNclex</h1>
+          <p className="ft-state-body">
+            Tell us who you are and how you would teach. We review every
+            application and email you either way.
+          </p>
+        </div>
+        <GuestApply />
+      </main>
+    );
   }
 
   const record = await loadMyTutorRecord();
