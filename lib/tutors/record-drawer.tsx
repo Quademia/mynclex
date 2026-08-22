@@ -63,11 +63,27 @@ function formatDate(iso: string | null): string | null {
   });
 }
 
-/** The status pill, worded the same wherever a record is shown. */
+/**
+ * The status pill — worded AND coloured the same wherever a record is
+ * shown. One definition, so the directory's Status column, the queue's
+ * Outcome column and this drawer cannot disagree about what a standing
+ * looks like.
+ *
+ * ⚠ REJECTED and SUSPENDED are both red and deliberately NOT the same
+ * pill: with Rejected now in the directory's filter, an admin can see
+ * both on one screen, and two identical red pills would be two different
+ * facts wearing one face. Suspended is filled — a live restriction on
+ * somebody who is ours. Rejected is outlined — a settled outcome about
+ * somebody who never got in.
+ *
+ * PENDING keeps the neutral pill: it is not good news or bad, it is
+ * unfinished business.
+ */
 export function StatusPill({ status }: { status: TutorRecord['status'] }) {
   if (status === 'SUSPENDED') return <span className="ao-pill adt-pill-susp">Suspended</span>;
   if (status === 'APPROVED') return <span className="ao-pill ao-pill-done">Approved</span>;
-  return <span className="ao-pill">{status === 'PENDING' ? 'Pending' : 'Rejected'}</span>;
+  if (status === 'REJECTED') return <span className="ao-pill adt-pill-rej">Rejected</span>;
+  return <span className="ao-pill">Pending</span>;
 }
 
 export function TutorRecordDrawer({
