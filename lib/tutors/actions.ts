@@ -18,6 +18,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { createClient as createSbClient } from '@supabase/supabase-js';
 import { requireAdminPermission, PERM_TUTORS_MANAGE } from '@/lib/access';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
@@ -275,6 +276,166 @@ export async function promoteUserToTutorAction(userId: string): Promise<AddTutor
   // getting the role without the email is recoverable, not being made a
   // tutor because an email failed is not.
   return { ok: true, name: user.name, keptStudent, emailQueued: queued };
+}
+
+/**
+ * Make a tutor of somebody who has no account at all — slice 3, and the
+ * fourth and last doorway (§5, `ADMIN_INVITE`).
+ *
+ * ⭐ IT IS NOT A SECOND BUTTON. To an admin, "add a tutor" is one action;
+ * whether the person already has an account is our implementation
+ * detail. So this fills the new-user branch of the SAME dropdown 1c
+ * built, replacing the instruction that stood there — see the modal.
+ *
+ * ⭐ THE ACCOUNT IS CREATED WITHOUT A PASSWORD, and that is the whole
+ * mechanism. generateLink mints the one-time way in and sends NOTHING;
+ * our own email carries it (the invite swap, 2026-08-12 — "one email,
+ * and the rich one wins"). ⚠ Which makes that email load-bearing: on
+ * this branch the link inside it is the only way into the account, so a
+ * queue failure is reported to the admin rather than swallowed.
+ *
+ * ⚠ ORDER, AND WHAT SURVIVES A FAILURE. auth user → profile → tutor row
+ * → role → email. The first two unwind together, because a half-made
+ * account is invisible to every surface and can never be retried (the
+ * address stays taken). From the tutor row onward nothing is undone:
+ * that row is the visible, fixable half, exactly as in promotion.
+ */
+export async function inviteTutorByEmailAction(
+  formData: FormData,
+): Promise<AddTutorResult> {
+  const ctx = await requireAdminPermission(PERM_TUTORS_MANAGE);
+
+  const forename = String(formData.get('forename') ?? '').trim();
+  const surname = String(formData.get('surname') ?? '').trim();
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+
+  if (!forename || !surname || !email) {
+    return { ok: false, error: 'A first name, a last name and an email are all required.' };
+  }
+
+  const fullName = `${forename} ${surname}`;
+  const admin = createServiceRoleClient();
+
+  // ⚠ RE-CHECK SERVER-SIDE. The form's as-you-type verdict is a
+  // courtesy, not a gate: it is minutes old by the time Invite is
+  // clicked, and it reached us from a browser. nclex_users.email is
+  // UNIQUE so the database is the real backstop — this only turns a
+  // constraint violation into a sentence that names the way across.
+  const { data: taken } = await admin
+    .from('nclex_users')
+    .select('id, name')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (taken) {
+    return {
+      ok: false,
+      error: `${taken.name ?? email} already has an account — promote them instead.`,
+    };
+  }
+
+  // ⚠ The SETUP link must point at the origin the request came from, or
+  // it is untestable on localhost. Deliberately asymmetric with the
+  // workspace links below, which always point at the real app — the same
+  // split lib/enrolments/enrol-email.ts documents, and for the same
+  // reason: the person reading the email is not the person who ran the
+  // code, EXCEPT on the one link that only exists to be clicked now.
+  const h = await headers();
+  const origin = h.get('origin') ?? 'http://localhost:3000';
+
+  const { data: invite, error: inviteError } = await admin.auth.admin.generateLink({
+    type: 'invite',
+    email,
+    options: {
+      redirectTo: `${origin}/welcome`,
+      data: { full_name: fullName },
+    },
+  });
+
+  if (inviteError || !invite?.user || !invite.properties?.action_link) {
+    return {
+      ok: false,
+      error: inviteError?.message ?? 'Could not create the invite link.',
+    };
+  }
+
+  const userId = invite.user.id;
+  const setUpUrl = invite.properties.action_link;
+
+  const { error: profileError } = await admin.from('nclex_users').insert({
+    id: userId,
+    email,
+    forename,
+    surname,
+    name: fullName,
+    // ⓘ Not TUTOR_INVITE — that means a tutor invited a STUDENT. This
+    // is an admin inviting a tutor, and provenance that cannot be
+    // reconstructed later is worth a distinct word now.
+    signup_source: 'ADMIN_INVITE',
+  });
+
+  if (profileError) {
+    // Unwind: an auth user with no profile row shows up nowhere, and the
+    // address it holds would block every future attempt at this person.
+    await rollbackAuthUser(userId);
+    return { ok: false, error: 'Could not create the account. Please try again.' };
+  }
+
+  const nowISO = new Date().toISOString();
+
+  // §4.4 — every doorway writes a row. An invite carries no approval
+  // step, so as with promotion the admin's click IS the decision.
+  const { error: rowError } = await admin.from('nclex_tutors').insert({
+    user_id: userId,
+    status: 'APPROVED',
+    source: 'ADMIN_INVITE' satisfies TutorSource,
+    approved_at: nowISO,
+    approved_by: ctx.user.id,
+    decided_at: nowISO,
+    decided_by: ctx.user.id,
+    created_at: nowISO,
+    updated_at: nowISO,
+  });
+
+  if (rowError) {
+    await admin.from('nclex_users').delete().eq('id', userId);
+    await rollbackAuthUser(userId);
+    return { ok: false, error: `Could not create the tutor record: ${rowError.message}` };
+  }
+
+  const granted = await grantTutorRole(admin, userId, ctx.user.id);
+  if (!granted.ok) {
+    return {
+      ok: false,
+      error: `The account and tutor record were created, but the TUTOR role could not be granted: ${granted.error}`,
+    };
+  }
+
+  const appOrigin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nclex.quademia.com';
+  const { queued } = await enqueueAndSend({
+    eventKey: 'tutor.added_by_admin',
+    subjectRef: userId,
+    toEmail: email,
+    toUserId: userId,
+    payload: {
+      recipientName: forename,
+      // Created from nothing, so there is no student history to keep —
+      // and the template renders the reassurance only when there is.
+      keepsStudentRole: false,
+      entry: 'SET_UP' satisfies TutorAddedEntry,
+      setUpUrl,
+      workspaceUrl: `${appOrigin}/tutor`,
+      profileUrl: `${appOrigin}/tutor/profile`,
+    },
+  });
+
+  revalidatePath('/admin/tutors');
+
+  // ⚠ Louder than promotion's equivalent, deliberately. There, a missing
+  // email costs a welcome; here it costs the ONLY way in, and the fix is
+  // for the tutor to use "Email me a sign-in code" — which somebody has
+  // to tell them.
+  return { ok: true, name: fullName, keptStudent: false, emailQueued: queued };
 }
 
 // ─────────────────────────────────────────────────────────────────────

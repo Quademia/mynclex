@@ -16,10 +16,11 @@
 // B's email check offers promotion when the address is already taken.
 // Without those hatches a wrong branch is a dead end and a guess.
 //
-// ⓘ 1c-i ships path A working end to end, and path B as the honest
-// stopgap: until slice 3 there is no invite, and the truthful answer is
-// "have them register, then add them as an existing user". 1c-ii adds
-// the as-you-type email check and the hatch back.
+// ⓘ 1c-i shipped path A end to end, and path B as an honest stopgap —
+// "have them register, then add them as an existing user". 1c-ii added
+// the as-you-type email check and the hatch back. ⭐ SLICE 3 REPLACED
+// THE STOPGAP IN PLACE: same form, same branch, no second button, so
+// there was never a moment with two controls doing one job.
 
 'use client';
 
@@ -27,6 +28,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   checkEmailForTutorAddAction,
   findUsersForTutorAddAction,
+  inviteTutorByEmailAction,
   promoteUserToTutorAction,
   type EmailVerdict,
   type TutorSearchHit,
@@ -64,6 +66,11 @@ export function AddTutorModal({
   // carries the address it is about, so "is this verdict current?" is
   // derived at render instead of a flag that can disagree with it.
   const [check, setCheck] = useState<{ addr: string; result: EmailVerdict | null } | null>(null);
+  // Slice 3. Asked for only once the address comes back free — the whole
+  // point of checking as you type is that nobody fills in a name for an
+  // address that turns out to be taken.
+  const [forename, setForename] = useState('');
+  const [surname, setSurname] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -136,6 +143,8 @@ export function AddTutorModal({
     setPicked(null);
     setEmail('');
     setCheck(null);
+    setForename('');
+    setSurname('');
     setError(null);
   }
 
@@ -156,6 +165,34 @@ export function AddTutorModal({
       res.emailQueued
         ? `${res.name} is now a tutor — TUTOR granted${res.keptStudent ? ', student account kept' : ''} · welcome email queued`
         : `${res.name} is now a tutor — TUTOR granted${res.keptStudent ? ', student account kept' : ''} · ⚠ the welcome email could not be queued`,
+    );
+  }
+
+  const canInvite =
+    verdict?.verdict === 'none' && forename.trim() !== '' && surname.trim() !== '';
+
+  async function confirmInvite() {
+    if (!canInvite || busy) return;
+    setBusy(true);
+    setError(null);
+    const fd = new FormData();
+    fd.set('email', addr);
+    fd.set('forename', forename.trim());
+    fd.set('surname', surname.trim());
+    const res = await inviteTutorByEmailAction(fd);
+    setBusy(false);
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    // ⚠ The email matters MORE here than on the promotion path, so the
+    // receipt says so plainly: on this branch the link inside it is the
+    // only way into an account that has no password. Still "queued" —
+    // the send runs after the response and nothing here knows it landed.
+    onAdded(
+      res.emailQueued
+        ? `${res.name} is now a tutor — account created, TUTOR granted · setup email queued`
+        : `${res.name} is now a tutor, but ⚠ the setup email could not be queued — they have no way in until it is re-sent`,
     );
   }
 
@@ -412,15 +449,60 @@ export function AddTutorModal({
                   <span className="adt-verdict-dot" />
                   <span>No account with this email.</span>
                 </div>
-                {/* ⚠ NOT A DEAD END — a working instruction. Invite-by-email
-                    is slice 3, and it replaces this copy IN PLACE, behind
-                    this same form, rather than adding a second button. */}
-                <div className="adt-stopgap">
-                  <strong>Invite by email is not built yet.</strong> Ask them
-                  to register at <code>/register</code> with this address, then
-                  add them here as an existing user. One extra step, and it
-                  matches how vetting actually happens today — in a
-                  conversation you are already having.
+                {/* ⭐ Slice 3, and it replaced an instruction IN PLACE —
+                    the same form, the same branch, no second button. The
+                    name fields appear only now, because the address came
+                    back free: nobody should fill in a name for an
+                    account that turns out to exist. */}
+                {/* ⓘ .adt-names and .adt-receipt both already existed,
+                    unused — 1c left the grid (and its mobile collapse)
+                    behind for this form, the way 1b left the queue's
+                    stylesheet for 2b. */}
+                <div className="adt-names">
+                  <label className="adt-field">
+                    <span>First name</span>
+                    <input
+                      type="text"
+                      value={forename}
+                      onChange={(e) => setForename(e.target.value)}
+                      autoComplete="off"
+                      disabled={busy}
+                    />
+                  </label>
+                  <label className="adt-field">
+                    <span>Last name</span>
+                    <input
+                      type="text"
+                      value={surname}
+                      onChange={(e) => setSurname(e.target.value)}
+                      autoComplete="off"
+                      disabled={busy}
+                    />
+                  </label>
+                </div>
+
+                {/* Says what the click does, in the order it happens —
+                    the same receipt the promotion path shows, because
+                    one click doing four things deserves the same
+                    disclosure whichever door it came through. The last
+                    line is the one that matters here: no password, so
+                    the email is the only way in. */}
+                <div className="adt-receipt">
+                  This one action:
+                  <ul>
+                    <li>
+                      creates an account for <strong>{addr}</strong> — with no
+                      password, so there is nothing to send them separately
+                    </li>
+                    <li>
+                      writes an <code>APPROVED</code> row in <code>nclex_tutors</code> — source{' '}
+                      <code>ADMIN_INVITE</code>, decided by you, now
+                    </li>
+                    <li>
+                      grants the <code>TUTOR</code> role and emails a one-time
+                      link to set a password
+                    </li>
+                  </ul>
                 </div>
               </>
             ) : (
@@ -429,13 +511,31 @@ export function AddTutorModal({
               </p>
             )}
 
+            {error && <p className="adt-form-error">{error}</p>}
+
             <div className="adt-modal-foot">
-              <button type="button" className="btn btn-sm" onClick={() => setMode('EXISTING')}>
+              <button type="button" className="btn btn-sm" onClick={() => setMode('EXISTING')} disabled={busy}>
                 They have registered → search
               </button>
-              <button type="button" className="btn btn-sm" onClick={onClose}>
-                Close
-              </button>
+              {/* The invite button exists only on the branch that can use
+                  it — a free address. On every other verdict the hatch
+                  above is the way forward, and a disabled primary button
+                  sitting next to it would just be noise. */}
+              {verdict?.verdict === 'none' ? (
+                <button
+                  type="button"
+                  className="btn btn-accent btn-sm"
+                  onClick={confirmInvite}
+                  disabled={!canInvite || busy}
+                  title={canInvite ? undefined : 'Add a first and last name first'}
+                >
+                  {busy ? 'Inviting…' : 'Invite as tutor'}
+                </button>
+              ) : (
+                <button type="button" className="btn btn-sm" onClick={onClose} disabled={busy}>
+                  Close
+                </button>
+              )}
             </div>
           </>
         )}

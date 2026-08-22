@@ -349,6 +349,16 @@ function TutorRow({ row, onOpen }: { row: TutorRecord; onOpen: () => void }) {
 
       <div className="adt-cell">
         <StatusPill status={row.status} />
+        {/* ⚠ Sits UNDER the pill rather than replacing it, because both
+            are true: an invited tutor really is APPROVED and really does
+            hold the role. What the pill cannot say is that nobody has
+            walked through the door yet — and without that line the row
+            is indistinguishable from a tutor who is working. */}
+        {row.invite_pending && (
+          <div className="adt-invite-pending" title="They have not set a password yet">
+            Invited — not set up
+          </div>
+        )}
       </div>
 
       <div className="ao-th-actions">

@@ -207,7 +207,12 @@ export default function WelcomePage() {
           <div className="auth-field">
             <label htmlFor="email">Email</label>
             <input id="email" type="email" value={email} disabled readOnly />
-            <span className="auth-hint">The email your tutor invited.</span>
+            {/* ⚠ Was "The email your tutor invited." — true of only one of
+                the flows that land here. This page is a convergence
+                point: a tutor-added student, a pay-first buyer, and
+                (slice 3) an admin-invited TUTOR, who has no tutor. The
+                line has to be true of everybody who reaches it. */}
+            <span className="auth-hint">The email your invitation was sent to.</span>
           </div>
 
           <div className="auth-field">

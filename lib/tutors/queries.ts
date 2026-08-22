@@ -70,6 +70,12 @@ type UserIdentityRow = {
   name: string;
   email: string;
   phone_number: string | null;
+  /**
+   * Null = has never signed in. Written by /login's two paths and, since
+   * slice 3, by /welcome when setup completes — which is what makes it
+   * safe to read as "this invite was never accepted".
+   */
+  last_login_utc: string | null;
 };
 
 /**
@@ -107,7 +113,7 @@ async function hydrateRecords(
 
   const { data: users } = await admin
     .from('nclex_users')
-    .select('id, name, email, phone_number')
+    .select('id, name, email, phone_number, last_login_utc')
     .in('id', [...identityIds]);
 
   const byId = new Map(((users ?? []) as UserIdentityRow[]).map((u) => [u.id, u]));
@@ -157,6 +163,10 @@ async function hydrateRecords(
       source: r.source,
       profile: r.public_profile ?? {},
       programme_count: counts.get(r.user_id) ?? 0,
+      // ⚠ BOTH halves. Dropping the source check turns "this invite was
+      // never accepted" into "this person has not logged in lately",
+      // which is a different claim about a different set of people.
+      invite_pending: r.source === 'ADMIN_INVITE' && !self?.last_login_utc,
       organisation: r.organisation,
       request_note: r.request_note,
       approved_at: r.approved_at,

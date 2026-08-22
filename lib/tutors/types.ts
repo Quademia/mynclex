@@ -134,6 +134,22 @@ export type TutorRecord = {
   profile: TutorPublicProfile;
   /** Programmes they own, any status. `0` renders as an em dash. */
   programme_count: number;
+  /**
+   * An invite that has not been accepted — slice 3.
+   *
+   * ⭐ An invited tutor is APPROVED and holds the TUTOR role from the
+   * moment the admin clicks, so without this their row is identical to a
+   * working tutor's and "I invited her last week and heard nothing" has
+   * no answer on screen.
+   *
+   * ⚠ Deliberately narrow: `source = ADMIN_INVITE` AND never signed in.
+   * The second half alone would also flag a PROMOTED tutor who simply
+   * has not logged in lately, which is a different fact and not one this
+   * chip claims. Rests on /welcome stamping `last_login_utc` when setup
+   * completes — before slice 3 nothing did, and this would have been
+   * true forever.
+   */
+  invite_pending: boolean;
   /** ── The application payload, null for doorways with no approval step. */
   organisation: string | null;
   request_note: string | null;
