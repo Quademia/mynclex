@@ -357,6 +357,24 @@
 /* Decided table */
 .adt-decided-cols { grid-template-columns: minmax(0, 1.6fr) 120px 140px minmax(0, 1.8fr) 100px; }
 
+/* ⚠ NOT .adt-cell-sub, which clamps to ONE line with an ellipsis. That is
+ * right for "by <admin>" — a label that has nothing to lose — and wrong
+ * for the rejection reason, which is a sentence written to be read, and
+ * which the applicant received in full. One line of it usually stops
+ * before the reason does, so the column shows that a reason exists
+ * without showing what it says.
+ *
+ * Two lines, then an ellipsis. Not unlimited: the row is scanned beside
+ * five others, and one long refusal should not set the height of the
+ * whole table. The full text is on the record either way. */
+.adt-reason {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  font-size: 11.5px; line-height: 1.45; color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
 /* Empty state */
 .adt-empty {
   background: var(--white); border: 1px dashed var(--border-strong); border-radius: 10px;

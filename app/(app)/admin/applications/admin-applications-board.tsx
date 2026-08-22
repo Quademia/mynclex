@@ -485,9 +485,17 @@ function DecidedTable({ rows }: { rows: TutorApplicationRow[] }) {
             </div>
 
             {/* An approval takes no reason, so the dash here is the normal
-                case rather than missing data. */}
+                case rather than missing data.
+
+                ⓘ .adt-reason, not .adt-cell-sub: the sibling clamps to one
+                line, which cut most refusals off before they said
+                anything. Two lines, then an ellipsis — the full text is
+                on the record and in the email the applicant already has,
+                so this column only has to be enough to recognise. */}
             <div className="adt-cell">
-              <div className="adt-cell-sub">{r.decision_reason || '—'}</div>
+              <div className={r.decision_reason ? 'adt-reason' : 'adt-cell-sub'}>
+                {r.decision_reason || '—'}
+              </div>
             </div>
 
             <div className="adt-num">{r.submission_count}</div>
