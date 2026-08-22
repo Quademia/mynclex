@@ -1,0 +1,210 @@
+/* mynclex/styles/for-tutors.css
+ *
+ * The public "For tutors" pitch page and the application route
+ * (tutor-onboarding sub-slice 2a-i).
+ *
+ * ⭐ EVERYTHING HERE IS PLACEHOLDER-GRADE ON PURPOSE for the pitch page:
+ * Claude Design is doing that surface, and this exists so the doorway
+ * works in the meantime. The APPLICATION side (.ft-state, .ft-form,
+ * .ft-reason) is not placeholder — it is the real surface, and CD is not
+ * designing it.
+ *
+ * Tokens come from tokens.css, imported by (public)/layout.tsx. Nothing
+ * here invents a colour.
+ *
+ * ⚠ Mobile matters more here than on an admin surface — this page is
+ * public, and the audience is phone-first. Single column below 768px,
+ * per the standing breakpoint.
+ */
+
+.ft-page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 40px 20px 72px;
+}
+
+/* The application states are reading surfaces, not landing pages. */
+.ft-narrow { max-width: 620px; }
+
+/* ── Hero ─────────────────────────────────────────────────────────── */
+.ft-hero {
+  text-align: center;
+  padding: 32px 0 44px;
+  border-bottom: 1px solid var(--border);
+}
+.ft-hero-title {
+  font-size: 38px; font-weight: 800; line-height: 1.15;
+  color: var(--text); margin: 0 0 14px;
+}
+.ft-hero-sub {
+  font-size: 16.5px; line-height: 1.65; color: var(--text-muted);
+  max-width: 620px; margin: 0 auto 26px;
+}
+.ft-hero-note {
+  font-size: 12.5px; color: var(--text-muted); margin: 14px 0 0;
+}
+
+/* ── The one call to action, used in three places ─────────────────── */
+.ft-cta {
+  display: inline-flex; align-items: center; justify-content: center;
+  /* 44px min height — a touch target, not a mouse target. The audience
+   * is phone-first and this is the button the whole page exists for. */
+  min-height: 44px;
+  padding: 11px 22px;
+  border: none; border-radius: 10px;
+  background: var(--accent); color: var(--white);
+  font-family: inherit; font-size: 14.5px; font-weight: 700;
+  text-decoration: none; cursor: pointer;
+  transition: filter 120ms;
+}
+.ft-cta:hover { filter: brightness(1.06); }
+.ft-cta:disabled {
+  /* Strong disabled state, per the house rule: a button that looks
+   * clickable and is not is worse than one that looks unavailable. */
+  background: var(--border-strong); color: var(--white);
+  cursor: not-allowed; filter: none;
+}
+
+/* ── Sections ─────────────────────────────────────────────────────── */
+.ft-section { padding: 44px 0 0; }
+.ft-section-title {
+  font-size: 22px; font-weight: 700; color: var(--text);
+  margin: 0 0 22px; text-align: center;
+}
+
+.ft-offer {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.ft-offer-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px 22px;
+}
+.ft-offer-title {
+  font-size: 15px; font-weight: 700; color: var(--text); margin: 0 0 8px;
+}
+.ft-offer-body {
+  font-size: 13.5px; line-height: 1.65; color: var(--text-muted); margin: 0;
+}
+
+/* ── Steps ────────────────────────────────────────────────────────── */
+.ft-steps {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 18px; max-width: 680px; margin-inline: auto;
+}
+.ft-step { display: flex; gap: 16px; align-items: flex-start; }
+.ft-step-n {
+  flex: none;
+  width: 30px; height: 30px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--primary-light); color: var(--primary);
+  font-size: 13.5px; font-weight: 800;
+}
+.ft-step-title {
+  font-size: 15px; font-weight: 700; color: var(--text); margin: 2px 0 6px;
+}
+.ft-step-body {
+  font-size: 13.5px; line-height: 1.65; color: var(--text-muted); margin: 0;
+}
+
+.ft-closing {
+  margin-top: 56px; padding: 36px 24px; text-align: center;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+}
+.ft-closing-title {
+  font-size: 22px; font-weight: 700; color: var(--text); margin: 0 0 10px;
+}
+.ft-closing-sub {
+  font-size: 14px; line-height: 1.6; color: var(--text-muted);
+  max-width: 520px; margin: 0 auto 20px;
+}
+
+/* ── Application states ───────────────────────────────────────────── */
+.ft-state {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 12px; padding: 26px 26px 24px; margin-bottom: 20px;
+}
+.ft-state-title {
+  font-size: 24px; font-weight: 700; color: var(--text); margin: 0 0 10px;
+}
+.ft-state-body {
+  font-size: 14.5px; line-height: 1.65; color: var(--text-muted);
+  margin: 0 0 16px;
+}
+.ft-state-body:last-child { margin-bottom: 0; }
+
+.ft-badge {
+  display: inline-block; margin-bottom: 12px;
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--primary-light); color: var(--primary);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ft-kv {
+  display: grid; grid-template-columns: 130px minmax(0, 1fr);
+  gap: 6px 12px; font-size: 13.5px; margin: 0 0 16px;
+}
+.ft-kv dt { color: var(--text-muted); }
+.ft-kv dd { color: var(--text); margin: 0; }
+
+/* The decision reason, and what the applicant themselves wrote. Same
+ * shape as the email's reason block on purpose — a person who read it in
+ * their inbox should recognise it here. */
+.ft-reason, .ft-note {
+  border-left: 3px solid var(--border-strong);
+  background: var(--bg);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 12px 14px; margin: 0 0 16px;
+  font-size: 13.5px; line-height: 1.6; color: var(--text);
+  white-space: pre-wrap;
+}
+.ft-reason { border-left-color: var(--danger); background: #fef2f2; color: #7f1d1d; }
+.ft-reason-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); margin: 0 0 4px;
+}
+
+.ft-aside {
+  font-size: 13px; line-height: 1.6; color: var(--text-muted);
+  text-align: center; margin: 18px 0 0;
+}
+.ft-aside a { color: var(--accent); }
+
+/* ── The form ─────────────────────────────────────────────────────── */
+.ft-form {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px 26px;
+}
+.ft-counter {
+  font-size: 12px; color: var(--text-muted); margin: 6px 0 0;
+}
+.ft-error {
+  margin: 4px 0 14px; padding: 10px 12px;
+  border-left: 3px solid var(--danger); background: #fef2f2;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 13px; line-height: 1.55; color: #7f1d1d;
+}
+.ft-form-foot { margin-top: 8px; }
+.ft-form-note {
+  font-size: 12.5px; line-height: 1.55; color: var(--text-muted);
+  margin: 10px 0 0;
+}
+
+/* ── Phone ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ft-page { padding: 24px 16px 56px; }
+  .ft-hero { padding: 16px 0 32px; }
+  .ft-hero-title { font-size: 28px; }
+  .ft-hero-sub { font-size: 15px; }
+  .ft-section-title { font-size: 19px; }
+  .ft-state, .ft-form { padding: 20px 18px; }
+  .ft-state-title { font-size: 20px; }
+  /* Stack the label above the value rather than squeezing a 130px
+   * column against a long organisation name. */
+  .ft-kv { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .ft-kv dt { margin-top: 8px; }
+  /* Full-width, so the primary action is not a small target in a
+   * corner on the surface that exists to be tapped. */
+  .ft-cta { width: 100%; }
+}

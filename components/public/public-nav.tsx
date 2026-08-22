@@ -2,9 +2,12 @@
 //
 // Shared top nav for every public page (the (public) route group). The
 // full link set from the design handoff is present; Practice bank,
-// Programmes, Readiness and Log in are wired. For tutors and the
-// GHS/USD currency toggle are intentional placeholders for later slices
-// (they render but don't navigate / do anything yet).
+// Programmes, Readiness, For tutors and Log in are wired. The GHS/USD
+// currency toggle is an intentional placeholder for a later slice (it
+// renders but doesn't do anything yet).
+//
+// "For tutors" was a dead <span className="link-soon"> from the landing
+// page until tutor-onboarding 2a-i (2026-08-22) gave it somewhere to go.
 //
 // Readiness went live with Slice ①.3 (2026-07-08). Its buy buttons are
 // still disabled — the page sells and explains; checkout is Slice ②b.
@@ -22,7 +25,7 @@ export function PublicNav() {
         <Link href="/bank-access">Practice bank</Link>
         <Link href="/programmes">Programmes</Link>
         <Link href="/readiness">Readiness</Link>
-        <span className="link-soon">For tutors</span>
+        <Link href="/for-tutors">For tutors</Link>
       </nav>
 
       <div className="right">

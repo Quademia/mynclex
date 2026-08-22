@@ -76,7 +76,19 @@ export type EmailEventKey =
    * enrolment.rejected: shared facts, nothing else in common.
    */
   | 'tutor.application_approved'
-  | 'tutor.application_rejected';
+  | 'tutor.application_rejected'
+  /**
+   * Acknowledgement to the applicant. Tutor-onboarding 2a-i.
+   */
+  | 'tutor.application_received'
+  /**
+   * ⭐ THE FIRST EMAIL THIS PRODUCT SENDS TO ITSELF. Every key above it
+   * goes to a student or a tutor; this one tells US that a queue has
+   * something in it. Recipient ≠ actor — without it the applications
+   * page fills up and nobody knows, which is the whole reason the plan
+   * doc lists it (§10). Tutor-onboarding 2a-i.
+   */
+  | 'tutor.application_submitted_admin';
 
 // ─────────────────────────────────────────────────────────────────────
 // The tutor welcome (tutor-onboarding slice 1c)
@@ -170,6 +182,44 @@ export type TutorApplicationApprovedPayload = {
   keepsStudentRole: boolean;
   workspaceUrl: string;
   profileUrl: string;
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// Submission (tutor-onboarding slice 2a-i)
+// ─────────────────────────────────────────────────────────────────────
+
+export type TutorApplicationReceivedPayload = {
+  /** Null when the account has no profile name yet. */
+  recipientName: string | null;
+  /**
+   * Shown as "Request #N" — a user-facing number, per §9. It is honest
+   * about the fact that we know they have asked before, which is the
+   * MyTeacher precedent this arc verified rather than assumed.
+   */
+  submissionCount: number;
+  /**
+   * ⚠ Whether this replaces an earlier attempt. The copy MUST differ:
+   * "thanks for applying" to somebody resubmitting a rejected
+   * application reads as though we lost the first one.
+   */
+  isResubmission: boolean;
+  applicationUrl: string;
+};
+
+/**
+ * ⚠ INTERNAL. The only payload in this file whose recipient is us, which
+ * is why it may carry the applicant's own words — there is no disclosure
+ * question when the reader is the person deciding.
+ */
+export type TutorApplicationSubmittedAdminPayload = {
+  applicantName: string;
+  applicantEmail: string;
+  organisation: string | null;
+  submissionCount: number;
+  /** What they wrote. Saves the admin a click to triage. */
+  requestNote: string;
+  /** Straight into the queue. */
+  queueUrl: string;
 };
 
 export type TutorApplicationRejectedPayload = {

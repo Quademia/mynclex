@@ -21,6 +21,10 @@ import { revalidatePath } from 'next/cache';
 import { requireAdminPermission, PERM_TUTORS_MANAGE } from '@/lib/access';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { enqueueAndSend } from '@/lib/email/send';
+// ⓘ Imported rather than re-typed: a second copy of the address is a
+// second thing to change, and the one that gets missed is the one nobody
+// is reading.
+import { SUPPORT_EMAIL } from '@/lib/email/templates/wrapper';
 import { TUTOR_APPLICATION_PATH } from './types';
 import type { TutorSource } from './types';
 
@@ -559,6 +563,142 @@ export async function reinstateTutorAction(
 
   revalidatePath('/admin/tutors');
   return { ok: true, changed: true, name };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Applying (sub-slice 2a-i)
+// ─────────────────────────────────────────────────────────────────────
+
+export type SubmitApplicationResult =
+  | { ok: true; created: boolean; submissionCount: number }
+  | { ok: false; error: string };
+
+/** Turn the RPC's RAISEs into something an applicant can act on. */
+function applicationError(message: string): string {
+  if (message.includes('suspended tutor cannot re-apply')) {
+    return 'Your tutor account is currently suspended, so a new application cannot be submitted. Please contact us instead.';
+  }
+  if (message.includes('already a tutor')) {
+    return 'You are already a tutor — there is nothing to apply for.';
+  }
+  if (message.includes('tell us about yourself')) {
+    return 'Please tell us about yourself before submitting.';
+  }
+  if (message.includes('sign in to apply')) {
+    return 'Your session has expired. Sign in again and your details will still be here.';
+  }
+  return message;
+}
+
+/**
+ * Apply, or re-apply, to become a tutor.
+ *
+ * ⚠ NO USER ID CROSSES THIS BOUNDARY, and that is the point. The RPC
+ * writes from auth.uid(), so §5's identity rule cannot be bypassed by
+ * anything this action does or forgets to do — the typed email decides
+ * which BRANCH of the form you were in, never whose row is written.
+ *
+ * ⓘ THE ROLE IS NOT GRANTED HERE. §4's third invariant: registration and
+ * application never grant TUTOR. Only an admin's approval does, through
+ * grantTutorRole above.
+ */
+export async function submitApplicationAction(
+  organisation: string,
+  requestNote: string,
+  source: 'SELF_APPLICATION' | 'REGISTRATION' = 'SELF_APPLICATION',
+): Promise<SubmitApplicationResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, error: 'Sign in to apply.' };
+  }
+
+  const { data, error } = await supabase.rpc('nclex_tutor_submit_application', {
+    p_organisation: organisation,
+    p_request_note: requestNote,
+    p_source: source,
+  });
+
+  if (error) return { ok: false, error: applicationError(error.message) };
+
+  const outcome = (data ?? [])[0] as
+    | { created: boolean; submission_count: number }
+    | undefined;
+
+  if (!outcome) {
+    return { ok: false, error: 'Could not submit your application. Please try again.' };
+  }
+
+  const count = outcome.submission_count;
+
+  // Identity for the emails. The service role, because both templates
+  // need a name and an address off nclex_users — which an ordinary user
+  // cannot read beyond their own row, and the ADMIN notice needs to name
+  // somebody who is not the reader.
+  const admin = createServiceRoleClient();
+  const { data: person } = await admin
+    .from('nclex_users')
+    .select('name, email')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nclex.quademia.com';
+
+  // ⚠ Stage = the submission number, for the same reason the decision
+  // emails carry a timestamp: subject_ref is a PERSON here, and §9 exists
+  // so a person can apply more than once. With the default '-' stage, a
+  // resubmission would be de-duplicated against the first application and
+  // silently send nothing. See decisionStage above for the full story.
+  const stage = `s${count}`;
+
+  if (person?.email) {
+    await enqueueAndSend({
+      eventKey: 'tutor.application_received',
+      subjectRef: user.id,
+      stage,
+      toEmail: person.email,
+      toUserId: user.id,
+      payload: {
+        recipientName: person.name || null,
+        submissionCount: count,
+        isResubmission: count > 1,
+        applicationUrl: `${origin}${TUTOR_APPLICATION_PATH}`,
+      },
+    });
+  }
+
+  // ⭐ The admin notice — recipient ≠ actor (§10). Without it the queue
+  // fills up and nobody knows. ⚠ toUserId is deliberately absent: the
+  // recipient is a shared address, not a user of this product, and
+  // attaching the APPLICANT's id to a mail they never receive would make
+  // the outbox lie about who was written to.
+  await enqueueAndSend({
+    eventKey: 'tutor.application_submitted_admin',
+    subjectRef: user.id,
+    stage,
+    // Sam's call, 2026-08-22: a constant, not a lookup of everyone
+    // holding TUTORS_MANAGE. A fan-out to permission holders is a feature
+    // nobody needs while there is one admin, and an address in the code
+    // cannot silently go nowhere the way an unset env var can.
+    toEmail: SUPPORT_EMAIL,
+    payload: {
+      applicantName: person?.name || '(no name on file)',
+      applicantEmail: person?.email || user.email || '(unknown)',
+      organisation: organisation.trim() || null,
+      submissionCount: count,
+      requestNote: requestNote.trim(),
+      queueUrl: `${origin}/admin/applications`,
+    },
+  });
+
+  revalidatePath(TUTOR_APPLICATION_PATH);
+  revalidateTutorSurfaces();
+
+  return { ok: true, created: outcome.created, submissionCount: count };
 }
 
 // ─────────────────────────────────────────────────────────────────────

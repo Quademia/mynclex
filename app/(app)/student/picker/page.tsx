@@ -27,6 +27,8 @@ import { ProgrammeCards } from '@/components/nav/student/programme-cards';
 import { getMyAccessibleProgrammesAction } from '@/lib/programmes/student-actions';
 import { getMyBankAccess } from '@/lib/payments/entitlements';
 import { getMyCredits } from '@/lib/payments/readiness-credits-read';
+import { loadMyTutorRecord } from '@/lib/tutors/queries';
+import { TUTOR_APPLICATION_PATH } from '@/lib/tutors/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,6 +76,22 @@ export default async function PickerPage() {
           ? 'Your one-shot mock exams — claim, activate, sit.'
           : 'A curated, one-shot mock built like the real NCLEX. Sit it once for a formal readiness score — a true measure of where you stand, not just more practice.';
 
+  // ⭐ §8B of tutor-onboarding: an existing STUDENT who applies to teach
+  // keeps their student access and lands here as usual, so this is the
+  // one place they would ever learn their application exists.
+  //
+  // ⚠ A POINTER, NOT A COPY. The status, the reason and the resubmit form
+  // all live on /for-tutors/apply; duplicating any of it here would give
+  // two answers to one question. This card says "there is a thing, it is
+  // here" and nothing more.
+  //
+  // ⓘ Shown only while it is unresolved or refused. An APPROVED applicant
+  // holds the TUTOR role and has a role switch in the topbar, so a card
+  // telling them about an application would be describing the past.
+  const tutorApplication = await loadMyTutorRecord();
+  const showApplicationCard =
+    tutorApplication?.status === 'PENDING' || tutorApplication?.status === 'REJECTED';
+
   return (
     <AppShell
       displayName={chrome.displayName}
@@ -86,6 +104,22 @@ export default async function PickerPage() {
         <div className="picker-inner">
           <div className="picker-greeting">Welcome back, {firstName}</div>
           <div className="picker-sub">Where would you like to go?</div>
+
+          {showApplicationCard && tutorApplication && (
+            <Link href={TUTOR_APPLICATION_PATH} className="picker-tutor-app">
+              <span className="picker-tutor-app-label">
+                {tutorApplication.status === 'PENDING'
+                  ? `Tutor application — pending · Request #${tutorApplication.submission_count}`
+                  : 'Tutor application — we could not take you on this time'}
+              </span>
+              <span className="picker-tutor-app-cta">
+                {tutorApplication.status === 'PENDING'
+                  ? 'View'
+                  : 'See why, and resubmit'}{' '}
+                →
+              </span>
+            </Link>
+          )}
 
           <div className="picker-rails">
             {/* Programmes lane */}

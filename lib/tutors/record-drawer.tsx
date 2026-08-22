@@ -55,7 +55,17 @@ function initials(name: string): string {
 
 function formatDate(iso: string | null): string | null {
   if (!iso) return null;
-  return new Date(iso).toLocaleDateString('en-GB', {
+  const d = new Date(iso);
+  // ⚠ Guard, because this renders a value we did not format ourselves.
+  // Every `at` in decision_history comes from the RPC's now(), which
+  // serialises with a full offset and parses fine — but a hand-written
+  // or backfilled entry can carry a shape JS refuses (a bare "+00"
+  // instead of "+00:00"), and `new Date()` answers that with the string
+  // "Invalid Date", which then renders as those two words in the middle
+  // of somebody's decision trail. A dash says "no usable date" and is
+  // true; "Invalid Date" says nothing to the person reading it.
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -135,10 +145,18 @@ export function TutorRecordDrawer({
               <dd>
                 {/* NULL here means one thing only — not approved yet —
                     since the LEGACY rows were dated from
-                    nclex_user_roles.granted_at (migration 20260914120000). */}
+                    nclex_user_roles.granted_at (migration 20260914120000).
+                    ⚠ But "not yet" is TWO different facts now that this
+                    drawer opens over rejected applicants too. Telling
+                    somebody who was turned down that they are "awaiting a
+                    decision" describes a queue they are not in — the
+                    wording is inherited from 1b, when only APPROVED and
+                    SUSPENDED rows could reach this panel. */}
                 {approved
                   ? `${approved}${row.approved_by_name ? ` · by ${row.approved_by_name}` : ''}`
-                  : 'Not yet — awaiting a decision'}
+                  : row.status === 'REJECTED'
+                    ? 'Never — the application was refused'
+                    : 'Not yet — awaiting a decision'}
               </dd>
               {/* The LAST decision of any kind, suspensions included.
                   Shown only once there has been one, so a fresh PENDING

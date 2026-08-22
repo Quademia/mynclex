@@ -61,6 +61,14 @@ import {
   TUTOR_APPLICATION_REJECTED_FOOTER_CONTEXT,
   tutorApplicationRejectedTemplate,
 } from './templates/tutor-application-rejected';
+import {
+  TUTOR_APPLICATION_RECEIVED_FOOTER_CONTEXT,
+  tutorApplicationReceivedTemplate,
+} from './templates/tutor-application-received';
+import {
+  TUTOR_APPLICATION_SUBMITTED_ADMIN_FOOTER_CONTEXT,
+  tutorApplicationSubmittedAdminTemplate,
+} from './templates/tutor-application-submitted-admin';
 
 export type Rendered = {
   subject: string;
@@ -165,6 +173,17 @@ const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: s
   'tutor.application_rejected': {
     template: tutorApplicationRejectedTemplate,
     footerContext: TUTOR_APPLICATION_REJECTED_FOOTER_CONTEXT,
+  },
+  'tutor.application_received': {
+    template: tutorApplicationReceivedTemplate,
+    footerContext: TUTOR_APPLICATION_RECEIVED_FOOTER_CONTEXT,
+  },
+  // ⭐ The only entry in this table whose recipient is us. See the
+  // template for why its disclosure rules are the inverse of every
+  // other one here.
+  'tutor.application_submitted_admin': {
+    template: tutorApplicationSubmittedAdminTemplate,
+    footerContext: TUTOR_APPLICATION_SUBMITTED_ADMIN_FOOTER_CONTEXT,
   },
 };
 

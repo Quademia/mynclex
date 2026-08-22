@@ -28,7 +28,7 @@
 // not ask for the note". So they differ only in WHICH ROWS they return
 // and what they tally, never in what a row contains.
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import type {
   TutorApplicationStats,
   TutorDecisionEntry,
@@ -203,6 +203,62 @@ export async function loadTutorDirectory(): Promise<{
       suspended: rows.filter((r) => r.status === 'SUSPENDED').length,
     },
   };
+}
+
+/**
+ * The signed-in caller's OWN tutor record, or null if they have never
+ * applied and were never made one (sub-slice 2a-i).
+ *
+ * ⭐ THE ONE READ IN THIS FILE THAT IS NOT AN ADMIN READ, and the only
+ * one that must NOT use the service role — `nclex_tutors_self_read`
+ * already admits `user_id = auth.uid()`.
+ *
+ * ⚠⚠ BUT IT STILL FILTERS EXPLICITLY, AND THE FIRST VERSION DID NOT.
+ * This function was written to lean on RLS alone: no `.eq()`, just
+ * `.maybeSingle()`, on the reasoning that the policy narrows the result
+ * to the caller's own row. **That policy is
+ * `user_id = auth.uid() OR nclex_user_has_permission('TUTORS_MANAGE')`.**
+ * For an admin the OR matches EVERY row, `.maybeSingle()` gets a
+ * multi-row result, and it returns null — so /for-tutors/apply showed an
+ * approved tutor who happens to be an admin a blank application form,
+ * as though they had never applied.
+ *
+ * Caught in the browser on 2026-08-22, not by tsc, not by lint, and not
+ * by anything that would have failed for an ordinary user. ⭐ The general
+ * shape is one this repo keeps meeting from the other direction: an RLS
+ * policy with an OR in it is not a WHERE clause. Say what you mean in the
+ * query; let the policy be the thing that stops you being wrong.
+ */
+export async function loadMyTutorRecord(): Promise<{
+  status: TutorStatus;
+  source: TutorSource;
+  organisation: string | null;
+  request_note: string | null;
+  submission_count: number;
+  decision_reason: string | null;
+  decided_at: string | null;
+  first_applied_at: string | null;
+  last_applied_at: string | null;
+} | null> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from('nclex_tutors')
+    .select(
+      `status, source, organisation, request_note, submission_count,
+       decision_reason, decided_at, first_applied_at, last_applied_at`,
+    )
+    // The line that was missing. See above.
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  return data ?? null;
 }
 
 /**
