@@ -29,6 +29,7 @@ import {
   TURNSTILE_FAILED_MESSAGE,
 } from '@/lib/auth/turnstile';
 import { enqueueAndSend } from '@/lib/email/send';
+import type { TutorAddedEntry } from '@/lib/email/types';
 // ⓘ Imported rather than re-typed: a second copy of the address is a
 // second thing to change, and the one that gets missed is the one nobody
 // is reading.
@@ -258,6 +259,10 @@ export async function promoteUserToTutorAction(userId: string): Promise<AddTutor
     payload: {
       recipientName: user.name ?? null,
       keepsStudentRole: keptStudent,
+      // Promotion, always: this action only ever runs against a user
+      // who already exists, so the password does too. The invite branch
+      // (slice 3) is the one that turns this dial the other way.
+      entry: 'LOG_IN' satisfies TutorAddedEntry,
       workspaceUrl: `${origin}/tutor`,
       profileUrl: `${origin}/tutor/profile`,
     },
