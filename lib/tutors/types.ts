@@ -106,18 +106,47 @@ export function trailTone(to: TutorStatus): string {
 }
 
 /**
- * One row of the /admin/tutors directory: the tutor record joined to the
- * identity that stays on nclex_users, plus the live programme count.
+ * ONE PERSON'S WHOLE TUTOR RECORD — the nclex_tutors row joined to the
+ * identity that stays on nclex_users, plus the roles they hold and a live
+ * programme count.
+ *
+ * ⭐ ONE TYPE FOR BOTH SURFACES (settled with Sam, 2026-08-22). The
+ * directory and the applications queue used to have a row type each,
+ * carrying the half of the record their own drawer rendered. That quietly
+ * contradicted §2 — `nclex_tutors` is ONE ROW PER PERSON, and two partial
+ * views of one row leave an admin to wonder which is the truth. It also
+ * taxed every future column with a "which surface does this belong to?"
+ * decision that would be answered inconsistently forever.
+ *
+ * ⚠ So a loader must never fetch a subset. A drawer section that hides
+ * itself when a field is empty cannot distinguish "they wrote no note"
+ * from "this page did not ask for the note" — the invisible-to-tsc
+ * failure this repo keeps meeting.
  */
-export type TutorDirectoryRow = {
+export type TutorRecord = {
   user_id: string;
   name: string;
   email: string;
+  /** From nclex_users — a phone is not tutor-specific, so it lives there. */
+  phone: string | null;
   status: TutorStatus;
   source: TutorSource;
   profile: TutorPublicProfile;
   /** Programmes they own, any status. `0` renders as an em dash. */
   programme_count: number;
+  /** ── The application payload, null for doorways with no approval step. */
+  organisation: string | null;
+  request_note: string | null;
+  /**
+   * Every role they hold right now.
+   *
+   * ⭐ §8 branches on ROLES, not on `source` — an existing student who
+   * applied keeps STUDENT and lands on /student/picker, while a role-less
+   * registrant has nowhere to stand and goes to the application page.
+   * Reading `source` instead would be wrong the moment someone registers
+   * as a tutor from an account that already had a role.
+   */
+  roles: string[];
   /**
    * The permanent vetting fact — set once on first approval, never
    * overwritten.
@@ -168,48 +197,6 @@ export type TutorDirectoryStats = {
  */
 export const TUTOR_APPLICATION_PATH = '/for-tutors/apply';
 
-/**
- * One row of the /admin/applications queue (sub-slice 2b).
- *
- * ⚠ Deliberately NOT TutorDirectoryRow. They overlap heavily and read the
- * same table, but the two surfaces ask different questions: the directory
- * asks "who teaches here and what standing are they in", so it carries
- * the public profile and a programme count. A queue asks "should we let
- * this person in", so it carries the application payload — organisation,
- * the note they wrote, how many times they have asked — and the ROLES
- * they hold, which is what §8's branching keys off. Merging them would
- * make every page load fetch the half it does not use.
- */
-export type TutorApplicationRow = {
-  user_id: string;
-  name: string;
-  email: string;
-  /** From nclex_users — a phone is not tutor-specific, so it lives there. */
-  phone: string | null;
-  status: TutorStatus;
-  source: TutorSource;
-  organisation: string | null;
-  request_note: string | null;
-  submission_count: number;
-  first_applied_at: string | null;
-  last_applied_at: string | null;
-  decided_at: string | null;
-  decided_by_name: string | null;
-  decision_reason: string | null;
-  /**
-   * Every role they hold right now.
-   *
-   * ⭐ §8 branches on ROLES, not on `source` — an existing student who
-   * applied keeps STUDENT and lands on /student/picker, while a role-less
-   * registrant has nowhere to stand and goes to the application page.
-   * Reading `source` instead would be wrong the moment someone registers
-   * as a tutor from an account that already had a role.
-   */
-  roles: string[];
-  /** The full decision trail, oldest first, actor names resolved. */
-  trail: TutorTrailEntry[];
-};
-
 /** Counts behind the queue's two tabs. */
 export type TutorApplicationStats = {
   pending: number;
@@ -223,8 +210,20 @@ export type TutorApplicationStats = {
  * "role-less" for the callout, and it cannot drift from what the router
  * will branch on in 2c.
  */
-export function isRolelessApplicant(row: TutorApplicationRow): boolean {
+export function isRolelessApplicant(row: TutorRecord): boolean {
   return row.roles.length === 0;
+}
+
+/**
+ * Did anybody actually apply for this record?
+ *
+ * The same test the queue's loader uses, so the drawer's application
+ * section appears for exactly the rows that page lists. An admin
+ * promotion or an invite has no approval step (§5) and never stamps
+ * `first_applied_at`, so there is nothing to show for one.
+ */
+export function hasApplication(row: TutorRecord): boolean {
+  return row.first_applied_at !== null;
 }
 
 /** Whether the tutor has written anything students would see. */

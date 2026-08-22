@@ -24,14 +24,13 @@ import {
   approveApplicationAction,
   rejectApplicationAction,
 } from '@/lib/tutors/actions';
+import { TutorRecordDrawer, StatusPill } from '@/lib/tutors/record-drawer';
 import {
   isRolelessApplicant,
   sourceClass,
   sourceLabel,
-  trailLabel,
-  trailTone,
-  type TutorApplicationRow,
   type TutorApplicationStats,
+  type TutorRecord,
   type TutorTrailEntry,
 } from '@/lib/tutors/types';
 
@@ -81,7 +80,7 @@ function relativeTime(iso: string | null): string {
  * decision lands. Scanned from the end: the array is append-ordered and
  * must never be sorted by date (see queries.ts).
  */
-function previousDecision(row: TutorApplicationRow): TutorTrailEntry | null {
+function previousDecision(row: TutorRecord): TutorTrailEntry | null {
   for (let i = row.trail.length - 1; i >= 0; i--) {
     const e = row.trail[i];
     if (e.to !== 'PENDING') return e;
@@ -93,7 +92,7 @@ export function AdminApplicationsBoard({
   rows,
   stats,
 }: {
-  rows: TutorApplicationRow[];
+  rows: TutorRecord[];
   stats: TutorApplicationStats;
 }) {
   const [tab, setTab] = useState<'PENDING' | 'DECIDED'>('PENDING');
@@ -228,7 +227,7 @@ function ApplicationDetail({
   row,
   onDone,
 }: {
-  row: TutorApplicationRow;
+  row: TutorRecord;
   onDone: (message: string) => void;
 }) {
   const [rejecting, setRejecting] = useState(false);
@@ -450,7 +449,7 @@ function ApplicationDetail({
  * The drawer is deliberately the same gesture /admin/tutors already uses
  * for "the whole record of one person", rather than a third pattern.
  */
-function DecidedTable({ rows }: { rows: TutorApplicationRow[] }) {
+function DecidedTable({ rows }: { rows: TutorRecord[] }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const open = openId ? (rows.find((r) => r.user_id === openId) ?? null) : null;
 
@@ -506,13 +505,7 @@ function DecidedTable({ rows }: { rows: TutorApplicationRow[] }) {
               </div>
 
               <div className="adt-cell">
-                {r.status === 'APPROVED' ? (
-                  <span className="ao-pill ao-pill-done">Approved</span>
-                ) : r.status === 'SUSPENDED' ? (
-                  <span className="ao-pill adt-pill-susp">Suspended</span>
-                ) : (
-                  <span className="ao-pill">Rejected</span>
-                )}
+                <StatusPill status={r.status} />
               </div>
 
               <div className="adt-cell">
@@ -542,152 +535,30 @@ function DecidedTable({ rows }: { rows: TutorApplicationRow[] }) {
         </div>
       </div>
 
-      {open && <DecidedDrawer row={open} onClose={() => setOpenId(null)} />}
+      {/* ⭐ The SAME drawer the directory opens — one record, one view.
+          Its foot action names the boundary between the two pages: the
+          queue owns the application, the directory owns the tutor. A
+          rejected applicant has no tutor record to open, so they get no
+          link. */}
+      {open && (
+        <TutorRecordDrawer
+          row={open}
+          onClose={() => setOpenId(null)}
+          actions={
+            open.status !== 'REJECTED' ? (
+              <a className="btn btn-sm" href="/admin/tutors">
+                Open their tutor record →
+              </a>
+            ) : null
+          }
+        />
+      )}
     </>
   );
 }
 
-/**
- * The whole record of one decided applicant, read-only.
- *
- * ⚠ IT FRAMES THE APPLICATION, NOT THE TUTOR — which is what keeps it
- * from being a second copy of the directory's drawer. A rejected
- * applicant also appears in /admin/tutors under "All statuses", with the
- * same trail in its drawer; that one shows the public profile and a
- * programme count, because it answers "what kind of tutor is this". This
- * one shows what they wrote and what we decided, because it answers "why
- * did we say no". If that split ever stops holding, the right fix is ONE
- * shared record drawer, not two that have drifted.
- *
- * ⭐ Hence the foot link on an approved row. The queue owns the
- * application; the directory owns the tutor. Naming that boundary on
- * screen is what stops an admin working the archive when they should be
- * looking at a live tutor's record.
- */
-function DecidedDrawer({
-  row,
-  onClose,
-}: {
-  row: TutorApplicationRow;
-  onClose: () => void;
-}) {
-  return (
-    <div className="adt-drawer-root">
-      <div className="adt-scrim" onClick={onClose} />
-      <aside
-        className="adt-drawer"
-        role="dialog"
-        aria-label={`${row.name} — tutor application`}
-      >
-        <div className="adt-drawer-head">
-          <div className="ao-tutor-avatar">{initials(row.name)}</div>
-          <div className="adt-drawer-id">
-            <span className="adt-drawer-name">{row.name}</span>
-            <span className="adt-drawer-email">
-              {row.email}
-              {row.phone ? ` · ${row.phone}` : ''}
-            </span>
-          </div>
-          <button type="button" className="adt-drawer-x" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
-        </div>
-
-        <div className="adt-drawer-body">
-          <section>
-            <div className="adt-sec-title">Outcome</div>
-            <dl className="adt-kv">
-              <dt>Decision</dt>
-              <dd>
-                {row.status === 'APPROVED' ? (
-                  <span className="ao-pill ao-pill-done">Approved</span>
-                ) : row.status === 'SUSPENDED' ? (
-                  <span className="ao-pill adt-pill-susp">Suspended</span>
-                ) : (
-                  <span className="ao-pill">Rejected</span>
-                )}
-              </dd>
-              <dt>Decided</dt>
-              <dd>
-                {formatDate(row.decided_at) ?? '—'}
-                {row.decided_by_name ? ` · by ${row.decided_by_name}` : ''}
-              </dd>
-              {/* An approval takes no reason (the RPC requires one only
-                  for REJECTED and SUSPENDED), so this row is absent
-                  rather than showing a dash where a sentence belongs. */}
-              {row.decision_reason && (
-                <>
-                  <dt>Reason</dt>
-                  <dd>{row.decision_reason}</dd>
-                </>
-              )}
-            </dl>
-          </section>
-
-          <section>
-            <div className="adt-sec-title">What they applied with</div>
-            <dl className="adt-kv">
-              <dt>Source</dt>
-              <dd>
-                <span className={`adt-source${sourceClass(row.source)}`}>
-                  {sourceLabel(row.source)}
-                </span>
-              </dd>
-              <dt>Organisation</dt>
-              <dd>{row.organisation || '—'}</dd>
-              <dt>First applied</dt>
-              <dd>{formatDate(row.first_applied_at) ?? '—'}</dd>
-              <dt>Submissions</dt>
-              <dd>{row.submission_count}</dd>
-            </dl>
-            {/* The note is the substance of an application and the table
-                has no room for it at all — half the reason this drawer
-                exists. */}
-            {row.request_note ? (
-              <div className="adt-note" style={{ marginTop: 10 }}>
-                {row.request_note}
-              </div>
-            ) : (
-              <p className="adt-drawer-hint">They wrote no note.</p>
-            )}
-          </section>
-
-          <section>
-            <div className="adt-sec-title">Decision trail</div>
-            {/* Every transition, including re-applications — the thing
-                five columns could never show. Newest first; the array is
-                append-ordered and must not be sorted by date. */}
-            <ul className="adt-trail">
-              {row.trail.length === 0 ? (
-                <li>
-                  No decisions recorded
-                  <span className="adt-trail-when">—</span>
-                </li>
-              ) : (
-                [...row.trail].reverse().map((e: TutorTrailEntry, i: number) => (
-                  <li key={`${e.at}-${i}`} className={trailTone(e.to)}>
-                    {trailLabel(e)}
-                    {e.by_name ? ` by ${e.by_name}` : ''}
-                    {e.reason ? ` — “${e.reason}”` : ''}
-                    <span className="adt-trail-when">{formatDate(e.at) ?? '—'}</span>
-                  </li>
-                ))
-              )}
-            </ul>
-          </section>
-        </div>
-
-        <div className="adt-drawer-foot">
-          {row.status !== 'REJECTED' && (
-            <a className="btn btn-sm" href="/admin/tutors">
-              Open their tutor record →
-            </a>
-          )}
-          <button type="button" className="btn btn-sm adt-foot-end" onClick={onClose}>
-            Close
-          </button>
-        </div>
-      </aside>
-    </div>
-  );
-}
+// ⓘ DecidedDrawer used to live here. It said, in a comment, that the
+// split between it and the directory's drawer would hold "unless it
+// stops holding, in which case the fix is ONE shared record drawer".
+// It stopped holding the same day: both read the same row, and §2's
+// founding decision is one row per person. See @/lib/tutors/record-drawer.
