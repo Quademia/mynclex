@@ -62,32 +62,97 @@
   font-size: 13px;
   font-weight: 700;
 }
+/* Product-dominant lockup: MyNclex leads, the parent earns a second
+ * line. See the note in public-nav.tsx for why it is the inverse of
+ * UWorld's. */
+.pub-nav .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.pub-nav .brand-name { font-weight: 600; color: var(--ink); }
+.pub-nav .brand-parent {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
 .pub-nav .links { display: flex; gap: 24px; font-size: 14px; align-items: center; }
 .pub-nav .links a { color: var(--ink-soft); text-decoration: none; }
 .pub-nav .links a:hover { color: var(--ink); text-decoration: none; }
 .pub-nav .links .link-soon { color: var(--ink-faint); cursor: default; }
 .pub-nav .right { display: flex; align-items: center; gap: 12px; }
 
-.fx-toggle {
-  display: inline-flex;
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
-  overflow: hidden;
-  opacity: 0.7;
+/* ── mobile drawer (≤768px) ─────────────────────────────────
+ * `pub-` prefixed on purpose — NOT the app's `m-*` drawer. Reusing that
+ * would have worked and would have coupled the marketing chrome to the
+ * authenticated workspace's stylesheet; see public-nav.tsx.
+ * Hidden above the breakpoint, where the desktop row takes over. */
+.pub-burger {
+  display: none;
+  /* 44px minimum touch target — the mobile rule in CLAUDE.md. */
+  width: 44px; height: 44px;
+  align-items: center; justify-content: center;
+  border: 1px solid var(--line-strong); border-radius: 999px;
+  background: var(--bg-card); color: var(--ink);
+  cursor: pointer; padding: 0;
 }
-.fx-toggle button {
-  border: 0;
+.pub-burger:hover { background: var(--bg-sunk); }
+
+.pub-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(17, 24, 39, 0.4);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.26s ease;
+  z-index: 45;
+}
+.pub-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+/* ⚠ Slides from the RIGHT, matching the hamburger's side. */
+.pub-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 290px; max-width: 86%;
+  display: flex; flex-direction: column;
   background: var(--bg-card);
-  font: inherit;
-  padding: 6px 12px;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--ink-mute);
-  cursor: default;
-  border-right: 1px solid var(--line-strong);
+  border-left: 1px solid var(--line);
+  transform: translateX(104%);
+  transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 46;
 }
-.fx-toggle button:last-child { border-right: 0; }
-.fx-toggle button.on { background: var(--primary); color: #fff; }
+.pub-drawer.is-open {
+  transform: translateX(0);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.18);
+}
+
+.pub-drawer-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.pub-drawer-brand { font-weight: 600; color: var(--ink); font-size: 15px; }
+.pub-drawer-parent { font-weight: 500; font-size: 11px; color: var(--ink-faint); }
+
+.pub-drawer-nav { display: flex; flex-direction: column; padding: 8px 0; }
+.pub-drawer-link {
+  display: flex; align-items: center;
+  /* Tall enough to tap, per the same 44px rule. */
+  min-height: 48px; padding: 0 18px;
+  color: var(--ink); text-decoration: none; font-size: 15px;
+}
+.pub-drawer-link:hover { background: var(--bg-sunk); text-decoration: none; }
+
+.pub-drawer-login {
+  margin: 12px 16px 20px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--primary); color: #fff;
+  text-align: center; font-weight: 600; font-size: 15px;
+  text-decoration: none;
+}
+.pub-drawer-login:hover { text-decoration: none; opacity: 0.94; }
+
+/* Stop the page scrolling behind the open drawer. */
+body.pub-nav-locked { overflow: hidden; }
+
+/* ⓘ `.fx-toggle` lived here and is GONE (2026-08-22) along with the
+ * inert GHS/USD control in the nav that was its only user. The currency
+ * switch that WORKS is `.bkc-fx` in bank-public.css, on the purchasing
+ * surfaces, next to the prices it re-renders. */
 
 .pub-btn-ghost {
   display: inline-flex;
@@ -639,9 +704,18 @@ a.pub-btn-primary:hover { background: var(--primary-dark); }
 .pub-footer-copy { margin-top: 4px; color: var(--ink-faint); font-size: 12px; }
 
 /* ── responsive ─────────────────────────────────────────────── */
-@media (max-width: 760px) {
+/* ⚠ 768, not the 760 this block used to carry — CLAUDE.md's stated
+ * breakpoint and the one the app's mobile nav uses. Two numbers eight
+ * pixels apart is a window where the two chromes disagree about what a
+ * phone is. */
+@media (max-width: 768px) {
   .pub-nav { padding: 14px 20px; }
+  /* The row and the desktop Log in give way to the hamburger; both are
+   * in the drawer instead. ⚠ Before this, `display:none` here was the
+   * whole story and nothing replaced them — see public-nav.tsx. */
   .pub-nav .links { display: none; }
+  .pub-nav .right .pub-btn-ghost { display: none; }
+  .pub-burger { display: inline-flex; }
   .pub-content { padding: 36px 20px 64px; }
   .disc-hero h1 { font-size: 30px; }
   .prog-grid { grid-template-columns: 1fr; }
