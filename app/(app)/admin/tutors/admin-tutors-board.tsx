@@ -26,6 +26,7 @@ import {
   sourceLabel,
   type TutorDirectoryStats,
   type TutorRecord,
+  type TutorStatus,
 } from '@/lib/tutors/types';
 
 function initials(name: string): string {
@@ -76,7 +77,13 @@ export function AdminTutorsBoard({
   stats: TutorDirectoryStats;
 }) {
   const [q, setQ] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'SUSPENDED'>('ALL');
+  // ⚠ 'ALL' | TutorStatus, not a hand-written union of the four we happen
+  // to offer. This list was APPROVED/SUSPENDED only, which was the whole
+  // reason the page felt redundant with the applications queue: it LISTED
+  // pending and rejected rows under "All statuses" and gave you no way to
+  // ask for them. Typing it off TutorStatus means a fifth standing cannot
+  // be added to the schema and silently missed here.
+  const [statusFilter, setStatusFilter] = useState<'ALL' | TutorStatus>('ALL');
   const [drawerId, setDrawerId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -167,6 +174,8 @@ export function AdminTutorsBoard({
         >
           <option value="ALL">All statuses</option>
           <option value="APPROVED">Approved</option>
+          <option value="PENDING">Pending</option>
+          <option value="REJECTED">Rejected</option>
           <option value="SUSPENDED">Suspended</option>
         </select>
         <span className="ao-table-count">{shown.length} shown</span>
