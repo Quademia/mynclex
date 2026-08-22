@@ -1,5 +1,59 @@
 # MyNclex Build List
 
+> ## ✅ DONE 2026-08-22 — **tutor onboarding slice 2: the self-serve door**
+>
+> **Slice 2 is COMPLETE and Sam-tested.** ⚠ **On a branch, not on
+> `main`.** 12 commits, **ONE migration** (`20260921120000_tutor_self
+> _application`), dev-applied. Doc:
+> **`docs/product-plan/tutor-onboarding.md`** §5, §8, §9, §10, §11.
+>
+> | Sub-slice | What | Commit |
+> |---|---|---|
+> | **2b** ✅ | `/admin/applications` — the queue, approve/reject, 2 emails | `8cacf5c` |
+> | **2a-i** ✅ | `/for-tutors` + the apply route (5 states), the submit RPC, 2 emails | `15a4da7` |
+> | **2c** ✅ | the `/router` split + convert-to-student | `ef92863` |
+> | **2a-ii** ✅ | the logged-out door — email first, then account, then application | `2b95b21` · reworked `f3180f5` |
+>
+> **Redesigned before it was built** (`24110d1`): one door instead of
+> two, entered by **email**; the register-as-tutor toggle **dropped**;
+> the form and the status page are **one route**. §5's old rule branched
+> on whether you were signed in and had no answer for the commonest real
+> applicant — logged out, but already has an account.
+>
+> ⭐ **One migration for four sub-slices**, because 1d and 1c had been
+> factored properly: the decision RPC already took APPROVED/REJECTED with
+> every guard, `grantTutorRole` was already the only code writing the
+> role, 1b had already shipped the queue's stylesheet, and
+> `nclex_roles_self_insert_student` was already shaped for the conversion.
+>
+> **Four defects found, three of them pre-existing:**
+> - ⚠⚠ **A second suspension emailed nobody** — the outbox de-dupes on
+>   `(event_key, subject_ref, stage)` and `stage` was `'-'`, "a
+>   one-off". Right for a receipt, wrong when the subject is a PERSON.
+>   **On prod since 1d.** Worst case was repeat rejections, which §9
+>   explicitly designs for (`dd1634d`).
+> - ⚠⚠ **The apply page showed an approved tutor a blank form** — a read
+>   leaned on RLS to scope itself, but the policy is
+>   `user_id = auth.uid() OR has_permission(…)`; for an admin the OR
+>   matches every row. *An RLS policy with an OR in it is not a WHERE
+>   clause.*
+> - "Invalid Date" in a trail, from fixtures in a shape the RPC never
+>   produces · a rejected applicant told they were "awaiting a decision".
+>
+> **Two things Sam sent back, both right:**
+> - The guest form was over-built — six fields up front, collision found
+>   at submit. Reworked to email-first. ⭐ **The rework DELETED code**:
+>   the draft hand-off, its effect and an `eslint-disable` all vanished.
+> - The applicant could not see who they were signed in as or how to sign
+>   out. ⚠ Fixed on this route only, not in the shared public nav —
+>   every public page answers `no-cache, must-revalidate` with **no
+>   `private`**.
+>
+> ⏭ **Still not built:** slice 3 (invite by email — the only path
+> touching `/welcome`) · the student-facing suspension notice (1d's open
+> item) · ⬜ the `private, no-store` gap, repo-wide · ⬜ the public nav
+> hiding every link below 760px.
+
 > ## ✅ DONE 2026-08-21 (later) — **tutor onboarding slice 1d: suspend & reinstate**
 >
 > **Slice 1 is COMPLETE and Sam-tested.** **On `main`** — 11 commits,

@@ -15,6 +15,14 @@ may do what, and the UIs that manage that*.
 **The permission MODEL is real and enforced; the management UIs are
 all placeholders.**
 
+> ⚠ **PARTLY SUPERSEDED 2026-08-22.** "All placeholders" was true when
+> written and is no longer: **`/admin/tutors` and `/admin/applications`
+> are both built** by the tutor-onboarding arc (slice 1 on `prod`, slice
+> 2 on a branch). `/admin/users` and `/admin/permissions` remain
+> placeholders, so the sentence still holds for them. Left in place
+> because everything below it about the MODEL is unchanged — see
+> `tutor-onboarding.md` for what the two tutor surfaces now do.
+
 - **Vocabulary lives in CODE only** — `lib/access/constants.ts`:
   `BANK_CURATE · USERS_MANAGE · TUTORS_MANAGE · PROGRAMMES_VIEW ·
   PAYMENTS_MANAGE · COMMS_MANAGE · SYSTEM_MANAGE` (+ the
@@ -37,9 +45,11 @@ all placeholders.**
   this doc is that thread).
 - **Routes**: `/admin/permissions` placeholder already exists and is
   gated on the SUPER_ADMIN *role* (deliberately not a bucket — the
-  page that grants buckets can't be one). `/admin/users`,
-  `/admin/tutors`, `/admin/applications` are placeholders too.
-  Today, granting anything = a manual SQL insert.
+  page that grants buckets can't be one). `/admin/users` is a
+  placeholder too. Today, granting anything = a manual SQL insert.
+  ⓘ **`/admin/tutors` and `/admin/applications` are no longer
+  placeholders** (2026-08-21 / 2026-08-22) — see `tutor-onboarding.md`
+  §11. Both are gated on `TUTORS_MANAGE`.
 
 ---
 
@@ -116,8 +126,14 @@ someone becomes a tutor* belongs there.
 - **Users** (`/admin/users`, `USERS_MANAGE`): directory, per-user
   detail (roles, enrolments, payments), support actions. Unbuilt.
 - **Tutors** (`/admin/tutors` + `/admin/applications`,
-  `TUTORS_MANAGE`): the vetting pipeline (v1 tutors are manually
-  vetted), tutor directory, invite flow. Unbuilt as admin UI.
+  `TUTORS_MANAGE`): the vetting pipeline, tutor directory, invite flow.
+  ✅ **Built** — the directory, add-a-tutor, suspend/reinstate and the
+  applications queue all exist (2026-08-21/22, `tutor-onboarding.md`
+  §11). ⚠ Only the **invite-by-email** flow is still unbuilt: that is
+  slice 3, the one path touching `/welcome`. ⓘ "v1 tutors are manually
+  vetted" no longer describes the product either — self-serve
+  application is built; vetting is still a human decision, but it is
+  made on a screen rather than by SQL.
   ⚠ **CORRECTED 2026-08-21 — there is NO tutor-creation path in the
   product at all.** This bullet used to say tutor invites "run through
   the existing token/`/welcome` path without an admin surface". They do

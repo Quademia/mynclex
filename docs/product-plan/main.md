@@ -634,11 +634,23 @@ deliberately narrow.
 
 ## Tutor Onboarding
 
-MyNclex is a vetted marketplace, not an open tool. No public
-self-serve tutor signup in v1 — every tutor account is created by
-admin after an off-platform vetting conversation. Students enrolling
+MyNclex is a vetted marketplace, not an open tool. Students enrolling
 in a tutor's programme are trusting QAcademy's vouch for that tutor,
 so the bar is deliberately high.
+
+⚠ **CORRECTED 2026-08-22.** This paragraph used to continue: *"No public
+self-serve tutor signup in v1 — every tutor account is created by admin
+after an off-platform vetting conversation."* Both halves have changed,
+and the first sentence above has not:
+
+- **Self-serve application IS built** (tutor-onboarding slice 2, Sam
+  re-opened the deferral on 08-21). Anyone can apply from `/for-tutors`.
+- **Vetting is unchanged in substance** — a human still decides, and
+  nobody becomes a tutor without an approval. What moved is *where*: an
+  admin decides in `/admin/applications` instead of by hand-written SQL,
+  and an applicant no longer needs to know somebody to be considered.
+
+Canonical: `docs/product-plan/tutor-onboarding.md`.
 
 ### Application intake
 
@@ -985,7 +997,9 @@ report.
 
 ## Deferred (v2 or later)
 
-- Public self-serve tutor signup / tutor marketplace UI
+- ~~Public self-serve tutor signup~~ — ✅ **built 2026-08-22**
+  (tutor-onboarding slice 2). The **tutor marketplace UI** it was
+  bundled with is still deferred.
 - Automated payment splits between QAcademy and tutors
 - Migration of MyNMCLicensure or MyTeacher onto this stack
 
