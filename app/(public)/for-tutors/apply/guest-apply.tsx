@@ -1,124 +1,145 @@
 // mynclex/app/(public)/for-tutors/apply/guest-apply.tsx
 //
-// Applying with no account — sub-slice 2a-ii, the last of slice 2.
+// Applying with no account — sub-slice 2a-ii.
 //
-// ⭐ ONE DOOR (§5, as re-cut 2026-08-22). The person sees "apply to
-// become a tutor" and nothing else; whether we create an account or send
-// them to sign in is OUR branch, decided by the EMAIL they type, not by
-// whether they happened to be signed in when they arrived.
+// ⭐ APPLYING IS A LOGGED-OUT ACT (Sam, 2026-08-22). The person who
+// reaches "For tutors" heard about MyNclex, arrived as a stranger, and
+// clicked. An earlier cut of this file put a six-field form in front of
+// them and discovered at submit whether they already had an account —
+// which designed the page around the RARE visitor (somebody already
+// signed in who decides to apply) and made the common one work for it.
 //
-// The rule this replaced routed on session state, and had no answer for
-// the commonest real applicant: LOGGED OUT, BUT ALREADY HAS AN ACCOUNT.
-// That is an existing MyNclex student, on her phone, tapping "become a
-// tutor" — and the old rule walked her into a signup that fails after she
-// had filled in the whole form.
+// So: the email is the first and only thing asked. Then one of two
+// things happens, and neither costs them their application.
 //
-// ⚠ SO THE DRAFT HAS TO SURVIVE THE BOUNCE. If we send her to sign in,
-// she must not come back to an empty form and retype everything she just
-// wrote — that would be the same dead end wearing better manners.
-// sessionStorage, read back by <ApplyForm>, cleared once it is used.
+// ⚠⚠ THE ANSWER TO "DOES THIS ADDRESS HAVE AN ACCOUNT?" COMES FROM THE
+// SIGNUP ATTEMPT, NOT FROM A LOOKUP, and that is not a shortcut — it is
+// the only safe option here. The intended design checked the email on
+// step one behind a captcha. lib/auth/turnstile.ts explains why that
+// cannot exist: a Turnstile token is validated exactly ONCE and Supabase
+// must be the one to spend it, so our own check can only confirm that a
+// token ARRIVED. A script sends any string. The thresholds do not close
+// it either — they are keyed by email, which is the thing an enumerator
+// varies.
 //
-// ⓘ safe-next.ts suggests preserving in-page state "by encoding it into
-// the path's query string". Not here: the note runs to 4000 characters,
-// which no URL should carry, and it would put an applicant's own words
-// into browser history and every access log between here and the server.
-// sessionStorage keeps it on their machine and dies with the tab.
-//
-// ⓘ The collision is discovered at signUp rather than by asking first.
-// See applyAsGuestAction for why — briefly: a bare "is this email taken?"
-// endpoint would be a BETTER enumeration oracle than /register, because
-// /register makes an attacker solve a captcha for every address tested.
+// ⓘ Hence step two is deliberately SHORT: a name and a password. If the
+// address turns out to be taken, they have lost two fields rather than a
+// 400-word application, which is the harm the email-first design existed
+// to prevent. That is also why there is no draft to preserve across the
+// sign-in bounce any more — nobody has written one yet.
 
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { applyAsGuestAction } from '@/lib/tutors/actions';
+import { createApplicantAccountAction } from '@/lib/tutors/actions';
 import { TurnstileWidget, resetTurnstile } from '@/components/auth/turnstile-widget';
 import { loginHref } from '@/lib/auth/safe-next';
 import { TUTOR_APPLICATION_PATH } from '@/lib/tutors/types';
 
-/** Where a bounced draft waits. Read and cleared by <ApplyForm>. */
-export const APPLY_DRAFT_KEY = 'nclex_tutor_apply_draft';
-
-const NOTE_MIN = 40;
+type Step = 'EMAIL' | 'ACCOUNT' | 'EXISTS';
 
 export function GuestApply() {
   const router = useRouter();
+  const [step, setStep] = useState<Step>('EMAIL');
   const [email, setEmail] = useState('');
-  const [organisation, setOrganisation] = useState('');
-  const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [passReady, setPassReady] = useState(false);
-  /** Set when the address turns out to already have an account. */
-  const [existingAccount, setExistingAccount] = useState<string | null>(null);
 
-  const trimmed = note.trim();
-  const noteReady = trimmed.length >= NOTE_MIN;
+  const emailReady = /.+@.+\..+/.test(email.trim());
 
-  async function handleSubmit(formData: FormData) {
+  async function createAccount(formData: FormData) {
     setError(null);
     setBusy(true);
 
-    const result = await applyAsGuestAction(formData);
+    const result = await createApplicantAccountAction(formData);
 
     if (result.ok) {
-      // They are signed in now and the application is lodged. Refreshing
-      // lands them on the PENDING state, which is the confirmation and
-      // also what they will see whenever they come back.
+      // They are signed in and hold no role — which is what an applicant
+      // is. Refreshing re-renders this route as the signed-in blank form,
+      // which is step three.
       router.refresh();
       return;
     }
 
     if (result.accountExists) {
-      // ⭐ Hold everything they typed, then send them to sign in. Coming
-      // back with an empty form would be the dead end we removed.
-      try {
-        window.sessionStorage.setItem(
-          APPLY_DRAFT_KEY,
-          JSON.stringify({ organisation, note }),
-        );
-      } catch {
-        // Private mode, or storage disabled. The bounce still works; they
-        // just retype. Better than failing the whole submit over a draft.
-      }
-      setExistingAccount(email);
+      setStep('EXISTS');
       setBusy(false);
       return;
     }
 
     setError(result.error);
-    // The pass is single-use and this attempt spent it — and every error
-    // here is one they fix and immediately resubmit.
+    // Single-use pass, spent by this attempt — and every error here is
+    // one they fix and immediately resubmit.
     resetTurnstile();
     setBusy(false);
   }
 
+  // ── Step 1: who are you? ───────────────────────────────────────────
+  if (step === 'EMAIL') {
+    return (
+      <form
+        className="ft-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (emailReady) setStep('ACCOUNT');
+        }}
+      >
+        <div className="form-group">
+          <label htmlFor="ga-email">What is your email address?</label>
+          <input
+            id="ga-email"
+            type="email"
+            autoComplete="email"
+            autoFocus
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+          />
+          {/* ⚠ Says what will happen without claiming to know which — we
+              genuinely do not, until Supabase answers. */}
+          <span className="form-hint">
+            If you already have a MyNclex account, we will ask you to sign
+            in. If not, we will set one up.
+          </span>
+        </div>
+
+        <div className="ft-form-foot">
+          <button type="submit" className="ft-cta" disabled={!emailReady}>
+            Continue
+          </button>
+        </div>
+      </form>
+    );
+  }
+
   // ── The branch: this address already has an account ────────────────
-  if (existingAccount) {
+  if (step === 'EXISTS') {
     return (
       <div className="ft-state">
         <h2 className="ft-state-title">You already have an account</h2>
         <p className="ft-state-body">
-          <strong>{existingAccount}</strong> is already registered with us.
-          Sign in and we will bring you straight back here — what you wrote
-          has been kept.
+          <strong>{email}</strong> is already registered with us. Sign in
+          and we will bring you straight back here to finish your
+          application.
         </p>
         {/* loginHref, not a hand-built query string — safe-next.ts exists
             so nobody re-implements the open-redirect guard, and it
-            prefills the address they just typed so signing in is one
-            field, not two. */}
-        <Link href={loginHref(TUTOR_APPLICATION_PATH, { email: existingAccount })} className="ft-cta">
-          Sign in to continue your application
+            prefills the address they just typed. */}
+        <Link href={loginHref(TUTOR_APPLICATION_PATH, { email })} className="ft-cta">
+          Sign in to continue
         </Link>
         <p className="ft-aside" style={{ textAlign: 'left' }}>
           Not your address?{' '}
           <button
             type="button"
             className="ft-linkish"
-            onClick={() => setExistingAccount(null)}
+            onClick={() => {
+              setStep('EMAIL');
+              setError(null);
+            }}
           >
             Use a different one
           </button>
@@ -128,103 +149,47 @@ export function GuestApply() {
     );
   }
 
+  // ── Step 2: set up the account ─────────────────────────────────────
   return (
-    <form className="ft-form" action={handleSubmit}>
-      <div className="ft-form-section">
-        <h2 className="ft-form-section-title">About you</h2>
+    <form className="ft-form" action={createAccount}>
+      <p className="ft-step-lead">
+        Setting up an account for <strong>{email}</strong> ·{' '}
+        <button
+          type="button"
+          className="ft-linkish"
+          onClick={() => setStep('EMAIL')}
+          disabled={busy}
+        >
+          change
+        </button>
+      </p>
 
-        <div className="auth-row">
-          <div className="form-group">
-            <label htmlFor="ga-forename">First name</label>
-            <input id="ga-forename" name="forename" type="text" autoComplete="given-name" required disabled={busy} />
-          </div>
-          <div className="form-group">
-            <label htmlFor="ga-surname">Last name</label>
-            <input id="ga-surname" name="surname" type="text" autoComplete="family-name" required disabled={busy} />
-          </div>
-        </div>
+      {/* Carried, not re-asked. */}
+      <input type="hidden" name="email" value={email} />
 
+      <div className="auth-row">
         <div className="form-group">
-          <label htmlFor="ga-email">Email</label>
-          <input
-            id="ga-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            disabled={busy}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          {/* Says what happens, without claiming we know whether they
-              have one. The form finds that out when it submits. */}
-          <span className="form-hint">
-            If you already have a MyNclex account, use that address and we
-            will ask you to sign in.
-          </span>
+          <label htmlFor="ga-forename">First name</label>
+          <input id="ga-forename" name="forename" type="text" autoComplete="given-name" required disabled={busy} />
         </div>
-
         <div className="form-group">
-          <label htmlFor="ga-password">Choose a password</label>
-          <input
-            id="ga-password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            minLength={8}
-            required
-            disabled={busy}
-          />
-          <span className="form-hint">Minimum 8 characters.</span>
+          <label htmlFor="ga-surname">Last name</label>
+          <input id="ga-surname" name="surname" type="text" autoComplete="family-name" required disabled={busy} />
         </div>
       </div>
 
-      <div className="ft-form-section">
-        <h2 className="ft-form-section-title">Your application</h2>
-
-        <div className="form-group">
-          <label htmlFor="ga-org">
-            Where do you work?{' '}
-            <span className="form-hint">
-              Optional — plenty of good tutors are freelance
-            </span>
-          </label>
-          <input
-            id="ga-org"
-            name="organisation"
-            type="text"
-            value={organisation}
-            onChange={(e) => setOrganisation(e.target.value)}
-            placeholder="Hospital, school or practice"
-            disabled={busy}
-            maxLength={160}
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="ga-note">
-            Tell us about yourself{' '}
-            <span className="form-hint">
-              Your nursing and teaching background, and how you would run a
-              programme
-            </span>
-          </label>
-          <textarea
-            id="ga-note"
-            name="requestNote"
-            rows={8}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="How long you have been an RN, whether you have taught NCLEX before, and what a programme of yours would look like week by week."
-            disabled={busy}
-            maxLength={4000}
-          />
-          <p className="ft-counter">
-            {noteReady
-              ? `${trimmed.length} characters`
-              : `${trimmed.length} of at least ${NOTE_MIN} characters — we need enough to review`}
-          </p>
-        </div>
+      <div className="form-group">
+        <label htmlFor="ga-password">Choose a password</label>
+        <input
+          id="ga-password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          minLength={8}
+          required
+          disabled={busy}
+        />
+        <span className="form-hint">Minimum 8 characters.</span>
       </div>
 
       {error && <p className="ft-error">{error}</p>}
@@ -232,12 +197,13 @@ export function GuestApply() {
       <TurnstileWidget onReadyChange={setPassReady} />
 
       <div className="ft-form-foot">
-        <button type="submit" className="ft-cta" disabled={busy || !noteReady || !passReady}>
-          {busy ? 'Creating your account…' : 'Create account and apply'}
+        <button type="submit" className="ft-cta" disabled={busy || !passReady}>
+          {busy ? 'Setting up…' : 'Continue'}
         </button>
         <p className="ft-form-note">
-          Applying does not give you a tutor account — it asks us for one.
-          We review every application and email you either way.
+          Next you will write your application. Applying does not give you
+          a tutor account — it asks us for one, and we review every
+          application.
         </p>
       </div>
     </form>

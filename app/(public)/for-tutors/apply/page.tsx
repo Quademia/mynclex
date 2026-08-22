@@ -11,11 +11,10 @@
 // doing that, the form is simply the state it shows when it finds no row.
 // Resubmission stops being a screen and becomes the REJECTED state.
 //
-// ⚠ SCOPE — 2a-i IS SIGNED-IN ONLY. A logged-out visitor is sent to sign
-// in and brought back here. The email-first step, the "you already have
-// an account" bounce and account creation are 2a-ii, which is sequenced
-// last because it is the first thing that creates ROLE-LESS applicants,
-// and they need 2c's router split before they have anywhere to stand.
+// ⚠ SCOPE NOTE, CORRECTED. This said "2a-i IS SIGNED-IN ONLY; a logged-out
+// visitor is sent to sign in". 2a-ii replaced that: a logged-out visitor
+// now meets <GuestApply>, which asks for an email first and then either
+// sets up an account or sends them to sign in.
 //
 // ⓘ It lives in (public) rather than (app) because it must be reachable
 // by somebody with no roles at all — (app)'s layouts assume an audience,
@@ -31,6 +30,7 @@ import { loadMyTutorRecord } from '@/lib/tutors/queries';
 import { ApplyForm } from './apply-form';
 import { ConvertOffer } from './convert-offer';
 import { GuestApply } from './guest-apply';
+import { SignedInStrip } from './signed-in-strip';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,19 +71,28 @@ export default async function ApplyPage() {
 
   const record = await loadMyTutorRecord();
 
-  // For the rejection branch's conversion offer (§8). Read here rather
-  // than inside the component so the button never renders for somebody
-  // who already holds the role.
+  // Roles do two jobs on this page: they decide whether the rejection
+  // branch offers a student account (§8), and whether the strip above
+  // offers a way back into the product at all.
   const { data: roleRows } = await supabase
     .from('nclex_user_roles')
     .select('role')
     .eq('user_id', user.id);
-  const alreadyStudent = (roleRows ?? []).some((r) => r.role === 'STUDENT');
+  const roles = (roleRows ?? []).map((r) => r.role as string);
+  const alreadyStudent = roles.includes('STUDENT');
+
+  // ⚠ Rendered on EVERY signed-in state below, not just one. Whichever
+  // of them a person is looking at, they arrived by signing in and had no
+  // way to tell which account they were in or how to leave.
+  const strip = (
+    <SignedInStrip email={user.email ?? 'your account'} hasSomewhereToGo={roles.length > 0} />
+  );
 
   // ── APPROVED — nothing to apply for ────────────────────────────────
   if (record?.status === 'APPROVED') {
     return (
       <main className="ft-page ft-narrow">
+        {strip}
         <div className="ft-state">
           <h1 className="ft-state-title">You are already a tutor</h1>
           <p className="ft-state-body">
@@ -110,6 +119,7 @@ export default async function ApplyPage() {
   if (record?.status === 'SUSPENDED') {
     return (
       <main className="ft-page ft-narrow">
+        {strip}
         <div className="ft-state">
           <h1 className="ft-state-title">Your tutor account is suspended</h1>
           <p className="ft-state-body">
@@ -135,6 +145,7 @@ export default async function ApplyPage() {
   if (record?.status === 'PENDING') {
     return (
       <main className="ft-page ft-narrow">
+        {strip}
         <div className="ft-state">
           <span className="ft-badge">Request #{record.submission_count}</span>
           <h1 className="ft-state-title">Your application is with us</h1>
@@ -171,6 +182,7 @@ export default async function ApplyPage() {
   if (record?.status === 'REJECTED') {
     return (
       <main className="ft-page ft-narrow">
+        {strip}
         <div className="ft-state">
           <h1 className="ft-state-title">We could not take you on this time</h1>
           <p className="ft-state-body">
@@ -206,6 +218,7 @@ export default async function ApplyPage() {
   // ── No row — the form, blank ───────────────────────────────────────
   return (
     <main className="ft-page ft-narrow">
+        {strip}
       <div className="ft-state">
         <h1 className="ft-state-title">Apply to teach on MyNclex</h1>
         <p className="ft-state-body">

@@ -742,6 +742,29 @@ export type GuestApplyResult =
   | { ok: false; accountExists: true }
   | { ok: false; accountExists?: false; error: string };
 
+/*
+ * ⭐⭐ WHY THERE IS NO "DOES THIS EMAIL HAVE AN ACCOUNT?" ACTION HERE,
+ * even though the form asks for the email first (Sam, 2026-08-22).
+ *
+ * The intended design was: one field, check it, and route. The check was
+ * to be captcha-gated so it cost an attacker exactly what /register costs
+ * them. ⚠ THAT IS NOT BUILDABLE IN THIS CODEBASE, and lib/auth/turnstile
+ * .ts says why in capitals: a Turnstile token can be validated ONCE, and
+ * Supabase has to be the one to spend it — if we called siteverify
+ * ourselves we would hand Supabase a spent token and refuse every signup
+ * on the site. So readTurnstileTicket only checks that a token ARRIVED. A
+ * script sends any string and walks a list of addresses.
+ *
+ * The thresholds in lib/auth/thresholds.ts do not close it either: they
+ * are keyed by EMAIL, which is precisely what an enumerator varies.
+ *
+ * ⓘ So the email is still the first thing asked — that is the UX, and it
+ * is what carries into step two — but the ANSWER about whether the
+ * account exists comes from the signup attempt below, which Supabase
+ * verifies for real. Same disclosure as /register, behind the same
+ * captcha, and no cheaper oracle anywhere.
+ */
+
 /**
  * Create an account AND lodge the application, in one submit — the
  * REGISTRATION doorway of §5.
@@ -766,31 +789,31 @@ export type GuestApplyResult =
  * disclosed. No new surface, and account-lookup's rule stays literally
  * true because this never calls it.
  *
- * ⓘ ACCOUNT AND APPLICATION ARE WRITTEN TOGETHER, per §5, and that is
- * deliberate rather than convenient: creating the account first and
- * asking for the note afterwards leaves a role-less orphan account
- * behind every person who wanders off mid-form — an account that grants
- * nothing, explains nothing, and sends its owner to /no-access forever.
+ * ⓘ THE ACCOUNT IS CREATED BEFORE THE APPLICATION IS WRITTEN, which an
+ * earlier cut avoided so as not to leave role-less orphans behind anyone
+ * who wandered off mid-form. That worry is now handled where it belongs:
+ * /router sends ANY role-less person to the apply page (2c), so an
+ * abandoned signup lands on the form it abandoned rather than on
+ * /no-access. Splitting them is what lets the "you already have an
+ * account" answer arrive after two short fields instead of after a
+ * 400-word application.
  *
  * ⚠ NO ROLE IS GRANTED. §4's third invariant, and the reason 2c's router
  * split had to exist before this sub-slice could ship.
  */
-export async function applyAsGuestAction(formData: FormData): Promise<GuestApplyResult> {
+export async function createApplicantAccountAction(
+  formData: FormData,
+): Promise<GuestApplyResult> {
   const forename = String(formData.get('forename') ?? '').trim();
   const surname = String(formData.get('surname') ?? '').trim();
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   const password = String(formData.get('password') ?? '');
-  const organisation = String(formData.get('organisation') ?? '');
-  const requestNote = String(formData.get('requestNote') ?? '');
 
   if (!forename || !surname || !email || !password) {
-    return { ok: false, error: 'All fields except organisation are required.' };
+    return { ok: false, error: 'Every field is required.' };
   }
   if (password.length < 8) {
     return { ok: false, error: 'Password must be at least 8 characters.' };
-  }
-  if (requestNote.trim().length < 40) {
-    return { ok: false, error: 'Please tell us a little more about yourself.' };
   }
 
   // Same gate as every other account-creating form. ⚠ Dev runs
@@ -872,22 +895,12 @@ export async function applyAsGuestAction(formData: FormData): Promise<GuestApply
 
   await logAuthEvent({ eventType: 'REGISTERED', email, userId: authUser.id });
 
-  // ⚠ NO nclex_user_roles INSERT. Not an omission — §4, invariant 3.
+  // ⚠ NO nclex_user_roles INSERT. Not an omission — §4, invariant 3. They
+  // are now signed in and hold nothing, which is exactly what an
+  // applicant is; the form they land on next is what turns it into an
+  // application.
 
-  const lodged = await submitApplicationAction(organisation, requestNote);
-
-  if (!lodged.ok) {
-    // ⚠ The account is REAL and STAYS. Rolling it back would delete an
-    // auth user who now has a password they chose and an email they can
-    // sign in with — and the failure here is the application write, not
-    // the account. They land on the apply page signed in, with the form
-    // in front of them and their draft in hand.
-    return {
-      ok: false,
-      error: `Your account was created, but the application did not save: ${lodged.error} Try submitting it again below.`,
-    };
-  }
-
+  revalidatePath(TUTOR_APPLICATION_PATH);
   return { ok: true };
 }
 

@@ -16,10 +16,9 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { submitApplicationAction } from '@/lib/tutors/actions';
-import { APPLY_DRAFT_KEY } from './guest-apply';
 
 /** Enough to judge on, short enough that nobody abandons it. */
 const NOTE_MIN = 40;
@@ -55,37 +54,14 @@ export function ApplyForm({
   // ⓘ Cleared as soon as it is read: it is a hand-off across one
   // navigation, not a saved draft, and leaving it behind would repopulate
   // a form they had deliberately emptied.
-  // ⚠ THE TWO DISABLES BELOW ARE DELIBERATE, and this is the reason so it
-  // survives. `react-hooks/set-state-in-effect` is right in general —
-  // setState in an effect body causes a cascading render. It cannot see
-  // the case it is looking at: sessionStorage is exactly the "external
-  // system" React's own guidance says effects are FOR, and reading it
-  // any earlier is not available to us. A lazy useState initialiser runs
-  // during server rendering, where `window` does not exist; guarding it
-  // with `typeof window` instead produces server HTML that says "empty"
-  // and client HTML that says "here is your draft", which is a hydration
-  // mismatch. One extra render on the one navigation where a draft
-  // exists is the cheaper of the two.
-  useEffect(() => {
-    let draft: { organisation?: string; note?: string } | null = null;
-    try {
-      const raw = window.sessionStorage.getItem(APPLY_DRAFT_KEY);
-      if (!raw) return;
-      window.sessionStorage.removeItem(APPLY_DRAFT_KEY);
-      draft = JSON.parse(raw) as { organisation?: string; note?: string };
-    } catch {
-      // Unparseable, or storage unavailable. Nothing is lost that was
-      // not already lost, so this stays silent.
-      return;
-    }
-    // ⓘ One disable, not two: the rule reports once per effect body, and
-    // an unused directive is itself a warning here.
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
-    if (draft.organisation && !initialOrganisation) setOrganisation(draft.organisation);
-    if (draft.note && !initialNote) setNote(draft.note);
-    // Once, on arrival.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // ⓘ There used to be a sessionStorage draft hand-off here, so an
+  // application typed while logged out survived the "you already have an
+  // account, sign in" bounce. It is gone, and its removal is the clearest
+  // evidence the email-first rework was right: under it, nobody writes an
+  // application before we know who they are, so there has never been a
+  // draft to rescue. It took an effect, a hydration argument and an
+  // eslint-disable with a paragraph defending it — all of which the
+  // simpler flow deleted rather than fixed.
 
   const trimmed = note.trim();
   const ready = trimmed.length >= NOTE_MIN;
