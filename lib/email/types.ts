@@ -91,12 +91,37 @@ export type EmailEventKey =
   | 'tutor.application_submitted_admin';
 
 // ─────────────────────────────────────────────────────────────────────
-// The tutor welcome (tutor-onboarding slice 1c)
+// The tutor welcome (tutor-onboarding slice 1c, dialled in slice 3)
 // ─────────────────────────────────────────────────────────────────────
 // ⚠ NOTHING ABOUT PLANS OR LIMITS. Tutor plans and quotas are
 // deliberately unmodelled (tutor-onboarding.md §12), and admission is not
 // plan assignment — so there is no tier field here to render a promise
 // the software cannot keep.
+//
+// ⭐ ONE DIAL, NOT A SECOND EMAIL (slice 3, 2026-08-22). An admin can
+// make a tutor two ways — promote somebody who already has an account,
+// or invite an address that has none — and only the DOOR differs. The
+// facts and the intent are identical: an admin chose you, you are a
+// tutor now, write your profile. §10's test for splitting a key is
+// "shared facts, nothing else in common"; that is not this. So `entry`
+// turns, exactly as it does on enrolment-added, which settled the same
+// fork on 2026-08-12 as "TWO DIALS, NOT FOUR EMAILS".
+
+export type TutorAddedEntry =
+  /**
+   * They already had an account (an admin promotion). Every link in the
+   * email sits behind the password they already have.
+   */
+  | 'LOG_IN'
+  /**
+   * Brand new — the account was created FOR them by an admin invite, and
+   * `setUpUrl` is the one-time link minted by generateLink. ⚠ It is the
+   * ONLY way in: there is no password to fall back on, which is why the
+   * workspace and profile links must NOT be the button on this branch.
+   * They point behind a door this person cannot yet open.
+   */
+  | 'SET_UP';
+
 export type TutorAddedByAdminPayload = {
   /** Null when the account has no profile name yet. */
   recipientName: string | null;
@@ -116,6 +141,28 @@ export type TutorAddedByAdminPayload = {
   keepsStudentRole: boolean;
   workspaceUrl: string;
   profileUrl: string;
+  /**
+   * Which door. ⚠ OPTIONAL, and absence means `LOG_IN` — not because
+   * that reads nicer, but because `renderOutboxRow` renders from the
+   * FROZEN payload alone, and every tutor.added_by_admin row queued
+   * before slice 3 (including the ones on prod) has no `entry` key at
+   * all. Those rows must keep rendering the email they actually sent.
+   *
+   * ⓘ Not a guess at the call site either: the action knows which branch
+   * it just took, the same way inviteOrAttachAndEnrol returns `invited`.
+   */
+  entry?: TutorAddedEntry;
+  /**
+   * The one-time setup link, on `SET_UP` only.
+   *
+   * ⚠ `payload` is typed `Record<string, unknown>` at the enqueue
+   * boundary, so TypeScript cannot enforce "SET_UP implies this is
+   * present" where it would matter. The template therefore degrades
+   * rather than trusts: with no link it prints the sign-in-code route
+   * instead of a dead button, which genuinely works — the account
+   * exists, so a code lets them in.
+   */
+  setUpUrl?: string | null;
 };
 
 // ─────────────────────────────────────────────────────────────────────

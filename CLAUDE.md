@@ -613,6 +613,10 @@ session was open.
   `/register`. Canonical: `docs/product-plan/tutor-onboarding.md`.
   Left in this list, struck through, so the reversal is visible rather
   than silent.
+  ⭐ **The whole arc closed 2026-08-22** with slice 3 (invite by email),
+  so all four doorways exist: admin promotion · self-application ·
+  registration · invite. There is no longer any way of becoming a tutor
+  that needs somebody to write SQL.
 - Payment splits / marketplace billing between QAcademy and tutors
 - Migration of MyNMCLicensure or MyTeacher onto this stack
 

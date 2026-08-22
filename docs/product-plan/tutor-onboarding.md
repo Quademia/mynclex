@@ -22,11 +22,22 @@ toggle is **dropped**; the form and the applicant's status page are **one
 route**. §5, §8, §9 and §11 carry the changes, each with the superseded
 version left visible rather than quietly overwritten.
 
-**Status: slices 1 and 2 are complete.** Slice 1 is on `prod`
-(`ce10dfa` + `70502a1`); slice 2 is built and tested on dev, on a branch,
-**not yet on `main`**. ⚠ That last clause is the line in this file most
-likely to rot — check `git log origin/prod` rather than trusting it.
-Slice 3 (invite by email) is the only part of the arc not built.
+**Status: THE ARC IS COMPLETE — all three slices, all four doorways**
+(2026-08-22). Slice 1 is on `prod` (`ce10dfa` + `70502a1`); slice 2 is on
+`prod` (`de88294`); slice 3 is built and Sam-tested on dev, on a branch.
+⚠ **That last clause is the line in this file most likely to rot** —
+check `git log origin/prod` rather than trusting it. It rotted four
+times in three days during slices 1 and 2, and the sentence about slice
+2 that stood here said "not yet on `main`" for the whole day after it
+had shipped to prod.
+
+⏭ **What the arc did NOT close**, none of it blocking: the
+student-facing suspension notice (§7 → OPEN — nothing tells a student
+their tutor is suspended) · the `private, no-store` gap repo-wide (§14)
+· the public nav hiding every link below 760px (§14), which matters more
+now that one of those links is a door we want strangers to walk
+through · account settings, where a name typed by an admin can be
+corrected (§14).
 
 ---
 
@@ -234,7 +245,11 @@ human says yes first.
 | `ADMIN_PROMOTION` | admin, on an existing user | already exists | implicit — writing the row *is* the decision | 1c |
 | `SELF_APPLICATION` | the person, already signed in | already exists | required | 2a-i |
 | `REGISTRATION` | the person, logged out, no account yet | created now | required | 2a-ii |
-| `ADMIN_INVITE` | admin, by email | created by us | implicit | 3 |
+| `ADMIN_INVITE` | admin, by email | created by us | implicit | 3 ✅ |
+
+✅ **All four are built as of 2026-08-22.** The arc's founding promise —
+one row per person, whichever door they came through — now holds in
+code, and `source` is the only thing that differs between them.
 
 **`REGISTRATION` writes `nclex_users` + `nclex_tutors`, and NO role.**
 That is the whole mechanism — see §8 for what the applicant then sees.
@@ -693,7 +708,7 @@ that email is no longer an arc of its own. Registry:
 
 | Trigger | Recipient | When | Slice |
 |---|---|---|---|
-| `tutor.added_by_admin` ✅ | new tutor | admin promotion / invite | 1c-i |
+| `tutor.added_by_admin` ✅ | new tutor | admin promotion / invite | 1c-i · dialled in 3 |
 | `tutor.application_received` ✅ | applicant | on submit — "we have it, Request #N" | 2a-i |
 | `tutor.application_submitted_admin` ✅ | **admin** | on submit | 2a-i |
 | `tutor.application_approved` ✅ | applicant | on approve | 2b |
@@ -703,6 +718,15 @@ that email is no longer an arc of its own. Registry:
 
 **All seven are built.** The four from slice 2 were each observed
 sending on dev, 2026-08-22.
+
+⭐ **Seven keys, EIGHT emails — `tutor.added_by_admin` carries two**
+(slice 3). A promoted tutor has a password; an invited one has an
+account with none, so the profile and workspace links point behind a
+door they cannot open. One `entry` dial, one template, and the invited
+branch shows exactly one control: the link that creates the password.
+⚠ Absence of the dial means `LOG_IN`, because rows already sent — prod
+included — are rendered from their frozen payload and must not change.
+See §11 → Slice 3.
 
 ⚠ The **admin** notification matters — recipient ≠ actor. Without it a
 queue fills up that nobody knows about.
@@ -1175,34 +1199,121 @@ where the account-exists answer really comes from.
   captcha switch ON, so a signup without a pass is refused. A form that
   forgets the widget submits and is silently rejected.
 
-### Slice 3 — invite by email
+### Slice 3 — invite by email <span>✅ BUILT 2026-08-22 — Sam-tested end to end · NO migration</span>
 
 **3 — invite.** Admin enters an email with no account: creates the
 auth user, the `nclex_users` row, the `nclex_tutors` row
 (`ADMIN_INVITE`, APPROVED), grants the role, sends the setup link.
+`inviteTutorByEmailAction` in `lib/tutors/actions.ts`.
 
-- ⚠ **The only path touching `/welcome`** — the convergence point for
-  every account-setup flow, carrying the `?code=` vs `#access_token=`
-  trap. Uses the existing setup-link machinery, **not**
-  `inviteUserByEmail`, which was deliberately removed.
-- ⭐ **It fills 1c's "new user" branch — it does NOT add a second
+**Two commits:** `282c2e9` (the email learns there are two doors) ·
+`fde33d7` (the door itself). **Eight files, no new ones, and no
+migration** — `signup_source` is free text and every other write shape
+already existed.
+
+- ⭐ **It filled 1c's "new user" branch — it did NOT add a second
   button.** To an admin, "add a tutor" is one action; whether the
-  person already has an account is our implementation detail. So this
-  slice replaces the instruction in 1c's new-user form with the real
-  thing, behind the same dropdown. Built as its own separate flow it
-  would leave two buttons doing one job, which never gets merged back.
-- ⚠ **This is probably the COMMON case, not the edge one** (Sam,
-  2026-08-21): most tutors are expected to be people from outside who
-  have never touched the platform, not existing students who want to
-  teach. It is still sequenced last, deliberately — being the common
-  case does not shrink the `/welcome` risk, and 1c builds
-  `grantTutorRole()`, which this slice calls at the end anyway. But if
-  the polished flow is wanted **before** tutor recruitment starts, this
-  is the slice to move up, knowing it is the one most able to break
-  something that currently works.
-- **Deliberately last:** 1c plus its instruction already onboards
-  anyone who can register, and this is the only path touching the
-  convergence point.
+  person already has an account is our implementation detail. The
+  instruction 1c left there (*"ask them to register, then add them
+  here"*) was **replaced in place**, so there was never a moment with
+  two controls doing one job.
+- ⭐ **The name fields appear only once the address comes back free** —
+  which is what asking for the email first was always for. ⚠ And the
+  server re-checks the address anyway: the as-you-type verdict is a
+  courtesy that is minutes old by the time Invite is clicked, and it
+  arrived from a browser.
+- ⭐ **1c had left the stylesheet ready, unused.** `.adt-names` (with
+  its ≤768px collapse) and `.adt-receipt` were both already there, so
+  the form needed one new class. **Third time in this arc** — 1b left
+  the queue's entire stylesheet for 2b, and 1d's decision RPC already
+  took every verdict 2b needed.
+
+**⚠⚠ THE EMAIL WAS THE REAL GAP, and the plan did not see it.** §10
+said "sends the setup link"; `TutorAddedByAdminPayload` had no field for
+one, and both its buttons pointed at `/tutor/profile` and `/tutor` —
+**behind a login the invitee cannot pass**, because the account has no
+password. The template even carried a preview labelled *"Invited by
+email (slice 3)"*, so the reuse was anticipated and the link was not.
+
+- ⭐ **Fixed with a DIAL, not a second key** — `entry: 'LOG_IN' |
+  'SET_UP'`, mirroring `enrolment-added`, which settled the identical
+  fork on 2026-08-12 as *"TWO DIALS, NOT FOUR EMAILS"*. §10's test for
+  splitting a key is *"shared facts, nothing else in common"*; here the
+  facts **and** the intent are the same — an admin chose you, you are a
+  tutor, write your profile. Only the door differs, and that is what a
+  dial is for. On `SET_UP` the profile drops from button to sentence.
+- ⚠ **Absence of `entry` means `LOG_IN`, and that is a COMPATIBILITY
+  rule.** `renderOutboxRow` renders from the frozen payload alone, so
+  every row queued before this slice — **including the ones on prod** —
+  arrives with no `entry` key and must keep rendering the email it
+  actually sent. ⭐ Generalises: adding a field to a payload is adding
+  it to history you have already sent.
+- ⚠ **The template DEGRADES rather than trusts.** `payload` is
+  `Record<string, unknown>` at the enqueue boundary, so nothing
+  type-checks "SET_UP carries a link" — a discriminated union would
+  have bought exactly nothing where it mattered. With no link it prints
+  the sign-in-code route instead of a dead button, which is a real way
+  in because the account exists.
+
+**⭐⭐ `last_login_utc` WAS NEVER STAMPED BY `/welcome` — a pre-existing
+bug, found only because the chip needed a truthful signal.** The column
+was written by `/login`'s two paths and nowhere else, so **anybody who
+arrived through an invite and stayed away read as "never signed in"
+forever** — wrong for every tutor-invited student and every pay-first
+buyer since those flows were built, not just for tutors. Finishing setup
+*is* a sign-in. Fixed in `finalizeWelcomeAction`, and that fix is what
+makes the directory's new line mean what it says.
+
+- **The chip is `source = 'ADMIN_INVITE'` AND never signed in** — both
+  halves. ⚠ The second alone would also flag a *promoted* tutor who has
+  not logged in lately, which is a different claim about a different set
+  of people. It sits **under** the APPROVED pill rather than replacing
+  it, because both are true: an invited tutor really is approved and
+  really does hold the role; what the pill cannot say is that nobody has
+  walked through the door yet.
+- ⓘ Answers Sam's actual question — *"I invited her last week and heard
+  nothing"* — on screen instead of by asking her.
+
+**⚠ The `/welcome` risk was SMALLER than this section feared**, and the
+fear was written before anyone checked. It called this "the one most
+able to break something that currently works". The mechanism —
+`generateLink` mints without sending, our email carries the link,
+`/welcome` consumes it — has been live for tutor-added students and
+pay-first buyers since 2026-08-12. What was genuinely new was a **TUTOR**
+landing there, and `/router` already sent a TUTOR-only user to `/tutor`.
+
+- ⚠ **What DID need fixing was the copy.** The email field read *"The
+  email your tutor invited"* — true of one of the three flows that land
+  there. An admin-invited tutor has no tutor. Now *"The email your
+  invitation was sent to."* ⓘ The page is a convergence point; its copy
+  has to be true of everybody who reaches it, not of whoever arrived
+  first.
+- ⓘ **The setup link uses the REQUEST's origin; the workspace links use
+  production.** Deliberately asymmetric, inherited from
+  `lib/enrolments/enrol-email.ts` — the person reading an email is not
+  the person who ran the code, *except* on the one link that exists only
+  to be clicked now. It is what makes the flow testable on localhost.
+- ⓘ `signup_source: 'ADMIN_INVITE'`, **not** `TUTOR_INVITE` — that one
+  means a tutor invited a *student*. Provenance that cannot be
+  reconstructed later is worth a distinct word now.
+
+**⏭ A name typo is correctable exactly ONCE** (Sam, 2026-08-22).
+`nclex_users.forename/surname/name` are `NOT NULL`, so the invite must
+collect a name — otherwise the directory shows `(unknown user)` for
+somebody you just invited, which is the blind spot 1b exists to close.
+The invitee can correct it at `/welcome` (both fields arrive prefilled
+and editable). **After that it is frozen**: nothing in `/admin/*` edits
+identity, and `/tutor/profile` hosts only the public profile. ⭐ Settled
+as **deferred to the account surface** rather than patched into the
+tutor directory — §14 already records that gap as repo-wide, and this
+adds one concrete requirement to it: *identity fields, not only the
+public profile*.
+
+ⓘ **It was probably the COMMON case, not the edge one** (Sam,
+2026-08-21) — most tutors are expected to be strangers, not existing
+students. Sequencing it last still paid: 1c built `grantTutorRole()`,
+1d proved the decision guards, and the stopgap onboarded anyone who
+could register in the meantime.
 
 ### If only one thing gets built
 
@@ -1385,6 +1496,15 @@ denormalised email/name.
   advert for a product they did not buy. Recommendation when it is
   picked up: one shared `<AccountSettings>` component over
   `nclex_users`, rendered inside each audience's own chrome.
+  - ⭐ **Slice 3 gave it a concrete requirement: IDENTITY fields, not
+    only the public profile** (Sam, 2026-08-22). An invited tutor's name
+    is typed by the admin inviting them, who may have misheard it. The
+    invitee can correct it **once**, at `/welcome`, where both fields
+    arrive prefilled; after that nobody can — nothing in `/admin/*`
+    edits `forename`/`surname`, and `/tutor/profile` holds only the
+    outward-facing bag. Settled as *deferred to this surface rather than
+    patched into the tutor directory*, because the hole belongs to every
+    user of every audience.
 - **`/tutor/students` ("My Students") is a reachable dead end** — a
   placeholder linked from both the sidebar (`lib/nav/tutor.ts`) and
   the tutor Home card (`lib/home/tutor/tutor-home.tsx`). The other four

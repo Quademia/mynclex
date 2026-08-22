@@ -69,6 +69,18 @@ export async function finalizeWelcomeAction(
   //   • pay-first purchase — no profile yet, so we create it + the
   //     STUDENT role (the buyer named themselves on this form).
   const fullName = `${forename} ${surname}`;
+
+  // ⭐ FINISHING SETUP IS A SIGN-IN, and nothing here ever recorded it.
+  // last_login_utc was written by /login's two paths only, so anybody who
+  // arrived through an invite and then stayed away read as "never signed
+  // in" forever — wrong for every invited student and pay-first buyer
+  // since those flows were built, not just for slice 3's tutors.
+  //
+  // ⓘ Which is what makes it usable as a signal: the admin directory
+  // shows "Invited — not set up" on source = ADMIN_INVITE while this is
+  // null, and that only means what it says because this line exists.
+  const nowISO = new Date().toISOString();
+
   const { data: existingProfile } = await supabase
     .from('nclex_users')
     .select('id')
@@ -78,7 +90,7 @@ export async function finalizeWelcomeAction(
   if (existingProfile) {
     const { error: profileError } = await supabase
       .from('nclex_users')
-      .update({ forename, surname, name: fullName })
+      .update({ forename, surname, name: fullName, last_login_utc: nowISO })
       .eq('id', user.id);
     if (profileError) {
       return { ok: false, error: 'Could not save your details. Please try again.' };
@@ -91,6 +103,7 @@ export async function finalizeWelcomeAction(
       surname,
       name: fullName,
       signup_source: 'SELF_PURCHASE',
+      last_login_utc: nowISO,
     });
     if (profileError) {
       return { ok: false, error: 'Could not create your profile. Please try again.' };

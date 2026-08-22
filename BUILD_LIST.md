@@ -1,10 +1,77 @@
 # MyNclex Build List
 
+> ## ✅ DONE 2026-08-22 — **tutor onboarding slice 3: invite by email — AND THE ARC IS CLOSED**
+>
+> **Slice 3 is COMPLETE and Sam-tested end to end.** On a branch, not on
+> `main`. **Two commits, NO migration.** Doc:
+> **`docs/product-plan/tutor-onboarding.md`** §5, §10, §11.3, §14.
+>
+> | Commit | What |
+> |---|---|
+> | `282c2e9` | the email learns there are two doors — the `entry` dial |
+> | `fde33d7` | the invite itself: account, tutor row, role, setup link |
+>
+> ⭐ **All four doorways in §5 now exist.** Admin promotion · self
+> application · registration · invite. One row per person, whichever
+> door they came through.
+>
+> ⭐ **It replaced an instruction IN PLACE.** 1c's new-user branch already
+> ended in *"ask them to register, then add them here"*, so there was
+> never a moment with two buttons doing one job. ⓘ **1c had also left
+> the stylesheet ready** — `.adt-names` and its ≤768px collapse, plus
+> `.adt-receipt` — the third time in this arc that a later slice found
+> its groundwork already laid.
+>
+> **⚠⚠ The email was the real gap, and the plan did not see it.** §10
+> said "sends the setup link"; the payload had no field for one and both
+> its buttons pointed behind a login the invitee cannot pass, because the
+> account has no password.
+> - ⭐ Fixed with a **dial, not a second key** (`entry: LOG_IN | SET_UP`),
+>   mirroring `enrolment-added`. The planned `tutor.invited` was retired
+>   — same facts, same intent, only the door differs.
+> - ⚠⚠ **Absence of the dial means `LOG_IN`, and that is a compatibility
+>   rule**: emails render from the FROZEN payload, so rows already sent
+>   (prod included) carry no `entry`. *Adding a field to a payload is
+>   adding it to history you have already sent.*
+> - ⚠ The template **degrades rather than trusts** — the enqueue boundary
+>   is untyped, so a `SET_UP` with no link prints the sign-in-code route
+>   instead of a dead button.
+>
+> **⭐⭐ A pre-existing bug found only because the new chip needed a
+> truthful signal: `/welcome` never stamped `last_login_utc`.** Written
+> by `/login`'s two paths and nowhere else — so anybody who arrived by
+> invite and stayed away read as "never signed in" **forever**, wrong for
+> every tutor-invited student and pay-first buyer since those flows were
+> built. Finishing setup *is* a sign-in.
+> - The directory's **"Invited — not set up"** needs BOTH halves —
+>   `source = ADMIN_INVITE` **and** never signed in. The second alone
+>   flags a promoted tutor who has not logged in lately, a different
+>   claim about different people.
+>
+> **⚠ The `/welcome` risk was smaller than the plan feared** — it called
+> slice 3 "the one most able to break something that currently works",
+> written before anyone checked. That mechanism has been live for
+> tutor-added students and pay-first buyers since 2026-08-12; what was
+> new was a TUTOR landing there, and `/router` already handled it. What
+> did need fixing was the copy: *"The email your tutor invited"* is true
+> of one of three flows, and an admin-invited tutor has no tutor.
+>
+> ⏭ **Deferred with a reason:** an invited tutor's name is typed by an
+> admin and correctable exactly ONCE, at `/welcome`; after that nothing
+> in the product can edit identity. Settled as **account-settings work**
+> rather than a patch to the tutor directory — the hole belongs to every
+> audience (§14).
+>
+> ⏭ **Arc leftovers, none blocking:** the student-facing suspension
+> notice · the `private, no-store` gap repo-wide · the public nav hiding
+> every link below 760px.
+
 > ## ✅ DONE 2026-08-22 — **tutor onboarding slice 2: the self-serve door**
 >
-> **Slice 2 is COMPLETE and Sam-tested.** ⚠ **On a branch, not on
-> `main`.** 12 commits, **ONE migration** (`20260921120000_tutor_self
-> _application`), dev-applied. Doc:
+> **Slice 2 is COMPLETE and Sam-tested.** ✅ **ON PROD** (`de88294`) —
+> ⚠ this header read "On a branch, not on `main`" for a full day after it
+> shipped, the fifth stale status flag in four days. 12 commits, **ONE
+> migration** (`20260921120000_tutor_self _application`). Doc:
 > **`docs/product-plan/tutor-onboarding.md`** §5, §8, §9, §10, §11.
 >
 > | Sub-slice | What | Commit |
@@ -49,8 +116,9 @@
 >   every public page answers `no-cache, must-revalidate` with **no
 >   `private`**.
 >
-> ⏭ **Still not built:** slice 3 (invite by email — the only path
-> touching `/welcome`) · the student-facing suspension notice (1d's open
+> ⏭ **Still not built:** ~~slice 3 (invite by email — the only path
+> touching `/welcome`)~~ ✅ **built 2026-08-22, see the entry above** ·
+> the student-facing suspension notice (1d's open
 > item) · ⬜ the `private, no-store` gap, repo-wide · ⬜ the public nav
 > hiding every link below 760px.
 

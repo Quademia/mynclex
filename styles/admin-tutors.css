@@ -270,15 +270,24 @@
 .adt-modal .adt-search { width: 100%; flex: none; }
 .adt-modal .adt-modal-title { margin-top: 8px; }
 
-/* Slice-1c stopgap: the new-user path ends in an instruction */
-.adt-stopgap {
-  background: #fffbeb; border: 1px solid #fcd34d; border-radius: var(--radius);
-  padding: 12px 14px; margin-top: 10px;
-  font-size: 12.5px; line-height: 1.55; color: #92400e;
-}
-.adt-stopgap strong { color: #78350f; }
+/* Slice 3 replaced 1c's stopgap instruction with the real invite form,
+ * so .adt-stopgap and its amber warning box went with it — the branch
+ * that rendered them no longer exists. */
 
-.adt-names { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.adt-names {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px;
+  margin-top: 10px;
+}
+/* The name pair, asked for only once the address comes back free. */
+.adt-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.adt-field > span { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.adt-field > input {
+  padding: 6px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 12.5px; font-family: inherit; background: var(--white); color: var(--text);
+}
+.adt-field > input:focus { outline: none; border-color: var(--accent); }
+.adt-field > input:disabled { background: var(--bg); color: var(--muted); }
 
 /* Add tutor — user search results */
 .adt-user-list { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 10px; }
@@ -303,7 +312,19 @@
   background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 12px 14px; font-size: 12.5px; line-height: 1.55; color: var(--text);
 }
+/* An invite nobody has accepted (slice 3). Quiet on purpose — it is a
+ * waiting state, not a problem, so it must not read like the suspended
+ * pill sitting a few rows away. */
+.adt-invite-pending {
+  margin-top: 4px;
+  font-size: 11px; line-height: 1.4; color: var(--muted); font-style: italic;
+}
+
 .adt-receipt ul { margin: 6px 0 0; padding-left: 18px; }
+/* Only when it follows the invite's name pair — the promotion path's
+ * receipt already sits below a paragraph that carries its own spacing,
+ * and giving the shared rule a margin would move that one too. */
+.adt-names + .adt-receipt { margin-top: 10px; }
 .adt-receipt li { margin-bottom: 3px; }
 .adt-receipt code {
   font-family: ui-monospace, Menlo, monospace; font-size: 11px;

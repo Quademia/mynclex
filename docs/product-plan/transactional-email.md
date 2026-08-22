@@ -2,16 +2,19 @@
 
 *Status: **the spine is built, the drain runs, the ⏰ half has opened, and
 Supabase no longer writes any email of ours.**
-**15 of 30 emails wired; 11 of them on prod.**
-⭐ **30, not 23 — the TUTOR family (7) joined the catalog on 2026-08-21**
+**15 of 29 emails wired; all 15 on prod.**
+⭐ **29, not 23 — the TUTOR family joined the catalog on 2026-08-21**
 with the tutor-onboarding arc; see *Tutor lifecycle* below. ⓘ It was
-listed as 6: `tutor.reinstated` was added while 1d was being built, when
-Sam noticed the catalog had an email for taking someone's standing away
-and none for giving it back.
-**All seven tutor emails are now built.** Three (`added_by_admin`,
-`suspended`, `reinstated`) are on `prod` with slice 1; the four
-application emails are on a branch with slice 2, built and observed
-sending on dev 2026-08-22.
+listed as 6, then 7: `tutor.reinstated` was added while 1d was being
+built, when Sam noticed the catalog had an email for taking someone's
+standing away and none for giving it back. ⓘ **And the total dropped
+from 30 to 29 on 2026-08-22**, when slice 3 retired the planned
+`tutor.invited` — the invite turned out to be a *dial* on
+`tutor.added_by_admin`, not an email of its own.
+**All seven tutor emails are built and on `prod`** — three
+(`added_by_admin`, `suspended`, `reinstated`) with slice 1, the four
+application emails with slice 2 (`de88294`). ⓘ Seven keys but **eight
+emails**: `added_by_admin` renders two, one per door.
 ⓘ The 23 it grew from was itself 23 and not 24, because `session.scheduled`
 was dropped on 2026-08-20 rather than built. ✅ **On prod** (2026-08-18, PR
 #53 — proven by a real test-mode purchase whose receipt sent in 218 ms
@@ -1262,27 +1265,30 @@ per cohort goes in the outbox).
 | Event key | Kind | Trigger | Recipient | Purpose | Pri | Anchor |
 |---|---|---|---|---|---|---|
 | `account.welcome` | ⚡ | First successful account setup at `/welcome` | student | Welcome + orientation (distinct from the Supabase invite) | P2 | ✅ |
-| `tutor.invited` | ⚡ | Admin vets + invites a tutor to the platform | tutor | "You've been approved as a MyNclex tutor" + setup | P2 | ⬜ |
+| ~~`tutor.invited`~~ | ⚡ | Admin vets + invites a tutor to the platform | tutor | ❌ **NEVER BUILT — deliberately retired 2026-08-22 (slice 3).** The invite sends `tutor.added_by_admin` with its `entry` dial on `SET_UP` instead. A separate key failed §10's own test for splitting one: *"shared facts, nothing else in common"* — here the facts **and** the intent are identical (an admin chose you, you are a tutor, write your profile) and only the DOOR differs, which is what a dial is for. Left struck through rather than deleted, so a planned key that turned out to be one email reads as a decision instead of an omission | — | ❌ |
 
 ### Tutor lifecycle (tutor-onboarding, 2026-08-21)
 
-Six triggers, added with the arc that needed them — the standing rule
-that an email is written **when a feature needs one**, inline with that
-feature, rather than as an arc of its own. Plan:
-[tutor-onboarding.md](tutor-onboarding.md) §10.
+Seven triggers — **eight emails**, since `tutor.added_by_admin` carries
+two — added with the arc that needed them, per the standing rule that an
+email is written **when a feature needs one**, inline with that feature,
+rather than as an arc of its own. Plan:
+[tutor-onboarding.md](tutor-onboarding.md) §10. ✅ **All seven built,
+and the arc closed 2026-08-22.**
 
 ⭐ **The first emails about someone’s STANDING** rather than their money
 or their place in a class. `tutor.added_by_admin` is also the first that
 is *the entire onboarding*: there is no welcome screen behind it and
-nobody walks a new tutor in.
+nobody walks a new tutor in — ⓘ except on its `SET_UP` branch, where
+`/welcome` is exactly that screen.
 
 | Event key | Kind | Trigger | Recipient | Purpose | Pri | Anchor |
 |---|---|---|---|---|---|---|
-| `tutor.added_by_admin` | ⚡ | Admin promotes an existing user, or invites one (slice 3) | new tutor | **✅ BUILT 2026-08-21** (`fca499e`), **✅ ON PROD** (`ce10dfa`). "You are now a tutor" — what happened, that their student account is untouched, and the ONE thing worth doing first: writing the public profile. **Names no admin** and **promises nothing about tiers** | P1 | ✅ |
-| `tutor.application_submitted_admin` | ⚡ | Someone applies to be a tutor | **admin** | **✅ BUILT 2026-08-22** (2a-i, on branch). A queue nobody knows filled up is a queue nobody works. ⚠ recipient ≠ actor. ⭐ **The first email this product sends to ITSELF**, and its disclosure rules are the INVERSE of every other template here: it carries the applicant's name, address and own words, because the reader is the person deciding. Still carries **no decision link** — nothing in an inbox approves anybody. Goes to the `SUPPORT_EMAIL` constant, not a fan-out to `TUTORS_MANAGE` holders | P1 | ✅ |
-| `tutor.application_received` | ⚡ | Someone applies to be a tutor | applicant | **✅ BUILT 2026-08-22** (2a-i, on branch). "We have it" — carries **Request #N**, so a resubmission is acknowledged as one, with different opening copy: thanking somebody for applying when they are RE-applying reads as though we lost the first one. ⚠ Promises no timescale — there is no SLA in the product | P2 | ✅ |
-| `tutor.application_approved` | ⚡ | Admin approves an application | applicant | **✅ BUILT 2026-08-22** (2b, on branch). ⚠ Deliberately **not an alias** of `tutor.added_by_admin`, though both end at the same row: that one greets somebody an admin CHOSE, this answers somebody who ASKED. Same split, same reason, as `enrolment.approved` | P1 | ✅ |
-| `tutor.application_rejected` | ⚡ | Admin rejects an application | applicant | **✅ BUILT 2026-08-22** (2b, on branch). Carries `decision_reason` and leads with **"this is not final"** — §6 makes REJECTED non-terminal and an email that closed the door would contradict the schema. ⓘ The conversion-to-student offer lives on the application PAGE, not here: an email cannot grant a role | P1 | ✅ |
+| `tutor.added_by_admin` | ⚡ | Admin promotes an existing user, **or invites one by email** | new tutor | **✅ BUILT 2026-08-21** (`fca499e`), **✅ ON PROD** (`ce10dfa`). "You are now a tutor" — what happened, that their student account is untouched, and the ONE thing worth doing first: writing the public profile. **Names no admin** and **promises nothing about tiers**. ⭐ **ONE KEY, TWO EMAILS since slice 3** (`282c2e9`): the `entry` dial (`LOG_IN` \| `SET_UP`) picks the door, exactly as `enrolment.tutor_added` does. A promoted tutor has a password so the profile earns the button; an **invited** one has an account with NONE, so profile and workspace links point behind a door they cannot open — that branch shows exactly one control, the setup link, and the profile drops to a sentence. ⚠⚠ **Absence of the dial means `LOG_IN`, and that is a COMPATIBILITY rule, not a default** — `renderOutboxRow` renders from the FROZEN payload, so rows already sent (prod included) carry no `entry` and must keep rendering what they sent. *Adding a field to a payload is adding it to history you have already sent.* ⚠ It also **degrades rather than trusts**: `payload` is `Record<string, unknown>` at the enqueue boundary, so nothing type-checks "SET_UP carries a link" — with none it prints the sign-in-code route instead of a dead button | P1 | ✅ |
+| `tutor.application_submitted_admin` | ⚡ | Someone applies to be a tutor | **admin** | **✅ BUILT 2026-08-22** (2a-i), **✅ ON PROD** (`de88294`). A queue nobody knows filled up is a queue nobody works. ⚠ recipient ≠ actor. ⭐ **The first email this product sends to ITSELF**, and its disclosure rules are the INVERSE of every other template here: it carries the applicant's name, address and own words, because the reader is the person deciding. Still carries **no decision link** — nothing in an inbox approves anybody. Goes to the `SUPPORT_EMAIL` constant, not a fan-out to `TUTORS_MANAGE` holders | P1 | ✅ |
+| `tutor.application_received` | ⚡ | Someone applies to be a tutor | applicant | **✅ BUILT 2026-08-22** (2a-i), **✅ ON PROD** (`de88294`). "We have it" — carries **Request #N**, so a resubmission is acknowledged as one, with different opening copy: thanking somebody for applying when they are RE-applying reads as though we lost the first one. ⚠ Promises no timescale — there is no SLA in the product | P2 | ✅ |
+| `tutor.application_approved` | ⚡ | Admin approves an application | applicant | **✅ BUILT 2026-08-22** (2b), **✅ ON PROD** (`de88294`). ⚠ Deliberately **not an alias** of `tutor.added_by_admin`, though both end at the same row: that one greets somebody an admin CHOSE, this answers somebody who ASKED. Same split, same reason, as `enrolment.approved` | P1 | ✅ |
+| `tutor.application_rejected` | ⚡ | Admin rejects an application | applicant | **✅ BUILT 2026-08-22** (2b), **✅ ON PROD** (`de88294`). Carries `decision_reason` and leads with **"this is not final"** — §6 makes REJECTED non-terminal and an email that closed the door would contradict the schema. ⓘ The conversion-to-student offer lives on the application PAGE, not here: an email cannot grant a role | P1 | ✅ |
 | `tutor.suspended` | ⚡ | Admin suspends a tutor | tutor | **✅ BUILT 2026-08-21** (1d-iv), **✅ ON PROD** (`70502a1`). Their workspace is closed and their programmes have left the catalogue — **while their existing students keep their materials** (tutor-onboarding §7). Says which switches fired | P1 | ✅ |
 | `tutor.reinstated` | ⚡ | Admin lifts a suspension | tutor | **✅ BUILT 2026-08-21** (1d), **✅ ON PROD** (`70502a1`). ⭐ Not in the original catalog — Sam spotted that we emailed on taking a standing away and went silent on giving it back, which reads as punitive. Deliberate opposite of the suspension notice: no reason field, all button, and it **does not apologise or explain** | P1 | ✅ |
 
