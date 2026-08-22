@@ -264,7 +264,7 @@ export function ProgrammeCheckout({
         </label>
       </div>
       <p className="co-card-desc">
-        Recommended add-on, not required. The full QAcademy question bank, {discountPct}% off the
+        Recommended add-on, not required. The full Quademia question bank, {discountPct}% off the
         standalone price — stacks on any access you already have.
       </p>
 
@@ -293,7 +293,7 @@ export function ProgrammeCheckout({
         </>
       ) : (
         <p className="co-bank-empty">
-          Tick the box above to pick a duration. Bank access is a separate QAcademy
+          Tick the box above to pick a duration. Bank access is a separate Quademia
           subscription — independent of programme enrolment.
         </p>
       )}

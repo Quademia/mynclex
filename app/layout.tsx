@@ -28,10 +28,15 @@ const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
+// ⚠ The two highest-visibility strings in the product: this title is the
+// browser tab and the Google result. "Quademia", not "QAcademy" — the
+// company renamed and the old name must not reach a reader (settled
+// 2026-08-19, swept 2026-08-22; see lib/email/templates/wrapper.ts,
+// which has said Quademia since the decision was made).
 export const metadata: Metadata = {
-  title: "MyNclex-RN — Launching 2026 | QAcademy",
+  title: "MyNclex-RN — Launching 2026 | Quademia",
   description:
-    "MyNclex-RN — NCLEX-RN exam prep for internationally-trained nurses. A QAcademy product, launching 2026.",
+    "MyNclex-RN — NCLEX-RN exam prep for internationally-trained nurses. A Quademia product, launching 2026.",
 };
 
 export default function RootLayout({
