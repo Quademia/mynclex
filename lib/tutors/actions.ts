@@ -21,6 +21,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAdminPermission, PERM_TUTORS_MANAGE } from '@/lib/access';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { enqueueAndSend } from '@/lib/email/send';
+import { TUTOR_APPLICATION_PATH } from './types';
 import type { TutorSource } from './types';
 
 export type TutorSearchHit = {
@@ -289,9 +290,20 @@ export type TutorStandingResult =
  * hit through the UI; anything else is a bug and keeps its raw text
  * rather than being flattened into a soothing generic.
  */
-function decisionError(message: string): string {
+function decisionError(
+  message: string,
+  /**
+   * Which surface is asking. Only the self-decision line differs: on the
+   * directory the act is suspend/reinstate, in the queue it is deciding
+   * an application, and naming the wrong one sends the admin looking for
+   * a button that is not on their screen.
+   */
+  context: 'standing' | 'application' = 'standing',
+): string {
   if (message.includes('own tutor record')) {
-    return 'You cannot suspend or reinstate your own tutor record. Ask another admin.';
+    return context === 'application'
+      ? 'You cannot decide on your own tutor application. Ask another admin.'
+      : 'You cannot suspend or reinstate your own tutor record. Ask another admin.';
   }
   if (message.includes('requires a reason')) {
     return 'A reason is required.';
@@ -495,5 +507,183 @@ export async function reinstateTutorAction(
   }
 
   revalidatePath('/admin/tutors');
+  return { ok: true, changed: true, name };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// The applications queue (sub-slice 2b)
+// ─────────────────────────────────────────────────────────────────────
+// ⭐ NO NEW MIGRATION, AND THAT IS THE TEST PASSING. The plan doc says
+// "approve is 1c's action with a different trigger — if it needs new
+// code, 1c was built too narrowly". It did not: 1d's
+// nclex_tutor_record_decision already accepts APPROVED and REJECTED with
+// every guard (permission, not-on-yourself, reason-required, idempotent,
+// and the refusal to move anything to PENDING), and grantTutorRole is
+// right here. These two actions are wiring.
+//
+// ⚠ Both revalidate BOTH surfaces. A decision made in the queue changes
+// the directory too — an approval adds a tutor to it — and an admin who
+// approves someone, then clicks through to /admin/tutors expecting to see
+// them, would otherwise meet a stale list and conclude it failed.
+
+/** Refresh both pages a decision is visible on. */
+function revalidateTutorSurfaces(): void {
+  revalidatePath('/admin/applications');
+  revalidatePath('/admin/tutors');
+}
+
+/**
+ * Approve a tutor application: standing to APPROVED, TUTOR granted.
+ *
+ * ⚠ NO PLAN, NO TIER, NO EXPIRY IS SET HERE. Admission is not plan
+ * assignment (§12): approval puts everyone on the free tier by doing
+ * nothing at all, because nothing in this table holds money.
+ */
+export async function approveApplicationAction(
+  userId: string,
+): Promise<TutorStandingResult> {
+  const ctx = await requireAdminPermission(PERM_TUTORS_MANAGE);
+  const admin = createServiceRoleClient();
+
+  // Read the roles BEFORE granting, or the email's reassurance is always
+  // true: after grantTutorRole every approved applicant looks like
+  // someone who "keeps" something. The distinction the copy depends on —
+  // existing student vs role-less registrant — exists only until the
+  // write lands.
+  const { data: rolesBefore } = await admin
+    .from('nclex_user_roles')
+    .select('role')
+    .eq('user_id', userId);
+  const keptStudent = (rolesBefore ?? []).some((r) => r.role === 'STUDENT');
+
+  // The authed client: the RPC reads auth.uid() for the actor and for the
+  // self-decision guard, and through the service role there is no caller.
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('nclex_tutor_record_decision', {
+    p_user_id: userId,
+    p_to_status: 'APPROVED',
+    p_reason: null,
+  });
+
+  if (error) return { ok: false, error: decisionError(error.message, 'application') };
+
+  const outcome = (data ?? [])[0] as { changed: boolean } | undefined;
+  const name = await tutorName(admin, userId);
+
+  // Already approved — two admins on the same queue, or a double-click.
+  // Say so rather than reporting a decision that did not happen.
+  if (!outcome?.changed) {
+    revalidateTutorSurfaces();
+    return { ok: true, changed: false, name };
+  }
+
+  const granted = await grantTutorRole(admin, userId, ctx.user.id);
+  if (!granted.ok) {
+    return {
+      ok: false,
+      error: `${name}'s application was approved, but the TUTOR role could not be granted: ${granted.error}`,
+    };
+  }
+
+  const { data: person } = await admin
+    .from('nclex_users')
+    .select('email')
+    .eq('id', userId)
+    .maybeSingle();
+
+  // ⚠ Sent AFTER the role lands, like the reinstatement notice: its whole
+  // content is a way into the workspace, and arriving first would invite
+  // a refusal at the door. And as there, a failed email must NOT fail the
+  // approval — the standing and the role are already written, and an
+  // error now invites the admin to click again on something that worked.
+  if (person?.email) {
+    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nclex.quademia.com';
+    await enqueueAndSend({
+      eventKey: 'tutor.application_approved',
+      subjectRef: userId,
+      toEmail: person.email,
+      toUserId: userId,
+      payload: {
+        recipientName: name === 'That tutor' ? null : name,
+        keepsStudentRole: keptStudent,
+        workspaceUrl: `${origin}/tutor`,
+        profileUrl: `${origin}/tutor/profile`,
+      },
+    });
+  }
+
+  revalidateTutorSurfaces();
+  return { ok: true, changed: true, name };
+}
+
+/**
+ * Reject a tutor application, with a reason the applicant will read.
+ *
+ * ⚠ NOT TERMINAL (§6, §9). The row stays, `decision_reason` is kept so a
+ * re-applicant knows what to fix, and REJECTED → PENDING is allowed by
+ * the CHECK — through the applicant's own resubmission, never through
+ * this function or any other admin path.
+ */
+export async function rejectApplicationAction(
+  userId: string,
+  reason: string,
+): Promise<TutorStandingResult> {
+  await requireAdminPermission(PERM_TUTORS_MANAGE);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('nclex_tutor_record_decision', {
+    p_user_id: userId,
+    p_to_status: 'REJECTED',
+    p_reason: reason,
+  });
+
+  if (error) return { ok: false, error: decisionError(error.message, 'application') };
+
+  const outcome = (data ?? [])[0] as { changed: boolean } | undefined;
+  const admin = createServiceRoleClient();
+  const name = await tutorName(admin, userId);
+
+  if (!outcome?.changed) {
+    revalidateTutorSurfaces();
+    return { ok: true, changed: false, name };
+  }
+
+  // ⚠ DEFENSIVE, and idempotent when there is nothing to remove. The
+  // queue only offers Reject on a PENDING row, which never holds TUTOR —
+  // but the RPC accepts APPROVED → REJECTED, so any future caller that
+  // rejects an approved tutor must not leave them holding the role their
+  // rejection just took away. Costs one no-op delete on the normal path.
+  const revoked = await revokeTutorRole(admin, userId);
+  if (!revoked.ok) {
+    return {
+      ok: false,
+      error: `${name}'s application was rejected, but the TUTOR role could not be removed: ${revoked.error}`,
+    };
+  }
+
+  const { data: person } = await admin
+    .from('nclex_users')
+    .select('email')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (person?.email) {
+    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nclex.quademia.com';
+    await enqueueAndSend({
+      eventKey: 'tutor.application_rejected',
+      subjectRef: userId,
+      toEmail: person.email,
+      toUserId: userId,
+      payload: {
+        recipientName: name === 'That tutor' ? null : name,
+        // The RPC has already refused a blank one; trim to match what it
+        // stored, so the email and the record read identically.
+        reason: reason.trim(),
+        applicationUrl: `${origin}${TUTOR_APPLICATION_PATH}`,
+      },
+    });
+  }
+
+  revalidateTutorSurfaces();
   return { ok: true, changed: true, name };
 }

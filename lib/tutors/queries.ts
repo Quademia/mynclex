@@ -19,6 +19,8 @@
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import type {
+  TutorApplicationRow,
+  TutorApplicationStats,
   TutorDecisionEntry,
   TutorDirectoryRow,
   TutorDirectoryStats,
@@ -42,6 +44,29 @@ type TutorRecordRow = {
   submission_count: number;
   created_at: string;
   decision_history: TutorDecisionEntry[] | null;
+};
+
+/** The applications queue reads the payload columns, not the profile. */
+type ApplicationRecordRow = {
+  user_id: string;
+  status: TutorStatus;
+  source: TutorSource;
+  organisation: string | null;
+  request_note: string | null;
+  submission_count: number;
+  first_applied_at: string | null;
+  last_applied_at: string | null;
+  decided_at: string | null;
+  decided_by: string | null;
+  decision_reason: string | null;
+  decision_history: TutorDecisionEntry[] | null;
+};
+
+type UserIdentityRow = {
+  id: string;
+  name: string;
+  email: string;
+  phone_number: string | null;
 };
 
 /**
@@ -153,4 +178,116 @@ export async function loadTutorDirectory(): Promise<{
   };
 
   return { rows, stats };
+}
+
+/**
+ * The /admin/applications queue (sub-slice 2b): every row that has ever
+ * been decided *as an application*, plus everything still waiting.
+ *
+ * ⚠ WHICH ROWS COUNT AS APPLICATIONS, and why it is not `status IN
+ * ('PENDING','REJECTED')`. An approved applicant's row becomes APPROVED
+ * and is then indistinguishable from an admin promotion by status alone —
+ * so the Decided tab would lose every approval it ever made, which is the
+ * one thing an admin looks back for ("did I already say yes to this
+ * person?"). The real test is **did anybody apply**: `first_applied_at IS
+ * NOT NULL`. Admin promotions and invites have no approval step (§5) and
+ * never set it, so they stay in the directory where they belong.
+ *
+ * ⓘ Same service-role reasoning as loadTutorDirectory above — this page
+ * needs names and emails off nclex_users, which is SUPER_ADMIN-only.
+ */
+export async function loadTutorApplications(): Promise<{
+  rows: TutorApplicationRow[];
+  stats: TutorApplicationStats;
+}> {
+  const admin = createServiceRoleClient();
+
+  const { data: records } = await admin
+    .from('nclex_tutors')
+    .select(
+      `user_id, status, source, organisation, request_note,
+       submission_count, first_applied_at, last_applied_at,
+       decided_at, decided_by, decision_reason, decision_history`,
+    )
+    .not('first_applied_at', 'is', null)
+    // Oldest application first in the pending queue: a person who has
+    // waited longest should be the one an admin meets first. The Decided
+    // tab re-sorts by decision date in the component.
+    .order('last_applied_at', { ascending: true });
+
+  const appRows = (records ?? []) as ApplicationRecordRow[];
+  if (appRows.length === 0) {
+    return { rows: [], stats: { pending: 0, decided: 0 } };
+  }
+
+  // Identities: the applicants plus whoever decided on them, and the
+  // trail's actors — a re-applied row can carry a decider who appears in
+  // no scalar column.
+  const identityIds = new Set<string>();
+  for (const r of appRows) {
+    identityIds.add(r.user_id);
+    if (r.decided_by) identityIds.add(r.decided_by);
+    for (const e of r.decision_history ?? []) {
+      if (e.by) identityIds.add(e.by);
+    }
+  }
+
+  const { data: users } = await admin
+    .from('nclex_users')
+    .select('id, name, email, phone_number')
+    .in('id', [...identityIds]);
+
+  const byId = new Map(
+    ((users ?? []) as UserIdentityRow[]).map((u) => [u.id, u]),
+  );
+
+  // Roles, for §8's branching. One fetch for every applicant rather than
+  // per-row: the callout has to say something different to an existing
+  // student than to someone with no roles at all, and getting that wrong
+  // tells an admin the applicant will land somewhere they will not.
+  const { data: roleRows } = await admin
+    .from('nclex_user_roles')
+    .select('user_id, role')
+    .in('user_id', appRows.map((r) => r.user_id));
+
+  const rolesByUser = new Map<string, string[]>();
+  for (const r of (roleRows ?? []) as { user_id: string; role: string }[]) {
+    const list = rolesByUser.get(r.user_id) ?? [];
+    list.push(r.role);
+    rolesByUser.set(r.user_id, list);
+  }
+
+  const rows: TutorApplicationRow[] = appRows.map((r) => {
+    const self = byId.get(r.user_id);
+    return {
+      user_id: r.user_id,
+      name: self?.name ?? '(unknown user)',
+      email: self?.email ?? r.user_id,
+      phone: self?.phone_number ?? null,
+      status: r.status,
+      source: r.source,
+      organisation: r.organisation,
+      request_note: r.request_note,
+      submission_count: r.submission_count,
+      first_applied_at: r.first_applied_at,
+      last_applied_at: r.last_applied_at,
+      decided_at: r.decided_at,
+      decided_by_name: r.decided_by ? (byId.get(r.decided_by)?.name ?? null) : null,
+      decision_reason: r.decision_reason,
+      roles: (rolesByUser.get(r.user_id) ?? []).sort(),
+      // Append-ordered; never re-sorted by date (see loadTutorDirectory).
+      trail: (r.decision_history ?? []).map((e) => ({
+        ...e,
+        by_name: e.by ? (byId.get(e.by)?.name ?? null) : null,
+      })),
+    };
+  });
+
+  return {
+    rows,
+    stats: {
+      pending: rows.filter((r) => r.status === 'PENDING').length,
+      decided: rows.filter((r) => r.status !== 'PENDING').length,
+    },
+  };
 }

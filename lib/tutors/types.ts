@@ -121,6 +121,79 @@ export type TutorDirectoryStats = {
   suspended: number;
 };
 
+/**
+ * Where a person applies, checks their standing, and resubmits — ONE
+ * route with five states (plan doc §8). Slice 2b only *links* to it; 2a-i
+ * and 2c build it.
+ *
+ * ⭐ It is a constant because two places outside the route itself point
+ * at it — the rejection email's "Update and resubmit" button and (in 2c)
+ * the /student/picker card — and the name is still open. Sam left the
+ * choice between this and `/tutor-application` as "a string, not a
+ * design"; keeping it here makes changing his mind a one-line edit
+ * instead of a search.
+ */
+export const TUTOR_APPLICATION_PATH = '/for-tutors/apply';
+
+/**
+ * One row of the /admin/applications queue (sub-slice 2b).
+ *
+ * ⚠ Deliberately NOT TutorDirectoryRow. They overlap heavily and read the
+ * same table, but the two surfaces ask different questions: the directory
+ * asks "who teaches here and what standing are they in", so it carries
+ * the public profile and a programme count. A queue asks "should we let
+ * this person in", so it carries the application payload — organisation,
+ * the note they wrote, how many times they have asked — and the ROLES
+ * they hold, which is what §8's branching keys off. Merging them would
+ * make every page load fetch the half it does not use.
+ */
+export type TutorApplicationRow = {
+  user_id: string;
+  name: string;
+  email: string;
+  /** From nclex_users — a phone is not tutor-specific, so it lives there. */
+  phone: string | null;
+  status: TutorStatus;
+  source: TutorSource;
+  organisation: string | null;
+  request_note: string | null;
+  submission_count: number;
+  first_applied_at: string | null;
+  last_applied_at: string | null;
+  decided_at: string | null;
+  decided_by_name: string | null;
+  decision_reason: string | null;
+  /**
+   * Every role they hold right now.
+   *
+   * ⭐ §8 branches on ROLES, not on `source` — an existing student who
+   * applied keeps STUDENT and lands on /student/picker, while a role-less
+   * registrant has nowhere to stand and goes to the application page.
+   * Reading `source` instead would be wrong the moment someone registers
+   * as a tutor from an account that already had a role.
+   */
+  roles: string[];
+  /** The full decision trail, oldest first, actor names resolved. */
+  trail: TutorTrailEntry[];
+};
+
+/** Counts behind the queue's two tabs. */
+export type TutorApplicationStats = {
+  pending: number;
+  decided: number;
+};
+
+/**
+ * True when this applicant has no role at all — the §8-A case.
+ *
+ * Kept as a function rather than a column so there is one definition of
+ * "role-less" for the callout, and it cannot drift from what the router
+ * will branch on in 2c.
+ */
+export function isRolelessApplicant(row: TutorApplicationRow): boolean {
+  return row.roles.length === 0;
+}
+
 /** Whether the tutor has written anything students would see. */
 export function hasPublicProfile(profile: TutorPublicProfile): boolean {
   return Boolean(profile.headline?.trim());

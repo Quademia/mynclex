@@ -65,7 +65,18 @@ export type EmailEventKey =
    * someone their standing was withdrawn and nothing told them when it
    * came back. Tutor-onboarding 1d.
    */
-  | 'tutor.reinstated';
+  | 'tutor.reinstated'
+  /**
+   * The verdict on a self-application. Tutor-onboarding slice 2b.
+   *
+   * ⚠ NOT an alias of tutor.added_by_admin, though the outcome is the
+   * same row. That one welcomes someone an admin CHOSE; these two answer
+   * someone who ASKED — and the rejection has no counterpart at all.
+   * Same split, and the same reason, as enrolment.approved /
+   * enrolment.rejected: shared facts, nothing else in common.
+   */
+  | 'tutor.application_approved'
+  | 'tutor.application_rejected';
 
 // ─────────────────────────────────────────────────────────────────────
 // The tutor welcome (tutor-onboarding slice 1c)
@@ -137,6 +148,46 @@ export type TutorReinstatedPayload = {
    */
   hasProgrammes: boolean;
   workspaceUrl: string;
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// The verdict on an application (tutor-onboarding slice 2b)
+// ─────────────────────────────────────────────────────────────────────
+// ⚠ NEITHER NAMES THE ADMIN — the third and fourth outings for the rule
+// tutor-added-by-admin set. Who decided is our provenance
+// (nclex_tutors.decided_by and the trail); a staff name on a refusal
+// invites the applicant to take it up with that person.
+
+export type TutorApplicationApprovedPayload = {
+  /** Null when the account has no profile name yet. */
+  recipientName: string | null;
+  /**
+   * Whether they already held STUDENT. Renders the "you keep your student
+   * access" reassurance ONLY when true — the rule keepsStudentRole set in
+   * tutor-added-by-admin. A role-less registrant never had it, and telling
+   * them what they keep makes them wonder what they lost.
+   */
+  keepsStudentRole: boolean;
+  workspaceUrl: string;
+  profileUrl: string;
+};
+
+export type TutorApplicationRejectedPayload = {
+  /** Null when the account has no profile name yet. */
+  recipientName: string | null;
+  /**
+   * ⭐ Always present. nclex_tutor_record_decision refuses REJECTED
+   * without one, so this cannot be null — and per §9 the applicant is
+   * shown it, because someone re-applying without knowing what was wrong
+   * wastes everyone's time.
+   */
+  reason: string;
+  /**
+   * Where to update and resubmit (§9). ⚠ A FORWARD REFERENCE while 2b is
+   * built first: the route lands with 2a-i/2c, and the two release
+   * together, so nothing real is ever sent to a 404.
+   */
+  applicationUrl: string;
 };
 
 // ─────────────────────────────────────────────────────────────────────
