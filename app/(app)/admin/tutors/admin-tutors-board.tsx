@@ -23,10 +23,10 @@ import {
   hasPublicProfile,
   sourceClass,
   sourceLabel,
+  trailLabel,
+  trailTone,
   type TutorDirectoryRow,
   type TutorDirectoryStats,
-  type TutorStatus,
-  type TutorTrailEntry,
 } from '@/lib/tutors/types';
 
 function initials(name: string): string {
@@ -328,32 +328,10 @@ function TutorRow({ row, onOpen }: { row: TutorDirectoryRow; onOpen: () => void 
   );
 }
 
-/**
- * What one trail entry says. Every entry is a transition, so the wording
- * comes from where it LANDED plus, where it matters, where it came from:
- * APPROVED means two different events depending on whether the previous
- * status was SUSPENDED, and calling a reinstatement "Approved as a tutor"
- * would hide the suspension it undoes.
- */
-function trailLabel(e: TutorTrailEntry): string {
-  switch (e.to) {
-    case 'APPROVED':
-      return e.from === 'SUSPENDED' ? 'Reinstated' : 'Approved as a tutor';
-    case 'SUSPENDED':
-      return 'Suspended';
-    case 'REJECTED':
-      return 'Application rejected';
-    case 'PENDING':
-      return e.from ? 'Re-applied' : 'Applied to become a tutor';
-  }
-}
-
-/** Ring colour on the timeline. PENDING is neither good nor bad. */
-function trailTone(to: TutorStatus): string {
-  if (to === 'APPROVED') return 'is-good';
-  if (to === 'SUSPENDED' || to === 'REJECTED') return 'is-bad';
-  return '';
-}
+// ⓘ trailLabel and trailTone used to live here. Moved to
+// @/lib/tutors/types in 2b, when the applications drawer needed the same
+// sentences: two renderings of one trail that could drift is the bug
+// those functions exist to prevent.
 
 function TutorDrawer({
   row,

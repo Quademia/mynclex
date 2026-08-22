@@ -28,6 +28,8 @@ import {
   isRolelessApplicant,
   sourceClass,
   sourceLabel,
+  trailLabel,
+  trailTone,
   type TutorApplicationRow,
   type TutorApplicationStats,
   type TutorTrailEntry,
@@ -428,7 +430,30 @@ function ApplicationDetail({
   );
 }
 
+/**
+ * The archive. A TABLE, not the queue's card list — and the difference is
+ * volume, not taste (settled with Sam, 2026-08-22).
+ *
+ * Pending is a queue you keep EMPTY: you work it one at a time and act on
+ * each, which is what the detail pane's bottom half is for. Decided grows
+ * forever, is scanned rather than worked, and has no action at the end of
+ * it — so it keeps the columns, which stay readable at two hundred rows
+ * where a card list does not.
+ *
+ * ⭐ But a row OPENS. Before this it was dead text sitting beside a tab
+ * where records are clickable, which is the worse inconsistency: two
+ * things that look alike behaving differently. And five columns cannot
+ * hold what this tab exists to answer — "have they tried before, and why
+ * did we say no?" — because the applicant's note, their organisation and
+ * the full trail are all absent from it.
+ *
+ * The drawer is deliberately the same gesture /admin/tutors already uses
+ * for "the whole record of one person", rather than a third pattern.
+ */
 function DecidedTable({ rows }: { rows: TutorApplicationRow[] }) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const open = openId ? (rows.find((r) => r.user_id === openId) ?? null) : null;
+
   if (rows.length === 0) {
     return (
       <div className="adt-empty">
@@ -442,66 +467,227 @@ function DecidedTable({ rows }: { rows: TutorApplicationRow[] }) {
   }
 
   return (
-    <div className="adt-table-scroll">
-      <div className="ao-table">
-        <div className="ao-table-row head adt-decided-cols">
-          <span>Applicant</span>
-          <span>Outcome</span>
-          <span>Decided</span>
-          <span>Reason</span>
-          <span>Request #</span>
+    <>
+      <div className="adt-table-scroll">
+        <div className="ao-table">
+          <div className="ao-table-row head adt-decided-cols">
+            <span>Applicant</span>
+            <span>Outcome</span>
+            <span>Decided</span>
+            <span>Reason</span>
+            <span>Request #</span>
+          </div>
+
+          {rows.map((r) => (
+            <div
+              key={r.user_id}
+              className="ao-table-row body adt-decided-cols adt-row-btn"
+              role="button"
+              tabIndex={0}
+              onClick={() => setOpenId(r.user_id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setOpenId(r.user_id);
+                }
+              }}
+            >
+              <div className="ao-cell-lead">
+                <div className="ao-tutor-avatar">{initials(r.name)}</div>
+                <div className="ao-cell-lead-text">
+                  <div className="ao-cell-lead-name">{r.name}</div>
+                  {/* ⓘ CD's design puts "Took the student conversion" here
+                      for a rejected applicant who converted. Not rendered:
+                      that button lands in 2c, so no row can carry the fact
+                      yet, and deriving it now would be a branch that never
+                      runs. Add it with the conversion, not before. */}
+                  <div className="ao-cell-lead-email">{r.email}</div>
+                </div>
+              </div>
+
+              <div className="adt-cell">
+                {r.status === 'APPROVED' ? (
+                  <span className="ao-pill ao-pill-done">Approved</span>
+                ) : r.status === 'SUSPENDED' ? (
+                  <span className="ao-pill adt-pill-susp">Suspended</span>
+                ) : (
+                  <span className="ao-pill">Rejected</span>
+                )}
+              </div>
+
+              <div className="adt-cell">
+                <div className="adt-cell-main">{formatDate(r.decided_at) ?? '—'}</div>
+                <div className="adt-cell-sub">
+                  {r.decided_by_name ? `by ${r.decided_by_name}` : '—'}
+                </div>
+              </div>
+
+              {/* An approval takes no reason, so the dash here is the normal
+                  case rather than missing data.
+
+                  ⓘ .adt-reason, not .adt-cell-sub: the sibling clamps to one
+                  line, which cut most refusals off before they said
+                  anything. Two lines, then an ellipsis — the full text is
+                  on the record and in the email the applicant already has,
+                  so this column only has to be enough to recognise. */}
+              <div className="adt-cell">
+                <div className={r.decision_reason ? 'adt-reason' : 'adt-cell-sub'}>
+                  {r.decision_reason || '—'}
+                </div>
+              </div>
+
+              <div className="adt-num">{r.submission_count}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {open && <DecidedDrawer row={open} onClose={() => setOpenId(null)} />}
+    </>
+  );
+}
+
+/**
+ * The whole record of one decided applicant, read-only.
+ *
+ * ⚠ IT FRAMES THE APPLICATION, NOT THE TUTOR — which is what keeps it
+ * from being a second copy of the directory's drawer. A rejected
+ * applicant also appears in /admin/tutors under "All statuses", with the
+ * same trail in its drawer; that one shows the public profile and a
+ * programme count, because it answers "what kind of tutor is this". This
+ * one shows what they wrote and what we decided, because it answers "why
+ * did we say no". If that split ever stops holding, the right fix is ONE
+ * shared record drawer, not two that have drifted.
+ *
+ * ⭐ Hence the foot link on an approved row. The queue owns the
+ * application; the directory owns the tutor. Naming that boundary on
+ * screen is what stops an admin working the archive when they should be
+ * looking at a live tutor's record.
+ */
+function DecidedDrawer({
+  row,
+  onClose,
+}: {
+  row: TutorApplicationRow;
+  onClose: () => void;
+}) {
+  return (
+    <div className="adt-drawer-root">
+      <div className="adt-scrim" onClick={onClose} />
+      <aside
+        className="adt-drawer"
+        role="dialog"
+        aria-label={`${row.name} — tutor application`}
+      >
+        <div className="adt-drawer-head">
+          <div className="ao-tutor-avatar">{initials(row.name)}</div>
+          <div className="adt-drawer-id">
+            <span className="adt-drawer-name">{row.name}</span>
+            <span className="adt-drawer-email">
+              {row.email}
+              {row.phone ? ` · ${row.phone}` : ''}
+            </span>
+          </div>
+          <button type="button" className="adt-drawer-x" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
         </div>
 
-        {rows.map((r) => (
-          <div key={r.user_id} className="ao-table-row body adt-decided-cols">
-            <div className="ao-cell-lead">
-              <div className="ao-tutor-avatar">{initials(r.name)}</div>
-              <div className="ao-cell-lead-text">
-                <div className="ao-cell-lead-name">{r.name}</div>
-                {/* ⓘ CD's design puts "Took the student conversion" here
-                    for a rejected applicant who converted. Not rendered:
-                    that button lands in 2c, so no row can carry the fact
-                    yet, and deriving it now would be a branch that never
-                    runs. Add it with the conversion, not before. */}
-                <div className="ao-cell-lead-email">{r.email}</div>
-              </div>
-            </div>
-
-            <div className="adt-cell">
-              {r.status === 'APPROVED' ? (
-                <span className="ao-pill ao-pill-done">Approved</span>
-              ) : r.status === 'SUSPENDED' ? (
-                <span className="ao-pill adt-pill-susp">Suspended</span>
-              ) : (
-                <span className="ao-pill">Rejected</span>
+        <div className="adt-drawer-body">
+          <section>
+            <div className="adt-sec-title">Outcome</div>
+            <dl className="adt-kv">
+              <dt>Decision</dt>
+              <dd>
+                {row.status === 'APPROVED' ? (
+                  <span className="ao-pill ao-pill-done">Approved</span>
+                ) : row.status === 'SUSPENDED' ? (
+                  <span className="ao-pill adt-pill-susp">Suspended</span>
+                ) : (
+                  <span className="ao-pill">Rejected</span>
+                )}
+              </dd>
+              <dt>Decided</dt>
+              <dd>
+                {formatDate(row.decided_at) ?? '—'}
+                {row.decided_by_name ? ` · by ${row.decided_by_name}` : ''}
+              </dd>
+              {/* An approval takes no reason (the RPC requires one only
+                  for REJECTED and SUSPENDED), so this row is absent
+                  rather than showing a dash where a sentence belongs. */}
+              {row.decision_reason && (
+                <>
+                  <dt>Reason</dt>
+                  <dd>{row.decision_reason}</dd>
+                </>
               )}
-            </div>
+            </dl>
+          </section>
 
-            <div className="adt-cell">
-              <div className="adt-cell-main">{formatDate(r.decided_at) ?? '—'}</div>
-              <div className="adt-cell-sub">
-                {r.decided_by_name ? `by ${r.decided_by_name}` : '—'}
+          <section>
+            <div className="adt-sec-title">What they applied with</div>
+            <dl className="adt-kv">
+              <dt>Source</dt>
+              <dd>
+                <span className={`adt-source${sourceClass(row.source)}`}>
+                  {sourceLabel(row.source)}
+                </span>
+              </dd>
+              <dt>Organisation</dt>
+              <dd>{row.organisation || '—'}</dd>
+              <dt>First applied</dt>
+              <dd>{formatDate(row.first_applied_at) ?? '—'}</dd>
+              <dt>Submissions</dt>
+              <dd>{row.submission_count}</dd>
+            </dl>
+            {/* The note is the substance of an application and the table
+                has no room for it at all — half the reason this drawer
+                exists. */}
+            {row.request_note ? (
+              <div className="adt-note" style={{ marginTop: 10 }}>
+                {row.request_note}
               </div>
-            </div>
+            ) : (
+              <p className="adt-drawer-hint">They wrote no note.</p>
+            )}
+          </section>
 
-            {/* An approval takes no reason, so the dash here is the normal
-                case rather than missing data.
+          <section>
+            <div className="adt-sec-title">Decision trail</div>
+            {/* Every transition, including re-applications — the thing
+                five columns could never show. Newest first; the array is
+                append-ordered and must not be sorted by date. */}
+            <ul className="adt-trail">
+              {row.trail.length === 0 ? (
+                <li>
+                  No decisions recorded
+                  <span className="adt-trail-when">—</span>
+                </li>
+              ) : (
+                [...row.trail].reverse().map((e: TutorTrailEntry, i: number) => (
+                  <li key={`${e.at}-${i}`} className={trailTone(e.to)}>
+                    {trailLabel(e)}
+                    {e.by_name ? ` by ${e.by_name}` : ''}
+                    {e.reason ? ` — “${e.reason}”` : ''}
+                    <span className="adt-trail-when">{formatDate(e.at) ?? '—'}</span>
+                  </li>
+                ))
+              )}
+            </ul>
+          </section>
+        </div>
 
-                ⓘ .adt-reason, not .adt-cell-sub: the sibling clamps to one
-                line, which cut most refusals off before they said
-                anything. Two lines, then an ellipsis — the full text is
-                on the record and in the email the applicant already has,
-                so this column only has to be enough to recognise. */}
-            <div className="adt-cell">
-              <div className={r.decision_reason ? 'adt-reason' : 'adt-cell-sub'}>
-                {r.decision_reason || '—'}
-              </div>
-            </div>
-
-            <div className="adt-num">{r.submission_count}</div>
-          </div>
-        ))}
-      </div>
+        <div className="adt-drawer-foot">
+          {row.status !== 'REJECTED' && (
+            <a className="btn btn-sm" href="/admin/tutors">
+              Open their tutor record →
+            </a>
+          )}
+          <button type="button" className="btn btn-sm adt-foot-end" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </aside>
     </div>
   );
 }

@@ -73,6 +73,39 @@ export type TutorDecisionEntry = {
 export type TutorTrailEntry = TutorDecisionEntry & { by_name: string | null };
 
 /**
+ * What one trail entry says.
+ *
+ * ⭐ The wording comes from where it LANDED plus, where it matters, where
+ * it came from: APPROVED means two different events depending on whether
+ * the previous status was SUSPENDED, and calling a reinstatement
+ * "Approved as a tutor" would hide the suspension it undoes.
+ *
+ * ⓘ Lived in admin-tutors-board.tsx until 2b, when the applications
+ * drawer needed the same sentences. Moved here rather than copied — two
+ * renderings of one trail that could drift is exactly the bug this
+ * function exists to prevent.
+ */
+export function trailLabel(e: TutorDecisionEntry): string {
+  switch (e.to) {
+    case 'APPROVED':
+      return e.from === 'SUSPENDED' ? 'Reinstated' : 'Approved as a tutor';
+    case 'SUSPENDED':
+      return 'Suspended';
+    case 'REJECTED':
+      return 'Application rejected';
+    case 'PENDING':
+      return e.from ? 'Re-applied' : 'Applied to become a tutor';
+  }
+}
+
+/** Ring colour on the timeline. PENDING is neither good nor bad. */
+export function trailTone(to: TutorStatus): string {
+  if (to === 'APPROVED') return 'is-good';
+  if (to === 'SUSPENDED' || to === 'REJECTED') return 'is-bad';
+  return '';
+}
+
+/**
  * One row of the /admin/tutors directory: the tutor record joined to the
  * identity that stays on nclex_users, plus the live programme count.
  */
