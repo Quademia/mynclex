@@ -235,6 +235,25 @@ slice.
    international audience reliably reads.) A `₵` glyph used as a
    decorative **icon** is fine — an icon isn't an amount.
 
+5. **One brand name: `Quademia`. `QAcademy` is the old name and must
+   never reach a reader.** Settled 2026-08-19, swept across the app
+   2026-08-22. ⭐ **The rule is deliberately asymmetric** — nothing a
+   *user* sees keeps the old name; nothing a *developer* reads gets
+   churned for it. So `lib/payments`' comments about whose money is
+   whose, `lib/audit`, `_archive/`, `tokens.css`, `wrangler.jsonc` and
+   the repo org itself all still say QAcademy, on purpose. If you are
+   writing a string that renders — copy, a page title, an email, an
+   `aria-label` — it says Quademia.
+   - ⚠ **Quademia is THE brand; MyNclex is a product name under it**
+     (Sam, 2026-08-22). MyNclex has no logo of its own and is not
+     getting one. The public nav's `M` tile is a letter, not a mark.
+   - ⚠ **QAcademy is not a registered company name**, so it does not
+     survive in copyright lines either. See
+     `docs/product-plan/domain-and-identity.md` §2b–§2c.
+   - ⓘ It took three days and a full sweep for this to land after it was
+     decided, because the decision lived in one call site's comment. **A
+     rule recorded where one caller can see it is not a rule.**
+
 ## Non-Negotiable Rules
 
 1. **Table prefix: `nclex_`** on every MyNclex database object (tables,

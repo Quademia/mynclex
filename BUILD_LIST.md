@@ -1,5 +1,66 @@
 # MyNclex Build List
 
+> ## ✅ DONE 2026-08-22 (later) — **the public site: a phone can navigate it, and it stops saying QAcademy**
+>
+> Three changes on the same branch, no migrations. Docs:
+> **`docs/product-plan/mobile-responsive.md`** (the nav) and
+> **`docs/product-plan/domain-and-identity.md`** §2b/§2c (the brand).
+>
+> | Commit | What |
+> |---|---|
+> | `7b1de0f` | the public nav becomes a drawer ≤768px |
+> | `c67452c` | QAcademy → Quademia, 16 user-facing strings |
+> | `cfedada` | the new Quademia mark as favicon + apple icon |
+> | `ab5480b` | the link-preview card, and `metadataBase` |
+>
+> **⚠⚠ The nav fix closed a real hole, not a rough edge.** The public
+> link row was `display:none` below the breakpoint with **nothing
+> replacing it**, so on a phone the only public links were the brand,
+> Log in, and Help in the footer. **`/readiness` and `/for-tutors` had
+> no entry point anywhere in the product** — one a product we sell, the
+> other the tutor door built the same day — on a phone-first audience.
+> ⭐ Six mobile sweeps had run and every one covered surfaces you reach
+> *after signing in*; nobody had looked at what a stranger sees first.
+> - One component, one link list (two would drift) · hamburger and
+>   drawer on the **right** for thumb reach, diverging from the app's
+>   left-hand drawer on purpose · `pub-` styles rather than the app's
+>   `m-*`, because reuse would have *worked* and quietly coupled the
+>   marketing chrome to the authenticated workspace's stylesheet · but
+>   the **behaviours** were copied, including closing the drawer when
+>   the viewport grows past the breakpoint.
+> - The inert GHS/USD toggle was deleted — it duplicated `.bkc-fx`,
+>   which works, and it was the one element that kept its space on
+>   mobile while every real link was hidden.
+>
+> **The rename was not a new decision — it was an unfinished one.** The
+> rule was settled 2026-08-19 and written into one email template
+> (*"QAcademy is the old name … it must not reach a reader"*); the web
+> never followed. ⭐ **A decision recorded in one call site is not a
+> decision that propagated.** Comments keep the old name deliberately.
+> ⚠ The copyright line was **asked about, not assumed** — Sam confirmed
+> QAcademy is not a registered name.
+>
+> **⚠⚠ `metadataBase` — the branding change that would have shipped
+> broken.** Next resolves social images against
+> `http://localhost:3000` unless `metadataBase` or `VERCEL_URL` is set,
+> and on Cloudflare the latter never is. **Dev prints localhost either
+> way**, because Next overrides it there so local previews resolve — so
+> the question could not be answered from the dev server. Settled by
+> running a production build and reading the prerendered HTML, which
+> carries the real host. ⓘ Same shape as the `NEXT_PUBLIC_*` trap in
+> CLAUDE.md: a build-time value invisible until it is live.
+>
+> ⭐ **Cutting the mark out of AI art is not a crop.** Scanning for
+> "first pixel unlike the background" catches the **drop shadow**,
+> which left a slate crescent on the rim. Scanning for the **cream
+> ring** gives the true edge — and says the mark is a 997×1051
+> **ellipse**, not a circle.
+>
+> ⏭ **Open:** `/privacy` and `/terms` live in the `quademia-parent-site`
+> repo and were not swept · the Google consent screen, Supabase auth
+> templates and the sam@ Workspace avatar still have no logo.
+> ⭐ **MyNclex gets no mark of its own** (Sam) — Quademia is the brand.
+
 > ## ✅ DONE 2026-08-22 — **tutor onboarding slice 3: invite by email — AND THE ARC IS CLOSED**
 >
 > **Slice 3 is COMPLETE and Sam-tested end to end.** On a branch, not on
