@@ -119,6 +119,77 @@ Everything is additive to the existing shell; desktop is unchanged.
   Enrolments, Curriculum, Cohort analytics, Cohort tabs, and the programme
   drawer header. Bank area and Library excluded. All nine live surfaces
   measure zero sideways scroll; the other two are "Coming soon" placeholders.
+- **The PUBLIC site** (2026-08-22) — see below. Every sweep above was of
+  *authenticated* surfaces; the marketing site had never been looked at,
+  and it was the one with an actual hole in it.
+
+## ⚠⚠ The public nav had no mobile navigation at all <span>fixed 2026-08-22</span>
+
+`styles/discovery.css` hid the public link row below the breakpoint —
+`.pub-nav .links { display: none }` — and **nothing replaced it.** Not a
+degraded experience: on a phone the only public links in the entire
+product were the brand, Log in, and Help in the footer.
+
+⭐⭐ **Two of the four sections had NO entry point anywhere.**
+`/bank-access` and `/programmes` survived only by luck, because the
+landing page happens to link them in its body. **`/readiness` and
+`/for-tutors` were reachable only by typing the URL** — one a product we
+sell, the other the tutor door slice 2 had just been built for — on a
+**phone-first** audience. ⓘ Found by grepping for every `href` to them
+in the repo: the only other links to `/readiness` sit behind a login or
+on its own checkout page (circular), and `/for-tutors` had none at all.
+
+⭐ **The lesson is about where to look, not about CSS.** Six mobile
+sweeps had run and all six covered surfaces you reach *after* signing
+in. Nobody had checked the pages a stranger sees first.
+
+**As built** (`components/public/public-nav.tsx`, `pub-` styles in
+`discovery.css`):
+
+- **ONE component, ONE link list.** Desktop renders the row; ≤768px the
+  same array becomes a drawer. ⚠ Two components would be two lists that
+  drift — the day somebody adds "Sign up" they edit one of them. Same
+  reasoning as convention #4 for `lib/nav/`. `PublicNav` became
+  `'use client'`, which costs nothing: it has no server data.
+- **Hamburger and drawer on the RIGHT** — thumb reach on a one-handed
+  phone. ⚠ **Deliberately diverges from the app's drawer, which opens
+  from the left.** If the two are ever aligned, the app's is the one that
+  moves.
+- **`pub-` styles, NOT the app's `m-*` drawer.** ⚠⚠ Reuse would have
+  *worked* — the app tokens resolve on public pages and the risky rules
+  are scoped to `.shell-root`, which does not exist there — and that is
+  exactly what made it the tempting wrong answer. The public site is a
+  **ported design system with its own token vocabulary** bridged on
+  `.pub-shell`, and it is the half most likely to be re-cut by Claude
+  Design later; coupling it would let a change to one silently move the
+  other. They are also different objects: the app drawer is a navigation
+  *tree* (sections, collapsible parents, badges, a user bar), this one is
+  five links.
+- ⭐ **What IS reused is the BEHAVIOUR**, copied from
+  `components/shell/mobile/mobile-nav.tsx`: close on route change
+  (adjusted during render, not in an effect), Escape, body scroll lock,
+  focus into the panel, and **close if the viewport grows past the
+  breakpoint** — without that last one the drawer is stranded open with
+  its hamburger hidden. *Share the hard-won behaviour; do not share the
+  stylesheet.*
+- **Log in moved INTO the drawer** (Sam). It is the only conversion
+  action on the public site, so it renders as a button at the foot rather
+  than a sixth link. ⓘ The counter-argument was made and overruled:
+  burying navigation costs more on a marketing page than in an app,
+  because it hides the product from someone who does not yet know they
+  want it.
+- **The inert GHS/USD toggle was deleted.** It had `tabIndex={-1}`,
+  `aria-hidden`, no handler and no state, and it duplicated `.bkc-fx` on
+  the purchasing surfaces — which works, and sits next to the prices it
+  re-renders. ⚠ It was also the one element that *kept* its space on
+  mobile while every real link was hidden.
+- **Breakpoint 760 → 768.** The old number predated the app's mobile nav;
+  eight pixels of disagreement is a window where the two chromes differ
+  about what a phone is.
+
+ⓘ The brand became a **product-over-parent lockup** (MyNclex over "by
+Quademia") in the same change — reasoning in `domain-and-identity.md`
+§2b, including why MyNclex gets no mark of its own.
 
 ## Non-nav content reflow (started 2026-06-21)
 

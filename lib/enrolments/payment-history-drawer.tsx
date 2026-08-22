@@ -158,7 +158,7 @@ export function PaymentHistoryDrawer({
                             Paid {item.paidAtIso ? formatDay(item.paidAtIso) : ''} ·{' '}
                             {item.channel === 'OFF_PLATFORM'
                               ? 'off-platform — marked received by you'
-                              : 'online via Paystack (QAcademy)'}
+                              : 'online via Paystack (Quademia)'}
                           </>
                         ) : item.state === 'DUE' ? (
                           item.graceUntilIso ? (

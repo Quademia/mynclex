@@ -86,7 +86,7 @@ export default async function BankLandingPage() {
         <span className="bkc-hero-glow" />
         <div className="bkc-hero-inner">
           <div className="bkc-hero-copy">
-            <div className="bkc-eyebrow">QAcademy · NCLEX-RN question bank</div>
+            <div className="bkc-eyebrow">Quademia · NCLEX-RN question bank</div>
             <h1>Practice the NCLEX-RN, the way the exam <span className="bkc-accent">actually asks.</span></h1>
             <p className="bkc-lede">
               A self-study question bank built for the Next-Generation NCLEX — every item type, a worked

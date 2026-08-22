@@ -75,7 +75,7 @@ export default async function ProgrammesPage() {
             <h1 className="prc-serif">Programmes from tutors who&apos;ve <em>done this before.</em></h1>
             <p className="prc-hero-lede">
               Tutor-led intensives and self-paced courses for internationally trained nurses preparing for
-              the NCLEX-RN. Pick a tutor, pick a cohort — QAcademy hosts the content.
+              the NCLEX-RN. Pick a tutor, pick a cohort — Quademia hosts the content.
             </p>
             <div className="prc-hero-ctas">
               <a className="prc-btn prc-btn-primary" href="#list">Browse programmes →</a>
@@ -84,7 +84,7 @@ export default async function ProgrammesPage() {
             <div className="prc-hero-meta">
               <span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d7d72" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
-                Every tutor vetted by QAcademy
+                Every tutor vetted by Quademia
               </span>
               <span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d7d72" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
@@ -167,7 +167,7 @@ export default async function ProgrammesPage() {
               <div className="prc-eyebrow on-teal">Real tutors</div>
               <h3 className="prc-serif">Taught by nurses who&apos;ve <em>passed it</em></h3>
               <p>
-                Every tutor on MyNclex is a practising or licensed nurse, vetted by QAcademy. Their name and
+                Every tutor on MyNclex is a practising or licensed nurse, vetted by Quademia. Their name and
                 record are on every programme they run — no anonymous course mills.
               </p>
             </div>

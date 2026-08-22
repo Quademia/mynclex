@@ -5,7 +5,7 @@
 export function Footer() {
   return (
     <footer className="shell-footer">
-      MyNclex · QAcademy Educational Consult · © 2026
+      MyNclex · Quademia · © 2026
     </footer>
   );
 }

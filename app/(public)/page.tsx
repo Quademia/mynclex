@@ -16,9 +16,11 @@ export default function HomePage() {
       <section className="home-hero">
         <div className="home-hero-bg" aria-hidden="true" />
         <div className="home-hero-inner">
-          <div className="home-family" aria-label="A QAcademy product">
+          {/* ⓘ The nav's lockup says the same thing ("by Quademia") — one
+              phrasing for the product-to-parent relationship, not two. */}
+          <div className="home-family" aria-label="A Quademia product">
             <span className="home-family-dot" aria-hidden="true" />
-            A QAcademy product
+            A Quademia product
           </div>
 
           <div className="home-status" aria-label="Launch status: launching 2026">
@@ -56,7 +58,7 @@ export default function HomePage() {
           <div className="home-offer-eyebrow">TWO WAYS TO PREPARE</div>
           <h2>Self-study, tutor-led, or both.</h2>
           <p className="home-offer-lede">
-            MyNclex pairs a QAcademy-built NCLEX-RN question bank with structured
+            MyNclex pairs a Quademia-built NCLEX-RN question bank with structured
             programmes run by vetted tutors. Use either on its own — or together.
           </p>
 

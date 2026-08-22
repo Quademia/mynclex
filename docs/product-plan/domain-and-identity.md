@@ -122,7 +122,45 @@ Registration checklist (Sam, off-platform):
       with `hello@quademia.com` (public-facing face; infra keeps
       `admin@`).
 
-### 2b. New logo needed (noted 2026-08-05; urgency raised same day)
+### 2b. New logo needed <span>✅ ARRIVED AND INSTALLED 2026-08-22</span>
+
+✅ **Sam supplied the Quademia mark on 2026-08-22** — a teal disc, cream
+ring, a serif **Q** holding a check mark, with a graduation tassel on its
+tail. It is installed in MyNclex as `app/icon.png` (512px, transparent
+corners), `app/apple-icon.png` (180px on cream, no alpha — iOS renders
+transparency as black) and inside `app/opengraph-image.png`. Masters for
+use elsewhere live outside the repo.
+
+⚠ **Cutting a mark out of AI-generated art is not a crop.** The source is
+1254px on a slate backdrop with a drop shadow, and neither belongs in a
+favicon. Scanning for "first pixel unlike the background" catches **the
+shadow**, which put the centre 13px out and left a slate crescent on the
+rim — invisible until rendered. Scanning for the **cream ring** gives the
+true edge, and it revealed the mark is not a circle: **997 × 1051**. It
+is masked as the ellipse it actually is; forcing a circle flattens the
+ring top and bottom.
+
+⚠ **At 16px the check and tassel disappear** and it reduces to a teal
+disc with a pale Q. Acceptable and normal for a detailed mark, but worth
+knowing before it is used anywhere small. A crisp small size would need a
+**simplified variant**, which is artwork, not a resize.
+
+⭐ **MyNclex does NOT get a mark of its own** (Sam, 2026-08-22). The
+public nav keeps its plain `M` letter tile. Asked directly whether the
+nav glyph should become the Q, and the answer settled something larger:
+**Quademia is the brand; MyNclex is a product name under it.** So there
+is no MyNclex logo to design, and the tab-shows-Q / nav-shows-M mismatch
+is accepted rather than resolved. ⓘ An earlier argument here — that the Q
+in the nav would demote the product under its parent — rested on
+MyNclex being the recognised half, and that premise is now withdrawn.
+
+The **remaining** slots from the original list are still open: the Google
+OAuth consent screen, the branded Supabase auth email templates, and the
+Workspace profile picture on sam@quademia.com (noted below as the
+cheapest high-visibility surface, and still empty).
+
+ⓘ Original note follows, kept because it is the list of places the logo
+was always going to be needed:
 
 The current logo is geared to **QAcademy** and doesn't carry over — the
 rebrand needs an **official Quademia logo**. Wanted before/alongside the
@@ -140,6 +178,40 @@ official from the first glance, at zero infrastructure cost. It's the
 cheapest, highest-visibility branding surface we have, and it's empty
 until the logo exists. Design work happens off-repo; the asset drop is
 a small slice when ready.
+
+### 2c. The name sweep <span>✅ DONE 2026-08-22 — MyNclex only</span>
+
+✅ **Every user-facing "QAcademy" in the MyNclex app is now "Quademia"**
+(16 strings). ⚠ It was not a new decision — the rule was settled
+**2026-08-19** and written into
+`lib/email/templates/payment-tutor-received.ts`: *"QAcademy is the old
+name and survives internally … it must not reach a reader."* One file
+obeyed it; the web never followed. **A decision recorded in one call
+site is not a decision that propagated.**
+
+⭐ **The rule, and it is deliberately asymmetric:** nothing a *reader*
+sees keeps the old name; nothing a *developer* reads gets churned. Code
+comments about whose money is whose (`lib/payments/*`), `lib/audit`,
+`_archive/`, `tokens.css`, `wrangler.jsonc` and the repo org all still
+say QAcademy, on purpose.
+
+**Swept:** the page title and meta description (`app/layout.tsx` — the
+browser tab and the Google result, the two highest-visibility strings in
+the product) · both footers, app and public · the landing page's "A
+Quademia product" chip and its aria-label · three lines on
+`/programmes` · the bank-access eyebrow · both bank-add-on lines in
+programme checkout · the payment-history drawer.
+
+⚠ **The copyright line was asked about, not assumed.** It read *"©
+2026 QAcademy Educational Consult"* — a company-shaped name, and a
+copyright notice names a legal entity rather than a brand. **Sam
+confirmed QAcademy is NOT a registered name and Quademia is the name**
+(2026-08-22), so it is now plainly "Quademia". ⓘ §2b above already
+planned for `Quademia Ltd` once anything is registered.
+
+⏭ **NOT covered:** `/privacy` and `/terms` are served by the separate
+**`quademia-parent-site`** repo and were not touched. If they name the
+company they need the same pass.
 
 ### 3. Rename debt this creates (build-list items when the domain is live)
 

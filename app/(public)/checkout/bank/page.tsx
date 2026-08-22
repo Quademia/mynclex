@@ -59,7 +59,7 @@ export default async function BankCheckoutPage({
         <div>
           <div className="co-head-eyebrow">YOU&apos;RE BUYING</div>
           <h1 className="co-head-title">NCLEX Bank — {product.duration_days} days</h1>
-          <div className="co-head-sub">QAcademy NCLEX-RN question bank · secured by Paystack</div>
+          <div className="co-head-sub">Quademia NCLEX-RN question bank · secured by Paystack</div>
         </div>
       </div>
 
