@@ -4,7 +4,7 @@
 // CD handoff's components.jsx). Pure — no state — so they compose freely
 // inside the client view. Styling lives in styles/analytics.css (.an-*).
 
-import type { CompletionStatus } from './types';
+import type { CompletionStatus, EngagementStatus } from './types';
 import type { ActivityType } from '@/lib/curriculum/types';
 
 /** Per-type label + glyph for the activity list / drawer timeline. */
@@ -27,6 +27,18 @@ export const STATUS_LABEL: Record<CompletionStatus, string> = {
   behind: 'Behind',
   risk: 'At risk',
   notstarted: 'Not started',
+};
+
+/**
+ * Self-paced vocabulary. Deliberately says nothing about pace — there is no
+ * shared calendar to be behind, so these describe engagement over time.
+ * See EngagementStatus in ./types.
+ */
+export const ENGAGEMENT_LABEL: Record<EngagementStatus, string> = {
+  notstarted: 'Not started',
+  active: 'Active',
+  stalled: 'Stalled',
+  done: 'Finished',
 };
 
 export function initials(name: string): string {
@@ -110,7 +122,15 @@ export function Sparkline({
   );
 }
 
-export function CompletionBar({ pct, status }: { pct: number; status: CompletionStatus }) {
+export function CompletionBar({
+  pct,
+  status,
+}: {
+  pct: number;
+  // Either vocabulary — the fill class is keyed by the literal, and both
+  // sets have a matching an-fill-* rule in styles/analytics.css.
+  status: CompletionStatus | EngagementStatus;
+}) {
   return (
     <div className="an-bar">
       <div className="track">
@@ -123,6 +143,31 @@ export function CompletionBar({ pct, status }: { pct: number; status: Completion
 
 export function StatusPill({ status }: { status: CompletionStatus }) {
   return <span className={`an-pill ${status}`}>{STATUS_LABEL[status]}</span>;
+}
+
+/**
+ * The self-paced sibling of StatusPill. `endingSoon` renders as a SECOND
+ * chip rather than a fifth state, because it is orthogonal: a student can
+ * be working hard and still be about to lose access, and collapsing the two
+ * would hide whichever fact lost the coin toss.
+ */
+export function EngagementPill({
+  status,
+  endingSoon = false,
+}: {
+  status: EngagementStatus;
+  endingSoon?: boolean;
+}) {
+  return (
+    <span className="an-pill-group">
+      <span className={`an-pill ${status}`}>{ENGAGEMENT_LABEL[status]}</span>
+      {endingSoon && (
+        <span className="an-pill ending" title="Access window closes soon">
+          Ending soon
+        </span>
+      )}
+    </span>
+  );
 }
 
 /**

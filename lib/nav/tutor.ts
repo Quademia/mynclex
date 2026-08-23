@@ -90,11 +90,20 @@ export const TUTOR_PROGRAMME_NAV: NavItem[] = [
   // tutor-led — Cohorts, the doorway into the cohort workspace — stands
   // apart. Any future single-mode tab joins this bottom section.
   { key: 'cohorts',     label: 'Cohorts',       icon: 'users',    href: '/tutor/programme/:programmeId/cohorts', section: 'Delivery' },
+  // The SELF_PACED counterpart of Cohorts, and the second occupant of this
+  // section (2026-08-23). A self-paced programme has no cohort layer — the
+  // programme IS the delivery unit — so the dashboard a tutor-led tutor
+  // reaches through Cohorts → a cohort → Progress lives here instead.
+  // The two are mutually exclusive by mode, so "Delivery" always shows
+  // exactly one row: Cohorts on tutor-led, Progress on self-paced.
+  { key: 'progress',    label: 'Progress',      icon: 'chart',    href: '/tutor/programme/:programmeId/progress', section: 'Delivery' },
   // Removed from the sidebar 2026-06-07 (MVP declutter): Live Sessions,
-  // Assignments, Results. Their placeholder routes still exist, so
-  // re-adding any is a one-line restore. Live Sessions returns via the
-  // cohort-planner redesign; Results via programme-level analytics;
-  // Assignments is TBD.
+  // Assignments, Results. Live Sessions returned via the cohort-planner
+  // redesign. ⭐ Results is now GONE, not delisted — the self-paced
+  // Progress row above is what it was holding the place for, and its
+  // placeholder route was deleted rather than renamed: "Results" says
+  // scores, and this surface is mostly engagement and completion with
+  // scores as one part of it. Assignments is still TBD and still delisted.
   // ⚠ Corrected 2026-08-21: this comment claimed the tutor Home "This
   // week" block links to /sessions, which was the one thing keeping that
   // placeholder reachable. It does not — the cohort-planner work

@@ -493,6 +493,12 @@ export async function getCohortAnalytics(
       completionPct,
       programmePct,
       status: classify(completionPct, doneCount),
+      // Self-paced-only fields. A cohort paces against its own calendar,
+      // so it has no use for a per-student join date or access clock.
+      engagement: null,
+      joinedDays: null,
+      accessDaysLeft: null,
+      endingSoon: false,
       lastActiveDays,
       doneAt,
     });
@@ -613,6 +619,7 @@ export async function getCohortAnalytics(
   }
 
   return {
+    mode: 'COHORT',
     meta: {
       cohortName: ctx.cohort.name ?? formatRange(ctx.cohort.start_date, ctx.cohort.end_date),
       programmeTitle: ctx.programme.title,
@@ -622,7 +629,14 @@ export async function getCohortAnalytics(
       releasedCount,
       totalCount,
     },
-    summary: { studentCount, avgCompletion, buckets, stale },
+    summary: {
+      studentCount,
+      avgCompletion,
+      buckets,
+      stale,
+      engagement: null,
+      endingSoon: null,
+    },
     students: studentRows,
     activities,
     completionTrend: weeklyTrend(allDoneTimestamps, ctx.cohort.start_date, totalUnits),
@@ -644,7 +658,7 @@ interface QuizDef {
 // per quiz (answers "have they demonstrated a pass"). Keyed by quiz_id — which
 // every attempt carries — so it captures both activity-launched and standalone
 // attempts, and treats a quiz placed as several activities as one quiz.
-async function computePerformance(
+export async function computePerformance(
   supabase: Awaited<ReturnType<typeof createClient>>,
   programmeId: string,
   studentIds: string[],
@@ -834,7 +848,7 @@ interface NoteStateRow {
 
 // skipped_note_ids / seen sets are JSONB — normalise (array or JSON string)
 // to string[]. Mirrors the helper in lib/curriculum/student-queries.ts.
-function normalizeIds(raw: unknown): string[] {
+export function normalizeIds(raw: unknown): string[] {
   let arr: unknown = raw;
   if (typeof raw === 'string') {
     try {

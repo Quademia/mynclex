@@ -13,12 +13,17 @@
 //   • revenue              — getTutorPayments, filtered to this programme
 //   • cohort health        — getCohortAnalytics per IN_PROGRESS cohort
 //                            (TUTOR_LED only — the heavy read, like Home)
+//   • self-paced progress  — getSelfPacedProgrammeAnalytics (SELF_PACED
+//                            only; the mirror-image heavy read)
 //
-// Self-paced AVG COMPLETION is intentionally absent: it needs a
-// programme-level (cohortless) analytics aggregator that isn't built yet
-// (a deferred follow-on — progress-engine.md). The self-paced KPI strip
-// uses figures we actually have (overdue / revenue) instead of inventing
-// a number.
+// ⭐ Self-paced avg completion used to be missing here, and this comment
+// used to explain why: "it needs a programme-level (cohortless) analytics
+// aggregator that isn't built yet." It is built now
+// (lib/analytics/tutor/programme-queries.ts), so both modes fill the same
+// KPI. Self-paced additionally reports never-started / stalled / ending-soon
+// counts — the pace buckets a cohort uses mean nothing without a shared
+// calendar. The summary read skips quiz performance; the full dashboard on
+// /tutor/programme/[id]/progress asks for it.
 
 import { createClient } from '@/lib/supabase/server';
 import { getMyProgrammes } from '@/lib/programmes/queries';
@@ -32,6 +37,7 @@ import { getTutorPayments } from '@/lib/payments/tutor/queries';
 import { getCohortsForProgramme } from '@/lib/cohorts/queries';
 import { cohortStatus } from '@/lib/cohorts/format';
 import { getCohortAnalytics } from '@/lib/analytics/tutor/cohort-queries';
+import { getSelfPacedProgrammeAnalytics } from '@/lib/analytics/tutor/programme-queries';
 import type { Currency, ProgrammeFormValues } from '@/lib/programmes/types';
 import type {
   CohortHealthRow,
@@ -153,6 +159,9 @@ export async function getProgrammeOverview(
   let cohortsNeedAttention = 0;
   let avgCompletion: number | null = null;
   let nextSessionLabel: string | null = null;
+  let studentsNotStarted: number | null = null;
+  let studentsStalled: number | null = null;
+  let studentsEndingSoon: number | null = null;
 
   if (tutored) {
     const cohortList = await getCohortsForProgramme(programmeId);
@@ -210,6 +219,16 @@ export async function getProgrammeOverview(
       : null;
 
     nextSessionLabel = await getNextSessionLabel(programmeId);
+  } else {
+    // SELF_PACED — the same figures the Progress page leads with, read from
+    // the same aggregator so the summary and the dashboard cannot disagree.
+    const spa = await getSelfPacedProgrammeAnalytics(programmeId);
+    if (spa && spa.summary.studentCount > 0) {
+      avgCompletion = spa.summary.avgCompletion;
+      studentsNotStarted = spa.summary.engagement?.notstarted ?? 0;
+      studentsStalled = spa.summary.engagement?.stalled ?? 0;
+      studentsEndingSoon = spa.summary.endingSoon ?? 0;
+    }
   }
 
   const formValues: ProgrammeFormValues = {
@@ -251,6 +270,9 @@ export async function getProgrammeOverview(
       avgCompletion,
       enrolmentsOverdue: overdue,
       enquiriesOpen,
+      studentsNotStarted,
+      studentsStalled,
+      studentsEndingSoon,
     },
     sections: {
       curriculum: {

@@ -223,6 +223,61 @@
 .an-fill-behind { background: var(--warn); }
 .an-fill-risk { background: var(--bad); }
 .an-fill-notstarted { background: var(--idle); }
+/* Self-paced engagement fills. Same four slots as the pace vocabulary
+   above (notstarted is shared), so a bar renders from either. */
+.an-fill-active { background: var(--ok); }
+.an-fill-stalled { background: var(--warn); }
+.an-fill-done { background: var(--ok); }
+
+/* ── Programme Progress page header ──────────────────────────
+   The self-paced dashboard is a page in its own right, where the cohort
+   one is a tab inside a workspace that already has a header. Named an-*
+   rather than borrowing .cohort-overview-* so a programme-level surface
+   isn't dressed in cohort-named classes. */
+.an-pagehead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.an-pagetitle {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.an-pagesub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 58ch;
+}
+.an-pagehead-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.an-pagehead-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.an-pagehead-link {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.an-pagehead-link:hover { text-decoration: underline; }
+
+@media (max-width: 768px) {
+  .an-pagehead-actions { width: 100%; justify-content: space-between; }
+}
 
 /* ── Status pill ─────────────────────────────────────────── */
 .an-pill {
@@ -240,6 +295,26 @@
 .an-pill.behind { background: var(--warn-soft); color: #92400e; }
 .an-pill.risk { background: var(--bad-soft); color: var(--bad); }
 .an-pill.notstarted { background: var(--idle-soft); color: #475569; }
+
+/* ── Self-paced engagement pills ──────────────────────────
+   "Finished" is deliberately quieter than "active": a completed student
+   is good news, not a call to action, and the list is ordered by who
+   needs the tutor. "Ending soon" is danger-toned because it is the one
+   state with a deadline attached. */
+.an-pill.active { background: var(--ok-soft); color: #166534; }
+.an-pill.stalled { background: var(--warn-soft); color: #92400e; }
+.an-pill.done { background: var(--idle-soft); color: #166534; }
+.an-pill.ending { background: var(--bad-soft); color: var(--bad); }
+
+/* Status + the orthogonal "ending soon" overlay sit side by side, and
+   wrap rather than squeeze when the column is narrow (≤768px stacks the
+   table into cards, where the pair has the full row width). */
+.an-pill-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
 
 .an-legend-key {
   display: flex;

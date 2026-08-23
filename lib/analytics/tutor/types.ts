@@ -20,6 +20,34 @@ import type { UnitLabel } from '@/lib/programmes/types';
  */
 export type CompletionStatus = 'ontrack' | 'behind' | 'risk' | 'notstarted';
 
+/**
+ * Self-paced engagement status. A cohort shares a calendar, so "behind"
+ * means something there. A self-paced programme has none — every student
+ * starts on the day they buy and the whole curriculum unlocks at once, so
+ * a completion % has no shared referent: a student on 4% who joined
+ * yesterday and one who joined in March are the same number and utterly
+ * different situations. This vocabulary is time-based instead — has the
+ * student ever engaged, and how recently.
+ *
+ *   notstarted — no engagement of any kind, ever
+ *   active     — engaged within STALLED_AFTER_DAYS
+ *   stalled    — engaged once, but not lately
+ *   done       — every visible activity complete
+ *
+ * `endingSoon` on the row is an ORTHOGONAL overlay, not a fifth state: a
+ * student can be active AND about to lose access. See ACCESS_SOON_DAYS.
+ */
+export type EngagementStatus = 'notstarted' | 'active' | 'stalled' | 'done';
+
+/** Which delivery unit an analytics payload describes. */
+export type AnalyticsMode = 'COHORT' | 'SELF_PACED';
+
+/** No engagement for this many days reads as stalled (self-paced only). */
+export const STALLED_AFTER_DAYS = 14;
+
+/** Access ending within this many days raises the "Ending soon" flag. */
+export const ACCESS_SOON_DAYS = 30;
+
 /** One activity in the cohort's effective (included + visible) curriculum. */
 export interface ActivityAnalyticsRow {
   activityId: string;
@@ -51,6 +79,21 @@ export interface StudentAnalyticsRow {
   /** done / all-included activities (released + locked) — secondary figure. */
   programmePct: number;
   status: CompletionStatus;
+  /** SELF_PACED only — the time-based status the self-paced view renders
+   *  instead of `status`. Null on cohort rows. */
+  engagement: EngagementStatus | null;
+  /** SELF_PACED only — whole days since this student enrolled. Their
+   *  personal "week 1", and the anchor that makes a completion % readable
+   *  ("joined 3 weeks ago, 12% done"). Null on cohort rows, where the
+   *  cohort's own start date is the shared anchor. */
+  joinedDays: number | null;
+  /** SELF_PACED only — whole days until their access window closes.
+   *  Null = lifetime access (or a cohort row). Never negative: the nightly
+   *  sweep expires a lapsed enrolment out of the counted roster. */
+  accessDaysLeft: number | null;
+  /** SELF_PACED only — access closes within ACCESS_SOON_DAYS and there is
+   *  still material undone. An overlay on `engagement`, not a state. */
+  endingSoon: boolean;
   /** Days since their most recent completion; null = no activity ever. */
   lastActiveDays: number | null;
   /** activity_id → completed_at ISO (or null when done without a timestamp,
@@ -64,6 +107,11 @@ export interface CohortAnalyticsSummary {
   buckets: Record<CompletionStatus, number>;
   /** Students inactive for ≥7 days (based on last completion). */
   stale: number;
+  /** SELF_PACED only — counts per engagement state. Null on cohort. */
+  engagement: Record<EngagementStatus, number> | null;
+  /** SELF_PACED only — students whose access closes within
+   *  ACCESS_SOON_DAYS with work still outstanding. Null on cohort. */
+  endingSoon: number | null;
 }
 
 // ── Phase 2 — quiz performance (teal) ──────────────────────────────────
@@ -133,7 +181,11 @@ export interface CohortQuizPerformance {
   };
 }
 
-export interface CohortAnalytics {
+export interface TutorAnalytics {
+  /** Which delivery unit this describes. The view branches its copy and
+   *  its status vocabulary on this — a cohort is paced against a shared
+   *  calendar, a self-paced programme against each student's own clock. */
+  mode: AnalyticsMode;
   meta: {
     cohortName: string;
     programmeTitle: string;
@@ -152,3 +204,11 @@ export interface CohortAnalytics {
    *  lighter Overview teaser read. */
   performance: CohortQuizPerformance | null;
 }
+
+/**
+ * The original name, kept as an alias. Every cohort call site still reads
+ * `CohortAnalytics`; the self-paced sibling produces the same shape with
+ * `mode: 'SELF_PACED'` — which is why the underlying type lost the word
+ * "cohort" instead of being duplicated.
+ */
+export type CohortAnalytics = TutorAnalytics;
