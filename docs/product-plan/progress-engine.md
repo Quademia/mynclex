@@ -507,6 +507,140 @@ ORDER BY a.created_at DESC;
 The per-activity filter (deferred follow-on from BUILD_LIST) adds
 one `AND a.programme_activity_id = $2` clause.
 
+### 6.4 Tutor analytics (per self-paced programme) — BUILT 2026-08-23
+
+The sibling of §6.2, and the surface behind
+`/tutor/programme/[id]/progress`. Listed in §9 as a deferred follow-on
+until this shipped.
+
+**The blind spot it closed.** A tutor running a self-paced programme
+could see who had paid and *nothing else* — no way to tell whether
+anybody had ever opened the curriculum. Cohort students had had the
+dashboard in §6.2 since June; self-paced never got one, and
+`lib/home/tutor/programme-overview-queries.ts` said so in a comment:
+*"self-paced avg completion is intentionally absent: it needs a
+programme-level (cohortless) analytics aggregator that isn't built
+yet."* Six months of a tutor-facing product where half the delivery
+modes could not answer "is this student doing the work".
+
+#### ⭐ The model: one cohort with late joins
+
+Sam's framing, 2026-08-23, and the thing everything else falls out of.
+A self-paced programme **is** a cohort in which every member has:
+
+- their own start date — the day they bought;
+- their own end date — their access window;
+- no release gates;
+- no live sessions.
+
+The programme *is* the delivery unit. Read that way, three of the four
+differences from §6.2 make the query **simpler**, not harder:
+
+| | Cohort (§6.2) | Self-paced (§6.4) |
+|---|---|---|
+| Who's in scope | `getCohortRoster` | `getProgrammeRoster`, cohortless rows |
+| Release state | per-cohort checklist dates | none — everything open from day one |
+| Live sessions | attendance folds into % | cannot exist; excluded outright |
+| Cohort-only activities | the "+Add" escape valve | template only (`cohort_id IS NULL`) |
+
+**No migration was needed, and that is not luck.** The `*_tutor_read`
+policies on progress rows (§4 RLS) and on attempts (migration
+`20260628120000`) resolve ownership by walking activity → unit →
+programme → tutor. **They never touch cohort.** A cohortless student's
+rows were always readable by their tutor; nothing had ever asked.
+
+#### ⚠ The one thing that could NOT be ported: the status
+
+§6.2's classifier buckets students `ontrack / behind / risk` on their
+completion % **of released material**. That is fair *only* because a
+cohort in week 2 has released weeks 1–2 — the denominator grows with the
+shared calendar.
+
+Self-paced unlocks the whole curriculum on day one. So the denominator
+is the entire programme from the moment somebody enrols, and a student
+who joined yesterday and did two activities computes to ~12% →
+**"At risk"**. Every new student would have been flagged as failing on
+the day they arrived, permanently, by design.
+
+More generally: **a completion % has no referent without a shared
+calendar.** A student on 4% who joined yesterday and one who joined in
+March are the same number and completely different situations.
+
+So self-paced describes **engagement over time** instead:
+
+| State | Meaning |
+|---|---|
+| `notstarted` | no engagement of any kind, ever |
+| `active` | engaged within `STALLED_AFTER_DAYS` (14) |
+| `stalled` | engaged once, nothing since |
+| `done` | every visible activity complete |
+
+Plus `endingSoon` — access closing within `ACCESS_SOON_DAYS` (30) with
+work outstanding. ⚠ **An orthogonal overlay, never a fifth state**: a
+student can be working hard *and* about to lose the material, and
+collapsing the two hides whichever loses the coin toss. It renders as a
+second chip.
+
+Ordering is **worst state first, then longest-silent first**. The
+tie-break is deliberately TIME, not completion: a stalled student who
+vanished three months ago is a more urgent call than one who paused last
+week, whatever percentages they are sitting on.
+
+#### One view, two vocabularies
+
+`lib/analytics/tutor/analytics-view.tsx` serves both, branching on
+`data.mode`. Not forked: the table, drawer, per-activity rollup and quiz
+panes are identical, and two copies would drift. The cohort keeps pace
+language; self-paced gets engagement language; neither leaks.
+
+⭐ **The per-activity rollup needed no changes at all**, and it is the
+most valuable half of the surface for self-paced. It *is* the drop-off
+curve — the artifact every comparable course platform converges on —
+and it drives the one action that scales: fix the activity where
+everyone stops, and help every student at once. On dev's crash course it
+reads instantly: the Module 1 drill sits at 7/7, everything after it at
+1/7 or 0/7.
+
+#### Where it lives, and the naming
+
+Mounted at `/tutor/programme/[id]/progress`, **self-paced only**, last
+under the sidebar's "Delivery" divider — the slot `lib/nav/tutor.ts`
+reserved for mode-specific rows. Cohorts and Progress are mutually
+exclusive by mode, so that section always shows exactly one.
+
+⚠ Gated twice: the sidebar hides the row on tutor-led, and the page
+404s there regardless. A hidden nav entry is not access control.
+
+The cohort's landing tab was **renamed Overview → Progress** in the same
+change — see `cohort-workspace-fold.md`. "Overview" already meant two
+different kinds of page; building this surface only made the collision
+impossible to ignore.
+
+⚠ The dead `/tutor/programme/[id]/results` placeholder — named as this
+work's home in §9 below — was **deleted rather than renamed**. "Results"
+says scores; this surface is mostly engagement and completion, with
+scores as one part.
+
+#### The summary read
+
+`getSelfPacedProgrammeAnalytics(programmeId, { includePerformance })`
+mirrors `getCohortAnalytics`'s two-tier shape: the light read feeds the
+programme Overview's KPI strip (avg completion, never-started, stalled,
+ending-soon), the full read feeds the dashboard. Both come from the same
+aggregator, so the summary and the dashboard cannot disagree.
+
+#### ⏭ Open
+
+- **`progress.inactivity_nudge`** (transactional-email.md) is the
+  natural other half: the system chases the stalled student itself, so
+  the tutor's screen only has to show the ones automation failed to
+  revive. ⭐ Worth building **before** any expansion of this surface —
+  the email is what keeps the list short. Without it every stalled
+  student becomes the tutor's problem by default, which quietly turns a
+  low-touch product into a high-touch one at a low-touch price.
+- Per-student 360 (§9) is still deferred and still deliberately after
+  this.
+
 ## 7. Roll-up derivation
 
 All roll-ups are computed at read time. No cached aggregates — per
@@ -773,19 +907,45 @@ analytics):** a PROGRAMME_ASSIGNED attempt is EITHER activity-launched
 (`programme_id` + `quiz_id` set; `programme_activity_id` NULL) — never
 both. Any cross-attempt query/policy must handle both shapes.
 
-**Deferred follow-ons (NOT built):**
-- **Programme-level / self-paced analytics** — the `/tutor/programme/[id]/
-  results` placeholder. Reuses this exact data layer with a different
-  "who's in scope" filter (programme enrollees incl. `cohort_id` NULL).
-  The home for self-paced students (who have no cohort) + a cross-cohort
-  roll-up.
-- **Per-student 360 view** — the completion drawer is its seed.
+**Deferred follow-ons:**
+- ~~**Programme-level / self-paced analytics**~~ — ✅ **BUILT 2026-08-23,
+  see §6.4.** It did reuse this exact data layer with a different
+  "who's in scope" filter, as predicted. Two things the note got wrong:
+  it named the `results` placeholder as the home (that route was deleted;
+  the surface is `/progress`), and it bundled the **cross-cohort
+  roll-up** with it. The roll-up was deliberately *not* built — a
+  tutor-led tutor already has per-cohort analytics and cohort-health rows
+  on the programme Overview, whereas self-paced had nothing at all.
+  Bundling them would have doubled the slice and delayed the half that
+  mattered. The roll-up remains open.
+- **Per-student 360 view** — the completion drawer is its seed. Still
+  deferred, and deliberately sequenced *after* §6.4: a 360 reads from
+  cross-programme roll-ups, so it is the roof rather than the walls.
 - **CD visualisations trimmed at build:** the completion×performance
   quadrant, per-quiz score distribution, and the lenient/balanced/strict
   sensitivity toggle (shipped hardcoded "balanced"). The per-student row
   (completion bar + score chip) already carries the pairing.
-- **"Last active" = last completion** (Phase 1 reads completion only); a
-  truer last-seen would need a login/view signal.
+- ~~**"Last active" = last completion**~~ — ⚠ **CORRECTED 2026-08-23.**
+  The claim that "a truer last-seen would need a login/view signal" was
+  already out of date when written: `nclex_attempts` carries
+  `last_activity_at` (a heartbeat written while a sitting is open) and
+  `started_at`, both readable by the tutor under the same policy as the
+  scores. `lib/analytics/tutor/last-active.ts` now fuses completion
+  timestamps with attempt engagement and keeps the later.
+  - ⭐ It matters most where "stalled" is the headline status (§6.4): a
+    student grinding through a quiz they never submit has completed
+    nothing, and under completion-only reads as stone dead. Flagging them
+    sends the tutor to chase somebody who is right there.
+  - ⚠ **`nclex_users.last_login_utc` is deliberately NOT used.** It is
+    product-wide, so a student who also grinds the question bank looks
+    permanently active on a programme they abandoned in March. It answers
+    *"have they vanished entirely"* — a different question from *"have
+    they abandoned THIS programme"*, and the second is the one being
+    asked on a programme page. Conflating them yields a confidently wrong
+    green light, which is worse than the gap it closes.
+  - ⓘ `nclex_library_shelf_seen.seen_at` is a genuine view signal but has
+    no tutor read policy; widening RLS to catch shelf opens alone was not
+    worth the surface area. Noted rather than done.
 
 ## 10. Not in v1
 

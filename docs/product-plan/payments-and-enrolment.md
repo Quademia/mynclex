@@ -1278,7 +1278,27 @@ toggle + a read-only-preview wrapper, not new dense UI.
   Analytics (performance); on self-paced programmes the adjacent
   Enrolments/Students pair invited confusion. The future per-student
   360 likely lives at the GLOBAL **My Students** page (placeholder
-  kept). Restore is one nav line if ever wanted.
+  kept).
+  - ⚠ **"Restore is one nav line if ever wanted" is FALSE, and was false
+    the day it was written.** The same 2026-06-12 session deleted the
+    `RosterScope` union (`COHORT | PROGRAMME`) — see the note at the top
+    of `lib/enrolments/types.ts`, which records its own death. The roster
+    is now programme-keyed and branches on delivery mode, so a
+    tutor-wide roster is a new query plus a view that spans mixed
+    programmes and mixed delivery modes. Not a rebuild, but not a line.
+  - ⓘ **The performance half of what this bullet points at was built
+    elsewhere** (2026-08-23): self-paced programmes now have their own
+    Progress surface at programme level — progress-engine.md §6.4. The
+    "Students" name was deliberately *not* revived for it, for exactly
+    the Enrolments/Students confusion named above; the row is called
+    **Progress** and sits under the sidebar's Delivery divider.
+  - ⚠ `/tutor/students` ("My Students") remains a **reachable dead end** —
+    a placeholder linked from both the global sidebar and a tutor Home
+    KPI card that shows a real, live student count. Reviewed 2026-08-23
+    and left alone deliberately: at launch scale a global roster is
+    nearly the programme roster with extra chrome, and its value grows
+    with the number of programmes a tutor runs. Decide it (build or
+    delist) rather than leaving a counted card pointing at an empty room.
 
 #### Settled 2026-06-12 (end of session) — cohort Enrolments MOVE to programme level (✅ BUILT 2026-06-12, next session — see the build note below)
 

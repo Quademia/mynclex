@@ -592,8 +592,21 @@ ships both modes. The deltas:
   `enrolment_source ∈ ('SELF_PAID', 'TUTOR_ADDED', 'ADMIN_GRANT')`
   (same shape as tutor-led), but with `cohort_id = NULL`.
 - **Access window** is set per enrolment (e.g. 90-day, 180-day,
-  unlimited — finalised in build) rather than bounded by cohort
-  start/end dates.
+  unlimited).
+  ⚠ **CORRECTED 2026-08-23.** This bullet used to end "…rather than
+  bounded by cohort start/end dates", which implied a COHORT's access
+  *is* bounded by its dates. It is not, and the difference is not
+  academic. Access is frozen at enrolment as
+  `enrolled_at + programme.access_window_days` in **both** modes —
+  anchored to when each person joined — so members of one cohort
+  routinely hold different end dates, and `nclex_cohorts.end_date` is a
+  **timetable** that need not resemble any of them. Dev has a cohort that
+  ran 1–28 Jul 2026, is badged *Ended*, and whose students keep access
+  until 24 Jun 2027. The nightly sweep expires on `access_expires_at`, so
+  that column — not the cohort's dates — is what actually cuts a student
+  off. ⓘ This wrong assumption was read straight out of this document and
+  written into code before the data contradicted it; the tutor Progress
+  surfaces now show the real per-student figure in both modes.
 - **No release dates.** Activities gate by `is_published` plus
   optional progression rules — see *Content visibility* above.
 - **No live-session scheduling assumption.** A self-paced programme
@@ -603,6 +616,21 @@ ships both modes. The deltas:
 - **No calendar view.** The Units / Calendar segmented toggle on
   the curriculum editor hides the Calendar option in self-paced
   mode — there's no cohort calendar to project against.
+- **Its own progress surface** (added 2026-08-23). ⚠ Every other bullet
+  here says what self-paced *hides*; this one says what it needs
+  **instead**, and the omission had a cost. Tutor analytics were built
+  per-cohort, so for six months a self-paced tutor could see who had paid
+  and nothing else — no way to tell whether anybody had ever opened the
+  curriculum. Self-paced now has a **Progress** page at programme level
+  (`/tutor/programme/[id]/progress`), the counterpart of the cohort's
+  Progress tab, because the programme *is* the delivery unit. It uses a
+  time-based engagement vocabulary rather than the cohort's pace
+  vocabulary — without a shared calendar, "behind" has no meaning.
+  Canonical: **progress-engine.md §6.4**.
+  ⭐ A useful reading of the whole mode boundary came out of it (Sam):
+  **a self-paced programme is one cohort with late joins** — every member
+  with their own start date, their own end date, no release gates, no
+  live sessions.
 - **Public listing line.** "Length 8 weeks · next cohort 5 May"
   becomes "Length 8 modules · self-paced" (or whatever the unit
   label is). Pricing surface unchanged.

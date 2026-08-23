@@ -1,5 +1,79 @@
 # MyNclex Build List
 
+> ## ✅ DONE 2026-08-23 — **self-paced students stop being invisible**
+>
+> A tutor running a **self-paced** programme could see who had paid and
+> nothing else — no way to tell whether anybody had ever opened the
+> curriculum. Cohort students have had a progress dashboard since June.
+> **Three commits, NO migration.** Canonical:
+> **`docs/product-plan/progress-engine.md` §6.4**.
+>
+> | Commit | What |
+> |---|---|
+> | `740e3a0` | the self-paced Progress page + the engagement vocabulary |
+> | `17bfcbf` | the access column, on cohorts too |
+> | `d2b2064` | "joined", on cohorts too |
+>
+> ⓘ **The code was already apologising for this in a comment** —
+> *"self-paced avg completion is intentionally absent: it needs a
+> programme-level aggregator that isn't built yet"* — and
+> `progress-engine.md` listed it as deferred follow-on #1. It sat there
+> for six months because nobody read the two together.
+>
+> ⭐ **The model is Sam's: a self-paced programme is one cohort with late
+> joins.** Every member with their own start date (the day they bought),
+> their own end date (their access window), no release gates, no live
+> sessions. Three of the four differences from the cohort query make it
+> **simpler**, not harder.
+>
+> **⚠ The one thing that could not be ported was the status pill.** The
+> cohort classifier buckets on completion % of RELEASED material, fair
+> only because a cohort in week 2 has released weeks 1–2. Self-paced
+> unlocks everything on day one, so the denominator is the whole
+> programme and **a student who joined yesterday would have read "At
+> risk" on arrival** — every new student flagged as failing the moment
+> they turned up. Replaced with engagement over time: Not started ·
+> Active · Stalled · Finished, plus "Ending soon" as an orthogonal
+> overlay, never a fifth state.
+>
+> **No migration, and not by luck.** The `*_tutor_read` policies resolve
+> ownership by walking activity → unit → programme → tutor and never
+> touch cohort, so a cohortless student's data was always readable.
+> Nothing had ever asked for it.
+>
+> ⭐ **The rename fixed an ambiguity that already existed.** The cohort's
+> landing tab is now **Progress**, not Overview: analytics were folded
+> into it in June, which made "Overview" the wrong word while the
+> *programme* Overview stayed a grid of summary cards. Building the
+> self-paced surface only made it unignorable — the same content would
+> otherwise have carried two names depending on delivery mode.
+>
+> **⚠⚠ And an assumption the canonical doc taught us.** `main.md` said a
+> self-paced access window is per-enrolment *"rather than bounded by
+> cohort start/end dates"*, implying a cohort's is bounded by its dates.
+> It is not: access is frozen from the JOIN DATE in both modes, so one
+> cohort's members hold different end dates. Dev has a cohort that ran
+> 1–28 Jul 2026, is badged **Ended**, and whose students keep access
+> until **24 Jun 2027**. The nightly sweep expires on
+> `access_expires_at`, so that — not the cohort's dates — is what
+> actually cuts a student off, and it appeared on **no tutor surface at
+> all**. Hence the access column landing on cohorts too, at Sam's call.
+>
+> ⓘ "Last active" also stopped meaning "last thing they ticked done":
+> attempts carry `last_activity_at`, so a student grinding through a quiz
+> they never submit is visible instead of reading as dead. Deliberately
+> **not** `last_login_utc` — product-wide, so it answers "have they
+> vanished entirely", not "have they abandoned THIS programme".
+>
+> ⏭ **Open:** `progress.inactivity_nudge` — the system chasing the
+> stalled student itself, so the tutor's list only holds the ones
+> automation failed to revive. ⭐ Worth building before any expansion of
+> this surface: without it, every stalled student becomes the tutor's
+> problem by default, which turns a low-touch product into a high-touch
+> one at a low-touch price. Also open: the cross-cohort roll-up, the
+> per-student 360, and `/tutor/students` — still a counted KPI card
+> pointing at an empty room.
+
 > ## ✅ DONE 2026-08-22 (later) — **the public site: a phone can navigate it, and it stops saying QAcademy**
 >
 > Three changes on the same branch, no migrations. Docs:
