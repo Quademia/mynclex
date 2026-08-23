@@ -86,15 +86,20 @@ function agoLabel(days: number): string {
   return `${Math.round(days / 30)}mo ago`;
 }
 
-/** Access-window remainder. Null = lifetime, which is a real answer here
- *  and must not render as an em-dash "we don't know". */
+/** Access-window remainder, in the table's narrow numeric column.
+ *
+ *  Null = lifetime, which is a real answer here and must not render as an
+ *  em-dash "we don't know".
+ *
+ *  ⚠ Compact units on purpose. Spelled out ("10 months left") this wraps
+ *  onto three lines in the column and reads as noise; the drawer, which has
+ *  the width, spells it out instead. */
 function accessLabel(days: number | null): string {
   if (days == null) return 'Lifetime';
   if (days === 0) return 'ends today';
-  if (days === 1) return '1 day left';
-  if (days < 14) return `${days} days left`;
-  if (days < 60) return `${Math.round(days / 7)} weeks left`;
-  return `${Math.round(days / 30)} months left`;
+  if (days < 14) return `${days}d left`;
+  if (days < 60) return `${Math.round(days / 7)}w left`;
+  return `${Math.round(days / 30)}mo left`;
 }
 
 function unitWord(label: UnitLabel, cap = false): string {
@@ -445,9 +450,12 @@ export function CohortAnalyticsView({ data }: { data: TutorAnalytics }) {
                 <th style={{ width: showPerf ? '32%' : '40%' }}>Completion</th>
                 <th>Status</th>
                 {showPerf && <th>Latest quiz</th>}
-                {/* Self-paced only: each student has their own access clock,
-                    where a cohort shares one end date. */}
-                {selfPaced && <th className="num">Access</th>}
+                {/* ⚠ Both modes. It is tempting to think a cohort shares one
+                    end date — it does not. Access is frozen per enrolment
+                    from the join date, so cohort members hold different end
+                    dates, and the cohort's own dates are a timetable rather
+                    than an access boundary. */}
+                <th className="num">Access</th>
                 <th className="num">Last active</th>
               </tr>
             </thead>
@@ -502,17 +510,19 @@ export function CohortAnalyticsView({ data }: { data: TutorAnalytics }) {
                         />
                       </td>
                     )}
-                    {selfPaced && (
-                      <td
-                        className="num"
-                        data-label="Access"
-                        style={{
-                          color: s.endingSoon ? 'var(--danger)' : 'var(--text-muted)',
-                        }}
-                      >
-                        {accessLabel(s.accessDaysLeft)}
-                      </td>
-                    )}
+                    <td
+                      className="num"
+                      data-label="Access"
+                      style={{
+                        color: s.endingSoon ? 'var(--danger)' : 'var(--text-muted)',
+                        // "10mo left" is two words the column would rather
+                        // stack; the value is short enough that widening the
+                        // column by a few pixels beats a two-line cell.
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {accessLabel(s.accessDaysLeft)}
+                    </td>
                     <td className="num" data-label="Last active" style={{ color: s.lastActiveDays != null && s.lastActiveDays >= 7 ? 'var(--warning)' : 'var(--text-muted)' }}>
                       {s.lastActiveDays == null ? '—' : agoLabel(s.lastActiveDays)}
                     </td>

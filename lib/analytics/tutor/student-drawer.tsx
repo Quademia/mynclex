@@ -103,11 +103,17 @@ export function StudentDrawer({
                     : `Last active ${student.lastActiveDays}d ago`}
               </div>
             </div>
-            {/* Own-clock facts. A cohort shares a start and an end date, so
-                these would be the same for everybody there and say nothing;
-                self-paced is the only place they carry information. */}
-            {selfPaced && (
-              <div className="s">
+            {/* ⚠ This block used to be self-paced-only, on the assumption
+                that "a cohort shares a start and an end date, so these
+                would be the same for everybody there". The access half of
+                that is FALSE: access is frozen per enrolment from the join
+                date, so one cohort's members hold different end dates, and
+                the cohort's end_date is a timetable that need not resemble
+                any of them. Access therefore shows in both modes; only the
+                JOIN anchor stays self-paced, because a cohort's shared
+                calendar is what its pace status is measured against. */}
+            <div className="s">
+              {selfPaced && (
                 <div className="l">
                   Joined{' '}
                   <b>
@@ -118,18 +124,18 @@ export function StudentDrawer({
                         : `${student.joinedDays} days ago`}
                   </b>
                 </div>
-                <div className="l" style={{ marginTop: 6 }}>
-                  Access:{' '}
-                  <b>
-                    {student.accessDaysLeft == null
-                      ? 'lifetime'
-                      : student.accessDaysLeft === 0
-                        ? 'ends today'
-                        : `${student.accessDaysLeft} days left`}
-                  </b>
-                </div>
+              )}
+              <div className="l" style={{ marginTop: selfPaced ? 6 : 0 }}>
+                Access:{' '}
+                <b>
+                  {student.accessDaysLeft == null
+                    ? 'lifetime'
+                    : student.accessDaysLeft === 0
+                      ? 'ends today'
+                      : `${student.accessDaysLeft} days left`}
+                </b>
               </div>
-            )}
+            </div>
           </div>
 
           <div className="an-timeline">

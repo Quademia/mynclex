@@ -87,12 +87,22 @@ export interface StudentAnalyticsRow {
    *  ("joined 3 weeks ago, 12% done"). Null on cohort rows, where the
    *  cohort's own start date is the shared anchor. */
   joinedDays: number | null;
-  /** SELF_PACED only — whole days until their access window closes.
-   *  Null = lifetime access (or a cohort row). Never negative: the nightly
-   *  sweep expires a lapsed enrolment out of the counted roster. */
+  /** BOTH MODES — whole days until this student's access window closes.
+   *  Null = lifetime access. Never negative: the nightly sweep expires a
+   *  lapsed enrolment out of the counted roster.
+   *
+   *  ⚠ This is per-STUDENT in a cohort too, which is easy to get wrong.
+   *  Access is frozen as `enrolled_at + programme.access_window_days` —
+   *  anchored to when each person joined, NOT to the cohort — so two
+   *  students in one cohort routinely hold different end dates, and
+   *  `nclex_cohorts.end_date` is a TIMETABLE that need not resemble either
+   *  of them (dev has a cohort that ended Jul 2026 whose students keep
+   *  access until Jun 2027). The nightly sweep expires on THIS column, so
+   *  it, not the cohort's dates, is what actually cuts a student off. */
   accessDaysLeft: number | null;
-  /** SELF_PACED only — access closes within ACCESS_SOON_DAYS and there is
-   *  still material undone. An overlay on `engagement`, not a state. */
+  /** BOTH MODES — access closes within ACCESS_SOON_DAYS with work still
+   *  undone. An overlay on the status, never a state of its own: a student
+   *  can be working hard and still about to lose the material. */
   endingSoon: boolean;
   /** Days since their most recent completion; null = no activity ever. */
   lastActiveDays: number | null;
@@ -109,8 +119,9 @@ export interface CohortAnalyticsSummary {
   stale: number;
   /** SELF_PACED only — counts per engagement state. Null on cohort. */
   engagement: Record<EngagementStatus, number> | null;
-  /** SELF_PACED only — students whose access closes within
-   *  ACCESS_SOON_DAYS with work still outstanding. Null on cohort. */
+  /** Students whose access closes within ACCESS_SOON_DAYS with work still
+   *  outstanding. Populated for both modes; only the self-paced view
+   *  surfaces it as a headline figure so far. */
   endingSoon: number | null;
 }
 
