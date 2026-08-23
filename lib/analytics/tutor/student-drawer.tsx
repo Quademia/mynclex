@@ -105,15 +105,16 @@ export function StudentDrawer({
             </div>
             {/* ⚠ This block used to be self-paced-only, on the assumption
                 that "a cohort shares a start and an end date, so these
-                would be the same for everybody there". The access half of
-                that is FALSE: access is frozen per enrolment from the join
-                date, so one cohort's members hold different end dates, and
-                the cohort's end_date is a timetable that need not resemble
-                any of them. Access therefore shows in both modes; only the
-                JOIN anchor stays self-paced, because a cohort's shared
-                calendar is what its pace status is measured against. */}
+                would be the same for everybody there". BOTH halves of that
+                turned out to be false. Access is frozen per enrolment from
+                the join date, so one cohort's members hold different end
+                dates and the cohort's end_date is a timetable that need not
+                resemble any of them. And students join a cohort at
+                different times too — late joining is an explicit cohort
+                setting — which is exactly what makes a late joiner's harsh
+                pace status readable rather than alarming. */}
             <div className="s">
-              {selfPaced && (
+              {student.joinedDays != null && (
                 <div className="l">
                   Joined{' '}
                   <b>
@@ -125,7 +126,7 @@ export function StudentDrawer({
                   </b>
                 </div>
               )}
-              <div className="l" style={{ marginTop: selfPaced ? 6 : 0 }}>
+              <div className="l" style={{ marginTop: 6 }}>
                 Access:{' '}
                 <b>
                   {student.accessDaysLeft == null

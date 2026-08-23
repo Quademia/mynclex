@@ -506,6 +506,10 @@ export async function getCohortAnalytics(
       lastTs == null
         ? null
         : Math.max(0, Math.floor((Date.now() - new Date(lastTs).getTime()) / DAY_MS));
+    const joinedDays = Math.max(
+      0,
+      Math.floor((Date.now() - new Date(s.enrolled_at).getTime()) / DAY_MS),
+    );
     const expiresAt = accessByStudent.get(s.user_id) ?? null;
     const accessDaysLeft =
       expiresAt == null
@@ -528,7 +532,7 @@ export async function getCohortAnalytics(
       // so the per-student engagement vocabulary and join anchor don't
       // apply. Access DOES — see accessDaysLeft above.
       engagement: null,
-      joinedDays: null,
+      joinedDays,
       accessDaysLeft,
       endingSoon:
         accessDaysLeft != null &&

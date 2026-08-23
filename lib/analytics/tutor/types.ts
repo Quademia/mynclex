@@ -82,10 +82,18 @@ export interface StudentAnalyticsRow {
   /** SELF_PACED only — the time-based status the self-paced view renders
    *  instead of `status`. Null on cohort rows. */
   engagement: EngagementStatus | null;
-  /** SELF_PACED only — whole days since this student enrolled. Their
-   *  personal "week 1", and the anchor that makes a completion % readable
-   *  ("joined 3 weeks ago, 12% done"). Null on cohort rows, where the
-   *  cohort's own start date is the shared anchor. */
+  /** BOTH MODES — whole days since this student enrolled.
+   *
+   *  Self-paced: their personal "week 1", and the anchor that makes a
+   *  completion % readable ("joined 3 weeks ago, 12% done").
+   *
+   *  Cohort: the late-join explanation. A cohort's pace status measures
+   *  each student against everything RELEASED so far, so somebody who
+   *  enrolled in week 5 reads as behind or at risk through no fault of
+   *  their own — and without this the row gives the tutor no way to tell
+   *  that from a student who has been there since day one and stopped.
+   *  (Cohorts support late joining explicitly; the workspace header even
+   *  carries a "Late join on" flag.) */
   joinedDays: number | null;
   /** BOTH MODES — whole days until this student's access window closes.
    *  Null = lifetime access. Never negative: the nightly sweep expires a

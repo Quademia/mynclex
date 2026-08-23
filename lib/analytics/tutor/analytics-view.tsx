@@ -472,20 +472,38 @@ export function CohortAnalyticsView({ data }: { data: TutorAnalytics }) {
                         <Avatar name={s.name} />
                         <div style={{ minWidth: 0 }}>
                           <div className="nm">{s.name}</div>
-                          {/* ⭐ Self-paced replaces the second percentage with
-                              JOINED. Their enrolment date is their personal
-                              week 1, and it is what makes the completion %
-                              readable — "joined 3 weeks ago, 12% done" says
-                              something a bare 12% cannot. */}
+                          {/* ⭐ Both modes carry JOINED, for related but
+                              different reasons. Self-paced: their enrolment
+                              date is their personal week 1, and it is what
+                              makes the completion % readable — "joined 3
+                              weeks ago, 12% done" says something a bare 12%
+                              cannot, so it REPLACES the second percentage
+                              (which is the same number there anyway).
+                              Cohort: it is the late-join explanation, so it
+                              is added alongside. */}
+                          {/* Each fact is nowrap so a narrow column breaks
+                              BETWEEN facts, never inside one — three facts
+                              plus a cohort's "% of programme" overflows one
+                              line, and "joined 8w / ago" split across it
+                              reads as a glitch. */}
                           <div className="em">
-                            {selfPaced ? (
+                            <span style={{ whiteSpace: 'nowrap' }}>
+                              {s.doneCount} / {s.releasedCount} done
+                            </span>
+                            {!selfPaced && (
                               <>
-                                {s.doneCount} / {s.releasedCount} done · joined{' '}
-                                {agoLabel(s.joinedDays ?? 0)}
+                                {' · '}
+                                <span style={{ whiteSpace: 'nowrap' }}>
+                                  {s.programmePct}% of programme
+                                </span>
                               </>
-                            ) : (
+                            )}
+                            {s.joinedDays != null && (
                               <>
-                                {s.doneCount} / {s.releasedCount} done · {s.programmePct}% of programme
+                                {' · '}
+                                <span style={{ whiteSpace: 'nowrap' }}>
+                                  joined {agoLabel(s.joinedDays)}
+                                </span>
                               </>
                             )}
                           </div>
