@@ -1,5 +1,88 @@
 # MyNclex Build List
 
+> ## ✅ DONE 2026-08-24 (later still) — **the library sweep, student side**
+>
+> The last unswept surface, scoped and built the same day. **Four commits**
+> (`8299d95`, `0096ada`, `e3af709`, `88b9911`), **no migration**, on
+> `claude/work-session-021f1e`. **NOT on `main` — awaiting Sam's test.**
+> Canonical: **`mobile-responsive.md`** → *The library sweep*.
+>
+> Built from a Claude Design handoff, after an inventory pass that measured
+> the four screens at 375px before anything was written.
+>
+> **What changed, measured live:** the notes pane **57px → 311px**; lens
+> navigation **84 items at 28.8px → 84 sheet rows at 44px+**; reader
+> controls 30.8/41/41/19.5 → 44/44/44/48; the Contents rail, which used to
+> vanish at 860px with nothing replacing it, became a bottom sheet fed by
+> the existing scroll-spy; `library.css` down from nine media queries to
+> six, all of them tutor-side.
+>
+> ⚠⚠ **"57px" was the polite number.** `.lib-main` overflowed by 82px while
+> the pane could only scroll 42px sideways, and the shell locks the
+> document scroll — **40px of the hero was unreachable at any gesture.**
+>
+> ⭐ **SAM AMENDED THE SCOPE MID-SESSION AND IT MATTERED.** "Tutor side is
+> out" meant tutor *authoring*; the programme-library **preview** is the
+> student view shown to a tutor, so it came in. ⚠ Leaving it would have
+> been worse than doing nothing: the layer hides `.lens-side`, so the
+> preview would have had **no lens navigation at all** on a phone.
+>
+> ⚠⚠ **THE TRAP THAT WOULD HAVE SHIPPED BROKEN.** `container-type` applies
+> layout containment, making the container the containing block for `fixed`
+> **and** `absolute` descendants. `.slm`/`.rdm` grow with the page, so a
+> sheet left inside either pins to the note list, not the screen — on this
+> 38-note library, thousands of pixels below the fold, opening somewhere
+> nobody can see, with no error anywhere. The handoff shipped both sheets
+> as `absolute`, which fails identically. Both are now **portalled to
+> `<body>`**. ⓘ `runner-mobile.css` dodged it by giving `.rn`
+> `height: 100dvh`; that does not transfer to a page that grows.
+>
+> ⚠⚠ **THE PLAN DOC WAS WRONG, AND THE HANDOFF INHERITED IT.** It warned of
+> "TWO student readers, one per mount" — false: both student mounts import
+> the same `ReadNoteView`, and `lib/library/programme/*` is the TUTOR's
+> preview. Following it would have applied a student phone layer to a tutor
+> surface the scope excluded. It also **deleted a decision** — there was
+> never a shared read shell to extract first. ⓘ Two more corrections: two
+> of the "four student screens" were **already mobile-first**
+> (`student-practice.css`), and the lab-values table **crushes rather than
+> overflows** — the table that genuinely overflows is the authored one,
+> which the doc never mentioned.
+>
+> ⭐ **THE STRUCTURAL DECISION: the lens tree is built once as data and
+> rendered twice** — desktop sidebar and phone Browse sheet. "Chips are a
+> shortcut, the sheet is the whole menu" only stays true through later
+> edits if there is **one list**. Verified numerically: **84 sheet rows
+> against 84 desktop lens items** (student), **79 against 79** (tutor
+> preview). Same reasoning produced `read-compact-chrome.tsx`, shared by
+> both readers.
+>
+> **Deviations from the CD design, each measured first:** 768px not 899
+> (899 is the runner's number, earned by `.rn-split`; with the sidebar open
+> it handed phone chrome to every viewport up to **1174px**) · the Resume
+> chip shipped `sticky; height: 0` and **painted across the note's `<h1>`**
+> · the contents pill was 36px · its `.slm .mpr-*` rules **matched nothing**
+> because the practice routes never pass through the shell · its hardcoded
+> 84px tab-bar clearance dropped, since `mobile-nav.css` already reserves
+> it conditionally and the bottom bar is students-only.
+>
+> ⓘ **A false alarm worth remembering:** every note URL 404'd, and it was a
+> **stale Turbopack cache** — `.next/` predating the worktree, with no
+> nested-dynamic route registered. RLS and the query were both fine
+> (checked). It looks exactly like a permissions bug and hits only the
+> deepest routes. Clear `.next` before suspecting RLS.
+>
+> ⏭ **Left open:** the **embed player** (`@container rn` is unreachable
+> inside a note — its own slice, and `.rn` cannot simply be copied because
+> of `container-type: size` + `height: 100dvh`) · **PDF blocks** ·
+> ⬜ **the Tags lens** — 56 of 84 rows, 1651px of a 2716px rail, **40 of 56
+> tags used exactly once**; a 3-note folder scrolls **3.6 screens** driven
+> entirely by the rail. Raised by Sam, designed, **not built**: grouping
+> threshold (2+ notes) + "Show all", plus a cap on the expanded **rail
+> only** (the sheet is already a bounded scroller). ⚠ Rare tags cannot
+> simply be dropped — list-row tag chips are `<span>`, not links, so a tag
+> that leaves the lens leaves navigation.
+
+
 > ## ✅ DONE 2026-08-24 (later) — **the access window stops ending in silence**
 >
 > The pair for sweep step 2d, plus the tutor button that answers it. **Two

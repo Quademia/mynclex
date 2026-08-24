@@ -126,21 +126,33 @@ sub-item was NOT touched) + a list of "areas of improvement" Sam flagged.
 See the slice log under *Build order* for per-slice status; that log is
 the current source of truth.
 
-⬜ **AND THE STUDENT SIDE IS NOT MOBILE-COMPATIBLE — scoped 2026-08-24
-(Sam), not started.** The library was skipped by both the student and the
-tutor mobile sweeps. ⭐ **Only the STUDENT side is in scope**: the tutor side
-is authoring, and authoring belongs on a computer, so a phone is not where
-that work happens. The student side is the opposite — the core audience is
-phone-first, and a student who cannot read her notes on a phone cannot use
-the product.
+✅ **THE STUDENT SIDE IS NOW MOBILE-COMPATIBLE — swept 2026-08-24**, four
+commits the same day it was scoped. The library had been skipped by both
+the student and the tutor mobile sweeps. ⭐ **Tutor AUTHORING stayed out of
+scope** — authoring belongs on a computer — but Sam brought the **tutor's
+student-preview in**, since it is the student surface shown to a tutor.
 
-⚠ It is mostly CSS (`styles/library.css` is **7,667 lines**, the largest
-stylesheet in the repo, with **nine media queries and not one at the
-mandated 768px**) — but **three items are not**: the Contents rail vanishes
-below 860px with nothing replacing it, there are **TWO** student note
-readers rather than one, and a note can embed a 664-line interactive
-question player. **Canonical scope, measurements and start order:**
-[mobile-responsive.md](mobile-responsive.md) → *The library sweep*.
+What it did, measured at 375px: the notes pane went from **57px to 311px**
+(40px of it had been unreachable at any gesture, because the shell locks
+the document scroll), the reader gained a Contents bottom sheet where the
+rail simply used to vanish, and all 84 lens rows went from 28.8px to 44px
+or better.
+
+⚠ **The scoping note that used to sit here was wrong on two counts**, and
+both are worth knowing because they were repeated into the CD handoff:
+there are **not** two student note readers — both student mounts import the
+same `ReadNoteView`, and the `lib/library/programme/*` pair is the TUTOR's
+preview — and **two of the four "student screens" were already mobile-first**
+(`styles/student-practice.css`). The item that was real and worse than
+described is the embed player: `runner-mobile.css` keys every rule to
+`@container rn`, which the library never establishes, so the runner's phone
+work is **structurally unreachable** inside a note rather than merely
+absent. It remains open as its own slice.
+
+**Canonical account — what shipped, what the plan had wrong, the
+containment trap, and the three items still open (embed player, PDF blocks,
+the Tags lens):** [mobile-responsive.md](mobile-responsive.md) → *The
+library sweep*.
 
 **No QAcademy-side library in v1.** The decision to leave self-study
 students with rationales-as-teaching is deliberate; the library is a
