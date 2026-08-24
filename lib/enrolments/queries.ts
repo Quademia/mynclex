@@ -165,7 +165,7 @@ async function readRoster(
     // LEFT join (cohort_id is NULL on self-paced rows).
     .select(
       `enrolment_id, user_id, cohort_id, status, enrolment_source, enrolled_at, paused_reason,
-       strategy_snapshot_json, installment_grace_until,
+       strategy_snapshot_json, installment_grace_until, access_expires_at,
        nclex_users!nclex_enrolments_user_id_fkey!inner(name, email),
        nclex_cohorts(name, start_date, end_date)`,
     )
@@ -186,6 +186,7 @@ async function readRoster(
     paused_reason: EnrolmentRosterRow['paused_reason'];
     strategy_snapshot_json: FrozenStrategySnapshot | null;
     installment_grace_until: string | null;
+    access_expires_at: string | null;
     nclex_users:
       | { name: string; email: string }
       | { name: string; email: string }[]
@@ -248,6 +249,7 @@ async function readRoster(
         email: profile.email,
         cohort_id: r.cohort_id,
         cohort_label: cohort ? formatCohortName(cohort) : null,
+        access_expires_at: r.access_expires_at,
         nextPayment,
         paymentFullyPaid: hasPlan && nextPayment === null,
       } satisfies EnrolmentRosterRow;
