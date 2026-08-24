@@ -19,6 +19,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { RenderBlocks, extractHeadings } from '../student/read-blocks';
+import { ReadCompactChrome } from '../student/read-compact-chrome';
 import type { ReadNode } from '../student/read-inline';
 import { pillarShortName, formatRelative } from '../format';
 import { EmbedPreview } from './embed-preview';
@@ -116,6 +117,22 @@ export function ProgrammeNoteReadView({
           Edit this note ↗
         </Link>
       </div>
+
+      {/* The student's phone chrome, shared verbatim — the preview's job
+          is to show what she sees, so a copy here would be a lie the
+          moment either side changed. Read-only differences ride in as
+          props: no nav guard, and a bookmark that only toggles locally. */}
+      <div className="rdm">
+      <ReadCompactChrome
+        basePath={basePath}
+        crumbLabel={note.folder ? note.folder.name : 'Library'}
+        headings={headings}
+        activeHeading={activeHeading}
+        bookmarked={bookmarked}
+        onToggleBookmark={() => setBookmarked((v) => !v)}
+        bookmarkTitle="How the bookmark looks to students (inactive in preview)"
+        onPickHeading={scrollToHeading}
+      />
 
       <div className="lib-read-shell">
         {/* Contents rail */}
@@ -251,6 +268,7 @@ export function ProgrammeNoteReadView({
             </button>
           </div>
         </article>
+      </div>
       </div>
     </div>
   );

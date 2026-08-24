@@ -22,8 +22,8 @@ import {
   useState,
   useTransition,
 } from 'react';
-import { createPortal } from 'react-dom';
 import { RenderBlocks, extractHeadings } from './read-blocks';
+import { ReadCompactChrome } from './read-compact-chrome';
 import { isRdmCompactNow, useRdmCompact } from './use-rdm-compact';
 import { EmbedPlayGuardContext } from './embed-play-guard';
 import { pillarShortName, formatRelative } from '../format';
@@ -67,8 +67,6 @@ export function ReadNoteView({
   // CSS cannot express: which resume behaviour to use, and the Contents
   // sheet that stands in for the rail it hides.
   const compact = useRdmCompact();
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [scrollPct, setScrollPct] = useState(0);
   const [resumeDismissed, setResumeDismissed] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -133,15 +131,14 @@ export function ReadNoteView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reading-progress line on the compact topbar, and the one-shot dismissal
-  // of the Resume chip. Separate from the scroll-spy below because that one
-  // returns early when a note has no headings — the progress line should
-  // still move on a note that is one long section.
+  // Retires the Resume chip once she has scrolled on her own — by then the
+  // offer is stale, and leaving it up invites a tap that throws away the
+  // reading she just did. Separate from the scroll-spy below because that
+  // one returns early on a note with no headings, and this must still run
+  // there. The progress LINE is the chrome's own business, not ours.
   //
-  // ⓘ No synchronous first read: every state write happens in the listener,
-  // which is what keeps this a subscription rather than a cascading render.
-  // A fresh note opens at 0% anyway, and a restored or auto-jumped scroll
-  // position fires a scroll event of its own.
+  // ⓘ The write happens in the listener, never in the effect body, which
+  // keeps this a subscription rather than a cascading render.
   useEffect(() => {
     const scroller = document.querySelector(
       '.product-content',
@@ -149,38 +146,11 @@ export function ReadNoteView({
     const target: HTMLElement | Window = scroller ?? window;
     const onScrollRead = () => {
       const top = scroller ? scroller.scrollTop : window.scrollY;
-      const max = scroller
-        ? scroller.scrollHeight - scroller.clientHeight
-        : document.documentElement.scrollHeight - window.innerHeight;
-      setScrollPct(max > 0 ? Math.min(100, Math.round((top / max) * 100)) : 0);
-      // Once she has scrolled on her own, the offer to resume is stale.
       if (top > 260) setResumeDismissed(true);
     };
     target.addEventListener('scroll', onScrollRead, { passive: true });
     return () => target.removeEventListener('scroll', onScrollRead);
   }, []);
-
-  // Contents sheet: Escape closes it and the page behind it does not
-  // scroll. Mirrors the app drawer's behaviour
-  // (components/shell/mobile/mobile-nav.tsx) rather than sharing it — one
-  // is nav chrome, this is page content.
-  //
-  // ⓘ There is no "close when it stops being compact" effect: visibility is
-  // DERIVED below (`sheetOpen && compact`), so widening the reader cannot
-  // leave a sheet stranded on a desktop layout.
-  useEffect(() => {
-    if (!sheetOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSheetOpen(false);
-    };
-    document.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [sheetOpen]);
 
   // Stamp the visit on open (slice 11.14c) — upserts last_visited_at while
   // preserving the existing resume position, so EVERY opened note surfaces
@@ -264,13 +234,11 @@ export function ReadNoteView({
   const progressPct =
     headings.length === 0 ? 0 : Math.round((sectionNum / headings.length) * 100);
 
-  // ── Derived compact state ──────────────────────────────────────────
-  // Both are computed rather than stored, so neither can be left stranded
-  // by a resize: widen the reader and the sheet and chip simply stop
-  // existing, with no effect needed to tidy up after them.
+  // ── Derived, not stored ────────────────────────────────────────────
+  // Computed so a resize cannot strand it: widen the reader and the chip
+  // simply stops existing, with no effect needed to tidy up after it.
   const resumeTarget =
     compact && !resumeDismissed ? note.state.lastHeadingId : null;
-  const sheetVisible = sheetOpen && compact;
 
   // The chip names where it would take her. A saved heading that no longer
   // exists (the tutor edited the note) still resolves to a usable label.
@@ -281,45 +249,16 @@ export function ReadNoteView({
   return (
     <EmbedPlayGuardContext.Provider value={guardValue}>
       <div className="rdm">
-      {/* ── Compact topbar. In the DOM at every width; the layer shows it
-          only below 900px, where it replaces .lib-read-toprow. ── */}
-      <div className="rdm-topbar">
-        <Link
-          href={basePath}
-          className="rdm-iconbtn"
-          onClick={onGuardedNav}
-          aria-label="Back to library"
-        >
-          ‹
-        </Link>
-        <span className="rdm-crumb">
-          {note.folder ? note.folder.name : 'Library'}
-        </span>
-        {headings.length > 0 && (
-          <button
-            type="button"
-            className="rdm-contents"
-            onClick={() => setSheetOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={sheetOpen}
-          >
-            ☰{' '}
-            <span className="n">
-              {sectionNum}/{headings.length}
-            </span>
-          </button>
-        )}
-        <button
-          type="button"
-          className={'rdm-iconbtn' + (bookmarked ? ' is-on' : '')}
-          onClick={onToggleBookmark}
-          aria-pressed={bookmarked}
-          aria-label={bookmarked ? 'Remove bookmark' : 'Bookmark this note'}
-        >
-          {bookmarked ? '★' : '☆'}
-        </button>
-        <div className="rdm-progress" style={{ width: `${scrollPct}%` }} />
-      </div>
+      <ReadCompactChrome
+        basePath={basePath}
+        crumbLabel={note.folder ? note.folder.name : 'Library'}
+        headings={headings}
+        activeHeading={activeHeading}
+        bookmarked={bookmarked}
+        onToggleBookmark={onToggleBookmark}
+        onNavAway={onGuardedNav}
+        onPickHeading={scrollToHeading}
+      />
 
       {resumeTarget && (
         <div className="rdm-resume">
@@ -474,66 +413,6 @@ export function ReadNoteView({
         </div>
       </article>
       </div>
-
-      {/* ── Contents sheet ────────────────────────────────────────────────
-          ⚠ PORTALLED TO <body> ON PURPOSE. `.rdm` is a container, and
-          container-type applies layout containment, which makes it the
-          containing block for fixed descendants — so a sheet left inside
-          it pins to the note (which grows), not to the screen. See the
-          header of styles/library-read-mobile.css. */}
-      {sheetVisible &&
-        createPortal(
-          <>
-            <button
-              type="button"
-              className="rdm-scrim"
-              aria-label="Close contents"
-              onClick={() => setSheetOpen(false)}
-            />
-            <div
-              className="rdm-sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Contents"
-            >
-              <div className="rdm-sheet-grab" aria-hidden="true" />
-              <div className="rdm-sheet-head">
-                <span className="rdm-sheet-title">Contents</span>
-                <span className="rdm-sheet-prog">
-                  section {sectionNum} of {headings.length}
-                </span>
-              </div>
-              <div className="rdm-sheet-bar">
-                <div style={{ width: `${progressPct}%` }} />
-              </div>
-              <div className="rdm-sheet-list">
-                {headings.map((h) => (
-                  <button
-                    key={h.id}
-                    type="button"
-                    className={
-                      'rdm-sheet-link' +
-                      (h.level === 3 ? ' is-h3' : '') +
-                      (activeHeading === h.id ? ' is-active' : '')
-                    }
-                    onClick={() => {
-                      scrollToHeading(h.id);
-                      setSheetOpen(false);
-                    }}
-                  >
-                    {h.text || 'Untitled'}
-                    {activeHeading === h.id && (
-                      <span className="tick" aria-hidden="true">
-                        ●
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>,
-          document.body,
-        )}
       </div>
     </EmbedPlayGuardContext.Provider>
   );

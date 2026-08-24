@@ -70,6 +70,21 @@
     width: 100%;
     padding: 16px 16px 0;
   }
+  /* The tutor's student-preview wraps the reader in `.lib-page`, which
+     already contributes 24px of gutter; ours on top of it cramped the
+     column to 263px where a student gets 311. Drop ours there and the
+     preview reads at 295px.
+     ⚠ The remaining 16px is `.lib-page`'s own padding and PRE-DATES this
+     work — the preview has always been 48px narrower than the student
+     view at every width; at 1005px nobody noticed. Closing it means
+     restyling an ancestor, which a container query cannot reach, so it
+     would take a viewport-keyed rule — the exact two-systems split this
+     sweep exists to remove. Left deliberately, noted rather than
+     silently traded away. */
+  .lib-page > .rdm .lib-read-body {
+    padding-left: 0;
+    padding-right: 0;
+  }
 
   /* ── Sticky top bar ── */
   .rdm-topbar {
