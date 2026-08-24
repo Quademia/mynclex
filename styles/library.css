@@ -6744,15 +6744,14 @@ a.lib-tag-inline:hover {
   color: var(--accent);
 }
 
-/* Narrow viewports — drop the Contents rail, body goes full width. */
-@media (max-width: 860px) {
-  .lib-read-shell {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .lib-read-toc {
-    display: none;
-  }
-}
+/* ⓘ The reader's old narrow-viewport rule lived here — a 860px @media that
+ * dropped the Contents rail and went full width. REMOVED when
+ * styles/library-read-mobile.css shipped (the library sweep, student side):
+ * that layer does the same thing and more at 768px, keyed to the READER'S
+ * OWN width instead of the viewport, and it replaces the rail with a
+ * Contents sheet rather than simply deleting the note's only navigation.
+ * Keeping both would have recreated in the reader exactly the two-systems
+ * disagreement this sweep exists to remove. */
 
 /* =====================================================================
    SLICE 11.13b — embedded-questions inline player
