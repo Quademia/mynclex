@@ -2,34 +2,36 @@
 //
 // "Last active" — a truer engagement signal than completion alone.
 //
-// ⚠ progress-engine.md records the Phase-1 limitation: "Last active = last
+// ⚠ progress-engine.md recorded the Phase-1 limitation: "Last active = last
 // completion (Phase 1 reads completion only); a truer last-seen would need
-// a login/view signal." That is no longer the whole story. Attempts carry
+// a login/view signal." That is out of date. Attempts carry
 // `last_activity_at` (a heartbeat written while a sitting is open) and
 // `started_at`, so a student grinding through a quiz they never submit IS
 // visible — and under completion-only they read as stone dead.
 //
-// That matters most on the self-paced surface, where "stalled" is the
-// primary status rather than a footnote: flagging a working student as
-// stalled sends the tutor to chase somebody who is right there.
+// ⭐⭐ THE DEFINITION LIVES IN SQL, NOT HERE. `nclex_programme_last_active`
+// (migration 20260922120000) fuses the three sources, and this module is a
+// thin caller. The nightly inactivity sweep calls the same function.
 //
-// Scope + permission. Attempts are student-private except through
-// nclex_attempts_tutor_read (migration 20260628120000), which grants a
-// tutor the attempts belonging to THEIR programmes, in the two mutually
-// exclusive shapes nclex_attempts_source_refs allows:
-//   • standalone        — programme_id + quiz_id set
-//   • activity-launched — programme_activity_id set
-// Both are read here. Bank attempts (neither set) stay private, which is
-// correct — a student's own bank practice is not their tutor's business,
-// and this signal is deliberately programme-scoped.
+// That is the whole point: the sweep decides who gets emailed and this
+// decides who the tutor sees flagged as "Stalled", and if the two were
+// written separately they would drift — the screen naming a student the
+// system never wrote to, or the reverse. Two stories about one person.
+// One definition, two readers, no drift possible.
 //
-// ⚠ Deliberately NOT used here: nclex_users.last_login_utc. It is
+// ⚠ The SQL is SECURITY INVOKER, so the tutor's own RLS gates it: the read
+// policies on progress rows, note state and attempts all resolve ownership
+// by walking activity → unit → programme → tutor. Nothing new was granted
+// to make this work, and a caller who cannot see the programme gets rows
+// they were always entitled to — none.
+//
+// ⚠ Deliberately NOT nclex_users.last_login_utc, in either caller. It is
 // product-wide, so a student who also grinds the question bank looks
-// permanently "active" on a programme they abandoned in March. It answers
-// "have they vanished entirely", which is a different question from "have
-// they abandoned THIS programme" — and the second is what a tutor is
-// asking on a programme page. Conflating them yields a confidently wrong
-// green light, which is worse than the gap it closes.
+// permanently active on a programme they abandoned in March. It answers
+// "have they vanished entirely" — a different question from "have they
+// abandoned THIS programme", and the second is the one a tutor is asking
+// on a programme page. Conflating them yields a confidently wrong green
+// light, which is worse than the gap it closes.
 //
 // ⓘ Also absent: nclex_library_shelf_seen.seen_at, a genuine view signal —
 // but it carries no tutor read policy, and widening RLS to catch shelf
@@ -37,66 +39,66 @@
 
 import type { createClient } from '@/lib/supabase/server';
 
-type AttemptActivityRow = {
+type LastActiveRow = {
   student_id: string;
-  last_activity_at: string | null;
-  started_at: string | null;
-  created_at: string;
+  last_active_at: string | null;
 };
 
-const COLS = 'student_id, last_activity_at, started_at, created_at';
+/**
+ * Latest engagement timestamp per student on one programme.
+ *
+ * Returns `studentId → ISO timestamp`. Students with no engagement at all
+ * are simply absent — the caller treats an absence as "never active",
+ * which is exactly what it means.
+ */
+export async function getProgrammeLastActive(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  programmeId: string,
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
 
-/** Most recent engagement stamp on a row, whichever one it managed to write. */
-function stampOf(r: AttemptActivityRow): string {
-  return r.last_activity_at ?? r.started_at ?? r.created_at;
+  const { data, error } = await supabase.rpc('nclex_programme_last_active', {
+    p_programme_id: programmeId,
+  });
+  // A failure here must not take the page down — completion still renders,
+  // and every student simply reads as never-active until it recovers.
+  if (error) return out;
+
+  for (const r of (data ?? []) as LastActiveRow[]) {
+    if (r.last_active_at) out.set(r.student_id, r.last_active_at);
+  }
+  return out;
 }
 
 /**
- * Latest quiz-attempt engagement per student, for one programme.
+ * Per-enrolment timestamp of the last inactivity nudge actually SENT.
  *
- * Returns `studentId → ISO timestamp`. Students with no attempts are simply
- * absent — the caller fuses this with completion timestamps and keeps the
- * later of the two, so an absence costs nothing.
+ * ⓘ SENT, not queued — a row waiting on the drain has reached nobody, and
+ * a tutor about to ring somebody needs to know whether we really wrote to
+ * them this morning.
  *
- * ⚠ Every status counts, IN_PROGRESS included. An unfinished sitting is the
- * exact case this exists for: engagement that completion never sees.
+ * ⚠ The underlying function is SECURITY DEFINER (the outbox is admin-only)
+ * and re-checks programme ownership inside. It returns a timestamp and
+ * never payload content.
  */
-export async function getLastQuizActivity(
+export async function getProgrammeNudgeHistory(
   supabase: Awaited<ReturnType<typeof createClient>>,
   programmeId: string,
-  studentIds: string[],
-  activityIds: string[],
 ): Promise<Map<string, string>> {
-  const latest = new Map<string, string>();
-  if (studentIds.length === 0) return latest;
+  const out = new Map<string, string>();
 
-  const studentIdSet = new Set(studentIds);
+  const { data, error } = await supabase.rpc('nclex_programme_nudge_history', {
+    p_programme_id: programmeId,
+  });
+  if (error) return out;
 
-  const [standaloneRes, activityRes] = await Promise.all([
-    // ⚠ The .eq() is load-bearing, not decorative. A SUPER_ADMIN also holds
-    // an admin-all policy on this table, and RLS is an OR across policies —
-    // so without an explicit programme filter this would return EVERY
-    // attempt in the product for that reader. Same trap as the enrolment
-    // self-read one (feedback: "RLS OR is not a WHERE clause").
-    supabase.from('nclex_attempts').select(COLS).eq('programme_id', programmeId),
-    activityIds.length
-      ? supabase
-          .from('nclex_attempts')
-          .select(COLS)
-          .in('programme_activity_id', activityIds)
-      : Promise.resolve({ data: [] as AttemptActivityRow[] }),
-  ]);
-
-  for (const res of [standaloneRes, activityRes]) {
-    for (const r of (res.data ?? []) as AttemptActivityRow[]) {
-      if (!studentIdSet.has(r.student_id)) continue;
-      const ts = stampOf(r);
-      const prev = latest.get(r.student_id);
-      if (!prev || ts > prev) latest.set(r.student_id, ts);
-    }
+  for (const r of (data ?? []) as Array<{
+    enrolment_id: string;
+    last_nudged_at: string | null;
+  }>) {
+    if (r.last_nudged_at) out.set(r.enrolment_id, r.last_nudged_at);
   }
-
-  return latest;
+  return out;
 }
 
 /** Whole days between an ISO timestamp and now, floored at 0. */

@@ -296,6 +296,18 @@
 .an-pill.risk { background: var(--bad-soft); color: var(--bad); }
 .an-pill.notstarted { background: var(--idle-soft); color: #475569; }
 
+/* The "we already wrote to them" line under a status pill. Quiet on
+   purpose: it reports that something has been handled, so it must not
+   compete with the pill above it, which reports that something needs
+   handling. */
+.an-nudged {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* ── Self-paced engagement pills ──────────────────────────
    "Finished" is deliberately quieter than "active": a completed student
    is good news, not a call to action, and the list is ordered by who

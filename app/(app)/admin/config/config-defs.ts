@@ -96,6 +96,25 @@ export const CONFIG_DEFS: ConfigDef[] = [
       'Students will stop being told about their live classes, and tutors will not be able to send a reminder by hand either — the button will refuse while this is off. Nothing is lost and nothing needs catching up: the morning pass only ever emails students it has not already told, so whoever was missed while this was off is picked up by the first run after you turn it back on.',
   },
   {
+    key: 'programme_inactivity_nudge_enabled',
+    label: 'Inactivity nudges',
+    description:
+      'Each morning at 08:00, emails self-paced students who have gone quiet — once after two weeks of silence, and once more a month later if they still have not been back. Two emails per student, ever. Cohort students are not included: they already get a weekly class reminder.',
+    type: 'boolean',
+    defaultValue: 'true',
+    // ⚠ Declared here as well as seeded by migration 20260922120000 —
+    // see the warning on session_reminders_enabled above. A key that
+    // exists in nclex_config and not in this list cannot be switched off
+    // from any screen.
+    //
+    // ⓘ Turning this off makes MORE work for tutors, not less, which is
+    // the opposite of how the other switches read — so the copy says so.
+    // The tutor's Progress page keeps flagging stalled students either
+    // way; the difference is only whether anything has already tried.
+    confirmOff:
+      'Students who stop working will no longer hear anything from us, and chasing them goes back to being the tutor’s job — their Progress page will keep flagging stalled students, but nothing will have tried first. Nothing is lost and nothing needs catching up: each student is only ever nudged twice, so whoever was missed while this was off is picked up by the first run after you turn it back on.',
+  },
+  {
     key: 'bank_optin_discount',
     label: 'Bank opt-in discount',
     description:

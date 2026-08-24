@@ -519,6 +519,17 @@ export function CohortAnalyticsView({ data }: { data: TutorAnalytics }) {
                       ) : (
                         <StatusPill status={s.status} />
                       )}
+                      {/* ⭐ Sits under the pill because this cell is already
+                          where the "this person needs action" signals live —
+                          and this is the one that says action has already
+                          been taken. A tutor about to ring somebody should
+                          see that we wrote to them this morning, or they
+                          duplicate the chase the nudge exists to remove. */}
+                      {s.lastNudgedDays != null && (
+                        <div className="an-nudged" title="We emailed this student a reminder">
+                          ✉ nudged {agoLabel(s.lastNudgedDays)}
+                        </div>
+                      )}
                     </td>
                     {showPerf && (
                       <td data-label="Latest quiz">

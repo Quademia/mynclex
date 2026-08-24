@@ -10,6 +10,10 @@ import type { EmailAttachment, EmailTemplate, OutboxRow } from './types';
 import { wrap } from './templates/wrapper';
 import { footer } from './templates/footer';
 import {
+  inactivityNudgeTemplate,
+  INACTIVITY_NUDGE_FOOTER_CONTEXT,
+} from './templates/inactivity-nudge';
+import {
   PAYMENT_RECEIVED_FOOTER_CONTEXT,
   paymentReceivedTemplate,
 } from './templates/payment-received';
@@ -95,6 +99,13 @@ export type Rendered = {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: string }> = {
+  // ⭐ The only entry here for an email nobody triggered — it fires
+  // because a student did nothing. Its payload is written in SQL by the
+  // nightly sweep, so nothing type-checks it at the boundary.
+  'progress.inactivity_nudge': {
+    template: inactivityNudgeTemplate,
+    footerContext: INACTIVITY_NUDGE_FOOTER_CONTEXT,
+  },
   'payment.received': {
     template: paymentReceivedTemplate,
     footerContext: PAYMENT_RECEIVED_FOOTER_CONTEXT,

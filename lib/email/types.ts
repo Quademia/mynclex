@@ -34,6 +34,14 @@ export type { EmailAttachment };
 // happened, and so changing the wording of one cannot silently change
 // the other.
 export type EmailEventKey =
+  /**
+   * ⭐ The first email nobody triggered. Every other key here fires
+   * because a person did something — paid, applied, enrolled, scheduled.
+   * This one fires because a person did NOTHING, which is why it has no
+   * anchor to hang off and needs a nightly pass to notice at all.
+   * Slice B, 2026-08-24.
+   */
+  | 'progress.inactivity_nudge'
   | 'payment.received'
   | 'payment.tutor_received'
   | 'payment.installment_due'
@@ -434,6 +442,41 @@ export type EmailTemplate<P = Record<string, unknown>> = {
   attachments?: (payload: P) => EmailAttachment[];
   /** Sample payloads for the admin preview — one per variant worth eyeballing. */
   previews: { label: string; payload: P }[];
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// The inactivity-nudge payload
+// ─────────────────────────────────────────────────────────────────────
+// ⚠ FILLED IN SQL by nclex_programme_inactivity_nudge_sweep() (migration
+// 20260922120000), like the installment payloads and the session reminder.
+// TypeScript checks nothing about what actually arrives — this is the
+// contract, not the enforcement.
+//
+// ⓘ Unlike `entry` on tutor.added_by_admin, `reason` here carries NO
+// absence-means-the-old-behaviour rule: the key is new, so no row has ever
+// been queued without it and there is no sent history to stay compatible
+// with. The first new key in a while that is free of that constraint.
+
+export type InactivityNudgePayload = {
+  /** Their forename. Null only if a profile somehow has none. */
+  recipientName: string | null;
+  programmeTitle: string;
+  /** Named as whose programme it is — NOT as the sender. See the template. */
+  tutorName: string;
+  /** Builds the link: /student/programme/<id>/curriculum. */
+  programmeId: string;
+  /**
+   * ⭐ The dial. NOT_STARTED has no "where you left off" to return to, so
+   * every phrase implying a return has to be absent for it.
+   */
+  reason: 'NOT_STARTED' | 'STALLED';
+  /**
+   * Whole days of silence — measured from last engagement, or from the
+   * ENROLMENT date when there has never been any.
+   */
+  silentDays: number;
+  /** 1 or 2. Two is the last one we ever send, and says so. */
+  nudgeNumber: number;
 };
 
 // ─────────────────────────────────────────────────────────────────────

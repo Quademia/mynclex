@@ -539,6 +539,9 @@ export async function getCohortAnalytics(
         accessDaysLeft <= ACCESS_SOON_DAYS &&
         completionPct < 100,
       lastActiveDays,
+      // Cohort students are not nudged in v1 — they already hear from us
+      // weekly through session.reminder.
+      lastNudgedDays: null,
       doneAt,
     });
   }

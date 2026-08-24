@@ -136,6 +136,22 @@ export function StudentDrawer({
                       : `${student.accessDaysLeft} days left`}
                 </b>
               </div>
+              {/* Only ever shown when it happened. An absent line means the
+                  system has not written to them — deliberately not spelled
+                  out as "not nudged", which would read as a promise that it
+                  will be, when a finished or paused student never is. */}
+              {student.lastNudgedDays != null && (
+                <div className="l" style={{ marginTop: 6 }}>
+                  Reminder sent:{' '}
+                  <b>
+                    {student.lastNudgedDays === 0
+                      ? 'today'
+                      : student.lastNudgedDays === 1
+                        ? 'yesterday'
+                        : `${student.lastNudgedDays} days ago`}
+                  </b>
+                </div>
+              )}
             </div>
           </div>
 

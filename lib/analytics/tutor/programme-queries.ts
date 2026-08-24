@@ -44,7 +44,11 @@ import { isVisibleToStudents } from '@/lib/curriculum/format';
 import type { ActivityType } from '@/lib/curriculum/types';
 import type { UnitLabel } from '@/lib/programmes/types';
 import { computePerformance, normalizeIds } from './cohort-queries';
-import { getLastQuizActivity, daysSince } from './last-active';
+import {
+  getProgrammeLastActive,
+  getProgrammeNudgeHistory,
+  daysSince,
+} from './last-active';
 import {
   ACCESS_SOON_DAYS,
   STALLED_AFTER_DAYS,
@@ -339,7 +343,8 @@ export async function getSelfPacedProgrammeAnalytics(
     for (const n of members) allNoteIds.add(n);
   }
 
-  const [progressRes, noteStateRes, lastQuizActivity] = await Promise.all([
+  const [progressRes, noteStateRes, lastActiveByStudent, nudgedByEnrolment] =
+    await Promise.all([
     progressActivityIds.length
       ? supabase
           .from('nclex_student_activity_progress')
@@ -352,12 +357,11 @@ export async function getSelfPacedProgrammeAnalytics(
           .select('student_id, note_id, marked_done_at')
           .in('note_id', [...allNoteIds])
       : Promise.resolve({ data: [] as NoteStateRow[] }),
-    getLastQuizActivity(
-      supabase,
-      programmeId,
-      studentIds,
-      visible.filter((a) => a.quizId).map((a) => a.activityId),
-    ),
+    // ⭐ The SAME SQL function the nightly inactivity sweep calls, so the
+    // "Stalled" pill on this page and the email that chases the student
+    // cannot describe different people.
+    getProgrammeLastActive(supabase, programmeId),
+    getProgrammeNudgeHistory(supabase, programmeId),
   ]);
 
   const progressDone = new Map<string, string>();
@@ -402,7 +406,6 @@ export async function getSelfPacedProgrammeAnalytics(
 
   for (const s of students) {
     let doneAll = 0;
-    let lastTs: string | null = null;
     const doneAt: Record<string, string | null> = {};
 
     for (const a of visible) {
@@ -410,24 +413,22 @@ export async function getSelfPacedProgrammeAnalytics(
       if (res === false) continue;
       doneAll += 1;
       doneAt[a.activityId] = res;
-      if (typeof res === 'string') {
-        allDoneTimestamps.push(res);
-        if (!lastTs || res > lastTs) lastTs = res;
-      }
+      if (typeof res === 'string') allDoneTimestamps.push(res);
       activityDoneCount.set(
         a.activityId,
         (activityDoneCount.get(a.activityId) ?? 0) + 1,
       );
     }
 
-    // ⭐ Fuse completion with quiz engagement and keep the LATER of the two.
-    // A student halfway through a quiz they never submitted has completed
-    // nothing and is plainly not stalled; completion alone cannot tell them
-    // apart from somebody who left in March.
-    const quizTs = lastQuizActivity.get(s.user_id) ?? null;
-    const engagedTs =
-      !lastTs ? quizTs : !quizTs ? lastTs : quizTs > lastTs ? quizTs : lastTs;
+    // ⭐ One definition, computed in SQL, shared with the nightly sweep. It
+    // already fuses completions, note completions and quiz-attempt
+    // heartbeats — a student halfway through a sitting they never submitted
+    // has completed nothing and is plainly not stalled, and completion alone
+    // cannot tell them apart from somebody who left in March.
+    const engagedTs = lastActiveByStudent.get(s.user_id) ?? null;
     const lastActiveDays = engagedTs == null ? null : daysSince(engagedTs, nowMs);
+
+    const nudgedTs = nudgedByEnrolment.get(s.enrolment_id) ?? null;
 
     const completionPct = totalCount ? Math.round((doneAll / totalCount) * 100) : 0;
     const joinedDays = Math.max(
@@ -461,6 +462,7 @@ export async function getSelfPacedProgrammeAnalytics(
         accessDaysLeft <= ACCESS_SOON_DAYS &&
         engagement !== 'done',
       lastActiveDays,
+      lastNudgedDays: nudgedTs == null ? null : daysSince(nudgedTs, nowMs),
       doneAt,
     });
   }

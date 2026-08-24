@@ -631,13 +631,24 @@ aggregator, so the summary and the dashboard cannot disagree.
 
 #### ⏭ Open
 
-- **`progress.inactivity_nudge`** (transactional-email.md) is the
-  natural other half: the system chases the stalled student itself, so
+- ~~**`progress.inactivity_nudge`**~~ — ✅ **BUILT 2026-08-24**, migration
+  `20260922120000`. The system now chases the stalled student itself, so
   the tutor's screen only has to show the ones automation failed to
-  revive. ⭐ Worth building **before** any expansion of this surface —
-  the email is what keeps the list short. Without it every stalled
-  student becomes the tutor's problem by default, which quietly turns a
-  low-touch product into a high-touch one at a low-touch price.
+  revive. Two nudges per enrolment ever (day 14, then 30 days after the
+  first is sent), self-paced only, behind the
+  `programme_inactivity_nudge_enabled` switch on System Config.
+  - ⭐ **It shares this section's "last seen" definition, in SQL.**
+    `nclex_programme_last_active()` is called by BOTH the nightly sweep
+    and this page, so the student the screen calls "Stalled" and the
+    student the system emails are the same student by construction rather
+    than by agreement. `lib/analytics/tutor/last-active.ts` is now a thin
+    caller rather than a second implementation.
+  - The Progress row and drawer show **when a nudge was last sent**, via a
+    narrow DEFINER function that returns a timestamp and never payload
+    content — the outbox itself stays admin-only. Without it the
+    automation would be invisible to the one person whose behaviour it is
+    meant to change, and tutors would chase students the system had
+    already chased.
 - Per-student 360 (§9) is still deferred and still deliberately after
   this.
 

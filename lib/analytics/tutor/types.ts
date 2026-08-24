@@ -42,7 +42,16 @@ export type EngagementStatus = 'notstarted' | 'active' | 'stalled' | 'done';
 /** Which delivery unit an analytics payload describes. */
 export type AnalyticsMode = 'COHORT' | 'SELF_PACED';
 
-/** No engagement for this many days reads as stalled (self-paced only). */
+/**
+ * No engagement for this many days reads as stalled (self-paced only).
+ *
+ * ⚠ This number also lives in SQL — the nightly inactivity sweep in
+ * migration 20260922120000 uses `interval '14 days'` for the first nudge.
+ * The screen calls a student "Stalled" at this threshold and the email is
+ * what the screen implies has happened, so the two must move together. It
+ * is deliberately NOT admin-configurable (Sam, 2026-08-24): the feature has
+ * one switch, not a panel of dials.
+ */
 export const STALLED_AFTER_DAYS = 14;
 
 /** Access ending within this many days raises the "Ending soon" flag. */
@@ -114,6 +123,19 @@ export interface StudentAnalyticsRow {
   endingSoon: boolean;
   /** Days since their most recent completion; null = no activity ever. */
   lastActiveDays: number | null;
+  /**
+   * SELF_PACED only — days since the system last sent this student an
+   * inactivity nudge, or null if it never has.
+   *
+   * ⭐ It is here so a tutor about to ring somebody can see that we wrote
+   * to them this morning. Without it the automation is invisible to the
+   * one person whose behaviour it is meant to change: they would chase
+   * students the system had already chased, which is precisely the
+   * duplicated effort the nudge exists to remove.
+   *
+   * ⓘ SENT, not queued — see nclex_programme_nudge_history.
+   */
+  lastNudgedDays: number | null;
   /** activity_id → completed_at ISO (or null when done without a timestamp,
    *  e.g. a derived shelf rollup). Drives the drawer timeline. */
   doneAt: Record<string, string | null>;
