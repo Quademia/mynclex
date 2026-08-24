@@ -368,14 +368,9 @@ stylesheet — is this doc's rules.
 ## Not done (future)
 
 - Tutor/admin bottom tabs (deferred by design).
-- ⬜ **Library — the last unswept surface, and deferred on BOTH audiences.**
-  Skipped by the student sweep and again by the tutor sweep, so it is a
-  deliberate gap rather than an oversight on either side. It needs its own
-  session: the rail keeps its 218px at 375px, squeezing the content pane to
-  **57px wide** with stat cards at 36px. One file, `styles/library.css`,
-  serves the tutor, programme and student shells, so one drill-in fixes all
-  three — `lib/library/home-shell.tsx` already carries a `railed` /
-  `is-railed` state to key off.
+- ⬜ **The library — the last unswept surface. SCOPED 2026-08-24 (Sam):
+  STUDENT SIDE ONLY.** See *The library sweep* below for the scope, the
+  measurements, and the three items that are not CSS.
 - ⬜ **The bank / curator area** (`/tutor/bank/*` and the authoring editors)
   — excluded from the tutor sweep by Sam as its own arc; dense editors,
   closer in shape to the runner than to a list page, and similar to the
@@ -394,3 +389,104 @@ stylesheet — is this doc's rules.
 - ⬜ `.ti-stats` is 335px, so half a phone screen of KPI cards sits between
   the tutor and her enquiry queue on every visit. A layout judgement rather
   than a responsive defect — noted, not actioned.
+
+---
+
+## ⬜ The library sweep — scoped 2026-08-24, not started
+
+The last unswept surface. Skipped by the student sweep *and* the tutor
+sweep, so it was a deliberate gap on both sides rather than an oversight on
+either.
+
+### ⭐ SCOPE: the STUDENT side only (Sam, 2026-08-24)
+
+**The tutor side is authoring, and authoring belongs on a computer.** Tutors
+write notes on a desktop; a phone is not where that work happens, and making
+a 6,700-line editor reflow would spend the effort where the audience is not.
+The **student** side is the opposite — the core audience is phone-first, and
+a student who cannot read her tutor's notes on a phone cannot use the
+product.
+
+⚠ So this is **not** a symmetric sweep, and the earlier note that *"one file
+serves the tutor, programme and student shells, so one drill-in fixes all
+three"* is only true of `styles/library.css` and of `home-shell.tsx`'s
+`railed` state. It is **not** true of the reader — see the second item under
+*Not CSS* below.
+
+### The four student screens
+
+Each rendered under **two mounts**, cohort and programme — 8 routes, 4
+screens:
+
+| Screen | Route |
+|---|---|
+| List | `student/{cohort\|programme}/[id]/library/` |
+| Reader | `.../library/note/[note_id]` |
+| Practice index | `.../library/practice/` |
+| Practice runner | `.../library/practice/[note_id]` |
+
+### The measurements
+
+- The rail keeps its **218px at 375px**, squeezing the content pane to
+  **57px wide**, with stat cards at **36px**.
+- `styles/library.css` is **7,667 lines — the largest stylesheet in the
+  repo** (ahead of `authoring.css` at 6,699).
+- **58 rules** carry a 3-digit fixed or min width.
+- ⚠⚠ **Nine media queries, and NOT ONE at 768px**: `1080 · 1080 · 1000 ·
+  900 · 860 · 760 · 640 · 480`. The library predates the convention in
+  CLAUDE.md and never joined it. ⭐ **`760px` is the dangerous one** —
+  between 761 and 768 the mobile nav has already taken over (desktop topbar
+  and sidebar hidden, drawer and bottom tabs in) while the library still
+  believes it is on desktop. An 8px band where the two systems disagree,
+  which reads as "the library is broken on my phone" with no obvious cause.
+- What coverage exists is mostly **tutor/overview**: the editor grid, stat
+  cards, the overview grid, the study-home hero. The only genuinely
+  student-facing rule is the reader dropping its Contents rail at 860px.
+
+### ⚠ Three things that are NOT CSS
+
+Sam's read is that this is "mostly CSS work", and for the bulk it is. These
+three are not, and they are what would blow the estimate. ⓘ Both previous
+student sweeps found *features that did not work*, not merely surfaces that
+looked wrong — that is the precedent here.
+
+1. **The Contents rail vanishes with nothing replacing it.** The reader
+   drops the rail at 860px, but the scroll-spy that highlights the current
+   section keeps running against a rail that is not rendered
+   (`lib/library/student/read-note-view.tsx:145`). On a phone a long note
+   loses its only navigation **and** still pays for tracking it. A missing
+   feature, not a style bug.
+
+2. **There are TWO readers.** `lib/library/student/read-note-view.tsx` (338
+   lines) and `lib/library/programme/programme-note-read-view.tsx` (257
+   lines) both render a student note — one per mount — and they are neither
+   the same file nor the same length. ⚠ Fix one and the other stays broken
+   silently. Decide early whether the sweep also merges them; this is the
+   *"share the behaviour, not the stylesheet"* trap the earlier sweeps
+   named.
+
+3. **A note can contain a question runner.** Seven block types must each
+   reflow — callout, image, video, pdf, lab-values, drug-card, embed. Three
+   are not paragraphs:
+   - ⭐ **`lib/library/student/embed-player.tsx` is 664 lines** — an
+     interactive question player *inside* a note. The main runner needed a
+     whole multi-slice arc to work on a phone; this has had none of it, and
+     may deserve its own slice rather than riding along.
+   - **`pdf-block`** — embedded PDF viewers are their own mobile problem,
+     and the honest answer may be "download it" rather than a viewport fix.
+   - **`lab-values-block` uses a real `<table>`** — needs a scroll container
+     or a card-stack, not a width tweak.
+
+### ⏭ How to start — inventory first
+
+**Walk the four student screens at 390px and write down what is BROKEN
+versus what is merely NARROW**, before committing to a slice plan. A short
+session that turns "the library has lots in it" into a list that can be cut.
+Rough expectation: ~70% plain CSS, ~30% in the three items above.
+
+⚠ And settle one question before building: **convert the student rules to
+768px, or add 768px alongside the existing scatter?** Converting is the
+honest fix and makes the library agree with every other surface, but touches
+nine existing rules in the repo's largest stylesheet. Adding leaves two
+breakpoint systems in one file. Current lean: convert the **student-facing**
+rules only, leave the tutor-side ones where they are.

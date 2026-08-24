@@ -126,6 +126,22 @@ sub-item was NOT touched) + a list of "areas of improvement" Sam flagged.
 See the slice log under *Build order* for per-slice status; that log is
 the current source of truth.
 
+⬜ **AND THE STUDENT SIDE IS NOT MOBILE-COMPATIBLE — scoped 2026-08-24
+(Sam), not started.** The library was skipped by both the student and the
+tutor mobile sweeps. ⭐ **Only the STUDENT side is in scope**: the tutor side
+is authoring, and authoring belongs on a computer, so a phone is not where
+that work happens. The student side is the opposite — the core audience is
+phone-first, and a student who cannot read her notes on a phone cannot use
+the product.
+
+⚠ It is mostly CSS (`styles/library.css` is **7,667 lines**, the largest
+stylesheet in the repo, with **nine media queries and not one at the
+mandated 768px**) — but **three items are not**: the Contents rail vanishes
+below 860px with nothing replacing it, there are **TWO** student note
+readers rather than one, and a note can embed a 664-line interactive
+question player. **Canonical scope, measurements and start order:**
+[mobile-responsive.md](mobile-responsive.md) → *The library sweep*.
+
 **No QAcademy-side library in v1.** The decision to leave self-study
 students with rationales-as-teaching is deliberate; the library is a
 tutor differentiator. The schema parallels the bank's parallel-
