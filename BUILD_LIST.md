@@ -71,6 +71,16 @@
 > (checked). It looks exactly like a permissions bug and hits only the
 > deepest routes. Clear `.next` before suspecting RLS.
 >
+> ⚠⚠ **THE SESSION ENDED ON A CRASH, DELIBERATELY.** The dev server crashed
+> and was stopped; Sam reports restarting it crashes again. Work was wound
+> up rather than continued without any way to verify. **Everything claimed
+> above was measured live BEFORE the crash**, with typecheck and
+> `lint:check` clean and the tree clean; what did not happen is a final
+> pass after the last commit. ⚠ Next session: if you need a dev server,
+> start it FIRST and confirm it survives a request — and if it dies twice,
+> work without it rather than burning the session. Pick-up notes are in
+> `sessions/2026-08.md` under *HOW THIS SESSION ENDED*.
+>
 > ⏭ **Left open:** the **embed player** (`@container rn` is unreachable
 > inside a note — its own slice, and `.rn` cannot simply be copied because
 > of `container-type: size` + `height: 100dvh`) · **PDF blocks** ·
