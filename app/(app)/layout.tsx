@@ -90,6 +90,9 @@ import '@/styles/email-admin.css';
 // restyles .lib-read-* rules defined above, so order is load-bearing.
 // docs/product-plan/mobile-responsive.md → "The library sweep".
 import '@/styles/library-read-mobile.css';
+// …and the STUDENT LIST-SHELL phone layer (`slm-*` + `@container slm`):
+// scope chips + Browse sheet standing in for the 220px lens rail.
+import '@/styles/library-student-mobile.css';
 
 export const dynamic = 'force-dynamic';
 

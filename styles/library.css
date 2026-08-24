@@ -7507,42 +7507,23 @@ a.lib-tag-inline:hover {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 760px) {
-  .lib-study-home .hero {
-    grid-template-columns: 1fr;
-  }
-  .lib-study-home .hero-side {
-    flex-direction: row;
-    align-items: center;
-  }
-  .lib-study-home .lib-sh-thumb {
-    width: 120px;
-    height: 80px;
-  }
-  .lib-study-home .lib-sh-thumb span {
-    font-size: 26px;
-  }
-  .lib-study-home .hero-side .btn {
-    flex: 1;
-  }
-  .lib-study-home .sh-cols {
-    grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 480px) {
-  .lib-study-home .stat-row {
-    grid-template-columns: 1fr;
-  }
-  .lib-study-home .browse-grid {
-    grid-template-columns: 1fr;
-  }
-  .lib-study-home .hero-side {
-    flex-direction: column;
-  }
-  .lib-study-home .lib-sh-thumb {
-    display: none;
-  }
-}
+/* ⓘ Study Home's 760px and 480px blocks lived here and are GONE, replaced
+ * verbatim-in-intent by styles/library-student-mobile.css (the library
+ * sweep, student side). Two reasons they could not simply stay:
+ *
+ *   ⚠ 760 was the dangerous number in this file. The mobile nav takes
+ *     over at 768, so between 761 and 768 the drawer and bottom tabs were
+ *     already in while Study Home still believed it was on desktop — an
+ *     8px band where the two systems disagreed, reading as "the library
+ *     is broken on my phone" with no obvious cause.
+ *
+ *   ⚠ The 480px rule dropped `.stat-row` and `.browse-grid` to ONE
+ *     column, which turns four cards each holding a single number into
+ *     four full-width bands. A 375px screen fits two comfortably; the
+ *     replacement keeps 2-up at every phone width.
+ *
+ * The tutor-side queries above (1080 / 1000 / 900) are NOT part of that
+ * scope and stay exactly where they are. */
 
 
 /* ─── PROGRAMME LIBRARY — tutor "student preview" (tlib-*) ───────────

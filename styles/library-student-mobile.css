@@ -1,0 +1,380 @@
+/* mynclex/styles/library-student-mobile.css
+ *
+ * STUDENT LIBRARY — phone layer (the library sweep, scope per
+ * docs/product-plan/mobile-responsive.md §"The library sweep":
+ * STUDENT SIDE ONLY; tutor authoring stays desktop).
+ *
+ * Load AFTER tokens.css + library.css + student-practice.css.
+ * Covers three of the four student screens:
+ *   • List shell   (student-library-shell.tsx — all scopes + Study Home)
+ *   • Practice     (practice-index-view.tsx + practice-note-view.tsx)
+ * The READER already has its layer: styles/library-read-mobile.css
+ * (.rdm). The embed player inside notes is its own slice — see the
+ * design doc.
+ *
+ * The route wraps the library surface in a `.slm` container; container
+ * queries key everything off the region's own width (same pattern as
+ * runner-mobile.css / library-read-mobile.css) so it renders truthfully
+ * inside frames.
+ *
+ * ⚠ BREAKPOINT: 768px — matching mobile-nav.css, NOT library.css's
+ * existing 760px. This layer deliberately papers over the 761–768px
+ * band where the mobile nav is already in but library.css still thinks
+ * it is on desktop. When this ships, DELETE the student-facing halves of
+ * library.css's 760px block (the .lib-study-home hero/sh-cols rules at
+ * ~line 7511) — they are superseded verbatim here. The tutor-side
+ * queries (1080/1000/900) stay where they are.
+ *
+ * Component diff (all inert >768px):
+ *   • .slm-scopebar    — horizontal chip row under the page head:
+ *                        [☰ Browse] + Home / All notes / My practice.
+ *                        Replaces the lens sidebar as the always-visible
+ *                        navigation; renders in the shell when compact.
+ *   • .slm-sheet/.slm-scrim — "Browse" bottom sheet: the FULL lens tree
+ *                        (Views · Folders · Shelves · Pillars · Tags)
+ *                        with counts and active state. Same completeness
+ *                        contract as the app drawer: the chip row is
+ *                        additive, the sheet is the whole menu.
+ *   • The collapse-to-rail toggle (useRailed) is desktop-only chrome —
+ *                        the rail state is meaningless at one column.
+ *   In production the sheet/scrim are position:fixed; the demo frame
+ *   positions them absolutely inside the container.
+ */
+
+.slm {
+  container-type: inline-size;
+  container-name: slm;
+  position: relative;
+  min-height: 100%;
+}
+
+/* Mobile-only chrome exists in the DOM at every width; hidden wide. */
+.slm-scopebar { display: none; }
+
+@container slm (max-width: 768px) {
+
+  /* ── Page frame: one column ─────────────────────────────────
+     ⚠ NO tab-bar clearance here, though the handoff put
+     `calc(84px + env(safe-area-inset-bottom))` on this rule and on
+     `.mpr-wrap`. mobile-nav.css already reserves it, and does it better:
+     `.shell-root:has(.m-tabbar) .product-content` — conditional on a tab
+     bar actually existing. Repeating it here would DOUBLE the gap for
+     students, and since the bottom bar is students-only (mobileTab lives
+     in lib/nav/student.ts alone) it would strand 84px of nothing under
+     the tutor's programme-library preview, which renders through this
+     same layer. Let the shell own shell clearance. */
+  .slm .lib-page {
+    padding: 14px 16px 24px;
+  }
+  .slm .lib-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .slm .lens-side { display: none; }
+  .slm .lib-page-title { font-size: 20px; }
+  .slm .lib-page-head { margin-bottom: 2px; }
+
+  /* ── Scope bar — full-bleed horizontal chip row ────────────── */
+  .slm-scopebar {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin: 12px -16px 16px;
+    padding: 2px 16px 4px;
+    scrollbar-width: none;
+  }
+  .slm-scopebar::-webkit-scrollbar { display: none; }
+  .slm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 44px;          /* wrap-safe: sized, not extended */
+    padding: 0 15px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--white);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .slm-chip .ico { font-size: 14px; }
+  .slm-chip.is-active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--white);
+    font-weight: 600;
+  }
+  .slm-chip.is-browse {
+    border-color: var(--border-strong);
+    font-weight: 600;
+  }
+  .slm-chip .cnt {
+    font-size: 11.5px;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .slm-chip.is-active .cnt { color: rgba(255, 255, 255, 0.7); }
+
+  /* ── Search: full width, no-zoom font, honest target ───────── */
+  .slm .lib-student-search input {
+    max-width: none;
+    min-height: 46px;
+    font-size: 16px;           /* <16px makes iOS zoom the page on focus */
+    border-radius: 12px;
+    padding: 10px 14px;
+  }
+
+  /* ── Note rows ──────────────────────────────────────────────── */
+  .slm .lib-notes-list { gap: 10px; }
+  .slm .lib-note-lens-row {
+    padding: 14px;
+    border-radius: 12px;
+  }
+  .slm .lib-note-title { font-size: 15px; }
+  /* Title + italic subtitle stack instead of baseline-wrapping into the
+     description line below. */
+  .slm .lib-note-title-line { display: block; }
+  .slm .lib-note-title { display: block; line-height: 1.35; }
+  .slm .lib-note-subtitle { display: block; margin-top: 1px; line-height: 1.4; }
+  /* Meta chips are decoration on the row link (spans, not targets) —
+     cap them to one scrolling line so a chip-heavy note stays a row,
+     not a poster. */
+  .slm .lib-note-meta {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-right: -14px;
+    padding-right: 14px;
+  }
+  .slm .lib-note-meta::-webkit-scrollbar { display: none; }
+  .slm .lib-note-meta > * { flex-shrink: 0; }
+
+  /* ── Pane head ──────────────────────────────────────────────── */
+  .slm .lib-pane-head { flex-direction: column; align-items: stretch; gap: 4px; }
+  .slm .lib-pane-title { font-size: 19px; }
+  /* Crumb becomes one truncating line — wrapped uppercase crumbs paint
+     into the title at narrow widths. */
+  .slm .lib-pane-crumb {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 6px;
+  }
+
+  /* ── Folders: cards become tappable rows ───────────────────── */
+  .slm .lib-folder-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .slm .lib-folder-card {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: center;
+    padding: 13px 14px;
+    border-radius: 12px;
+    min-height: 60px;
+  }
+  .slm .lib-folder-card-ic {
+    grid-row: 1 / span 3;
+    font-size: 22px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-soft);
+    border-radius: 10px;
+  }
+  .slm .lib-folder-card-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ── Shelves: strips go full-bleed, card ≈ one screen minus peek ── */
+  .slm .lib-shelf-strip {
+    grid-auto-columns: min(78cqw, 300px);
+    margin: 0 -16px;
+    padding: 4px 16px 12px;
+    scroll-padding-left: 16px;
+  }
+  .slm .lib-shelf-strip-head { flex-wrap: wrap; align-items: baseline; row-gap: 4px; }
+  .slm .lib-shelf-strip-count { white-space: nowrap; flex-shrink: 0; }
+  /* Tagline drops to its own full-width line, left-aligned — the desktop
+     right-aligned 50% cap paints over a wrapped count here. */
+  .slm .lib-shelf-strip-tagline {
+    flex-basis: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    text-align: left;
+    white-space: normal;
+  }
+
+  /* ── Study Home (converts library.css's 760/480 rules to 768) ── */
+  .slm .lib-study-home .hero { grid-template-columns: 1fr; gap: 16px; padding: 18px; }
+  .slm .lib-study-home .hero-side { flex-direction: row; align-items: center; }
+  .slm .lib-study-home .lib-sh-thumb { width: 96px; height: 68px; }
+  .slm .lib-study-home .lib-sh-thumb span { font-size: 22px; }
+  .slm .lib-study-home .hero-side .btn {
+    flex: 1;
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-size: 14px;
+  }
+  .slm .lib-study-home .hero-title { font-size: 20px; }
+  /* 2-up stays 2-up at every phone width — the 480px 1-col rule made
+     four full-width cards of four numbers; a 375px screen fits two. */
+  .slm .lib-study-home .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .slm .lib-study-home .sh-cols { grid-template-columns: minmax(0, 1fr); }
+  .slm .lib-study-home .browse-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .slm .lib-study-home .browse-card { min-height: 64px; }
+  .slm .lib-study-home .row { min-height: 48px; }
+  .slm .lib-study-home .hero-suggest { min-height: 52px; }
+
+  /* ── My practice (student-practice.css is mobile-first; targets) ── */
+  /* student-practice.css's 2-up grid keys on the VIEWPORT (min-width:
+     769px) — inside a compact container (tutor programme preview, this
+     doc's frames) it would still fire. Container wins. */
+  .slm .mpr-list { grid-template-columns: minmax(0, 1fr); }
+  .slm .mpr-wrap { padding: 14px 16px 24px; }
+  .slm .mpr-back {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 8px 0 0;
+  }
+  .slm .mpr-note { min-height: 64px; }
+  .slm .mpr-cta { min-height: 50px; display: flex; align-items: center; justify-content: center; }
+  .slm .mpr-read-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-top: 4px;
+  }
+  /* Text link at a row's trailing edge; nearest neighbour is a question
+     card ≥10px below — vertical extension is safe here (no wrap risk:
+     the head is nowrap flex with the link flex:none). */
+  .slm .mpr-block-practise { position: relative; white-space: nowrap; }
+  .slm .mpr-block-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slm .mpr-block-practise::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: max(100%, 44px);
+    height: 44px;
+  }
+}
+
+/* ── Browse sheet (rendered when open, any compact width) ─────────
+ * Same anatomy as the reader's contents sheet (.rdm-sheet) so the two
+ * feel like one gesture; kept separate classes because they list
+ * different objects (lens tree vs headings). */
+
+.slm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(15, 23, 42, 0.42);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  animation: slm-fade 0.18s ease;
+}
+.slm-sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 41;
+  background: var(--white);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.25);
+  max-height: 78%;
+  display: flex;
+  flex-direction: column;
+  animation: slm-up 0.22s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+@keyframes slm-up { from { transform: translateY(28px); opacity: 0; } }
+@keyframes slm-fade { from { opacity: 0; } }
+
+.slm-sheet-grab {
+  width: 40px; height: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+  margin: 10px auto 2px;
+  flex-shrink: 0;
+}
+.slm-sheet-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 20px 10px;
+  flex-shrink: 0;
+}
+.slm-sheet-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.slm-sheet-list {
+  overflow-y: auto;
+  padding: 0 10px calc(16px + env(safe-area-inset-bottom));
+}
+.slm-sheet-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.slm-sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
+  padding: 4px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14.5px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+}
+.slm-sheet-row .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slm-sheet-row .cnt {
+  font-size: 12px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.slm-sheet-row .pip {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.slm-sheet-row.is-active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+.slm-sheet-row.is-disabled { color: var(--text-faint); cursor: default; }
+.slm-sheet-row.is-disabled .hint { font-size: 11px; font-style: italic; }

@@ -29,31 +29,39 @@
 
 import { useEffect, useState } from 'react';
 
-/** Compact ceiling. Keep in step with library-read-mobile.css. */
+/** Compact ceiling, shared by both library phone layers. Keep in step
+ *  with library-read-mobile.css and library-student-mobile.css. */
 export const RDM_COMPACT_MAX = 768;
 
 /** One-shot read, for effects that must decide before an observer has
  *  had a chance to fire (the resume-on-open branch). Returns false when
  *  there is nothing to measure, which is the desktop-shaped answer. */
-export function isRdmCompactNow(): boolean {
+export function isCompactNow(selector: string): boolean {
   if (typeof document === 'undefined') return false;
-  const rdm = document.querySelector('.rdm');
-  return !!rdm && rdm.getBoundingClientRect().width <= RDM_COMPACT_MAX;
+  const el = document.querySelector(selector);
+  return !!el && el.getBoundingClientRect().width <= RDM_COMPACT_MAX;
 }
 
-export function useRdmCompact(): boolean {
+export function isRdmCompactNow(): boolean {
+  return isCompactNow('.rdm');
+}
+
+/** Observe one container's own width. `selector` is the container the
+ *  stylesheet queries — `.rdm` for read mode, `.slm` for the list shell.
+ *  Same element, same number, so CSS and JS cannot disagree. */
+export function useCompactContainer(selector: string): boolean {
   // Defaults FALSE so server and first client render agree — returning
   // true would be a hydration mismatch on every desktop load.
   const [compact, setCompact] = useState(false);
 
   useEffect(() => {
-    const rdm = document.querySelector('.rdm');
+    const el = document.querySelector(selector);
 
-    if (rdm && typeof ResizeObserver !== 'undefined') {
+    if (el && typeof ResizeObserver !== 'undefined') {
       const ro = new ResizeObserver(([entry]) => {
         setCompact(entry.contentRect.width <= RDM_COMPACT_MAX);
       });
-      ro.observe(rdm);
+      ro.observe(el);
       return () => ro.disconnect();
     }
 
@@ -63,7 +71,11 @@ export function useRdmCompact(): boolean {
     sync();
     mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
-  }, []);
+  }, [selector]);
 
   return compact;
+}
+
+export function useRdmCompact(): boolean {
+  return useCompactContainer('.rdm');
 }
