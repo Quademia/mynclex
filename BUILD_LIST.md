@@ -3,8 +3,9 @@
 > ## ✅ DONE 2026-08-24 (later) — **the access window stops ending in silence**
 >
 > The pair for sweep step 2d, plus the tutor button that answers it. **Two
-> commits (`6435413`, `163d049`), ONE migration (`20260923120000`), merged to
-> `main`.** Canonical: **`transactional-email.md`** → *The access pair, and the
+> commits (`6435413`, `163d049`), ONE migration (`20260923120000`), RELEASED TO
+> PROD** the same day (PR #62, prod `999a378`; both workflows green, and the
+> column, switch and redefined sweep verified on prod itself). Canonical: **`transactional-email.md`** → *The access pair, and the
 > button that answers it*, and **`payments-and-enrolment.md`** → *Programme
 > access window → BUILD NOTE*.
 >
@@ -68,8 +69,9 @@
 >
 > ⚠ **Unverified: the tutor UI.** The roster column, ⋯ items and extend dialog
 > compile, typecheck, lint and serve, but nobody has looked at them — Claude
-> cannot sign in and the Chrome extension was not connected. **Merged to `main`
-> on that basis; look before releasing.**
+> cannot sign in and the Chrome extension was not connected. **Released on that
+> basis with Sam’s approval** — prod has zero enrolments, so nobody can reach it
+> yet, but it is the first thing to open when you next log in as a tutor.
 >
 > ⏭ **Next:** 2e (bank/readiness subscriptions) is now the **only** sweep
 > transition with no email — and unlike 2d it *has* already fired in silence
