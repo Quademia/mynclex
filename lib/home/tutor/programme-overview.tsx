@@ -64,6 +64,11 @@ export function ProgrammeOverview({ data }: { data: ProgrammeOverviewData }) {
   const id = header.programmeId;
   const tutored = header.deliveryMode === 'TUTOR_LED';
   const href = (seg: string) => `/tutor/programme/${id}/${seg}`;
+  // SELF_PACED "needs attention" = never started + stalled. Deliberately
+  // NOT the pace buckets a cohort uses: with no shared calendar there is
+  // nothing to be behind, so the question is engagement over time.
+  const spNeedAttention =
+    (kpis.studentsNotStarted ?? 0) + (kpis.studentsStalled ?? 0);
   const unitsShort = header.unitLabel === 'WEEK' ? 'wks' : 'modules';
   const priceLabel = formatPrice(header.priceMinor, header.currency);
 
@@ -169,17 +174,29 @@ export function ProgrammeOverview({ data }: { data: ProgrammeOverviewData }) {
           </>
         ) : (
           <>
-            {/* 2 — Revenue (self-paced) */}
-            <Link href="/tutor/payments" className="pov-kpi">
+            {/* 2 — Avg completion (self-paced) → the Progress dashboard.
+                ⚠ This slot used to be a Revenue card. It was swapped, not
+                dropped: revenue already prints in the header meta line a
+                few pixels above, so the card was the page's second copy of
+                one number while "is anybody actually doing the work" had
+                no copy at all. The strip is a hard 4 columns
+                (.pov-kpis, styles/programme-overview.css), so a fifth card
+                would wrap and leave three empty cells. */}
+            <Link href={href('progress')} className="pov-kpi">
               <div className="pov-kpi-top">
                 <span className="pov-kpi-ic">
-                  <Icon name="money" />
+                  <Icon name="clock" />
                 </span>
+                {spNeedAttention > 0 && (
+                  <span className="pov-kpi-attn">
+                    {spNeedAttention} need{spNeedAttention === 1 ? 's' : ''} attention
+                  </span>
+                )}
               </div>
               <span className="pov-kpi-val">
-                {header.revenueLabel ?? `${header.currency === 'GHS' ? 'GHS ' : '$'}0`}
+                {kpis.avgCompletion == null ? '—' : `${kpis.avgCompletion}%`}
               </span>
-              <span className="pov-kpi-label">Revenue received</span>
+              <span className="pov-kpi-label">Avg completion</span>
             </Link>
 
             {/* 3 — Overdue (self-paced) */}

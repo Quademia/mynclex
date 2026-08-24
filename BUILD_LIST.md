@@ -1,5 +1,164 @@
 # MyNclex Build List
 
+> ## ✅ DONE 2026-08-24 — **the system chases the quiet student, not the tutor**
+>
+> Slice B — `progress.inactivity_nudge`, the other half of the Progress
+> page below and arguably the more important one. **One commit
+> (`5cd5912`), ONE migration (`20260922120000`).** Canonical:
+> **`progress-engine.md` §6.4** + **`transactional-email.md`**.
+>
+> **Why it is the more important half.** A screen that lists people to
+> chase, with nothing chasing them, just moves the labour onto the tutor —
+> it turns a low-touch product into a high-touch one at a low-touch price.
+> This tries first, so the tutor only ever looks at the students it failed
+> to revive.
+>
+> ⭐ **The first email nobody triggered.** Every other key in the catalogue
+> fires because a person DID something — paid, applied, enrolled,
+> scheduled. This fires because they did **nothing**, so it has no anchor
+> and needs a nightly pass to notice at all.
+>
+> **⚠⚠ Which changes what keeps it honest.** An installment reminder
+> compares against a due DATE, so its window and its fingerprint are
+> belt-and-braces. *"Silent for 14 days" becomes true and then stays true
+> forever*, so the unique index is doing the work **alone** — and the
+> subject is a person, exactly the case where the stage must name the
+> occurrence or the second email hits the index and **silently never
+> sends**.
+>
+> ⭐ **Nudge 2 is 30 days after nudge 1 was SENT, not 44 days of silence.**
+> Sam approved "44"; building it showed the two are not equivalent. A
+> student already 50 days quiet at launch would match **both** absolute
+> thresholds on the first run and get two emails the same morning.
+> Chaining is self-correcting. Same intent, better mechanism.
+>
+> ⭐ **One definition of "last seen", in SQL.**
+> `nclex_programme_last_active()` is called by the nightly sweep **and**
+> the Progress page. Written twice they would drift, and the drift has a
+> precise cost: the screen calling somebody "Stalled" that the system
+> never wrote to. `last-active.ts` is now a thin caller.
+>
+> **Decisions settled in the build:**
+> - **One admin switch, not a panel of dials** (Sam) —
+>   `programme_inactivity_nudge_enabled`. The 14 and 30 stay constants.
+>   ⚠ Seeded by migration **and** declared in `config-defs.ts`; a key in
+>   one and not the other is invisible on screen, which is how
+>   `email_drain_enabled` was missed on its first pass.
+> - **Programme-side names** (Sam) — every object is `nclex_programme_*`.
+>   They share one flat namespace with bank objects, so the name is the
+>   only thing recording which half of the product they belong to. The
+>   event key stays `progress.inactivity_nudge`: email keys live in a
+>   topic-family namespace where `progress.*` is already programme-only.
+> - **The tutor sees that we wrote** (Sam) — via a narrow DEFINER function
+>   returning a timestamp, never payload content; the outbox stays
+>   admin-only. Without it the automation is invisible to the one person
+>   whose behaviour it should change, and tutors chase students the system
+>   already chased.
+> - **The email names the tutor but never claims they sent it** —
+>   *"Steven built it to be worked through at your own pace"*, never
+>   *"Steven asked me to write"*. Putting words in a tutor's mouth is the
+>   one thing it must not do.
+> - **Self-paced only.** Cohort students already get a weekly
+>   `session.reminder`; a nudge on top risks two emails a week to the
+>   people already hearing from us most. ⓘ A volume decision, not a
+>   technical limit — one filter line is most of what a cohort extension
+>   would take.
+>
+> **Verified on dev with the drain switched OFF, so nothing was sent** —
+> ⚠ one candidate was a real third party, not a plus-addressed test inbox.
+> 3 selected of 11; second run queued 0 (the fingerprint); off switch
+> queued 0; rows deleted and both switches restored. ⭐ And the Progress
+> page renders **identical numbers** through the SQL function as through
+> the TypeScript it replaced — the real proof the shared definition agrees
+> with itself.
+>
+> ⚠ **Unverified: the rendered email.** `/admin/emails/preview` needs
+> COMMS_MANAGE and the test session is tutor-only. If the template throws
+> at render time the drain marks the row DEAD rather than sending, and
+> nothing else catches it. **Open the preview from an admin account.**
+>
+> **⚠⚠ A correction fell out of it.** `transactional-email.md` marked
+> `enrolment.access_expiring` / `access_expired` as *"blocked on access
+> windows"*. They were **never blocked** — the column shipped 2026-05-27
+> and the nightly sweep has been expiring on it since 2026-06-08. **A
+> student's access has been ending in total silence ever since**, and
+> until this week the tutor could not see it coming either. ⏭ Those two
+> emails are now the obvious next thing.
+
+> ## ✅ DONE 2026-08-23 — **self-paced students stop being invisible**
+>
+> A tutor running a **self-paced** programme could see who had paid and
+> nothing else — no way to tell whether anybody had ever opened the
+> curriculum. Cohort students have had a progress dashboard since June.
+> **Three commits, NO migration.** Canonical:
+> **`docs/product-plan/progress-engine.md` §6.4**.
+>
+> | Commit | What |
+> |---|---|
+> | `740e3a0` | the self-paced Progress page + the engagement vocabulary |
+> | `17bfcbf` | the access column, on cohorts too |
+> | `d2b2064` | "joined", on cohorts too |
+>
+> ⓘ **The code was already apologising for this in a comment** —
+> *"self-paced avg completion is intentionally absent: it needs a
+> programme-level aggregator that isn't built yet"* — and
+> `progress-engine.md` listed it as deferred follow-on #1. It sat there
+> for six months because nobody read the two together.
+>
+> ⭐ **The model is Sam's: a self-paced programme is one cohort with late
+> joins.** Every member with their own start date (the day they bought),
+> their own end date (their access window), no release gates, no live
+> sessions. Three of the four differences from the cohort query make it
+> **simpler**, not harder.
+>
+> **⚠ The one thing that could not be ported was the status pill.** The
+> cohort classifier buckets on completion % of RELEASED material, fair
+> only because a cohort in week 2 has released weeks 1–2. Self-paced
+> unlocks everything on day one, so the denominator is the whole
+> programme and **a student who joined yesterday would have read "At
+> risk" on arrival** — every new student flagged as failing the moment
+> they turned up. Replaced with engagement over time: Not started ·
+> Active · Stalled · Finished, plus "Ending soon" as an orthogonal
+> overlay, never a fifth state.
+>
+> **No migration, and not by luck.** The `*_tutor_read` policies resolve
+> ownership by walking activity → unit → programme → tutor and never
+> touch cohort, so a cohortless student's data was always readable.
+> Nothing had ever asked for it.
+>
+> ⭐ **The rename fixed an ambiguity that already existed.** The cohort's
+> landing tab is now **Progress**, not Overview: analytics were folded
+> into it in June, which made "Overview" the wrong word while the
+> *programme* Overview stayed a grid of summary cards. Building the
+> self-paced surface only made it unignorable — the same content would
+> otherwise have carried two names depending on delivery mode.
+>
+> **⚠⚠ And an assumption the canonical doc taught us.** `main.md` said a
+> self-paced access window is per-enrolment *"rather than bounded by
+> cohort start/end dates"*, implying a cohort's is bounded by its dates.
+> It is not: access is frozen from the JOIN DATE in both modes, so one
+> cohort's members hold different end dates. Dev has a cohort that ran
+> 1–28 Jul 2026, is badged **Ended**, and whose students keep access
+> until **24 Jun 2027**. The nightly sweep expires on
+> `access_expires_at`, so that — not the cohort's dates — is what
+> actually cuts a student off, and it appeared on **no tutor surface at
+> all**. Hence the access column landing on cohorts too, at Sam's call.
+>
+> ⓘ "Last active" also stopped meaning "last thing they ticked done":
+> attempts carry `last_activity_at`, so a student grinding through a quiz
+> they never submit is visible instead of reading as dead. Deliberately
+> **not** `last_login_utc` — product-wide, so it answers "have they
+> vanished entirely", not "have they abandoned THIS programme".
+>
+> ⏭ **Open:** `progress.inactivity_nudge` — the system chasing the
+> stalled student itself, so the tutor's list only holds the ones
+> automation failed to revive. ⭐ Worth building before any expansion of
+> this surface: without it, every stalled student becomes the tutor's
+> problem by default, which turns a low-touch product into a high-touch
+> one at a low-touch price. Also open: the cross-cohort roll-up, the
+> per-student 360, and `/tutor/students` — still a counted KPI card
+> pointing at an empty room.
+
 > ## ✅ DONE 2026-08-22 (later) — **the public site: a phone can navigate it, and it stops saying QAcademy**
 >
 > Three changes on the same branch, no migrations. Docs:

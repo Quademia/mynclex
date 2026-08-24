@@ -39,11 +39,18 @@ export async function TutorProgrammeShell({
   const programmeTitle = programme.title;
 
   // SELF_PACED programmes have no cohort layer (main.md §Self-paced
-  // surface), so the Cohorts sidebar entry hides for them. Enrolments
-  // shows for BOTH modes since the 2026-06-12 move to programme level.
+  // surface), so the Cohorts sidebar entry hides for them — and Progress,
+  // its self-paced counterpart, hides for tutor-led, where the same
+  // dashboard lives on each cohort instead. Exactly one of the pair
+  // survives, which is why the "Delivery" section never renders empty.
+  // ⚠ Hiding a row is not access control: /progress 404s on a tutor-led
+  // programme in its own right.
+  // Enrolments shows for BOTH modes since the 2026-06-12 move to
+  // programme level.
   const selfPaced = programme.delivery_mode === 'SELF_PACED';
   const items = TUTOR_PROGRAMME_NAV
     .filter((item) => !(item.key === 'cohorts' && selfPaced))
+    .filter((item) => !(item.key === 'progress' && !selfPaced))
     .map((item) => ({
       ...item,
       href: item.href.replace(':programmeId', programmeId),

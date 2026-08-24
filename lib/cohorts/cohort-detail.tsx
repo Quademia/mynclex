@@ -10,7 +10,7 @@
 // old per-page cohort world this replaced.
 //
 // Tabs are plain <Link>s carrying ?cohort=&tab= — no client state.
-// `tab=overview` is the default and omits the param for clean URLs.
+// `tab=progress` is the default and omits the param for clean URLs.
 
 import Link from 'next/link';
 import { getCohortAnalytics } from '@/lib/analytics/tutor/cohort-queries';
@@ -30,12 +30,23 @@ import {
   formatDateRange,
 } from './format';
 
-// Analytics folded INTO Overview (2026-06-25): the Overview landing now IS
-// the cohort analytics dashboard, plus a slim enrolment action + cancelled
-// banner. An old `&tab=analytics` URL falls through parse → 'overview', so
-// existing deep links keep working without a redirect.
+// Analytics folded INTO the landing tab (2026-06-25): it IS the cohort
+// analytics dashboard, plus a slim enrolment action + cancelled banner.
+//
+// ⭐ RENAMED 'overview' → 'progress' (2026-08-23, Sam). "Overview" meant two
+// different kinds of page in this product: the PROGRAMME Overview is a grid
+// of summary cards (money, counts, enquiries), while this one is a progress
+// dashboard. The ambiguity predates the self-paced Progress page — building
+// that surface only made it impossible to ignore, since the same content
+// would otherwise have carried two names depending on delivery mode. One
+// word, one meaning: Overview = summary cards, Progress = how students are
+// doing.
+//
+// Old deep links keep working for free: an unrecognised `&tab=` value —
+// including the old 'overview' and the older 'analytics' — falls through
+// parse to the default, which is this same tab.
 export const COHORT_DETAIL_TABS = [
-  'overview',
+  'progress',
   'curriculum',
   'sessions',
   'pricing',
@@ -45,7 +56,7 @@ export const COHORT_DETAIL_TABS = [
 export type CohortDetailTab = (typeof COHORT_DETAIL_TABS)[number];
 
 const TAB_LABEL: Record<CohortDetailTab, string> = {
-  overview: 'Overview',
+  progress: 'Progress',
   curriculum: 'Curriculum',
   sessions: 'Sessions',
   pricing: 'Pricing',
@@ -55,7 +66,7 @@ const TAB_LABEL: Record<CohortDetailTab, string> = {
 export function parseCohortDetailTab(raw: string | null): CohortDetailTab {
   return (COHORT_DETAIL_TABS as readonly string[]).includes(raw ?? '')
     ? (raw as CohortDetailTab)
-    : 'overview';
+    : 'progress';
 }
 
 // Sessions has two sub-tabs (Schedule | Attendance), carried by ?stab=.
@@ -74,7 +85,7 @@ export function cohortTabHref(
   tab: CohortDetailTab
 ): string {
   const base = `/tutor/programme/${programmeId}/cohorts?cohort=${cohortId}`;
-  return tab === 'overview' ? base : `${base}&tab=${tab}`;
+  return tab === 'progress' ? base : `${base}&tab=${tab}`;
 }
 
 export async function CohortDetail({
@@ -186,7 +197,7 @@ async function CohortDetailPane({
   ctx: NonNullable<Awaited<ReturnType<typeof getCohortForShell>>>;
 }) {
   switch (tab) {
-    case 'overview': {
+    case 'progress': {
       // The merged landing: the cohort analytics dashboard, topped with a
       // cancelled banner (when relevant) + a slim enrolment action so the
       // run's health is the first thing the eye lands on.

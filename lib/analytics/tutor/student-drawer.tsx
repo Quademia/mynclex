@@ -1,14 +1,21 @@
 // mynclex/lib/analytics/tutor/student-drawer.tsx
 //
 // Per-student drill-in drawer (Phase 1 = completion). Slides in from the
-// right; shows the student's headline figures + a week-banded completion
+// right; shows the student's headline figures + a unit-banded completion
 // timeline (done / not done / locked per activity). This is the seed of the
 // future per-student "360" view — kept completion-only for now.
+//
+// Serves both delivery units. On a SELF_PACED programme the headline swaps
+// the pace status for the engagement status and adds the two facts that
+// only exist per-student there: when they joined (their personal week 1)
+// and how much access they have left. Nothing is locked in that mode — a
+// self-paced student has had the whole curriculum since the day they
+// bought it — so the timeline's locked branch simply never fires.
 
 'use client';
 
 import { useEffect } from 'react';
-import { Avatar, StatusPill, ScoreChip, ACTIVITY_META } from './atoms';
+import { Avatar, EngagementPill, StatusPill, ScoreChip, ACTIVITY_META } from './atoms';
 import type {
   ActivityAnalyticsRow,
   StudentAnalyticsRow,
@@ -30,12 +37,15 @@ export function StudentDrawer({
   activities,
   unitLabel,
   quizPerf,
+  selfPaced = false,
   onClose,
 }: {
   student: StudentAnalyticsRow;
   activities: ActivityAnalyticsRow[];
   unitLabel: UnitLabel;
   quizPerf: StudentQuizPerf | null;
+  /** SELF_PACED — swaps the pace status for engagement + the own-clock facts. */
+  selfPaced?: boolean;
   onClose: () => void;
 }) {
   // Esc closes; lock body scroll while open.
@@ -71,10 +81,20 @@ export function StudentDrawer({
           <div className="an-drawer-stat">
             <div className="s">
               <div className="v">{student.completionPct}%</div>
-              <div className="l">{student.doneCount} of {student.releasedCount} released done</div>
+              <div className="l">
+                {student.doneCount} of {student.releasedCount}{' '}
+                {selfPaced ? 'activities done' : 'released done'}
+              </div>
             </div>
             <div className="s">
-              <StatusPill status={student.status} />
+              {selfPaced ? (
+                <EngagementPill
+                  status={student.engagement ?? 'notstarted'}
+                  endingSoon={student.endingSoon}
+                />
+              ) : (
+                <StatusPill status={student.status} />
+              )}
               <div className="l" style={{ marginTop: 6 }}>
                 {student.lastActiveDays == null
                   ? 'No activity yet'
@@ -82,6 +102,56 @@ export function StudentDrawer({
                     ? 'Active today'
                     : `Last active ${student.lastActiveDays}d ago`}
               </div>
+            </div>
+            {/* ⚠ This block used to be self-paced-only, on the assumption
+                that "a cohort shares a start and an end date, so these
+                would be the same for everybody there". BOTH halves of that
+                turned out to be false. Access is frozen per enrolment from
+                the join date, so one cohort's members hold different end
+                dates and the cohort's end_date is a timetable that need not
+                resemble any of them. And students join a cohort at
+                different times too — late joining is an explicit cohort
+                setting — which is exactly what makes a late joiner's harsh
+                pace status readable rather than alarming. */}
+            <div className="s">
+              {student.joinedDays != null && (
+                <div className="l">
+                  Joined{' '}
+                  <b>
+                    {student.joinedDays === 0
+                      ? 'today'
+                      : student.joinedDays === 1
+                        ? 'yesterday'
+                        : `${student.joinedDays} days ago`}
+                  </b>
+                </div>
+              )}
+              <div className="l" style={{ marginTop: 6 }}>
+                Access:{' '}
+                <b>
+                  {student.accessDaysLeft == null
+                    ? 'lifetime'
+                    : student.accessDaysLeft === 0
+                      ? 'ends today'
+                      : `${student.accessDaysLeft} days left`}
+                </b>
+              </div>
+              {/* Only ever shown when it happened. An absent line means the
+                  system has not written to them — deliberately not spelled
+                  out as "not nudged", which would read as a promise that it
+                  will be, when a finished or paused student never is. */}
+              {student.lastNudgedDays != null && (
+                <div className="l" style={{ marginTop: 6 }}>
+                  Reminder sent:{' '}
+                  <b>
+                    {student.lastNudgedDays === 0
+                      ? 'today'
+                      : student.lastNudgedDays === 1
+                        ? 'yesterday'
+                        : `${student.lastNudgedDays} days ago`}
+                  </b>
+                </div>
+              )}
             </div>
           </div>
 

@@ -27,6 +27,7 @@ import { getCohortRoster } from '@/lib/enrolments/queries';
 import { isVisibleToStudents, activityOpenState } from '@/lib/curriculum/format';
 import type { ActivityType } from '@/lib/curriculum/types';
 import type { AttendanceStatus } from '@/lib/cohorts/attendance-format';
+import { ACCESS_SOON_DAYS } from './types';
 import type {
   ActivityAnalyticsRow,
   CohortAnalytics,
@@ -132,7 +133,8 @@ export async function getCohortAnalytics(
   const programmeId = ctx.cohort.programme_id;
 
   // ── Effective curriculum: units, blocks, checklist→activities ──────────
-  const [unitsRes, blocksRes, rowsRes] = await Promise.all([
+  // (+ the access windows — see the accessByStudent note below.)
+  const [unitsRes, blocksRes, rowsRes, accessRes] = await Promise.all([
     supabase
       .from('nclex_programme_units')
       .select('unit_id, unit_index, title, is_published')
@@ -153,7 +155,28 @@ export async function getCohortAnalytics(
          )`,
       )
       .eq('cohort_id', cohortId),
+    // ⚠ Per-STUDENT even here. Access is frozen at enrolment as
+    // `enrolled_at + programme.access_window_days`, so a cohort's members
+    // hold different end dates, and the cohort's own end_date is a
+    // timetable that need not resemble any of them. The nightly sweep
+    // expires on this column, so it is what actually ends a student's
+    // access — and until now it appeared on no tutor surface at all.
+    // ⚠ The .eq() is load-bearing: a SUPER_ADMIN's admin-all policy would
+    // otherwise OR in every enrolment in the product.
+    supabase
+      .from('nclex_enrolments')
+      .select('user_id, access_expires_at')
+      .eq('cohort_id', cohortId),
   ]);
+
+  const accessByStudent = new Map<string, string | null>();
+  for (const r of (accessRes.data ?? []) as Array<{
+    user_id: string;
+    access_expires_at: string | null;
+  }>) {
+    if (!studentIdSet.has(r.user_id)) continue;
+    accessByStudent.set(r.user_id, r.access_expires_at);
+  }
 
   const units = (unitsRes.data ?? []) as Array<{
     unit_id: string;
@@ -483,6 +506,18 @@ export async function getCohortAnalytics(
       lastTs == null
         ? null
         : Math.max(0, Math.floor((Date.now() - new Date(lastTs).getTime()) / DAY_MS));
+    const joinedDays = Math.max(
+      0,
+      Math.floor((Date.now() - new Date(s.enrolled_at).getTime()) / DAY_MS),
+    );
+    const expiresAt = accessByStudent.get(s.user_id) ?? null;
+    const accessDaysLeft =
+      expiresAt == null
+        ? null
+        : Math.max(
+            0,
+            Math.ceil((new Date(expiresAt).getTime() - Date.now()) / DAY_MS),
+          );
 
     studentRows.push({
       userId: s.user_id,
@@ -493,7 +528,20 @@ export async function getCohortAnalytics(
       completionPct,
       programmePct,
       status: classify(completionPct, doneCount),
+      // Self-paced-only: a cohort paces against its own shared calendar,
+      // so the per-student engagement vocabulary and join anchor don't
+      // apply. Access DOES — see accessDaysLeft above.
+      engagement: null,
+      joinedDays,
+      accessDaysLeft,
+      endingSoon:
+        accessDaysLeft != null &&
+        accessDaysLeft <= ACCESS_SOON_DAYS &&
+        completionPct < 100,
       lastActiveDays,
+      // Cohort students are not nudged in v1 — they already hear from us
+      // weekly through session.reminder.
+      lastNudgedDays: null,
       doneAt,
     });
   }
@@ -613,6 +661,7 @@ export async function getCohortAnalytics(
   }
 
   return {
+    mode: 'COHORT',
     meta: {
       cohortName: ctx.cohort.name ?? formatRange(ctx.cohort.start_date, ctx.cohort.end_date),
       programmeTitle: ctx.programme.title,
@@ -622,7 +671,14 @@ export async function getCohortAnalytics(
       releasedCount,
       totalCount,
     },
-    summary: { studentCount, avgCompletion, buckets, stale },
+    summary: {
+      studentCount,
+      avgCompletion,
+      buckets,
+      stale,
+      engagement: null,
+      endingSoon: studentRows.filter((r) => r.endingSoon).length,
+    },
     students: studentRows,
     activities,
     completionTrend: weeklyTrend(allDoneTimestamps, ctx.cohort.start_date, totalUnits),
@@ -644,7 +700,7 @@ interface QuizDef {
 // per quiz (answers "have they demonstrated a pass"). Keyed by quiz_id — which
 // every attempt carries — so it captures both activity-launched and standalone
 // attempts, and treats a quiz placed as several activities as one quiz.
-async function computePerformance(
+export async function computePerformance(
   supabase: Awaited<ReturnType<typeof createClient>>,
   programmeId: string,
   studentIds: string[],
@@ -834,7 +890,7 @@ interface NoteStateRow {
 
 // skipped_note_ids / seen sets are JSONB — normalise (array or JSON string)
 // to string[]. Mirrors the helper in lib/curriculum/student-queries.ts.
-function normalizeIds(raw: unknown): string[] {
+export function normalizeIds(raw: unknown): string[] {
   let arr: unknown = raw;
   if (typeof raw === 'string') {
     try {

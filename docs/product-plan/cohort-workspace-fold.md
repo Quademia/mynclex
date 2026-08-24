@@ -56,6 +56,19 @@ never swaps.
    Enrolment + Class-progress cards are real content) — minus its
    "Programme" card, which is pointless once you're already inside
    the programme.
+   ⭐ **RENAMED "Overview" → "Progress", 2026-08-23 (Sam).** Analytics
+   was folded *into* this tab on 2026-06-25 (see below), which quietly
+   made "Overview" the wrong word: the tab had become a progress
+   dashboard, while the **programme** Overview is a grid of summary
+   cards. One word, two different kinds of page — an ambiguity that
+   predates the rename and was simply never noticed. It became
+   unignorable when the self-paced Progress surface was built
+   (progress-engine.md §6.4), because the *same content* would otherwise
+   have carried two names depending on delivery mode. Now: **Overview =
+   summary cards. Progress = how students are doing.**
+   ⓘ Old deep links keep working with no redirect — an unrecognised
+   `&tab=` value (including the old `overview`, and the older
+   `analytics`) falls through parse to the default, which is this tab.
 
 ## Target shape
 
@@ -69,7 +82,11 @@ section).
   - **Run header**: "← All cohorts" link (back to the bare route) +
     run name + status pill + date range + seats.
   - **Tab bar**: Overview · Curriculum · Analytics · Sessions ·
-    Settings. Tabs are plain `<Link>`s carrying `?cohort=&tab=` —
+    Settings. ⓘ As built and since amended: Analytics folded into the
+    landing tab (2026-06-25), which was then renamed Overview →
+    **Progress** (2026-08-23), giving today's **Progress · Curriculum ·
+    Sessions · Pricing · Settings**. Tabs are plain `<Link>`s carrying
+    `?cohort=&tab=` —
     no client state; the server composes per request (same cost as
     today's separate pages, since only the active tab's data is
     fetched).

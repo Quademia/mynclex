@@ -46,8 +46,11 @@ export type ProgrammeOverviewHeader = {
 // ── KPI strip ─────────────────────────────────────────────────────────
 // Raw figures; the view assembles the four cards per mode. Tutored uses
 // cohortsActive / cohortsNeedAttention / avgCompletion; self-paced uses
-// enrolmentsOverdue + revenue (avg completion needs programme-level
-// analytics, which isn't built — see the queries note).
+// avgCompletion + studentsNeedAttention alongside enrolmentsOverdue.
+//
+// ⭐ avgCompletion is now populated for BOTH modes (2026-08-23). It used to
+// be null on self-paced because the programme-level analytics aggregator
+// did not exist; it does now (lib/analytics/tutor/programme-queries.ts).
 export type ProgrammeOverviewKpis = {
   studentsEnrolled: number;
   studentsNewThisWeek: number;
@@ -56,6 +59,13 @@ export type ProgrammeOverviewKpis = {
   avgCompletion: number | null;
   enrolmentsOverdue: number;
   enquiriesOpen: number;
+  /** SELF_PACED only — students who have never opened anything. Null on
+   *  tutor-led, where the equivalent lives per-cohort. */
+  studentsNotStarted: number | null;
+  /** SELF_PACED only — started once, nothing since (see STALLED_AFTER_DAYS). */
+  studentsStalled: number | null;
+  /** SELF_PACED only — access closing with work still undone. */
+  studentsEndingSoon: number | null;
 };
 
 // ── Sections grid (the five content shortcuts) ──────────────────────────

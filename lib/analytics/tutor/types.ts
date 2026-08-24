@@ -20,6 +20,43 @@ import type { UnitLabel } from '@/lib/programmes/types';
  */
 export type CompletionStatus = 'ontrack' | 'behind' | 'risk' | 'notstarted';
 
+/**
+ * Self-paced engagement status. A cohort shares a calendar, so "behind"
+ * means something there. A self-paced programme has none — every student
+ * starts on the day they buy and the whole curriculum unlocks at once, so
+ * a completion % has no shared referent: a student on 4% who joined
+ * yesterday and one who joined in March are the same number and utterly
+ * different situations. This vocabulary is time-based instead — has the
+ * student ever engaged, and how recently.
+ *
+ *   notstarted — no engagement of any kind, ever
+ *   active     — engaged within STALLED_AFTER_DAYS
+ *   stalled    — engaged once, but not lately
+ *   done       — every visible activity complete
+ *
+ * `endingSoon` on the row is an ORTHOGONAL overlay, not a fifth state: a
+ * student can be active AND about to lose access. See ACCESS_SOON_DAYS.
+ */
+export type EngagementStatus = 'notstarted' | 'active' | 'stalled' | 'done';
+
+/** Which delivery unit an analytics payload describes. */
+export type AnalyticsMode = 'COHORT' | 'SELF_PACED';
+
+/**
+ * No engagement for this many days reads as stalled (self-paced only).
+ *
+ * ⚠ This number also lives in SQL — the nightly inactivity sweep in
+ * migration 20260922120000 uses `interval '14 days'` for the first nudge.
+ * The screen calls a student "Stalled" at this threshold and the email is
+ * what the screen implies has happened, so the two must move together. It
+ * is deliberately NOT admin-configurable (Sam, 2026-08-24): the feature has
+ * one switch, not a panel of dials.
+ */
+export const STALLED_AFTER_DAYS = 14;
+
+/** Access ending within this many days raises the "Ending soon" flag. */
+export const ACCESS_SOON_DAYS = 30;
+
 /** One activity in the cohort's effective (included + visible) curriculum. */
 export interface ActivityAnalyticsRow {
   activityId: string;
@@ -51,8 +88,54 @@ export interface StudentAnalyticsRow {
   /** done / all-included activities (released + locked) — secondary figure. */
   programmePct: number;
   status: CompletionStatus;
+  /** SELF_PACED only — the time-based status the self-paced view renders
+   *  instead of `status`. Null on cohort rows. */
+  engagement: EngagementStatus | null;
+  /** BOTH MODES — whole days since this student enrolled.
+   *
+   *  Self-paced: their personal "week 1", and the anchor that makes a
+   *  completion % readable ("joined 3 weeks ago, 12% done").
+   *
+   *  Cohort: the late-join explanation. A cohort's pace status measures
+   *  each student against everything RELEASED so far, so somebody who
+   *  enrolled in week 5 reads as behind or at risk through no fault of
+   *  their own — and without this the row gives the tutor no way to tell
+   *  that from a student who has been there since day one and stopped.
+   *  (Cohorts support late joining explicitly; the workspace header even
+   *  carries a "Late join on" flag.) */
+  joinedDays: number | null;
+  /** BOTH MODES — whole days until this student's access window closes.
+   *  Null = lifetime access. Never negative: the nightly sweep expires a
+   *  lapsed enrolment out of the counted roster.
+   *
+   *  ⚠ This is per-STUDENT in a cohort too, which is easy to get wrong.
+   *  Access is frozen as `enrolled_at + programme.access_window_days` —
+   *  anchored to when each person joined, NOT to the cohort — so two
+   *  students in one cohort routinely hold different end dates, and
+   *  `nclex_cohorts.end_date` is a TIMETABLE that need not resemble either
+   *  of them (dev has a cohort that ended Jul 2026 whose students keep
+   *  access until Jun 2027). The nightly sweep expires on THIS column, so
+   *  it, not the cohort's dates, is what actually cuts a student off. */
+  accessDaysLeft: number | null;
+  /** BOTH MODES — access closes within ACCESS_SOON_DAYS with work still
+   *  undone. An overlay on the status, never a state of its own: a student
+   *  can be working hard and still about to lose the material. */
+  endingSoon: boolean;
   /** Days since their most recent completion; null = no activity ever. */
   lastActiveDays: number | null;
+  /**
+   * SELF_PACED only — days since the system last sent this student an
+   * inactivity nudge, or null if it never has.
+   *
+   * ⭐ It is here so a tutor about to ring somebody can see that we wrote
+   * to them this morning. Without it the automation is invisible to the
+   * one person whose behaviour it is meant to change: they would chase
+   * students the system had already chased, which is precisely the
+   * duplicated effort the nudge exists to remove.
+   *
+   * ⓘ SENT, not queued — see nclex_programme_nudge_history.
+   */
+  lastNudgedDays: number | null;
   /** activity_id → completed_at ISO (or null when done without a timestamp,
    *  e.g. a derived shelf rollup). Drives the drawer timeline. */
   doneAt: Record<string, string | null>;
@@ -64,6 +147,12 @@ export interface CohortAnalyticsSummary {
   buckets: Record<CompletionStatus, number>;
   /** Students inactive for ≥7 days (based on last completion). */
   stale: number;
+  /** SELF_PACED only — counts per engagement state. Null on cohort. */
+  engagement: Record<EngagementStatus, number> | null;
+  /** Students whose access closes within ACCESS_SOON_DAYS with work still
+   *  outstanding. Populated for both modes; only the self-paced view
+   *  surfaces it as a headline figure so far. */
+  endingSoon: number | null;
 }
 
 // ── Phase 2 — quiz performance (teal) ──────────────────────────────────
@@ -133,7 +222,11 @@ export interface CohortQuizPerformance {
   };
 }
 
-export interface CohortAnalytics {
+export interface TutorAnalytics {
+  /** Which delivery unit this describes. The view branches its copy and
+   *  its status vocabulary on this — a cohort is paced against a shared
+   *  calendar, a self-paced programme against each student's own clock. */
+  mode: AnalyticsMode;
   meta: {
     cohortName: string;
     programmeTitle: string;
@@ -152,3 +245,11 @@ export interface CohortAnalytics {
    *  lighter Overview teaser read. */
   performance: CohortQuizPerformance | null;
 }
+
+/**
+ * The original name, kept as an alias. Every cohort call site still reads
+ * `CohortAnalytics`; the self-paced sibling produces the same shape with
+ * `mode: 'SELF_PACED'` — which is why the underlying type lost the word
+ * "cohort" instead of being duplicated.
+ */
+export type CohortAnalytics = TutorAnalytics;

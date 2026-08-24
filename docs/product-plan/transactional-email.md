@@ -181,9 +181,24 @@ run a clock**. We do: pg_cron already runs three jobs here.
 "Do the scheduled ones later" contradicts the P1 definition — *needed for a
 credible paid v1*.
 
-⚠ **Two more are blocked** (`enrolment.access_expiring` / `access_expired`) —
+⚠ ~~**Two more are blocked** (`enrolment.access_expiring` / `access_expired`) —
 they need access windows, and that discussion is parked with the
-programme-level default duration still missing.
+programme-level default duration still missing.~~
+
+⭐ **CORRECTED 2026-08-24: they were never blocked, and had not been for
+months.** `nclex_programmes.access_window_days` shipped 2026-05-27 (slice
+3a) and is editable in the programme form; every enrolment freezes
+`access_expires_at` from it; and the nightly enrolment sweep has been
+flipping `ENROLLED → EXPIRED` on that column since 2026-06-08. So the
+machinery those two emails were waiting for was complete before this note
+was written — and a student's access has been ending in total silence ever
+since, with the tutor unable to see it coming either.
+
+ⓘ Found while scoping the self-paced Progress surface (progress-engine.md
+§6.4), which needed the same column for its "Ending soon" flag. *A "blocked"
+note nobody re-checks outlives the thing that blocked it* — the same shape
+as the parked memory that said the programme-level access window was still
+missing, which was also describing a world that had moved on.
 
 ## The fingerprint — what makes two emails "the same email"
 
@@ -738,8 +753,8 @@ content release, or account state, ask "should this notify someone?" — if yes:
 | `waitlist.converted` | ⚡ | Tutor converts a waitlisted lead to enrolled | student | **✅ BUILT 2026-08-12.** "A place has opened up." Its **own key, sharing `enrolment.tutor_added`'s template** — one dial turned. See below | P2 | ✅ |
 | `enrolment.approved` | ⚡ | Tutor approves a place a student PAID for | student | **✅ BUILT 2026-08-19.** "Your place is confirmed" — programme, cohort, start date, access window, button into the cohort. **Carries no money at all** (see below) | P1 | ✅ |
 | `enrolment.rejected` | ⚡ | Tutor refuses a place a student PAID for | student | **✅ BUILT 2026-08-19.** "About your place in X" — the tutor's own email and phone, so she can reach a person. **Promises nothing about a refund**, because nothing refunds her | P1 | ✅ |
-| `enrolment.access_expiring` | ⏰ | Access window is N days from expiry | student | Renew / heads-up before losing access | P2 | ⬜ ⚠ blocked |
-| `enrolment.access_expired` | ⏰ | Access window passes | student | Access ended, how to renew | P2 | ⬜ ⚠ blocked |
+| `enrolment.access_expiring` | ⏰ | Access window is N days from expiry | student | Renew / heads-up before losing access. ⚠ **NOT blocked — corrected 2026-08-24** (see below) | P2 | ⬜ |
+| `enrolment.access_expired` | ⏰ | Access window passes | student | Access ended, how to renew. ⚠ **NOT blocked — corrected 2026-08-24** | P2 | ⬜ |
 
 > ### ⚠⚠ The 08-10 fold left the human half uncovered — and we PROMISED it
 >
@@ -1361,7 +1376,7 @@ unsubscribe link and a stored preference. Build last — but the outbox needs an
 
 | Event key | Kind | Trigger | Recipient | Purpose | Pri | Anchor |
 |---|---|---|---|---|---|---|
-| `progress.inactivity_nudge` | ⏰ | No activity in N days | student | "Pick up where you left off" | P3 | ⬜ |
+| `progress.inactivity_nudge` | ⏰ | **Nightly 08:00: self-paced students silent for 14 days** | student | **✅ BUILT 2026-08-24** (`20260922120000`, own cron job). ⭐ **The first email nobody triggered** — every other key here fires because a person DID something; this fires because they did nothing, which is why it has no anchor and needs a nightly pass to notice at all. **One key, two tones** via a `reason` dial (`NOT_STARTED` \| `STALLED`): somebody who never began has no "where you left off" to return to, but the facts and the intent are identical, so §10's split test fails and it stays one key. ⚠⚠ **The fingerprint is the ONLY thing stopping a daily email** — an installment reminder compares against a due DATE so its window and its fingerprint are belt-and-braces, but "silent for 14 days" becomes true and STAYS true, so the unique index works alone. Stage therefore names the occurrence (`nudge:1` / `nudge:2`), which is the person-shaped-subject rule below. ⭐ **Nudge 2 is 30 days after nudge 1 was SENT**, not 44 days of silence: a student already 50 days quiet at launch would match both absolute thresholds and get two emails the same morning. Two per enrolment, ever. Self-paced only (cohort students already get a weekly `session.reminder`). Off switch: `programme_inactivity_nudge_enabled` | P1 | ✅ |
 | `progress.milestone` | ⚡ | Student completes a unit / the programme | student | Encouragement / certificate hook | P3 | ⬜ |
 | `curriculum.content_released` | ⏰ | New activity becomes available (release date passes) | cohort students | "New content unlocked this week" | P3 | ⬜ |
 
