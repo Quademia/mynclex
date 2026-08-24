@@ -14,6 +14,18 @@ import {
   INACTIVITY_NUDGE_FOOTER_CONTEXT,
 } from './templates/inactivity-nudge';
 import {
+  accessExpiringTemplate,
+  ACCESS_EXPIRING_FOOTER_CONTEXT,
+} from './templates/access-expiring';
+import {
+  accessExpiredTemplate,
+  ACCESS_EXPIRED_FOOTER_CONTEXT,
+} from './templates/access-expired';
+import {
+  accessExtendedTemplate,
+  ACCESS_EXTENDED_FOOTER_CONTEXT,
+} from './templates/access-extended';
+import {
   PAYMENT_RECEIVED_FOOTER_CONTEXT,
   paymentReceivedTemplate,
 } from './templates/payment-received';
@@ -105,6 +117,25 @@ const TEMPLATES: Record<string, { template: EmailTemplate<any>; footerContext: s
   'progress.inactivity_nudge': {
     template: inactivityNudgeTemplate,
     footerContext: INACTIVITY_NUDGE_FOOTER_CONTEXT,
+  },
+  // ⭐ The pair that finishes the sweep's "warned or recorded" rule — the
+  // warning is enqueued in SQL, and the notice comes out of the very UPDATE
+  // that expires the row (migration 20260923120000), so the emails cannot
+  // drift from the state change they report.
+  'enrolment.access_expiring': {
+    template: accessExpiringTemplate,
+    footerContext: ACCESS_EXPIRING_FOOTER_CONTEXT,
+  },
+  'enrolment.access_expired': {
+    template: accessExpiredTemplate,
+    footerContext: ACCESS_EXPIRED_FOOTER_CONTEXT,
+  },
+  // ⭐ Their counterpart, and the only one of the three a human triggers.
+  // It exists solely because the other two do — the same reason
+  // tutor.reinstated exists beside tutor.suspended.
+  'enrolment.access_extended': {
+    template: accessExtendedTemplate,
+    footerContext: ACCESS_EXTENDED_FOOTER_CONTEXT,
   },
   'payment.received': {
     template: paymentReceivedTemplate,

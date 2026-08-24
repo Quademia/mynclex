@@ -96,7 +96,34 @@ export type EmailEventKey =
    * page fills up and nobody knows, which is the whole reason the plan
    * doc lists it (§10). Tutor-onboarding 2a-i.
    */
-  | 'tutor.application_submitted_admin';
+  | 'tutor.application_submitted_admin'
+  /**
+   * ⭐ The pair that completes the sweep's ⭐⭐ rule (a scheduled email is
+   * a state change, warned or recorded). `payment.installment_due` /
+   * `_overdue` cover step 2c; these two cover step 2d, and 2e — bank and
+   * readiness passes — has no catalog entry, so the sweep owes nothing
+   * further after this.
+   *
+   * ⚠ Catalogued as "blocked on access windows" from 2026-05 until
+   * 2026-08-24. They were never blocked; the column shipped 2026-05-27
+   * and step 2d has read it since 2026-06-08. Built 2026-08-24.
+   */
+  | 'enrolment.access_expiring'
+  | 'enrolment.access_expired'
+  /**
+   * ⭐ Exists only because the two above do — the same catch Sam made on
+   * `tutor.reinstated`, where suspension told someone their standing was
+   * withdrawn and nothing told them when it came back. Warning a student
+   * their access is ending, then staying silent when a tutor gives it
+   * back, is that shape exactly.
+   *
+   * ⚠ The only one of the three that is ⚡ event-driven: a tutor pressed
+   * a button. It is therefore enqueued from app code, not from the sweep,
+   * and carries NO admin switch (Sam, 2026-08-24) — a switch stops what
+   * the system does on its own, and silencing this one would leave the
+   * tutor unaware their student was never told.
+   */
+  | 'enrolment.access_extended';
 
 // ─────────────────────────────────────────────────────────────────────
 // The tutor welcome (tutor-onboarding slice 1c, dialled in slice 3)
@@ -477,6 +504,98 @@ export type InactivityNudgePayload = {
   silentDays: number;
   /** 1 or 2. Two is the last one we ever send, and says so. */
   nudgeNumber: number;
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// The access-window payloads (2026-08-24)
+// ─────────────────────────────────────────────────────────────────────
+// ⚠ The first two are FILLED IN SQL by nclex_enrolment_nightly_sweep()
+// (migration 20260923120000); the third is filled by app code in
+// lib/enrolments/actions.ts. So two thirds of this section is a contract
+// TypeScript does not enforce, and one third it does.
+//
+// ⭐⭐ WHAT IS ENDING IS ONE PROGRAMME, NOT AN ACCOUNT. Access is stored
+// per enrolment and checked per enrolment: an expired student keeps her
+// account, her question-bank subscription, and every other programme she
+// is on. No copy built from these payloads may say "your access to
+// Quademia is ending" — it would be false for anyone holding a bank
+// subscription, and there is no field here that could make it true.
+//
+// ⭐ AND SHE KEEPS HER WORK. Progress rows key on (student_id,
+// activity_id), never on the enrolment, and the active-enrolment unique
+// index deliberately excludes terminal rows "so a lapsed student can
+// re-enrol". Coming back restores everything. That is why these emails can
+// honestly point at enrolling again as a real option rather than a
+// consolation.
+
+type AccessWindowFacts = {
+  /** Her forename. Null only if a profile somehow has none. */
+  recipientName: string | null;
+  programmeTitle: string;
+  cohortName: string | null;
+  tutorName: string;
+  /**
+   * ⭐ Whether the tutor can actually be reached — false when their
+   * record is missing or their standing is not APPROVED.
+   *
+   * ⚠ This is why the sweep LEFT JOINs nclex_tutors where blocks 2a/2b
+   * inner-join it. Those fail closed (if we cannot confirm a tutor is in
+   * good standing, stop taking their students' money). This one fails
+   * open: step 2d expires the student regardless of her tutor's standing,
+   * so silence would protect her from nothing and merely leave her
+   * unwarned. The flag exists so the copy can say "speak to Steven" only
+   * when Steven can answer, and point at us otherwise.
+   */
+  tutorActive: boolean;
+  /** The moment the window closes. Never null — lifetime rows never qualify. */
+  expiresAtISO: string;
+  /**
+   * She was already PAUSED for arrears when this fired. The copy must not
+   * announce a loss she believes she has already suffered — what is new
+   * is that it is now permanent.
+   */
+  wasPaused: boolean;
+  programmeId: string;
+  enrolmentId: string;
+};
+
+export type AccessExpiringPayload = AccessWindowFacts & {
+  /**
+   * ⭐ T-14, not T-7 (Sam, 2026-08-24). The arrears reminder warns at
+   * seven days because the student already committed to that payment and
+   * knows the amount. Losing access is a decision — whether she still
+   * needs the programme, and whether she can pay for it again — and a
+   * week is short notice for that. T-3 stays as the last call.
+   */
+  lead: 'T-14' | 'T-3';
+};
+
+export type AccessExpiredPayload = AccessWindowFacts;
+
+// ⭐ ONE KEY, TWO TONES via `wasExpired`. A tutor can extend a live window
+// ("extended") or revive one that already closed ("restored") — different
+// sentences, but identical facts and identical intent, so §10's test for
+// splitting a key ("shared facts, nothing else in common") fails and it
+// stays one key with a dial. Same call as `paused` on the overdue email.
+export type AccessExtendedPayload = {
+  recipientName: string | null;
+  programmeTitle: string;
+  cohortName: string | null;
+  tutorName: string;
+  /** Where the window sits now. */
+  newExpiresAtISO: string;
+  /**
+   * Where it sat before. ⓘ Recorded even though it is usually derivable,
+   * because for a restored student it is the only way to say "it lapsed
+   * on the 4th" — and the first extension has no earlier entry to consult.
+   */
+  previousExpiresAtISO: string | null;
+  /** The dial: their access had already lapsed and is being given back. */
+  wasExpired: boolean;
+  /** Whole days added, as the tutor typed it. */
+  days: number;
+  programmeId: string;
+  enrolmentId: string;
 };
 
 // ─────────────────────────────────────────────────────────────────────
