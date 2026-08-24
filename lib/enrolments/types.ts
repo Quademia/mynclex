@@ -55,9 +55,18 @@ export interface EnrolmentRosterRow {
   // time + the futile-Resume warning apply to INSTALLMENT_OVERDUE). NULL
   // unless PAUSED.
   paused_reason: PausedReason | null;
+  // When this student's access to the programme ends. NULL = lifetime,
+  // which is a real answer and not missing data (see accessLabel).
+  //
+  // ⓘ Added 2026-08-24 with the access-expiry emails. The roster's column
+  // header had read "Access · payment" since Slice 7d while the cell showed
+  // only payment — the access half was on the Progress page, one screen
+  // away from the button that changes it. The headers are now "Enrolled ·
+  // Access" and "Payment", each showing what it says.
+  access_expires_at: string | null;
   // The next payment owed on this enrolment (Slice 7d), or null when the
   // plan is fully paid / there's no installment plan. Drives the roster's
-  // "Access · payment" column and the "Mark paid" action.
+  // "Payment" column and the "Mark paid" action.
   nextPayment: NextPaymentView | null;
   // True when the student HAS a plan and has settled every payment — lets the
   // roster show "Paid in full" instead of the bare "—" used for no-plan rows.

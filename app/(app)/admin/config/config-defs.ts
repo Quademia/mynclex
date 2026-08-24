@@ -115,6 +115,24 @@ export const CONFIG_DEFS: ConfigDef[] = [
       'Students who stop working will no longer hear anything from us, and chasing them goes back to being the tutor’s job — their Progress page will keep flagging stalled students, but nothing will have tried first. Nothing is lost and nothing needs catching up: each student is only ever nudged twice, so whoever was missed while this was off is picked up by the first run after you turn it back on.',
   },
   {
+    key: 'programme_access_expiry_emails_enabled',
+    label: 'Access-expiry warnings',
+    description:
+      'Warns a student before their access window on a programme closes — two weeks before, and again three days before — then tells them on the day it ends. Programme access only; the question bank and readiness passes are separate and are not covered.',
+    type: 'boolean',
+    defaultValue: 'true',
+    // ⚠ Declared here as well as seeded by migration 20260923120000 —
+    // see the warning on session_reminders_enabled above.
+    //
+    // ⚠⚠ THE COPY MUST NOT IMPLY THIS STOPS THE EXPIRY. It governs the
+    // emails and nothing else: with it off, students still lose access on
+    // exactly the same date, they simply are not told. An admin who read
+    // this as "pause access expiry" would turn it off expecting to protect
+    // someone and achieve the precise opposite — silence.
+    confirmOff:
+      'Students will lose access to their programmes exactly as before — this only stops us telling them. They will get no warning beforehand and no explanation on the day, which is the situation this switch was built to end. Nothing is lost and nothing needs catching up: whoever is still inside a warning window when you turn it back on is picked up by the next nightly run.',
+  },
+  {
     key: 'bank_optin_discount',
     label: 'Bank opt-in discount',
     description:

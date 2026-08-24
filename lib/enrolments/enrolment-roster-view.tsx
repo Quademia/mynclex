@@ -30,6 +30,7 @@ import {
   convertWaitlistEntryAction,
   dismissWaitlistEntryAction,
   giveMoreTimeAction,
+  extendAccessAction,
   markInstallmentPaidAction,
   pauseEnrolmentAction,
   rejectEnrolmentAction,
@@ -37,6 +38,7 @@ import {
   type TransitionResult,
 } from './actions';
 import { initials, relativeTime } from './format';
+import { accessLabel, daysUntil } from './access-label';
 import { describePlan, formatMoney, planLabel } from '@/lib/strategies/format';
 import { usePopoverPosition } from '@/lib/library/use-popover-position';
 import { PaymentHistoryDrawer } from './payment-history-drawer';
@@ -108,6 +110,18 @@ const STATUS_ORDER: EnrolmentStatus[] = [
   'CANCELLED',
   'EXPIRED',
 ];
+
+/**
+ * Statuses for which an access window is a meaningful fact.
+ *
+ * ⭐ EXPIRED IS IN, and that is the point of the set. A student who lapsed
+ * is exactly the one a tutor might want to give time back to, so the row
+ * still shows what happened to their window and still offers "Extend
+ * access". CANCELLED and REJECTED are out: those enrolments were closed by
+ * a decision rather than by time, so reopening one is "Add student", not an
+ * extension. PENDING_APPROVAL is out because access has not started.
+ */
+const ACCESS_BEARING = new Set<EnrolmentStatus>(['ENROLLED', 'PAUSED', 'EXPIRED']);
 
 type Tab = 'roster' | 'waitlist';
 type StatusFilter = EnrolmentStatus | 'ALL';
@@ -181,6 +195,7 @@ export function EnrolmentRosterView({
   } | null>(null);
   const [markPaidRow, setMarkPaidRow] = useState<EnrolmentRosterRow | null>(null);
   const [giveTimeRow, setGiveTimeRow] = useState<EnrolmentRosterRow | null>(null);
+  const [extendRow, setExtendRow] = useState<EnrolmentRosterRow | null>(null);
   const [historyRow, setHistoryRow] = useState<EnrolmentRosterRow | null>(null);
 
   const [wlBusyId, setWlBusyId] = useState<string | null>(null);
@@ -305,6 +320,30 @@ export function EnrolmentRosterView({
         return;
       }
       setToast({ tone: 'success', message: `Gave ${row.name} ${days} more day${days === 1 ? '' : 's'}.` });
+      router.refresh();
+    });
+  }
+
+  function runExtendAccess(row: EnrolmentRosterRow, days: number) {
+    const wasExpired = row.status === 'EXPIRED';
+    setBusyId(row.enrolment_id);
+    startTransition(async () => {
+      const res = await extendAccessAction(row.enrolment_id, days);
+      setBusyId(null);
+      setExtendRow(null);
+      if (!res.ok) {
+        setToast({ tone: 'error', message: res.error });
+        return;
+      }
+      // ⓘ The toast says the student was told, because the tutor's next
+      // question is whether they still need to message them. It is the
+      // same reason the tutor-enrolled path reports `queued`.
+      setToast({
+        tone: 'success',
+        message: wasExpired
+          ? `Restored ${row.name}'s access and let them know.`
+          : `Gave ${row.name} ${days} more day${days === 1 ? '' : 's'} of access, and let them know.`,
+      });
       router.refresh();
     });
   }
@@ -577,8 +616,16 @@ export function EnrolmentRosterView({
                     {showCohortCol && <th>Cohort</th>}
                     <th>Status</th>
                     <th>Source</th>
-                    <th>Enrolled</th>
-                    <th>Access · payment</th>
+                    {/* ⚠ These two headers were "Enrolled" and "Access ·
+                        payment" until 2026-08-24, and the second showed only
+                        payment — the access half lived on the Progress page,
+                        one screen away from the button that changes it. Joined
+                        and access-remaining are both lifecycle time; payment is
+                        money. Pairing them here also matches the Progress
+                        drawer, which already reads "Joined 27 days ago ·
+                        Access: 63 days left". */}
+                    <th>Enrolled · Access</th>
+                    <th>Payment</th>
                     <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
@@ -595,9 +642,15 @@ export function EnrolmentRosterView({
                       const rowBusy = busyId === row.enrolment_id && pending;
                       const np = row.nextPayment;
                       const graced = np?.graceUntilIso != null;
-                      // "Give more time" applies to an overdue-paused student.
+                      // "More time to pay" applies to an overdue-paused student.
                       const canGiveTime =
                         row.status === 'PAUSED' && row.paused_reason === 'INSTALLMENT_OVERDUE';
+                      // ⭐ "Extend access" needs a window to extend: lifetime
+                      // rows have nothing to move, and a cancelled/rejected
+                      // enrolment was closed by a decision rather than by
+                      // time — reopening those is "Add student", not this.
+                      const canExtendAccess =
+                        row.access_expires_at != null && ACCESS_BEARING.has(row.status);
                       // Actions split (2026-06-12 width fix): the
                       // time-sensitive pair stays inline — Approve (a
                       // student is waiting) + Mark paid (the money
@@ -620,11 +673,27 @@ export function EnrolmentRosterView({
                           danger: ENROLMENT_ACTION_META[a].tone === 'danger',
                           onSelect: () => onActionClick(a, row),
                         }));
+                      // ⚠⚠ THE TWO LABELS MUST STAY DISTINGUISHABLE. Both
+                      // items give a student "more time", and one student can
+                      // show BOTH (a paused, overdue student on a windowed
+                      // programme). They mean entirely different things —
+                      // one moves a payment deadline, the other moves the
+                      // access window the nightly sweep enforces. The older
+                      // one was renamed from the ambiguous "Give more time"
+                      // on 2026-08-24 for exactly this reason; don't rename
+                      // it back.
                       if (canGiveTime) {
                         menuItems.splice(menuItems.length - 1, 0, {
                           key: 'give-time',
-                          label: 'Give more time',
+                          label: 'More time to pay',
                           onSelect: () => setGiveTimeRow(row),
+                        });
+                      }
+                      if (canExtendAccess) {
+                        menuItems.splice(menuItems.length - 1, 0, {
+                          key: 'extend-access',
+                          label: 'Extend access',
+                          onSelect: () => setExtendRow(row),
                         });
                       }
                       return (
@@ -657,7 +726,18 @@ export function EnrolmentRosterView({
                           <td className="cw-src">
                             {ENROLMENT_SOURCE_LABEL[row.enrolment_source]}
                           </td>
-                          <td className="cw-muted">{relativeTime(row.enrolled_at)}</td>
+                          <td className="cw-muted">
+                            {/* Each fact is nowrap so a narrow column breaks
+                                BETWEEN facts, not inside one — "joined 8w /
+                                ago" reads as a glitch rather than a fact.
+                                Same rule as the Progress table. */}
+                            <span className="cw-when-line">{relativeTime(row.enrolled_at)}</span>
+                            {ACCESS_BEARING.has(row.status) && (
+                              <span className="cw-when-line cw-access-line">
+                                Access · {accessLabel(daysUntil(row.access_expires_at))}
+                              </span>
+                            )}
+                          </td>
                           <td>
                             {np || row.paymentFullyPaid ? (
                               <span className="cw-pay-cell">
@@ -814,6 +894,17 @@ export function EnrolmentRosterView({
             if (!pending) setGiveTimeRow(null);
           }}
           onConfirm={(days) => runGiveTime(giveTimeRow, days)}
+        />
+      )}
+
+      {extendRow && (
+        <ExtendAccessModal
+          row={extendRow}
+          pending={pending}
+          onClose={() => {
+            if (!pending) setExtendRow(null);
+          }}
+          onConfirm={(days) => runExtendAccess(extendRow, days)}
         />
       )}
 
@@ -1464,6 +1555,119 @@ function TransitionConfirm({
             disabled={pending}
           >
             {pending ? 'Working…' : copy.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Move a student's access window.
+ *
+ * ⚠ NOT GiveMoreTimeModal. That one defers a PAYMENT deadline; this moves
+ * the access window step 2d of the nightly sweep enforces. The dialog says
+ * the resulting date out loud precisely because the two are confusable —
+ * a tutor should never have to work out what they just granted.
+ */
+function ExtendAccessModal({
+  row,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  row: EnrolmentRosterRow;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: (days: number) => void;
+}) {
+  const [days, setDays] = useState(30);
+  // ⚠ "Now" is captured ONCE, when the dialog opens — not read during
+  // render. Reading the clock on every render is impure (react-hooks/purity
+  // flags it), and it would also let the previewed date drift while the
+  // tutor is still typing the number that produces it.
+  const [openedAt] = useState(() => Date.now());
+  const valid = Number.isInteger(days) && days >= 1 && days <= 3650;
+  const wasExpired = row.status === 'EXPIRED';
+
+  // ⭐ Mirrors the server: extend from whichever is later, today or the
+  // current expiry. Adding 30 days to a window with 60 left would SHORTEN
+  // it, which "extend" can never mean. Computed here too so the tutor sees
+  // the same date the action will write — a preview that disagreed with
+  // the result would be worse than no preview.
+  const current = row.access_expires_at ? new Date(row.access_expires_at) : null;
+  const stillLive = current != null && current.getTime() > openedAt;
+  const base = stillLive ? current!.getTime() : openedAt;
+  const resulting = valid ? new Date(base + days * 86_400_000) : null;
+  const fmt = (d: Date) =>
+    d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  return (
+    <div className="enrol-modal-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="enrol-modal enrol-modal-confirm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="enrol-extend-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="enrol-extend-title" className="enrol-modal-title">
+          {wasExpired ? `Restore ${row.name}'s access?` : `Extend ${row.name}'s access?`}
+        </h2>
+        <p className="enrol-modal-sub">
+          {wasExpired ? (
+            <>
+              Their access ended{current ? ` on ${fmt(current)}` : ''}. This reopens
+              the programme and puts them back to <strong>Enrolled</strong>.
+              Everything they completed is still saved.
+            </>
+          ) : (
+            <>
+              Access currently ends{current ? ` on ${fmt(current)}` : ''}. This moves
+              that date — it doesn&apos;t change anything they owe.
+            </>
+          )}
+        </p>
+        <label className="enrol-field">
+          <span className="enrol-field-label">
+            Extra days {stillLive ? 'from that date' : 'from today'}
+          </span>
+          <input
+            type="number"
+            min={1}
+            max={3650}
+            className="enrol-input"
+            value={Number.isNaN(days) ? '' : days}
+            onChange={(e) => setDays(parseInt(e.target.value, 10))}
+            disabled={pending}
+          />
+        </label>
+        <p className="enrol-modal-sub">
+          {resulting ? (
+            <>
+              Access will run to <strong>{fmt(resulting)}</strong>. We&apos;ll email{' '}
+              {row.name} to tell them.
+            </>
+          ) : (
+            'Enter a number of days between 1 and 3650.'
+          )}
+        </p>
+        <div className="enrol-modal-actions">
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-ghost"
+            onClick={onClose}
+            disabled={pending}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="enrol-btn enrol-btn-primary"
+            onClick={() => onConfirm(days)}
+            disabled={pending || !valid}
+          >
+            {pending ? 'Saving…' : wasExpired ? 'Restore access' : 'Extend access'}
           </button>
         </div>
       </div>

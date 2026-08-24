@@ -1735,6 +1735,16 @@ CREATE TABLE nclex_enrolments (
   installment_grace_until TIMESTAMPTZ,
   grace_history_json   JSONB NOT NULL DEFAULT '[]'::jsonb,
 
+  -- "Extend access" (2026-08-24, migration 20260923120000). The SAME shape
+  -- one row up, pointed at a different column: access_expires_at is the
+  -- authoritative date the sweep's step 2d enforces, and this is the
+  -- append-only log of each tutor-granted extension
+  -- ({granted_at, granted_by, days, from, to, was_expired}).
+  -- ⚠ Distinct from grace above: that moves a PAYMENT deadline, this moves
+  -- the ACCESS window. The two were confusable enough on screen that the
+  -- older menu item was renamed "More time to pay" in the same commit.
+  access_extension_history_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 

@@ -35,6 +35,7 @@ import type { EnrolmentReason } from '@/lib/email/types';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
 import { sendEnrolmentAddedEmail } from './enrol-email';
 import { sendEnrolmentApprovedEmail, sendEnrolmentRejectedEmail } from './verdict-email';
+import { sendAccessExtendedEmail } from './access-extended-email';
 
 // `emailQueued: false` = the student was enrolled but nothing was sent.
 // ⚠ Deliberately NOT an error: the enrolment is real and rolling it back
@@ -915,6 +916,155 @@ export async function giveMoreTimeAction(
     console.error('give more time failed:', error.message);
     return { ok: false, error: 'Could not extend the deadline. Refresh and try again.' };
   }
+
+  revalidatePath(rosterPath(enr.programme_id));
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Extend access (2026-08-24) — the tutor half of the access-expiry pair
+//
+// ⭐ WHY IT SHIPS WITH THE EMAILS RATHER THAN AFTER THEM. The warning
+// email tells a student "ask your tutor for more time". Without a button
+// on the tutor's screen, that generates a request the tutor cannot
+// fulfil, and they end up writing to us. The email and the control are
+// two halves of one loop, so neither is finished alone.
+//
+// ⚠ THIS IS NOT giveMoreTimeAction. That one moves a PAYMENT deadline
+// (installment_grace_until) and lifts an arrears pause; this moves the
+// ACCESS window (access_expires_at) that step 2d of the nightly sweep
+// enforces. The two were confusable enough on screen that the older
+// menu item was renamed "More time to pay" in the same commit.
+//
+// ⭐ EXTENDS FROM WHICHEVER IS LATER — today, or the current expiry.
+// Adding 30 days to a window that still has 60 left would SHORTEN it, and
+// a tutor pressing "extend" can never mean that. For an already-expired
+// student the old date is in the past, so it counts from today.
+// ─────────────────────────────────────────────────────────────────
+
+export async function extendAccessAction(
+  enrolmentId: string,
+  days: number,
+): Promise<TransitionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user: tutor },
+  } = await supabase.auth.getUser();
+  if (!tutor) return { ok: false, error: 'Not signed in.' };
+
+  const d = Math.trunc(days);
+  if (!Number.isFinite(d) || d < 1 || d > 3650) {
+    return { ok: false, error: 'Enter a number of days between 1 and 3650.' };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: enr } = await admin
+    .from('nclex_enrolments')
+    .select(
+      'enrolment_id, user_id, programme_id, cohort_id, status, access_expires_at, access_extension_history_json',
+    )
+    .eq('enrolment_id', enrolmentId)
+    .maybeSingle();
+  if (!enr) return { ok: false, error: 'Enrolment not found.' };
+
+  const { data: owned } = await supabase
+    .from('nclex_programmes')
+    .select('programme_id')
+    .eq('programme_id', enr.programme_id)
+    .maybeSingle();
+  if (!owned) return { ok: false, error: 'Not your programme.' };
+
+  // A lifetime window has nothing to extend, and quietly giving it an end
+  // date would take access away in the name of granting it.
+  if (enr.access_expires_at == null) {
+    return { ok: false, error: 'This student already has lifetime access.' };
+  }
+
+  const TERMINAL = ['CANCELLED', 'REJECTED'];
+  if (TERMINAL.includes(enr.status)) {
+    return { ok: false, error: 'This enrolment was closed, not expired. Add the student again.' };
+  }
+
+  // ⚠ NOT a legacy-data concern — a live rule. Reviving an EXPIRED row
+  // collides with the partial unique index (one active enrolment per
+  // student per cohort/programme) if they enrolled again in the meantime.
+  // Caught here so the tutor reads a sentence instead of a 23505.
+  const wasExpired = enr.status === 'EXPIRED';
+  if (wasExpired) {
+    let dup = admin
+      .from('nclex_enrolments')
+      .select('enrolment_id')
+      .eq('user_id', enr.user_id)
+      .in('status', ACTIVE_STATUSES);
+    dup = enr.cohort_id
+      ? dup.eq('cohort_id', enr.cohort_id)
+      : dup.eq('programme_id', enr.programme_id).is('cohort_id', null);
+    const { data: clash } = await dup.maybeSingle();
+    if (clash) {
+      return {
+        ok: false,
+        error: 'This student is already enrolled again — extend that enrolment instead.',
+      };
+    }
+  }
+
+  const now = new Date();
+  const previousIso = enr.access_expires_at as string;
+  const from = new Date(previousIso);
+  const base = from.getTime() > now.getTime() ? from : now;
+  const newExpiry = new Date(base.getTime() + d * 86_400_000);
+
+  const history = Array.isArray(enr.access_extension_history_json)
+    ? enr.access_extension_history_json
+    : [];
+  history.push({
+    granted_at: now.toISOString(),
+    granted_by: tutor.id,
+    days: d,
+    from: previousIso,
+    to: newExpiry.toISOString(),
+    was_expired: wasExpired,
+  });
+
+  // ⚠ ONE statement writes the scalar and its history. Two would drift,
+  // and the drift means an audit trail that disagrees with the date the
+  // sweep actually enforces.
+  const update: Record<string, unknown> = {
+    access_expires_at: newExpiry.toISOString(),
+    access_extension_history_json: history,
+    updated_at: now.toISOString(),
+  };
+  // Reviving a lapsed student is what "extend" means for them. ⓘ terminal_at
+  // is cleared because the row is no longer terminal; leaving it stamped
+  // would report a closure that has been undone.
+  if (wasExpired) {
+    update.status = 'ENROLLED';
+    update.terminal_at = null;
+  }
+
+  const { error } = await admin
+    .from('nclex_enrolments')
+    .update(update)
+    .eq('enrolment_id', enr.enrolment_id);
+  if (error) {
+    console.error('extend access failed:', error.message);
+    return { ok: false, error: 'Could not extend access. Refresh and try again.' };
+  }
+
+  // EMAIL-TRIGGER[enrolment.access_extended]: the student. ⚠ AFTER the
+  // write, never before — an email promising time the database did not
+  // record is worse than no email. enqueueEmail never throws, so a queue
+  // failure cannot undo an extension that succeeded.
+  //
+  // ⚠ The stage names the new expiry DATE, not '-'. A tutor can extend the
+  // same enrolment repeatedly, and on a bare stage the second extension
+  // would hit the outbox fingerprint and SILENTLY never send.
+  await sendAccessExtendedEmail(enr.enrolment_id, {
+    days: d,
+    previousIso,
+    newIso: newExpiry.toISOString(),
+    wasExpired,
+  });
 
   revalidatePath(rosterPath(enr.programme_id));
   return { ok: true };

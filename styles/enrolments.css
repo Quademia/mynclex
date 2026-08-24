@@ -332,6 +332,22 @@
   opacity: 0.6;
 }
 
+/* "Enrolled · Access" — two stacked facts in one cell (2026-08-24).
+ *
+ * ⚠ Each line is nowrap on purpose. Left to wrap, a narrow column breaks
+ * INSIDE a fact and renders "joined 8w / ago", which reads as a rendering
+ * glitch rather than a fact. Breaking BETWEEN the two lines is fine and is
+ * what block display gives us. Same rule as the Progress table's column. */
+.cw-when-line {
+  display: block;
+  white-space: nowrap;
+}
+.cw-access-line {
+  font-size: 0.85em;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
 /* Roster "Access · payment" column (Slice 7d). */
 .cw-pay {
   font-size: 12px;

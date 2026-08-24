@@ -41,6 +41,7 @@ import {
   type TutorAnalytics,
 } from './types';
 import type { UnitLabel } from '@/lib/programmes/types';
+import { accessLabel } from '@/lib/enrolments/access-label';
 
 type SortMode = 'attention' | 'completion-desc' | 'name';
 type FilterMode = 'all' | 'attention' | 'ontrack';
@@ -86,21 +87,10 @@ function agoLabel(days: number): string {
   return `${Math.round(days / 30)}mo ago`;
 }
 
-/** Access-window remainder, in the table's narrow numeric column.
- *
- *  Null = lifetime, which is a real answer here and must not render as an
- *  em-dash "we don't know".
- *
- *  ⚠ Compact units on purpose. Spelled out ("10 months left") this wraps
- *  onto three lines in the column and reads as noise; the drawer, which has
- *  the width, spells it out instead. */
-function accessLabel(days: number | null): string {
-  if (days == null) return 'Lifetime';
-  if (days === 0) return 'ends today';
-  if (days < 14) return `${days}d left`;
-  if (days < 60) return `${Math.round(days / 7)}w left`;
-  return `${Math.round(days / 30)}mo left`;
-}
+// ⓘ accessLabel MOVED to lib/enrolments/access-label.ts (2026-08-24). The
+// enrolments roster now prints the same remainder beside the button that
+// changes it, and two copies of one definition drift — one screen saying
+// "8w left" while the other says "2 months" about the same date.
 
 function unitWord(label: UnitLabel, cap = false): string {
   const w = label === 'WEEK' ? 'week' : 'module';
