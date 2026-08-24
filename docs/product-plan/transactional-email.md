@@ -2,7 +2,13 @@
 
 *Status: **the spine is built, the drain runs, the ⏰ half has opened, and
 Supabase no longer writes any email of ours.**
-**15 of 29 emails wired; all 15 on prod.**
+**18 of 30 emails wired; 15 of them on prod.**
+⭐ **30, not 29 — `enrolment.access_extended` joined on 2026-08-24**, and it
+was never in the catalog at all. It exists only because
+`enrolment.access_expiring` does: warning a student her access is ending and
+then saying nothing when a tutor gives it back is the same gap Sam caught on
+`tutor.reinstated`. ⓘ **The three added on 2026-08-24 are on `main`, not yet
+on `prod`** — `access_expiring`, `access_expired`, `access_extended`.
 ⭐ **29, not 23 — the TUTOR family joined the catalog on 2026-08-21**
 with the tutor-onboarding arc; see *Tutor lifecycle* below. ⓘ It was
 listed as 6, then 7: `tutor.reinstated` was added while 1d was being
@@ -753,8 +759,9 @@ content release, or account state, ask "should this notify someone?" — if yes:
 | `waitlist.converted` | ⚡ | Tutor converts a waitlisted lead to enrolled | student | **✅ BUILT 2026-08-12.** "A place has opened up." Its **own key, sharing `enrolment.tutor_added`'s template** — one dial turned. See below | P2 | ✅ |
 | `enrolment.approved` | ⚡ | Tutor approves a place a student PAID for | student | **✅ BUILT 2026-08-19.** "Your place is confirmed" — programme, cohort, start date, access window, button into the cohort. **Carries no money at all** (see below) | P1 | ✅ |
 | `enrolment.rejected` | ⚡ | Tutor refuses a place a student PAID for | student | **✅ BUILT 2026-08-19.** "About your place in X" — the tutor's own email and phone, so she can reach a person. **Promises nothing about a refund**, because nothing refunds her | P1 | ✅ |
-| `enrolment.access_expiring` | ⏰ | Access window is N days from expiry | student | Renew / heads-up before losing access. ⚠ **NOT blocked — corrected 2026-08-24** (see below) | P2 | ⬜ |
-| `enrolment.access_expired` | ⏰ | Access window passes | student | Access ended, how to renew. ⚠ **NOT blocked — corrected 2026-08-24** | P2 | ⬜ |
+| `enrolment.access_expiring` | ⏰ | **Nightly sweep, step 2d: T-14 and T-3** before the window closes | student | **✅ BUILT 2026-08-24** (`20260923120000`). ⭐ **T-14, not T-7** (Sam): the arrears reminder warns at seven days because she already committed to that payment and knows the amount; losing access is a *decision*, and a week is short notice for it. **One key, two leads** via a `lead` dial. ⚠⚠ **The stage names the expiry DATE**, because a tutor can now extend a window — so one enrolment can approach expiry many times, and on a bare stage the second warning would hit the fingerprint and **silently never send**. Dating it also *re-arms* the warning against the new date. ⭐ **Sent even when the tutor is suspended**, inverting blocks 2a/2b directly above: those fail closed (stop taking money), this fails open (step 2d expires her regardless, so silence protects nobody) — hence a LEFT JOIN and `tutorActive` in the payload | P2 | ✅ |
+| `enrolment.access_expired` | ⏰ | **Nightly sweep, step 2d**, out of the UPDATE itself | student | **✅ BUILT 2026-08-24.** ⭐ **Comes from a data-modifying CTE, not a select beside the UPDATE** — block 2b solved the same problem with an ordering rule and a shouted comment (*"⚠ THIS MUST RUN BEFORE STEP 2c"*); this removes the rule instead of restating it, so the emails **are** the rows that flipped and no future edit can reorder them apart. ⓘ `doomed` captures the old status first, because RETURNING sees new values and the row now says EXPIRED — that is what makes `wasPaused` truthful | P2 | ✅ |
+| `enrolment.access_extended` | ⚡ | A tutor presses **Extend access** on the roster | student | **✅ BUILT 2026-08-24.** ⭐ **Never in this catalog** — it exists only because the two above do, the same catch as `tutor.reinstated`. **One key, two tones** via `wasExpired`: "extended" continues something live, "restored" reopens a shut door. ⚠ The only one of the three built in TypeScript (the others are filled in SQL), so its payload is genuinely type-checked. ⓘ **No off switch** (Sam): a switch stops what the system does on its own, and silencing this would leave the tutor believing their student was told | P2 | ✅ |
 
 > ### ⚠⚠ The 08-10 fold left the human half uncovered — and we PROMISED it
 >
@@ -1812,8 +1819,17 @@ Fixture removed afterwards; the two sent rows kept as evidence.
 
 ### Still open after 1b
 
-- **`enrolment.access_expiring` / `access_expired`** — the other half of the
-  pair rule, still blocked on the access-window discussion.
+- ~~**`enrolment.access_expiring` / `access_expired`** — the other half of the
+  pair rule, still blocked on the access-window discussion.~~
+  ✅ **BUILT 2026-08-24**, and they were never blocked — see the catalog rows
+  and the corrected note under *Enrolment & access*. ⚠ **This line is the
+  failure, not just a stale entry.** It was written on 2026-08-18, six weeks
+  after step 2d started expiring students on a column that had shipped in May.
+  *A "blocked" note nobody re-checks outlives the thing that blocked it*, and
+  the only reason it was caught is that a different feature happened to need
+  the same column. ⓘ **Nobody was actually harmed** — checked rather than
+  assumed on 2026-08-24: step 2d had never once fired (zero EXPIRED enrolments
+  on dev, zero enrolments on prod). The gap was real; the damage was not.
 - **`payment.installment_overdue` on non-gated programmes fires once per
   position**, forever, until paid. That is intended, but nobody has watched it
   run for months.
@@ -1852,7 +1868,15 @@ record at it. Same select, two boundaries — `< NOW() + N` and `< NOW()`.
 | Sweep step | Warning (due in N) | Notification (it happened) |
 |---|---|---|
 | 4a | `payment.installment_due` | `payment.installment_overdue` |
-| 4b | `enrolment.access_expiring` | `enrolment.access_expired` |
+| 4b | `enrolment.access_expiring` ✅ | `enrolment.access_expired` ✅ |
+
+✅ **BOTH PAIRS ARE NOW BUILT** — 4a on 2026-08-18, 4b on 2026-08-24. So the
+rule is fully honoured for every transition the sweep makes **except 2e**,
+which is now the only state change in that function that notifies nobody.
+⚠ And 2e is not merely the leftover: unlike 2d it **has already fired in
+silence** (one bank subscription on dev expired 2026-08-09). It stays out of
+scope because it is not in the catalog and therefore was never promised — a
+deliberate omission, not an oversight.
 
 **Four of the seven ⏰ emails out of one function**, and it is the answer to
 Sam's reason for picking 1b next (*"it will teach us how to handle the other
@@ -2006,6 +2030,114 @@ access-expiry warning may be the first mail a student has had in a year, and
 those are the most likely to bounce silently. Needs a full-access key in
 `.env.local` (⚠ the **main checkout's** copy — worktrees copy parent→child
 only), `wrangler.jsonc`, and the prod Worker secret.
+
+---
+
+## ✅ The access pair, and the button that answers it — BUILT 2026-08-24
+
+Two commits on `main` (`6435413`, `163d049`), **one migration**
+(`20260923120000`). Three emails, a tutor control, and the roster column that
+was missing beside it.
+
+### ⭐⭐ Why this one is bigger than it looks
+
+A tutor may teach for four weeks and grant six months of access — programme
+length and access window are deliberately independent (Sam, 2026-08-24). So by
+the time the window closes, the live sessions finished months ago and the tutor
+has moved to the next cohort. **The arrears pair has a human in the loop who
+might notice; this one has nobody.** If the email does not tell her, nothing
+does — she finds the door locked one morning, long after anyone was paying
+attention. That is the argument for building it, and it falls straight out of
+the design choice, not out of the catalog.
+
+### ⚠ What "renew" actually means here — and what it does not
+
+The catalog said the purpose was *"how to renew"*. There is **no renew path**:
+`access_expires_at` is written at enrolment and by nothing else. So the split
+Sam drew:
+
+- **① A tutor gives more time** — goodwill; no money. ⭐ *The shape was already
+  in the table*: `installment_grace_until` + `grace_history_json` is a
+  tutor-granted extension with an append-only record. This is the same shape
+  pointed at a different column. **Built.**
+- **② A student pays for more time** — needs a *price* for "more access", which
+  does not exist; a programme has one price. That is a pricing decision, not an
+  email one. **Deliberately not built**, and it does not block ①.
+
+⭐ **① shipped WITH the emails rather than after them**, because the warning
+says "ask your tutor" — and without a button that generates a request the tutor
+cannot fulfil, so they write to us instead. The email and the control are two
+halves of one loop.
+
+### ⭐ Two facts that made the honest copy possible
+
+Both checked against the schema rather than assumed:
+
+- **Progress keys on `(student_id, activity_id)`**, never on the enrolment.
+- **The active-enrolment unique index excludes terminal rows**, with the
+  comment *"so a lapsed student can re-enrol"*.
+
+So a lapsed student **keeps everything** and picks up where she stopped. That
+is why the emails can point at enrolling again as a real option rather than a
+consolation — and it would have been a guess without looking.
+
+### ⚠⚠ The copy may never say "your access to Quademia is ending"
+
+What ends is **one programme**. Access is stored and checked per enrolment, so
+she keeps her account, her bank subscription and every other programme she is
+on. That sentence is the one a writer reaches for by default, which is why the
+warning is shouted in three files rather than left to judgement.
+
+### The decisions, all Sam's
+
+| | |
+|---|---|
+| **T-14 and T-3** | not T-7: losing access is a decision, not a reminder about money already committed |
+| **Send for suspended tutors** | inverting the two blocks above it — see the catalog row |
+| **Extend works on any status** | including EXPIRED, which is the case the feature exists for |
+| **One switch for the two scheduled emails**, none for the third | a switch stops what the system does on its own |
+| **Access moves next to "Enrolled", not next to "Payment"** | joined-date and access-remaining are both lifecycle time; payment is money. Matches the Progress drawer's existing *"Joined 27 days ago · Access: 63 days left"* |
+| **Rename the older menu item** | "Give more time" never said what it gave; now "More time to pay" beside "Extend access" |
+
+### ⚠ The naming collision that forced that rename
+
+One student can show **both** menu items — a paused, overdue student on a
+windowed programme. They mean entirely different things (one moves a payment
+deadline, one moves the access window). Two items both offering "more time" is
+a trap that only reads as obvious after somebody clicks the wrong one.
+
+### Verification
+
+On dev, drain **off**, only plus-addressed inboxes touched. Three emails queued
+with dated stages; `wasPaused` true on the paused one; **second run queued 0**
+(the fingerprint); **switch off queued 0 and the student still expired** — the
+guarantee that mattered most; and moving an expiry to a new date produced a
+**second warning quoting it**, which is the whole point of the dated stage.
+Every row deleted and every date, status and switch restored (0 expired rows,
+0 leftover emails). All **14 preview variants** render clean through
+`renderOutboxRow` — the real send path, not a parallel one.
+
+ⓘ **The migration file was hash-compared against what actually ran on dev**
+(comments and whitespace stripped): **identical**, 6,364 characters. The two
+were typed separately, which is exactly the case the 1b note says to check —
+and the first comparison *did* differ, on spacing inside parentheses, before
+normalising harder.
+
+⚠ **Unverified: the tutor UI.** The roster column, the ⋯ items and the extend
+dialog compile, typecheck, lint and serve, but nobody has looked at them —
+Claude cannot sign in, and the Chrome extension was not connected. Merged to
+`main` on that basis with Sam's approval.
+
+### ⏭ Left open
+
+- **`enrolment.access_extended` fires only from the tutor button.** An admin
+  editing an enrolment by hand does not send it. No such surface exists today.
+- **2e (subscriptions)** — the last sweep transition with no email, and the
+  only one that has already gone off in silence. See the pair table above.
+- ⓘ **Eight students on dev's 4-Week Bootcamp have no expiry on a 365-day
+  programme** — they enrolled before the window was set, and it freezes at
+  enrolment. Correct behaviour, possibly not the intent; a data question, not
+  an email one.
 
 ---
 

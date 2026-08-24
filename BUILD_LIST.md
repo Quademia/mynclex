@@ -1,5 +1,80 @@
 # MyNclex Build List
 
+> ## ✅ DONE 2026-08-24 (later) — **the access window stops ending in silence**
+>
+> The pair for sweep step 2d, plus the tutor button that answers it. **Two
+> commits (`6435413`, `163d049`), ONE migration (`20260923120000`), merged to
+> `main`.** Canonical: **`transactional-email.md`** → *The access pair, and the
+> button that answers it*, and **`payments-and-enrolment.md`** → *Programme
+> access window → BUILD NOTE*.
+>
+> Three emails: `enrolment.access_expiring` (T-14 · T-3),
+> `enrolment.access_expired`, `enrolment.access_extended`.
+>
+> ⭐⭐ **Why it is bigger than it looks.** A tutor may teach four weeks and
+> grant six months of access — length and window are deliberately independent.
+> So when the window closes the sessions finished months ago and the tutor has
+> moved to the next cohort. The arrears pair next door has a human in the loop
+> who might notice; **this one has nobody.** If the email does not tell her,
+> nothing does.
+>
+> ⚠⚠ **The framing we inherited was wrong, and checking is what caught it.**
+> Yesterday's entry said access had "been ending in total silence" for three
+> months. Step 2d has in fact **never once fired** — zero EXPIRED enrolments on
+> dev, zero enrolments on prod. The gap was real; **the damage was not.** The
+> earliest live window on dev closes 2026-09-04, so this landed with eleven
+> days to spare. *Repeating a plausible sentence is not the same as verifying
+> it.*
+>
+> ⚠ **And "how to renew" pointed at nothing.** The catalog said the purpose was
+> renewal; `access_expires_at` is written at enrolment and by nothing else — no
+> renew button, no extension, anywhere. Sam split it: **a tutor giving time**
+> (built — and the shape was already in the table, one column over from
+> `grace_history_json`) versus **a student buying time** (not built: it needs a
+> *price* for "more access", which does not exist, so it is a pricing decision).
+> ⭐ The tutor button shipped **with** the emails because the warning says "ask
+> your tutor" — without it we generate a request the tutor cannot fulfil.
+>
+> ⭐⭐ **The dated fingerprint, and why it is not cosmetic.** A stage of plain
+> `T-14` fires once per enrolment forever. Since a tutor can now extend, one
+> enrolment can approach expiry many times — and the second warning would hit
+> the unique index and **silently never send**. Dating the stage fixes both
+> halves at once: a new date is a new email, so an extension *re-arms* the
+> warning. Proven on dev, and the first attempt at proving it accidentally
+> demonstrated the DATE-not-timestamp choice instead (two times on one day are
+> one change to the reader).
+>
+> ⭐ **The notice comes out of the UPDATE**, via a data-modifying CTE — so the
+> emails *are* the rows that flipped. Block 2b had solved the same problem with
+> an ordering rule and a shouted comment; this removes the rule rather than
+> restating it.
+>
+> **Sam's calls:** T-14 not T-7 (losing access is a decision, not a reminder) ·
+> still send for suspended tutors, **inverting** the two blocks above it, since
+> step 2d expires her regardless so silence protects nobody · extend works on
+> any status including EXPIRED · one switch for the two scheduled emails and
+> **none** for the tutor-triggered one · **access sits beside "Enrolled", not
+> beside "Payment"** — joined-date and access-remaining are both lifecycle time.
+>
+> ⚠ **A rename came out of it.** One student can show both "More time to pay"
+> and "Extend access"; the older label never said what it gave.
+>
+> **Verified on dev with the drain OFF**, only plus-addressed inboxes: dated
+> stages correct, `wasPaused` right, second run queued 0, switch-off queued 0
+> **and the student still expired**, extension re-armed the warning. All rows
+> deleted and every date/status/switch restored. All **14 preview variants**
+> render clean through the real send path. ⓘ The migration file was
+> **hash-compared** against what ran on dev — identical.
+>
+> ⚠ **Unverified: the tutor UI.** The roster column, ⋯ items and extend dialog
+> compile, typecheck, lint and serve, but nobody has looked at them — Claude
+> cannot sign in and the Chrome extension was not connected. **Merged to `main`
+> on that basis; look before releasing.**
+>
+> ⏭ **Next:** 2e (bank/readiness subscriptions) is now the **only** sweep
+> transition with no email — and unlike 2d it *has* already fired in silence
+> (one subscription on dev, 2026-08-09). Not in the catalog, so not promised.
+
 > ## ✅ DONE 2026-08-24 — **the system chases the quiet student, not the tutor**
 >
 > Slice B — `progress.inactivity_nudge`, the other half of the Progress
@@ -72,10 +147,10 @@
 > the TypeScript it replaced — the real proof the shared definition agrees
 > with itself.
 >
-> ⚠ **Unverified: the rendered email.** `/admin/emails/preview` needs
-> COMMS_MANAGE and the test session is tutor-only. If the template throws
-> at render time the drain marks the row DEAD rather than sending, and
-> nothing else catches it. **Open the preview from an admin account.**
+> ~~⚠ **Unverified: the rendered email.**~~ ✅ **VERIFIED 2026-08-23** — Sam
+> opened `/admin/emails/preview` from an admin account and the template
+> renders. ⓘ Re-confirmed mechanically 2026-08-24: all four nudge variants
+> render clean through `renderOutboxRow`, the same path a real send takes.
 >
 > **⚠⚠ A correction fell out of it.** `transactional-email.md` marked
 > `enrolment.access_expiring` / `access_expired` as *"blocked on access
@@ -84,6 +159,14 @@
 > student's access has been ending in total silence ever since**, and
 > until this week the tutor could not see it coming either. ⏭ Those two
 > emails are now the obvious next thing.
+>
+> ⚠ **CORRECTION, same day (see the entry above).** *"Has been ending in total
+> silence ever since"* was checked before building and is **false**: step 2d
+> had never once fired anywhere. The **gap** was real and the correction about
+> "blocked" was right; the **harm** was invented by this sentence. Left in
+> place with the correction attached, because the lesson is the sentence, not
+> the fact — a plausible consequence, written confidently, survived into a
+> second document before anybody ran a query. ✅ Both emails **BUILT**.
 
 > ## ✅ DONE 2026-08-23 — **self-paced students stop being invisible**
 >

@@ -2039,6 +2039,58 @@ installments) govern *how the programme fee is collected*; missed
 installments pause access (per *Tutored enrolment* and *Self-paced
 enrolment*) but don't shrink the window once paid.
 
+### ✅ BUILD NOTE — the window starts speaking, and a tutor can move it (2026-08-24)
+
+Migration `20260923120000`; commits `6435413` + `163d049` on `main`.
+Canonical detail: [transactional-email.md](transactional-email.md) →
+*The access pair, and the button that answers it*.
+
+**⭐ Programme length and access window are independent, and that is the
+point** (Sam). A tutor may teach four weeks and grant six months of access.
+The consequence is that when the window closes, the tutor has long since
+moved on — so nobody is watching that student's clock. Hence:
+
+- **Two warnings and a notice**, out of the nightly sweep's step 2d:
+  `enrolment.access_expiring` at **T-14** and **T-3**, then
+  `enrolment.access_expired` on the day. Off switch:
+  `programme_access_expiry_emails_enabled`. ⚠ It governs the **emails**, never
+  the expiry — with it off, students still lose access on the same date and
+  are simply not told.
+- **A tutor can extend**, from the ⋯ menu on the enrolments roster.
+  `access_expires_at` moves; `access_extension_history_json` records each
+  grant (`{granted_at, granted_by, days, from, to, was_expired}`) — ⭐ the same
+  append-only shape as `grace_history_json` one column over, and ONE statement
+  writes both so they cannot drift.
+- **It works on an EXPIRED enrolment**, which is the case it exists for —
+  status flips back to `ENROLLED`. ⚠ Guarded against the active-enrolment
+  unique index: if she enrolled again in the meantime the button refuses with a
+  sentence rather than a `23505`.
+- **Extends from whichever is later**, today or the current expiry. Adding 30
+  days to a window with 60 left would *shorten* it, which "extend" can never
+  mean.
+
+**⚠ There is still no way for a STUDENT to buy more time.** `access_expires_at`
+is written at enrolment and by the tutor's button — nothing else. A paid
+renewal needs a *price* for "more access", which does not exist (a programme
+has one price), so it is a pricing decision and remains unbuilt. The emails
+therefore say "ask your tutor, or enrol again" rather than pointing at a
+checkout. ⓘ Enrolling again is a real answer, not a consolation: progress keys
+on `(student_id, activity_id)` and the unique index excludes terminal rows
+deliberately *"so a lapsed student can re-enrol"* — she keeps everything.
+
+**⚠ The window freezes at enrolment**, so changing a programme's
+`access_window_days` never touches existing students. Correct — it is what they
+bought — but it means the audience for these emails is "whoever had a window on
+the day they joined", not "whoever is on a windowed programme". ⓘ On dev, 8 of
+15 students on a 365-day programme have no expiry at all for this reason.
+
+**⭐ The roster now shows the date beside the button.** The column header had
+read "Access · payment" since Slice 7d while the cell rendered only payment —
+the access half lived on the Progress page, one screen from the control that
+changes it. Now **"Enrolled · Access"** and **"Payment"**, each showing what it
+says. ⚠ And the older ⋯ item was renamed **"More time to pay"**: one student
+can show it *and* "Extend access", and they move different deadlines.
+
 ---
 
 ## Self-paced enrolment
