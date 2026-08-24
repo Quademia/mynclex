@@ -56,19 +56,24 @@ export type LensSectionData = {
   rows: LensRow[];
 };
 
+/** A shortcut chip. Supplied by the caller because the two shells do not
+ *  offer the same scopes — the tutor's preview has no Bookmarked or My
+ *  practice, both being per-student state a tutor does not have. */
+export type ScopeChip = {
+  key: string;
+  label: string;
+  href: string;
+  icon?: string;
+  count?: number;
+  active: boolean;
+};
+
 export function LibraryScopeBar({
-  basePath,
+  chips,
   sections,
-  notesCount,
-  bookmarkCount,
-  scopeKind,
 }: {
-  basePath: string;
+  chips: ScopeChip[];
   sections: LensSectionData[];
-  notesCount: number;
-  bookmarkCount?: number;
-  /** The active scope, for chip highlighting. */
-  scopeKind: string;
 }) {
   const compact = useCompactContainer('.slm');
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -110,38 +115,22 @@ export function LibraryScopeBar({
           </span>
           Browse
         </button>
-        <Link
-          href={basePath}
-          className={'slm-chip' + (scopeKind === 'home' ? ' is-active' : '')}
-        >
-          <span className="ico" aria-hidden="true">
-            🏠
-          </span>
-          Home
-        </Link>
-        <Link
-          href={`${basePath}?view=all-notes`}
-          className={
-            'slm-chip' + (scopeKind === 'all-notes' ? ' is-active' : '')
-          }
-        >
-          All notes <span className="cnt">{notesCount}</span>
-        </Link>
-        <Link href={`${basePath}/practice`} className="slm-chip">
-          <span className="ico" aria-hidden="true">
-            🎯
-          </span>
-          My practice
-        </Link>
-        <Link
-          href={`${basePath}?view=bookmarked`}
-          className={
-            'slm-chip' + (scopeKind === 'bookmarked' ? ' is-active' : '')
-          }
-        >
-          Bookmarked
-          {bookmarkCount != null && <span className="cnt">{bookmarkCount}</span>}
-        </Link>
+        {chips.map((chip) => (
+          <Link
+            key={chip.key}
+            href={chip.href}
+            className={'slm-chip' + (chip.active ? ' is-active' : '')}
+            aria-current={chip.active ? 'page' : undefined}
+          >
+            {chip.icon && (
+              <span className="ico" aria-hidden="true">
+                {chip.icon}
+              </span>
+            )}
+            {chip.label}
+            {chip.count != null && <span className="cnt">{chip.count}</span>}
+          </Link>
+        ))}
       </nav>
 
       {sheetVisible &&

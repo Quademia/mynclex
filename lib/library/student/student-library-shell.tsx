@@ -379,11 +379,37 @@ export function StudentLibraryShell({
       {/* Phone navigation. In the DOM at every width; the layer reveals it
           below 768px, where .lens-side is hidden. */}
       <LibraryScopeBar
-        basePath={basePath}
         sections={lensSections}
-        notesCount={notes.length}
-        bookmarkCount={bookmarkCount}
-        scopeKind={scope.kind}
+        chips={[
+          {
+            key: 'home',
+            label: 'Home',
+            icon: '🏠',
+            href: basePath,
+            active: scope.kind === 'home',
+          },
+          {
+            key: 'all-notes',
+            label: 'All notes',
+            href: `${basePath}?view=all-notes`,
+            count: notes.length,
+            active: scope.kind === 'all-notes',
+          },
+          {
+            key: 'practice',
+            label: 'My practice',
+            icon: '🎯',
+            href: `${basePath}/practice`,
+            active: false,
+          },
+          {
+            key: 'bookmarked',
+            label: 'Bookmarked',
+            href: `${basePath}?view=bookmarked`,
+            count: bookmarkCount,
+            active: scope.kind === 'bookmarked',
+          },
+        ]}
       />
 
       <div className={`lib-body${railed ? ' is-railed' : ''}`}>
