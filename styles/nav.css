@@ -678,10 +678,42 @@
   flex-shrink: 0;
 }
 
-/* Empty-programmes state card. */
+/* Empty-programmes state card — a door, not an absence.
+ *
+ * Wears the public /programmes palette (cream ground, warm rule, teal
+ * action) so the card previews where its button goes; the values are
+ * lifted from styles/programmes-public.css's `.prc` block — cream
+ * --prc-bg #fbf9f5, rule --prc-line #ece5d4, teal --prc-teal #2d7d72.
+ * Copied rather than shared: that file is page-scoped under `.prc`, and
+ * reaching into another page's namespace would couple this card to a
+ * marketing redesign. Kept as literals here, as the app's other
+ * one-off warm surfaces do.
+ *
+ * The border stops being dashed: dashed reads "an empty slot", and
+ * this card now offers somewhere to go, like the two rails beside it. */
 .pcard-empty-state {
-  border-style: dashed;
-  border-color: #d1d5db;
+  background: #fbf9f5;
+  border-color: #ece5d4;
+}
+
+.pcard-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 9px 18px;
+  background: #2d7d72;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.pcard-empty-cta:hover {
+  background: #235f56;
+  text-decoration: none;
 }
 
 /* ── Bank rail — the constant entry point, given hero treatment ── */
@@ -826,6 +858,7 @@
    * picker and leave the same button 30px in the popup. */
   .pcard-enter,
   .pcard-enter.is-sm,
+  .pcard-empty-cta,
   .bank-rail-cta,
   .inst-cta-pay {
     min-height: 44px;
