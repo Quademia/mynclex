@@ -55,11 +55,15 @@ export async function attachQuizzesAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Confirm the programme is the caller's (RLS-scoped SELECT).
+  // Confirm the programme is the caller's. ⚠ The tutor_id filter is
+  // the check — "RLS-scoped SELECT" was written here and is false;
+  // nclex_programmes is readable by enrolled students too.
+  // See lib/programmes/tutor-scope.ts.
   const { data: programmeRow } = await supabase
     .from('nclex_programmes')
     .select('programme_id')
     .eq('programme_id', programmeId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!programmeRow) {
     return { ok: false, error: 'Programme not found or not yours.' };
@@ -194,13 +198,17 @@ export async function createQuizAndAttachAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Confirm the programme is the caller's (RLS-scoped SELECT).
+  // Confirm the programme is the caller's. ⚠ The tutor_id filter is
+  // the check — "RLS-scoped SELECT" was written here and is false
+  // (nclex_programmes is readable by enrolled students too), so this
+  // gate meant "not readable", not "not yours".
   // Same defensive check as attach — saves a useless quiz row if
   // the caller can't actually attach.
   const { data: programmeRow } = await supabase
     .from('nclex_programmes')
     .select('programme_id')
     .eq('programme_id', programmeId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!programmeRow) {
     return { ok: false, error: 'Programme not found or not yours.' };
