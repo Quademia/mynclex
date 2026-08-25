@@ -11,13 +11,15 @@
 // the player loads answerable content (no key) via loadEmbedBlock, and
 // this action reads the full question + grades server-side, returning
 // the verdict + key + rationale for inline feedback. The note body is
-// re-read here (tutor owns it → RLS returns it) and the block membership
-// re-checked, so the browser's claim about which question is in the
-// block is never trusted.
+// re-read here — filtered on `tutor_id`, because RLS returning a note
+// does NOT mean the caller owns it (see ../tutor-scope.ts) — and the
+// block membership re-checked, so the browser's claim about which
+// question is in the block is never trusted.
 
 'use server';
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { getLibraryTutorId } from '../tutor-scope';
 import { bodyToTiptap } from '../body-tiptap';
 import { scoreAttempt, type BankItemAnswer } from '@/lib/scoring';
 import type { QuestionType } from '@/lib/bank/classifications';
@@ -52,12 +54,16 @@ export async function gradeEmbedAnswerPreview(args: {
   const { noteId, blockId, itemId } = args;
   const supabase = await createClient();
 
-  // 1. Entitlement + membership — re-read the note (tutor owns it → RLS
-  //    returns), confirm the question really belongs to this block.
+  // 1. Entitlement + membership — re-read the note as its OWNER, and
+  //    confirm the question really belongs to this block.
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return { ok: false, error: 'Not found.' };
+
   const { data: note, error } = await supabase
     .from('nclex_tutor_library_notes')
     .select('body')
     .eq('note_id', noteId)
+    .eq('tutor_id', tutorId)
     .maybeSingle();
   if (error || !note) return { ok: false, error: 'Not found.' };
 

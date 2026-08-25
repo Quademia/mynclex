@@ -94,7 +94,7 @@ export async function updateViewAction(
   }
 
   const supabase = await createClient();
-  await requireTutor();
+  const { user } = await requireTutor();
 
   const { error } = await supabase
     .from('nclex_tutor_library_views')
@@ -103,7 +103,8 @@ export async function updateViewAction(
       filters_json: normalizeFilters(filters),
       updated_at: new Date().toISOString(),
     })
-    .eq('view_id', viewId);
+    .eq('view_id', viewId)
+    .eq('tutor_id', user.id);
 
   if (error) {
     return { ok: false, error: 'Could not update the view.' };
@@ -126,12 +127,13 @@ export async function renameViewAction(
   }
 
   const supabase = await createClient();
-  await requireTutor();
+  const { user } = await requireTutor();
 
   const { error } = await supabase
     .from('nclex_tutor_library_views')
     .update({ name: cleanName, updated_at: new Date().toISOString() })
-    .eq('view_id', viewId);
+    .eq('view_id', viewId)
+    .eq('tutor_id', user.id);
 
   if (error) {
     return { ok: false, error: 'Could not rename the view.' };
@@ -148,12 +150,13 @@ export async function deleteViewAction(
   viewId: string,
 ): Promise<MutateResult> {
   const supabase = await createClient();
-  await requireTutor();
+  const { user } = await requireTutor();
 
   const { error } = await supabase
     .from('nclex_tutor_library_views')
     .delete()
-    .eq('view_id', viewId);
+    .eq('view_id', viewId)
+    .eq('tutor_id', user.id);
 
   if (error) {
     return { ok: false, error: 'Could not delete the view.' };

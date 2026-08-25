@@ -85,6 +85,7 @@ export async function createFolderAction(
   const { data: existing } = await supabase
     .from('nclex_tutor_library_folders')
     .select('folder_id, name')
+    .eq('tutor_id', user.id)
     .ilike('name', name);
   if (existing && existing.length > 0) {
     return { ok: false, error: `A folder named "${name}" already exists.` };
@@ -93,7 +94,8 @@ export async function createFolderAction(
   // Position = current count, so new folders go to the tail.
   const { count } = await supabase
     .from('nclex_tutor_library_folders')
-    .select('folder_id', { count: 'exact', head: true });
+    .select('folder_id', { count: 'exact', head: true })
+    .eq('tutor_id', user.id);
   const position = count ?? 0;
 
   const { data, error } = await supabase
@@ -156,6 +158,7 @@ export async function editFolderAction(
   const { data: existing } = await supabase
     .from('nclex_tutor_library_folders')
     .select('folder_id, name')
+    .eq('tutor_id', user.id)
     .ilike('name', name)
     .neq('folder_id', folderId);
   if (existing && existing.length > 0) {
@@ -171,6 +174,7 @@ export async function editFolderAction(
       updated_at: nowIso,
     })
     .eq('folder_id', folderId)
+    .eq('tutor_id', user.id)
     .select('folder_id')
     .maybeSingle();
 
@@ -226,13 +230,15 @@ export async function deleteFolderAction(
     .from('nclex_tutor_library_notes')
     .update({ folder_id: null })
     .eq('folder_id', folderId)
+    .eq('tutor_id', user.id)
     .select('note_id');
   if (orphanErr) return { ok: false, error: orphanErr.message };
 
   const { error: delErr } = await supabase
     .from('nclex_tutor_library_folders')
     .delete()
-    .eq('folder_id', folderId);
+    .eq('folder_id', folderId)
+    .eq('tutor_id', user.id);
   if (delErr) return { ok: false, error: delErr.message };
 
   revalidatePath('/tutor/library');
@@ -349,15 +355,16 @@ export async function createNoteAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Verify the folder (if specified) belongs to this tutor. RLS would
-  // catch the cross-tutor case at INSERT time via the deferred
-  // visibility trigger, but a clean app-layer check gives a UX-friendly
-  // error and avoids the DB-error surface.
+  // Verify the folder (if specified) belongs to this tutor. The
+  // `tutor_id` filter is the check — RLS alone would not be, since a
+  // tutor who is also an enrolled student can READ a folder belonging
+  // to the tutor whose programme they're on (see lib/library/tutor-scope.ts).
   if (input.folder_id) {
     const { data: folder } = await supabase
       .from('nclex_tutor_library_folders')
       .select('folder_id')
       .eq('folder_id', input.folder_id)
+      .eq('tutor_id', user.id)
       .maybeSingle();
     if (!folder) {
       return {
@@ -370,7 +377,8 @@ export async function createNoteAction(
   // Position = current count within the same folder (or root).
   let countQuery = supabase
     .from('nclex_tutor_library_notes')
-    .select('note_id', { count: 'exact', head: true });
+    .select('note_id', { count: 'exact', head: true })
+    .eq('tutor_id', user.id);
   countQuery =
     input.folder_id == null
       ? countQuery.is('folder_id', null)
@@ -472,6 +480,7 @@ export async function updateNoteAction(
       .from('nclex_tutor_library_folders')
       .select('folder_id')
       .eq('folder_id', input.folder_id)
+      .eq('tutor_id', user.id)
       .maybeSingle();
     if (!folder) {
       return {
@@ -505,6 +514,7 @@ export async function updateNoteAction(
       updated_at: nowIso,
     })
     .eq('note_id', noteId)
+    .eq('tutor_id', user.id)
     .eq('version_id', input.expected_version_id)
     .select('note_id, version_id, updated_at')
     .maybeSingle();
@@ -517,6 +527,7 @@ export async function updateNoteAction(
       .from('nclex_tutor_library_notes')
       .select('note_id')
       .eq('note_id', noteId)
+      .eq('tutor_id', user.id)
       .maybeSingle();
     if (!probe) {
       return {
@@ -607,11 +618,13 @@ export async function createShelfAction(
       ? input.description.trim()
       : null;
 
-  // Case-insensitive uniqueness check against the tutor's own shelves
-  // (RLS scopes the read). Same UX-friendly app-layer gate as folders.
+  // Case-insensitive uniqueness check against the tutor's own shelves.
+  // The `tutor_id` filter is what makes it "own" — RLS is wider than
+  // ownership here (see lib/library/tutor-scope.ts).
   const { data: existing } = await supabase
     .from('nclex_tutor_library_shelves')
     .select('shelf_id, title')
+    .eq('tutor_id', user.id)
     .ilike('title', title);
   if (existing && existing.length > 0) {
     return { ok: false, error: `A shelf named "${title}" already exists.` };
@@ -619,7 +632,8 @@ export async function createShelfAction(
 
   const { count } = await supabase
     .from('nclex_tutor_library_shelves')
-    .select('shelf_id', { count: 'exact', head: true });
+    .select('shelf_id', { count: 'exact', head: true })
+    .eq('tutor_id', user.id);
   const position = count ?? 0;
 
   const { data, error } = await supabase
@@ -687,6 +701,7 @@ export async function editShelfAction(
   const { data: existing } = await supabase
     .from('nclex_tutor_library_shelves')
     .select('shelf_id, title')
+    .eq('tutor_id', user.id)
     .ilike('title', title)
     .neq('shelf_id', shelfId);
   if (existing && existing.length > 0) {
@@ -704,6 +719,7 @@ export async function editShelfAction(
       updated_at: nowIso,
     })
     .eq('shelf_id', shelfId)
+    .eq('tutor_id', user.id)
     .select('shelf_id')
     .maybeSingle();
 
@@ -748,7 +764,8 @@ export async function deleteShelfAction(
   const { error } = await supabase
     .from('nclex_tutor_library_shelves')
     .delete()
-    .eq('shelf_id', shelfId);
+    .eq('shelf_id', shelfId)
+    .eq('tutor_id', user.id);
 
   if (error) {
     // FK 23503 = foreign_key_violation. Means the shelf is attached
@@ -807,11 +824,13 @@ export async function attachNotesToShelfAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Verify the shelf belongs to this tutor (RLS scopes the read).
+  // Verify the shelf belongs to this tutor. The `tutor_id` filter is
+  // the check, not RLS — see lib/library/tutor-scope.ts.
   const { data: shelf } = await supabase
     .from('nclex_tutor_library_shelves')
     .select('shelf_id')
     .eq('shelf_id', shelfId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!shelf) {
     return {
@@ -885,10 +904,24 @@ export async function reorderShelfMemberAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
+  // Ownership first — the membership table has no `tutor_id` of its
+  // own, so it is scoped through its parent shelf. RLS is not the
+  // check here: a membership row is readable by any enrolled student
+  // of the owning tutor (see lib/library/tutor-scope.ts), so without
+  // this probe a tutor-and-student could read another tutor's shelf
+  // order and get a confusing half-failure on the writes below.
+  const { data: ownedShelf } = await supabase
+    .from('nclex_tutor_library_shelves')
+    .select('shelf_id')
+    .eq('shelf_id', shelfId)
+    .eq('tutor_id', user.id)
+    .maybeSingle();
+  if (!ownedShelf) {
+    return { ok: false, error: 'Shelf is empty or not yours.' };
+  }
+
   // Pull the full membership list for this shelf so we can find the
-  // neighbour by ordered position. RLS already gates this to the
-  // tutor's own rows, so an attacker's shelf id surfaces an empty
-  // list (and the no-op below is harmless).
+  // neighbour by ordered position.
   const { data: rows, error: readErr } = await supabase
     .from('nclex_tutor_library_shelf_memberships')
     .select('note_id, position')
@@ -962,6 +995,18 @@ export async function removeNoteFromShelfAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
+  // Same parent-shelf ownership probe as reorder — the junction has
+  // no `tutor_id` to filter on directly.
+  const { data: ownedShelf } = await supabase
+    .from('nclex_tutor_library_shelves')
+    .select('shelf_id')
+    .eq('shelf_id', shelfId)
+    .eq('tutor_id', user.id)
+    .maybeSingle();
+  if (!ownedShelf) {
+    return { ok: false, error: 'That shelf is not yours.' };
+  }
+
   const { error } = await supabase
     .from('nclex_tutor_library_shelf_memberships')
     .delete()
@@ -1021,11 +1066,12 @@ export async function publishNoteAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Load the note's saved body + ownership in one read (RLS-scoped).
+  // Load the note's saved body + confirm ownership in one read.
   const { data: note } = await supabase
     .from('nclex_tutor_library_notes')
     .select('note_id, body')
     .eq('note_id', noteId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!note) {
     return { ok: false, error: 'Note not found, or not yours to publish.' };
@@ -1121,6 +1167,7 @@ export async function unpublishNoteAction(
     .from('nclex_tutor_library_notes')
     .update({ is_published: false })
     .eq('note_id', noteId)
+    .eq('tutor_id', user.id)
     .select('note_id')
     .maybeSingle();
 

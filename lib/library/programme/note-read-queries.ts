@@ -13,6 +13,7 @@
 // reading-minutes estimate mirrors the student query.
 
 import { createClient } from '@/lib/supabase/server';
+import { getLibraryTutorId } from '../tutor-scope';
 import { bodyToTiptap, type TiptapDoc } from '../body-tiptap';
 import type { NclexPillar, LibraryVisibilityMode } from '../types';
 
@@ -88,6 +89,22 @@ export async function getProgrammeNoteForRead(
 ): Promise<ProgrammeNoteRead | null> {
   const supabase = await createClient();
 
+  // Ownership first. The programme must be the caller's, and the note
+  // must belong to the same tutor — otherwise a published TUTOR_WIDE
+  // note from ANY tutor the caller can read (as an enrolled student,
+  // say) would sail through the entitlement gate below, which only
+  // checks published + programme-scope. See ../tutor-scope.ts.
+  const callerId = await getLibraryTutorId();
+  if (!callerId) return null;
+
+  const { data: programme } = await supabase
+    .from('nclex_programmes')
+    .select('programme_id')
+    .eq('programme_id', programmeId)
+    .eq('tutor_id', callerId)
+    .maybeSingle();
+  if (!programme) return null;
+
   const { data: note, error } = await supabase
     .from('nclex_tutor_library_notes')
     .select(
@@ -99,6 +116,7 @@ export async function getProgrammeNoteForRead(
        )`,
     )
     .eq('note_id', noteId)
+    .eq('tutor_id', callerId)
     .maybeSingle();
 
   if (error || !note) return null;

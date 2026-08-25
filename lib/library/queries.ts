@@ -11,6 +11,7 @@
 
 import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
+import { getLibraryTutorId } from './tutor-scope';
 import { NCLEX_PILLARS } from './types';
 import {
   applyViewFilters,
@@ -160,6 +161,8 @@ function mapLensRow(row: unknown): LibraryNoteLensRow {
  */
 export async function getFoldersForTutor(): Promise<LibraryFolderWithCount[]> {
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return [];
 
   const { data, error } = await supabase
     .from('nclex_tutor_library_folders')
@@ -168,6 +171,7 @@ export async function getFoldersForTutor(): Promise<LibraryFolderWithCount[]> {
        created_at, updated_at,
        nclex_tutor_library_notes(count)`
     )
+    .eq('tutor_id', tutorId)
     .order('position', { ascending: true });
 
   if (error || !data) return [];
@@ -224,6 +228,8 @@ export async function getNotesForTutor(
   folderId: string | null,
 ): Promise<LibraryNoteListRow[]> {
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return [];
 
   const baseSelect = `
     note_id, folder_id, title, subtitle, description,
@@ -238,6 +244,7 @@ export async function getNotesForTutor(
   let query = supabase
     .from('nclex_tutor_library_notes')
     .select(baseSelect)
+    .eq('tutor_id', tutorId)
     .order('position', { ascending: true })
     .order('updated_at', { ascending: false });
 
@@ -308,6 +315,8 @@ export async function getNoteForEdit(
   noteId: string,
 ): Promise<LibraryNoteForEdit | null> {
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return null;
 
   const { data, error } = await supabase
     .from('nclex_tutor_library_notes')
@@ -322,6 +331,7 @@ export async function getNoteForEdit(
        nclex_tutor_library_note_visibility ( programme_id )`,
     )
     .eq('note_id', noteId)
+    .eq('tutor_id', tutorId)
     .maybeSingle();
 
   if (error || !data) return null;
@@ -381,10 +391,13 @@ export async function getTutorProgrammesForPicker(): Promise<
   LibraryProgrammeOption[]
 > {
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return [];
 
   const { data, error } = await supabase
     .from('nclex_programmes')
     .select('programme_id, title')
+    .eq('tutor_id', tutorId)
     .order('title', { ascending: true });
 
   if (error || !data) return [];
@@ -416,6 +429,8 @@ export async function getTutorProgrammesForPicker(): Promise<
  */
 export async function getShelvesForTutor(): Promise<LibraryShelfWithCount[]> {
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return [];
 
   const { data, error } = await supabase
     .from('nclex_tutor_library_shelves')
@@ -424,6 +439,7 @@ export async function getShelvesForTutor(): Promise<LibraryShelfWithCount[]> {
        created_at, updated_at,
        nclex_tutor_library_shelf_memberships(count)`,
     )
+    .eq('tutor_id', tutorId)
     .order('position', { ascending: true });
 
   if (error || !data) return [];
@@ -493,6 +509,8 @@ export async function getShelvesForTutor(): Promise<LibraryShelfWithCount[]> {
  */
 export async function getShelvesWithNotes(): Promise<LibraryShelfWithNotes[]> {
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return [];
 
   // The double-nested embed shape:
   //   shelves
@@ -515,6 +533,7 @@ export async function getShelvesWithNotes(): Promise<LibraryShelfWithNotes[]> {
          )
        )`,
     )
+    .eq('tutor_id', tutorId)
     .order('position', { ascending: true });
 
   if (error || !data) return [];
@@ -593,6 +612,8 @@ export async function getEligibleNotesForShelf(
   shelfId: string,
 ): Promise<LibraryEligibleNote[]> {
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return [];
 
   // Pull all owned notes with folder + every membership in a single
   // round trip. We exclude already-on-this-shelf rows in JS rather
@@ -606,6 +627,7 @@ export async function getEligibleNotesForShelf(
        nclex_tutor_library_folders ( name ),
        nclex_tutor_library_shelf_memberships ( shelf_id )`,
     )
+    .eq('tutor_id', tutorId)
     .order('updated_at', { ascending: false });
 
   if (error || !data) return [];
@@ -672,6 +694,8 @@ export async function getShelfDetail(
   shelfId: string,
 ): Promise<LibraryShelfDetail | null> {
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return null;
 
   // Query 1 — shelf row + its membership-position pairs.
   const { data: shelfRow, error: shelfErr } = await supabase
@@ -682,6 +706,7 @@ export async function getShelfDetail(
        nclex_tutor_library_shelf_memberships ( position, note_id )`,
     )
     .eq('shelf_id', shelfId)
+    .eq('tutor_id', tutorId)
     .maybeSingle();
 
   if (shelfErr || !shelfRow) return null;
@@ -716,6 +741,7 @@ export async function getShelfDetail(
          ),
          nclex_tutor_library_note_attachments ( count )`,
       )
+      .eq('tutor_id', tutorId)
       .in('note_id', noteIds);
 
     if (notesErr) return null;
@@ -810,6 +836,8 @@ export async function getShelfDetail(
  */
 const fetchAllLensRowsForTutor = cache(async (): Promise<LibraryNoteLensRow[]> => {
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return [];
 
   const { data, error } = await supabase
     .from('nclex_tutor_library_notes')
@@ -822,6 +850,7 @@ const fetchAllLensRowsForTutor = cache(async (): Promise<LibraryNoteLensRow[]> =
        ),
        nclex_tutor_library_note_attachments ( count )`,
     )
+    .eq('tutor_id', tutorId)
     .order('updated_at', { ascending: false });
 
   if (error || !data) return [];
@@ -924,15 +953,18 @@ export async function getLibraryLensCounts(): Promise<{
  */
 export async function getLibraryOverviewStats(): Promise<LibraryOverviewStats> {
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
 
   const [rows, foldersHead, shelvesHead] = await Promise.all([
     fetchAllLensRowsForTutor(),
     supabase
       .from('nclex_tutor_library_folders')
-      .select('folder_id', { count: 'exact', head: true }),
+      .select('folder_id', { count: 'exact', head: true })
+      .eq('tutor_id', tutorId ?? ''),
     supabase
       .from('nclex_tutor_library_shelves')
-      .select('shelf_id', { count: 'exact', head: true }),
+      .select('shelf_id', { count: 'exact', head: true })
+      .eq('tutor_id', tutorId ?? ''),
   ]);
 
   return {
@@ -1013,11 +1045,15 @@ export async function getSavedViewsWithCounts(): Promise<
   LibrarySavedViewWithCount[]
 > {
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return [];
+
   const [rows, { data, error }] = await Promise.all([
     fetchAllLensRowsForTutor(),
     supabase
       .from('nclex_tutor_library_views')
       .select('view_id, name, filters_json, position')
+      .eq('tutor_id', tutorId)
       .order('position', { ascending: true }),
   ]);
   if (error || !data) return [];
@@ -1045,10 +1081,14 @@ export async function getSavedView(
   viewId: string,
 ): Promise<{ view: LibrarySavedView; notes: LibraryNoteLensRow[] } | null> {
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return null;
+
   const { data, error } = await supabase
     .from('nclex_tutor_library_views')
     .select('view_id, name, filters_json, position')
     .eq('view_id', viewId)
+    .eq('tutor_id', tutorId)
     .maybeSingle();
   if (error || !data) return null;
 
@@ -1100,6 +1140,8 @@ export async function searchNotesForTutor(
   }
 
   const supabase = await createClient();
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return [];
 
   // 1. Ranked note_ids from the FTS RPC.
   const { data: ranked, error: rpcErr } = await supabase.rpc(
@@ -1123,6 +1165,7 @@ export async function searchNotesForTutor(
   const { data, error } = await supabase
     .from('nclex_tutor_library_notes')
     .select(LENS_ROW_SELECT)
+    .eq('tutor_id', tutorId)
     .in('note_id', orderedIds);
   if (error || !data) return [];
 

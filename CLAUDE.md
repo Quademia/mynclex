@@ -440,6 +440,40 @@ slice.
   `2x00000000000000000000AB` + `2x0000000000000000000000000000000AA`.
   https://developers.cloudflare.com/turnstile/troubleshooting/testing/
 
+- **⚠ RLS IS THE FLOOR, NOT THE FILTER — "readable" is a wider set than
+  "mine", and every tutor-side read must name its owner.** Postgres ORs
+  permissive policies together, so a table with a `_self_select` policy
+  AND a `_student_select` policy hands the caller the union of both. A
+  query that leans on RLS to do the narrowing therefore returns rows the
+  caller does not own. Found 2026-08-25: a test account holding **both**
+  TUTOR and STUDENT, enrolled on another tutor's programme, opened its own
+  tutor Library and saw **all 38 of that tutor's notes** — plus their
+  folders, shelves, memberships and attachments — because
+  `lib/library/queries.ts` asked for "the notes" and never said "…that are
+  mine". Every affected file had a comment saying RLS scoped it. It did
+  not.
+  - **The SQL is not the bug and must not be "fixed".** A student reading
+    that note IS allowed — that's what the student surfaces are for. The
+    mistake was a *tutor* surface asking a question whose answer legally
+    includes other people's rows. The fix is app-layer, in
+    `lib/library/tutor-scope.ts` (`getLibraryTutorId()`), and every
+    tutor-side read/write now carries `.eq('tutor_id', …)`.
+  - **Writes were never exposed** — UPDATE/DELETE carry only the self
+    policy, so a cross-tutor write was always refused (verified). Reads
+    were the whole leak. But `_admin_all` is `FOR ALL`, so a SUPER_ADMIN
+    walking a tutor surface *could* write another tutor's rows; the
+    explicit filter closes that too.
+  - **Junction tables have no `tutor_id`** (`_shelf_memberships`,
+    `_note_attachments`) — scope them through an explicit
+    ownership probe on the parent shelf/note, not through RLS.
+  - ⭐ **The same class of bug lives outside the library.**
+    `nclex_programmes` carries `_student_select` and `_public_select`
+    beside `_self_select`, so `getProgrammeForShell()` in
+    `lib/programmes/queries.ts` proves a programme is *readable*, not
+    *owned* — and it gates the whole `/tutor/programme/[id]/…` subtree
+    (enrolments, cohorts, progress, quizzes, curriculum). Only the two
+    library routes were fixed. **The rest is open and unswept.**
+
 - **Production builds use webpack, not Turbopack.** The `build` and
   `cf:build` scripts pass `--webpack` to `next build`. Reason: Next.js 16
   defaults to Turbopack for production builds, but

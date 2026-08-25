@@ -22,6 +22,7 @@
 // would otherwise return every tutor's rows).
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { getLibraryTutorId } from '../tutor-scope';
 import type {
   LibraryNoteLensRow,
   NclexPillar,
@@ -91,9 +92,16 @@ function extractShelfPips(
 }
 
 /**
- * Resolve the tutor that owns a programme. RLS-readable by the owning
- * tutor (and by a SUPER_ADMIN via the admin_all bypass). Returns null
- * for a stale id or a programme the caller can't see — the page 404s.
+ * Resolve the tutor that owns a programme, and confirm that tutor is
+ * the caller. Returns null for a stale id, a programme the caller
+ * can't see, or one owned by somebody else — the page 404s on all
+ * three.
+ *
+ * ⚠ The ownership half is NOT redundant with RLS. `nclex_programmes`
+ * carries `_student_select` and `_public_select` policies alongside
+ * `_self_select`, so "readable" is a strictly wider set than "mine" —
+ * the same trap the notes table sprang on the library list. See
+ * lib/library/tutor-scope.ts for the full write-up.
  */
 async function resolveProgrammeTutor(
   programmeId: string,
@@ -105,7 +113,10 @@ async function resolveProgrammeTutor(
     .eq('programme_id', programmeId)
     .maybeSingle();
   if (error || !data) return null;
-  return (data as { tutor_id: string }).tutor_id;
+
+  const ownerId = (data as { tutor_id: string }).tutor_id;
+  const callerId = await getLibraryTutorId();
+  return ownerId === callerId ? ownerId : null;
 }
 
 /**
@@ -219,13 +230,20 @@ export async function getProgrammeLibrarySnapshot(
  * Count of distinct ENROLLED students in a programme — for the preview
  * banner + hero copy ("what the N students see"). Read with the
  * service-role client: enrolment rows aren't tutor-readable under RLS.
- * Safe because the caller has already proven ownership via
- * getProgrammeForShell (RLS-gated) before reaching this page — same
- * pattern as getMyProgrammesForList's student rollup.
+ *
+ * ⚠ This used to rest on "the caller has already proven ownership via
+ * getProgrammeForShell (RLS-gated)". That premise was wrong —
+ * getProgrammeForShell only proves the programme is READABLE, and a
+ * tutor who is also an enrolled student can read another tutor's
+ * programme. Since the read below bypasses RLS entirely, the
+ * ownership check has to be explicit and local. Made so 2026-08-25.
  */
 export async function getProgrammeStudentCount(
   programmeId: string,
 ): Promise<number> {
+  const ownerId = await resolveProgrammeTutor(programmeId);
+  if (!ownerId) return 0;
+
   const admin = createServiceRoleClient();
   const { data, error } = await admin
     .from('nclex_enrolments')
