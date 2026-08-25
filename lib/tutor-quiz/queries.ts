@@ -5,6 +5,7 @@
 // scopes every read to the signed-in tutor's own quizzes.
 
 import { createClient } from '@/lib/supabase/server';
+import { getProgrammeTutorId } from '@/lib/programmes/tutor-scope';
 import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
 import {
   applyQuizPickerFilters,
@@ -124,6 +125,16 @@ async function loadAllActivityRefs(): Promise<
 export async function getMyQuizzes(): Promise<QuizListRow[]> {
   const supabase = await createClient();
 
+  // "My quizzes" means MINE. nclex_tutor_quizzes carries
+  // _student_select (any PUBLISHED quiz attached to a programme the
+  // caller is enrolled on), so without this filter the authoring list
+  // showed other tutors' quizzes — 7 of them, all foreign, measured on
+  // dev 2026-08-25. They opened as empty editors, because
+  // nclex_tutor_quiz_items has no student policy: the cover leaked,
+  // the contents did not. See lib/programmes/tutor-scope.ts.
+  const tutorId = await getProgrammeTutorId();
+  if (!tutorId) return [];
+
   const [{ data, error }, activityRefs] = await Promise.all([
     supabase
       .from('nclex_tutor_quizzes')
@@ -133,6 +144,7 @@ export async function getMyQuizzes(): Promise<QuizListRow[]> {
          nclex_tutor_quiz_items(count),
          nclex_programme_quizzes(nclex_programmes(programme_id, title))`,
       )
+      .eq('tutor_id', tutorId)
       .order('updated_at', { ascending: false }),
     loadAllActivityRefs(),
   ]);
@@ -183,18 +195,28 @@ export type QuizDetail = {
  * /tutor/quiz/[id] editor query — the quiz row + its ordered list
  * of question references (joined to each question's display
  * fields). Returns null when the quiz doesn't exist OR the tutor
- * doesn't own it (RLS filters it out); the page turns null into a
- * 404. An invalid UUID in the URL also returns null.
+ * doesn't own it; the page turns null into a 404. An invalid UUID in
+ * the URL also returns null.
+ *
+ * ⚠ "RLS filters it out" was written here and is false — a PUBLISHED
+ * quiz attached to a programme the caller is enrolled on passes
+ * _student_select. That is why a foreign quiz opened as an EMPTY
+ * editor rather than a 404: the quiz row was readable, its items were
+ * not. See lib/programmes/tutor-scope.ts.
  */
 export async function getQuizDetail(
   quizId: string,
 ): Promise<QuizDetail | null> {
+  const tutorId = await getProgrammeTutorId();
+  if (!tutorId) return null;
+
   const supabase = await createClient();
 
   const { data: quizData, error: quizErr } = await supabase
     .from('nclex_tutor_quizzes')
     .select('*')
     .eq('quiz_id', quizId)
+    .eq('tutor_id', tutorId)
     .maybeSingle();
   if (quizErr || !quizData) return null;
 

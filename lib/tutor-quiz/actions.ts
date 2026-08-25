@@ -212,6 +212,7 @@ export async function updateQuizAction(
     .from('nclex_tutor_quizzes')
     .select('quiz_kind')
     .eq('quiz_id', quizId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!currentQuiz) {
     return { ok: false, error: 'Quiz not found or not yours to edit.' };
@@ -378,11 +379,15 @@ export async function quizDeletePreflightAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Confirm the quiz is the caller's (RLS-scoped SELECT).
+  // Confirm the quiz is the caller's. ⚠ The tutor_id filter is the
+  // check — "RLS-scoped SELECT" was written here and is false, since
+  // _student_select exposes PUBLISHED quizzes the caller is enrolled
+  // on. See lib/programmes/tutor-scope.ts.
   const { data: quizRow } = await supabase
     .from('nclex_tutor_quizzes')
     .select('quiz_id')
     .eq('quiz_id', quizId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!quizRow) return { ok: false, error: 'Quiz not found or not yours.' };
 
@@ -496,11 +501,15 @@ export async function addQuizItemsAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Confirm the quiz is the caller's (RLS-scoped SELECT).
+  // Confirm the quiz is the caller's. ⚠ The tutor_id filter is the
+  // check — "RLS-scoped SELECT" was written here and is false, since
+  // _student_select exposes PUBLISHED quizzes the caller is enrolled
+  // on. See lib/programmes/tutor-scope.ts.
   const { data: quizRow } = await supabase
     .from('nclex_tutor_quizzes')
     .select('quiz_id')
     .eq('quiz_id', quizId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!quizRow) return { ok: false, error: 'Quiz not found or not yours.' };
 
@@ -725,9 +734,14 @@ export async function getActivityQuizPickerContext(
 
   // Dropdown options: the tutor's PUBLISHED quizzes of the matching
   // kind (a Mock activity links a Mock quiz; Practice -> Practice).
+  //
+  // ⚠ Second picker with the same hole as the programme "Add
+  // existing" one — unfiltered, this offered other tutors' PUBLISHED
+  // quizzes for linking to an activity. See lib/programmes/tutor-scope.ts.
   const { data: publishedData, error: publishedErr } = await supabase
     .from('nclex_tutor_quizzes')
     .select(QUIZ_PICKER_SELECT)
+    .eq('tutor_id', user.id)
     .eq('quiz_kind', quizKind)
     .eq('status', 'PUBLISHED')
     .order('updated_at', { ascending: false });
@@ -743,6 +757,7 @@ export async function getActivityQuizPickerContext(
       .from('nclex_tutor_quizzes')
       .select(QUIZ_PICKER_SELECT)
       .eq('quiz_id', currentQuizId)
+      .eq('tutor_id', user.id)
       .maybeSingle();
     linkedQuiz = linkedData ? mapQuizPickerRow(linkedData) : null;
   }
