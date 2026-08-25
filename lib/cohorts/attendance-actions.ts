@@ -15,6 +15,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getCohortRoster } from '@/lib/enrolments/queries';
+import { ownedCohortProgrammeId } from './tutor-scope';
 import { isAttendanceStatus } from './attendance-format';
 import type { AttendanceStatus } from './attendance-format';
 
@@ -33,6 +34,26 @@ export async function markAttendanceAction(
 
   if (!isAttendanceStatus(status)) {
     return { ok: false, error: 'Invalid attendance status.' };
+  }
+
+  // ⚠ Ownership gate. This relied entirely on RLS rejecting the
+  // upsert, which is a coin-flip on the outcome: an INSERT that
+  // violates the policy raises, but an ON CONFLICT DO UPDATE that
+  // matches nothing need not — and this only inspects `error`. Resolve
+  // the session's cohort and prove the caller owns it first.
+  // Sibling markAllPresentAction is already gated this way, through
+  // getCohortRoster. See lib/programmes/tutor-scope.ts.
+  const { data: sess } = await supabase
+    .from('nclex_cohort_live_sessions')
+    .select('cohort_id')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+  const cohortId = (sess as { cohort_id: string } | null)?.cohort_id ?? null;
+  if (
+    !cohortId ||
+    !(await ownedCohortProgrammeId(supabase, cohortId, user.id))
+  ) {
+    return { ok: false, error: 'Could not save attendance.' };
   }
 
   const now = new Date().toISOString();

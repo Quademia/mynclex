@@ -16,6 +16,7 @@ import {
   validateQuizForActivity,
 } from '@/lib/curriculum/activity-payload';
 import { UNIT_BODY_ORDINAL_STEP } from '@/lib/curriculum/unit-body';
+import { ownedCohortProgrammeId } from './tutor-scope';
 import { validateScheduleInput } from './live-session-schedule';
 import type { LiveSessionScheduleInput } from './live-session-schedule';
 import type { ActivityFormValues } from '@/lib/curriculum/types';
@@ -233,6 +234,7 @@ function validateWindowOrdering(
 
 const DAY_MS = 86_400_000;
 
+
 // Default release date for an activity in a cohort (week-N pacing).
 // Null when the cohort or activity can't be resolved (not yours).
 async function defaultReleaseDate(
@@ -240,10 +242,20 @@ async function defaultReleaseDate(
   cohortId: string,
   activityId: string
 ): Promise<string | null> {
+  // Ownership lives on the parent programme, so the inner embed
+  // carries it. nclex_cohorts also has _student_select, so without
+  // this a cohort the caller is merely ENROLLED on resolves here.
+  // See lib/programmes/tutor-scope.ts.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
   const { data: cohort } = await supabase
     .from('nclex_cohorts')
-    .select('start_date')
+    .select('start_date, nclex_programmes!inner(tutor_id)')
     .eq('cohort_id', cohortId)
+    .eq('nclex_programmes.tutor_id', user.id)
     .maybeSingle();
   if (!cohort) return null;
   const { data: act } = await supabase
@@ -284,6 +296,24 @@ async function applyChecklistChange(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // ⚠⚠ THIS FUNCTION HAD NO OWNERSHIP GATE AT ALL, and its UPDATE
+  // branch does not check how many rows it changed. For a cohort the
+  // caller is merely ENROLLED on (nclex_cohort_checklist_items carries
+  // _student_select), the read succeeded, the UPDATE matched ZERO rows,
+  // Postgres raised nothing — and this returned OK. The four
+  // setActivity*Actions on the cohort curriculum then reported "saved"
+  // having saved nothing. Verified on dev 2026-08-25: 45 rows readable,
+  // UPDATE affected 0, no error.
+  //
+  // Nothing was ever written to another tutor's cohort — the write
+  // policies are owner-only. The defect was the lie. Same shape as
+  // deleteUnit in lib/curriculum/actions.ts.
+  // See lib/programmes/tutor-scope.ts.
+  const ownedProgrammeId = await ownedCohortProgrammeId(supabase, cohortId, user.id);
+  if (!ownedProgrammeId) {
+    return { ok: false, error: 'Cohort or activity not found, or not yours.' };
+  }
 
   const { data: existing } = await supabase
     .from('nclex_cohort_checklist_items')
@@ -355,8 +385,9 @@ async function applyChecklistChange(
   // RLS-scoped single-row read).
   const { data: parent } = await supabase
     .from('nclex_cohorts')
-    .select('programme_id')
+    .select('programme_id, nclex_programmes!inner(tutor_id)')
     .eq('cohort_id', cohortId)
+    .eq('nclex_programmes.tutor_id', user.id)
     .maybeSingle();
   if (parent) {
     revalidatePath(
@@ -426,8 +457,9 @@ export async function includeAllUnconfiguredActivitiesAction(
 
   const { data: cohort } = await supabase
     .from('nclex_cohorts')
-    .select('cohort_id, programme_id, start_date')
+    .select('cohort_id, programme_id, start_date, nclex_programmes!inner(tutor_id)')
     .eq('cohort_id', cohortId)
+    .eq('nclex_programmes.tutor_id', user.id)
     .maybeSingle();
   if (!cohort) return { ok: false, error: 'Cohort not found or not yours.' };
 
@@ -647,8 +679,9 @@ export async function createCohortOnlyActivityAction(
   // Resolve the cohort (RLS scopes to the tutor's own).
   const { data: cohort } = await supabase
     .from('nclex_cohorts')
-    .select('cohort_id, programme_id, start_date')
+    .select('cohort_id, programme_id, start_date, nclex_programmes!inner(tutor_id)')
     .eq('cohort_id', cohortId)
+    .eq('nclex_programmes.tutor_id', user.id)
     .maybeSingle();
   if (!cohort) return { ok: false, error: 'Cohort not found or not yours.' };
 
@@ -816,8 +849,9 @@ export async function createCohortOnlyLiveSessionAction(
 
   const { data: cohort } = await supabase
     .from('nclex_cohorts')
-    .select('cohort_id, programme_id, start_date')
+    .select('cohort_id, programme_id, start_date, nclex_programmes!inner(tutor_id)')
     .eq('cohort_id', cohortId)
+    .eq('nclex_programmes.tutor_id', user.id)
     .maybeSingle();
   if (!cohort) return { ok: false, error: 'Cohort not found or not yours.' };
 
@@ -957,8 +991,9 @@ export async function deleteCohortOnlyActivityAction(
 
   const { data: cohort } = await supabase
     .from('nclex_cohorts')
-    .select('programme_id')
+    .select('programme_id, nclex_programmes!inner(tutor_id)')
     .eq('cohort_id', cohortId)
+    .eq('nclex_programmes.tutor_id', user.id)
     .maybeSingle();
   if (cohort) {
     revalidatePath(
@@ -1002,8 +1037,9 @@ export async function createCohortOnlyBlockAction(
 
   const { data: cohort } = await supabase
     .from('nclex_cohorts')
-    .select('cohort_id, programme_id')
+    .select('cohort_id, programme_id, nclex_programmes!inner(tutor_id)')
     .eq('cohort_id', cohortId)
+    .eq('nclex_programmes.tutor_id', user.id)
     .maybeSingle();
   if (!cohort) return { ok: false, error: 'Cohort not found or not yours.' };
 
@@ -1079,8 +1115,9 @@ export async function deleteCohortOnlyBlockAction(
 
   const { data: cohort } = await supabase
     .from('nclex_cohorts')
-    .select('programme_id')
+    .select('programme_id, nclex_programmes!inner(tutor_id)')
     .eq('cohort_id', cohortId)
+    .eq('nclex_programmes.tutor_id', user.id)
     .maybeSingle();
   if (cohort) {
     revalidatePath(
@@ -1198,6 +1235,12 @@ function newOrdinalForMove(
 const NOGAP_ERROR =
   'Couldn’t move it there — the items here are packed too tightly. Try moving a neighbour first.';
 
+// ⓘ Deliberately NOT owner-filtered. This is a path lookup for
+// revalidatePath after a write that has already succeeded — so the
+// caller demonstrably owns the cohort by the time we get here, and an
+// owner filter would only add a failure mode. Not a gate; do not
+// build one on it. (Same call as resolveBlockOwnership in
+// lib/curriculum/actions.ts.) See lib/programmes/tutor-scope.ts.
 async function revalidateCohortPath(
   supabase: CohortActionsSupabaseClient,
   cohortId: string
