@@ -9,7 +9,7 @@
 // actions and Add-student either way.
 
 import { notFound } from 'next/navigation';
-import { getProgrammeForShell } from '@/lib/programmes/queries';
+import { getOwnedProgrammeForShell } from '@/lib/programmes/queries';
 import { getCohortsForProgramme } from '@/lib/cohorts/queries';
 import { formatCohortName } from '@/lib/cohorts/format';
 import {
@@ -32,7 +32,7 @@ export default async function ProgrammeEnrolmentsPage({
   const [{ programme_id }, { cohort }] = await Promise.all([params, searchParams]);
 
   // Ownership gate (RLS-scoped, null → 404).
-  const programme = await getProgrammeForShell(programme_id);
+  const programme = await getOwnedProgrammeForShell(programme_id);
   if (!programme) notFound();
 
   const roster = await getProgrammeRoster(programme_id);

@@ -30,10 +30,21 @@ export async function getTutorPayments(): Promise<TutorPaymentsData> {
   } = await supabase.auth.getUser();
   if (!user) return { rows: [], cohorts: [] };
 
-  // 1. Owned programmes (RLS-scoped). Empty → nothing to show.
+  // 1. Owned programmes. Empty → nothing to show.
+  //
+  // ⚠⚠ THE OWNER FILTER IS LOAD-BEARING — do not remove it because
+  // "RLS covers it". It does not: nclex_programmes carries
+  // _student_select too, so an unfiltered read returns programmes the
+  // caller is merely ENROLLED on. Those ids are handed to the
+  // service-role client below, which bypasses RLS by design — so this
+  // filter is the ONLY thing keeping another tutor's students' names,
+  // emails and payment history off this page. Measured on dev
+  // 2026-08-25: an account owning zero programmes was shown three of
+  // another student's payments. See lib/programmes/tutor-scope.ts.
   const { data: progs } = await supabase
     .from('nclex_programmes')
-    .select('programme_id, title, price_currency');
+    .select('programme_id, title, price_currency')
+    .eq('tutor_id', user.id);
   const programmes = (progs ?? []) as {
     programme_id: string;
     title: string;

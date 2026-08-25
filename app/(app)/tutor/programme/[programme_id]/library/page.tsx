@@ -6,13 +6,16 @@
 // entitlement set (TUTOR_WIDE ∪ PROGRAMME_SCOPED-to-this-programme,
 // published only) rather than RLS-filtered student rows.
 //
-// Programme ownership is gated by getProgrammeForShell (RLS-scoped to
-// the tutor; null → 404) — same pattern as the sibling Quizzes tab.
+// Programme ownership is gated by getOwnedProgrammeForShell (explicit
+// tutor_id filter; null → 404) — same pattern as the sibling Quizzes
+// tab. ⚠ It used to call getProgrammeForShell, described here as
+// "RLS-scoped to the tutor". RLS does not scope it — see
+// lib/programmes/tutor-scope.ts.
 //
 // Note rows link to the in-place read view (slice 2).
 
 import { notFound } from 'next/navigation';
-import { getProgrammeForShell } from '@/lib/programmes/queries';
+import { getOwnedProgrammeForShell } from '@/lib/programmes/queries';
 import {
   getProgrammeLibrarySnapshot,
   getProgrammeStudentCount,
@@ -41,7 +44,7 @@ export default async function TutorProgrammeLibraryPage({
   const sp = await searchParams;
 
   // Ownership gate (RLS) — null means doesn't exist OR not yours.
-  const programme = await getProgrammeForShell(programme_id);
+  const programme = await getOwnedProgrammeForShell(programme_id);
   if (!programme) notFound();
 
   const [snapshot, studentCount] = await Promise.all([

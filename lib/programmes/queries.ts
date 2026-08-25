@@ -4,12 +4,18 @@
 // Slice 9.2a — programmes lose date/seat columns to nclex_cohorts;
 // the list rollup folds cohort counts into each row.
 //
-// RLS scopes SELECT to tutor_id = auth.uid() (SUPER_ADMIN bypass via
-// nclex_programmes_admin_all). Co-tutored programmes will join in
-// once the co-tutor join table lands; for v1 the creator is the sole
-// tutor.
+// ⚠ RLS does NOT scope these to the tutor's own rows — that claim
+// stood here until 2026-08-25 and was false. nclex_programmes also
+// carries _student_select, so a tutor enrolled as a student on
+// another tutor's programme reads it too. Every tutor-side read below
+// names its owner explicitly via getProgrammeTutorId().
+// See lib/programmes/tutor-scope.ts for the full why.
+//
+// Co-tutored programmes will join in once the co-tutor join table
+// lands; for v1 the creator is the sole tutor.
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { getProgrammeTutorId } from './tutor-scope';
 import { getCohortsForProgramme } from '@/lib/cohorts/queries';
 import { cohortStatus } from '@/lib/cohorts/format';
 import { getCohortAnalytics } from '@/lib/analytics/tutor/cohort-queries';
@@ -17,6 +23,12 @@ import type { ProgrammeCardRow, ProgrammeListRow } from './types';
 
 export async function getMyProgrammes(): Promise<ProgrammeListRow[]> {
   const supabase = await createClient();
+
+  // "My programmes" means MINE. Without this the list returned every
+  // programme RLS would let the caller read, which includes any they
+  // are merely enrolled on as a student (2026-08-25).
+  const tutorId = await getProgrammeTutorId();
+  if (!tutorId) return [];
 
   // PostgREST embedded resources:
   //   • nclex_cohorts(count) — flattened to cohort_count.
@@ -27,8 +39,8 @@ export async function getMyProgrammes(): Promise<ProgrammeListRow[]> {
   //     at most one row; activation is irrelevant (we want the canonical
   //     price even if upfront is currently turned off).
   //
-  // RLS on the embedded tables uses the same tutor-ownership rule via the
-  // programme FK, so we only see the tutor's own rows.
+  // ⓘ The embedded tables (cohorts, payment strategies) hang off the
+  // programme FK, so the owner filter below narrows them too.
   const { data, error } = await supabase
     .from('nclex_programmes')
     .select(
@@ -40,6 +52,7 @@ export async function getMyProgrammes(): Promise<ProgrammeListRow[]> {
        nclex_cohorts(count),
        upfront:nclex_programme_payment_strategies(total_price_minor)`
     )
+    .eq('tutor_id', tutorId)
     .eq('upfront.kind', 'UPFRONT_FULL')
     .is('upfront.cohort_id', null) // programme-default upfront, not a cohort override
     .order('updated_at', { ascending: false });
@@ -62,9 +75,12 @@ export async function getMyProgrammes(): Promise<ProgrammeListRow[]> {
  * plus read-time roll-ups:
  *   • students — distinct ENROLLED count per programme (programme-level,
  *     so it covers tutor-led + self-paced). Read with the service-role
- *     client: enrolment rows aren't tutor-readable under RLS, but the
- *     programme ids all come from getMyProgrammes (RLS-proven ownership),
- *     so counting them is safe (same pattern as the cohort roster).
+ *     client: enrolment rows aren't tutor-readable under RLS, and the
+ *     programme ids come from getMyProgrammes, which filters on
+ *     tutor_id. ⚠ That filter is what makes this safe — NOT RLS. This
+ *     comment said "RLS-proven ownership" until 2026-08-25, when
+ *     getMyProgrammes had no owner filter at all and these counts
+ *     therefore included other tutors' students.
  *   • avgCompletion / health — for live tutor-led programmes only, the
  *     mean completion across their IN_PROGRESS cohorts (reuses the
  *     analytics engine, so the numbers match the Analytics tab + Home).
@@ -165,10 +181,18 @@ export async function getMyProgrammesForList(): Promise<ProgrammeCardRow[]> {
  * SELF_PACED hides the Cohorts tab) and modal pre-fills (e.g.
  * end-date auto-fill in the cohort form uses length_units).
  *
- * RLS scopes the SELECT to tutor_id = auth.uid() (SUPER_ADMIN
- * bypass via nclex_programmes_admin_all). Returns null if the
- * programme doesn't exist OR the tutor doesn't own it; the shell
- * turns null into a 404.
+ * ⚠ THIS PROVES READABILITY, NOT OWNERSHIP — and it is shared with
+ * the STUDENT surface, where that is exactly right (a student
+ * legitimately reads a programme they are enrolled on; see
+ * lib/access/student/require-programme-access.ts).
+ *
+ * A comment here used to claim RLS scoped it to tutor_id =
+ * auth.uid(). That was false — nclex_programmes also carries
+ * _student_select — and it gated the whole /tutor/programme/[id]/…
+ * subtree. Tutor callers MUST use getOwnedProgrammeForShell below.
+ *
+ * Returns null if the programme doesn't exist or the caller may not
+ * read it at all; callers turn null into a 404.
  *
  * Invalid UUIDs in the URL also return null (Supabase returns an
  * error for malformed UUID input on a uuid column).
@@ -192,6 +216,39 @@ export async function getProgrammeForShell(
     .from('nclex_programmes')
     .select('programme_id, title, delivery_mode, unit_label, length_units')
     .eq('programme_id', programmeId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as ProgrammeShellContext;
+}
+
+/**
+ * The TUTOR-side gate for the programme-scoped shell: the same
+ * projection, but proving the caller OWNS the programme rather than
+ * merely being allowed to read it.
+ *
+ * Returns null when the programme doesn't exist, or isn't the
+ * caller's — which every tutor route turns into a 404, so a
+ * non-owner cannot distinguish the two.
+ *
+ * ⚠ Do not "simplify" this back into getProgrammeForShell. The two
+ * ask different questions on purpose: the student surface wants
+ * readable, the tutor surface wants owned. Collapsing them breaks
+ * one or the other. See lib/programmes/tutor-scope.ts.
+ */
+export async function getOwnedProgrammeForShell(
+  programmeId: string
+): Promise<ProgrammeShellContext | null> {
+  const tutorId = await getProgrammeTutorId();
+  if (!tutorId) return null;
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('nclex_programmes')
+    .select('programme_id, title, delivery_mode, unit_label, length_units')
+    .eq('programme_id', programmeId)
+    .eq('tutor_id', tutorId)
     .maybeSingle();
 
   if (error || !data) return null;

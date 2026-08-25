@@ -22,7 +22,7 @@
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getProgrammeForShell } from '@/lib/programmes/queries';
+import { getOwnedProgrammeForShell } from '@/lib/programmes/queries';
 import { getSelfPacedProgrammeAnalytics } from '@/lib/analytics/tutor/programme-queries';
 import { CohortAnalyticsView } from '@/lib/analytics/tutor/analytics-view';
 
@@ -36,7 +36,7 @@ export default async function ProgrammeProgressPage({
   const { programme_id } = await params;
 
   // Ownership gate (RLS-scoped, null → 404).
-  const programme = await getProgrammeForShell(programme_id);
+  const programme = await getOwnedProgrammeForShell(programme_id);
   if (!programme) notFound();
 
   // Mode gate — see the header note.
