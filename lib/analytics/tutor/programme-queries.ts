@@ -39,6 +39,7 @@
 // students + quizzes, none of which are cohort concepts.
 
 import { createClient } from '@/lib/supabase/server';
+import { getProgrammeTutorId } from '@/lib/programmes/tutor-scope';
 import { getProgrammeRoster } from '@/lib/enrolments/queries';
 import { isVisibleToStudents } from '@/lib/curriculum/format';
 import type { ActivityType } from '@/lib/curriculum/types';
@@ -150,12 +151,19 @@ export async function getSelfPacedProgrammeAnalytics(
 ): Promise<TutorAnalytics | null> {
   const supabase = await createClient();
 
-  // Ownership gate — RLS returns the row only for the owning tutor (or a
-  // SUPER_ADMIN, per the intentional v1 bypass).
+  // Ownership gate. ⚠ This said "RLS returns the row only for the
+  // owning tutor" until 2026-08-25 and was false — nclex_programmes
+  // also carries _student_select, so a tutor enrolled as a student on
+  // another tutor's programme read its analytics. Name the owner.
+  // See lib/programmes/tutor-scope.ts.
+  const tutorId = await getProgrammeTutorId();
+  if (!tutorId) return null;
+
   const { data: prog } = await supabase
     .from('nclex_programmes')
     .select('programme_id, title, delivery_mode, unit_label, length_units')
     .eq('programme_id', programmeId)
+    .eq('tutor_id', tutorId)
     .maybeSingle();
   if (!prog) return null;
 

@@ -260,6 +260,11 @@ export async function getOwnedProgrammeForShell(
  * controls. Slice 9.3e — kept separate from the shell context so
  * the chrome contract stays narrow (status/timestamps are a
  * concern of one page, not every page under a programme).
+ *
+ * Tutor-side only (curriculum layout), so it names its owner. Without
+ * that filter it fed Publish / Archive / payment-gating controls with
+ * ANOTHER tutor's programme state — the write would still be refused
+ * by RLS, but the screen would have been lying about whose it was.
  */
 export type ProgrammeStatusContext = {
   programme_id: string;
@@ -275,11 +280,15 @@ export type ProgrammeStatusContext = {
 export async function getProgrammeStatus(
   programmeId: string
 ): Promise<ProgrammeStatusContext | null> {
+  const tutorId = await getProgrammeTutorId();
+  if (!tutorId) return null;
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('nclex_programmes')
     .select('programme_id, title, status, published_at, archived_at, payment_gates_access')
     .eq('programme_id', programmeId)
+    .eq('tutor_id', tutorId)
     .maybeSingle();
 
   if (error || !data) return null;
