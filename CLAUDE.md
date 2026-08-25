@@ -473,6 +473,34 @@ slice.
     *owned* — and it gates the whole `/tutor/programme/[id]/…` subtree
     (enrolments, cohorts, progress, quizzes, curriculum). Only the two
     library routes were fixed. **The rest is open and unswept.**
+  - ⭐ **It also runs the other way — a STUDENT screen showing rows
+    because the caller is a TUTOR.** `nclex_enrolments` carries
+    `_student_select` (`user_id = auth.uid()`) **and** `_tutor_select`
+    (I tutor that programme), so "my enrolments" returned a tutor's
+    **students'** rows: Steven, with **zero** enrolments of his own, got
+    **48**. Consequences, all fixed 2026-08-25 by naming `user_id`:
+    his student picker listed **5 programmes he teaches and is not on**;
+    `getMyProgrammeEnrolmentStatus` / `getMyCohortEnrolmentStatus`
+    answered ENROLLED off a stranger's row, so **entry was open** (a
+    code comment claiming "listing only — entry was never open" was
+    simply wrong); and the picker's next-payment panel rendered **a real
+    student's amount and due date**. Charging was never possible —
+    `lib/payments/init.ts` re-checks `user_id` against the service-role
+    client — so the money was visible, not chargeable.
+  - ⓘ **Fixing the enrolment question also shut the door** that
+    `getProgrammeForShell`'s looseness had opened: `require-programme-
+    access` and `require-cohort-access` both run a readability check
+    *then* a status check, and the status check is now genuinely
+    per-caller. The readability half is still wrong — see above — but it
+    is no longer load-bearing on that path.
+  - ⚠ **A tutor cannot fix this by enrolling in their own programme** —
+    the product refuses it ("You can't enrol yourself in your own
+    programme" / "...own cohort", `lib/enrolments/actions.ts`). The
+    sanctioned way to see a programme through a student's eyes is a
+    **preview**, and today one exists only for the **Library** tab.
+    Curriculum, quizzes, sessions and assignments have none. Closing the
+    leak removed an accidental substitute for that missing preview;
+    building the real thing is open work (Sam, 2026-08-25).
 
 - **Production builds use webpack, not Turbopack.** The `build` and
   `cf:build` scripts pass `--webpack` to `next build`. Reason: Next.js 16

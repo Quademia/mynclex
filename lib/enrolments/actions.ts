@@ -1284,11 +1284,17 @@ export async function getPaymentHistoryAction(
     .maybeSingle();
   if (!enr) return { ok: false, error: 'Enrolment not found.' };
 
-  // Ownership gate: the row returns only for the owning tutor / SUPER_ADMIN.
+  // Ownership gate. ⚠ The `tutor_id` filter is the gate — RLS is not:
+  // nclex_programmes carries _student_select AND _public_select beside
+  // _self_select, so "the row came back" only ever proved the programme
+  // was READABLE. This action is a Server Action reachable by any signed-in
+  // caller who knows an enrolment id, and the payload below is another
+  // person's payment history. Filter added 2026-08-25.
   const { data: owned } = await supabase
     .from('nclex_programmes')
     .select('programme_id, price_currency')
     .eq('programme_id', enr.programme_id)
+    .eq('tutor_id', tutor.id)
     .maybeSingle();
   if (!owned) return { ok: false, error: 'Not your programme.' };
 

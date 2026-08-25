@@ -30,11 +30,18 @@ export default async function InstallmentCheckoutPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // RLS scopes this to the caller's own enrolments — others' ids 404.
+  // The `user_id` filter is what makes this the caller's own enrolment
+  // — RLS is not, despite what this comment used to claim. A tutor may
+  // read every enrolment on their own programmes, so without it a tutor
+  // could open one of their students' installment checkouts and read
+  // that student's amount and schedule. (Paying was always refused —
+  // lib/payments/init.ts re-checks ownership against the service-role
+  // client — but the page rendered.) See lib/enrolments/queries.ts.
   const { data: enr } = await supabase
     .from('nclex_enrolments')
     .select('enrolment_id, programme_id, status, enrolled_at, strategy_snapshot_json')
     .eq('enrolment_id', enrolmentId)
+    .eq('user_id', user.id)
     .maybeSingle();
   if (!enr) notFound();
 
