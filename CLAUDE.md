@@ -466,13 +466,48 @@ slice.
   - **Junction tables have no `tutor_id`** (`_shelf_memberships`,
     `_note_attachments`) — scope them through an explicit
     ownership probe on the parent shelf/note, not through RLS.
-  - ⭐ **The same class of bug lives outside the library.**
-    `nclex_programmes` carries `_student_select` and `_public_select`
-    beside `_self_select`, so `getProgrammeForShell()` in
-    `lib/programmes/queries.ts` proves a programme is *readable*, not
-    *owned* — and it gates the whole `/tutor/programme/[id]/…` subtree
-    (enrolments, cohorts, progress, quizzes, curriculum). Only the two
-    library routes were fixed. **The rest is open and unswept.**
+  - ⭐ **The same class of bug lived outside the library — ✅ SWEPT
+    2026-08-25 (13 call sites, three commits, no migration).** ⚠ Two
+    things this entry originally said were wrong, and both mattered:
+    - ⚠ **`_public_select` does not exist.** It was dropped in
+      migration `20260528120000` when public discovery moved to the
+      `nclex_public_programmes` view. `nclex_programmes` carries
+      `_self_select` · `_student_select` · `_admin_all`, and
+      `_student_select` alone is enough to cause this. **Verified
+      against the live dev catalogue, not the SQL files** — which is
+      the only way to be sure, since a dropped policy leaves its
+      `CREATE` behind in the migration that added it.
+    - ⚠⚠ **The scope was understated.** This said the leak "gates the
+      `/tutor/programme/[id]/…` subtree", implying you had to type a
+      URL. In fact **`getMyProgrammes()` had no owner filter at all**,
+      so other tutors' programmes were **listed on the tutor
+      dashboard**. Measured: `+mynclexstudent3`, who owns **zero**
+      programmes, was shown **2**; `benedictbless9` saw 4 for 2 owned.
+    - ⚠⚠ **AND IT WAS NOT READ-ONLY-ISH — SERVICE ROLE IS WHERE THIS
+      BITES.** The library leak was bounded by RLS. This one was not:
+      those programme ids are handed to `createServiceRoleClient()`
+      reads in `getTutorPayments`, `readRoster` and
+      `getMyProgrammesForList`, each commented "owner-proven". Service
+      role **ignores RLS by design**, so the app-layer filter is the
+      *only* control. Exposed on dev: **22 strangers' names + emails**
+      on the enrolments roster, and **3 of another student's payments**
+      (name, email, GHS 3,000) on the tutor Payments page.
+    - ⭐ **The shape of the fix:** `getProgrammeForShell` could not
+      take an owner filter — the **student** gate shares it, and there
+      *readable* is the correct question. So `getOwnedProgrammeForShell`
+      sits beside it and the seven tutor routes call that instead.
+      Everything else was tutor-only and took the filter directly.
+      Junction-style tables (units, cohorts) have no `tutor_id`, so
+      they filter through an `!inner` embed on the parent programme.
+    - ⭐ **`deleteUnit` reported SUCCESS while deleting nothing** — a
+      DELETE matching zero rows is not an error, so a refused write
+      fell through to `ok: true`. **RLS protecting the write does not
+      mean the screen tells the truth about it.**
+    - ⭐ **Rule of thumb worth more than the fix:** *before trusting
+      RLS to narrow a list, ask what happens to those ids next.* If
+      any of them cross into a service-role client, RLS was never the
+      control and the filter is load-bearing.
+    - Canonical: `lib/programmes/tutor-scope.ts`.
   - ⭐ **It also runs the other way — a STUDENT screen showing rows
     because the caller is a TUTOR.** `nclex_enrolments` carries
     `_student_select` (`user_id = auth.uid()`) **and** `_tutor_select`
