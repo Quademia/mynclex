@@ -24,6 +24,7 @@ import { getEnquiriesForProgramme } from '@/lib/enquiries/queries';
 import { getCohortAnalytics } from '@/lib/analytics/tutor/cohort-queries';
 import { getMyQuizzes } from '@/lib/tutor-quiz/queries';
 import { getLibraryOverviewStats } from '@/lib/library/queries';
+import { getBankTutorId } from '@/lib/bank/tutor-scope';
 import type {
   HomeBehindCohort,
   HomeEnquiry,
@@ -179,7 +180,13 @@ export async function getTutorHomeData(): Promise<TutorHomeData> {
     }));
 
   // ── This week's live sessions ─────────────────────────────────────────
-  const sessions = await getUpcomingSessions(supabase);
+  // Scoped to the owned programme ids, not left to RLS — see the note on
+  // getUpcomingSessions. `programmes` comes from getMyProgrammes, which
+  // carries the owner filter.
+  const sessions = await getUpcomingSessions(
+    supabase,
+    programmes.map((p) => p.programme_id),
+  );
 
   return {
     firstName,
@@ -201,13 +208,36 @@ export async function getTutorHomeData(): Promise<TutorHomeData> {
 // ── Live sessions: scheduled cohort sessions, next 7 days ────────────────
 // Reads the per-cohort PLANNER (nclex_cohort_live_sessions, Slice 1b),
 // joined to the cohort + parent programme + the marker activity for its
-// title. RLS scopes the read to the tutor's own cohorts. Each chip is
-// labelled by cohort and links to that cohort's Sessions tab. Day/time use
-// the server clock (UTC on the Cloudflare runtime ≈ the GHA-core-audience
-// zone); revisit for multi-TZ.
+// title. Each chip is labelled by cohort and links to that cohort's
+// Sessions tab. Day/time use the server clock (UTC on the Cloudflare
+// runtime ≈ the GHA-core-audience zone); revisit for multi-TZ.
+//
+// ⚠⚠ `ownedProgrammeIds` is the scope, and it is NOT optional. This
+// used to read the whole table on the claim that "RLS scopes the read
+// to the tutor's own cohorts" — nclex_cohort_live_sessions carries
+// _student_select AND _admin_all alongside _self_select, so what RLS
+// returns is a union. Measured on dev 2026-08-27: the query handed
+// back 35 sessions (every scheduled class in the product, across five
+// of another tutor's cohorts) to an account that owns none, and 8 to a
+// second such account.
+//
+// ⓘ Nobody had actually SEEN that, and the reason is worth keeping:
+// getTutorHomeData returns the new-tutor screen when you own zero
+// programmes, and both leaking accounts owned zero — so the wrong rows
+// were fetched and then thrown away. The defect was real and its
+// consequence was nil, which is exactly the pair that has been
+// mis-stated here twice before. One programme on either account and it
+// would have rendered.
+//
+// The empty case matters: with no owned programmes there is nothing to
+// show, and `.in()` on an empty list is a PostgREST edge better not
+// relied on. Return early instead.
 async function getUpcomingSessions(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  ownedProgrammeIds: string[],
 ): Promise<HomeSession[]> {
+  if (ownedProgrammeIds.length === 0) return [];
+
   const { data, error } = await supabase
     .from('nclex_cohort_live_sessions')
     .select(
@@ -216,6 +246,7 @@ async function getUpcomingSessions(
          nclex_programmes!inner( programme_id, title ) ),
        nclex_programme_activities!inner( title )`,
     )
+    .in('nclex_cohorts.programme_id', ownedProgrammeIds)
     .not('scheduled_at', 'is', null);
 
   if (error || !data) return [];
@@ -270,15 +301,25 @@ async function getUpcomingSessions(
 }
 
 // ── Workspace counts (Bank / Quizzes / Library) ──────────────────────────
+//
+// ⚠ The two bank counts name their owner. nclex_tutor_questions carries
+// _superadmin FOR ALL beside _tutor_own, so unfiltered they counted every
+// tutor's questions: 118 against the 8 actually owned, on dev.
+// (Not rendered today — this runs in the new-tutor branch too, which
+// shows none of these cards. Wrong number, computed and discarded.)
+// getMyQuizzes and getLibraryOverviewStats already scope themselves.
 async function getWorkspace(): Promise<HomeWorkspace> {
   const supabase = await createClient();
+  const tutorId = await getBankTutorId();
   const [bankTotal, bankDrafts, quizzes, lib] = await Promise.all([
     supabase
       .from('nclex_tutor_questions')
-      .select('item_id', { count: 'exact', head: true }),
+      .select('item_id', { count: 'exact', head: true })
+      .eq('tutor_id', tutorId ?? ''),
     supabase
       .from('nclex_tutor_questions')
       .select('item_id', { count: 'exact', head: true })
+      .eq('tutor_id', tutorId ?? '')
       .eq('is_published', false),
     getMyQuizzes(),
     getLibraryOverviewStats(),
