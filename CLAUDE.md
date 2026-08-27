@@ -1,6 +1,6 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-08-27 (Known Workarounds: the RLS union's THIRD member — `_admin_all` is `FOR ALL`, so a SUPER_ADMIN matches every row for reads *and* writes; the Supabase client here is untyped, which is why none of these bugs fail a build; and the orphaned-`next dev` port trap under the per-session loop)
+Last updated: 2026-08-27 (later — tutor plans & billing designed: the marketplace-billing deferral is now struck through with its reasoning, canonical in `docs/product-plan/tutor-plans-and-billing.md`, still a PROPOSAL. Earlier the same day — Known Workarounds: the RLS union's THIRD member, `_admin_all` is `FOR ALL` so a SUPER_ADMIN matches every row for reads *and* writes; the Supabase client here is untyped, which is why none of these bugs fail a build; and the orphaned-`next dev` port trap under the per-session loop)
 
 ## What This Is
 
@@ -814,7 +814,25 @@ session was open.
   so all four doorways exist: admin promotion · self-application ·
   registration · invite. There is no longer any way of becoming a tutor
   that needs somebody to write SQL.
-- Payment splits / marketplace billing between QAcademy and tutors
+- ~~Payment splits / marketplace billing between QAcademy and tutors~~ —
+  ⭐ **DESIGNED 2026-08-27, and the deferral mostly SURVIVES on purpose.**
+  Canonical: `docs/product-plan/tutor-plans-and-billing.md` (⚠ a
+  **PROPOSAL**; nothing in it is ratified and no number is fixed).
+  - **Splits are still deferred, now for a stated reason rather than
+    silence.** Verified against Paystack's docs: splits work in Ghana
+    by default and are compatible with MoMo — but a *subaccount* is a
+    sub-entity of **our** merchant account, so **we stay merchant of
+    record**, refunds come out of **our** payout, and chargebacks land
+    on us. Tutor programme fees therefore go **off-platform at launch**,
+    which is free because the `OFF_PLATFORM` mark-paid path is already
+    built and on prod.
+  - **What is newly designed** is the plan model around it: Free / Pro /
+    Plus, one entitlement gate (*build free, pay to enrol*), a trial
+    whose clock starts at the **first enrolment** rather than at signup,
+    on-platform collection as a **Plus capability requiring a separate
+    non-purchasable approval**, and a **setup-credits** service.
+  - ⚠ **Left in this list, struck through, so the change is visible
+    rather than silent** — same treatment as the tutor-signup line above.
 - Migration of MyNMCLicensure or MyTeacher onto this stack
 
 These are valid v2+ ideas. Do not build them in v1 unless Sam explicitly

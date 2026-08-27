@@ -14,6 +14,20 @@ and the parallel paths for self-study vs tutored students. Future
 topics like refunds, upgrades, and discount codes will also live in
 this file.
 
+⚠ **How a TUTOR pays US is not in this doc** — that is
+`tutor-plans-and-billing.md` (created 2026-08-27), which owns the plan
+tiers and the commercial relationship. Two of its positions bear
+directly on this file and are **proposals, not decisions**:
+
+- **Tutor programme fees go off-platform at launch**, so
+  `payment_collection_mode = ON_PLATFORM` is deferred for programmes
+  (Quademia's own products — bank, readiness — are unaffected). The
+  reason is that on-platform makes us merchant of record, and Paystack
+  puts refunds and chargebacks on the merchant.
+- **Students keep access when a tutor lapses**, which contests the
+  access-window rule settled here on 2026-05-17. See the ⚠⚠ note
+  under *Programme access window → Pattern A*.
+
 ---
 
 ## Settled / open status
@@ -25,10 +39,13 @@ this file.
   decoupled (opt-in bank, tutor-mediated enrolment, flexible
   payment strategies). A handful of sub-topics still open — see
   "Still open" inside *Tutored enrolment → Settled 2026-05-17*.
-- **Programme access window — SETTLED 2026-05-17.** Pattern A
-  adopted: tutor-set per programme, all access contingent on
-  tutor maintaining their monthly platform subscription. Applies
-  to both tutored and self-paced.
+- **Programme access window — SETTLED 2026-05-17, ⚠ HALF RE-OPENED
+  2026-08-27.** Pattern A adopted: tutor-set per programme, applies to
+  both tutored and self-paced. ⚠ Its second clause — *all access
+  contingent on the tutor maintaining their subscription* — is now in
+  tension with `tutor-plans-and-billing.md` §5, which proposes that
+  students keep access to **what they bought**. Neither is ratified.
+  See the note in *Programme access window → Pattern A* below.
 - **Self-paced enrolment — SETTLED 2026-05-17.** Self-serve
   on-platform only, one access window per programme, same payment
   strategies as tutored but anchored to enrolment date.
@@ -2013,6 +2030,24 @@ policy has to honour both.
   or lapses, students enter a transition period (length TBD in
   build, e.g. 90 days) during which they retain access and
   can download materials, then access locks.
+
+  ⚠⚠ **RE-OPENED 2026-08-27 — this clause is contested.**
+  `tutor-plans-and-billing.md` §5 proposes the opposite: a student
+  keeps access **to what they bought**, running to their own
+  `access_expires_at`, because the enrolment is a contract between
+  student and tutor rather than a function of the tutor's
+  relationship with us. A tutor whose card fails must not take 40
+  paying students offline.
+
+  ⓘ **But the clause above is right about one case the new rule does
+  not yet answer: "lifetime".** A bounded window (3 / 6 / 12 / 24
+  months) can simply run to its end — that costs us a known, finite
+  amount of hosting. A *lifetime* window on a lapsed tutor's
+  programme is an unbounded commitment to serve content for someone
+  who has stopped paying us, forever. The honest options are to drop
+  "lifetime" as a choice, to cap it on lapse (which is this clause,
+  narrowed to one case), or to price it in. **Undecided — the two
+  documents must be reconciled before either is built.**
 - "Lifetime" is therefore honestly described to students as
   "lifetime of the tutor's subscription on QAcademy" — not
   "lifetime regardless of platform status." Matches industry
