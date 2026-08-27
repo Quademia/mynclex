@@ -8,8 +8,14 @@
 //   - admin → nclex_trend_datasets + nclex_bank_items where trend_id matches
 //   - tutor → nclex_tutor_trend_datasets + nclex_tutor_questions where trend_id matches
 //
-// Returns null if the dataset doesn't exist (or the tutor doesn't own
-// it — RLS returns zero rows). Route page calls notFound() on null.
+// Returns null if the dataset doesn't exist, or the tutor doesn't own
+// it. Route page calls notFound() on null.
+//
+// ⚠ Ownership is asserted here, NOT left to RLS. This used to say
+// "RLS returns zero rows" — true for a plain tutor, false for a
+// SUPER_ADMIN, whose FOR-ALL policy matches every dataset and who is
+// admitted to this surface on purpose by requireBankCurator('tutor').
+// See lib/bank/tutor-scope.ts.
 //
 // Departs from CS's load-case in two ways:
 //   - No join table — the link is one column on the question row.
@@ -21,6 +27,7 @@
 // returned initials — the row mappers' default 'standalone' is correct.
 
 import type { ServerSupabaseClient } from '@/lib/access';
+import { getBankTutorId } from '@/lib/bank/tutor-scope';
 import type {
   SlotEditorInitial,
   SlotRow,
@@ -152,14 +159,23 @@ export async function loadTrend(
 ): Promise<WrapperData | null> {
   const cfg = configFor(surface);
 
-  const { data: datasetData, error: datasetErr } = await supabase
+  let datasetQuery = supabase
     .from(cfg.datasetTable)
     .select(surface === 'tutor' ? TUTOR_DATASET_COLUMNS : DATASET_COLUMNS)
-    .eq('trend_id', trend_id)
-    .maybeSingle();
+    .eq('trend_id', trend_id);
+  if (surface === 'tutor') {
+    const tutorId = await getBankTutorId();
+    if (!tutorId) return null;
+    datasetQuery = datasetQuery.eq('tutor_id', tutorId);
+  }
+  const { data: datasetData, error: datasetErr } = await datasetQuery.maybeSingle();
 
   if (datasetErr) throw datasetErr;
   if (!datasetData) return null;
+
+  // The attached-question read below is keyed on this trend_id, which
+  // the filter above has now proved is the caller's — owner-proven by
+  // composition rather than by its own filter.
 
   const datasetRow = datasetData as unknown as TrendDatasetRow;
 

@@ -6,9 +6,15 @@
 //
 // Auth shape mirrors lib/programmes/actions.ts — the /tutor layout
 // gates the TUTOR role once per request; each action re-checks
-// "signed in" and relies on RLS for ownership (tutor_id = auth.uid()
-// on nclex_tutor_quizzes; ownership traces through the parent quiz
-// for nclex_tutor_quiz_items).
+// "signed in" and then NAMES ITS OWNER (`.eq('tutor_id', user.id)` on
+// nclex_tutor_quizzes; ownership traces through the parent quiz for
+// nclex_tutor_quiz_items, which is proved by an explicit lookup).
+//
+// ⚠ This header used to say ownership was left to RLS. It cannot be:
+// nclex_tutor_quizzes carries _superadmin FOR ALL alongside
+// _tutor_own, so for an account holding SUPER_ADMIN every row matches
+// — reads, updates and deletes alike. Corrected 2026-08-27; the
+// reasoning lives in lib/bank/tutor-scope.ts.
 
 'use server';
 
@@ -236,9 +242,13 @@ export async function updateQuizAction(
     }
   }
 
-  // RLS on UPDATE filters by tutor_id = auth.uid(); editing a quiz
-  // that isn't yours updates 0 rows — surfaced generically so a
-  // client can't probe for IDs.
+  // ⚠ The owner filter is load-bearing. RLS does NOT narrow this for a
+  // SUPER_ADMIN — nclex_tutor_quizzes_superadmin is FOR ALL and matches
+  // every row, including for UPDATE. The row-count check below is right
+  // and stays; its premise was the thing that was wrong. Editing a quiz
+  // that isn't yours now updates 0 rows for everyone, surfaced
+  // generically so a client can't probe for IDs.
+  // See lib/bank/tutor-scope.ts.
   const { data, error } = await supabase
     .from('nclex_tutor_quizzes')
     .update({
@@ -254,6 +264,7 @@ export async function updateQuizAction(
       updated_at: new Date().toISOString(),
     })
     .eq('quiz_id', quizId)
+    .eq('tutor_id', user.id)
     .select('quiz_id')
     .maybeSingle();
 
@@ -303,10 +314,14 @@ export async function setQuizStatusAction(
     }
   }
 
+  // ⚠ Owner filter, same reason as updateQuiz — a SUPER_ADMIN's FOR-ALL
+  // policy would otherwise let this publish or unpublish another
+  // tutor's quiz. See lib/bank/tutor-scope.ts.
   const { data, error } = await supabase
     .from('nclex_tutor_quizzes')
     .update({ status, updated_at: new Date().toISOString() })
     .eq('quiz_id', quizId)
+    .eq('tutor_id', user.id)
     .select('quiz_id')
     .maybeSingle();
 
@@ -427,12 +442,15 @@ export async function deleteQuizAction(
     };
   }
 
-  // RLS on DELETE filters by tutor_id = auth.uid(); deleting a quiz
-  // that isn't yours removes 0 rows — surfaced generically.
+  // ⚠ Owner filter, same reason as updateQuiz — RLS alone would let a
+  // SUPER_ADMIN delete another tutor's quiz through this tutor action.
+  // See lib/bank/tutor-scope.ts. Deleting a quiz that isn't yours now
+  // removes 0 rows for everyone — surfaced generically.
   const { data, error } = await supabase
     .from('nclex_tutor_quizzes')
     .delete()
     .eq('quiz_id', quizId)
+    .eq('tutor_id', user.id)
     .select('quiz_id')
     .maybeSingle();
 
