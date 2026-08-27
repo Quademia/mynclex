@@ -1,5 +1,112 @@
 # MyNclex Build List
 
+> ## ✅ DONE 2026-08-27 — **the union's third member: the admin**
+>
+> The 08-25 sweep's two open threads, **proved before anything was
+> built** (Sam's call, and the reason the session was worth running —
+> the two threads had opposite answers). **Six commits**
+> (`7f01200`·`adaf6ef`·`085bab3`·`68388db`·`c07cfdb`·`eebf4b8`), **no
+> migration**, ✅ **merged to `main`, dev deploy green**. ⚠ Not
+> browser-tested by Sam; nothing on `prod`. Canonical:
+> **`lib/bank/tutor-scope.ts`** and CLAUDE.md → *Known Workarounds*.
+>
+> ⭐⭐ **THE IDEA, and it is a different question from the last two
+> sweeps.** They taught everyone to ask *could a **student** read this
+> row?* But `_admin_all` / `_superadmin` policies are **`FOR ALL` with a
+> row-independent `USING` clause** — `nclex_user_has_role('SUPER_ADMIN')`
+> is true or false for the **caller**, never for the **row** — so for
+> one account **every row of ~50 tables matches, for SELECT, UPDATE and
+> DELETE alike**. On the tutor **bank** tables there is no student
+> policy at all, and every screen was still wrong. **Ask who else the
+> table lets in, and whether any of them is standing on this screen.**
+>
+> ⚠ **And the gate lets them in on purpose** —
+> `requireBankCurator('tutor')` admits `TUTOR **or** SUPER_ADMIN`.
+> Admitting someone is not scoping them.
+>
+> **What actually leaked, measured as the real account under real RLS:**
+> `/tutor/bank/all` listed **118 questions to an account owning 8** —
+> 110 of them two other tutors' work, 3 authors, full stems, options and
+> rationales, with the band cards reporting whole-product figures (93
+> standalone · 25 note-born · 111 published · 7 drafts). **No programme,
+> cohort or enrolment needed; only the role.**
+>
+> ⭐⭐ **IT WAS NOT READ-ONLY. Executed, then rolled back:** a DELETE of
+> another tutor's published question **SUCCEEDED**. The identical delete
+> as a tutor who is *not* an admin affected **0 rows**. And it had a
+> **click path** — the row was listed, with its actions.
+> `saveQuestionAction` carried the same hole **plus** the `deleteUnit`
+> lie (`ok: true` on an UPDATE matching zero rows) — third sighting of
+> that shape.
+>
+> ⭐ **The tell was two numbers on one surface.** `/tutor/bank/cases`
+> and `/tutor/bank/trends` have always carried `.eq('tutor_id',
+> user.id)` and correctly showed **0** while their neighbour showed
+> **118**. *A surface contradicting itself is evidence; nobody had put
+> the two side by side.* Their comments now say the filter **is** the
+> control, not a duplicate of RLS.
+>
+> **Also closed, same category, no click path** (lists and editors
+> filter, so no screen offered the ids): `loadCase` / `loadTrend` — two
+> foreign cases were reachable by URL — and `updateQuiz` /
+> `setQuizStatus` / `deleteQuiz`, which were already reading the
+> affected row back and reporting honestly; only their premise was
+> wrong.
+>
+> ⭐ **Thirteen wrapper actions get ONE guard each, not twenty filters.**
+> A form post is what calls a server action, not the editor, so fixing
+> the loaders closed the way *in* and nothing else. Only the wrapper row
+> carries `tutor_id` (tabs and slot rows have no such column), so each
+> action proves ownership **once, at the top**, and everything
+> downstream is owner-proven by composition. Deliberately not a scripted
+> edit across twenty near-identical queries — that is what broke three
+> cohort actions on 08-25. `surface === 'admin'` returns true
+> immediately **on purpose**: reaching every case in the shared bank IS
+> the admin curator's job.
+>
+> ⭐ **Guard verified BOTH ways** — it refuses the admin-and-tutor *and*
+> passes Steven, the real owner. A guard that only ever says no is not a
+> working guard, and that is the half nobody checks.
+>
+> ⚠⚠ **THREAD 1 WAS REAL AND FIRING FOR NOBODY, WHICH IS THE PART I
+> CHECKED.** Of seven tutor-side reads into `nclex_cohort_live_sessions`
+> / `_checklist_items`, five are safe **by composition** (the page
+> proves programme ownership, then `CohortDetail` matches
+> `cohort.programme_id`) while every one of them claimed RLS did it.
+> One — `getUpcomingSessions`, the tutor dashboard's *This week* — is
+> genuinely unscoped: **35 rows** to `+mynclexsuperadmin`, **8** to
+> `+mynclexstudent3`, none owned. **But it renders for nobody**:
+> `getTutorHomeData` early-returns the new-tutor screen at zero owned
+> programmes and both leaking accounts own zero, while
+> `benedictbless9` — the only owner-and-enrollee — reads **0**, because
+> those foreign enrolments are not active *cohort* enrolments. **Defect
+> real, consequence nil**, traced rather than assumed; it is the pair
+> that was got wrong twice in the other direction.
+>
+> ⚠ **Two of my own mistakes, both caught before shipping:** `.eq()`
+> placed **before** `.select()` (PostgREST has no `.eq` until then — a
+> runtime failure that typechecks fine, because **this repo's Supabase
+> client is untyped**, which is also why none of these bugs ever failed
+> a build); and predicting 22 where the API said 19 while proving the
+> nested embedded filter.
+>
+> ⚠ **A tooling trap now in CLAUDE.md:** stopping a backgrounded
+> `npm run dev` kills the npm wrapper, **not** the `next dev` child. The
+> orphan held port 3000 with its `.next` deleted for the production
+> build, serving **500s** on a server Sam was using, while the
+> replacement quietly started on 3001.
+>
+> **Verified:** production build passes · `tsc` clean on every file
+> touched · `lint:check` unchanged vs baseline · the unusual nested
+> embedded `.in()` proved against the live REST API with the service
+> role (35 / 16 / 19 / 0, each matching the SQL).
+>
+> ⏭ **Left open:** the **~50 other tables carrying an admin `FOR ALL`
+> policy have not been walked** — today's four surfaces were found by
+> asking the question, not by exhausting it · still **no
+> preview-as-student** outside the Library · `/tutor/students` is still
+> a placeholder, so it inherits nothing.
+
 > ## ✅ DONE 2026-08-24 (later still) — **the library sweep, student side**
 >
 > The last unswept surface, scoped and built the same day. **Four commits**

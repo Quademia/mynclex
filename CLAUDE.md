@@ -1,6 +1,6 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-05-14 (release process corrected — `main` → `prod` is a GitHub PR merge commit, not `--ff-only`; added the migration-tracker consistency pre-check)
+Last updated: 2026-08-27 (Known Workarounds: the RLS union's THIRD member — `_admin_all` is `FOR ALL`, so a SUPER_ADMIN matches every row for reads *and* writes; the Supabase client here is untyped, which is why none of these bugs fail a build; and the orphaned-`next dev` port trap under the per-session loop)
 
 ## What This Is
 
@@ -537,6 +537,73 @@ slice.
     leak removed an accidental substitute for that missing preview;
     building the real thing is open work (Sam, 2026-08-25).
 
+- **⚠⚠ THE UNION HAS A THIRD MEMBER, AND IT IS THE ADMIN —
+  `_admin_all` / `_superadmin` IS `FOR ALL` WITH A ROW-INDEPENDENT
+  `USING` CLAUSE, SO FOR ONE ACCOUNT EVERY ROW OF EVERY TABLE MATCHES,
+  FOR READS *AND* WRITES.** The sibling of the entry above, found
+  2026-08-27 — and it is a different question, which is exactly why
+  three sweeps missed it. `nclex_user_has_role('SUPER_ADMIN')` is true
+  or false for the **caller**, never for the **row**, so it is not a
+  filter at all. ~50 tables carry one.
+  - ⭐ **The question to ask a tutor surface is not "could a STUDENT
+    read this?" but "WHO ELSE does this table let in, and is any of
+    them standing on this screen?"** The 08-25 sweeps taught everyone
+    to look for `_student_select`. On the tutor **bank** tables there
+    is no student policy at all — and every screen was still wrong.
+  - ⚠ **The gate lets them in on purpose.**
+    `requireBankCurator('tutor')` admits `TUTOR **or** SUPER_ADMIN`, so
+    such an account reaches a tutor surface legitimately and is then
+    handed the whole product. **Admitting someone is not scoping them.**
+  - **Measured on dev, as the real account under real RLS:**
+    `/tutor/bank/all` listed **118 questions to an account owning 8** —
+    110 of them two other tutors' work, full stems and rationales, with
+    the band cards reporting whole-product figures. No programme,
+    cohort or enrolment needed; only the role.
+  - ⭐⭐ **AND IT WRITES. Executed, then rolled back:** a DELETE of
+    another tutor's published question **SUCCEEDED**. The identical
+    delete as a tutor who is *not* an admin affected **0 rows** — RLS
+    was doing its job for everyone except the account coming through
+    both doors at once.
+  - ⭐ **The tell was two numbers on one surface.**
+    `/tutor/bank/cases` and `/tutor/bank/trends` have always carried
+    `.eq('tutor_id', user.id)` and correctly showed **0**, while their
+    neighbour showed **118**. *A surface contradicting itself is
+    evidence; nobody had put the two side by side.*
+  - ⭐ **Where a table's children have no `tutor_id`** (case tabs, slot
+    rows), do **not** bolt a filter onto all twenty writes — prove
+    ownership **once, at the top of the action**, and let everything
+    downstream be owner-proven by composition
+    (`assertTutorOwnsCase` / `assertTutorOwnsTrend`). A scripted edit
+    across twenty near-identical queries is what broke three cohort
+    actions on 08-25.
+  - ⚠ **A form post calls a server action, not the editor.** Fixing a
+    loader closes the way *in*; it does not gate the action. Both
+    layers, always.
+  - ⚠ **Verify a new guard in BOTH directions** — that it refuses the
+    stranger *and* passes the real owner. A guard that only ever says
+    no is not a working guard, and that is the half nobody checks.
+  - ⓘ **Do NOT "fix" the SQL.** A SUPER_ADMIN reading every tutor's
+    bank IS allowed — that is what `/admin/*` is for. The fix is
+    app-layer, same as the two leaks above.
+  - ⏭ **Open:** the ~50 other admin-`FOR ALL` tables have **not** been
+    walked. The four surfaces closed so far were found by asking the
+    question, not by exhausting it.
+  - Canonical: `lib/bank/tutor-scope.ts`.
+
+- **⚠ The Supabase client in this repo is UNTYPED — no generated
+  `Database` types — so table and column names are plain strings.**
+  This is why none of the RLS-scoping bugs above ever failed a build:
+  `tsc` cannot know that `.eq('tutor_id', …)` is missing, or that it is
+  invalid on the table you wrote it against. It also means a filter can
+  be chained onto a two-table union type without complaint. **The
+  compiler is not a reviewer here; the database is.** Verify scoping
+  changes by executing them (`set role authenticated` + the account's
+  JWT claim), not by trusting a green typecheck.
+  - ⚠ PostgREST's builder has **no `.eq()` until `.select()` has been
+    called** — `.from(t).eq(…).select(…)` is a runtime failure that
+    typechecks fine here. Caught once on 2026-08-27 by re-reading the
+    edit.
+
 - **Production builds use webpack, not Turbopack.** The `build` and
   `cf:build` scripts pass `--webpack` to `next build`. Reason: Next.js 16
   defaults to Turbopack for production builds, but
@@ -599,6 +666,20 @@ mapping is 1-to-1.
    Serves on `http://localhost:3000`. The `.env.local` is auto-copied
    into new worktrees by `.worktreeinclude`, so credentials are
    already wired.
+
+   ⚠ **Stopping a backgrounded `npm run dev` kills the npm wrapper, not
+   the `next dev` child.** The orphan keeps port 3000, so a replacement
+   starts on **3001** while the old process serves the old build — and
+   if you cleared `.next` (e.g. for a production build) that orphan
+   serves **500s** from a directory that no longer exists. Found
+   2026-08-27, mid-session, on a server Sam was using. **Check the port
+   holder, don't assume the stop worked:**
+   `Get-NetTCPConnection -LocalPort 3000 -State Listen`, then
+   `Stop-Process -Id <pid> -Force`.
+
+   ⚠ `npm run build` writes to the **same `.next`** the dev server is
+   using, so it cannot be run alongside one. Stop the server, build,
+   restart — and say so first if somebody is testing.
 
 2. Build the requested slice / fix on the auto-created session
    branch. Commit there freely.
