@@ -2,9 +2,14 @@
 //
 // Tutor twin of /admin/bank/all. Same component tree, different
 // table (nclex_tutor_questions) and surface ('tutor'). Auth is gated
-// by /tutor/layout.tsx via requireTutor() above this page; the
-// server actions re-check independently and RLS enforces
-// tutor_id = auth.uid() at the DB layer regardless.
+// by /tutor/layout.tsx via requireTutor() above this page.
+//
+// ⚠ EVERY read below names its owner. This file used to say RLS
+// enforced `tutor_id = auth.uid()` "at the DB layer regardless" — it
+// does not for a SUPER_ADMIN, whose FOR-ALL policy ORs in and matches
+// every row, and requireBankCurator('tutor') admits SUPER_ADMIN on
+// purpose. Measured on dev 2026-08-27: 118 questions listed to an
+// account owning 8. See lib/bank/tutor-scope.ts.
 
 import Link from 'next/link';
 import { richTextToPlain } from '@/lib/authoring/rich-doc';
@@ -125,7 +130,8 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
   if (!user) redirect('/login');
 
   // ── Main row query ─────────────────────────────────────────
-  // RLS on nclex_tutor_questions filters to tutor_id = auth.uid().
+  // ⚠ The owner filter is load-bearing, not decoration — see the header
+  // and lib/bank/tutor-scope.ts. "My bank" means MINE.
   let query = supabase
     .from('nclex_tutor_questions')
     .select(
@@ -133,7 +139,8 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
       ', parent_case_id, trend_id, parent_note_id, updated_at, ' +
       'trend:nclex_tutor_trend_datasets(title), ' +
       'case:nclex_tutor_case_studies(title)',
-    );
+    )
+    .eq('tutor_id', user.id);
 
   // All the non-membership filters + scoped search (shared helper).
   query = applyBankFilters(query, filters);
@@ -152,7 +159,8 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
   // Total rows matching the current filters — drives "Showing X of Y" + Load more.
   let filteredCountQuery = supabase
     .from('nclex_tutor_questions')
-    .select('*', { count: 'exact', head: true });
+    .select('*', { count: 'exact', head: true })
+    .eq('tutor_id', user.id);
   filteredCountQuery = applyBankFilters(filteredCountQuery, filters);
   filteredCountQuery = applyMembershipFilter(filteredCountQuery, filters.membership);
   const { count: filteredCount } = await filteredCountQuery;
@@ -163,7 +171,11 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
   //    Y" line carries the filtered count). Eight parallel head-counts.
   //    Composition buckets are mutually exclusive: note-born = has a
   //    parent note AND no case/trend; standalone = none of the three.
-  const mk = () => supabase.from('nclex_tutor_questions').select('*', { count: 'exact', head: true });
+  const mk = () =>
+    supabase
+      .from('nclex_tutor_questions')
+      .select('*', { count: 'exact', head: true })
+      .eq('tutor_id', user.id);
   const [
     cTotal, cStandalone, cCase, cTrend, cNote, cPublished, cDrafts, cFree,
   ] = await Promise.all([
@@ -273,8 +285,12 @@ export default async function TutorBankAllPage({ searchParams }: PageProps) {
     supabase, 'tutor', 'tutor_question', summaryRows.map((r) => r.item_id),
   );
 
-  // Distinct tags for the Tag filter (the tutor's own questions; RLS-scoped).
-  const { data: tagRows } = await supabase.from('nclex_tutor_questions').select('tags');
+  // Distinct tags for the Tag filter — the tutor's own questions, named
+  // explicitly (RLS alone would hand a SUPER_ADMIN every tutor's tags).
+  const { data: tagRows } = await supabase
+    .from('nclex_tutor_questions')
+    .select('tags')
+    .eq('tutor_id', user.id);
   const tagOptions = Array.from(
     new Set((tagRows ?? []).flatMap((r) => (r.tags as string[] | null) ?? [])),
   ).sort((a, b) => a.localeCompare(b));
