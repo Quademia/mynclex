@@ -16,6 +16,7 @@
 // note is read self-paced, so we never imply a whole-class denominator.
 
 import { createClient } from '@/lib/supabase/server';
+import { getLibraryTutorId } from '../tutor-scope';
 import { richTextToPlain } from '@/lib/authoring/rich-doc';
 import { richTextToPlainLabel } from '@/lib/authoring/bank-image-doc';
 import { bodyToTiptap } from '../body-tiptap';
@@ -120,10 +121,15 @@ export async function getEmbedAnalyticsOverview(
 
   const supabase = await createClient();
 
-  // 1. The tutor's notes (RLS → owned only). Body carries the blocks.
+  // 1. The tutor's notes. The `tutor_id` filter is what makes them
+  // the tutor's — RLS is wider than ownership (see ../tutor-scope.ts).
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return empty;
+
   const { data: noteRows } = await supabase
     .from('nclex_tutor_library_notes')
-    .select('note_id, title, body');
+    .select('note_id, title, body')
+    .eq('tutor_id', tutorId);
   const notes = (noteRows ?? []) as Array<{
     note_id: string;
     title: string;
@@ -518,10 +524,14 @@ export async function getEmbedAnalyticsNote(
   const MIN = 3;
   const supabase = await createClient();
 
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return null;
+
   const { data: note } = await supabase
     .from('nclex_tutor_library_notes')
     .select('note_id, title, body')
     .eq('note_id', noteId)
+    .eq('tutor_id', tutorId)
     .maybeSingle();
   if (!note) return null;
   const nrow = note as { note_id: string; title: string; body: unknown };
@@ -730,10 +740,14 @@ export async function getEmbedNoteReaders(
 ): Promise<EmbedNoteReaders | null> {
   const supabase = await createClient();
 
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return null;
+
   const { data: note } = await supabase
     .from('nclex_tutor_library_notes')
     .select('note_id, title, body')
     .eq('note_id', noteId)
+    .eq('tutor_id', tutorId)
     .maybeSingle();
   if (!note) return null;
   const nrow = note as { note_id: string; title: string; body: unknown };
@@ -954,10 +968,14 @@ export async function getEmbedReaderReport(
 ): Promise<EmbedReaderReport | null> {
   const supabase = await createClient();
 
+  const tutorId = await getLibraryTutorId();
+  if (!tutorId) return null;
+
   const { data: note } = await supabase
     .from('nclex_tutor_library_notes')
     .select('note_id, title, body')
     .eq('note_id', noteId)
+    .eq('tutor_id', tutorId)
     .maybeSingle();
   if (!note) return null;
   const nrow = note as { note_id: string; title: string; body: unknown };

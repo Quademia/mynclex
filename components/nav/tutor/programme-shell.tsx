@@ -3,13 +3,15 @@
 // Server Component wrapper used by the [programme_id] layout.
 // Resolves the :programmeId placeholder in TUTOR_PROGRAMME_NAV's
 // hrefs to the actual route param, fetches the programme title
-// from nclex_programmes (RLS scopes to the tutor's own rows), and
-// renders the AppShell with the programme sidebar + back pill in
-// the topbar's right slot.
+// from nclex_programmes, and renders the AppShell with the
+// programme sidebar + back pill in the topbar's right slot.
 //
-// Slice 9.1a wired this up against the real DB. RLS = ownership
-// check; the SELECT returns no row for programmes that aren't the
-// tutor's, which becomes a 404 here.
+// ⚠ Slice 9.1a wired this up believing "RLS = ownership check". It
+// is not — nclex_programmes also carries _student_select, so a tutor
+// enrolled as a student on someone else's programme rendered this
+// whole shell over it (2026-08-25). The ownership check is the
+// explicit tutor_id filter inside getOwnedProgrammeForShell; no row
+// → 404 here. See lib/programmes/tutor-scope.ts.
 
 import { notFound } from 'next/navigation';
 import { loadChromeData } from '@/lib/shell/load-chrome-data';
@@ -22,7 +24,7 @@ import { TutorBackPill } from './back-pill';
 import { TutorDrawerHeader } from './drawer-header';
 import { MobileNav } from '@/components/shell/mobile/mobile-nav';
 import { TUTOR_PROGRAMME_NAV } from '@/lib/nav/tutor';
-import { getProgrammeForShell } from '@/lib/programmes/queries';
+import { getOwnedProgrammeForShell } from '@/lib/programmes/queries';
 
 export async function TutorProgrammeShell({
   programmeId,
@@ -33,7 +35,7 @@ export async function TutorProgrammeShell({
 }) {
   const chrome = await loadChromeData();
 
-  const programme = await getProgrammeForShell(programmeId);
+  const programme = await getOwnedProgrammeForShell(programmeId);
   // Unknown programme id, or one this tutor doesn't own → 404.
   if (!programme) notFound();
   const programmeTitle = programme.title;

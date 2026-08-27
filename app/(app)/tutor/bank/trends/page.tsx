@@ -1,8 +1,15 @@
 // mynclex/app/(app)/tutor/bank/trends/page.tsx
 //
 // Tutor twin of /admin/bank/trends. Reads the tutor tables filtered by
-// tutor_id (RLS enforces this too) and hands rows to the shared
-// TrendsListClient (filter bar + content search + filtered table).
+// tutor_id and hands rows to the shared TrendsListClient (filter bar +
+// content search + filtered table).
+//
+// ⭐ That .eq('tutor_id', user.id) is the whole reason this page was
+// correct while its neighbour /tutor/bank/all was not: RLS does NOT
+// enforce it DB-side for a SUPER_ADMIN, whose FOR-ALL policy matches
+// every row, and requireBankCurator('tutor') admits SUPER_ADMIN on
+// purpose. Do not remove the filter as redundant — it is the control.
+// See lib/bank/tutor-scope.ts.
 
 import Link from 'next/link';
 import { requireBankCurator } from '@/lib/access';

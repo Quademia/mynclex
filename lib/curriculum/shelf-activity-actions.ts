@@ -213,6 +213,7 @@ export async function previewShelfForUnitAction(
     .from('nclex_tutor_library_shelves')
     .select('shelf_id, title, color')
     .eq('shelf_id', shelfId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!shelf) return { ok: false, error: 'Shelf not found or not yours.' };
 
@@ -269,6 +270,7 @@ export async function attachShelfAction(
     .from('nclex_tutor_library_shelves')
     .select('shelf_id, title')
     .eq('shelf_id', shelfId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!shelf) return { ok: false, error: 'Shelf not found or not yours.' };
 
@@ -565,6 +567,7 @@ export async function makeNoteVisibleHereAction(
     .from('nclex_tutor_library_notes')
     .select('note_id, visibility_mode')
     .eq('note_id', noteId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!note) return { ok: false, error: 'Note not found or not yours.' };
   if ((note as { visibility_mode: string }).visibility_mode === 'TUTOR_WIDE') {

@@ -68,6 +68,9 @@ export function PracticeNoteView({ note, basePath }: PracticeNoteViewProps) {
   }
 
   return (
+    // `.slm` — see practice-index-view.tsx for why this wrapper is here
+    // and not inherited from the shell.
+    <div className="slm">
     <div className="mpr-wrap is-detail">
       <Link href={`${basePath}/practice`} className="mpr-back">
         ← My practice
@@ -107,6 +110,7 @@ export function PracticeNoteView({ note, basePath }: PracticeNoteViewProps) {
           </Link>
         </div>
       )}
+    </div>
     </div>
   );
 }

@@ -55,25 +55,43 @@ export async function attachQuizzesAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Confirm the programme is the caller's (RLS-scoped SELECT).
+  // Confirm the programme is the caller's. ⚠ The tutor_id filter is
+  // the check — "RLS-scoped SELECT" was written here and is false;
+  // nclex_programmes is readable by enrolled students too.
+  // See lib/programmes/tutor-scope.ts.
   const { data: programmeRow } = await supabase
     .from('nclex_programmes')
     .select('programme_id')
     .eq('programme_id', programmeId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!programmeRow) {
     return { ok: false, error: 'Programme not found or not yours.' };
   }
 
   // Re-verify: every quiz id is one of the caller's own PUBLISHED
-  // quizzes. RLS scopes the SELECT to the tutor; an id belonging
-  // to anyone else simply won't return — the count mismatch then
-  // rejects the whole batch.
+  // quizzes. An id belonging to anyone else won't return — the count
+  // mismatch then rejects the whole batch.
+  //
+  // ⚠⚠ THE tutor_id FILTER IS THE ONLY THING ENFORCING "OWN" HERE.
+  // This said "RLS scopes the SELECT to the tutor" and that was false:
+  // nclex_tutor_quizzes carries _student_select, which exposes any
+  // PUBLISHED quiz attached to a programme the caller is enrolled on.
+  // And RLS cannot cover the write either — the INSERT policy on
+  // nclex_programme_quizzes only checks that the caller owns the
+  // PROGRAMME, never the QUIZ. So without this filter a tutor could
+  // attach ANOTHER TUTOR'S quiz to their own programme, and their
+  // students could then sit it (the student path reads quiz items via
+  // the service role). Confirmed by executing the INSERT as
+  // benedictbless9 on 2026-08-25 — it succeeded, and was rolled back.
+  // The error message below has always promised "your own"; now it is
+  // true. See lib/programmes/tutor-scope.ts.
   const dedupedIds = [...new Set(quizIds)];
   const { data: validQuizzes } = await supabase
     .from('nclex_tutor_quizzes')
     .select('quiz_id')
     .in('quiz_id', dedupedIds)
+    .eq('tutor_id', user.id)
     .eq('status', 'PUBLISHED');
   const validIds = new Set(
     (validQuizzes ?? []).map((r) => r.quiz_id),
@@ -194,13 +212,17 @@ export async function createQuizAndAttachAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Confirm the programme is the caller's (RLS-scoped SELECT).
+  // Confirm the programme is the caller's. ⚠ The tutor_id filter is
+  // the check — "RLS-scoped SELECT" was written here and is false
+  // (nclex_programmes is readable by enrolled students too), so this
+  // gate meant "not readable", not "not yours".
   // Same defensive check as attach — saves a useless quiz row if
   // the caller can't actually attach.
   const { data: programmeRow } = await supabase
     .from('nclex_programmes')
     .select('programme_id')
     .eq('programme_id', programmeId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!programmeRow) {
     return { ok: false, error: 'Programme not found or not yours.' };

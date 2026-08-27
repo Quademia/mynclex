@@ -7,8 +7,9 @@ Supabase no longer writes any email of ours.**
 was never in the catalog at all. It exists only because
 `enrolment.access_expiring` does: warning a student her access is ending and
 then saying nothing when a tutor gives it back is the same gap Sam caught on
-`tutor.reinstated`. ⓘ **The three added on 2026-08-24 are on `main`, not yet
-on `prod`** — `access_expiring`, `access_expired`, `access_extended`.
+`tutor.reinstated`. ✅ **The three added on 2026-08-24 — `access_expiring`, `access_expired`,
+`access_extended` — were RELEASED TO PROD the same day** (PR #62, prod
+`999a378`, migration `20260923120000` applied; both workflows green).
 ⭐ **29, not 23 — the TUTOR family joined the catalog on 2026-08-21**
 with the tutor-onboarding arc; see *Tutor lifecycle* below. ⓘ It was
 listed as 6, then 7: `tutor.reinstated` was added while 1d was being

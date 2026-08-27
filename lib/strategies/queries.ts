@@ -7,6 +7,7 @@
 // returns null → the page 404s.
 
 import { createClient } from '@/lib/supabase/server';
+import { getProgrammeTutorId } from '@/lib/programmes/tutor-scope';
 import type {
   Currency,
   PaymentCollectionMode,
@@ -29,12 +30,20 @@ export async function getPaymentPlansContext(
 ): Promise<PaymentPlansContext | null> {
   const supabase = await createClient();
 
+  // Ownership: the Payment plans page is tutor-only, and
+  // nclex_programmes is readable by enrolled students too — so name
+  // the owner rather than trusting RLS to narrow it.
+  // See lib/programmes/tutor-scope.ts.
+  const tutorId = await getProgrammeTutorId();
+  if (!tutorId) return null;
+
   const { data: prog, error } = await supabase
     .from('nclex_programmes')
     .select(
       'programme_id, title, price_currency, payment_collection_mode, status, payment_gates_access'
     )
     .eq('programme_id', programmeId)
+    .eq('tutor_id', tutorId)
     .maybeSingle();
 
   if (error || !prog) return null;

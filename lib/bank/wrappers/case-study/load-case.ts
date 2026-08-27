@@ -11,11 +11,18 @@
 //   - tutor → nclex_tutor_case_studies + nclex_tutor_case_study_tabs +
 //             nclex_tutor_case_study_items + nclex_tutor_questions
 //
-// Returns null if the case does not exist (or the tutor doesn't own
-// it — RLS will return zero rows). The route page calls notFound()
-// on null.
+// Returns null if the case does not exist, or the tutor doesn't own
+// it. The route page calls notFound() on null.
+//
+// ⚠ Ownership is asserted here, NOT left to RLS. This used to say
+// "RLS will return zero rows" — true for a plain tutor, false for a
+// SUPER_ADMIN, whose FOR-ALL policy matches every case and who is
+// admitted to this surface on purpose by requireBankCurator('tutor').
+// Without the filter, /tutor/bank/cases/<someone else's id> opened
+// their case in the tutor editor. See lib/bank/tutor-scope.ts.
 
 import type { ServerSupabaseClient } from '@/lib/access';
+import { getBankTutorId } from '@/lib/bank/tutor-scope';
 import type {
   CaseRow,
   ChartEntry,
@@ -161,14 +168,23 @@ export async function loadCase(
 ): Promise<WrapperData | null> {
   const cfg = configFor(surface);
 
-  const { data: caseData, error: caseErr } = await supabase
+  let caseQuery = supabase
     .from(cfg.caseTable)
     .select(surface === 'tutor' ? TUTOR_CASE_COLUMNS : CASE_COLUMNS)
-    .eq('case_id', case_id)
-    .maybeSingle();
+    .eq('case_id', case_id);
+  if (surface === 'tutor') {
+    const tutorId = await getBankTutorId();
+    if (!tutorId) return null;
+    caseQuery = caseQuery.eq('tutor_id', tutorId);
+  }
+  const { data: caseData, error: caseErr } = await caseQuery.maybeSingle();
 
   if (caseErr) throw caseErr;
   if (!caseData) return null;
+
+  // The tabs / slots / question reads below are keyed on this case_id,
+  // which the filter above has now proved is the caller's — so they are
+  // owner-proven by composition rather than by their own filters.
 
   const caseRow = caseData as unknown as CaseRow;
 

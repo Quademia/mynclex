@@ -17,6 +17,7 @@
 // in their programmes") could replace step 2 — left for later.
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { getProgrammeTutorId } from '@/lib/programmes/tutor-scope';
 import { nextPaymentView } from '@/lib/payments/schedule';
 import { formatCohortName } from '@/lib/cohorts/format';
 import type { Currency } from '@/lib/payments/types';
@@ -31,6 +32,48 @@ const ACTIVE_STATUSES: ReadonlySet<EnrolmentStatus> = new Set([
   'ENROLLED',
   'PAUSED',
 ]);
+
+/**
+ * ⚠⚠ READ THIS BEFORE WRITING ANY "MY ENROLMENTS" QUERY.
+ *
+ * `myEnrolmentRows` — RLS on `nclex_enrolments` does NOT mean "mine".
+ * Postgres ORs permissive policies together, and the table carries two
+ * SELECT policies:
+ *
+ *   nclex_enrolments_student_select   user_id = auth.uid()      ← mine
+ *   nclex_enrolments_tutor_select     I tutor that programme    ← my STUDENTS'
+ *
+ * So for anyone holding both roles, "the rows RLS returns" is their
+ * students' enrolments, not their own. Steven (tutor, 0 enrolments of
+ * his own) got **48 rows** back from a query commented "the student's
+ * own enrolment rows (RLS: user_id = auth.uid())".
+ *
+ * What that cost, before 2026-08-25:
+ *   • His student picker listed 5 programmes he teaches and is not on.
+ *   • The access gates below answered ENROLLED for programmes and
+ *     cohorts he had no row on — so entry was open, despite a comment
+ *     elsewhere asserting "listing only, entry was never open".
+ *   • The picker's next-payment panel rendered a REAL STUDENT's amount
+ *     and due date, read off their frozen plan.
+ *
+ * The SQL is correct — a tutor genuinely may read their roster. The
+ * mistake was student-side code asking "what may I read?" when it meant
+ * "what is mine?". Always pass the caller's id explicitly.
+ *
+ * (Charging was never possible: lib/payments/init.ts re-checks
+ * `enr.user_id === user.id` against the service-role client.)
+ *
+ * Mirror image of the tutor-library leak found the same day — see
+ * lib/library/tutor-scope.ts and CLAUDE.md → Known Workarounds.
+ */
+async function callerId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<string | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
 
 function pickStatus(
   rows: { status: EnrolmentStatus }[],
@@ -50,16 +93,22 @@ function pickStatus(
 /**
  * The calling student's own enrolment status for a SELF-PACED
  * programme (cohort_id IS NULL), active-wins-over-terminal.
- * null = no enrolment row at all. RLS scopes to user_id = auth.uid(),
- * so this only ever sees the caller's rows.
+ * null = no enrolment row at all.
+ *
+ * ⚠ The `user_id` filter is what makes this "own" — NOT RLS. See the
+ * note above `myEnrolmentRows` for why, and what it cost.
  */
 export async function getMyProgrammeEnrolmentStatus(
   programmeId: string,
 ): Promise<EnrolmentStatus | null> {
   const supabase = await createClient();
+  const userId = await callerId(supabase);
+  if (!userId) return null;
+
   const { data } = await supabase
     .from('nclex_enrolments')
     .select('status')
+    .eq('user_id', userId)
     .eq('programme_id', programmeId)
     .is('cohort_id', null);
   return pickStatus((data ?? []) as { status: EnrolmentStatus }[]);
@@ -68,14 +117,20 @@ export async function getMyProgrammeEnrolmentStatus(
 /**
  * The calling student's own enrolment status for a tutor-led COHORT,
  * active-wins-over-terminal. null = no enrolment row.
+ *
+ * ⚠ Same trap as above — the `user_id` filter is the check, not RLS.
  */
 export async function getMyCohortEnrolmentStatus(
   cohortId: string,
 ): Promise<EnrolmentStatus | null> {
   const supabase = await createClient();
+  const userId = await callerId(supabase);
+  if (!userId) return null;
+
   const { data } = await supabase
     .from('nclex_enrolments')
     .select('status')
+    .eq('user_id', userId)
     .eq('cohort_id', cohortId);
   return pickStatus((data ?? []) as { status: EnrolmentStatus }[]);
 }
@@ -90,13 +145,21 @@ export async function getCohortRoster(
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Ownership gate (RLS-scoped). Returns the row only for the owning
-  // tutor or a SUPER_ADMIN; anyone else gets null. The parent programme's
-  // currency rides along (every plan inherits it) for the payment column.
+  // Ownership gate. ⚠⚠ Same trap as getProgrammeRoster below — this
+  // said "RLS-scoped… only for the owning tutor" and was false.
+  // nclex_cohorts carries _student_select (nclex_has_cohort_enrolment),
+  // so a tutor enrolled as a student in another tutor's cohort passed
+  // it, and readRoster reads with the SERVICE ROLE — every classmate's
+  // name and email. Ownership lives on the parent programme, so the
+  // inner embed carries the filter. See lib/programmes/tutor-scope.ts.
+  //
+  // The parent programme's currency rides along (every plan inherits
+  // it) for the payment column.
   const { data: owned } = await supabase
     .from('nclex_cohorts')
     .select('cohort_id, nclex_programmes!inner(price_currency)')
     .eq('cohort_id', cohortId)
+    .eq('nclex_programmes.tutor_id', user.id)
     .maybeSingle();
   if (!owned) return null;
   const ownedProg = (
@@ -126,12 +189,19 @@ export async function getProgrammeRoster(
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Ownership gate (RLS-scoped): the programme row returns only for the
-  // owning tutor / SUPER_ADMIN.
+  // Ownership gate. ⚠⚠ THE tutor_id FILTER IS LOAD-BEARING — this
+  // comment claimed "RLS-scoped: returns only for the owning tutor"
+  // until 2026-08-25, and that was false. nclex_programmes also
+  // carries _student_select, so a tutor enrolled as a student on
+  // another tutor's programme passed this gate — and readRoster below
+  // reads with the SERVICE ROLE, which bypasses RLS entirely and
+  // returns every enrolled student's NAME and EMAIL. The gate is the
+  // only thing narrowing it. See lib/programmes/tutor-scope.ts.
   const { data: owned } = await supabase
     .from('nclex_programmes')
     .select('programme_id, price_currency, delivery_mode')
     .eq('programme_id', programmeId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!owned) return null;
   const currency = (owned.price_currency as Currency | null) ?? 'GHS';
@@ -260,9 +330,14 @@ async function readRoster(
 /**
  * The programme's ACTIVE payment plans + currency, for the Add Student
  * modal's plan picker (add-with-plan, 2026-06-12). Authed client —
- * strategy RLS is owner-scoped, so a programme the tutor doesn't own
- * yields no plans. Callers gate ownership via the roster read anyway
- * (null → 404) before this.
+ * strategy RLS genuinely IS owner-scoped here (nclex_pps_tutor_all +
+ * nclex_pps_admin_all only, no student policy — verified 2026-08-25),
+ * so a programme the tutor doesn't own yields no plans.
+ *
+ * ⚠ The programme read beside it is NOT owner-scoped by RLS, so it
+ * names tutor_id explicitly — otherwise it answers with another
+ * tutor's currency and access flag. Callers also gate via the roster
+ * read (null → 404), which was itself leaky until 2026-08-25.
  */
 export async function getRosterPlanContext(
   programmeId: string,
@@ -273,11 +348,18 @@ export async function getRosterPlanContext(
   paymentGatesAccess: boolean;
 }> {
   const supabase = await createClient();
+
+  const tutorId = await getProgrammeTutorId();
+  if (!tutorId) {
+    return { plans: [], currency: 'GHS', plansByCohort: {}, paymentGatesAccess: false };
+  }
+
   const [{ data: prog }, { data: all, error }] = await Promise.all([
     supabase
       .from('nclex_programmes')
       .select('price_currency, payment_gates_access')
       .eq('programme_id', programmeId)
+      .eq('tutor_id', tutorId)
       .maybeSingle(),
     // All active plans, both scopes — partitioned below into the programme
     // defaults + a per-cohort map, so the Add-student / Convert pickers can

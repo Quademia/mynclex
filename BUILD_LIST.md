@@ -1,10 +1,211 @@
 # MyNclex Build List
 
+> ## ✅ DONE 2026-08-27 — **the union's third member: the admin**
+>
+> The 08-25 sweep's two open threads, **proved before anything was
+> built** (Sam's call, and the reason the session was worth running —
+> the two threads had opposite answers). **Six commits**
+> (`7f01200`·`adaf6ef`·`085bab3`·`68388db`·`c07cfdb`·`eebf4b8`), **no
+> migration**, ✅ **merged to `main`, dev deploy green**. ⚠ Not
+> browser-tested by Sam; nothing on `prod`. Canonical:
+> **`lib/bank/tutor-scope.ts`** and CLAUDE.md → *Known Workarounds*.
+>
+> ⭐⭐ **THE IDEA, and it is a different question from the last two
+> sweeps.** They taught everyone to ask *could a **student** read this
+> row?* But `_admin_all` / `_superadmin` policies are **`FOR ALL` with a
+> row-independent `USING` clause** — `nclex_user_has_role('SUPER_ADMIN')`
+> is true or false for the **caller**, never for the **row** — so for
+> one account **every row of ~50 tables matches, for SELECT, UPDATE and
+> DELETE alike**. On the tutor **bank** tables there is no student
+> policy at all, and every screen was still wrong. **Ask who else the
+> table lets in, and whether any of them is standing on this screen.**
+>
+> ⚠ **And the gate lets them in on purpose** —
+> `requireBankCurator('tutor')` admits `TUTOR **or** SUPER_ADMIN`.
+> Admitting someone is not scoping them.
+>
+> **What actually leaked, measured as the real account under real RLS:**
+> `/tutor/bank/all` listed **118 questions to an account owning 8** —
+> 110 of them two other tutors' work, 3 authors, full stems, options and
+> rationales, with the band cards reporting whole-product figures (93
+> standalone · 25 note-born · 111 published · 7 drafts). **No programme,
+> cohort or enrolment needed; only the role.**
+>
+> ⭐⭐ **IT WAS NOT READ-ONLY. Executed, then rolled back:** a DELETE of
+> another tutor's published question **SUCCEEDED**. The identical delete
+> as a tutor who is *not* an admin affected **0 rows**. And it had a
+> **click path** — the row was listed, with its actions.
+> `saveQuestionAction` carried the same hole **plus** the `deleteUnit`
+> lie (`ok: true` on an UPDATE matching zero rows) — third sighting of
+> that shape.
+>
+> ⭐ **The tell was two numbers on one surface.** `/tutor/bank/cases`
+> and `/tutor/bank/trends` have always carried `.eq('tutor_id',
+> user.id)` and correctly showed **0** while their neighbour showed
+> **118**. *A surface contradicting itself is evidence; nobody had put
+> the two side by side.* Their comments now say the filter **is** the
+> control, not a duplicate of RLS.
+>
+> **Also closed, same category, no click path** (lists and editors
+> filter, so no screen offered the ids): `loadCase` / `loadTrend` — two
+> foreign cases were reachable by URL — and `updateQuiz` /
+> `setQuizStatus` / `deleteQuiz`, which were already reading the
+> affected row back and reporting honestly; only their premise was
+> wrong.
+>
+> ⭐ **Thirteen wrapper actions get ONE guard each, not twenty filters.**
+> A form post is what calls a server action, not the editor, so fixing
+> the loaders closed the way *in* and nothing else. Only the wrapper row
+> carries `tutor_id` (tabs and slot rows have no such column), so each
+> action proves ownership **once, at the top**, and everything
+> downstream is owner-proven by composition. Deliberately not a scripted
+> edit across twenty near-identical queries — that is what broke three
+> cohort actions on 08-25. `surface === 'admin'` returns true
+> immediately **on purpose**: reaching every case in the shared bank IS
+> the admin curator's job.
+>
+> ⭐ **Guard verified BOTH ways** — it refuses the admin-and-tutor *and*
+> passes Steven, the real owner. A guard that only ever says no is not a
+> working guard, and that is the half nobody checks.
+>
+> ⚠⚠ **THREAD 1 WAS REAL AND FIRING FOR NOBODY, WHICH IS THE PART I
+> CHECKED.** Of seven tutor-side reads into `nclex_cohort_live_sessions`
+> / `_checklist_items`, five are safe **by composition** (the page
+> proves programme ownership, then `CohortDetail` matches
+> `cohort.programme_id`) while every one of them claimed RLS did it.
+> One — `getUpcomingSessions`, the tutor dashboard's *This week* — is
+> genuinely unscoped: **35 rows** to `+mynclexsuperadmin`, **8** to
+> `+mynclexstudent3`, none owned. **But it renders for nobody**:
+> `getTutorHomeData` early-returns the new-tutor screen at zero owned
+> programmes and both leaking accounts own zero, while
+> `benedictbless9` — the only owner-and-enrollee — reads **0**, because
+> those foreign enrolments are not active *cohort* enrolments. **Defect
+> real, consequence nil**, traced rather than assumed; it is the pair
+> that was got wrong twice in the other direction.
+>
+> ⚠ **Two of my own mistakes, both caught before shipping:** `.eq()`
+> placed **before** `.select()` (PostgREST has no `.eq` until then — a
+> runtime failure that typechecks fine, because **this repo's Supabase
+> client is untyped**, which is also why none of these bugs ever failed
+> a build); and predicting 22 where the API said 19 while proving the
+> nested embedded filter.
+>
+> ⚠ **A tooling trap now in CLAUDE.md:** stopping a backgrounded
+> `npm run dev` kills the npm wrapper, **not** the `next dev` child. The
+> orphan held port 3000 with its `.next` deleted for the production
+> build, serving **500s** on a server Sam was using, while the
+> replacement quietly started on 3001.
+>
+> **Verified:** production build passes · `tsc` clean on every file
+> touched · `lint:check` unchanged vs baseline · the unusual nested
+> embedded `.in()` proved against the live REST API with the service
+> role (35 / 16 / 19 / 0, each matching the SQL).
+>
+> ⏭ **Left open:** the **~50 other tables carrying an admin `FOR ALL`
+> policy have not been walked** — today's four surfaces were found by
+> asking the question, not by exhausting it · still **no
+> preview-as-student** outside the Library · `/tutor/students` is still
+> a placeholder, so it inherits nothing.
+
+> ## ✅ DONE 2026-08-24 (later still) — **the library sweep, student side**
+>
+> The last unswept surface, scoped and built the same day. **Four commits**
+> (`8299d95`, `0096ada`, `e3af709`, `88b9911`), **no migration**, on
+> `claude/work-session-021f1e`. **NOT on `main` — awaiting Sam's test.**
+> Canonical: **`mobile-responsive.md`** → *The library sweep*.
+>
+> Built from a Claude Design handoff, after an inventory pass that measured
+> the four screens at 375px before anything was written.
+>
+> **What changed, measured live:** the notes pane **57px → 311px**; lens
+> navigation **84 items at 28.8px → 84 sheet rows at 44px+**; reader
+> controls 30.8/41/41/19.5 → 44/44/44/48; the Contents rail, which used to
+> vanish at 860px with nothing replacing it, became a bottom sheet fed by
+> the existing scroll-spy; `library.css` down from nine media queries to
+> six, all of them tutor-side.
+>
+> ⚠⚠ **"57px" was the polite number.** `.lib-main` overflowed by 82px while
+> the pane could only scroll 42px sideways, and the shell locks the
+> document scroll — **40px of the hero was unreachable at any gesture.**
+>
+> ⭐ **SAM AMENDED THE SCOPE MID-SESSION AND IT MATTERED.** "Tutor side is
+> out" meant tutor *authoring*; the programme-library **preview** is the
+> student view shown to a tutor, so it came in. ⚠ Leaving it would have
+> been worse than doing nothing: the layer hides `.lens-side`, so the
+> preview would have had **no lens navigation at all** on a phone.
+>
+> ⚠⚠ **THE TRAP THAT WOULD HAVE SHIPPED BROKEN.** `container-type` applies
+> layout containment, making the container the containing block for `fixed`
+> **and** `absolute` descendants. `.slm`/`.rdm` grow with the page, so a
+> sheet left inside either pins to the note list, not the screen — on this
+> 38-note library, thousands of pixels below the fold, opening somewhere
+> nobody can see, with no error anywhere. The handoff shipped both sheets
+> as `absolute`, which fails identically. Both are now **portalled to
+> `<body>`**. ⓘ `runner-mobile.css` dodged it by giving `.rn`
+> `height: 100dvh`; that does not transfer to a page that grows.
+>
+> ⚠⚠ **THE PLAN DOC WAS WRONG, AND THE HANDOFF INHERITED IT.** It warned of
+> "TWO student readers, one per mount" — false: both student mounts import
+> the same `ReadNoteView`, and `lib/library/programme/*` is the TUTOR's
+> preview. Following it would have applied a student phone layer to a tutor
+> surface the scope excluded. It also **deleted a decision** — there was
+> never a shared read shell to extract first. ⓘ Two more corrections: two
+> of the "four student screens" were **already mobile-first**
+> (`student-practice.css`), and the lab-values table **crushes rather than
+> overflows** — the table that genuinely overflows is the authored one,
+> which the doc never mentioned.
+>
+> ⭐ **THE STRUCTURAL DECISION: the lens tree is built once as data and
+> rendered twice** — desktop sidebar and phone Browse sheet. "Chips are a
+> shortcut, the sheet is the whole menu" only stays true through later
+> edits if there is **one list**. Verified numerically: **84 sheet rows
+> against 84 desktop lens items** (student), **79 against 79** (tutor
+> preview). Same reasoning produced `read-compact-chrome.tsx`, shared by
+> both readers.
+>
+> **Deviations from the CD design, each measured first:** 768px not 899
+> (899 is the runner's number, earned by `.rn-split`; with the sidebar open
+> it handed phone chrome to every viewport up to **1174px**) · the Resume
+> chip shipped `sticky; height: 0` and **painted across the note's `<h1>`**
+> · the contents pill was 36px · its `.slm .mpr-*` rules **matched nothing**
+> because the practice routes never pass through the shell · its hardcoded
+> 84px tab-bar clearance dropped, since `mobile-nav.css` already reserves
+> it conditionally and the bottom bar is students-only.
+>
+> ⓘ **A false alarm worth remembering:** every note URL 404'd, and it was a
+> **stale Turbopack cache** — `.next/` predating the worktree, with no
+> nested-dynamic route registered. RLS and the query were both fine
+> (checked). It looks exactly like a permissions bug and hits only the
+> deepest routes. Clear `.next` before suspecting RLS.
+>
+> ⚠⚠ **THE SESSION ENDED ON A CRASH, DELIBERATELY.** The dev server crashed
+> and was stopped; Sam reports restarting it crashes again. Work was wound
+> up rather than continued without any way to verify. **Everything claimed
+> above was measured live BEFORE the crash**, with typecheck and
+> `lint:check` clean and the tree clean; what did not happen is a final
+> pass after the last commit. ⚠ Next session: if you need a dev server,
+> start it FIRST and confirm it survives a request — and if it dies twice,
+> work without it rather than burning the session. Pick-up notes are in
+> `sessions/2026-08.md` under *HOW THIS SESSION ENDED*.
+>
+> ⏭ **Left open:** the **embed player** (`@container rn` is unreachable
+> inside a note — its own slice, and `.rn` cannot simply be copied because
+> of `container-type: size` + `height: 100dvh`) · **PDF blocks** ·
+> ⬜ **the Tags lens** — 56 of 84 rows, 1651px of a 2716px rail, **40 of 56
+> tags used exactly once**; a 3-note folder scrolls **3.6 screens** driven
+> entirely by the rail. Raised by Sam, designed, **not built**: grouping
+> threshold (2+ notes) + "Show all", plus a cap on the expanded **rail
+> only** (the sheet is already a bounded scroller). ⚠ Rare tags cannot
+> simply be dropped — list-row tag chips are `<span>`, not links, so a tag
+> that leaves the lens leaves navigation.
+
+
 > ## ✅ DONE 2026-08-24 (later) — **the access window stops ending in silence**
 >
 > The pair for sweep step 2d, plus the tutor button that answers it. **Two
-> commits (`6435413`, `163d049`), ONE migration (`20260923120000`), merged to
-> `main`.** Canonical: **`transactional-email.md`** → *The access pair, and the
+> commits (`6435413`, `163d049`), ONE migration (`20260923120000`), RELEASED TO
+> PROD** the same day (PR #62, prod `999a378`; both workflows green, and the
+> column, switch and redefined sweep verified on prod itself). Canonical: **`transactional-email.md`** → *The access pair, and the
 > button that answers it*, and **`payments-and-enrolment.md`** → *Programme
 > access window → BUILD NOTE*.
 >
@@ -68,8 +269,9 @@
 >
 > ⚠ **Unverified: the tutor UI.** The roster column, ⋯ items and extend dialog
 > compile, typecheck, lint and serve, but nobody has looked at them — Claude
-> cannot sign in and the Chrome extension was not connected. **Merged to `main`
-> on that basis; look before releasing.**
+> cannot sign in and the Chrome extension was not connected. **Released on that
+> basis with Sam’s approval** — prod has zero enrolments, so nobody can reach it
+> yet, but it is the first thing to open when you next log in as a tutor.
 >
 > ⏭ **Next:** 2e (bank/readiness subscriptions) is now the **only** sweep
 > transition with no email — and unlike 2d it *has* already fired in silence

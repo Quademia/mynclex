@@ -11,7 +11,7 @@
 // "doesn't exist OR not yours" case generically.
 
 import { notFound } from 'next/navigation';
-import { getProgrammeForShell } from '@/lib/programmes/queries';
+import { getOwnedProgrammeForShell } from '@/lib/programmes/queries';
 import {
   getEligiblePickerQuizzes,
   getProgrammeQuizzes,
@@ -27,7 +27,7 @@ export default async function ProgrammeQuizzesPage({
 }) {
   const { programme_id } = await params;
 
-  const programme = await getProgrammeForShell(programme_id);
+  const programme = await getOwnedProgrammeForShell(programme_id);
   if (!programme) notFound();
 
   // Server-fetched in parallel — both are small queries.

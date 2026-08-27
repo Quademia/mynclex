@@ -368,14 +368,10 @@ stylesheet — is this doc's rules.
 ## Not done (future)
 
 - Tutor/admin bottom tabs (deferred by design).
-- ⬜ **Library — the last unswept surface, and deferred on BOTH audiences.**
-  Skipped by the student sweep and again by the tutor sweep, so it is a
-  deliberate gap rather than an oversight on either side. It needs its own
-  session: the rail keeps its 218px at 375px, squeezing the content pane to
-  **57px wide** with stat cards at 36px. One file, `styles/library.css`,
-  serves the tutor, programme and student shells, so one drill-in fixes all
-  three — `lib/library/home-shell.tsx` already carries a `railed` /
-  `is-railed` state to key off.
+- ✅ **The library — SWEPT 2026-08-24** (reader + list shell, student side,
+  plus the tutor's student-preview per Sam's amendment). See *The library
+  sweep* below for what shipped, what the inventory corrected, and the two
+  pieces left open.
 - ⬜ **The bank / curator area** (`/tutor/bank/*` and the authoring editors)
   — excluded from the tutor sweep by Sam as its own arc; dense editors,
   closer in shape to the runner than to a list page, and similar to the
@@ -394,3 +390,189 @@ stylesheet — is this doc's rules.
 - ⬜ `.ti-stats` is 335px, so half a phone screen of KPI cards sits between
   the tutor and her enquiry queue on every visit. A layout judgement rather
   than a responsive defect — noted, not actioned.
+
+---
+
+## ✅ The library sweep — scoped AND built 2026-08-24
+
+The last unswept surface, skipped by the student sweep *and* the tutor
+sweep. Scoped in the morning, inventoried and built the same day, in four
+commits on `claude/work-session-021f1e`.
+
+### ⭐ SCOPE: the student side — **and the tutor's preview of it**
+
+**Tutor authoring stays desktop.** Tutors write notes on a computer; making
+a 6,700-line editor reflow spends the effort where the audience is not. The
+**student** side is the opposite — the core audience is phone-first, and a
+student who cannot read her tutor's notes on a phone cannot use the
+product.
+
+⭐ **Sam amended this mid-session, and the amendment matters:** *"scoped the
+tutor side out — that's the tutor AUTHORING side, but the tutor preview as
+student side is in essence same as student view so we should probably do
+it."* The programme-library preview is the student surface shown to a
+tutor, so it was brought in. ⚠ Without that, wrapping it in `.slm` would
+have been **worse than leaving it alone** — the layer hides `.lens-side`,
+so the preview would have had no lens navigation at all on a phone.
+
+### What the numbers were, and are
+
+All measured live at 375px on dev, signed in as a student.
+
+| | before | after |
+|---|---|---|
+| Notes pane (`.lib-main`) | **57px** | **311px** |
+| …of which unreachable | 40px (see below) | — |
+| Lens navigation | 84 items @ 28.8px | 84 sheet rows @ ≥44px |
+| Reader controls | 30.8 / 41 / 41 / 19.5px | 44 / 44 / 44 / 48px |
+| Contents on a long note | absent | bottom sheet + progress |
+| Practice back link | 25.3px | 44px |
+| `library.css` media queries | 9, none at 768 | 6, all tutor-side |
+
+⚠ **"57px" understates it.** `.lib-main` overflowed its box by 82px while
+`.product-content` could only scroll 42px sideways, and the shell locks the
+document scroll — so **40px of the hero was unreachable at any gesture**.
+Not clipped-but-scrollable: gone.
+
+### ⚠⚠ Four things the plan or the handoff had WRONG
+
+Every one was caught by measuring rather than reading, and each would have
+shipped silently.
+
+1. **"There are TWO readers, one per student mount" — FALSE.** Both student
+   mounts (cohort *and* programme) import the same `ReadNoteView` and the
+   same `StudentLibraryShell`. The `lib/library/programme/*` pair is used
+   **only** by `app/(app)/tutor/programme/[id]/library/...` — it is the
+   TUTOR's preview. This doc asserted the false version, the CD handoff
+   inherited it, and it would have sent the implementer to wrap a tutor
+   surface that the scope excluded. ⓘ It also *deleted* a decision: there
+   was never a shared read shell to extract first.
+
+2. **Two of the "four student screens" were already done.**
+   `styles/student-practice.css` is mobile-first and already keyed at
+   769px. Measured live: zero overflowing elements, 6 of 7 controls ≥44px.
+   The sweep was two screens, not four.
+
+3. **The runner's phone layout is structurally unreachable inside a note.**
+   `runner-mobile.css` keys every rule to `@container rn`, and the library
+   establishes no such container — verified in the live DOM: **zero `.rn`
+   elements, zero container ancestors of the player.** So the embed player
+   keeps `margin-left: 32px` and 40px targets at every width, and no
+   amount of CSS in the library can reach it. Not "unswept" — unreachable.
+
+4. **The lab-values table crushes; it does not overflow.** This doc said it
+   needed a scroll container. It is `table-layout: fixed; width: 100%`, so
+   at 375px four columns squeeze to ~85px each and stay inside the box. The
+   table that genuinely overflows is the *authored* one
+   (`.lib-table-block-readonly`, a plain div with no `overflow-x` and
+   `min-width: 48px` cells) — which this doc did not mention.
+
+### ⚠⚠ The trap that would have broken the build
+
+**A sheet inside a container query cannot be `position: fixed`.**
+`container-type` applies **layout containment**, which makes the container
+the containing block for `fixed` *and* `absolute` descendants. `.slm` and
+`.rdm` are `min-height: 100%` and grow with the page, so a sheet left
+inside either pins to the **note list**, not the screen — on a 38-note
+library, `bottom: 0` lands thousands of pixels below the fold. The sheet
+opens somewhere nobody can see, and nothing errors.
+
+The CD handoff shipped both sheets as `position: absolute`, which fails
+identically. **Both are now portalled to `<body>`**, which is what makes
+`fixed` mean the viewport again — the same thing `.m-drawer` has always
+relied on by living at shell level.
+
+ⓘ `runner-mobile.css` dodged this by giving `.rn` a fixed `height: 100dvh`,
+so absolute-bottom *is* screen-bottom. **That trick does not transfer to a
+page that grows with its content.** Recorded in the header of
+`styles/library-read-mobile.css`, not only in a commit message.
+
+### Deviations from the CD design, and why
+
+- **768px, not the handoff's 899.** 899 is the *runner's* number, earned by
+  `.rn-split` needing 924px; the reader has no split. With the desktop
+  sidebar open the region is `viewport − 275`, so 899 handed phone chrome
+  to every viewport up to **1174px** — ordinary laptops. Caught by seeing a
+  back-arrow and a star on a 1081px desktop.
+- **The Resume chip was `sticky; height: 0`** — it painted across the
+  note's `<h1>` at scroll 0 and both were unreadable. Now in flow.
+- **The contents pill was 36px.** Grown to 44 (the plan's GROW rule; the
+  bar is 55px, so there was room).
+- **Its `.slm .mpr-*` rules matched nothing.** Both practice routes render
+  their views directly and never pass through `StudentLibraryShell`, so
+  they never had the `.slm` wrapper those rules require. Same failure mode
+  as item 3 above — a layer keyed to a container that is not in the tree.
+- **Dropped its hardcoded `calc(84px + safe-area)` tab-bar clearance.**
+  `mobile-nav.css` already reserves it *conditionally* on a tab bar
+  existing (`.shell-root:has(.m-tabbar)`). Repeating it doubled the gap for
+  students and, since the bottom bar is students-only, would have stranded
+  84px of nothing under the tutor's preview.
+
+### ⭐ The structural decision worth keeping
+
+**The lens tree is built once as data and rendered twice** — the desktop
+sidebar maps it to `LensSection`/`LensLink`, the phone Browse sheet to
+rows. The chips are a shortcut; the sheet is the whole menu, the same
+contract the app drawer keeps. The only way to keep that true through later
+edits is for there to be **one list**: adding a lens reaches both surfaces,
+where adding it to one of two JSX trees would not, and nothing would report
+the omission.
+
+Verified numerically, which is the point: **84 sheet rows against 84
+desktop lens items** on the student mount, **79 against 79** on the
+tutor's.
+
+Same reasoning produced `read-compact-chrome.tsx`, shared by both readers —
+the preview's whole job is to show what the student sees, so a copy would
+stop being a preview the first time either was touched. The differences
+ride in as props (a bookmark that writes vs one that toggles locally; a
+nav guard vs none; the Resume chip, which the tutor has no state for).
+
+### ⭐ Desktop keeps its auto-jump; the phone deliberately does not
+
+Opening a note has always jumped to the saved heading. On a phone that
+drops the reader mid-note with the title and the Contents pill already
+scrolled past, so the student cannot tell what she is looking at or that a
+jump happened — and it would make the Resume chip nonsense, offering to
+take her where she already is. The compact branch leaves her at the top and
+lets her choose.
+
+### ⏭ Left open
+
+- ⬜ **The embed player** (`lib/library/student/embed-player.tsx`, 664
+  lines). Its own slice, on the runner-mobile pattern. ⚠ It cannot be
+  fixed by copying `.rn`: that class carries `container-type: size` and
+  `height: 100dvh`, which would break the note around it. It needs a
+  second, inline-size container sharing the name.
+- ⬜ **PDF blocks.** "Download it" may be the honest phone answer.
+- ⬜ **The Tags lens is 56 of 84 lens rows and 1651px of a 2716px rail** —
+  measured on 38 notes, with **40 of the 56 tags used exactly once (71%)**.
+  On a 3-note folder the main pane is 529px but the page scrolls **3.6
+  screens**, driven entirely by the rail. Raised by Sam 2026-08-24;
+  designed, not built. Agreed shape: a **grouping threshold** (show tags
+  used on 2+ notes by default — 16 of 56 — with "Show all 56 tags"), plus
+  a **max-height + internal scroll on the expanded RAIL only**. The cap is
+  deliberately not applied to the Browse sheet, which is already
+  `max-height: 78%` with its own scroll — a cap there would nest a
+  scrollport inside a scrollport; the sheet gets its relief from the
+  threshold instead. Projected: rail 2716px → ~1473px, the 3-note page
+  3.6 → ~1.8 screens, **and bounded thereafter regardless of tag count**.
+  ⚠ Removing rare tags from the lens outright is NOT an option: list-row
+  tag chips are `<span>`, not links (correctly — the row is already a
+  `<Link>` and anchors cannot nest), so a tag that leaves the lens leaves
+  navigation. ⓘ 71% single-use tags is a curation signal as much as a
+  layout one; `manage-tags-modal.tsx` can merge and rename.
+- ⓘ **The tutor preview's reading column is 295px against the student's
+  311.** The preview wraps itself in `.lib-page` and the student reader
+  does not, so it has been 48px narrower **at every width since it
+  shipped** — invisible at 1005px, plain at 375. Half was closed; the rest
+  needs restyling an ancestor, which a container query cannot reach, so it
+  would cost a viewport-keyed rule. Left deliberately.
+
+### ⚠ Verification status
+
+The tutor preview shell and reader **were** verified — the session had
+tutor access, unlike the previous session's tutor UI. Everything in the
+tables above was measured live before the dev server was stopped. Nothing
+was re-checked after the final commit, because the session ended with the
+server down.

@@ -6,12 +6,17 @@
 // Attendance pane + roster drawer render. Pure derivations (held/summary/
 // engagement) live in ./attendance-format.
 //
-// Ownership: getCohortForShell + getCohortRoster both RLS-gate to the
-// owning tutor (null → caller 404s). Student profiles are self-read-only
-// under RLS, so the roster comes through getCohortRoster's service-role
-// path (it proves ownership first). Attendance + planner rows are read on
-// the authed client — the tutor's *_tutor_all / *_self_select policies
-// return their own cohort's rows.
+// Ownership: getCohortForShell answers "can I read this cohort?", NOT
+// "is it mine" — see its note in ./queries. The proof that it is mine
+// lives in the caller chain: this pane renders only inside CohortDetail,
+// which runs after the page has proved ownership of the parent
+// programme (getOwnedProgrammeForShell) and matched the cohort to it.
+// Corrected 2026-08-27; this used to say RLS gated it.
+//
+// Student profiles are self-read-only under RLS, so the roster comes
+// through getCohortRoster's service-role path (it proves ownership
+// first). Attendance + planner rows are read on the authed client, keyed
+// on the cohort_id the chain above has already proved.
 
 import { createClient } from '@/lib/supabase/server';
 import { getCohortForShell } from './queries';

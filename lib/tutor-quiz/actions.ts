@@ -6,9 +6,15 @@
 //
 // Auth shape mirrors lib/programmes/actions.ts — the /tutor layout
 // gates the TUTOR role once per request; each action re-checks
-// "signed in" and relies on RLS for ownership (tutor_id = auth.uid()
-// on nclex_tutor_quizzes; ownership traces through the parent quiz
-// for nclex_tutor_quiz_items).
+// "signed in" and then NAMES ITS OWNER (`.eq('tutor_id', user.id)` on
+// nclex_tutor_quizzes; ownership traces through the parent quiz for
+// nclex_tutor_quiz_items, which is proved by an explicit lookup).
+//
+// ⚠ This header used to say ownership was left to RLS. It cannot be:
+// nclex_tutor_quizzes carries _superadmin FOR ALL alongside
+// _tutor_own, so for an account holding SUPER_ADMIN every row matches
+// — reads, updates and deletes alike. Corrected 2026-08-27; the
+// reasoning lives in lib/bank/tutor-scope.ts.
 
 'use server';
 
@@ -212,6 +218,7 @@ export async function updateQuizAction(
     .from('nclex_tutor_quizzes')
     .select('quiz_kind')
     .eq('quiz_id', quizId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!currentQuiz) {
     return { ok: false, error: 'Quiz not found or not yours to edit.' };
@@ -235,9 +242,13 @@ export async function updateQuizAction(
     }
   }
 
-  // RLS on UPDATE filters by tutor_id = auth.uid(); editing a quiz
-  // that isn't yours updates 0 rows — surfaced generically so a
-  // client can't probe for IDs.
+  // ⚠ The owner filter is load-bearing. RLS does NOT narrow this for a
+  // SUPER_ADMIN — nclex_tutor_quizzes_superadmin is FOR ALL and matches
+  // every row, including for UPDATE. The row-count check below is right
+  // and stays; its premise was the thing that was wrong. Editing a quiz
+  // that isn't yours now updates 0 rows for everyone, surfaced
+  // generically so a client can't probe for IDs.
+  // See lib/bank/tutor-scope.ts.
   const { data, error } = await supabase
     .from('nclex_tutor_quizzes')
     .update({
@@ -253,6 +264,7 @@ export async function updateQuizAction(
       updated_at: new Date().toISOString(),
     })
     .eq('quiz_id', quizId)
+    .eq('tutor_id', user.id)
     .select('quiz_id')
     .maybeSingle();
 
@@ -302,10 +314,14 @@ export async function setQuizStatusAction(
     }
   }
 
+  // ⚠ Owner filter, same reason as updateQuiz — a SUPER_ADMIN's FOR-ALL
+  // policy would otherwise let this publish or unpublish another
+  // tutor's quiz. See lib/bank/tutor-scope.ts.
   const { data, error } = await supabase
     .from('nclex_tutor_quizzes')
     .update({ status, updated_at: new Date().toISOString() })
     .eq('quiz_id', quizId)
+    .eq('tutor_id', user.id)
     .select('quiz_id')
     .maybeSingle();
 
@@ -378,11 +394,15 @@ export async function quizDeletePreflightAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Confirm the quiz is the caller's (RLS-scoped SELECT).
+  // Confirm the quiz is the caller's. ⚠ The tutor_id filter is the
+  // check — "RLS-scoped SELECT" was written here and is false, since
+  // _student_select exposes PUBLISHED quizzes the caller is enrolled
+  // on. See lib/programmes/tutor-scope.ts.
   const { data: quizRow } = await supabase
     .from('nclex_tutor_quizzes')
     .select('quiz_id')
     .eq('quiz_id', quizId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!quizRow) return { ok: false, error: 'Quiz not found or not yours.' };
 
@@ -422,12 +442,15 @@ export async function deleteQuizAction(
     };
   }
 
-  // RLS on DELETE filters by tutor_id = auth.uid(); deleting a quiz
-  // that isn't yours removes 0 rows — surfaced generically.
+  // ⚠ Owner filter, same reason as updateQuiz — RLS alone would let a
+  // SUPER_ADMIN delete another tutor's quiz through this tutor action.
+  // See lib/bank/tutor-scope.ts. Deleting a quiz that isn't yours now
+  // removes 0 rows for everyone — surfaced generically.
   const { data, error } = await supabase
     .from('nclex_tutor_quizzes')
     .delete()
     .eq('quiz_id', quizId)
+    .eq('tutor_id', user.id)
     .select('quiz_id')
     .maybeSingle();
 
@@ -496,11 +519,15 @@ export async function addQuizItemsAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Confirm the quiz is the caller's (RLS-scoped SELECT).
+  // Confirm the quiz is the caller's. ⚠ The tutor_id filter is the
+  // check — "RLS-scoped SELECT" was written here and is false, since
+  // _student_select exposes PUBLISHED quizzes the caller is enrolled
+  // on. See lib/programmes/tutor-scope.ts.
   const { data: quizRow } = await supabase
     .from('nclex_tutor_quizzes')
     .select('quiz_id')
     .eq('quiz_id', quizId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!quizRow) return { ok: false, error: 'Quiz not found or not yours.' };
 
@@ -725,9 +752,14 @@ export async function getActivityQuizPickerContext(
 
   // Dropdown options: the tutor's PUBLISHED quizzes of the matching
   // kind (a Mock activity links a Mock quiz; Practice -> Practice).
+  //
+  // ⚠ Second picker with the same hole as the programme "Add
+  // existing" one — unfiltered, this offered other tutors' PUBLISHED
+  // quizzes for linking to an activity. See lib/programmes/tutor-scope.ts.
   const { data: publishedData, error: publishedErr } = await supabase
     .from('nclex_tutor_quizzes')
     .select(QUIZ_PICKER_SELECT)
+    .eq('tutor_id', user.id)
     .eq('quiz_kind', quizKind)
     .eq('status', 'PUBLISHED')
     .order('updated_at', { ascending: false });
@@ -743,6 +775,7 @@ export async function getActivityQuizPickerContext(
       .from('nclex_tutor_quizzes')
       .select(QUIZ_PICKER_SELECT)
       .eq('quiz_id', currentQuizId)
+      .eq('tutor_id', user.id)
       .maybeSingle();
     linkedQuiz = linkedData ? mapQuizPickerRow(linkedData) : null;
   }

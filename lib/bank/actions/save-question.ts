@@ -543,11 +543,18 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
 
   // ── UPDATE ─────────────────────────────────────────────────
   if (existingItemId) {
-    const { data: existing, error: fetchErr } = await supabase
+    // ⚠ The owner filter is what makes "not found" mean "not yours" on
+    // the tutor surface. RLS does not narrow this for a SUPER_ADMIN —
+    // its FOR-ALL policy matches every row, and requireBankCurator
+    // ('tutor') admits SUPER_ADMIN by design. Without it, that account
+    // edits another tutor's question through the tutor editor.
+    // See lib/bank/tutor-scope.ts.
+    let existingQuery = supabase
       .from(cfg.table)
       .select('question_type, difficulty')
-      .eq('item_id', existingItemId)
-      .maybeSingle();
+      .eq('item_id', existingItemId);
+    if (surface === 'tutor') existingQuery = existingQuery.eq('tutor_id', user.id);
+    const { data: existing, error: fetchErr } = await existingQuery.maybeSingle();
 
     if (fetchErr || !existing) {
       return { ok: false, error: 'Question not found.' };
@@ -570,7 +577,7 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
         }
       : {};
 
-    const { error } = await supabase
+    let updateQuery = supabase
       .from(cfg.table)
       .update({
         ...parsed,
@@ -579,8 +586,20 @@ export async function saveQuestionAction(formData: FormData): Promise<SaveResult
         updated_at: new Date().toISOString(),
       })
       .eq('item_id', existingItemId);
+    if (surface === 'tutor') updateQuery = updateQuery.eq('tutor_id', user.id);
+
+    // ⚠ `.select()` so the row count is readable. An UPDATE matching zero
+    // rows is not an error in Postgres, so this used to return ok: true
+    // having written nothing — the deleteUnit shape (2026-08-25). The
+    // owner filter above is the second guard; see the fetch note.
+    const { data: updated, error } = await updateQuery
+      .select('item_id')
+      .maybeSingle();
 
     if (error) return { ok: false, error: `Update failed: ${error.message}` };
+    if (!updated) {
+      return { ok: false, error: 'Question not found, or not yours to edit.' };
+    }
 
     revalidatePath(cfg.revalidate);
     return { ok: true, item_id: existingItemId, created: false };

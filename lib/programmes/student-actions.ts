@@ -83,15 +83,26 @@ export async function getMyAccessibleProgrammesAction(): Promise<{
       .from('nclex_cohorts')
       .select('cohort_id, programme_id, name, start_date, end_date')
       .order('start_date', { ascending: true }),
-    // The student's own enrolment rows (RLS: user_id = auth.uid()).
+    // The caller's own enrolment rows.
+    //
+    // ⚠ The `user_id` filter is what makes them the caller's — RLS is
+    // NOT that filter. nclex_enrolments also carries a tutor policy, so
+    // for a tutor this read returns their STUDENTS' rows (Steven: 48 of
+    // them, none his). Without the filter, every derived value below —
+    // the programme list, the status pill, the next-payment panel —
+    // was computed off a stranger's enrolment. See the note above
+    // `callerId` in lib/enrolments/queries.ts.
     supabase
       .from('nclex_enrolments')
-      .select('enrolment_id, programme_id, cohort_id, status, enrolled_at, strategy_snapshot_json, installment_grace_until'),
-    // The student's own programme payments that count toward "paid so far"
-    // (RLS: user_id = auth.uid()). PAID counts even before activation.
+      .select('enrolment_id, programme_id, cohort_id, status, enrolled_at, strategy_snapshot_json, installment_grace_until')
+      .eq('user_id', ctx.user.id),
+    // The caller's own programme payments that count toward "paid so
+    // far". PAID counts even before activation. Same rule as above:
+    // name the owner, don't infer it from readability.
     supabase
       .from('nclex_payments')
       .select('enrolment_id')
+      .eq('user_id', ctx.user.id)
       .in('purpose', ['PROGRAMME_INITIAL', 'PROGRAMME_INSTALLMENT'])
       .in('status', ['PAID', 'ACTIVATED']),
   ]);

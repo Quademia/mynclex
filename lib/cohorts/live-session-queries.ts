@@ -6,9 +6,24 @@
 // cohort's per-run schedule row (nclex_cohort_live_sessions). A marker
 // with no schedule row is "unscheduled" for the cohort.
 //
-// RLS scopes both reads to the signed-in tutor (via the cohort's parent
-// programme). Returns null when the cohort doesn't exist or the tutor
-// doesn't own its parent programme.
+// ⚠ OWNERSHIP IS PROVED BY THE CALLER, NOT BY RLS — this said "RLS
+// scopes both reads to the signed-in tutor", and it does not.
+// nclex_cohorts and nclex_cohort_live_sessions each carry
+// _student_select and _admin_all beside _self_select, so an unfiltered
+// cohort lookup resolves for a cohort you are merely enrolled on, or
+// for any cohort at all if you hold SUPER_ADMIN.
+//
+// What actually makes this safe is a chain of two proofs in the caller:
+// the page runs getOwnedProgrammeForShell (which carries
+// .eq('tutor_id', …)), and CohortDetail then refuses unless
+// cohort.programme_id === that programme. Own the programme, and the
+// cohort inside it is yours.
+//
+// ⭐ So this function is safe by COMPOSITION, and the guard it depends
+// on lives in another file. Do not delete either half as redundant —
+// audited 2026-08-27, when the sentence above was found to be false.
+//
+// Returns null when the cohort doesn't exist or is unreadable.
 
 import { createClient } from '@/lib/supabase/server';
 import type {
@@ -105,7 +120,8 @@ export async function getCohortSessionsPlanner(
 ): Promise<CohortSessionsPlanner | null> {
   const supabase = await createClient();
 
-  // Wave 1 — cohort + parent programme. RLS gates both.
+  // Wave 1 — cohort + parent programme. RLS is the floor here, not the
+  // filter; the caller's ownership chain is what narrows this (header).
   const { data: cohortRow, error: cohortError } = await supabase
     .from('nclex_cohorts')
     .select(

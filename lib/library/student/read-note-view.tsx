@@ -23,6 +23,8 @@ import {
   useTransition,
 } from 'react';
 import { RenderBlocks, extractHeadings } from './read-blocks';
+import { ReadCompactChrome } from './read-compact-chrome';
+import { isRdmCompactNow, useRdmCompact } from './use-rdm-compact';
 import { EmbedPlayGuardContext } from './embed-play-guard';
 import { pillarShortName, formatRelative } from '../format';
 import type { ReadNode } from './read-inline';
@@ -59,6 +61,13 @@ export function ReadNoteView({
   );
   const [bookmarked, setBookmarked] = useState(note.state.bookmarked);
   const [done, setDone] = useState(note.state.done);
+
+  // ── Compact (phone) read mode ──────────────────────────────────────
+  // The layout is CSS (library-read-mobile.css). These carry the parts
+  // CSS cannot express: which resume behaviour to use, and the Contents
+  // sheet that stands in for the rail it hides.
+  const compact = useRdmCompact();
+  const [resumeDismissed, setResumeDismissed] = useState(false);
   const [, startTransition] = useTransition();
 
   // ── Leave-mid-practice guard ──
@@ -100,14 +109,47 @@ export function ReadNoteView({
     [guardActive],
   );
 
-  // Resume on open — scroll to the deepest heading the student reached,
-  // if it still exists. Runs once.
+  // Resume on open. On DESKTOP this jumps straight to the deepest heading
+  // the student reached, if it still exists — unchanged since 11.13a.
+  //
+  // ⭐ ON A PHONE IT DELIBERATELY DOES NOT. Jumping drops the reader into
+  // the middle of a note with the title and the Contents pill already
+  // scrolled past, so the student cannot tell what she is looking at or
+  // that a jump happened. The compact layer offers a "Resume · <section>"
+  // chip instead: same destination, but she chooses it and keeps her
+  // bearings. Without this branch the chip would be nonsense — she would
+  // already be there, reading a button offering to take her.
+  //
+  // ⚠ Reads the width ONCE, synchronously, rather than waiting for
+  // useRdmCompact's observer: this fires on mount and must decide before
+  // the first paint settles. The hook still owns every later answer.
   useEffect(() => {
     const target = note.state.lastHeadingId;
     if (!target) return;
-    const el = document.getElementById(target);
-    if (el) el.scrollIntoView({ block: 'start' });
+    if (isRdmCompactNow()) return; // the chip offers it instead
+    document.getElementById(target)?.scrollIntoView({ block: 'start' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Retires the Resume chip once she has scrolled on her own — by then the
+  // offer is stale, and leaving it up invites a tap that throws away the
+  // reading she just did. Separate from the scroll-spy below because that
+  // one returns early on a note with no headings, and this must still run
+  // there. The progress LINE is the chrome's own business, not ours.
+  //
+  // ⓘ The write happens in the listener, never in the effect body, which
+  // keeps this a subscription rather than a cascading render.
+  useEffect(() => {
+    const scroller = document.querySelector(
+      '.product-content',
+    ) as HTMLElement | null;
+    const target: HTMLElement | Window = scroller ?? window;
+    const onScrollRead = () => {
+      const top = scroller ? scroller.scrollTop : window.scrollY;
+      if (top > 260) setResumeDismissed(true);
+    };
+    target.addEventListener('scroll', onScrollRead, { passive: true });
+    return () => target.removeEventListener('scroll', onScrollRead);
   }, []);
 
   // Stamp the visit on open (slice 11.14c) — upserts last_visited_at while
@@ -192,8 +234,46 @@ export function ReadNoteView({
   const progressPct =
     headings.length === 0 ? 0 : Math.round((sectionNum / headings.length) * 100);
 
+  // ── Derived, not stored ────────────────────────────────────────────
+  // Computed so a resize cannot strand it: widen the reader and the chip
+  // simply stops existing, with no effect needed to tidy up after it.
+  const resumeTarget =
+    compact && !resumeDismissed ? note.state.lastHeadingId : null;
+
+  // The chip names where it would take her. A saved heading that no longer
+  // exists (the tutor edited the note) still resolves to a usable label.
+  const resumeLabel =
+    (resumeTarget && headings.find((h) => h.id === resumeTarget)?.text) ||
+    'where you left off';
+
   return (
     <EmbedPlayGuardContext.Provider value={guardValue}>
+      <div className="rdm">
+      <ReadCompactChrome
+        basePath={basePath}
+        crumbLabel={note.folder ? note.folder.name : 'Library'}
+        headings={headings}
+        activeHeading={activeHeading}
+        bookmarked={bookmarked}
+        onToggleBookmark={onToggleBookmark}
+        onNavAway={onGuardedNav}
+        onPickHeading={scrollToHeading}
+      />
+
+      {resumeTarget && (
+        <div className="rdm-resume">
+          <button
+            type="button"
+            onClick={() => {
+              scrollToHeading(resumeTarget);
+              setResumeDismissed(true);
+            }}
+          >
+            ▶ <span className="sec">Resume · {resumeLabel}</span>
+          </button>
+        </div>
+      )}
+
       <div className="lib-read-shell">
       {/* Contents rail */}
       <aside className="lib-read-toc" aria-label="Contents">
@@ -332,6 +412,7 @@ export function ReadNoteView({
           </button>
         </div>
       </article>
+      </div>
       </div>
     </EmbedPlayGuardContext.Provider>
   );

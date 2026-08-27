@@ -1,6 +1,6 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-05-14 (release process corrected — `main` → `prod` is a GitHub PR merge commit, not `--ff-only`; added the migration-tracker consistency pre-check)
+Last updated: 2026-08-27 (Known Workarounds: the RLS union's THIRD member — `_admin_all` is `FOR ALL`, so a SUPER_ADMIN matches every row for reads *and* writes; the Supabase client here is untyped, which is why none of these bugs fail a build; and the orphaned-`next dev` port trap under the per-session loop)
 
 ## What This Is
 
@@ -440,6 +440,170 @@ slice.
   `2x00000000000000000000AB` + `2x0000000000000000000000000000000AA`.
   https://developers.cloudflare.com/turnstile/troubleshooting/testing/
 
+- **⚠ RLS IS THE FLOOR, NOT THE FILTER — "readable" is a wider set than
+  "mine", and every tutor-side read must name its owner.** Postgres ORs
+  permissive policies together, so a table with a `_self_select` policy
+  AND a `_student_select` policy hands the caller the union of both. A
+  query that leans on RLS to do the narrowing therefore returns rows the
+  caller does not own. Found 2026-08-25: a test account holding **both**
+  TUTOR and STUDENT, enrolled on another tutor's programme, opened its own
+  tutor Library and saw **all 38 of that tutor's notes** — plus their
+  folders, shelves, memberships and attachments — because
+  `lib/library/queries.ts` asked for "the notes" and never said "…that are
+  mine". Every affected file had a comment saying RLS scoped it. It did
+  not.
+  - **The SQL is not the bug and must not be "fixed".** A student reading
+    that note IS allowed — that's what the student surfaces are for. The
+    mistake was a *tutor* surface asking a question whose answer legally
+    includes other people's rows. The fix is app-layer, in
+    `lib/library/tutor-scope.ts` (`getLibraryTutorId()`), and every
+    tutor-side read/write now carries `.eq('tutor_id', …)`.
+  - **Writes were never exposed** — UPDATE/DELETE carry only the self
+    policy, so a cross-tutor write was always refused (verified). Reads
+    were the whole leak. But `_admin_all` is `FOR ALL`, so a SUPER_ADMIN
+    walking a tutor surface *could* write another tutor's rows; the
+    explicit filter closes that too.
+  - **Junction tables have no `tutor_id`** (`_shelf_memberships`,
+    `_note_attachments`) — scope them through an explicit
+    ownership probe on the parent shelf/note, not through RLS.
+  - ⭐ **The same class of bug lived outside the library — ✅ SWEPT
+    2026-08-25 (13 call sites, three commits, no migration).** ⚠ Two
+    things this entry originally said were wrong, and both mattered:
+    - ⚠ **`_public_select` does not exist.** It was dropped in
+      migration `20260528120000` when public discovery moved to the
+      `nclex_public_programmes` view. `nclex_programmes` carries
+      `_self_select` · `_student_select` · `_admin_all`, and
+      `_student_select` alone is enough to cause this. **Verified
+      against the live dev catalogue, not the SQL files** — which is
+      the only way to be sure, since a dropped policy leaves its
+      `CREATE` behind in the migration that added it.
+    - ⚠⚠ **The scope was understated.** This said the leak "gates the
+      `/tutor/programme/[id]/…` subtree", implying you had to type a
+      URL. In fact **`getMyProgrammes()` had no owner filter at all**,
+      so other tutors' programmes were **listed on the tutor
+      dashboard**. Measured: `+mynclexstudent3`, who owns **zero**
+      programmes, was shown **2**; `benedictbless9` saw 4 for 2 owned.
+    - ⚠⚠ **AND IT WAS NOT READ-ONLY-ISH — SERVICE ROLE IS WHERE THIS
+      BITES.** The library leak was bounded by RLS. This one was not:
+      those programme ids are handed to `createServiceRoleClient()`
+      reads in `getTutorPayments`, `readRoster` and
+      `getMyProgrammesForList`, each commented "owner-proven". Service
+      role **ignores RLS by design**, so the app-layer filter is the
+      *only* control. Exposed on dev: **22 strangers' names + emails**
+      on the enrolments roster, and **3 of another student's payments**
+      (name, email, GHS 3,000) on the tutor Payments page.
+    - ⭐ **The shape of the fix:** `getProgrammeForShell` could not
+      take an owner filter — the **student** gate shares it, and there
+      *readable* is the correct question. So `getOwnedProgrammeForShell`
+      sits beside it and the seven tutor routes call that instead.
+      Everything else was tutor-only and took the filter directly.
+      Junction-style tables (units, cohorts) have no `tutor_id`, so
+      they filter through an `!inner` embed on the parent programme.
+    - ⭐ **`deleteUnit` reported SUCCESS while deleting nothing** — a
+      DELETE matching zero rows is not an error, so a refused write
+      fell through to `ok: true`. **RLS protecting the write does not
+      mean the screen tells the truth about it.**
+    - ⭐ **Rule of thumb worth more than the fix:** *before trusting
+      RLS to narrow a list, ask what happens to those ids next.* If
+      any of them cross into a service-role client, RLS was never the
+      control and the filter is load-bearing.
+    - Canonical: `lib/programmes/tutor-scope.ts`.
+  - ⭐ **It also runs the other way — a STUDENT screen showing rows
+    because the caller is a TUTOR.** `nclex_enrolments` carries
+    `_student_select` (`user_id = auth.uid()`) **and** `_tutor_select`
+    (I tutor that programme), so "my enrolments" returned a tutor's
+    **students'** rows: Steven, with **zero** enrolments of his own, got
+    **48**. Consequences, all fixed 2026-08-25 by naming `user_id`:
+    his student picker listed **5 programmes he teaches and is not on**;
+    `getMyProgrammeEnrolmentStatus` / `getMyCohortEnrolmentStatus`
+    answered ENROLLED off a stranger's row, so **entry was open** (a
+    code comment claiming "listing only — entry was never open" was
+    simply wrong); and the picker's next-payment panel rendered **a real
+    student's amount and due date**. Charging was never possible —
+    `lib/payments/init.ts` re-checks `user_id` against the service-role
+    client — so the money was visible, not chargeable.
+  - ⓘ **Fixing the enrolment question also shut the door** that
+    `getProgrammeForShell`'s looseness had opened: `require-programme-
+    access` and `require-cohort-access` both run a readability check
+    *then* a status check, and the status check is now genuinely
+    per-caller. The readability half is still wrong — see above — but it
+    is no longer load-bearing on that path.
+  - ⚠ **A tutor cannot fix this by enrolling in their own programme** —
+    the product refuses it ("You can't enrol yourself in your own
+    programme" / "...own cohort", `lib/enrolments/actions.ts`). The
+    sanctioned way to see a programme through a student's eyes is a
+    **preview**, and today one exists only for the **Library** tab.
+    Curriculum, quizzes, sessions and assignments have none. Closing the
+    leak removed an accidental substitute for that missing preview;
+    building the real thing is open work (Sam, 2026-08-25).
+
+- **⚠⚠ THE UNION HAS A THIRD MEMBER, AND IT IS THE ADMIN —
+  `_admin_all` / `_superadmin` IS `FOR ALL` WITH A ROW-INDEPENDENT
+  `USING` CLAUSE, SO FOR ONE ACCOUNT EVERY ROW OF EVERY TABLE MATCHES,
+  FOR READS *AND* WRITES.** The sibling of the entry above, found
+  2026-08-27 — and it is a different question, which is exactly why
+  three sweeps missed it. `nclex_user_has_role('SUPER_ADMIN')` is true
+  or false for the **caller**, never for the **row**, so it is not a
+  filter at all. ~50 tables carry one.
+  - ⭐ **The question to ask a tutor surface is not "could a STUDENT
+    read this?" but "WHO ELSE does this table let in, and is any of
+    them standing on this screen?"** The 08-25 sweeps taught everyone
+    to look for `_student_select`. On the tutor **bank** tables there
+    is no student policy at all — and every screen was still wrong.
+  - ⚠ **The gate lets them in on purpose.**
+    `requireBankCurator('tutor')` admits `TUTOR **or** SUPER_ADMIN`, so
+    such an account reaches a tutor surface legitimately and is then
+    handed the whole product. **Admitting someone is not scoping them.**
+  - **Measured on dev, as the real account under real RLS:**
+    `/tutor/bank/all` listed **118 questions to an account owning 8** —
+    110 of them two other tutors' work, full stems and rationales, with
+    the band cards reporting whole-product figures. No programme,
+    cohort or enrolment needed; only the role.
+  - ⭐⭐ **AND IT WRITES. Executed, then rolled back:** a DELETE of
+    another tutor's published question **SUCCEEDED**. The identical
+    delete as a tutor who is *not* an admin affected **0 rows** — RLS
+    was doing its job for everyone except the account coming through
+    both doors at once.
+  - ⭐ **The tell was two numbers on one surface.**
+    `/tutor/bank/cases` and `/tutor/bank/trends` have always carried
+    `.eq('tutor_id', user.id)` and correctly showed **0**, while their
+    neighbour showed **118**. *A surface contradicting itself is
+    evidence; nobody had put the two side by side.*
+  - ⭐ **Where a table's children have no `tutor_id`** (case tabs, slot
+    rows), do **not** bolt a filter onto all twenty writes — prove
+    ownership **once, at the top of the action**, and let everything
+    downstream be owner-proven by composition
+    (`assertTutorOwnsCase` / `assertTutorOwnsTrend`). A scripted edit
+    across twenty near-identical queries is what broke three cohort
+    actions on 08-25.
+  - ⚠ **A form post calls a server action, not the editor.** Fixing a
+    loader closes the way *in*; it does not gate the action. Both
+    layers, always.
+  - ⚠ **Verify a new guard in BOTH directions** — that it refuses the
+    stranger *and* passes the real owner. A guard that only ever says
+    no is not a working guard, and that is the half nobody checks.
+  - ⓘ **Do NOT "fix" the SQL.** A SUPER_ADMIN reading every tutor's
+    bank IS allowed — that is what `/admin/*` is for. The fix is
+    app-layer, same as the two leaks above.
+  - ⏭ **Open:** the ~50 other admin-`FOR ALL` tables have **not** been
+    walked. The four surfaces closed so far were found by asking the
+    question, not by exhausting it.
+  - Canonical: `lib/bank/tutor-scope.ts`.
+
+- **⚠ The Supabase client in this repo is UNTYPED — no generated
+  `Database` types — so table and column names are plain strings.**
+  This is why none of the RLS-scoping bugs above ever failed a build:
+  `tsc` cannot know that `.eq('tutor_id', …)` is missing, or that it is
+  invalid on the table you wrote it against. It also means a filter can
+  be chained onto a two-table union type without complaint. **The
+  compiler is not a reviewer here; the database is.** Verify scoping
+  changes by executing them (`set role authenticated` + the account's
+  JWT claim), not by trusting a green typecheck.
+  - ⚠ PostgREST's builder has **no `.eq()` until `.select()` has been
+    called** — `.from(t).eq(…).select(…)` is a runtime failure that
+    typechecks fine here. Caught once on 2026-08-27 by re-reading the
+    edit.
+
 - **Production builds use webpack, not Turbopack.** The `build` and
   `cf:build` scripts pass `--webpack` to `next build`. Reason: Next.js 16
   defaults to Turbopack for production builds, but
@@ -502,6 +666,20 @@ mapping is 1-to-1.
    Serves on `http://localhost:3000`. The `.env.local` is auto-copied
    into new worktrees by `.worktreeinclude`, so credentials are
    already wired.
+
+   ⚠ **Stopping a backgrounded `npm run dev` kills the npm wrapper, not
+   the `next dev` child.** The orphan keeps port 3000, so a replacement
+   starts on **3001** while the old process serves the old build — and
+   if you cleared `.next` (e.g. for a production build) that orphan
+   serves **500s** from a directory that no longer exists. Found
+   2026-08-27, mid-session, on a server Sam was using. **Check the port
+   holder, don't assume the stop worked:**
+   `Get-NetTCPConnection -LocalPort 3000 -State Listen`, then
+   `Stop-Process -Id <pid> -Force`.
+
+   ⚠ `npm run build` writes to the **same `.next`** the dev server is
+   using, so it cannot be run alongside one. Stop the server, build,
+   restart — and say so first if somebody is testing.
 
 2. Build the requested slice / fix on the auto-created session
    branch. Commit there freely.

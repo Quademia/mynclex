@@ -13,8 +13,19 @@
 //   /tutor/cohort/<id>/analytics      → ?cohort=<id>  (folded into Overview)
 //   /tutor/cohort/<id>/announcements  → ?cohort=<id>  (tab dropped)
 //
-// RLS scopes the lookup to the tutor's own cohorts — unknown ids,
-// foreign cohorts, and malformed UUIDs all 404.
+// ⚠ The lookup below is NOT scoped to the tutor's own cohorts, though
+// this used to say RLS made it so. nclex_cohorts carries a student
+// policy and a FOR-ALL admin policy, so a cohort you are merely
+// enrolled on resolves here and discloses its programme id.
+//
+// It is left as a plain readability check on purpose: this file only
+// forwards, and the destination is properly gated — the Cohorts page
+// runs getOwnedProgrammeForShell and 404s for a programme that isn't
+// yours. So a foreign cohort gets one redirect and then a 404, not a
+// screen. Unknown ids and malformed UUIDs 404 here.
+//
+// ⓘ If this shim ever grows into something that RENDERS, it needs a
+// real owner check first. Noted 2026-08-27.
 
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';

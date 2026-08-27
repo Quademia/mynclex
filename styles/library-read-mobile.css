@@ -1,0 +1,356 @@
+/* mynclex/styles/library-read-mobile.css
+ *
+ * STUDENT READ MODE — phone layer. Load AFTER tokens.css + library.css.
+ * The read view's route component wraps .lib-read-shell in a `.rdm`
+ * container; container queries key everything off the region's own
+ * width (same pattern as styles/runner-mobile.css), so it works inside
+ * .product-content at any sidebar state.
+ *
+ * Component diff (all inert above 900px):
+ *   • .rdm-topbar        — sticky compact bar: back, crumb, contents
+ *                          pill ("☰ 3/8"), bookmark. Replaces
+ *                          .lib-read-toprow, which hides.
+ *   • .rdm-progress      — 2px reading-progress line on the topbar.
+ *   • .rdm-sheet/.rdm-scrim — Contents as a bottom sheet (the TOC nav
+ *                          + progress moved inside; .lib-read-toc hides).
+ *   • .rdm-resume        — "Resume · <section>" chip, shown once when
+ *                          the note opens with a saved position.
+ *
+ * ⚠⚠ THE SHEET AND SCRIM ARE RENDERED THROUGH A PORTAL TO <body>, AND
+ * THAT IS LOAD-BEARING — not a React convenience. `container-type`
+ * applies LAYOUT CONTAINMENT, which makes `.rdm` the containing block
+ * for `position: fixed` descendants. So a fixed sheet left inside
+ * `.rdm` is not fixed to the viewport at all: it pins to `.rdm`, which
+ * is `min-height: 100%` and grows with the note. On a long note its
+ * `bottom: 0` lands thousands of pixels below the fold — the sheet
+ * opens somewhere the student cannot see, with no error anywhere.
+ * ⓘ The handoff's CSS shipped these as `position: absolute`, which has
+ * exactly the same failure for exactly the same reason. Portalling out
+ * of the container is what makes `fixed` mean the viewport again — the
+ * same thing `.m-drawer` already relies on by living at shell level.
+ * ⓘ runner-mobile.css dodged this instead by giving `.rn` a fixed
+ * `height: 100dvh`, so absolute-bottom IS screen-bottom. That trick
+ * does not transfer to a page that grows with its content.
+ */
+
+.rdm {
+  container-type: inline-size;
+  container-name: rdm;
+  position: relative;
+  background: var(--white);
+  min-height: 100%;
+}
+
+/* Mobile chrome exists in the DOM at every width; visible only compact. */
+.rdm-topbar, .rdm-resume { display: none; }
+/* ⚠ 768px, NOT the handoff's 899. 899 is the RUNNER's number, and it was
+ * earned there: .rn-split needs 924px before it lays out honestly. The
+ * reader has no split. Its desktop rail needs 232 + 720 + 36 = ~988px of
+ * REGION, so anything above ~769 still reads well with the rail (a 501px
+ * body at worst). Measured with the desktop sidebar open, the region is
+ * viewport − 275, so 899 meant every viewport up to 1174px got phone
+ * chrome — including ordinary laptops. 768 also puts the reader back on
+ * the breakpoint CLAUDE.md mandates for the whole product, which is the
+ * disagreement this sweep exists to remove, not to relocate. */
+
+@container rdm (max-width: 768px) {
+
+  /* ── Frame: single column, no desktop TOC, no desktop toprow ── */
+  .rdm .lib-read-shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    max-width: none;
+    padding: 0 0 48px;
+  }
+  .rdm .lib-read-toc { display: none; }
+  .rdm .lib-read-toprow { display: none; }
+  .rdm .lib-read-body {
+    max-width: 640px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 16px 16px 0;
+  }
+  /* The tutor's student-preview wraps the reader in `.lib-page`, which
+     already contributes 24px of gutter; ours on top of it cramped the
+     column to 263px where a student gets 311. Drop ours there and the
+     preview reads at 295px.
+     ⚠ The remaining 16px is `.lib-page`'s own padding and PRE-DATES this
+     work — the preview has always been 48px narrower than the student
+     view at every width; at 1005px nobody noticed. Closing it means
+     restyling an ancestor, which a container query cannot reach, so it
+     would take a viewport-keyed rule — the exact two-systems split this
+     sweep exists to remove. Left deliberately, noted rather than
+     silently traded away. */
+  .lib-page > .rdm .lib-read-body {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* ── Sticky top bar ── */
+  .rdm-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 6px;
+    background: color-mix(in srgb, var(--white) 93%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .rdm-iconbtn {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    font-size: 18px;
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .rdm-iconbtn:active { background: var(--bg-soft); }
+  .rdm-iconbtn.is-on { color: #b45309; }
+  .rdm-crumb {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rdm-contents {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    /* 44, not the handoff's 36: this is a primary control, and the
+       plan's rule is GROW rather than extend when there is room. The bar
+       is 55px tall, so it fits without touching the layout. */
+    min-height: 44px;
+    padding: 0 13px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--white);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .rdm-contents .n { color: var(--accent-dark); font-variant-numeric: tabular-nums; }
+  .rdm-progress {
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    height: 2px;
+    background: var(--accent);
+    transition: width 0.15s linear;
+  }
+  /* ── Resume chip ──
+     ⚠ IN FLOW, not a zero-height floating overlay. The handoff shipped
+     this as `position: sticky; top: 58px; height: 0; overflow: visible`,
+     which paints it on top of whatever sits below the topbar — and at
+     scroll 0 that is the note's <h1>. Measured at 375px: the chip landed
+     across "Reading a fetal monitor strip" and both were unreadable.
+     A one-shot offer that hides the title it is offering to move you
+     away from is worse than one costing 44px of column, and the space
+     comes back the moment she taps it or scrolls past 260px. */
+  .rdm-resume {
+    display: flex;
+    justify-content: center;
+    padding: 0 16px;
+  }
+  .rdm-resume button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 999px;
+    background: var(--primary);
+    color: #fff;
+    padding: 9px 16px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    box-shadow: var(--shadow-lg);
+    cursor: pointer;
+    max-width: 86%;
+  }
+  .rdm-resume button .sec {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Header block on the page ── */
+  .rdm .lib-read-title { font-size: 26px; }
+  .rdm .lib-read-subtitle { font-size: 15px; }
+  .rdm .lib-read-meta {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 -16px;
+    padding: 0 16px 14px;
+    scrollbar-width: none;
+  }
+  .rdm .lib-read-meta::-webkit-scrollbar { display: none; }
+  .rdm .lib-read-meta > * { flex-shrink: 0; }
+  .rdm .lib-read-meta-spacer { display: none; }
+
+  /* ── Reading type scale (phone) ── */
+  .rdm .lib-read-prose { font-size: 16px; line-height: 1.7; }
+  .rdm .lib-read-prose p { font-size: 16px; line-height: 1.7; margin-bottom: 12px; }
+  .rdm .lib-read-prose h2 { font-size: 23px; margin-top: 28px; scroll-margin-top: 72px; }
+  .rdm .lib-read-prose h3 { font-size: 19px; scroll-margin-top: 72px; }
+  .rdm .lib-read-prose li { margin-bottom: 6px; }
+
+  /* ── Drug card: label-over-value, single column ── */
+  .rdm .lib-drug-fields { grid-template-columns: 1fr; }
+  .rdm .lib-drug-field { display: block; border-bottom: 1px solid var(--border); }
+  .rdm .lib-drug-field:last-child { border-bottom: none; }
+  .rdm .lib-drug-label-cell {
+    background: transparent;
+    border: none;
+    padding: 10px 14px 0;
+  }
+  .rdm .lib-drug-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  .rdm .lib-drug-value-cell { border: none; padding: 2px 14px 10px; }
+  .rdm .lib-drug-value { border: none; padding: 0; font-size: 14.5px; line-height: 1.6; }
+
+  /* ── Tables + lab grids: horizontal scroll, full-bleed gutters ── */
+  .rdm .lib-table-block-readonly {
+    overflow-x: auto;
+    margin: 14px -16px;
+    padding: 0 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .rdm .lib-table-block-readonly table {
+    min-width: 560px;
+    margin: 0;
+    table-layout: auto;
+  }
+  .rdm .lib-lab { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .rdm .lib-lab-table { min-width: 480px; }
+
+  /* ── Callouts hug the gutter ── */
+  .rdm .lib-callout { margin-left: -4px; margin-right: -4px; }
+
+  /* ── Foot: full-width 48px done button ── */
+  .rdm .lib-read-foot { padding: 20px 0 30px; }
+  .rdm .lib-read-done {
+    width: 100%;
+    min-height: 48px;
+    font-size: 15px;
+  }
+}
+
+/* ── Contents bottom sheet (shown when open, any compact width) ── */
+
+.rdm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(15, 23, 42, 0.42);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  animation: rdm-fade 0.18s ease;
+}
+.rdm-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 41;
+  background: var(--white);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.25);
+  max-height: 72%;
+  display: flex;
+  flex-direction: column;
+  animation: rdm-up 0.22s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+@keyframes rdm-up { from { transform: translateY(28px); opacity: 0; } }
+@keyframes rdm-fade { from { opacity: 0; } }
+
+.rdm-sheet-grab {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+  margin: 10px auto 2px;
+  flex-shrink: 0;
+}
+.rdm-sheet-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 20px 10px;
+  flex-shrink: 0;
+}
+.rdm-sheet-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.rdm-sheet-prog {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.rdm-sheet-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0 20px 8px;
+  flex-shrink: 0;
+}
+.rdm-sheet-bar > div { height: 100%; background: var(--accent); border-radius: 2px; }
+.rdm-sheet-list {
+  overflow-y: auto;
+  padding: 0 10px 20px;
+}
+.rdm-sheet-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14.5px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.rdm-sheet-link.is-h3 { padding-left: 32px; font-size: 13.5px; color: var(--text-muted); }
+.rdm-sheet-link.is-active {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+.rdm-sheet-link .tick { margin-left: auto; color: var(--accent); font-size: 12px; }

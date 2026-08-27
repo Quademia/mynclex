@@ -124,12 +124,16 @@ export async function attachLibraryNoteAction(
   const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // The note must be the tutor's own AND published (RLS already scopes
-  // to own; the publish check is the attach precondition).
+  // The note must be the tutor's own AND published. Both halves are
+  // explicit: RLS does NOT scope this read to "own" — a tutor who is
+  // also an enrolled student can read the notes of the tutor whose
+  // programme they're on, and without the `tutor_id` filter could
+  // attach one of those to their OWN unit. See lib/library/tutor-scope.ts.
   const { data: note } = await supabase
     .from('nclex_tutor_library_notes')
     .select('note_id, title, is_published')
     .eq('note_id', noteId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!note) return { ok: false, error: 'Note not found or not yours.' };
   if (!note.is_published) {

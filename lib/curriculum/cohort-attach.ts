@@ -28,10 +28,21 @@ export async function resolveCohortForAttach(
   programmeId: string,
 ): Promise<{ ok: true; startDate: string } | { ok: false; error: string }> {
   if (cohortId === null) return { ok: true, startDate: '' };
+
+  // ⚠ "not yours" below has to be true. nclex_cohorts carries
+  // _student_select, so a cohort the caller is merely ENROLLED on
+  // resolves without this — ownership lives on the parent programme,
+  // hence the inner embed. See lib/programmes/tutor-scope.ts.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Cohort not found or not yours.' };
+
   const { data: cohort } = await supabase
     .from('nclex_cohorts')
-    .select('cohort_id, programme_id, start_date')
+    .select('cohort_id, programme_id, start_date, nclex_programmes!inner(tutor_id)')
     .eq('cohort_id', cohortId)
+    .eq('nclex_programmes.tutor_id', user.id)
     .maybeSingle();
   if (
     !cohort ||

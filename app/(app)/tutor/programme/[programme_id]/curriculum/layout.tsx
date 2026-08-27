@@ -9,7 +9,7 @@
 
 import { notFound } from 'next/navigation';
 import {
-  getProgrammeForShell,
+  getOwnedProgrammeForShell,
   getProgrammeStatus,
 } from '@/lib/programmes/queries';
 import { getUnitsForProgramme } from '@/lib/curriculum/queries';
@@ -27,7 +27,7 @@ export default async function CurriculumLayout({
   const { programme_id } = await params;
 
   const [programme, statusCtx, units] = await Promise.all([
-    getProgrammeForShell(programme_id),
+    getOwnedProgrammeForShell(programme_id),
     getProgrammeStatus(programme_id),
     getUnitsForProgramme(programme_id),
   ]);

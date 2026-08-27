@@ -10,6 +10,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { ownedCohortProgrammeId } from './tutor-scope';
 import { validateScheduleInput } from './live-session-schedule';
 import type { LiveSessionScheduleInput } from './live-session-schedule';
 
@@ -26,9 +27,20 @@ export async function setLiveSessionScheduleAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // The marker must be a live session readable by this tutor (RLS scopes
-  // SELECT to the tutor's own programmes). Guards against scheduling a
-  // non-live-session activity, or one outside the tutor's programmes.
+  // ⚠ The cohort gate is what makes this the tutor's own. The marker
+  // lookup below cannot do it: nclex_programme_activities carries
+  // _student_select, so "readable by this tutor" was never the same as
+  // "in the tutor's own programmes", as the old comment here claimed.
+  // Without this, the upsert's UPDATE branch matched zero rows and
+  // raised nothing — a schedule that reported saved and was not.
+  // See lib/programmes/tutor-scope.ts.
+  const ownedProgrammeId = await ownedCohortProgrammeId(supabase, cohortId, user.id);
+  if (!ownedProgrammeId) {
+    return { ok: false, error: 'Live session not found.' };
+  }
+
+  // The marker must be a live-session activity — guards against
+  // scheduling something that isn't one.
   const { data: marker } = await supabase
     .from('nclex_programme_activities')
     .select('activity_id, type')
@@ -67,6 +79,16 @@ export async function clearLiveSessionScheduleAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
+
+  // ⚠ A DELETE matching zero rows is not an error in Postgres, and
+  // this only checked `error` — so for a cohort the caller does not
+  // own, the schedule "cleared" and nothing changed. The write itself
+  // was always refused (owner-only policy); the lie was the outcome.
+  // See lib/programmes/tutor-scope.ts.
+  const ownedProgrammeId = await ownedCohortProgrammeId(supabase, cohortId, user.id);
+  if (!ownedProgrammeId) {
+    return { ok: false, error: 'Could not clear the schedule.' };
+  }
 
   const { error } = await supabase
     .from('nclex_cohort_live_sessions')

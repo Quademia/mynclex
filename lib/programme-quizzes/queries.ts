@@ -7,6 +7,7 @@
 // counterparts ship in Slice 6.
 
 import { createClient } from '@/lib/supabase/server';
+import { getProgrammeTutorId } from '@/lib/programmes/tutor-scope';
 import type {
   BlockingActivity,
   PickerQuizRow,
@@ -120,9 +121,16 @@ async function loadActivitiesByQuiz(
 // =========================================================
 // For the given quizzes, the titles of the tutor's OTHER programmes
 // each quiz is also attached to (excluding the current one) — the
-// "reuse context" Other-programmes badge. RLS on the junction scopes
-// to the tutor's own programmes, so this is the tutor's own reuse, not
-// a cross-tenant leak. Returns an empty map for no quizzes.
+// "reuse context" Other-programmes badge. Returns an empty map for no
+// quizzes.
+//
+// ⚠⚠ This said "RLS on the junction scopes to the tutor's own
+// programmes, so this is … not a cross-tenant leak." It was exactly
+// that: nclex_programme_quizzes carries _student_select, so the badge
+// could name ANOTHER TUTOR'S PROGRAMME — telling one tutor where a
+// quiz is used across the platform. The embed is filtered on
+// tutor_id, which is what makes the sentence true.
+// See lib/programmes/tutor-scope.ts.
 async function loadOtherProgrammes(
   programmeId: string,
   quizIds: string[],
@@ -130,11 +138,15 @@ async function loadOtherProgrammes(
   const out = new Map<string, string[]>();
   if (quizIds.length === 0) return out;
 
+  const tutorId = await getProgrammeTutorId();
+  if (!tutorId) return out;
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('nclex_programme_quizzes')
-    .select('quiz_id, programme_id, nclex_programmes(title)')
+    .select('quiz_id, programme_id, nclex_programmes!inner(title)')
     .in('quiz_id', quizIds)
+    .eq('nclex_programmes.tutor_id', tutorId)
     .neq('programme_id', programmeId);
 
   if (error || !data) return out;
@@ -267,10 +279,14 @@ export async function getProgrammeQuizzes(
 export async function getEligiblePickerQuizzes(
   programmeId: string,
 ): Promise<PickerQuizRow[]> {
+  const tutorId = await getProgrammeTutorId();
+  if (!tutorId) return [];
+
   const supabase = await createClient();
 
-  // Already-attached set — used to subtract from the eligible
-  // list. RLS scopes this to the caller's own programme.
+  // Already-attached set — used to subtract from the eligible list.
+  // Narrowed by programme_id, which the caller's own page already
+  // gated; the ownership that matters here is on the quizzes below.
   const { data: attachedData } = await supabase
     .from('nclex_programme_quizzes')
     .select('quiz_id')
@@ -279,14 +295,23 @@ export async function getEligiblePickerQuizzes(
     (attachedData ?? []).map((r) => r.quiz_id),
   );
 
-  // The tutor's own PUBLISHED quizzes. RLS on nclex_tutor_quizzes
-  // already scopes to tutor_id = auth.uid().
+  // The tutor's own PUBLISHED quizzes.
+  //
+  // ⚠⚠ THIS IS THE PICKER, and it said "RLS on nclex_tutor_quizzes
+  // already scopes to tutor_id = auth.uid()" — false. _student_select
+  // exposes any PUBLISHED quiz attached to a programme the caller is
+  // enrolled on, so the picker OFFERED another tutor's quizzes, and
+  // the attach action accepted them (its own re-verify carried the
+  // same false premise). That was the whole path: offered here,
+  // waved through there, and RLS never checks quiz ownership on the
+  // junction INSERT. See lib/programmes/tutor-scope.ts.
   const { data, error } = await supabase
     .from('nclex_tutor_quizzes')
     .select(
       `quiz_id, title, quiz_kind, mode, duration_seconds,
        nclex_tutor_quiz_items(count)`,
     )
+    .eq('tutor_id', tutorId)
     .eq('status', 'PUBLISHED')
     .order('updated_at', { ascending: false });
 

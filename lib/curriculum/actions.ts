@@ -840,11 +840,18 @@ export async function appendUnitAction(
   const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
-  // Current length (RLS scopes to the tutor's own programme).
+  // Current length. ⚠ "RLS scopes to the tutor's own programme" was
+  // written here and is false — nclex_programmes is readable by
+  // enrolled students too, so this returned another tutor's length
+  // and the "not yours" message below was really "not readable".
+  // The UPDATE that follows was never exposed (write policies are
+  // owner-only), but a gate should mean what it says.
+  // See lib/programmes/tutor-scope.ts.
   const { data: prog } = await supabase
     .from('nclex_programmes')
     .select('length_units')
     .eq('programme_id', programmeId)
+    .eq('tutor_id', user.id)
     .maybeSingle();
   if (!prog) return { ok: false, error: 'Programme not found or not yours.' };
 
@@ -908,10 +915,18 @@ export async function deleteUnitAction(
   const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: 'Not signed in.' };
 
+  // ⚠ The inner embed is the ownership gate, not RLS.
+  // nclex_programme_units carries _student_select, so an enrolled
+  // student (who may also be a tutor) reads this row — and then every
+  // write below is refused silently: a DELETE matching zero rows is
+  // not an error, so this function fell through to `ok: true` and
+  // reported SUCCESS while deleting nothing. Nothing was ever
+  // destroyed; the lie was the outcome. See lib/programmes/tutor-scope.ts.
   const { data: self, error: selfErr } = await supabase
     .from('nclex_programme_units')
-    .select('unit_id, programme_id, unit_index')
+    .select('unit_id, programme_id, unit_index, nclex_programmes!inner(tutor_id)')
     .eq('unit_id', unitId)
+    .eq('nclex_programmes.tutor_id', user.id)
     .maybeSingle();
   if (selfErr) return { ok: false, error: selfErr.message };
   if (!self) return { ok: false, error: 'Unit not found or not yours.' };
@@ -982,9 +997,14 @@ export async function deleteUnitAction(
 // =========================================================
 
 // Resolve a block's parent unit + programme in one helper. Used
-// for revalidation paths after every block-mutating action. RLS
-// already scopes the block to programmes the tutor owns; this
-// chase is purely about path lookup, not authz.
+// for revalidation paths after every block-mutating action.
+//
+// ⚠ This said "RLS already scopes the block to programmes the tutor
+// owns". It does not — nclex_programme_blocks carries
+// _student_select too. Not load-bearing here (this chase is path
+// lookup, not authz; the block writes themselves are owner-only),
+// but do not lean on that sentence for a NEW gate.
+// See lib/programmes/tutor-scope.ts.
 async function resolveBlockOwnership(
   supabase: SupabaseClient,
   blockId: string

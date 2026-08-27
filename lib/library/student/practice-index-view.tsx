@@ -33,6 +33,13 @@ export function PracticeIndexView({ index, basePath }: PracticeIndexViewProps) {
     index;
 
   return (
+    // `.slm` is the container styles/library-student-mobile.css queries.
+    // ⚠ Practice is reached directly from a route, NOT through
+    // StudentLibraryShell, so it does not inherit the shell's wrapper —
+    // without this every `.slm .mpr-*` rule in the layer silently matches
+    // nothing. (The CD handoff scoped those rules to `.slm` but listed the
+    // wrapper only for the shell.)
+    <div className="slm">
     <div className="mpr-wrap">
       <Link href={basePath} className="mpr-back">
         ← Library
@@ -85,6 +92,7 @@ export function PracticeIndexView({ index, basePath }: PracticeIndexViewProps) {
           </div>
         </>
       )}
+    </div>
     </div>
   );
 }

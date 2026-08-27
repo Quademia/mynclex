@@ -18,7 +18,7 @@
 // covers the "no cohorts yet" path.
 
 import { notFound } from 'next/navigation';
-import { getProgrammeForShell } from '@/lib/programmes/queries';
+import { getOwnedProgrammeForShell } from '@/lib/programmes/queries';
 import { getCohortsForProgramme } from '@/lib/cohorts/queries';
 import { CohortList } from '@/lib/cohorts/cohort-list';
 import {
@@ -50,7 +50,7 @@ export default async function ProgrammeCohortsPage({
   const { programme_id } = await params;
   const sp = await searchParams;
 
-  const programme = await getProgrammeForShell(programme_id);
+  const programme = await getOwnedProgrammeForShell(programme_id);
   if (!programme) notFound();
   if (programme.delivery_mode === 'SELF_PACED') notFound();
 

@@ -128,11 +128,25 @@ export default async function PickerPage() {
               {programmes.length > 0 ? (
                 <ProgrammeCards programmes={programmes} />
               ) : (
+                /* A door, not a dead end. The bank and readiness rails
+                   below both give a student with nothing a way to go and
+                   find something (the 2026-07-09 sell-state decision, in
+                   the comment above the readiness rail); this lane used to
+                   be the one that said "nothing here" and stopped.
+                   Copy is the product-switcher upsell modal's, deliberately
+                   — components/nav/student/upsell-modal.tsx answers this
+                   exact question when a programme-less student opens the
+                   switcher, and two surfaces answering it differently is
+                   how copy drifts. */
                 <div className="pcard pcard-empty-state">
                   <div className="pcard-title">No programmes yet</div>
                   <p className="pcard-tagline">
-                    When you enrol in a programme, it&apos;ll show up here.
+                    Tutor programmes add week-by-week structure and live
+                    sessions on top of your bank access.
                   </p>
+                  <Link href="/programmes" className="pcard-empty-cta">
+                    Browse programmes <span aria-hidden="true">→</span>
+                  </Link>
                 </div>
               )}
             </div>

@@ -17,12 +17,23 @@
 // Does NOT touch the underlying nclex_bank_items / nclex_tutor_questions
 // content of attached questions — that's saveQuestionAction's job.
 // Per-question publish gating happens at the question-save layer.
+//
+// ⚠⚠ OWNERSHIP IS PROVED ONCE PER ACTION, AT THE TOP, BEFORE ANY WRITE.
+// Every action here takes a case_id straight off the form and then
+// writes across three tables. Only the case row carries tutor_id, so
+// the children cannot filter on it — and RLS will not narrow any of it
+// for a SUPER_ADMIN, whose FOR-ALL policy matches every row.
+// assertTutorOwnsCase turns the id into a proof, and everything below
+// is keyed on the proved id. Do not remove a guard because "the editor
+// wouldn't have opened" — the editor is not what calls these; a form
+// post is. See lib/bank/tutor-scope.ts.
 
 'use server';
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireBankCurator, type ServerSupabaseClient } from '@/lib/access';
+import { assertTutorOwnsCase } from '@/lib/bank/tutor-scope';
 import {
   CJMM_STEPS,
   CASE_ID_PREFIX,
@@ -158,6 +169,9 @@ export async function saveCaseMetadataAction(
 
   const case_id = String(formData.get('case_id') ?? '').trim();
   if (!case_id) return { ok: false, error: 'Missing case_id.' };
+  if (!(await assertTutorOwnsCase(supabase, surface, case_id))) {
+    return { ok: false, error: 'Case not found, or not yours to edit.' };
+  }
 
   // ── Case-row patch ──────────────────────────────────────────
   const title = String(formData.get('title') ?? '').trim();
@@ -254,6 +268,9 @@ export async function publishCaseWithChildrenAction(
 
   const case_id = String(formData.get('case_id') ?? '').trim();
   if (!case_id) return { ok: false, error: 'Missing case_id.' };
+  if (!(await assertTutorOwnsCase(supabase, surface, case_id))) {
+    return { ok: false, error: 'Case not found, or not yours to publish.' };
+  }
 
   // Resolve the attached question ids (positions 1-6).
   const { data: joins, error: joinErr } = await supabase
@@ -332,6 +349,9 @@ export async function upsertTabAction(formData: FormData): Promise<SaveResult> {
 
   const case_id = String(formData.get('case_id') ?? '').trim();
   if (!case_id) return { ok: false, error: 'Missing case_id.' };
+  if (!(await assertTutorOwnsCase(supabase, surface, case_id))) {
+    return { ok: false, error: 'Case not found, or not yours to edit.' };
+  }
 
   const tab_id_raw = String(formData.get('tab_id') ?? '').trim();
   const isUpdate = tab_id_raw.length > 0;
@@ -436,6 +456,9 @@ export async function deleteTabAction(formData: FormData): Promise<SaveResult> {
   if (!case_id || !tab_id) {
     return { ok: false, error: 'Missing case_id or tab_id.' };
   }
+  if (!(await assertTutorOwnsCase(supabase, surface, case_id))) {
+    return { ok: false, error: 'Case not found, or not yours to edit.' };
+  }
 
   const cfg = configFor(surface);
 
@@ -459,6 +482,9 @@ export async function reorderTabsAction(formData: FormData): Promise<SaveResult>
 
   const case_id = String(formData.get('case_id') ?? '').trim();
   if (!case_id) return { ok: false, error: 'Missing case_id.' };
+  if (!(await assertTutorOwnsCase(supabase, surface, case_id))) {
+    return { ok: false, error: 'Case not found, or not yours to edit.' };
+  }
 
   const ordersRaw = String(formData.get('tab_orders') ?? '[]');
   let orders: { tab_id: string; display_order: number }[];
@@ -540,6 +566,9 @@ export async function detachQuestionAction(formData: FormData): Promise<SaveResu
   if (!case_id || !item_id) {
     return { ok: false, error: 'Missing case_id or item_id.' };
   }
+  if (!(await assertTutorOwnsCase(supabase, surface, case_id))) {
+    return { ok: false, error: 'Case not found, or not yours to edit.' };
+  }
 
   // Drop the join row first (RESTRICT on item_id means we can't
   // delete the question while it's joined; detach unblocks any
@@ -586,6 +615,9 @@ export async function deleteCaseAction(formData: FormData): Promise<SaveResult> 
 
   const case_id = String(formData.get('case_id') ?? '').trim();
   if (!case_id) return { ok: false, error: 'Missing case_id.' };
+  if (!(await assertTutorOwnsCase(supabase, surface, case_id))) {
+    return { ok: false, error: 'Case not found, or not yours to delete.' };
+  }
 
   const modeRaw = String(formData.get('mode') ?? 'simple');
   const mode: DeleteCaseMode =
