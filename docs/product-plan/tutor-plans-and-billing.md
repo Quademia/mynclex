@@ -374,30 +374,71 @@ cannot fire** for those students. Correct today (nothing expires), but
 it means most enrolments sit outside the machinery built to stop access
 ending in silence. Capping the window brings them **into** it.
 
-#### Build note — resolve NULL at WRITE time, not at read time
+#### BUILD HANDOFF <span>scoped 2026-08-27 — NOT BUILT, deliberately deferred</span>
 
-⭐ Make the column `NOT NULL` with the maximum as its default, and
-resolve an unset window when the row is written. **Do not** leave NULL
-in place for every reader to interpret as 730 days.
+Scoped in the same conversation that settled the rule, then parked by
+Sam: *"we won't build it now, just capture and we will build it
+later."* Everything below was verified against the live code and dev
+data on 2026-08-27 — it should not need re-deriving.
 
-The readers are many — discovery, the access label, the analytics
-drawer, three email templates, the expiry sweep — and a meaning that
-lives in readers is exactly what this codebase spent 2026-08-25 to
-08-27 paying for: *"RLS scopes this"* was true in six files until it
-was not. Encode it once, at the boundary, and it cannot be got wrong
-downstream.
+⭐ **The core instruction: resolve NULL at WRITE time, never at read
+time.** Make the column `NOT NULL` with the maximum as its default. Do
+**not** leave NULL in place for readers to interpret as 730 days — the
+readers are many (discovery, the access label, the analytics drawer,
+the email templates, the expiry sweep) and a meaning that lives in
+readers is precisely what this codebase spent 2026-08-25 to 08-27
+paying for. *"RLS scopes this"* was true in six files until it was not.
 
-**What changes:** `access_window_days` required with a 24-month
-ceiling · the form field keeps its blank box but the label becomes
-*"Leave blank for the maximum — 24 months"* · "Lifetime" leaves
-`lib/discovery/format.ts`, `lib/enrolments/access-label.ts`, the
-analytics drawer and the email templates · those enrolments join the
-access-expiry arc.
+⚠⚠ **THE TRAP: THERE ARE TWO UNRELATED "LIFETIME" CONCEPTS. DO NOT
+CONFLATE THEM.**
+
+`lib/payments/entitlements.ts` has its own — a **bank subscription**
+with no `end_at`. That is *Quademia's own product*, and a perpetual
+bank grant is entirely legitimate because we are granting access to our
+own thing. It has nothing to do with a tutor's programme window.
+**`lib/payments/entitlements.ts`, `app/(app)/student/picker/page.tsx`
+and `lib/practice/history/*` are OUT OF SCOPE** even though they match
+a grep for "lifetime". Touching them breaks bank entitlements.
+
+**New — one migration**
+
+`db/migrations/<ts>_programme_access_window_max.sql`
+- `nclex_programmes.access_window_days` → `NOT NULL DEFAULT 730` +
+  `CHECK` between 1 and 730
+- backfill programme NULLs → 730 (**8 of 15 on dev**)
+- backfill `nclex_enrolments.access_expires_at` NULLs →
+  `enrolled_at + 730 days` (**33 of 48 on dev**)
+
+**Edited — eight files**
+
+| File | Change |
+|---|---|
+| `lib/programmes/programme-form-modal.tsx` | ⭐ **Required and pre-filled with `730`, not a blank box.** Sam's call, and better than "blank means the maximum": a pre-filled required field has **no hidden convention at all** — the tutor sees the number, accepts it or changes it |
+| `lib/programmes/actions.ts` | Validate the ceiling; never write NULL |
+| `lib/enrolments/actions.ts` (~487) | The tutor-add freeze of `access_expires_at` |
+| `lib/payments/activate.ts` (~307) | The paid-checkout freeze |
+| `lib/discovery/format.ts` | "Lifetime" leaves the public page |
+| `lib/enrolments/access-label.ts` | "Lifetime" leaves |
+| `lib/analytics/tutor/student-drawer.tsx` + `types.ts` | The `'lifetime'` branch and its comment |
+| `lib/email/types.ts` | ⚠ Its *"lifetime rows never qualify"* comments become **false** the moment this lands |
+
+**Two calls left open, both to be made during the build**
+
+1. **Hard `CHECK` in the database, or app-layer only?** Recommended:
+   hard. It is a platform policy and encoding it once is the whole
+   point. Cost — raising the cap to 36 months later needs a migration,
+   which is arguably correct for a policy change.
+2. **Should `nclex_enrolments.access_expires_at` also become
+   `NOT NULL`?** Logically yes once every programme is bounded — but
+   read both freeze sites first. If a legitimate path produces null (an
+   admin grant, say), backfill and leave it nullable rather than break
+   it.
 
 ⚠⚠ **This is the last moment it is free.** Prod has zero enrolments;
 dev's NULLs are fixtures. The same migration in a year would
 **retroactively shorten access somebody had already paid for** — a
-refund conversation, not a data fix.
+refund conversation, not a data fix. The longer this waits, the more it
+costs, and it costs nothing today.
 
 ⚠ **Open:** does a lapsed tutor's public programme page **hide**
 (proposed) or show an "enrolment closed" state? Hiding loses an
