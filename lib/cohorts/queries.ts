@@ -25,8 +25,15 @@ import type {
 
 /**
  * All cohorts of a programme, newest first. Returns [] if the
- * programme has no cohorts, or if the tutor doesn't own the
- * programme (RLS filters them out).
+ * programme has no cohorts.
+ *
+ * ⚠ This does NOT check ownership, and used to claim RLS did:
+ * nclex_cohorts carries _student_select and _admin_all beside
+ * _self_select, so passing a programme you are merely enrolled on
+ * returns its cohorts. Every caller passes a programme id that is
+ * already owner-proven — by getOwnedProgrammeForShell on the pages, or
+ * by getMyProgrammes in the roll-ups. Keep it that way; if a caller
+ * ever has an id from anywhere else, prove it first.
  */
 export async function getCohortsForProgramme(
   programmeId: string
@@ -53,9 +60,10 @@ export async function getCohortsForProgramme(
  * don't have to fetch the full cohort list just to decide what to
  * render.
  *
- * Returns 0 when the programme doesn't exist or is hidden by RLS;
- * that's fine for the call sites — they're working off a programme
- * row the tutor already sees, so zero means "really has none."
+ * Returns 0 when the programme has no cohorts. Same scoping note as
+ * getCohortsForProgramme above — the id must arrive owner-proven; its
+ * one caller (the programme Overview) gets it from a page already
+ * gated by getOwnedProgrammeForShell.
  */
 export async function getCohortCountForProgramme(
   programmeId: string
@@ -76,12 +84,24 @@ export async function getCohortCountForProgramme(
  * cohort row plus the parent programme's identity / shape fields
  * that drive the shell + sidebar + back-pill.
  *
- * RLS scopes both joined rows to the signed-in tutor (cohort via
- * parent-ownership subquery, programme via tutor_id check).
- * Returns null if the cohort doesn't exist OR the tutor doesn't
- * own its parent programme; the shell turns null into a 404.
+ * ⚠⚠ THIS ANSWERS "CAN I READ IT?", NOT "IS IT MINE?" — and that is
+ * deliberate, because the STUDENT gate (require-cohort-access) shares
+ * this function, and there *readable* is the right question. It used
+ * to claim RLS scoped both joined rows to the signed-in tutor; it does
+ * not, since both tables carry a student policy and a FOR-ALL admin
+ * policy.
  *
- * Invalid UUIDs in the URL also return null.
+ * Tutor callers must therefore add their own proof. CohortDetail does:
+ * its page proves ownership of the programme via
+ * getOwnedProgrammeForShell, then it refuses unless
+ * cohort.programme_id matches. That pairing is what everything
+ * downstream (checklist, planner, analytics, attendance) rests on.
+ *
+ * Same split as getProgrammeForShell / getOwnedProgrammeForShell one
+ * level up — see lib/programmes/tutor-scope.ts.
+ *
+ * Returns null if the cohort doesn't exist or is unreadable. Invalid
+ * UUIDs in the URL also return null.
  */
 export type CohortShellContext = {
   cohort: Cohort;
@@ -162,15 +182,17 @@ export async function getCohortForShell(
 // — same order of magnitude as the curriculum tab on the tutor side.
 // No N+1 risk; composition happens entirely in TS.
 //
-// Returns null when the cohort doesn't exist or the tutor doesn't
-// own its parent programme.
+// Returns null when the cohort doesn't exist or is unreadable.
+// ⚠ Ownership comes from the caller's chain, not from RLS — see the
+// note on getCohortForShell above.
 
 export async function getCohortChecklist(
   cohortId: string
 ): Promise<CohortChecklistTree | null> {
   const supabase = await createClient();
 
-  // Wave 1 — cohort with parent programme. RLS gates both.
+  // Wave 1 — cohort with parent programme. RLS is the floor, not the
+  // filter; the caller's ownership chain is what narrows this.
   const { data: cohortRow, error: cohortError } = await supabase
     .from('nclex_cohorts')
     .select(
