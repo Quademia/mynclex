@@ -39,13 +39,14 @@ directly on this file and are **proposals, not decisions**:
   decoupled (opt-in bank, tutor-mediated enrolment, flexible
   payment strategies). A handful of sub-topics still open — see
   "Still open" inside *Tutored enrolment → Settled 2026-05-17*.
-- **Programme access window — SETTLED 2026-05-17, ⚠ HALF RE-OPENED
-  2026-08-27.** Pattern A adopted: tutor-set per programme, applies to
-  both tutored and self-paced. ⚠ Its second clause — *all access
-  contingent on the tutor maintaining their subscription* — is now in
-  tension with `tutor-plans-and-billing.md` §5, which proposes that
-  students keep access to **what they bought**. Neither is ratified.
-  See the note in *Programme access window → Pattern A* below.
+- **Programme access window — SETTLED 2026-05-17, ⚠ SECOND CLAUSE
+  REPLACED 2026-08-27.** Pattern A still holds: tutor-set per
+  programme, both tutored and self-paced. But *all access contingent on
+  the tutor maintaining their subscription* is **superseded** — a
+  student now keeps access to **what they bought**, and in exchange
+  **there is no lifetime option: the platform maximum is 24 months, and
+  an unset window means the maximum.** Canonical:
+  `tutor-plans-and-billing.md` §5. ⚠ **Decided, not built.**
 - **Self-paced enrolment — SETTLED 2026-05-17.** Self-serve
   on-platform only, one access window per programme, same payment
   strategies as tutored but anchored to enrolment date.
@@ -2031,23 +2032,28 @@ policy has to honour both.
   build, e.g. 90 days) during which they retain access and
   can download materials, then access locks.
 
-  ⚠⚠ **RE-OPENED 2026-08-27 — this clause is contested.**
-  `tutor-plans-and-billing.md` §5 proposes the opposite: a student
-  keeps access **to what they bought**, running to their own
-  `access_expires_at`, because the enrolment is a contract between
-  student and tutor rather than a function of the tutor's
-  relationship with us. A tutor whose card fails must not take 40
-  paying students offline.
+  ⚠⚠ **SUPERSEDED 2026-08-27 (Sam) — see
+  `tutor-plans-and-billing.md` §5, which is where this now lives.**
 
-  ⓘ **But the clause above is right about one case the new rule does
-  not yet answer: "lifetime".** A bounded window (3 / 6 / 12 / 24
-  months) can simply run to its end — that costs us a known, finite
-  amount of hosting. A *lifetime* window on a lapsed tutor's
-  programme is an unbounded commitment to serve content for someone
-  who has stopped paying us, forever. The honest options are to drop
-  "lifetime" as a choice, to cap it on lapse (which is this clause,
-  narrowed to one case), or to price it in. **Undecided — the two
-  documents must be reconciled before either is built.**
+  The replacement rule: **a student keeps access to what they bought**,
+  running to their own `access_expires_at` — a tutor whose card fails
+  must not take 40 paying students offline — **and there is no lifetime
+  option, because a tutor cannot grant more access than the tutor
+  holds.** The platform maximum is **24 months**, and an *unset* window
+  now means "the maximum" rather than "forever".
+
+  ⓘ The clause above was right about exactly one case: an unbounded
+  window on a lapsed tutor's programme is an open commitment to serve
+  content for someone who has stopped paying us. **Capping the window
+  removes the case, so the clause is no longer needed** — the remaining
+  liability is finite and known, which is precisely what made the
+  student-protection rule affordable.
+
+  ⚠ **DECIDED, NOT BUILT.** `access_window_days` still allows NULL and
+  NULL still means lifetime in code — **8 of 15 dev programmes and 33 of
+  48 dev enrolments** are in that state, because the form's blank box
+  defaults to it. Prod is empty, so the migration is free **now** and
+  would retroactively shorten paid-for access later.
 - "Lifetime" is therefore honestly described to students as
   "lifetime of the tutor's subscription on QAcademy" — not
   "lifetime regardless of platform status." Matches industry

@@ -318,24 +318,86 @@ contributions. It is also consistent with what the product already
 does: enrolments freeze their payment strategy and carry their own
 access dates (`payments-and-enrolment.md`).
 
-⚠⚠ **AND IT CONTRADICTS A SETTLED RULE NEXT DOOR, WHICH IS RIGHT
-ABOUT ONE CASE.** `payments-and-enrolment.md` settled the opposite on
-2026-05-17 — *"all student access is contingent on the tutor
-maintaining their monthly platform subscription"*, with a ~90-day
-transition then a lock. Found on 2026-08-27 while writing this doc;
-both sides are now annotated and **neither is ratified**.
+### ⭐⭐ No lifetime access. The platform maximum is 24 months. <span>SETTLED 2026-08-27 (Sam) — ⚠ NOT BUILT</span>
 
-The reconciliation is not simply "the new rule wins":
+The rule that makes §5 coherent, and **the one decided thing in this
+document**.
 
-- For a **bounded** window (3 / 6 / 12 / 24 months) the new rule is
-  clearly better and costs us a **known, finite** amount of hosting.
-  A tutor's card failing must not take 40 paying students offline.
-- ⓘ For **"lifetime"** the old rule is right and the new rule has a
-  hole: lifetime access on a lapsed tutor's programme is an
-  **unbounded commitment to serve content for someone who has stopped
-  paying us**. The honest options are to drop "lifetime" as a tutor
-  choice, to cap it on lapse (the old rule, narrowed to this one
-  case), or to price it in.
+> **A tutor cannot grant a student more access than the tutor
+> themselves holds.**
+
+Sam's principle, and it is the right one: *"how can we allow a tutor to
+give people lifetime access on our platform? That's only true if the
+tutor has lifetime access on the platform."*
+
+Applied strictly it goes too far — a tutor on a monthly plan holds one
+month, so they could sell only one month, and nobody would buy that. The
+workable form keeps the logic and moves the ceiling to our side:
+
+> **A tutor may sell a bounded window. We honour a window the student
+> already paid for — up to a maximum the platform sets. That maximum is
+> the liability we choose to carry, and a tutor cannot commit us beyond
+> it.**
+
+**The maximum is 24 months.** And — Sam's framing, which is better than
+removing the blank field — **an unset window is not "forever", it is
+"the platform maximum"**. A tutor who does not care still does not have
+to think about it.
+
+⚠⚠ **This resolves the contradiction with `payments-and-enrolment.md`**,
+which settled the opposite on 2026-05-17 (*"all student access is
+contingent on the tutor maintaining their monthly platform
+subscription"*, ~90-day transition then a lock). That rule was right
+about exactly one case — the unbounded one — and capping the window
+removes the case rather than the rule. What survives from §5 stands: a
+tutor's card failing must not take 40 paying students offline, because
+the remaining liability is now **finite and known**.
+
+#### ⚠ Today lifetime is the DEFAULT, not an edge case
+
+Measured on dev, 2026-08-27:
+
+| | |
+|---|---|
+| Programmes with no access window (= lifetime) | **8 of 15** |
+| Enrolments with no expiry (= lifetime) | **33 of 48** |
+
+`access_window_days` is a free-text *"Access window (days)"* box that
+starts empty, and `lib/programmes/programme-form-modal.tsx` comments
+*"empty string = lifetime (NULL)"*. **The unbounded promise is the path
+of least resistance** — a tutor grants it by not thinking.
+
+ⓘ And a consequence nobody had connected: `lib/email/types.ts` —
+*"Never null — lifetime rows never qualify."* The access-expiring /
+access-expired emails released to prod on 2026-08-24 **structurally
+cannot fire** for those students. Correct today (nothing expires), but
+it means most enrolments sit outside the machinery built to stop access
+ending in silence. Capping the window brings them **into** it.
+
+#### Build note — resolve NULL at WRITE time, not at read time
+
+⭐ Make the column `NOT NULL` with the maximum as its default, and
+resolve an unset window when the row is written. **Do not** leave NULL
+in place for every reader to interpret as 730 days.
+
+The readers are many — discovery, the access label, the analytics
+drawer, three email templates, the expiry sweep — and a meaning that
+lives in readers is exactly what this codebase spent 2026-08-25 to
+08-27 paying for: *"RLS scopes this"* was true in six files until it
+was not. Encode it once, at the boundary, and it cannot be got wrong
+downstream.
+
+**What changes:** `access_window_days` required with a 24-month
+ceiling · the form field keeps its blank box but the label becomes
+*"Leave blank for the maximum — 24 months"* · "Lifetime" leaves
+`lib/discovery/format.ts`, `lib/enrolments/access-label.ts`, the
+analytics drawer and the email templates · those enrolments join the
+access-expiry arc.
+
+⚠⚠ **This is the last moment it is free.** Prod has zero enrolments;
+dev's NULLs are fixtures. The same migration in a year would
+**retroactively shorten access somebody had already paid for** — a
+refund conversation, not a data fix.
 
 ⚠ **Open:** does a lapsed tutor's public programme page **hide**
 (proposed) or show an "enrolment closed" state? Hiding loses an
@@ -786,10 +848,10 @@ schema problem when it is a money-movement problem.
 
 1. ⚠⚠ **How the subscription charge recurs** (§9). Answer first.
 2. The numbers (§9).
-3. ⚠⚠ **Reconcile §5 with `payments-and-enrolment.md`'s 2026-05-17
-   access-window rule** — specifically what "lifetime" means on a
-   lapsed tutor's programme, which is the one case the old rule got
-   right. Both files are annotated; neither is ratified.
+3. ✅ ~~Reconcile §5 with the 2026-05-17 access-window rule~~ —
+   **SETTLED 2026-08-27: no lifetime, 24-month platform maximum, an
+   unset window means the maximum** (§5). ⚠ Decided, **not built** —
+   the column still allows NULL and NULL still means lifetime in code.
 4. Does a lapsed tutor's public page hide or show "enrolment closed"?
    (§5)
 5. Where `subaccount_code` lives, if Plus is built. (§7)
