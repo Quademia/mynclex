@@ -14,12 +14,23 @@
 //
 // Surface-aware: branches between admin (nclex_trend_datasets) and
 // tutor (nclex_tutor_trend_datasets) via the surface form field.
+//
+// ⚠⚠ OWNERSHIP IS PROVED ONCE PER ACTION, AT THE TOP, BEFORE ANY WRITE.
+// Every action takes a trend_id straight off the form and then writes
+// across the dataset, its tabs and the question rows it detaches. Only
+// the dataset row carries tutor_id, and RLS will not narrow any of it
+// for a SUPER_ADMIN, whose FOR-ALL policy matches every row.
+// assertTutorOwnsTrend turns the id into a proof; everything below is
+// keyed on the proved id. Do not remove a guard because "the editor
+// wouldn't have opened" — a form post calls these, not the editor.
+// See lib/bank/tutor-scope.ts.
 
 'use server';
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireBankCurator, type ServerSupabaseClient } from '@/lib/access';
+import { assertTutorOwnsTrend } from '@/lib/bank/tutor-scope';
 import {
   TREND_ID_PREFIX,
   TUTOR_TREND_ID_PREFIX,
@@ -166,6 +177,9 @@ export async function saveTrendMetadataAction(
 
   const trend_id = String(formData.get('trend_id') ?? '').trim();
   if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
+  if (!(await assertTutorOwnsTrend(supabase, surface, trend_id))) {
+    return { ok: false, error: 'Trend not found, or not yours to edit.' };
+  }
 
   const title = String(formData.get('title') ?? '').trim();
   if (!title) return { ok: false, error: 'Title is required.' };
@@ -238,6 +252,9 @@ export async function detachQuestionAction(formData: FormData): Promise<SaveResu
   if (!trend_id || !item_id) {
     return { ok: false, error: 'Missing trend_id or item_id.' };
   }
+  if (!(await assertTutorOwnsTrend(supabase, surface, trend_id))) {
+    return { ok: false, error: 'Trend not found, or not yours to edit.' };
+  }
 
   // Clear trend_id on the question row. We also check that the FK
   // currently points at the wrapper's trend_id — defends against a
@@ -280,6 +297,9 @@ export async function deleteTrendAction(formData: FormData): Promise<SaveResult>
 
   const trend_id = String(formData.get('trend_id') ?? '').trim();
   if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
+  if (!(await assertTutorOwnsTrend(supabase, surface, trend_id))) {
+    return { ok: false, error: 'Trend not found, or not yours to delete.' };
+  }
 
   const modeRaw = String(formData.get('mode') ?? 'simple');
   const mode: DeleteTrendMode =
@@ -362,6 +382,9 @@ export async function upsertTabAction(formData: FormData): Promise<SaveResult> {
 
   const trend_id = String(formData.get('trend_id') ?? '').trim();
   if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
+  if (!(await assertTutorOwnsTrend(supabase, surface, trend_id))) {
+    return { ok: false, error: 'Trend not found, or not yours to edit.' };
+  }
 
   const tab_id_raw = String(formData.get('tab_id') ?? '').trim();
   const isUpdate = tab_id_raw.length > 0;
@@ -465,6 +488,9 @@ export async function deleteTabAction(formData: FormData): Promise<SaveResult> {
   if (!trend_id || !tab_id) {
     return { ok: false, error: 'Missing trend_id or tab_id.' };
   }
+  if (!(await assertTutorOwnsTrend(supabase, surface, trend_id))) {
+    return { ok: false, error: 'Trend not found, or not yours to edit.' };
+  }
 
   const { error } = await supabase
     .from(tabTableFor(surface))
@@ -487,6 +513,9 @@ export async function reorderTabsAction(formData: FormData): Promise<SaveResult>
 
   const trend_id = String(formData.get('trend_id') ?? '').trim();
   if (!trend_id) return { ok: false, error: 'Missing trend_id.' };
+  if (!(await assertTutorOwnsTrend(supabase, surface, trend_id))) {
+    return { ok: false, error: 'Trend not found, or not yours to edit.' };
+  }
 
   const ordersRaw = String(formData.get('tab_orders') ?? '[]');
   let orders: { tab_id: string; display_order: number }[];

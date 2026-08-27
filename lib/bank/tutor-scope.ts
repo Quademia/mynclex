@@ -60,6 +60,9 @@
 
 import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
+import type { ServerSupabaseClient } from '@/lib/access';
+
+type BankSurface = 'admin' | 'tutor';
 
 /**
  * The signed-in user's id, or `null` when there is no session.
@@ -75,3 +78,68 @@ export const getBankTutorId = cache(async (): Promise<string | null> => {
   } = await supabase.auth.getUser();
   return user?.id ?? null;
 });
+
+// ── Wrapper ownership, asserted once per action ─────────────────────────
+//
+// The case-study and trend action files write across three tables each
+// (the wrapper row, its tabs, its slot/join rows) plus the question
+// rows they detach. Only the wrapper row carries `tutor_id`; the
+// children hang off it. So rather than bolt a filter onto every one of
+// ~20 writes — the kind of scripted, repeated edit that went wrong
+// three times in one sitting on 2026-08-25 — each action proves
+// ownership ONCE, at the top, before it touches anything.
+//
+// Everything downstream is then keyed on an id that has been proved,
+// and is owner-proven by composition. That is the shape the enquiries
+// surface uses and the one worth copying: gate with the authed client,
+// then do the work.
+//
+// ⓘ `surface === 'admin'` returns true immediately, on purpose. Reaching
+// every case in the shared bank IS the admin curator's job, and
+// nclex_case_studies has no tutor_id to compare against. The asymmetry
+// is the point: the same action file serves two surfaces that answer
+// "is this mine?" differently.
+
+/**
+ * True when the caller may act on this case. Always true on the admin
+ * surface; on the tutor surface, true only if they own the case.
+ */
+export async function assertTutorOwnsCase(
+  supabase: ServerSupabaseClient,
+  surface: BankSurface,
+  caseId: string,
+): Promise<boolean> {
+  if (surface !== 'tutor') return true;
+  const tutorId = await getBankTutorId();
+  if (!tutorId) return false;
+
+  const { data } = await supabase
+    .from('nclex_tutor_case_studies')
+    .select('case_id')
+    .eq('case_id', caseId)
+    .eq('tutor_id', tutorId)
+    .maybeSingle();
+  return data != null;
+}
+
+/**
+ * True when the caller may act on this trend dataset. Always true on
+ * the admin surface; on the tutor surface, true only if they own it.
+ */
+export async function assertTutorOwnsTrend(
+  supabase: ServerSupabaseClient,
+  surface: BankSurface,
+  trendId: string,
+): Promise<boolean> {
+  if (surface !== 'tutor') return true;
+  const tutorId = await getBankTutorId();
+  if (!tutorId) return false;
+
+  const { data } = await supabase
+    .from('nclex_tutor_trend_datasets')
+    .select('trend_id')
+    .eq('trend_id', trendId)
+    .eq('tutor_id', tutorId)
+    .maybeSingle();
+  return data != null;
+}
