@@ -1,16 +1,34 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-09-01 (**tutor commercial model revised — two
-structural changes, both design-only, no code:** the **tutor is
+Last updated: 2026-09-01, later (**the tutor commercial model got its
+ladder — design only, no code.** Tiers are **Starter · Pro · Academy**
+("Free" is not a name; *Enterprise* is held in reserve for the
+institutional buyer). **Starter holds 10 seats permanently and THE
+TRIAL IS GONE** — seats and a trial do the same job, and a trial is a
+clock where the model's unit is a stock. Bands **10 · 50 · 200** plus
+**buyable extra seats**, which are the fourth tier priced continuously.
+**On-platform payments is a CAPABILITY, not a rung** — by approval, on
+paid tiers only, **never on Starter** — and *Partner-as-a-tier* is
+deferred with a trigger, not rejected. The access window is now
+**required and NOT pre-filled**, and §5 gained a **fourth condition: a
+student is never removed in silence**. ⚠ **Currency is OPEN — both GHS
+and USD are intended**; what is *verified* is that **MoMo cannot recur
+at all**, which is a property of the channel, not the currency. ⚠ **A
+LIVE DEFECT is recorded and NOT fixed** — a manually-paused student is
+told "a payment is overdue", which can be false, and it is on prod.
+Canonical `docs/product-plan/tutor-plans-and-billing.md`, still a
+PROPOSAL on **every price**. Previously 2026-09-01 — the **tutor is
 accountable to their students, not us** (reversing 08-27's
 student-protection rule and reinstating the 2026-05-17 one), and the
-enrolment gate became **seats** — a stock of student places, Free =
-zero. The 24-month cap survives but its reason did not. See the
-struck-through marketplace-billing entry under *Explicit Deferrals*;
-canonical `docs/product-plan/tutor-plans-and-billing.md` §3 + §5, still
-a PROPOSAL on every number. Previously 2026-08-27, later — tutor plans
-& billing designed: the marketplace-billing deferral is now struck through with its reasoning, canonical in `docs/product-plan/tutor-plans-and-billing.md`, still a PROPOSAL. Earlier the same day — Known Workarounds: the RLS union's THIRD member, `_admin_all` is `FOR ALL` so a SUPER_ADMIN matches every row for reads *and* writes; the Supabase client here is untyped, which is why none of these bugs fail a build; and the orphaned-`next dev` port trap under the per-session loop)
-
+enrolment gate became **seats**, a stock of student places. See the
+struck-through marketplace-billing entry under *Explicit Deferrals*.
+Previously 2026-08-27, later — tutor plans & billing designed: the
+marketplace-billing deferral is now struck through with its reasoning.
+Earlier the same day — Known Workarounds: the RLS union's THIRD member,
+`_admin_all` is `FOR ALL` so a SUPER_ADMIN matches every row for reads
+*and* writes; the Supabase client here is untyped, which is why none of
+these bugs fail a build; and the orphaned-`next dev` port trap under the
+per-session loop)
 ## What This Is
 
 MyNclex is an NCLEX-RN exam prep product inside the QAcademy family. It has
@@ -866,6 +884,54 @@ session was open.
     re-decision, do not inherit it.
     ⚠ Everything numeric — band sizes, seat prices, whether a monthly
     fee sits on top — remains a PROPOSAL.
+  - ⭐⭐ **REVISED AGAIN 2026-09-01 (later) — the ladder, and the trial
+    died.** Still design only, no code.
+    **Tiers: `Starter · Pro · Academy`.** "Free" is not a name (it
+    misdescribes a full authoring suite plus ten students, and nobody
+    self-identifies as a Free user); ***Enterprise* is deliberately held
+    in reserve** for the real institutional buyer — a nursing school or
+    agency buying seats for its own nurses.
+    ⭐⭐ **Starter holds 10 seats permanently, and THERE IS NO TRIAL.**
+    Ten free seats and a 30-day trial do the same job, so having both
+    pays twice for one outcome — and a trial is a *clock* where this
+    model's unit is a *stock*. §4 is struck through, not deleted.
+    **Bands `10 · 50 · 200` plus BUYABLE EXTRA SEATS** above each —
+    overage is the fourth tier, priced continuously, so no fourth rung
+    is needed. ⚠ An overage seat must cost **more** per head than an
+    in-band seat, or nobody upgrades.
+    ⭐⭐ **On-platform payments is a CAPABILITY, not a rung** — by
+    approval, on paid tiers only, and **NEVER on Starter** (Sam). Same
+    annual fee with or without it; the percentage is its entire price.
+    *Partner-as-a-tier* is **deferred with a trigger, not rejected**.
+    ⚠ Tier position filters for *size*, and size correlates with **more**
+    chargeback exposure, not less.
+    ⚠ **The access window is REQUIRED and NOT pre-filled** — refining
+    08-27's *required and pre-filled*, because under seats a default
+    accepted unthinkingly now costs the tutor a seat for up to two
+    years. **The 24-month maximum survives on NEW reasons**: seats are a
+    stock and must come back, and nobody can underwrite a decade.
+    ⭐ **§5 gained a FOURTH condition — a student is never removed in
+    silence.** Pause, resume and removal all notify the student, from
+    us, and the tutor cannot suppress it. Under a boolean gate a tutor
+    had no reason to unenrol anyone; **under seats every removal is
+    worth money**, so this is the control that keeps seats honest.
+    ⚠⚠ **CURRENCY IS OPEN — both GHS and USD are intended** (Sam;
+    ideally USD, to be international). What is *verified* is only that
+    **MoMo cannot do recurring at all**, which is a property of the
+    channel and holds in any currency. A prior version of the doc marked
+    "GHS, annual" as settled; that was a recommendation written up as a
+    decision, and the correction stands in §9. ⓘ Ghana is **not** a
+    Stripe-supported country (it reaches Stripe *through* Paystack,
+    which Stripe has owned since 2020); a UK **sole trader** is enough,
+    a UK company is not required — but UK standing is.
+    ⚠⚠ **A LIVE DEFECT is recorded and NOT fixed:**
+    `ENROLMENT_LOCKED_REASON.PAUSED` tells every paused student *"a
+    payment is overdue"*, but there are **two** pause reasons — so a
+    manually-paused student is told they defaulted when they did not.
+    **On prod.** `paused_reason` is already on the row; only the copy
+    fails to branch. See `tutor-plans-and-billing.md` §5 / §11.6.
+    ⚠ **Every price remains a PROPOSAL** — band prices, seat prices, the
+    percentage, and which currencies ship first.
   - ⚠ **Left in this list, struck through, so the change is visible
     rather than silent** — same treatment as the tutor-signup line above.
 - Migration of MyNMCLicensure or MyTeacher onto this stack
