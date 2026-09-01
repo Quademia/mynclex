@@ -46,7 +46,7 @@ costs.
 | Bands **10 · 50 · 200** in shape, plus buyable extra seats | §3③ | 2026-09-01 later |
 | On-platform payments is a **capability, not a rung**; Partner deferred | §7① | 2026-09-01 later |
 | **Starter can never hold it** | §7② | 2026-09-01 later |
-| Billing is **GHS, annual** — MoMo cannot recur | §9 | 2026-09-01 later |
+| **MoMo cannot recur** — so the MoMo path must be annual prepaid | §9 | 2026-09-01 later — ⚠ a FINDING; *currency itself is open, both GHS and USD intended* |
 | The access window is **required and NOT pre-filled** | §5 | 2026-09-01 later — refines 08-27 |
 | The 24-month maximum | §5 | 2026-08-27, **re-justified 2026-09-01**: seats must come back, and nobody can underwrite a decade |
 | **A student is never removed in silence** — pause, resume and removal all notify | §5 | 2026-09-01 later, *in principle* — ⚠ not built |
@@ -1548,12 +1548,112 @@ second one.
 | Price of Academy | Open |
 | Price of an **extra seat** above a band | Open — but **must exceed the per-head rate inside the band** (§3③), or nobody upgrades |
 | Platform fee % on processed sales | Open — **3–5% all-in** proposed, start low (§7③) |
-| Currency | ✅ **GHS.** See below |
-| Billing interval | ✅ **Annual.** See below |
+| Currency | ⚠ **OPEN — both GHS and USD intended.** See the correction below; GHS-only was never decided |
+| Billing interval | ⚠ **Annual on the MoMo path (forced), open elsewhere.** A card can hold a real subscription in either currency |
 | Seat bands | ✅ **10 · 50 · 200** in shape (§3③); the numbers stay tunable |
 | Setup credit price for Pro | Open. We do not know our own unit cost. Publish *"from GHS X"* or "request a quote" until five jobs have been done and timed |
 | ~~Trial length~~ | ✅ **There is no trial** (§4) |
 | Included setup credits on Academy | ~10 proposed |
+
+### ⚠⚠ CORRECTION 2026-09-01 (later) — currency is NOT settled, and "GHS only" was never Sam's decision
+
+⚠ **An earlier version of this section marked *"Currency — GHS"* and
+*"Billing interval — annual"* as ✅ SETTLED. They were not.** The
+*findings* below are verified; the conclusion drawn from them was a
+recommendation written up as a decision. Sam, on reading it:
+
+> *"so far you have assumed everything will be GHS and MoMo, but we can
+> do both. This can ship with both dollars and GHS. Ideally we should do
+> dollars so it will be international."*
+
+Recorded as a correction rather than quietly amended, because a
+recommendation promoted to a decision is exactly the failure this
+document keeps finding elsewhere.
+
+#### ⭐⭐ The framing that dissolves the false choice: currency follows the TUTOR, not the platform
+
+The constraint found on 2026-09-01 is **asymmetric**, and that is the
+whole point:
+
+| Tutor is… | Paying us in USD | Paying us in GHS |
+|---|---|---|
+| **In Ghana** | ⚠ Blocked in practice — local cards commonly carry a **$0 international limit**, and banks restrict forex outflows | ✓ Works, card or MoMo |
+| **International** | ✓ Natural | ⚠ Pointless friction |
+
+So *"GHS or USD"* is not a platform-level question at all. **It is
+per-tutor, decided by where they are.** ⓘ The product already works this
+way for consumer purchases — amounts are integer **minor units**
+rendered through `formatMinor()` in `lib/products/money.ts`, and
+`nclex_products` already carries dual-currency prices. **Dual currency is
+an existing pattern here, not new machinery.**
+
+#### What IS genuinely established, in any currency
+
+- ⚠⚠ **MoMo cannot do recurring. Full stop.** Paystack's own
+  documentation: *"It's currently not possible for customers to make
+  recurring payments"* on the Pay with Mobile Money channel. This is a
+  property of the **channel**, not of the currency, and it survives any
+  decision below. Cards can recur; MoMo cannot.
+- ⭐ **So the annual/prepaid shape is required on the MoMo path
+  specifically** — not as a platform-wide rule. A tutor paying by card,
+  in either currency, can hold a real subscription. A tutor paying by
+  MoMo buys a band and is reminded before it lapses. **One model, two
+  payment paths** — and the reminder path is machinery §5's lapse
+  warning needs anyway.
+- **Ghana's ARPU runs 20–30% below Nigeria's**, and the African
+  free-to-paid cliff is steep (Zummit: 80–90% intake free → 30% on
+  introducing a subscription). These bound the GHS *level*; they say
+  nothing about an international tutor.
+
+#### ⏭ The international path — recorded as intent, not decided <span>Sam, 2026-09-01</span>
+
+> *"Just record it for now, that we will eventually consider dollars —
+> and I may even open a UK company to obtain Stripe or similar. A
+> Stripe account does not even require a UK company."*
+
+**Verified 2026-09-01, and Sam is right on the point he made:**
+
+- ✅ **No UK company is required.** A **UK sole trader** registered with
+  HMRC for Self Assessment is a valid Stripe account type; Stripe
+  explicitly supports selling without a separate business entity.
+- ⚠ **But UK *standing* is.** Stripe onboards businesses located in
+  supported countries, and **Ghana is not one of them.** Intent to open
+  a UK company is not the same as having a UK presence — sole trader or
+  company, one of them has to exist.
+- ⭐⭐ **And the two are not rivals: Stripe has owned Paystack since
+  2020.** Ghana appears in Stripe's *extended network* precisely
+  *through* Paystack, which remains a separate dashboard, API, fee
+  schedule and onboarding. So this is not a migration away from
+  Paystack — it is a second front door in the same house, and worth a
+  conversation with them before assuming two unrelated integrations.
+
+⚠⚠ **The cost nobody has priced yet: a second processor is a second
+merchant of record.** §6 and §7 rest on us being merchant of record via
+Paystack, with refunds coming out of our payout and chargebacks landing
+on us. A UK entity taking USD through Stripe is a **different legal
+entity carrying that exposure**, under different consumer-protection
+rules, with its own refund and chargeback regime — and possibly a
+different answer to who owes tax where. That is a real piece of work,
+not a configuration flag.
+
+⏭ **Open, and deliberately not answered here:**
+
+1. Are tutor plans priced in **both** currencies from day one, or GHS
+   first with USD when the international door opens?
+2. Is the USD price a conversion of the GHS one, or its own number?
+   (⭐ It should almost certainly be its own number — §3⑤'s
+   *price-for-the-floor* rule gives different answers in Accra and
+   London.)
+3. Does the **student-facing** side follow? Programme fees are
+   off-platform at launch (§6), so this bites the tutor subscription
+   first and the capability (§7) only later.
+4. Which entity is merchant of record for which currency, and does the
+   answer change §5's accountability wording?
+
+⚠ **None of this blocks the model.** Every structural decision in this
+document — the tiers, the seats, the bands, the capability — is
+currency-neutral. What currency does affect is the **price list and the
+processor**, both of which are already open.
 
 ### ✅ ANSWERED 2026-09-01 — how the subscription recurs, and why it forces GHS + annual
 
@@ -1679,9 +1779,12 @@ through**, so nobody re-derives them. What remains is almost entirely
 1. ⚠⚠ **The prices themselves** — Pro, Academy, an extra seat, and the
    platform percentage. These need Sam's read on what a Ghanaian tutor
    charging GHS 2,500 a head will accept; no amount of desk research
-   substitutes. Bounded by §9: GHS, annual, each band priced for its
-   **floor** (§3⑤), and the percentage **above Paystack's 1.95%** but
-   low enough to beat free MoMo (§7③).
+   substitutes. Bounded by §9: each band priced for its **floor**
+   (§3⑤), and the percentage **above Paystack’s 1.95%** but low enough
+   to beat free MoMo (§7③). ⚠ **And now in TWO currencies** — a USD
+   price should be its own number, not a conversion, because
+   price-for-the-floor gives different answers in Accra and London.
+   ⏭ Which currencies ship first is §11.13.
 2. ✅ ~~**The access-window default**~~ — **SETTLED 2026-09-01 (later):
    the field is REQUIRED and NOT pre-filled**, and the 24-month maximum
    survives on two new reasons (seats must come back; nobody can
@@ -1733,6 +1836,17 @@ through**, so nobody re-derives them. What remains is almost entirely
     subscribers? That is the job the free tier is being kept for
     (§3⑥). If the answer is no, the free tier is failing and the
     question in the old §11.14 becomes live again.
+
+13. ⚠⚠ **Currency and the international door.** Both GHS and USD are
+    intended (Sam, 2026-09-01); *ideally* USD, so the product is
+    international. Open: whether both ship together or GHS first;
+    whether the USD price is its own number (it should be); whether a
+    **UK sole trader or company** is opened to obtain Stripe — no
+    company is required, but UK standing is, because **Ghana is not a
+    Stripe-supported country**; and ⚠⚠ **which entity is merchant of
+    record for which currency**, which §6 and §7 currently assume is
+    one answer. See §9. ⓘ None of it blocks the model — every
+    structural decision in this document is currency-neutral.
 
 ### ✅ Closed on 2026-09-01 (later)
 
