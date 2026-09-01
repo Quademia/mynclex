@@ -18,7 +18,7 @@ record and the four ways in — how someone *becomes* a tutor.
 programme. This doc owns how a **tutor** pays us, and what that
 entitles them to.
 
-⭐ **Revised 2026-08-31** — the second design conversation. Two things
+⭐ **Revised 2026-09-01** — the second design conversation. Two things
 changed and both are structural: **the tutor, not us, is accountable to
 their students** (§5, reversing this document's own "most important
 business rule" four days after writing it), and **the enrolment gate
@@ -33,8 +33,8 @@ a recommendation Sam has not ratified. It is written down because the
 reasoning is worth keeping, not because it is settled.
 
 ⚠ **The exceptions, all in §5 and all carrying a `SETTLED` marker:** the
-accountability rule and its three conditions (2026-08-31), the shape of
-the seat model (2026-08-31, *shape only — every number remains open*),
+accountability rule and its three conditions (2026-09-01), the shape of
+the seat model (2026-09-01, *shape only — every number remains open*),
 and the 24-month cap (2026-08-27, **flagged for re-decision**). Nothing
 else in this file is decided, and nothing at all is built.
 
@@ -190,7 +190,7 @@ might buy.
 Free tutors get **every authoring surface, uncapped**. What they cannot
 do is enrol a student or publish publicly.
 
-⭐ **AMENDED 2026-08-31 — the gate is a number, not a switch.** The idea
+⭐ **AMENDED 2026-09-01 — the gate is a number, not a switch.** The idea
 above survives verbatim; what changed is how "can you enrol" is
 answered. It is now *"how many seats do you hold?"*, and **Free is
 simply the zero-seat case**. See the amendment note beneath the table.
@@ -207,7 +207,7 @@ simply the zero-seat case**. See the amendment note beneath the table.
 | Payment plans (defining them) | ✓ | ✓ | ✓ |
 | Tutor profile | ✓ | ✓ | ✓ |
 | Preview a programme as a student | ✓ | ✓ | ✓ |
-| **Seats — student places** *(added 2026-08-31)* | **0** | **a band** | **a larger band** |
+| **Seats — student places** *(added 2026-09-01)* | **0** | **a band** | **a larger band** |
 | **Publish to the public directory** | ❌ | ✓ | ✓ |
 | **Enrol a student** — manual, invite, or self-enrol | ❌ *(no seats)* | ✓ **while seats remain** | ✓ **while seats remain** |
 | Accept enquiries from the public page | ❌ | ✓ | ✓ |
@@ -225,7 +225,7 @@ analytics, the student-facing library and the student emails all
 require students. Gating enrolment empties them automatically. One gate
 cascades.
 
-### ⭐ AMENDMENT 2026-08-31 — seats are one added row, not a new table
+### ⭐ AMENDMENT 2026-09-01 — seats are one added row, not a new table
 
 Sam: *"in terms of the plan table this adds as the seat, all the other
 things are valid."* Every other row above stands exactly as written.
@@ -250,7 +250,7 @@ no answer to that except "invent another tier".
 ⚠ **The student-cap objection below is answered, not ignored.** §3
 ruled out counting students on safety — the wall would be hit *by a
 student who had already paid off-platform*. **Measured 2026-08-27 and
-re-checked 2026-08-31:** with fees off-platform, the only paths that
+re-checked 2026-09-01:** with fees off-platform, the only paths that
 create an enrolment are tutor-driven (`addStudentAction`,
 `addSelfPacedStudentAction`, `convertWaitlistEntryAction`); the
 student-driven path (`lib/payments/activate.ts`,
@@ -277,7 +277,7 @@ a monthly fee as well?"* (§11).
 - **Conversion happens at proven value**: they have built the thing and
   someone wants in.
 
-### ⚠⚠ Why there is no student cap, and why that is a safety decision <span>REVERSED 2026-08-31 — read the note at the end</span>
+### ⚠⚠ Why there is no student cap, and why that is a safety decision <span>REVERSED 2026-09-01 — read the note at the end</span>
 
 A cap on students is hit **by a student trying to enrol** — not by the
 tutor doing something. And with fees collected off-platform (§6), **the
@@ -294,7 +294,7 @@ anyone has promised anything.** That is what gating *publish* and
 *first enrolment* achieves and what a student cap destroys. This is
 ruled out on safety, not economics.
 
-⚠⚠ **REVERSED 2026-08-31 — and the sentence in bold above is exactly
+⚠⚠ **REVERSED 2026-09-01 — and the sentence in bold above is exactly
 why it could be.** The requirement was never "no cap"; it was **"the
 wall must be hit by the tutor."** With fees off-platform, a seat cap
 meets that requirement: the only enrolment paths that fire are
@@ -312,7 +312,7 @@ waived.** See §3's amendment note and §5.
 
 | Not gated | Reason |
 |---|---|
-| ~~Student count~~ **← gated as of 2026-08-31** | ~~The above~~ — see the reversal note above and §3's amendment |
+| ~~Student count~~ **← gated as of 2026-09-01** | ~~The above~~ — see the reversal note above and §3's amendment |
 | Programme / cohort count | Costs us almost nothing, and caps make the product feel mean before it has proved anything |
 | Question / note count | Same, plus three separate authoring surfaces to police |
 | "Analytics depth", "library: limited" | ⚠ **Unimplementable as written.** If a row cannot be stated as a number or a switch it does not belong in a plan table — it is a permanent argument about what "basic" means |
@@ -328,7 +328,7 @@ waived.** See §3's amendment note and §5.
    authoring tool.
 3. ~~**It is an all-or-nothing wall.** No gentle middle where a tutor
    with 3 students limps along. That is the trade for having no quota
-   system.~~ ⭐ **No longer true as of 2026-08-31** — a small band *is*
+   system.~~ ⭐ **No longer true as of 2026-09-01** — a small band *is*
    the gentle middle, and it is priced. This cost is simply gone.
 
 ---
@@ -373,9 +373,9 @@ everything and simply cannot take new enrolments — which is exactly
 
 ---
 
-## 5. Accountability, lapse and grace <span>REWRITTEN 2026-08-31</span>
+## 5. Accountability, lapse and grace <span>REWRITTEN 2026-09-01</span>
 
-### ⭐⭐ The tutor is accountable to their students. We are not the guarantor. <span>SETTLED 2026-08-31 (Sam)</span>
+### ⭐⭐ The tutor is accountable to their students. We are not the guarantor. <span>SETTLED 2026-09-01 (Sam)</span>
 
 > **A student's programme access is contingent on their tutor's account
 > remaining active. The contract for the programme is between the
@@ -406,7 +406,7 @@ most important business rule** — *"a tutor's card failing must not take
    protection — came from volunteering to be the backstop for a promise
    nobody paid us to make.
 
-⭐ **A fact that materially narrows the risk, verified 2026-08-31.**
+⭐ **A fact that materially narrows the risk, verified 2026-09-01.**
 Bank access is gated by `requireBankOrReadiness()` — the student's own
 bank subscription or readiness entitlement. **Programme enrolment does
 not grant bank access** (`app/(app)/student/bank/layout.tsx`; the
@@ -435,7 +435,7 @@ beforehand."** Cutting someone off after they were led to believe they
 were safe is a betrayal. Cutting someone off who was told the terms on
 day one is simply the deal, and nobody takes the deal to WhatsApp.
 
-#### The three conditions this decision comes with <span>SETTLED 2026-08-31 (Sam)</span>
+#### The three conditions this decision comes with <span>SETTLED 2026-09-01 (Sam)</span>
 
 1. **Terms accepted at enrolment.** The student agrees to terms naming
    the tutor as the provider and stating that access depends on that
@@ -461,7 +461,7 @@ original clause still stands.
   contingent on the tutor maintaining their subscription.
 - **2026-08-27** — superseded by the student-protection rule: students
   keep access regardless, with a 24-month cap bounding the liability.
-- **2026-08-31 — reinstated.** ⭐ We return to the 2026-05-17 position,
+- **2026-09-01 — reinstated.** ⭐ We return to the 2026-05-17 position,
   but with three things it never had: a **stated reason** (we never
   took the student's money, so the promise is not ours to guarantee),
   **disclosure** (terms at enrolment and in the email), and a **soft
@@ -472,7 +472,7 @@ gave.** It read as a platform protecting its own cash flow; it is
 better defended as a platform refusing to guarantee somebody else's
 contract.
 
-### The model, in Sam's own two questions <span>SETTLED in shape 2026-08-31 (Sam) — every number PROPOSAL</span>
+### The model, in Sam's own two questions <span>SETTLED in shape 2026-09-01 (Sam) — every number PROPOSAL</span>
 
 > **Tutor:** *how many seats do you have — can you enrol, or can
 > students enrol on your account?*
@@ -505,7 +505,7 @@ carried on using us, then enrolled 40 more. Three intakes a year on a
 than the one this section set out to close, and one requiring no bad
 intent at all** — just a tutor running short courses.
 
-ⓘ **Verified 2026-08-31**, since the model is borrowed: MoodleCloud's
+ⓘ **Verified 2026-09-01**, since the model is borrowed: MoodleCloud's
 quota is *"the maximum number of users that can have an active account
 and access your site at any given time"*; **suspended users stop
 counting** and deleted users free the slot. Freeing the slot and
@@ -564,10 +564,10 @@ the ChatGPT analysis and was one of its genuine contributions. It was
 **not wrong about the harm** — a student losing access she paid for is
 a real harm. It was wrong about **who should carry it**.
 
-### ⭐⭐ No lifetime access. The platform maximum is 24 months. <span>SETTLED 2026-08-27 (Sam) — ⚠ NOT BUILT — ⚠⚠ ITS REASON CHANGED 2026-08-31, RE-DECIDE</span>
+### ⭐⭐ No lifetime access. The platform maximum is 24 months. <span>SETTLED 2026-08-27 (Sam) — ⚠ NOT BUILT — ⚠⚠ ITS REASON CHANGED 2026-09-01, RE-DECIDE</span>
 
 ⚠⚠ **Read this box before the section.** The cap was settled to bound
-**our** liability for a lapsed tutor's students. **2026-08-31 decided
+**our** liability for a lapsed tutor's students. **2026-09-01 decided
 that is not our liability** — so the original reason is gone.
 
 ⭐ **And the seat model now prices the access window automatically.** A
@@ -1159,7 +1159,7 @@ schema problem when it is a money-movement problem.
 ## 11. Open questions
 
 1. ⚠⚠ **How the subscription charge recurs** (§9). Answer first — and
-   **more pressing since 2026-08-31**, because seat bands are likely
+   **more pressing since 2026-09-01**, because seat bands are likely
    annual.
 2. The numbers (§9) — now including **band sizes and seat prices**,
    and underneath them the question that decides the shape: **will a
@@ -1169,7 +1169,7 @@ schema problem when it is a money-movement problem.
    bigger band, cheaper seats, or neither? (§3 amendment)
 4. ⚠⚠ **Does the 24-month platform maximum survive, and what is the
    access box pre-filled with?** Its original reason — bounding our
-   liability — was removed on 2026-08-31. Do not inherit it. (§5)
+   liability — was removed on 2026-09-01. Do not inherit it. (§5)
 5. **Grace length**, and whether **students** are warned at the same
    moment the tutor is. (§5)
 6. ⚠ **Unenrolling must be visible to the student.** When a tutor
@@ -1185,7 +1185,7 @@ schema problem when it is a money-movement problem.
    money: that would mean taking a student's money and then refusing
    her.
 8. ✅ ~~Reconcile §5 with the 2026-05-17 access-window rule~~ — settled
-   2026-08-27, then **reversed 2026-08-31**: we are back on the
+   2026-08-27, then **reversed 2026-09-01**: we are back on the
    2026-05-17 rule, with a reason, disclosure and a soft landing. See
    §5's *"settled twice and reversed once"* note. ⚠ Still **not
    built**.

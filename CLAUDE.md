@@ -1,6 +1,6 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-08-31 (**tutor commercial model revised — two
+Last updated: 2026-09-01 (**tutor commercial model revised — two
 structural changes, both design-only, no code:** the **tutor is
 accountable to their students, not us** (reversing 08-27's
 student-protection rule and reinstating the 2026-05-17 one), and the
@@ -840,7 +840,7 @@ session was open.
     whose clock starts at the **first enrolment** rather than at signup,
     on-platform collection as a **Plus capability requiring a separate
     non-purchasable approval**, and a **setup-credits** service.
-  - ⭐⭐ **REVISED 2026-08-31, and two structural things changed.**
+  - ⭐⭐ **REVISED 2026-09-01, and two structural things changed.**
     **(1) The tutor is accountable to their students; we are not the
     guarantor.** A student's programme access is contingent on their
     tutor's account staying active — reversing, four days later, what

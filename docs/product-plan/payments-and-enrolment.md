@@ -40,7 +40,7 @@ directly on this file and are **proposals, not decisions**:
   payment strategies). A handful of sub-topics still open — see
   "Still open" inside *Tutored enrolment → Settled 2026-05-17*.
 - **Programme access window — SETTLED 2026-05-17, ⚠ SECOND CLAUSE
-  REPLACED 2026-08-27, ⭐ THEN REINSTATED 2026-08-31.** Pattern A still
+  REPLACED 2026-08-27, ⭐ THEN REINSTATED 2026-09-01.** Pattern A still
   holds: tutor-set per programme, both tutored and self-paced. **The
   second clause — *all access contingent on the tutor maintaining their
   subscription* — is BACK, and is the live rule.** The 08-27
@@ -2037,7 +2037,7 @@ policy has to honour both.
   can download materials, then access locks.
 
   ⭐⭐ **THE CLAUSE ABOVE IS LIVE. It was superseded on 2026-08-27 and
-  REINSTATED on 2026-08-31 (Sam).** Canonical reasoning:
+  REINSTATED on 2026-09-01 (Sam).** Canonical reasoning:
   `tutor-plans-and-billing.md` §5.
 
   **Settled twice, reversed once — the history, so this reads as a
@@ -2048,7 +2048,7 @@ policy has to honour both.
   - **2026-08-27** — superseded. *"A student keeps access to what they
     bought; a tutor whose card fails must not take 40 paying students
     offline,"* with a 24-month cap bounding the resulting liability.
-  - **2026-08-31 — reinstated.** Sam: *"I think we are boxing ourselves
+  - **2026-09-01 — reinstated.** Sam: *"I think we are boxing ourselves
     in taking accountability for the tutor. The tutor should be fully
     accountable to students they enrol. We cannot take that
     responsibility."*
@@ -2060,7 +2060,7 @@ policy has to honour both.
   while making **us** honour it.
 
   ⚠ **The clause returns with three conditions it never had** (all
-  settled 2026-08-31): terms accepted at enrolment naming the tutor as
+  settled 2026-09-01): terms accepted at enrolment naming the tutor as
   provider; the same wording in the enrolment email; and a soft landing
   — warning, a short window, and the tutor's contact so the student
   chases the right person.
@@ -2087,7 +2087,7 @@ policy has to honour both.
   "lifetime regardless of platform status." Matches industry
   standard (Teachable, Thinkific, Kajabi all work this way).
 
-  ⭐ **This bullet is live again as of 2026-08-31**, and it is now the
+  ⭐ **This bullet is live again as of 2026-09-01**, and it is now the
   *minimum* of what the student is told, not the whole of it — §5's
   three conditions require it at enrolment **and** in the enrolment
   email. ⓘ Brand: this quotes student-facing copy, so it says
