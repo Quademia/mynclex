@@ -1,6 +1,15 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-08-27 (later — tutor plans & billing designed: the marketplace-billing deferral is now struck through with its reasoning, canonical in `docs/product-plan/tutor-plans-and-billing.md`, still a PROPOSAL. Earlier the same day — Known Workarounds: the RLS union's THIRD member, `_admin_all` is `FOR ALL` so a SUPER_ADMIN matches every row for reads *and* writes; the Supabase client here is untyped, which is why none of these bugs fail a build; and the orphaned-`next dev` port trap under the per-session loop)
+Last updated: 2026-08-31 (**tutor commercial model revised — two
+structural changes, both design-only, no code:** the **tutor is
+accountable to their students, not us** (reversing 08-27's
+student-protection rule and reinstating the 2026-05-17 one), and the
+enrolment gate became **seats** — a stock of student places, Free =
+zero. The 24-month cap survives but its reason did not. See the
+struck-through marketplace-billing entry under *Explicit Deferrals*;
+canonical `docs/product-plan/tutor-plans-and-billing.md` §3 + §5, still
+a PROPOSAL on every number. Previously 2026-08-27, later — tutor plans
+& billing designed: the marketplace-billing deferral is now struck through with its reasoning, canonical in `docs/product-plan/tutor-plans-and-billing.md`, still a PROPOSAL. Earlier the same day — Known Workarounds: the RLS union's THIRD member, `_admin_all` is `FOR ALL` so a SUPER_ADMIN matches every row for reads *and* writes; the Supabase client here is untyped, which is why none of these bugs fail a build; and the orphaned-`next dev` port trap under the per-session loop)
 
 ## What This Is
 
@@ -831,6 +840,32 @@ session was open.
     whose clock starts at the **first enrolment** rather than at signup,
     on-platform collection as a **Plus capability requiring a separate
     non-purchasable approval**, and a **setup-credits** service.
+  - ⭐⭐ **REVISED 2026-08-31, and two structural things changed.**
+    **(1) The tutor is accountable to their students; we are not the
+    guarantor.** A student's programme access is contingent on their
+    tutor's account staying active — reversing, four days later, what
+    the doc had called its most important business rule. Sam: *"we are
+    boxing ourselves in taking accountability for the tutor."* The
+    reason is one line: **we never took the student's money** (fees are
+    off-platform), so the promise is not ours to guarantee. It ships
+    with three conditions — terms at enrolment, the same wording in the
+    enrolment email, and a soft landing (warning + window + the tutor's
+    contact). ⓘ This **reinstates** the 2026-05-17 rule in
+    `payments-and-enrolment.md` that 08-27 had superseded; both files
+    carry the settled-twice-reversed-once history so it reads as a
+    decision, not a wobble.
+    **(2) The enrolment gate is a number, not a switch — seats.** A
+    tutor buys a band of student places (MoodleCloud's shape); Free is
+    simply the zero-seat case. ⚠ A seat is a **stock**: it frees when
+    the student's access actually ends. That is honest **only** because
+    of (1) — freeing a seat and ending access must be the same act, or
+    a tutor could unenrol 40 students to reclaim 40 seats while those
+    40 kept using the platform.
+    ⚠ **The 24-month cap settled on 08-27 survives but its REASON did
+    not** (it bounded a liability we no longer carry) — flagged for
+    re-decision, do not inherit it.
+    ⚠ Everything numeric — band sizes, seat prices, whether a monthly
+    fee sits on top — remains a PROPOSAL.
   - ⚠ **Left in this list, struck through, so the change is visible
     rather than silent** — same treatment as the tutor-signup line above.
 - Migration of MyNMCLicensure or MyTeacher onto this stack
