@@ -26,21 +26,36 @@ became a number — seats — rather than a switch** (§3's amendment, §5).
 The 24-month cap settled on 08-27 survives, but **its reason did not**,
 so §5 marks it for re-deciding.
 
-## ⚠⚠ STATUS: PROPOSAL. NOTHING HERE IS DECIDED — except where §5 says it is.
+## ⚠⚠ STATUS: PROPOSAL. THE SHAPE IS NOW LARGELY SETTLED; EVERY PRICE IS NOT.
 
-Every number in this document is a placeholder, and the shape itself is
-a recommendation Sam has not ratified. It is written down because the
-reasoning is worth keeping, not because it is settled.
+**Every number in this document is still a placeholder.** As of
+2026-09-01 (later) the *structure* has been ratified by Sam in
+conversation — the tiers, their names, the gate, and how on-platform
+payments are reached. What has **not** been decided is what anything
+costs.
 
-⚠ **The exceptions, all in §5 and all carrying a `SETTLED` marker:** the
-accountability rule and its three conditions (2026-09-01), the shape of
-the seat model (2026-09-01, *shape only — every number remains open*),
-and the 24-month cap (2026-08-27, **flagged for re-decision**). Nothing
-else in this file is decided, and nothing at all is built.
+⚠ **What IS settled, each carrying a marker where it stands:**
+
+| Settled | Where | When |
+|---|---|---|
+| The accountability rule and its three conditions | §5 | 2026-09-01 |
+| The seat model — *shape only, every number open* | §3 | 2026-09-01 |
+| Tiers named **Starter · Pro · Academy**; *Enterprise* held in reserve | §3① | 2026-09-01 later |
+| Starter holds **10 seats**, permanently | §3② | 2026-09-01 later |
+| **There is no trial** | §4 | 2026-09-01 later |
+| Bands **10 · 50 · 200** in shape, plus buyable extra seats | §3③ | 2026-09-01 later |
+| On-platform payments is a **capability, not a rung**; Partner deferred | §7① | 2026-09-01 later |
+| **Starter can never hold it** | §7② | 2026-09-01 later |
+| Billing is **GHS, annual** — MoMo cannot recur | §9 | 2026-09-01 later |
+| The 24-month cap | §5 | 2026-08-27 — ⚠ **its reason was removed; flagged for re-decision** as §11.2 |
+
+⚠ **Everything else — and in particular every price, band price, seat
+price and percentage — is open.** See §11.
 
 **Do not build from this file.** When a section becomes a decision it
 gets a `<span>settled DATE</span>` marker like every other doc in this
 folder. Until then, treat a table here as an argument, not a spec.
+**Nothing at all is built.**
 
 ⭐ **Nothing is locked in yet, and that is the most useful fact in this
 document.** Verified 2026-08-27: prod holds **zero payments**, no tutor
@@ -178,26 +193,35 @@ might buy.
 
 ---
 
-## 3. The tier model <span>PROPOSAL</span>
+## 3. The tier model <span>PROPOSAL — shape settled 2026-09-01, every price open</span>
 
-**Three tiers, one gate.** Names are placeholders Sam picked as
-"probably" — Free / Pro / Plus — and may change.
+**Three tiers, one gate.** The tiers are **Starter · Pro · Academy**
+(settled 2026-09-01, later; they were Free / Pro / Plus).
 
 ### The single idea
 
-> **Free: build anything you like. Paid: take enrolments.**
+> **Build for nothing. Pay to teach at scale.**
 
-Free tutors get **every authoring surface, uncapped**. What they cannot
-do is enrol a student or publish publicly.
+Every tutor gets **every authoring surface, uncapped** — programmes,
+curriculum, library, bank, quizzes — on every tier including the free
+one. What a tier buys is **how many students you may hold**, whether the
+public can find you, and whether you may take money through us.
 
-⭐ **AMENDED 2026-09-01 — the gate is a number, not a switch.** The idea
-above survives verbatim; what changed is how "can you enrol" is
-answered. It is now *"how many seats do you hold?"*, and **Free is
-simply the zero-seat case**. See the amendment note beneath the table.
+⭐ **AMENDED 2026-09-01 — the gate is a number, not a switch.** "Can you
+enrol" became *"how many seats do you hold?"*
 
-### The table
+⚠⚠ **AMENDED AGAIN the same day — and the original phrasing did NOT
+survive.** This section used to read *"Free: build anything you like.
+Paid: take enrolments"*, with Free as the **zero-seat** case. Starter
+now holds **ten real seats**, so the free tier teaches people, and the
+line between free and paid is **scale, discovery and money** rather than
+whether you may teach at all. The old sentence is recorded rather than
+quietly rewritten, because two amendments in one day is exactly the kind
+of change that gets half-applied.
 
-| | **Free** | **Pro** | **Plus** |
+### The table <span>REVISED 2026-09-01 (later) — names, seats, and the capability</span>
+
+| | **Starter** | **Pro** | **Academy** |
 |---|---|---|---|
 | Programmes · curriculum · units · blocks · activities | Unlimited | Unlimited | Unlimited |
 | Cohorts, cohort-specific activities | Unlimited | Unlimited | Unlimited |
@@ -207,64 +231,199 @@ simply the zero-seat case**. See the amendment note beneath the table.
 | Payment plans (defining them) | ✓ | ✓ | ✓ |
 | Tutor profile | ✓ | ✓ | ✓ |
 | Preview a programme as a student | ✓ | ✓ | ✓ |
-| **Seats — student places** *(added 2026-09-01)* | **0** | **a band** | **a larger band** |
+| **Seats — student places** | **10** | **50** | **200** |
+| **Extra seats, buyable above the band** | ❌ | ✓ | ✓ |
+| **Enrol a student** — manual or invite | ✓ *while seats remain* | ✓ *while seats remain* | ✓ *while seats remain* |
 | **Publish to the public directory** | ❌ | ✓ | ✓ |
-| **Enrol a student** — manual, invite, or self-enrol | ❌ *(no seats)* | ✓ **while seats remain** | ✓ **while seats remain** |
 | Accept enquiries from the public page | ❌ | ✓ | ✓ |
-| Progress · attendance · analytics · student library | *(empty)* | ✓ | ✓ |
-| Transactional emails to students | *(none sent)* | ✓ | ✓ |
-| Collect programme fees | off-platform | off-platform (mark-paid) | **on-platform checkout** |
-| Instalments enforced automatically | — | manual mark-paid | ✓ |
-| Paystack subaccount + our approval | — | — | **required** (§7) |
-| Platform fee on processed sales | — | none | % — figure open |
+| Progress · attendance · analytics · student library | ✓ | ✓ | ✓ |
+| Transactional emails to students | ✓ | ✓ | ✓ |
+| **On-platform payments** — the capability (§7) | ❌ **never** | ✓ *by approval* | ✓ *by approval* |
+| Collect programme fees | off-platform only | off-platform, or **on-platform if approved** | off-platform, or **on-platform if approved** |
+| Instalments enforced automatically | — | ✓ *with on-platform* | ✓ *with on-platform* |
+| Platform fee on processed sales | — | one all-in % | one all-in % |
 | Setup credits **included** | — | — | starting balance (§8) |
 | Setup credits **purchasable** | — | ✓ | ✓ |
+| **Price** | **Free** | GHS / year | GHS / year |
 
-⭐ **The "Operating" rows need no separate gate.** Progress, attendance,
-analytics, the student-facing library and the student emails all
-require students. Gating enrolment empties them automatically. One gate
-cascades.
+⚠ **The "Operating" rows changed meaning on 2026-09-01 (later).** They
+used to read *(empty)* on Free, and the note here said they needed no
+separate gate because gating enrolment emptied them automatically. That
+argument died with the zero-seat free tier: **a Starter tutor now has up
+to ten real students**, so progress, attendance, analytics and the
+student-facing library all render, and the emails **are sent**. One gate
+still cascades — it just cascades to *ten*, not to nothing. See the
+email consequence in ② below.
 
-### ⭐ AMENDMENT 2026-09-01 — seats are one added row, not a new table
+### ⭐⭐ AMENDMENT 2026-09-01 (later) — the ladder, its names, and what the top of it is
 
-Sam: *"in terms of the plan table this adds as the seat, all the other
-things are valid."* Every other row above stands exactly as written.
-One row is added and one row's **reason** changes — its values do not.
+A second conversation the same day settled the shape of the whole
+ladder. Six decisions, each recorded with the reasoning that produced
+it, because several of them reverse a position taken earlier in this
+very document.
 
-**This generalises §3 rather than replacing it.** Every argument the
-section makes survives, and one gets stronger:
+#### ① The tiers are **Starter · Pro · Academy**, and "Free" is not a name
 
-- **One enforcement point** — seats are checked where an enrolment is
-  created, and nowhere else. Previously that check was a boolean *and*
-  a tier lookup; now it is a single number, so there is **less** to
-  enforce, not more.
-- **No cardinality trap** — a free tutor holds **zero** seats, and zero
-  is a plain absence. Still nothing has to pretend to be a transaction.
-- **No downgrade semantics** — seats already held are never taken away.
-- **Conversion at proven value** — unchanged.
+Sam: *"do we have to call it free?"* — and he is right that it is the
+weakest label on the page.
 
-⭐ **And it gains what the boolean never had: it scales.** A tutor with
-5 students and one with 200 no longer pay the same. The old shape had
-no answer to that except "invent another tier".
+- **It misdescribes what we are giving away.** Our bottom tier is not a
+  crippled product; it is the complete authoring suite plus ten real
+  students. "Free" prices it at nothing in the reader's head before
+  they have looked at it.
+- **Nobody self-identifies as a Free user.** Tier-naming research is
+  consistent on this: the label should be something the customer is
+  willing to *be*.
+- ⚠ **One paradigm, no mixing.** *Starter · Pro · Academy* is a single
+  progression of professional scale. Mixing metaphors — *Starter,
+  Professional, Unlimited* — is the documented way to make a pricing
+  page confusing.
+- **"Academy"** lands locally and echoes Quademia without competing
+  with it.
 
-⚠ **The student-cap objection below is answered, not ignored.** §3
-ruled out counting students on safety — the wall would be hit *by a
-student who had already paid off-platform*. **Measured 2026-08-27 and
-re-checked 2026-09-01:** with fees off-platform, the only paths that
-create an enrolment are tutor-driven (`addStudentAction`,
-`addSelfPacedStudentAction`, `convertWaitlistEntryAction`); the
-student-driven path (`lib/payments/activate.ts`,
-`enrolment_source: 'SELF_PAID'`) fires only after a Paystack payment
-through us, which does not happen for programme fees at launch. **So
-the tutor hits the wall, in their own dashboard, before anyone has
-been promised anything** — precisely the condition §3 said a cap could
-never satisfy. ⚠ The objection becomes live again the day Plus ships;
-see §5's open list.
+⏭ ***Enterprise* is deliberately NOT used, and is held in reserve.** It
+would be the obvious name for a top rung, and spending it here would be
+a mistake: the real enterprise customer is a **nursing school, hospital
+or recruitment agency buying seats for its own nurses** — a genuinely
+different buyer from a tutor, and plausible for this audience. Keep the
+word for the customer it actually describes.
 
-⏭ **Open in the table:** whether a band is **included** in Pro/Plus or
-**bought separately on top**, and whether Plus's advantage is a bigger
-band, cheaper seats, or neither. Same open question as *"bands only, or
-a monthly fee as well?"* (§11).
+#### ② Starter holds **10 seats**, permanently, and the trial is gone
+
+Settled by Sam earlier the same day, then reasoned through here. The two
+mechanisms were doing the same job:
+
+> **Ten free seats and a 30-day trial both exist to let a tutor
+> experience the teaching loop. Having both is paying twice for one
+> outcome.**
+
+Seats won, because a trial is a *clock* and this model's unit is a
+*stock*. See §4, which is superseded and records what survives of it.
+
+Sam's conversion logic, which is the point of the number: *"I built this
+and got 10 people through it smoothly, so maybe I can upgrade to 50."*
+That is a tutor upgrading at **proven value** — exactly what §3 is for.
+
+⚠⚠ **Two consequences of a free tier that has real students, both
+forced rather than chosen:**
+
+- ⭐ **The free grant must be a STARTING number written onto the tutor,
+  not a live rule.** Sam intends to tune these numbers as real usage
+  arrives. If `10` is read live at enrolment time, dropping it to 5
+  later puts every existing Starter tutor with 7 students instantly
+  over their limit — **retroactively taking back something people are
+  using**. Granting the current number *once* and storing it means a
+  later change affects only new tutors, and everyone existing is
+  grandfathered for free. It also keeps §2's cardinality trap shut: the
+  constant seeds a grant, it is never a live lookup.
+- ⚠ **Starter tutors' students DO get transactional emails.** The old
+  §11.12 asked this and answered it *"only if the gate ever loosens"* — this is
+  the gate loosening. It is not a choice: §5's accountability rule
+  requires disclosure at enrolment and a warning before access ends, so
+  a Starter student receiving nothing makes the soft landing
+  undeliverable. It costs real Resend spend, and that is the price of
+  the position.
+
+#### ③ The bands are **10 · 50 · 200**, with **buyable extra seats** above each
+
+⚠ **The 50 → 200 gap is real** — a tutor at 65 students would have to
+buy a band they will not fill for two years, which is the standard and
+deserved criticism of seat pricing: *it penalises growth*.
+
+⭐ **An extra rung and buyable overage solve the same problem, and
+overage solves it better.** It is continuous rather than lumpy; it is an
+upsell ("add 15 seats") rather than a decision ("move to Academy"); it
+adds no column to the pricing page; and it is precedented — TalentLMS
+runs exactly this shape, bands then per-extra-user.
+
+> **Overage is the fourth tier, priced continuously.**
+
+⚠ **One rule makes it work: an overage seat must cost more per head than
+a seat inside a band.** Otherwise the cheapest path is Starter plus 190
+extra seats and nobody ever upgrades. Priced above the band rate there
+is a natural crossover — where Pro-plus-overage exceeds Academy, the
+tutor moves up unprompted.
+
+⏭ **A fourth rung gets added when someone is standing at the wall** — if
+tutors start buying 150 seats on top of Academy, that is the evidence
+for a 500-seat band, sized from what they actually bought rather than
+guessed now.
+
+#### ④ ⚠⚠ The bands and the ACCESS WINDOW cannot be decided separately
+
+The most easily-missed thing in the model, and it does not appear in the
+pricing table at all.
+
+**Seats free up when a student's access ends** (§5). So the default
+access window silently multiplies or divides every band:
+
+> At 12-month access a tutor's seats turn over once a year. At
+> **24-month** access they turn over half as often — so the same tutor
+> needs **twice the band**. Academy's 200 behaves like **100**.
+
+This binds directly to §11.2 (the access default, which absorbed the old
+§11.4 on whether the 24-month cap survives and what the box is
+pre-filled with). ⭐ **Proposed: 12 months pre-filled, 24 as the
+permitted maximum** — which makes the bands behave the way the table
+reads, and makes a tutor think about what they are granting.
+
+⚠ It also means bands must be sized against **accumulated** students,
+not cohort size. Roughly: `seats ≈ annual intake × access window in
+years`. A tutor who thinks of themselves as running "20 students" hits a
+50-seat wall in year two and feels cheated.
+
+#### ⑤ Price each band for its FLOOR, not its ceiling
+
+The tutor deciding whether to buy Pro is the one with **15** students,
+not the one with 48. So Pro's price has to make sense at 15. The
+48-student tutor gets a bargain — which is fine; they are the best
+advocate you have and they will grow into Academy.
+
+This matters more here than it would elsewhere: Ghana's ARPU runs
+20–30% below Nigeria's, and the market carries a documented free-to-paid
+cliff (§9).
+
+#### ⑥ What the market does, checked 2026-09-01
+
+Comparable platforms were read rather than assumed, and the finding
+reframes why seats exist for us at all:
+
+| Platform | Free tier | How it scales |
+|---|---|---|
+| TalentLMS | Free forever, **5 users** | Active-user bands 40 · 70 · 100, then per-user |
+| MoodleCloud | ❌ **killed permanent free in 2026** | User bands to a 750 cap |
+| Thinkific | ❌ **killed in 2026** | Unlimited students; gates on transaction % |
+| Teachable | ✓ | Revenue share, up to **7.5%** |
+| LearnWorlds | ❌ | Unlimited learners; feature tiers |
+
+⭐⭐ **The industry gates on the money. We cannot — and that is precisely
+why seats exist.** Thinkific, Teachable, Podia and Kajabi can offer
+unlimited students because they take a cut of every sale: the more
+students a creator enrols, the more those platforms earn, automatically.
+Their cheap tiers are not generosity, they are a revenue share.
+
+With fees off-platform (§6) **we earn nothing when a tutor grows.** With
+no transaction fee *and* no cap, a tutor with 500 students would pay
+exactly what a tutor with 5 pays.
+
+> **Seats are our stand-in for the transaction fee — the only lever
+> tying our revenue to a tutor's success while the money moves outside
+> us.**
+
+⚠ **Two findings that cut AGAINST our free tier, recorded because they
+are inconvenient:** MoodleCloud — whose seat shape we borrowed — and
+Thinkific both abolished their permanent free plans in 2026; and
+Zummit Africa ran at **80–90% intake while free and fell to 30%** on
+introducing a subscription. The free-to-paid cliff in this market is
+severe.
+
+⭐ **Why we proceed anyway, and the test that would change our mind.**
+None of those platforms has our second business: a Starter tutor's ten
+students are ten warm **Bank** prospects, and Bank revenue is ours
+outright with no tutor split and no fee. Starter is acquisition spend,
+not charity. **The review test is therefore measurable rather than a
+matter of taste: if Starter tutors are not producing Bank subscribers,
+the free tier is failing at its actual job.**
 
 ### Why this shape rather than a quota matrix
 
@@ -305,7 +464,7 @@ the **student** to be the actor, which requires on-platform checkout
 we are not shipping at launch. **The safety test is passed, not
 waived.** See §3's amendment note and §5.
 
-⚠ It becomes live again the day Plus ships; the check must then run
+⚠ It becomes live again the day the on-platform **capability** ships; the check must then run
 **before** payment, not after (§5's open list).
 
 ### Rows deliberately not gated
@@ -317,59 +476,97 @@ waived.** See §3's amendment note and §5.
 | Question / note count | Same, plus three separate authoring surfaces to police |
 | "Analytics depth", "library: limited" | ⚠ **Unimplementable as written.** If a row cannot be stated as a number or a switch it does not belong in a plan table — it is a permanent argument about what "basic" means |
 
-### ⚠ What this shape costs
+### ⚠ What this shape costs <span>REVISED 2026-09-01 (later)</span>
 
-1. **A free tutor never sees the student-facing experience** — no
+1. ~~**A free tutor never sees the student-facing experience** — no
    student ever exists on Free. §4's trial covers this; if it does not,
-   the fallback is a **sandbox student**, not a quota.
-2. **Free is genuinely generous.** Someone can build an entire
-   programme and never pay. Intentional — they also cannot teach a
-   single person — but we must be comfortable being used as a free
-   authoring tool.
+   the fallback is a **sandbox student**, not a quota.~~
+   ⭐ **Gone as of 2026-09-01 (later).** A Starter tutor has **ten real
+   students**, so they see the entire student-facing experience without
+   paying anything and without a trial. This was the cost the trial
+   existed to cover, and it is the reason the trial could be deleted
+   (§4). ⓘ *Preview-as-a-student* is still worth building, but for a
+   different reason: walking your own curriculum **before** enrolling
+   anyone real.
+2. **Starter is genuinely generous.** Someone can build an entire
+   programme, teach ten people and never pay us a cedi. Intentional —
+   they cannot be found publicly, cannot accept enquiries and cannot
+   take money through us — but we must be comfortable being used as a
+   free authoring-and-small-teaching tool. ⭐ The justification is that
+   those ten students are ten **Bank** prospects (§3⑥), and the
+   standing test is whether they actually become subscribers (§11.11).
 3. ~~**It is an all-or-nothing wall.** No gentle middle where a tutor
    with 3 students limps along. That is the trade for having no quota
    system.~~ ⭐ **No longer true as of 2026-09-01** — a small band *is*
    the gentle middle, and it is priced. This cost is simply gone.
+4. ⚠ **New cost, 2026-09-01 (later): Starter's students cost us real
+   money.** Ten students per free tutor means Resend spend on
+   transactional email, database rows, and support surface — for
+   accounts that pay nothing. It is forced rather than chosen (§3②),
+   and it is the concrete price of the position.
 
 ---
 
-## 4. The trial, and why its clock starts late <span>PROPOSAL</span>
+## 4. ~~The trial, and why its clock starts late~~ <span>⚠⚠ SUPERSEDED 2026-09-01 (later) — THERE IS NO TRIAL</span>
 
-**30 days of Pro, no card required. The clock starts at the tutor's
-first enrolment — not at signup. It ends by dropping to Free, never to
-a lockout.**
+> ⚠⚠ **This section describes a mechanism that no longer exists.** It is
+> kept in full, struck through, because the *reasoning* in it is what
+> killed it — and because a section that simply vanished would leave
+> whoever reads §10's decision table wondering what happened to the two
+> trial rows in it.
 
-### The objection this answers
+### ⭐ Why it died
 
-Sam, on the first version of §3:
+Sam, on being told that Starter would hold ten real seats:
 
-> *building one programme will be actual work — then I build it and
-> can't use it. That forces me to upgrade, but I don't really get the
-> experience of the platform. And 30 days may not be enough to build a
-> full programme.*
+> *"then there will be no trial on pro."*
 
-Correct, and the fault was the clock's starting point. A trial that
-begins at signup is spent **building** — the part that needs no trial —
-and the tutor reaches the teaching loop on day 28 with two days left.
+Correct, and the argument is one line:
 
-⭐ **Starting the clock at go-live inverts it.** Build for a month or
-three, free, at whatever pace. The 30 days are then spent entirely on
-the thing that actually converts: running a real cohort, watching
-progress fill in, taking attendance, seeing a student move through the
-curriculum.
+> **Ten free seats and a 30-day trial exist for the same reason — to let
+> a tutor experience the teaching loop, which §4 itself identifies as
+> the only thing that converts. Having both is paying twice for one
+> outcome.**
 
-It costs nothing to implement — the trial start is a timestamp written
-at first enrolment rather than at account creation.
+⭐ **Seats won because the unit of the model changed.** When the gate was
+a *switch* (can you enrol: yes/no), a **clock** was the only way to
+grant a temporary yes. Since the 2026-09-01 seats amendment the gate is
+a **number**, and seats are a **stock** — so the natural way to grant a
+taste of the product is *free seats, not free days*. A time-based trial
+is a leftover from the boolean design.
 
-ⓘ Pair it with **preview-as-a-student**, which is already open work
-(`tutor-onboarding.md` §14 and the 2026-08-25 sessions), so a free
-tutor can walk their own curriculum before ever going live.
+⭐⭐ **And it dissolves the ugliest unanswered question this section
+had:** *the trial ends and the tutor has 8 live students — now what?*
+With seats there is no such moment. What they hold, they keep; seat
+eleven costs money. **No timestamp, no expiry, no drop event, and one
+concept instead of two.**
 
-⚠ **Ending to Free, not to a lockout, is load-bearing.** A trial that
-ends in a locked account destroys content the tutor spent weeks on and
-makes the product feel like a trap. Ending to Free means they keep
-everything and simply cannot take new enrolments — which is exactly
-§5's lapse behaviour, so it is one rule, not two.
+### What survives, and is now load-bearing elsewhere
+
+- ⭐ **The insight about the clock's starting point was right**, and it
+  is the reason the trial had to be replaced rather than merely
+  shortened. A trial beginning at signup is spent **building** — the
+  part that needs no trial — and the tutor reaches the teaching loop on
+  day 28 with two days left. Sam's objection: *"building one programme
+  will be actual work — then I build it and can't use it… And 30 days
+  may not be enough to build a full programme."* Seats answer this
+  completely: build for a month or a year, free, at any pace, and the
+  ten seats are still there whenever go-live happens.
+- ⚠ **"Ending to Free, not to a lockout" is still the rule** — it just
+  applies to *lapse* now rather than to trial-end. A tier that ends in a
+  locked account destroys content the tutor spent weeks on and makes
+  the product a trap. See §5.
+- ⓘ **Pair it with preview-as-a-student**, still open work
+  (`tutor-onboarding.md` §14 and the 2026-08-25 sessions). It mattered
+  when a free tutor had *no* students; with ten seats it matters less,
+  but a tutor who wants to walk their own curriculum before enrolling
+  anyone real still has no way to do it.
+
+### ⚠ What this removes from the build
+
+The trial-start timestamp, the trial-end job, the drop-to-Free
+transition and every question about what happens to students at the
+moment a trial expires. **None of it needs to exist.**
 
 ---
 
@@ -848,21 +1045,131 @@ it to history **already sent**, so absence must mean the old behaviour.
 
 ---
 
-## 7. Plus — and why the approval is not purchasable <span>PROPOSAL</span>
+## 7. On-platform payments — a **capability**, not a tier <span>REWRITTEN 2026-09-01 (later)</span>
 
-On-platform collection is **two independent gates**: a plan *and* an
-approval. **The approval cannot be bought.**
+On-platform collection is **two independent gates**: a paid tier *and*
+an approval. **The approval cannot be bought.**
 
-### Why
+> ⚠ **This section was called "Plus" and described a top rung.** It is
+> no longer a rung. The reasoning for the change is in ① below, kept in
+> full because the rejected version is a good idea with a real argument
+> behind it and will be proposed again by somebody.
 
-- It is the same axis separation as §2 — vetting standing and
-  commercial standing are different questions, and merging them has
-  produced a bug every time.
-- If money alone bought on-platform collection we would be **selling
-  access to a risk we carry**, and would be commercially incentivised
-  to grant it to people we should not.
-- ⚠ **Refunds and chargebacks land on us** (§6). Per-tutor discretion
-  is the honest control for an exposure we cannot delegate.
+### ① ⭐⭐ Why it is a capability and not a fourth tier
+
+Sam proposed reintroducing **Partner** as an exclusive top rung — the
+only tier that can take payments — reasoning that *reaching* it proves a
+serious tutor running well.
+
+**Two things in that are right**, and are why the idea is recorded
+rather than dismissed:
+
+- ⭐ **Reaching a tier is continuously re-earned evidence; an approval is
+  a one-time judgement that goes stale.** A tutor sitting on a 200-seat
+  band is *currently* paying and *currently* running volume, and stops
+  being a Partner the moment that stops being true. An approval form is
+  a snapshot of who somebody was on the day they applied.
+- **A capability you might not be granted does not sell an upgrade.**
+  Nobody buys Pro *hoping* to be approved. "Buy Partner, get payments"
+  is a purchase decision; "buy Pro, then apply" is a maybe. On a pricing
+  page that difference is worth real money.
+
+**But it was rejected on four counts:**
+
+1. ⚠ **Tier position filters for SIZE, and size is the wrong variable.**
+   The risk being managed is refunds and chargebacks landing on our
+   payout. A 200-student tutor generates **more** of that exposure than
+   a 30-student one, not less. What actually reduces risk is
+   *reliability* — identity, history, whether students complete — which
+   is exactly what the approval checks directly.
+2. ⚠⚠ **It delivers the feature precisely when it stops being needed.**
+   Sam's own best argument for on-platform payments was that *"starter
+   or fresh tutors may not have any form of payments system"*. A rung at
+   200 students serves only tutors who solved payments years earlier.
+3. ⚠ **The forced band jump returns** — a tutor with 60 students
+   drowning in instalment-chasing would have to buy a 200-seat band.
+   That is charging twice for the same growth: the percentage already
+   scales with their success, and so does the band.
+4. ⚠ **It delays the transaction-fee business by years.** Realistically
+   **nobody is at Partner scale in year one**, so the only revenue line
+   that grows without us doing any work would earn nothing for a long
+   time. As a capability, a Pro tutor could be routing money through us
+   in month three.
+
+⭐ **The asymmetry that decided it:** a rung can be added at any time —
+the day a tutor needs it, nothing breaks. **The capability cannot be
+retrofitted to tutors who already left** because chasing payments was
+intolerable and we made them wait until 200 students.
+
+⏭ **Partner is therefore DEFERRED, not rejected — it is this model's
+next chapter rather than an alternative to it.** Trigger to revisit:
+**three or more tutors holding the capability and pressing against
+Academy's band.** At that point it is sized and priced from evidence
+instead of guesswork. ⓘ Deliberately *not* maintained as a live "Plan
+B": two live plans are two things to keep true, and they drift.
+
+### ② ⚠ Starter can NEVER have it <span>SETTLED 2026-09-01 (Sam)</span>
+
+Sam: *"i wont allow on platform payment for starter."*
+
+This is a better decision than the capability-on-every-tier version that
+preceded it, for a reason beyond risk:
+
+- ⭐⭐ **It preserves the property that makes the seat cap safe.** §3's
+  cap is only safe because the **tutor** hits the wall, in their own
+  dashboard, before anyone has been promised anything. On-platform
+  checkout brings the **student** back as the actor — she pays, and
+  *then* we discover there is no seat. That combination would have been
+  at its worst on Starter: the tightest wall (10) paired with the
+  least-known tutor.
+- ⭐ **It gives Starter → Pro a second reason to exist.** The ladder was
+  thin — the rungs differed only by seat count, which converts nobody
+  whose cohort is small. The trigger is now two-sided: *"I have more
+  than 10 students"* **or** *"I am tired of chasing 40 MoMo payments."*
+  In a market of small cohorts, widening the conversion trigger beyond
+  volume is worth more than the free tier is.
+- **It removes a subsystem from the build.** Payout holds, volume
+  ceilings and graduated approval for anonymous free accounts do not
+  need to exist. A paying tutor with a subscription and an identity on
+  file is a fundamentally different risk.
+
+⚠ **What it costs:** the fresh-tutor case above. Someone with no way to
+take money must pay for Pro first. In practice mild — they collect their
+first cohort the way they already do, by MoMo, then upgrade once it is
+real, and one cohort's fees dwarf a year of Pro.
+
+### ③ Pricing the capability <span>PROPOSAL</span>
+
+> **A paid tier costs the same annual fee whether or not it holds the
+> capability. The percentage is the capability's entire price.**
+
+- A tutor who processes nothing **pays nothing extra**, and costs us
+  nothing but one review.
+- A tutor who processes a lot **pays a lot** — and is worth a lot.
+- No negotiation, no tier maths, no forced band jump, and it cannot be
+  gamed.
+
+⭐ **Charging a band uplift *and* a percentage would be charging twice
+for the same growth.** The percentage already scales with success; let
+it do the whole job.
+
+⚠⚠ **Our percentage competes with ZERO, not with Teachable.** Teachable
+can charge 7.5% because the creator's alternative is Stripe, which costs
+them anyway. **Our tutor's alternative is MoMo straight to their own
+phone, which is free.** So the rate has to be low enough that the admin
+saving is obviously larger — and the sell is *time*, not status.
+
+⚠ **And it must sit above Paystack's own cut.** Mobile money is **1.95%
+in Ghana** and, as merchant of record, that comes out of *our*
+settlement. A take rate below it means we pay to process their sales.
+
+⭐ **Quote one all-in number.** *"5%, all in — that includes the payment
+processing"* is one figure a tutor can weigh against free MoMo. Two line
+items invite them to add it up and flinch, and it keeps Paystack's
+fee-bearer dial (§6) an internal decision rather than a published one.
+
+⏭ **The figure itself is open**, and the instinct is **start low and
+raise it** — around 3–5% all-in — rather than the reverse.
 
 ### The approval has real content
 
@@ -872,26 +1179,41 @@ won't be liable for payouts to the wrong bank account"*, so the
 verification is ours to do. **That verification is the trust step**; it
 is not an arbitrary judgement.
 
-### What Plus is actually worth to a tutor
+- It is the same axis separation as §2 — vetting standing and
+  commercial standing are different questions, and merging them has
+  produced a bug every time.
+- If money alone bought on-platform collection we would be **selling
+  access to a risk we carry**, and would be commercially incentivised
+  to grant it to people we should not.
+- ⚠ **Refunds and chargebacks land on us** (§6). Per-tutor discretion is
+  the honest control for an exposure we cannot delegate.
 
-Worth stating, because it justifies a price: no chasing MoMo
-screenshots, no manual mark-paid per student, **instalments that
-enforce themselves**, automatic enrolment on payment, and a real
-revenue ledger. For a tutor running 40 students on deposit-plus-balance
-that is hours a week.
+ⓘ **A payout delay stays available as a case-by-case dial** — the way
+every payments company onboards an unknown merchant — but it is
+something the approval *can* impose, not machinery that has to be built
+up front.
 
-⭐ Which is also why the money here is better as a **percentage than a
-higher subscription** — it scales with our exposure, which is the thing
-that actually varies.
+### What the capability is actually worth to a tutor
 
-### ⚠ Sequencing
+Worth stating, because it justifies a percentage: no chasing MoMo
+screenshots, no manual mark-paid per student, **instalments that enforce
+themselves**, automatic enrolment on payment, access that pauses itself
+when someone stops paying, and a real revenue ledger. For a tutor
+running 40 students on deposit-plus-balance that is hours a week — and
+worth nothing at all to one running eight.
 
-**Free and Pro are almost entirely assembly of what exists. Plus is a
-genuine arc** — subaccount creation and verification, the flat
-`transaction_charge`, refund handling, the approval surface.
+### ⚠⚠ Sequencing, and the one thing this promotes to a build requirement
 
-So: **Free and Pro at launch. Plus when there are tutors we would vouch
-for and a Paystack conversation behind us.**
+**Starter and Pro are almost entirely assembly of what exists. The
+capability is a genuine arc** — subaccount creation and verification,
+the flat `transaction_charge`, refund handling, the approval surface.
+
+⚠⚠ **The seat check must move before the money.** The old §11.7 recorded
+this as a future concern; the capability makes it mandatory the day it ships.
+The check has to run in `lib/payments/init.ts` → `startPayment`, which
+writes its rows **before** money moves — **not** in
+`lib/payments/activate.ts`, which runs *after* Paystack has taken the
+payment. Otherwise we take a nurse's money and then refuse her a place.
 
 ⚠ Where `subaccount_code` lives is **open**. §2 says `nclex_tutors`
 holds no money. A payout destination is arguably closer to *identity*
@@ -903,10 +1225,10 @@ than a default.
 
 ## 8. Setup credits — "we'll set your content up for you" <span>PROPOSAL</span>
 
-Sam's addition. **Plus includes a starting balance; any paying tier can
+Sam's addition. **Academy includes a starting balance; any paying tier can
 buy more.**
 
-⭐ **Deliberately an add-on at every tier, not a Plus property.** Plus
+⭐ **Deliberately an add-on at every tier, not an Academy-only property.** Academy
 otherwise means *"we handle your money"*; setup means *"we type in your
 content"*. They appeal to **different tutors** — one has material and
 no payment need, the other has money flowing and no content problem.
@@ -919,7 +1241,7 @@ barely moves. **Setup is our time.** So it can never be "unlimited", it
 must be bounded in **time as well as quantity**, and it is the one line
 that can hurt us if it sells well.
 
-Concretely: 40 Plus signups in a month = **200 programmes of setup work
+Concretely: 40 Academy signups in a month = **200 programmes of setup work
 owed**, with no schedule attached. The allowance is *"N credits,
 redeemable within 90 days, scheduled with us"* — never just a quantity.
 
@@ -957,7 +1279,7 @@ than several separate allowances.
 HIGHLIGHT), plus case and trend wrappers with their tabs.
 
 Sam's sketch — *"5 programmes, 200 questions, some cohorts"* — is about
-**10 credits**, which feels like the right size for a Plus starting
+**10 credits**, which feels like the right size for an Academy starting
 balance.
 
 ### ⭐ Lead commercially with the migration
@@ -1042,7 +1364,7 @@ valuable.
 **Expiry:**
 
 - `INCLUDED` credits **expire** — 90 days, stated on the pricing page.
-  Otherwise Plus carries an unbounded liability callable in two years.
+  Otherwise Academy carries an unbounded liability callable in two years.
 - ⚠ `PURCHASED` credits **should not** expire, or should get a long
   window. Someone paid money for a service; having it evaporate is a
   bad look and in some jurisdictions a consumer-protection question.
@@ -1074,31 +1396,62 @@ second one.
 
 ---
 
-## 9. The numbers — all open
+## 9. The numbers — still open, but the SHAPE is now answered
 
 | | Status |
 |---|---|
-| Price of Pro | ⚠ **Open.** The "$29/month" figure predates any real thinking and may not survive it (`tutor-onboarding.md` §12) |
-| Price of Plus | Open |
-| Platform fee % | Open |
-| Currency — USD or GHS | Open, and see §10 |
+| Price of Pro | ⚠ **Open.** The "$29/month" figure predates any real thinking and does not survive it — see the billing-shape finding below, which rules out both the currency and the interval |
+| Price of Academy | Open |
+| Price of an **extra seat** above a band | Open — but **must exceed the per-head rate inside the band** (§3③), or nobody upgrades |
+| Platform fee % on processed sales | Open — **3–5% all-in** proposed, start low (§7③) |
+| Currency | ✅ **GHS.** See below |
+| Billing interval | ✅ **Annual.** See below |
+| Seat bands | ✅ **10 · 50 · 200** in shape (§3③); the numbers stay tunable |
 | Setup credit price for Pro | Open. We do not know our own unit cost. Publish *"from GHS X"* or "request a quote" until five jobs have been done and timed |
-| Trial length | 30 days proposed |
-| Included setup credits on Plus | ~10 proposed |
+| ~~Trial length~~ | ✅ **There is no trial** (§4) |
+| Included setup credits on Academy | ~10 proposed |
 
-### ⚠⚠ The most under-examined question in this document
+### ✅ ANSWERED 2026-09-01 — how the subscription recurs, and why it forces GHS + annual
 
-**How does the tutor's subscription actually recur?**
+> ⚠⚠ This was *"the most under-examined question in this document"* and
+> *"the only open item that could invalidate the pricing shape rather
+> than merely adjust a number."* It was checked against Paystack's own
+> documentation and the answer does change the shape.
 
-Neither the ChatGPT analysis nor the design conversation touched it,
-and it is not small. A monthly price implies recurring card-on-file.
-Whether a **Ghanaian-issued card can hold a recurring USD charge** is
-unverified — and **MoMo generally does not do recurring at all.**
+**① Mobile money cannot do recurring. At all.** Paystack, on the Pay
+with Mobile Money channel: *"It's currently not possible for customers
+to make recurring payments"* with it. Cards **can** — Paystack
+authorises with a small charge (GHS 1) that is then refunded, and debits
+the stored authorisation thereafter. MoMo one-off charges are fine, at
+**1.95%** in Ghana.
 
-This could push toward annual billing, manual renewal, or pricing in
-GHS. ⭐ **It is the only open item that could invalidate the pricing
-*shape* rather than merely adjust a number**, and it should be answered
-before anything here is ratified.
+**② Do not price in USD.** Ghanaian and Nigerian banks restrict foreign
+exchange outflows, and local debit cards commonly carry a **$0
+international limit or a token $20–100/month**. A recurring USD charge
+on a Ghanaian card fails quietly and often.
+
+⭐⭐ **And the seats decision had already solved this without anyone
+noticing.** A *monthly subscription* is impossible on MoMo — the channel
+does not support it. But **an annual prepaid band is just a purchase**,
+which MoMo handles perfectly: the tutor buys twelve months of a band, we
+warn them before it lapses, they buy again. **Seats are a stock, so
+prepaid renewal is their natural shape rather than a workaround.**
+
+**So: priced in GHS, sold annually.** Card holders get true auto-renew;
+MoMo holders get an invoice and a reminder. One model, two payment
+paths, and the reminder path is the same machinery §5's lapse warning
+already needs.
+
+### ⚠ What the market says about the price level
+
+- **Ghana's ARPU runs 20–30% below Nigeria's**, so a figure that works
+  in Lagos is too high in Accra.
+- ⚠ **The free-to-paid cliff is documented and steep**: Zummit Africa
+  ran at **80–90% intake while free** and fell to **30%** on introducing
+  a subscription. This is the single strongest argument for pricing each
+  band at its floor (§3⑤) and for keeping Starter genuinely useful.
+- ⓘ These bound the *level*, not the *shape*. The shape is settled
+  above.
 
 ### The arithmetic that was wrong
 
@@ -1119,15 +1472,30 @@ case that the subscription is the business and the platform fee is not.
 
 ## 10. Decisions, and what was rejected
 
+⚠ **Three rows below are struck through.** They were live decisions on
+2026-08-27 and were reversed on 2026-09-01. They stay visible, because a
+table that silently drops a reversed decision teaches the next reader
+that it was never considered.
+
 | Position | Rejected alternative | Why |
 |---|---|---|
 | **One gate: enrolment** | A quota matrix (programmes 1, cohorts 1, students 10, questions 50) | Eight enforcement points, the cardinality trap, and downgrade semantics — the three things §12 refused to design. One gate has none of them |
-| **No student cap, ever** | "10 students on free" | ⚠ The wall is hit by a student who may already have paid the tutor off-platform. Safety, not economics |
-| **Trial clock starts at first enrolment** | 30 days from signup | The trial would be spent building, and the tutor reaches the product on day 28. Sam's objection; the fix costs nothing |
-| **Trial ends to Free** | Trial ends to a lockout | Destroying weeks of content makes the product a trap — and it makes lapse and trial-end one rule instead of two |
+| ~~**No student cap, ever**~~ **← REVERSED 2026-09-01: the cap is the model** | ~~"10 students on free"~~ | ⚠ Reversed because the requirement was never *"no cap"* — it was *"the wall must be hit by the tutor."* With fees off-platform every enrolment path is tutor-driven, so a seat cap meets it. §3 |
+| **Seats — a stock of student places** | A boolean "can you enrol" switch | A tutor with 5 students and one with 200 should not pay the same; the boolean had no answer to that except inventing another tier |
+| **Bands 10 · 50 · 200 + buyable extra seats** | A fourth rung between 50 and 200 | Overage is continuous rather than lumpy, is an upsell rather than a decision, adds no column to the pricing page, and is precedented (TalentLMS). **Overage is the fourth tier, priced continuously** |
+| **Starter · Pro · Academy** | Free / Pro / Plus | "Free" misdescribes a full authoring suite plus ten students, and nobody self-identifies as a Free user. One naming paradigm, no mixed metaphors |
+| ***Enterprise* held in reserve** | *Enterprise* as the top-tier name | The real enterprise buyer is a nursing school, hospital or agency buying seats for its own nurses — a different customer. Do not spend the word on a tutor tier |
+| ~~**Trial clock starts at first enrolment**~~ **← REVERSED 2026-09-01: there is no trial** | ~~30 days from signup~~ | ⚠ Ten free seats and a trial do the same job; having both pays twice for one outcome. The starting-point insight survives and is *why* seats replaced it. §4 |
+| ~~**Trial ends to Free**~~ **← moot, no trial** | ~~Trial ends to a lockout~~ | ⓘ The rule survives, applied to **lapse** instead: never end in a locked account. §5 |
+| **On-platform payments is a CAPABILITY** | **Partner** as an exclusive fourth rung | Tier position filters for *size*, and size correlates with **more** chargeback exposure, not less; and a rung at 200 students delivers the feature to tutors who solved payments years ago. **Deferred, not rejected** — §7① carries the trigger |
+| **Starter can never hold the capability** | The capability on every tier, including free | Keeps the seat cap safe (only the tutor hits the wall), gives Starter → Pro a second conversion trigger, and deletes payout-hold machinery for anonymous free accounts. §7② |
+| **Same annual fee with or without the capability; the % is its price** | A band uplift *and* a percentage | Charging twice for the same growth — the percentage already scales with success |
+| **One all-in percentage, quoted as one number** | Our fee plus Paystack's, itemised | Two line items invite the tutor to add them up and flinch; and it keeps the fee-bearer dial internal. ⚠ Must still exceed Paystack's 1.95% or we pay to process |
+| **GHS, billed annually** | USD, billed monthly | ⚠ MoMo **cannot** do recurring at all, and Ghanaian cards commonly carry a $0 international limit. §9 |
+| **The free grant is a starting number, stored** | A live `FREE_SEATS` lookup | Tuning the number later would retroactively put existing tutors over their limit. Stored, a change affects only new tutors. §3② |
 | **Off-platform at launch** | $29 + 5% of on-platform sales from day one | Merchant-of-record, refunds and chargebacks land on us. Off-platform is **already built**, so deferring costs nothing |
-| **On-platform gated by plan AND approval** | A tier you can simply buy | Selling access to a risk we carry, and incentivising ourselves to grant it badly |
-| **Setup credits as an add-on at any tier** | A Plus-only property | Payments and content-entry appeal to different tutors; bundled, one overpays |
+| **On-platform gated by tier AND approval** | A tier you can simply buy | Selling access to a risk we carry, and incentivising ourselves to grant it badly |
+| **Setup credits as an add-on at any tier** | A top-tier-only property | Payments and content-entry appeal to different tutors; bundled, one overpays |
 | **Reserve at accept, consume at approve** | Consume at request | A job we cannot finish would have eaten the balance |
 | **One row per credit** | A balance column | A balance edited by several paths drifts; a ledger cannot |
 | **No "limited / basic / full" rows** | The ChatGPT matrix's middle column | ⚠ Not specifications. Roughly half its rows cannot be built as written |
@@ -1156,65 +1524,109 @@ schema problem when it is a money-movement problem.
 
 ---
 
-## 11. Open questions
+## 11. Open questions <span>REVISED 2026-09-01 (later)</span>
 
-1. ⚠⚠ **How the subscription charge recurs** (§9). Answer first — and
-   **more pressing since 2026-09-01**, because seat bands are likely
-   annual.
-2. The numbers (§9) — now including **band sizes and seat prices**,
-   and underneath them the question that decides the shape: **will a
-   Ghanaian tutor accept per-seat pricing at all?**
-3. **Bands only, or a monthly fee as well?** Equivalently: is a band
-   *included* in Pro/Plus or *bought on top*, and is Plus's advantage a
-   bigger band, cheaper seats, or neither? (§3 amendment)
-4. ⚠⚠ **Does the 24-month platform maximum survive, and what is the
-   access box pre-filled with?** Its original reason — bounding our
-   liability — was removed on 2026-09-01. Do not inherit it. (§5)
-5. **Grace length**, and whether **students** are warned at the same
+⭐ **Four of these closed on 2026-09-01 (later) and are kept struck
+through**, so nobody re-derives them. What remains is almost entirely
+**prices** — the structure is now settled in shape.
+
+### Still open
+
+1. ⚠⚠ **The prices themselves** — Pro, Academy, an extra seat, and the
+   platform percentage. These need Sam's read on what a Ghanaian tutor
+   charging GHS 2,500 a head will accept; no amount of desk research
+   substitutes. Bounded by §9: GHS, annual, each band priced for its
+   **floor** (§3⑤), and the percentage **above Paystack's 1.95%** but
+   low enough to beat free MoMo (§7③).
+2. ⚠⚠ **The access-window default, decided TOGETHER with the bands.**
+   §3④: at 24-month access every band is effectively **halved**, so
+   Academy's 200 behaves like 100. Proposed **12 months pre-filled, 24
+   as the maximum**. ⓘ This subsumes the old §11.4 — the 24-month cap's
+   original reason (bounding *our* liability) was removed on 2026-09-01
+   and must not be inherited; it now has to be re-justified as a
+   *pricing* decision instead.
+3. ⚠ **Do Pro and Academy differ by anything beyond seats and public
+   listing?** As written, everything else is identical. Three rungs that
+   differ only by a number may be too thin to read as a ladder —
+   although the capability now gives Starter → Pro a second reason
+   (§7②), which Pro → Academy still lacks.
+4. **Grace length**, and whether **students** are warned at the same
    moment the tutor is. (§5)
-6. ⚠ **Unenrolling must be visible to the student.** When a tutor
+5. ⚠ **Unenrolling must be visible to the student.** When a tutor
    removes someone mid-programme, the student should hear it **from
    us** — *"your tutor has removed you from this programme"*. Cheap to
    build; it is the transparency that makes the accountability position
    defensible, and it deters casual seat-churning because the tutor
-   knows their students are told.
-7. ⚠ **If students ever self-enrol** (on-platform checkout, §7), the
-   seat check must run **before** payment — in `startPayment`, which
-   writes its rows before money moves. The natural place,
-   `lib/payments/activate.ts`, runs *after* Paystack has taken the
-   money: that would mean taking a student's money and then refusing
-   her.
-8. ✅ ~~Reconcile §5 with the 2026-05-17 access-window rule~~ — settled
+   knows their students are told. ⚠ **More load-bearing since seats
+   became a stock**: a freed seat and an ended access are the same act,
+   so churn is now commercially motivated.
+6. ✅ ~~Reconcile §5 with the 2026-05-17 access-window rule~~ — settled
    2026-08-27, then **reversed 2026-09-01**: we are back on the
    2026-05-17 rule, with a reason, disclosure and a soft landing. See
    §5's *"settled twice and reversed once"* note. ⚠ Still **not
    built**.
-9. Does a lapsed tutor's public page hide or show "enrolment closed"?
+7. Does a lapsed tutor's public page hide or show "enrolment closed"?
    (§5)
-10. Where `subaccount_code` lives, if Plus is built. (§7)
-11. Does Free stay forever, or go read-only after long inactivity?
-12. Do free tutors' students get transactional emails? ⓘ They cost us
-    real Resend spend and are sent on the tutor's behalf — though under
-    §3 a free tutor has zero seats and therefore no students, so this
-    only bites if the gate ever loosens.
-13. What happens to **enquiries** that arrive for a tutor who cannot
-    enrol anyone.
-14. Is the free tier worth its cost at all, versus everyone-paid with a
-    longer trial and no free tier?
+8. Where `subaccount_code` lives, if the capability is built. (§7)
+9. Does Starter stay forever, or go read-only after long inactivity?
+10. What happens to **enquiries** that arrive for a tutor who cannot
+    enrol anyone — ⓘ now a narrower question, since a Starter tutor
+    *can* enrol ten people but cannot accept enquiries at all (§3).
+11. ⭐ **The review test for Starter, which is measurable rather than a
+    matter of taste:** are Starter tutors producing **Bank**
+    subscribers? That is the job the free tier is being kept for
+    (§3⑥). If the answer is no, the free tier is failing and the
+    question in the old §11.14 becomes live again.
+
+### ✅ Closed on 2026-09-01 (later)
+
+- ✅ ~~**How the subscription charge recurs**~~ — **answered.** MoMo
+  cannot do recurring at all; Ghanaian cards cannot reliably hold a USD
+  charge. **GHS, billed annually**, and the seats model turns out to fit
+  that better than a monthly subscription would. §9.
+- ✅ ~~**Bands only, or a monthly fee as well?**~~ — **bands, annual,**
+  with buyable overage above each. The capability is priced by
+  percentage on top, with no band uplift. §3③ and §7③.
+- ✅ ~~**Do free tutors' students get transactional emails?**~~ —
+  **yes, forced.** §5's accountability rule requires disclosure at
+  enrolment and a warning before access ends; a Starter student
+  receiving nothing makes the soft landing undeliverable. It costs real
+  Resend spend. §3②.
+- ✅ ~~**Is the free tier worth its cost at all?**~~ — **kept, as
+  acquisition for the Bank rather than as charity**, with item 11 above
+  as the standing test. ⚠ Recorded honestly: MoodleCloud and Thinkific
+  both abolished permanent free plans in 2026, and the African
+  free-to-paid cliff is steep. §3⑥.
+- ⏭ ~~**If students ever self-enrol, the seat check must run before
+  payment**~~ — **no longer an open question, it is a build
+  requirement.** Promoted to §7's sequencing: the check runs in
+  `startPayment`, not `activate.ts`. It fires the day the capability
+  ships.
 
 ---
 
-## 12. Slices
+## 12. Slices <span>REVISED 2026-09-01 (later)</span>
 
-**Not scoped, deliberately.** §11.1 must be answered first, and the
-whole document is a proposal. When it is ratified, the natural
-sequence is:
+**Not scoped, deliberately.** The prices (§11.1) must be answered first,
+and the whole document remains a proposal. When it is ratified, the
+natural sequence is:
 
-1. Subscription record + the one enrolment gate + the trial timestamp
-2. The billing page and the upgrade flow
-3. Setup-credit ledger + balance display + request form (§8's minimum)
-4. Plus: subaccount, verification, flat `transaction_charge`, approval
-   surface
+1. **Subscription record + the seat grant + the one enrolment gate.**
+   The grant is written onto the tutor at grant time, never read live
+   (§3②). ⓘ No trial timestamp — there is no trial (§4).
+2. **Seat display and the upgrade flow** — the billing page, "38 of 50
+   seats used", and buying a band or extra seats.
+3. **Setup-credit ledger + balance display + request form** (§8's
+   minimum).
+4. **The on-platform capability**: subaccount creation and
+   verification, the flat `transaction_charge`, refund handling, the
+   approval surface — **and the seat check moved into `startPayment`
+   before it ships**.
 
 ⚠ Steps 1–3 are mostly assembly of what exists. **Step 4 is a genuine
 arc** and should not be sequenced with the others.
+
+⚠ **The access-window build (§11.2) is a prerequisite for step 1 being
+meaningful**, not a follow-on: seats are a stock that frees when access
+ends, so a product where 33 of 48 enrolments never expire has seats that
+never come back. It is scoped and parked — one migration, eight files.
