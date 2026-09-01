@@ -47,7 +47,9 @@ costs.
 | On-platform payments is a **capability, not a rung**; Partner deferred | §7① | 2026-09-01 later |
 | **Starter can never hold it** | §7② | 2026-09-01 later |
 | Billing is **GHS, annual** — MoMo cannot recur | §9 | 2026-09-01 later |
-| The 24-month cap | §5 | 2026-08-27 — ⚠ **its reason was removed; flagged for re-decision** as §11.2 |
+| The access window is **required and NOT pre-filled** | §5 | 2026-09-01 later — refines 08-27 |
+| The 24-month maximum | §5 | 2026-08-27, **re-justified 2026-09-01**: seats must come back, and nobody can underwrite a decade |
+| **A student is never removed in silence** — pause, resume and removal all notify | §5 | 2026-09-01 later, *in principle* — ⚠ not built |
 
 ⚠ **Everything else — and in particular every price, band price, seat
 price and percentage — is open.** See §11.
@@ -361,9 +363,10 @@ access window silently multiplies or divides every band:
 > **24-month** access they turn over half as often — so the same tutor
 > needs **twice the band**. Academy's 200 behaves like **100**.
 
-This binds directly to §11.2 (the access default, which absorbed the old
-§11.4 on whether the 24-month cap survives and what the box is
-pre-filled with). ⭐ **Proposed: 12 months pre-filled, 24 as the
+⚠ **The access window is now a REQUIRED, un-pre-filled field** (settled
+2026-09-01, §5), so what tutors actually type decides whether these
+bands are the right numbers. §11.2 carries what remains open — the
+helper text, which is now the whole mechanism. ⭐ **Proposed: 12 months pre-filled, 24 as the
 permitted maximum** — which makes the bands behave the way the table
 reads, and makes a tutor think about what they are granting.
 
@@ -494,7 +497,7 @@ waived.** See §3's amendment note and §5.
    take money through us — but we must be comfortable being used as a
    free authoring-and-small-teaching tool. ⭐ The justification is that
    those ten students are ten **Bank** prospects (§3⑥), and the
-   standing test is whether they actually become subscribers (§11.11).
+   standing test is whether they actually become subscribers (§11.12).
 3. ~~**It is an all-or-nothing wall.** No gentle middle where a tutor
    with 3 students limps along. That is the trade for having no quota
    system.~~ ⭐ **No longer true as of 2026-09-01** — a small band *is*
@@ -761,31 +764,172 @@ the ChatGPT analysis and was one of its genuine contributions. It was
 **not wrong about the harm** — a student losing access she paid for is
 a real harm. It was wrong about **who should carry it**.
 
-### ⭐⭐ No lifetime access. The platform maximum is 24 months. <span>SETTLED 2026-08-27 (Sam) — ⚠ NOT BUILT — ⚠⚠ ITS REASON CHANGED 2026-09-01, RE-DECIDE</span>
+### ⭐⭐ The fourth condition — a student is never removed in silence <span>SETTLED IN PRINCIPLE 2026-09-01 (Sam) — ⚠ NOT BUILT</span>
 
-⚠⚠ **Read this box before the section.** The cap was settled to bound
-**our** liability for a lapsed tutor's students. **2026-09-01 decided
-that is not our liability** — so the original reason is gone.
+Sam: *"if they are paused or unenrolled they must be reliably informed
+by email… this protects us."*
 
-⭐ **And the seat model now prices the access window automatically.** A
-tutor who grants two years ties that seat up for two years, so **they**
-pay for the generosity, not us. The economics enforce what a platform
-rule was enforcing.
+The accountability rule above ships with three conditions, and all three
+describe the tutor **lapsing**. This is the fourth, and it describes the
+tutor **acting**:
 
-⚠ **Sam's own scenario is the argument against a 730-day pre-fill.** A
-tutor runs a four-week course and leaves the box alone; our maximum
-takes over; he is now accountable for two years of something he never
-promised — **and it costs him a seat for two years**. That is us
-inventing an obligation and then billing for it. It is the same
-path-of-least-resistance failure as today's blank-means-lifetime, with
-a smaller number attached.
+> **When a tutor pauses, resumes or removes a student, we tell the
+> student. Every time, from us, and the tutor cannot switch it off.**
 
-⏭ **Two calls, both open:** does a platform maximum survive at all (as
-a backstop, not as liability control)? And what is the box pre-filled
-with — the maximum, something proportionate to the programme's length,
-or nothing, forcing a choice?
+#### ⭐⭐ Why this became structural on 2026-09-01 rather than being a courtesy
 
-**The cap may well survive. It should not survive by inheritance.**
+Under a boolean gate a tutor had **no reason** to unenrol anybody.
+**Under seats, every removal is worth money** — a freed seat is a seat
+they do not have to buy. ⚠ And because §3 makes freeing a seat and
+ending access **the same act**, the incentive points directly at a real
+student losing real access.
+
+> **The notification is the only thing standing between a seat model and
+> quiet churn.** It is not transparency for its own sake; it is the
+> control that keeps seats honest.
+
+It is also what makes the accountability position defensible. We told
+the student their access depends on their tutor (condition 1) — that is
+only fair if we also tell them the moment it changes.
+
+#### ⚠⚠ Measured 2026-09-01: today all three transitions are SILENT
+
+Verified in the code, not assumed:
+
+| Action | Exists? | Sends anything? |
+|---|---|---|
+| `pauseEnrolmentAction` → `nclex_pause_enrolment` | ✓ | ❌ **nothing** |
+| `resumeEnrolmentAction` → `nclex_unpause_enrolment` | ✓ | ❌ **nothing** |
+| `cancelEnrolmentAction` → `nclex_cancel_enrolment` | ✓ | ❌ **nothing** |
+
+The contrast sits in the same file: `rejectEnrolmentAction` calls
+`sendEnrolmentRejectedEmail`. Pause and cancel call `callTransition` and
+return. And the registry has **no** `enrolment.paused` / `.resumed` /
+`.cancelled` trigger — the enrolment triggers that exist are
+`tutor_added`, `approved`, `rejected`, `access_expiring`,
+`access_expired`, `access_extended`.
+
+**So a tutor can remove a student's access today and the student finds
+out by trying to log in.**
+
+#### ⚠⚠ A LIVE DEFECT found while checking this — separable, and not fixed
+
+There are **two** reasons an enrolment is paused — `INSTALLMENT_OVERDUE`
+(the payment sweep) and `TUTOR_MANUAL` (the tutor clicks Pause). The
+student-facing copy has **one** line, in
+`lib/enrolments/types.ts` → `ENROLMENT_LOCKED_REASON`:
+
+> *"Access paused — a payment is overdue. Your tutor can restore it."*
+
+⚠⚠ **A student paused manually by their tutor is told a payment is
+overdue.** That can be flatly untrue, and it is the worst false
+statement available here — it tells someone they defaulted when they did
+not. **It is on prod now.**
+
+⭐ The fix is small and the data is already present: `paused_reason` is
+carried on the roster row; only the copy fails to branch on it. ⓘ It is
+a **bug fix, not a design decision** — recorded here because it was
+found here, and left open deliberately (Sam, 2026-09-01: capture now,
+build the emails later).
+
+#### What the emails have to get right
+
+- ⚠⚠ **The occurrence trap will bite here, and it is already a
+  documented rule.** `stage` must name **which occurrence** whenever a
+  subject can reach the same state twice — otherwise the second email
+  **silently never sends**. A student can be paused, resumed and paused
+  again. This is the textbook case, and it fails in the quietest
+  possible way.
+- ⭐ **Resume needs its own email.** Telling someone access stopped and
+  saying nothing when it returns leaves them away for good. Silence is
+  only safe in one direction.
+- ⚠ **The pause email must name the real reason** — the tutor's decision
+  versus an outstanding payment. Same reason the live defect above
+  matters; two causes cannot share one sentence.
+- ⚠ **The tutor cannot suppress it.** An email the tutor controls
+  protects nobody, and the point is that it is *ours* to send.
+- **Cancel should carry the tutor's note if one was given** —
+  `cancelEnrolmentAction` already accepts `p_note` and nothing surfaces
+  it.
+- ⚠ **Never "your access to Quademia."** What changed is **one
+  programme**. Already a standing rule in the email work, and it matters
+  doubly here — see the framing below.
+
+#### ⭐ And the framing that settles what this is about <span>Sam, 2026-09-01</span>
+
+> *"This is about access to the programme, not the platform. We are not
+> charging any student for access to our platform, our emails or our
+> infrastructure. So this really is between the tutor and the student."*
+
+Correct, and it clarifies the whole section. A student has **two**
+independent relationships: the **programme**, bought from their tutor,
+and the **Bank**, bought from us. Nothing in §5 touches the second.
+
+⭐ This is why the notification is the right control rather than a
+platform rule about *when* a tutor may remove someone. **Removal is
+theirs to decide; disclosure is ours to guarantee.** We do not police
+the deal — we make sure the student can always see where they stand in
+it.
+
+---
+
+### ⭐⭐ No lifetime access. The access window is REQUIRED, and the platform maximum is 24 months. <span>SETTLED 2026-08-27, REFINED 2026-09-01 (Sam) — ⚠ NOT BUILT</span>
+
+⚠⚠ **Read this box before the section — the decision survived, but its
+reason was replaced twice.**
+
+**① The original reason is gone.** The cap was settled on 2026-08-27 to
+bound **our** liability for a lapsed tutor's students. 2026-09-01
+decided that is **not our liability**. The sentence it rested on —
+*"that maximum is the liability we choose to carry"* — no longer
+describes anything.
+
+**② Two better reasons replaced it, and these are the ones to keep.**
+
+- ⭐⭐ **Seats must eventually come back.** A seat is a *stock* that frees
+  when access ends. An unset window means access **never** ends, so the
+  seat is consumed **permanently** — a Pro tutor granting 50 lifetime
+  enrolments has zero seats forever and their band silently stops being
+  a band. **Without a maximum, "seats" is not a stock, it is one-way
+  consumption.**
+- ⭐ **Nobody can underwrite a decade.** We cannot guarantee this
+  platform, this programme or this tutor exists in ten years. A maximum
+  is not us judging the tutor's deal — it is us refusing to let anyone
+  commit a future none of us controls. Sam's 08-27 principle, inverted
+  and made honest: *a tutor cannot grant more than they hold* becomes
+  **a tutor cannot promise longer than anyone can underwrite**.
+
+**③ ⭐ SETTLED 2026-09-01 — the field is REQUIRED and NOT pre-filled.**
+
+Sam: *"dont prefill. make it required to be filled. that way the tutor
+is never oblivious. the tagline/helpline can explain to the tutor what
+it is and guide them to set a proper access limit."*
+
+⚠ **This is a REFINEMENT of 08-27, not a restatement.** That day settled
+*required **and pre-filled***, on the reasoning that a visible default
+carries no hidden convention. The seat model changed the answer: **a
+visible default is still a default**, and accepting one unthinkingly now
+costs the tutor a seat for up to two years. Under the old liability
+framing it cost them nothing.
+
+⚠ **The pre-fill-proportionately idea is dead too**, and Sam's own
+example killed it: *a four-week self-paced programme may legitimately
+need a year of access, depending on the content.* **No rule can infer
+the right window from the programme's length** — only the tutor knows.
+Which is precisely why the responsibility is theirs.
+
+⏭ **Open: the helper text.** It is now the whole mechanism — it must say
+what the window means, that the student is told this date, and that a
+longer window holds a seat longer. It is the only guidance the tutor
+gets.
+
+**④ No backfill.** Sam, 2026-09-01: *"we don't need any backfill. they
+are not real users."* The dev rows below are test data and prod is
+empty, so making the column `NOT NULL` is a one-line default rather than
+a migration with a policy question attached. ⚠ **This is only true while
+it stays true** — once real students hold lifetime access, setting an
+expiry on them is not a migration, it is a broken promise.
+
 Everything below is the 2026-08-27 reasoning, kept intact.
 
 The rule that made §5 coherent as it stood on 2026-08-27, and **the one
@@ -1538,13 +1682,16 @@ through**, so nobody re-derives them. What remains is almost entirely
    substitutes. Bounded by §9: GHS, annual, each band priced for its
    **floor** (§3⑤), and the percentage **above Paystack's 1.95%** but
    low enough to beat free MoMo (§7③).
-2. ⚠⚠ **The access-window default, decided TOGETHER with the bands.**
-   §3④: at 24-month access every band is effectively **halved**, so
-   Academy's 200 behaves like 100. Proposed **12 months pre-filled, 24
-   as the maximum**. ⓘ This subsumes the old §11.4 — the 24-month cap's
-   original reason (bounding *our* liability) was removed on 2026-09-01
-   and must not be inherited; it now has to be re-justified as a
-   *pricing* decision instead.
+2. ✅ ~~**The access-window default**~~ — **SETTLED 2026-09-01 (later):
+   the field is REQUIRED and NOT pre-filled**, and the 24-month maximum
+   survives on two new reasons (seats must come back; nobody can
+   underwrite a decade). See §5. ⏭ **What is still open is the HELPER
+   TEXT**, which is now the entire mechanism — it must explain what the
+   window means, that the student is told the date, and that a longer
+   window holds a seat longer. ⚠ Note the coupling in §3④ stands: at
+   24-month access every band is effectively **halved**, so what tutors
+   actually choose will decide whether 10 · 50 · 200 are the right
+   numbers. ⓘ This absorbed the old §11.4.
 3. ⚠ **Do Pro and Academy differ by anything beyond seats and public
    listing?** As written, everything else is identical. Three rungs that
    differ only by a number may be too thin to read as a ladder —
@@ -1552,27 +1699,36 @@ through**, so nobody re-derives them. What remains is almost entirely
    (§7②), which Pro → Academy still lacks.
 4. **Grace length**, and whether **students** are warned at the same
    moment the tutor is. (§5)
-5. ⚠ **Unenrolling must be visible to the student.** When a tutor
-   removes someone mid-programme, the student should hear it **from
-   us** — *"your tutor has removed you from this programme"*. Cheap to
-   build; it is the transparency that makes the accountability position
-   defensible, and it deters casual seat-churning because the tutor
-   knows their students are told. ⚠ **More load-bearing since seats
-   became a stock**: a freed seat and an ended access are the same act,
-   so churn is now commercially motivated.
-6. ✅ ~~Reconcile §5 with the 2026-05-17 access-window rule~~ — settled
+5. ✅ ~~**Unenrolling must be visible to the student**~~ — **SETTLED IN
+   PRINCIPLE 2026-09-01 (later), and widened**: pause, resume *and*
+   removal all notify the student, from us, and the tutor cannot
+   suppress it. It is §5's **fourth condition**, not a nice-to-have —
+   under seats a removal is worth money, so it is the control that
+   keeps seats honest. ⚠ **Not built**; Sam: *"we will do the email
+   when we build."* ⏭ What remains open is only the copy and the
+   occurrence key — see §5.
+6. ⚠⚠ **LIVE DEFECT, found 2026-09-01, NOT fixed — the paused student
+   is told the wrong reason.** `ENROLMENT_LOCKED_REASON.PAUSED` in
+   `lib/enrolments/types.ts` says *"Access paused — a payment is
+   overdue"* for **both** pause reasons, so a student paused manually by
+   their tutor is told they defaulted when they did not. **On prod
+   now.** `paused_reason` is already on the roster row, so only the copy
+   fails to branch. ⓘ A bug fix rather than a design decision —
+   deliberately left open when the emails were deferred, so it does not
+   disappear with them.
+7. ✅ ~~Reconcile §5 with the 2026-05-17 access-window rule~~ — settled
    2026-08-27, then **reversed 2026-09-01**: we are back on the
    2026-05-17 rule, with a reason, disclosure and a soft landing. See
    §5's *"settled twice and reversed once"* note. ⚠ Still **not
    built**.
-7. Does a lapsed tutor's public page hide or show "enrolment closed"?
+8. Does a lapsed tutor's public page hide or show "enrolment closed"?
    (§5)
-8. Where `subaccount_code` lives, if the capability is built. (§7)
-9. Does Starter stay forever, or go read-only after long inactivity?
-10. What happens to **enquiries** that arrive for a tutor who cannot
+9. Where `subaccount_code` lives, if the capability is built. (§7)
+10. Does Starter stay forever, or go read-only after long inactivity?
+11. What happens to **enquiries** that arrive for a tutor who cannot
     enrol anyone — ⓘ now a narrower question, since a Starter tutor
     *can* enrol ten people but cannot accept enquiries at all (§3).
-11. ⭐ **The review test for Starter, which is measurable rather than a
+12. ⭐ **The review test for Starter, which is measurable rather than a
     matter of taste:** are Starter tutors producing **Bank**
     subscribers? That is the job the free tier is being kept for
     (§3⑥). If the answer is no, the free tier is failing and the
@@ -1626,7 +1782,7 @@ natural sequence is:
 ⚠ Steps 1–3 are mostly assembly of what exists. **Step 4 is a genuine
 arc** and should not be sequenced with the others.
 
-⚠ **The access-window build (§11.2) is a prerequisite for step 1 being
-meaningful**, not a follow-on: seats are a stock that frees when access
+⚠ **The access-window build (§5, settled) is a prerequisite for step 1
+being meaningful**, not a follow-on: seats are a stock that frees when access
 ends, so a product where 33 of 48 enrolments never expire has seats that
 never come back. It is scoped and parked — one migration, eight files.
