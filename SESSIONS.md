@@ -38,6 +38,9 @@ extraction rule in CLAUDE.md.
 
 ## 2026-09 — [sessions/2026-09.md](sessions/2026-09.md)
 
+- 2026-09-03/04 — the record files: SESSIONS.md, BUILD_LIST.md and CLAUDE.md rebuilt to one purpose each. Docs only
+  - ↳ one home per fact · index 414 KB → 30 KB, keyword lines · build list 373 → 31 KB, per plan doc, no next marker · CLAUDE.md 8k → 4.8k words · At-session-end checklist · status lives in git · six stale plan-doc ticks OPEN
+
 - 2026-09-02 — company registration: Ghana first (QUADEMIA LIMITED), UK later, as siblings; payment rails per product. Claude web, logged 09-03
   - ↳ QUADEMIA LIMITED · Paystack Starter collections ceiling · MyNMCLicensure revenue off · GIPC regime · Stripe USD on a UK company · Flutterwave dropped · MoMo wallet settlement · Form 26(A), BO1/BO2 · which Paystack account MyNclex prod uses OPEN
 
