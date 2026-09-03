@@ -1,7 +1,22 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-09-01, later (**the tutor commercial model got its
-ladder — design only, no code.** Tiers are **Starter · Pro · Academy**
+Last updated: 2026-09-03 (**company registration SETTLED on 2026-09-02
+in a Claude web session — docs only, no code.** The legal entity is
+**QUADEMIA LIMITED (Ghana)**, a private company limited by shares,
+**Ghana first and UK second, as siblings owned by Sam directly** —
+because the Paystack Starter account has hit its lifetime collections
+ceiling and **only a Ghana-registered entity can upgrade it**. ⭐
+**Payment rails are now per product:** Paystack GHS on the Ghana company
+for gamma's products now, **Stripe USD on a UK company for MyNclex at
+launch, not before**, since a Ghana business on Paystack settles
+international cards in GHS only. ⚠ Nothing user-facing may name the
+company or a registration number until the certificate exists — same
+rule as the parent site. ⚠ Unverified and open: whether MyNclex prod's
+Paystack keys come from that same ceilinged account. Canonical
+`docs/product-plan/company-registration.md`; `domain-and-identity.md`
+§2 keeps the checklist. Previously 2026-09-01, later — **the tutor
+commercial model got its ladder — design only, no code.** Tiers are
+**Starter · Pro · Academy**
 ("Free" is not a name; *Enterprise* is held in reserve for the
 institutional buyer). **Starter holds 10 seats permanently and THE
 TRIAL IS GONE** — seats and a trial do the same job, and a trial is a

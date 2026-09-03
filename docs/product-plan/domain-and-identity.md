@@ -70,12 +70,32 @@ reads as "academia", subdomains scan well.
 academy that gets you qualified (NCLEX, NMC licensure, school exams). This is
 the public story on the About page and anywhere the name is explained.
 
-### 2. Company name: **Quademia Ltd** (legal = brand)
+### 2. Company name: **Quademia Limited** (Ghana) — legal = brand
 
 Nothing is registered yet — "QAcademy Educational Consult" appears in the
 gamma repo's email sender but was never incorporated. The company registers
 as **Quademia Ltd** (fallback styling if the registrar requires it:
 "Quademia Education Ltd").
+
+⭐⭐ **UPDATE 2026-09-02 — jurisdiction, name, type and payment rails
+SETTLED (Sam, in a Claude web session; logged 2026-09-03).** Canonical:
+**`company-registration.md`**; this section keeps the checklist, that
+file keeps the reasoning. In one paragraph: **Ghana first, UK second,
+both** — as **siblings** owned by Sam directly, never parent/subsidiary
+(a UK parent would drag the Ghana company into the foreign-investment
+regime). The Ghana company is **QUADEMIA LIMITED**, a private company
+limited by shares under Act 992; fallback **Quademia Education Limited**
+if the ORC name search fails. ⭐ What made Ghana urgent rather than
+"later": **the Paystack Starter account is at its lifetime collections
+ceiling**, MyNMCLicensure revenue is OFF until it upgrades to Registered
+Business, and **only a Ghana-registered entity can upgrade it**. ⚠ The
+"Ltd" in the heading above was a styling guess — **Limited vs Ltd is a
+tick on Form 3 §A**, and whichever prints on the certificate is what
+Paystack matches character for character. ⚠ Payment rails are now
+**per product**: Paystack (GHS, MoMo + cards) on the Ghana company for
+gamma's products now; **Stripe USD on a UK "Quademia Ltd"** for MyNclex
+at launch, not before — because a Ghana business on Paystack settles
+international cards in **GHS only**.
 
 Why legal name = brand name, at this stage:
 
@@ -106,11 +126,34 @@ Registration checklist (Sam, off-platform):
       until it's pointed as a redirect to `.com` someday; no email, no
       site, just renews.
 - [ ] Name availability check at Ghana ORC before settling exact styling
-- [ ] Ask Paystack which registration tier they need (business name vs
-      company limited by shares) — the company form is the one that scales
-- [ ] Business bank account in the exact registered name
+      → **2026-09-02: name settled as QUADEMIA LIMITED, fallback
+      QUADEMIA EDUCATION LIMITED; the search itself (rgdeservices.com)
+      is open item #1 of the filing sequence**
+- [x] ~~Ask Paystack which registration tier they need (business name vs
+      company limited by shares) — the company form is the one that scales~~
+      → **2026-09-02: answered by their docs. Registered Business; company
+      limited by shares; documents = registration certificate + corporate
+      bank OR merchant MoMo account matching the name + director details +
+      Ghana TIN + GPS address**
+- [ ] Business bank account in the exact registered name → **2026-09-02
+      refined: merchant MoMo wallet in the business name FIRST (Paystack
+      accepts it as the settlement account, and it opens far faster with
+      a director abroad), corporate bank account second**
 - [ ] Quick trademark sanity check (Ghana + USPTO — customers are US-bound)
+      — unchanged, still open
+- [ ] **NEW 2026-09-02 — Flutterwave written USD question**, owed within
+      the registration month: as a Ghana-registered merchant, can we price
+      in USD, settle in USD, and under what BoG conditions. Expectation:
+      GHS-only, plan unchanged; if yes, the UK company defers.
+      `company-registration.md` §5.
+- [ ] **NEW 2026-09-02 — UK incorporation trigger:** MyNclex approaching
+      real launch volume → Companies House "Quademia Ltd" (looked free
+      on 2026-09-02), Stripe, Tide/Starling/Wise. **Not before.** Note:
+      Companies House now requires director identity verification
+      (GOV.UK One Login); registered office ≠ home address recommended.
 - [ ] **Check + secure `@quademia` social handles** — urgency raised
+      2026-08-05 and **re-flagged 2026-09-02: do it during the
+      registration month, it costs nothing** — original reasoning:
       2026-08-05: the name is now publicly discoverable (domain
       registration + certificate logs), so squatting risk is live.
       Platforms, chosen for the phone-first audience: **Instagram,
@@ -1076,6 +1119,16 @@ references (rename debt above) and the Resend/SMTP work already scoped.
        to write. ⓘ And since the policy already names a controller, the
        "waits on company registration" claim needs confirming against
        reality before it is repeated; see the same correction under item ⑤.
+       ⭐ **CONFIRMED 2026-09-02/03 — THE OTHER WAY.** The parent-site
+       README (read from GitHub 2026-09-03) states both legal pages are
+       **DRAFTS, not in force**, with the controller / contracting party
+       **left blank** and a banner on each page saying so, pending
+       registration + professional review + Sam's commercial blanks. The
+       08-19 sighting of "a data controller" was the placeholder for one,
+       not a name. So "waits on company registration" was right all along
+       and the caution above is closed. Once the certificate lands the
+       controller is **QUADEMIA LIMITED (Ghana)** — see
+       `company-registration.md`.
      - ⓘ Refusal copy is one shared sentence — *"We could not verify your
        browser. Please refresh the page and try again."* Deliberately
        silent about which of the reasons applied, since they all have the
@@ -1998,6 +2051,14 @@ document we least want to amend.
 ⓘ Same constraint, smaller: the parent site carries **no "Quademia Ltd"
 and no registration number on any page** for the same reason. That is
 written into its `CLAUDE.md` as a standing rule, not left to memory.
+
+⭐ **UPDATE 2026-09-02 — the entity now has a name and a filing plan.**
+The controller-to-be is **QUADEMIA LIMITED (Ghana)**, target *filed
+within one month of 2026-09-02*; the privacy policy gets its controller
+at step 8 of the sequence in `company-registration.md`. Still blocked,
+but on a dated plan rather than an open question. ⚠ An 08-19 note under
+build-order item ⑤ had suggested the policy might already name a
+controller; it does not — confirmed against the parent-site README.
 
 ### ~~Separately: the apex domain is dark~~ — ✅ FIXED 2026-08-10
 
