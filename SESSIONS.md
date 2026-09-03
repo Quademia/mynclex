@@ -9,6 +9,12 @@ extraction rule in CLAUDE.md.
 
 - **One line per session:** `- YYYY-MM-DD — short title`. Under 160
   characters. Plain text — no bold, no emoji markers, no commit hashes.
+- **Then ONE keyword line** beneath it, starting `  ↳ `: the things the
+  title does NOT say — decisions made, defects found, rules reversed,
+  tables or functions built, questions left open. Separated by ` · `.
+  **Under 250 characters. Keywords, not sentences.** Use the entry's own
+  vocabulary (table names, feature names) — its job is to make a later
+  search land. If it needs a verb, it belongs in the period file.
 - **Merge and release status do NOT go here.** Status written into an
   index goes stale (six stale flags between 2026-08-21 and 2026-09-03).
   `git log origin/main` and `origin/prod` are the truth; the period
@@ -18,7 +24,11 @@ extraction rule in CLAUDE.md.
   paragraph here; the period file already holds the full entry.
 - **Why this shape:** on 2026-09-03 this file was 414 KB — 149 entries
   averaging 3 KB each, a table of contents as long as the book, too big
-  to open in one read. Rewritten to this shape the same day.
+  to open in one read. Rewritten to one line per session the same day;
+  the keyword line was added after a lookup test showed a title alone
+  misses the topics a session touched on the side. Keyword lines are
+  backfilled from 2026-08 onward; earlier months get one when a session
+  is reading them anyway.
 - When logging a session, ask Sam whether to append to the current
   period file or start a new one.
 
@@ -27,49 +37,90 @@ extraction rule in CLAUDE.md.
 ## 2026-09 — [sessions/2026-09.md](sessions/2026-09.md)
 
 - 2026-09-02 — company registration: Ghana first (QUADEMIA LIMITED), UK later, as siblings; payment rails per product. Claude web, logged 09-03
+  ↳ QUADEMIA LIMITED · Paystack Starter collections ceiling · MyNMCLicensure revenue off · GIPC regime · Stripe USD on a UK company · Flutterwave dropped · MoMo wallet settlement · Form 26(A), BO1/BO2 · which Paystack account MyNclex prod uses OPEN
 - 2026-09-01 (later) — the tutor plan ladder: Starter/Pro/Academy, seats 10/50/200 + overage, no trial, payments a capability. Design only
+  ↳ payments never on Starter · overage above in-band · Partner deferred · currency OPEN not GHS · MoMo cannot recur · access window not pre-filled · removal never silent · ENROLMENT_LOCKED_REASON paused copy defect · no pause/cancel email
 
 ## 2026-08 — [sessions/2026-08.md](sessions/2026-08.md)
 
 - 2026-08-27 — the RLS union's third member is the admin: tutor bank scoping; then part two, the tutor plans & billing design
+  ↳ _admin_all FOR ALL SUPER_ADMIN bypass · /tutor/bank/all 118 rows · assertTutorOwnsCase/Trend · saveQuestionAction zero-row ok:true · getUpcomingSessions unscoped · tutor-plans-and-billing.md · 24-month cap, no lifetime · lapsed-tutor grace
 - 2026-08-25 (later) — finishing the RLS sweep: programmes, roster, payments (13 call sites)
+  ↳ getMyProgrammes no owner filter · getOwnedProgrammeForShell · getTutorPayments/readRoster service-role · deleteUnit false success · 22 strangers on roster · _public_select never existed · getCohortRoster · Test 3 mixed case unverified
 - 2026-08-25 — RLS is the floor, not the filter: the tutor Library leak and its student-side mirror
+  ↳ nclex_tutor_library_notes _student_select union · tutor-scope.ts getLibraryTutorId · 38 notes to +mynclexstudent3 · enrolment-status gates per caller · Steven 48 enrolments · getPaymentHistoryAction · empty programmes card · RLS-floor rule
 - 2026-08-24 (later still) — the library sweep, student side (mobile)
+  ↳ 57px .lib-main → 311px · .slm/.rdm layers, Browse + Contents sheets portalled · read-compact-chrome.tsx · 768 not 899 breakpoint · Tags lens designed not built · embed player no .rn · stale .next 404 · two-readers claim false
 - 2026-08-24 (later) — the access window stops ending in silence
+  ↳ access_expiring/access_expired/access_extended · migration 20260923120000 · tutor Extend access + roster Access column · dated stage fingerprint · T-14 not T-7 · 2d never fired, harm claim retracted · 2e still silent · paid renewal unbuilt
 - 2026-08-23/24 — self-paced students: progress, then the inactivity nudge
+  ↳ progress.inactivity_nudge · nclex_programme_last_active() · Not started/Active/Stalled/Finished + Ending soon overlay · access + joined columns · Overview→Progress rename · main.md cohort-access assumption false · /tutor/students placeholder
 - 2026-08-22 (later) — tutor onboarding slice 3 (invite by email); the public site had no mobile nav
+  ↳ tutor.invited retired, entry LOG_IN/SET_UP dial · last_login_utc never stamped, finalizeWelcomeAction · unaccepted-invite chip · public nav hamburger · QAcademy→Quademia 16 strings · metadataBase OG localhost · logo ellipse mask
 - 2026-08-22 — tutor onboarding slice 2: /for-tutors, the application, the admin queue
+  ↳ 20260921120000_tutor_self_application · email-first apply, register toggle dropped · directory + queue drawers merged · stage fingerprint, suspension emailed nobody · loadMyTutorRecord OR-policy null · SUSPENDED never re-applies · no-store gap
 - 2026-08-21 (evening) — tutor onboarding slice 1d, and the switches that were not switches
+  ↳ decision_history JSONB append-only · nclex_tutor_record_decision self-decision hole · lib/payments/init.ts checkout bypass · sweep pause skip · tutor.reinstated email · nclex_enqueue_session_reminders defect fixed · student never told OPEN
 - 2026-08-21 (later) — four sub-slices, and three defects no tool could see
+  ↳ self-approval RLS column privileges GRANT UPDATE · found shadows plpgsql FOUND · .ao-cell-lead span fix · LEGACY source retired via granted_at · design_handoff_admin_tutors · grantTutorRole · instant vs queued email rule
 - 2026-08-21 — tutor onboarding designed: the tutor nobody can create. Docs only
+  ↳ nclex_tutors one-row-per-person (MyTeacher teacher_profiles) · public_profile lift · EXPIRED status, plan_type withdrawn · standing vs money axes · tutor plans parked · submission_count re-application · tutor-onboarding.md · tail mistake
 - 2026-08-20 (evening) — the tutor phone sweep: eleven surfaces
+  ↳ minmax(0,1fr) auto floor · five instrument lies (elementFromPoint, .qc-peek) · hover-only .act-controls · MobileNav drawerHeader unused slot · enquiries drill-in at 900px · min-height over ::after · .tpay-page missing width
 - 2026-08-20 (later still) — the student phone sweep: seven surfaces
+  ↳ Quiz History clipped by overflow:hidden, .hist-bank stacked cards · flex min-width:0 five costumes · grow vs extend hit area · week list broken on desktop too · ← Weeks self-paced plural · Note.In-progress unfixed · 100dvh deferred
 - 2026-08-20 (later) — the lint backlog got a number, then a gate (baseline + pre-commit hook)
+  ↳ lint 47→30 · .eslint-baseline.json per-file-per-rule · lint:check + .githooks/pre-commit staged-only · AddControl remount bug · Date.now in render body · rename false alarm · 30 react-hooks errors carried
 - 2026-08-20 — the invite swap finished; the live-class reminder email built
+  ↳ pay-first generateLink swap per code path · confirmation_sent_at as version tell · session.reminder fan-out, .ics, per-student fingerprint · fifth pg_cron job at 07:00 · CONFIG_DEFS missed row · {queued, eligible} · platform ENUM label map
 - 2026-08-19 (later) — three emails built, three shipped promises found broken
+  ↳ payment.tutor_received recipient≠actor via recorded_by_user_id · PAUSED wording defect · enrolment.approved promised by receipt, missing · double em-dash guard · enrolment.rejected mailto, nclex_submit_enquiry idempotency swallow · tutor phone
 - 2026-08-19 — we own the auth redirect; Google names the company
+  ↳ lib/auth/google-oauth.ts PKCE + signInWithIdToken · registrable domain quademia.com consent · no nonce, access_token required · dashboard Variables wiped by wrangler deploy · google_unavailable split · one OAuth client per environment
 - 2026-08-18 (later) — the email arc ships to prod
+  ↳ four migrations not three · Vault secret + CRON_SECRET + email_drain_url on prod · 503-vs-401 diagnosis · save-without-deploy draft trap · pg_net unattended 20:05 knock · Sam's real Paystack purchase as test
 - 2026-08-18 — the email drain, the retry policy that was never running, the sweep that stopped being silent
+  ↳ lib/email/drain.ts + pg_cron doorbell · retry policy never re-read rows · transient_attempts strike counter · 401 validation_error CONFIG misclassification · Database Webhooks parked · installment_due/overdue · nclex_enrolment_next_payment
 - 2026-08-12 — email arc: enrolment.tutor_added + waitlist.converted
+  ↳ enrolment.tutor_added + waitlist.converted · reason/entry dials · inviteUserByEmail→generateLink · resend cancelled (sign-in code) · /welcome copy contradicted duplicate guard · queue failure surfaces to tutor · deployed-Worker false alarm
 - 2026-08-11 — email arc slice 1a: the outbox queue
+  ↳ 20260908120000_email_outbox · waitUntil inline send · one-hour retry, reason not count · Resend read API rejected · rolling windows · SETUP_REQUIRED third framing · restricted_api_key delivery silence · .env.local encoding corruption
 - 2026-08-10 (later) — the email arc planned. Design only
+  ↳ event-driven vs time-driven split · receipt per checkout_group_id · enrolment.confirmed folded into payment.received · outbox fingerprint, stage never blank · nightly_sweep due-date reuse · gamma EMAIL_SECRET leak · .ts templates
 - 2026-08-10 — quademia.com: the parent site, a second repo
+  ↳ quademia-parent-site repo · @opennextjs/cloudflare pinned 1.19.6 · Next 16.2.4 middleware-bypass advisories · Quademia Ltd not incorporated, no data controller · two branches kept · workers_dev/preview_urls self-flip · stale DNS negative cache
 - 2026-08-09 (later still) — Google becomes a sign-in method, not a sign-up method
+  ↳ before-user-created hook refuses provider=google · GOOGLE_FIRST_SIGNIN retired → GOOGLE_LOGIN_OK + GOOGLE_BLOCKED · sentinel 403 probe · consent screen per-project · gamma project rename rejected · env-gate withdrawn · next param unproven
 - 2026-08-09 (later) — nclex.quademia.com: the app gets its real address
+  ↳ nclex.quademia.com attached · workers_dev flipped itself, two-step lost · site-URL pinning dropped · support@quademia.com rename · empty worktree node_modules · profile-less prod auth.users row deleted · legal pages gate item ⑤
 - 2026-08-09 — Turnstile's testing keys on dev; slice 3: email-code login
+  ↳ Cloudflare testing keys on dev · .worktreeinclude copies .env parent→child only · CODE_BLOCKED migration · OTP expiry cut withdrawn · ?code= trap N/A to typed codes · half-built auth.users row · nested <form> + React 19 field reset bugs
 - 2026-08-08 — slice 2d: Turnstile
+  ↳ Turnstile token single-use, two checks impossible · readTurnstileTicket, Supabase verifies · isCaptchaRejection → *_BLOCKED · REGISTER_REJECTED migration · error 110200 localhost · NEXT_PUBLIC_* build-time gap breaks /welcome + /reset-password
 - 2026-08-06 (evening) — slice 2c: login thresholds and the countdown
+  ↳ lib/auth/thresholds.ts · 5-in-10min / 10-in-24h login, 3-in-60min reset · fails open · countdown from Nth-newest row · gamma fp_hash device axis dropped · 24h block offers password reset · GitHub Actions outage, dev deploy never ran
 - 2026-08-06 (later still) — identity arc slices 2a + 2b: auth events
+  ↳ nclex_auth_events append-only · user_exists, wrong_password vs no_such_account · IP logged, no rule · /forgot-password, /reset-password, account-lookup.ts · ?code= PKCE vs #access_token= setSession · stale dev Site URL
 - 2026-08-06 (later) — the four email templates became two. Docs only
+  ↳ four templates → two, invite goes custom · change-email dropped as unreachable · docs/email/ folder, repo is source · DKIM 2048-bit + DMARC p=none · Launch Gates, email confirmation OFF · device-limit research, capture first · two SPF names
 - 2026-08-06 — build-order item 1: Resend domain verified. Docs only
+  ↳ new Resend account under admin@quademia.com · one domain + 100/day per free account · custom SMTP smtp.resend.com:465 dev+prod · per-env sending keys · send. subdomain, root SPF untouched · Pro upgrade a launch trigger
 - 2026-08-05 (later) — domain, inbox and identity in one sitting. Docs only
+  ↳ quademia.com + .org bought · Workspace primary flipped · admin@ → sam@ rename, role aliases · vendors under admin@ · accidental second user deleted · licensure./teacher./schools. subdomains, NMC = Ghana · IONOS exit plan unscheduled
 - 2026-08-05 — the company got named: domain-and-identity.md. Docs only, cloud session
+  ↳ quademia.com chosen, Q = Qualified, Quademia Ltd · cuademia/zademia rejected · four doors: password, reset, Google, 6-digit code · magic link out · gamma thresholds ported, fingerprints dropped · nclex_auth_events diary · build order ①–⑦
 - 2026-08-03 (later) — two cloud branches come home
+  ↳ db/seed/pitch branches merged · dual-role fix, getMyAccessibleProgrammesAction · RLS is a boundary not a view filter · checklist trigger absent by design · db/schema.sql stale 2 months · ghost rows were my query
 - 2026-08-03 — four defects, none of them the one we set out to fix
+  ↳ .rn-cjmm-strip 534px floor, not .rn-split · scrollbar breaks container/media agreement · .rn-q-wrap auto margins · tab strip crushed · wrapper title joins the seal, 4 sites · cloze red distractors, 4.4% rationales · slice 7 landscape cancelled
 - 2026-08-01 (later still) — the free weekly Q&A seed becomes a taught year
+  ↳ 09-weekly-year.sql + build_weekly_year.py · teach 25 min then open floor · 51 weeks inside NCSBN blueprint, asserted in build · four terms of 13 · six maternity cross-sell weeks · zero cohorts found · public page renders 52 rows, unfixed
 - 2026-08-01 (later) — 08-maternity.sql seed finished against dev
+  ↳ whole file re-run, no ON CONFLICT skip · 94 KB in 9 MCP chunks, BEGIN/COMMIT dropped · 18 read-back assertions · units_stray = 0, seed_units_trg trap · GHS 150/100/600/free packaging · docs split across two unmerged branches
 - 2026-08-01 — the tutor pitch: sample programmes, demo accounts, one real bug
+  ↳ dual-role RLS listing bug, student-actions.ts · flagship / crash-course / entry-paths / maternity seeds · 18 demo students, Steven + Claudia Harris logins · attendance not keyed to enrolment · seed_units_trg random ids · item_stats_enabled false
 - 2026-08-01 — runner-mobile arc finishes its phone work: slices 6 and 8
+  ↳ local main six commits behind origin · results popup stays centred, not a sheet · calcOpen stays source of truth · phoneSheet coach steps · coach card -179px !important · ring placed on animationend · avatar bug was NEXTJS-PORTAL
 
 ## 2026-07 — [sessions/2026-07.md](sessions/2026-07.md)
 
