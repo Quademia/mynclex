@@ -386,7 +386,7 @@ copy of the session log.
 - ✅ 7-day bank trial: zero-cost BANK_TRIAL order, guest + signed-in grant, two guards — 2026-09-04
 - ⬜ Student buying more access (needs a price)
 - ⬜ Admin-grant enrolment path
-- ⬜ Lapsed access says nothing: trial, paid and never-bought share one wall; `BankAccess` carries no reason
+- ✅ Lapsed access says what ended: `BankAccess.reason` + `endedAt`, wall + picker rail — 2026-09-04
 - ⬜ Retry path for any order stranded by a failed `/welcome` activation (trials have one; other purposes do not)
 - ⏸ Per-student schedule control (due-date editing) — parked 2026-06-12
 
@@ -485,6 +485,7 @@ copy of the session log.
 - ⬜ Which Paystack account MyNclex prod uses; live `PAYSTACK_SECRET_KEY` on the prod Worker
 - ⬜ Legal pages in force once the company exists
 - ⬜ Brand logo on the Google consent screen, auth templates, Workspace avatar
+- ⬜ Turnstile fails intermittently on real connections; dev's always-pass keys hide it — watch `nclex_auth_events`
 - ⏸ 7 Cross-product SSO — parked
 
 ### [transactional-email.md](docs/product-plan/transactional-email.md)
@@ -506,8 +507,7 @@ copy of the session log.
 - ⬜ `session.rescheduled`, `session.cancelled`, `session.recording_available`
 - ⬜ `enquiry.received`, `enquiry.replied`
 - ⬜ `account.welcome`, `progress.milestone`, `curriculum.content_released`
-- ⬜ Dev-sent email links point at prod: `APP_ORIGIN` literal in 4 files, no env var reaches it
-- ⬜ `NEXT_PUBLIC_SITE_URL` unset in all 3 places, so 6 tutor-email URL builders fall back to prod
+- ✅ An email links to the site that sent it: `appOrigin()`, 23 sites, `APP_ORIGIN` per env — 2026-09-04
 - ✖ `enrolment.confirmed` — folded into `payment.received`
 - ✖ `tutor.invited` — retired for the `SET_UP` dial
 

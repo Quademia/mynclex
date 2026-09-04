@@ -331,6 +331,32 @@ of the day it was found is in `sessions/` under the date given.
   build step carries no `--env prod`). To check a deployed environment,
   grep the served chunk for the literal value. (2026-08-08)
 
+- **Server-side config is a PLAIN env var, not `NEXT_PUBLIC_*` — and it
+  must be read inside a function.** If a value never reaches the browser,
+  giving it a `NEXT_PUBLIC_` name buys nothing and costs the three-places
+  rule above; a plain name is read at runtime, so it lives in `.env.local`
+  + `wrangler.jsonc` (**both** the dev block and `env.prod`) and needs no
+  build-step entry and no rebuild to change. ⚠⚠ **Never read
+  `process.env` at module scope.** Under OpenNext on Workers it binds
+  per-request, so a module-load read can freeze `undefined` in for the
+  life of the isolate — the same hazard as the module-scope Supabase
+  client in rule #4. Reference: `appOrigin()` in
+  `lib/email/templates/wrapper.ts`. ⭐ Give the fallback the PROD value,
+  so an unset variable degrades to the old behaviour rather than to a
+  broken link. ⚠ A constant built *from* such a value is the same bug
+  wearing a hat (`footer.ts` `const APP`, `tutor-notice.ts`
+  `const CTA_HREF`) — grep for those when making any config dynamic.
+  (2026-09-04)
+
+- **An email links to the site that sent it.** `appOrigin()` is the one
+  answer to "what is our address" for anything a reader will click; do
+  not re-type the literal. Dev mail points at dev, local at localhost,
+  prod unchanged. ⚠ The dev Worker only picks up a `wrangler.jsonc`
+  change **on the next deploy**, which is any push to `main`. ⚠ Invite
+  and reset links minted from a laptop now follow `APP_ORIGIN` too, so
+  **do tutor invites from the dev site, not localhost**, or the recipient
+  gets a link only you can open. (2026-09-04)
+
 - **A Cloudflare dashboard "Variable" is deleted by the next deploy.
   Server-side values are encrypted SECRETS.** `wrangler deploy` sets the
   Worker's plaintext variables to exactly what `wrangler.jsonc` declares.

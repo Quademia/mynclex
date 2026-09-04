@@ -38,6 +38,9 @@ extraction rule in CLAUDE.md.
 
 ## 2026-09 — [sessions/2026-09.md](sessions/2026-09.md)
 
+- 2026-09-04 (later) — the wall that could not say what ended, and the email that sent a tutor to the wrong website
+  - ↳ BankAccess.reason LAPSED_TRIAL/PAID/NEVER · sweep 4c → EXPIRED · #fca5a5 not --danger · appOrigin 23 sites · APP_ORIGIN not NEXT_PUBLIC_ · module-scope env freeze · 18 prod attempts · setup link unified · turnstile dev keys hide it
+
 - 2026-09-04 — the 7-day bank trial goes live: an order that cost nothing, reusing the paid flow whole; plus the second dispatch that refused it
   - ↳ BANK_TRIAL purpose · channel NONE · zero-cost order, no new table · PRODUCT_PURPOSES router missed · one trial EVER, two indexes · TRIAL_OVERLAY not new framing keys · /register grants nothing · trial1 stranded
 

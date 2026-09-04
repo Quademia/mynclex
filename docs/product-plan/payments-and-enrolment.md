@@ -762,6 +762,46 @@ activation for an existing unclaimed order and reads back whether it
 granted — the only retry path that exists. **Other purposes still have
 none.** Migration `20260924120000`.
 
+### ✅ BUILD NOTE — lapsed access says what ended (2026-09-04)
+
+`bankAccessForUser` filtered to passes that are **still valid**, so the one
+row that explains a refusal was precisely the row it excluded. "No access"
+was a single `active: false` shared by three different people:
+
+| Who | What they saw |
+|---|---|
+| trial just ended — 7 days in the bank, the warmest lead there is | "Get access" |
+| paid pass lapsed — a returning customer | "Get access" |
+| never bought anything, ever | "Get access" |
+
+The wall hedged to match — *"Your access may have expired, or you don't
+have a pass yet"* — because nothing below it knew which. And the picker's
+bank rail simply **went silent**: "7 days left" one morning, a blank space
+the next, with no sentence anywhere saying it had ended.
+
+**Now:** a second query, run **only** when the first comes back empty, for
+the most recent bank pass that has already ended. `BankAccess` gains
+`reason` (`ACTIVE` / `LAPSED_TRIAL` / `LAPSED_PAID` / `NEVER`) and
+`endedAt`, so the wall states a date and the rail keeps a line.
+
+- ⭐ **Ordered `end_at DESC` — the last pass to end wins.** Trial → paid →
+  lapsed reads as `LAPSED_PAID`, because the paid pass is the access she
+  actually lost (Sam's ruling).
+- ⚠ **Accepts `ACTIVE`-with-a-past-`end_at` AND `EXPIRED`.** Which one a
+  lapsed row is depends only on whether the nightly sweep (step 4c of
+  `nclex_enrolment_nightly_sweep`) has run since. `REVOKED` is excluded —
+  a refund is not an expiry, and "your access ended on the 9th" is the
+  wrong sentence for money we gave back.
+- ⓘ **Additive and free on the happy path.** `active` keeps its meaning,
+  no existing caller changed, and a student who has access never pays for
+  the second query.
+- ⓘ No migration: every fact was already in `nclex_subscriptions`.
+
+⬜ **The other half is still open** — a trial that ends while the student
+is away still reaches them in total silence. See the bank subscription
+expiry emails in `transactional-email.md`; Sam has reserved that for its
+own session because the copy is a resubscription magnet, not a notice.
+
 ### Post-payment experience (paid path)
 
 **1. Welcome email.** Sent immediately on activation via a MyNclex
