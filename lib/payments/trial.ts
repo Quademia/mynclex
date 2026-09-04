@@ -175,7 +175,24 @@ export async function startTrial(emailInput: string): Promise<StartTrialResult> 
 
   if (priorOrder) {
     if (priorOrder.status === 'SETUP_REQUIRED') {
+      // Re-run activation. Two things can happen, and which one is not ours
+      // to guess: if the account now EXISTS (they finished /welcome, or made
+      // one another way since), this grants on the spot; if it still does
+      // not, it re-queues the setup email and nothing else.
       await activatePendingForEmail(email);
+
+      // ⭐ So ask the database what actually happened rather than assuming.
+      // Telling someone to "check your email" when they are signed in and
+      // just been granted is a dead end — the pass is already theirs.
+      //
+      // ⚠ This is also the ONLY route back for an order that was written
+      // but never granted. /welcome calls activation once and is a one-time
+      // link, so before this branch a failure there stranded the order with
+      // no way to retry — which is exactly what a missing purpose in
+      // PRODUCT_PURPOSES did on 2026-09-04.
+      if (user && (await hasSpentTrial(admin, user.id))) {
+        return { ok: true, outcome: 'ACTIVATED' };
+      }
       return { ok: true, outcome: 'ALREADY_SENT' };
     }
     return { ok: false, reason: 'already_used' };

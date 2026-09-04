@@ -31,6 +31,7 @@ import { planActivationGrants } from './readiness-mint';
 import { sendPaymentReceipt } from './result';
 import { sendTutorPaymentNotice } from './tutor-notice';
 import type { FrozenStrategySnapshot } from '@/lib/strategies/types';
+import type { PaymentPurpose } from './types';
 
 type AdminClient = ReturnType<typeof createServiceRoleClient>;
 
@@ -40,7 +41,11 @@ type PaymentRow = {
   checkout_group_id: string;
   user_id: string | null;
   email: string;
-  purpose: string;
+  // Typed to the union, not `string` (2026-09-04). The Supabase client here
+  // is untyped, so this is an assertion about a column the database checks —
+  // but it makes PRODUCT_PURPOSES below a checked list rather than a bag of
+  // strings, which is what let BANK_TRIAL be omitted from it silently.
+  purpose: PaymentPurpose;
   product_id: string | null;
   programme_id: string | null;
   cohort_id: string | null;
@@ -74,7 +79,22 @@ const PAYMENT_COLS =
 // or both is decided from the product (planActivationGrants), not from
 // this list — so READINESS_PURCHASE belongs here (it must be handled and
 // minted) yet grants no subscription, its pack_type isn't BANK_DURATION.
-const PRODUCT_PURPOSES = ['BANK_PURCHASE', 'READINESS_PURCHASE', 'BANK_OPTIN_AT_PROGRAMME'];
+//
+// ⚠⚠ THIS LIST IS THE ROUTER, AND IT IS A PLAIN string[]. A purpose absent
+// from it reaches grantAndActivateRow and returns "This payment type is not
+// handled yet" — a refusal, not a crash, so the payment sits SETUP_REQUIRED
+// with no grant and the only trace is one console line. Widening
+// PaymentPurpose does NOT flag the omission: nothing here is typed against
+// it. BANK_TRIAL was added on 2026-09-04 having been missed exactly this way
+// — the `source` ternary below looked like the whole of the trial's grant,
+// and this second dispatch upstream decides whether that ternary is ever
+// reached. Any new purpose goes in BOTH places.
+const PRODUCT_PURPOSES: PaymentPurpose[] = [
+  'BANK_PURCHASE',
+  'READINESS_PURCHASE',
+  'BANK_OPTIN_AT_PROGRAMME',
+  'BANK_TRIAL',
+];
 
 // Enrolment statuses that count as "already actively enrolled" — must
 // match the partial unique indexes on nclex_enrolments.
