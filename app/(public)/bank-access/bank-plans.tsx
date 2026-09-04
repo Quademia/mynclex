@@ -50,11 +50,17 @@ function Tick() {
 export function BankPlans({
   plans,
   initialCurrency = 'GHS',
+  trialDays = null,
+  trialProductId = null,
 }: {
   plans: BankPlan[];
   /** Server-chosen starting currency (from the visitor's country). The
    *  toggle still overrides it; defaults to GHS if a caller omits it. */
   initialCurrency?: Currency;
+  /** The live trial's length, or null when the catalogue offers none. */
+  trialDays?: number | null;
+  /** The live trial's slug, or null. Both null together, or both set. */
+  trialProductId?: string | null;
 }) {
   const [currency, setCurrency] = useState<Currency>(initialCurrency);
 
@@ -104,14 +110,28 @@ export function BankPlans({
         })}
       </div>
 
-      <div className="bkc-trial bkc-reveal">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d7d72" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 7v5l3 2" />
-        </svg>
-        <div className="bkc-trial-text"><strong>Not sure yet?</strong> Try the bank free for 7 days — no card needed.</div>
-        <button type="button" className="bkc-trial-btn" disabled>Start free trial</button>
-      </div>
+      {/* ⭐ LIVE SINCE 2026-09-04. This strip shipped with a `disabled` button
+          and stood that way while the landing page promised seven free days in
+          four places — the page's loudest claim, wired to nothing. It now
+          links to the real trial, and the whole strip disappears when the
+          catalogue holds no active trial rather than advertising a dead end. */}
+      {trialDays && trialProductId && (
+        <div className="bkc-trial bkc-reveal">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d7d72" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" />
+          </svg>
+          <div className="bkc-trial-text">
+            <strong>Not sure yet?</strong> Try the bank free for {trialDays} days — no card needed.
+          </div>
+          <Link
+            className="bkc-trial-btn"
+            href={`/checkout/bank?product=${trialProductId}&currency=${currency}`}
+          >
+            Start free trial
+          </Link>
+        </div>
+      )}
       <p className="bkc-stack-note">
         Already have bank access? Any new duration <strong>stacks</strong> on top of what&apos;s left — you never lose time.
       </p>

@@ -65,18 +65,46 @@ export function CheckoutShell({
   validate,
   steps,
   children,
+  submit,
+  payLabel,
+  totalLabel,
+  detailsNote,
 }: {
   accountEmail: string | null;
   currency: Currency;
   lineItems: OrderLine[];
   railHint: string;
   nextSteps: ReactNode;
-  buildTarget: () => CheckoutTarget;
+  buildTarget?: () => CheckoutTarget;
   validate?: () => string | null;
   // Wizard layout: the product's content steps. When omitted, the shell
   // renders `children` as the legacy stacked layout instead.
   steps?: CheckoutStep[];
   children?: ReactNode;
+  /**
+   * ⭐ AN ORDER THAT TAKES NO MONEY (2026-09-04, the free trial). When
+   * given, this replaces the Paystack call at the end of pay() and
+   * NOTHING else changes — the email field, the dup-check, the rail, the
+   * disabled-until-ready gating and the mobile bar are all the parts a
+   * free order needs exactly as much as a paid one.
+   *
+   * ⚠ Everything ABOVE the handoff still runs, including the duplicate
+   * check. That is not an oversight: an address that already has an
+   * account must log in first for a trial too, or the grant lands on an
+   * order whose email resolves to someone already holding one.
+   *
+   * Return `redirectTo` to navigate, or omit it to stay put — a guest
+   * starting a trial has nowhere to go; the page speaks instead.
+   */
+  submit?: (
+    email: string
+  ) => Promise<{ ok: true; redirectTo?: string } | { ok: false; error: string }>;
+  /** Rail + mobile-bar button. Defaults to the Paystack wording. */
+  payLabel?: string;
+  /** The amount's caption. "Pay today" is a lie on a free order. */
+  totalLabel?: string;
+  /** The "Your details" blurb, which names Paystack by default. */
+  detailsNote?: ReactNode;
 }) {
   const [email, setEmail] = useState(accountEmail ?? '');
   const [dupExists, setDupExists] = useState(false);
@@ -181,6 +209,23 @@ export function CheckoutShell({
         }
       }
 
+      // A no-money order (the free trial) hands off here instead. Everything
+      // above — validation, the dup-check, the re-check — has already run.
+      if (submit) {
+        const res = await submit(value);
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
+        if (res.redirectTo) window.location.href = res.redirectTo;
+        return;
+      }
+
+      if (!buildTarget) {
+        setError('This checkout is not configured to take a payment.');
+        return;
+      }
+
       const res = await startPaymentAction({ email: value, target: buildTarget() });
       if (!res.ok) {
         setError(res.error);
@@ -196,8 +241,12 @@ export function CheckoutShell({
     <section className="co-card">
       <h2>Your details</h2>
       <p className="co-card-desc">
-        We check this email against existing accounts <em>before</em> Paystack — so returning
-        students log in instead of paying as guests.
+        {detailsNote ?? (
+          <>
+            We check this email against existing accounts <em>before</em> Paystack — so returning
+            students log in instead of paying as guests.
+          </>
+        )}
       </p>
 
       <label className="co-field">
@@ -336,7 +385,7 @@ export function CheckoutShell({
           ))}
 
           <div className="co-total">
-            <div className="lbl">Pay today</div>
+            <div className="lbl">{totalLabel ?? 'Pay today'}</div>
             <div className="v">{money(totalMinor, currency)}</div>
           </div>
           <p className="co-rail-hint">{railHint}</p>
@@ -347,7 +396,7 @@ export function CheckoutShell({
             onClick={pay}
             disabled={pending || !canPay}
           >
-            {pending ? 'Starting…' : 'Pay with Paystack →'}
+            {pending ? 'Starting…' : (payLabel ?? 'Pay with Paystack →')}
           </button>
           {!pending && !canPay && payBlockedReason && (
             <p className="co-pay-hint">{payBlockedReason}</p>
@@ -367,7 +416,9 @@ export function CheckoutShell({
         <div className="co-mobile-bar">
           <div className="co-mobile-total">
             <span className="lbl">
-              {!canPay && safeActive === lastIdx && payBlockedReason ? payBlockedReason : 'Pay today'}
+              {!canPay && safeActive === lastIdx && payBlockedReason
+                ? payBlockedReason
+                : (totalLabel ?? 'Pay today')}
             </span>
             <span className="v">{money(totalMinor, currency)}</span>
           </div>
@@ -386,7 +437,7 @@ export function CheckoutShell({
               onClick={pay}
               disabled={pending || !canPay}
             >
-              {pending ? 'Starting…' : 'Pay with Paystack →'}
+              {pending ? 'Starting…' : (payLabel ?? 'Pay with Paystack →')}
             </button>
           )}
         </div>

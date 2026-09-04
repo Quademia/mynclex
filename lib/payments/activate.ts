@@ -124,7 +124,17 @@ async function insertBankSubscriptionOnce(
       ? new Date(Date.now() + product.duration_days * 86_400_000).toISOString()
       : null;
 
-  const source = payment.purpose === 'BANK_OPTIN_AT_PROGRAMME' ? 'PROGRAMME_OPTIN' : 'SELF_PURCHASE';
+  // How the pass was ACQUIRED — not what it grants. A trial is an ordinary
+  // BANK_DURATION pass that cost nothing (20260724120000), so `source` is the
+  // only thing that distinguishes it, and this ternary is the whole of the
+  // trial's grant path: expiry already computes from duration_days below, and
+  // cat_allowance already snapshots. (2026-09-04)
+  const source =
+    payment.purpose === 'BANK_OPTIN_AT_PROGRAMME'
+      ? 'PROGRAMME_OPTIN'
+      : payment.purpose === 'BANK_TRIAL'
+        ? 'SELF_TRIAL_SIGNUP'
+        : 'SELF_PURCHASE';
 
   const { error: insErr } = await admin.from('nclex_subscriptions').insert({
     user_id: userId,

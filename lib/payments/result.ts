@@ -104,6 +104,9 @@ const BANK_PURPOSES: PaymentPurpose[] = [
   'BANK_PURCHASE',
   'READINESS_PURCHASE',
   'BANK_OPTIN_AT_PROGRAMME',
+  // A trial lands in the same place a bought pass does — the bank. Without
+  // this the receipt's button falls through to no destination at all.
+  'BANK_TRIAL',
 ];
 
 export async function getPaymentReceipt(reference: string): Promise<PaymentReceipt | null> {
@@ -428,7 +431,15 @@ export async function buildPaymentReceiptEmail(
     // Bank passes: the end date lives on the subscription, which only
     // exists once activation has run.
     const bankPaymentIds = rows
-      .filter((r) => r.purpose === 'BANK_PURCHASE' || r.purpose === 'BANK_OPTIN_AT_PROGRAMME')
+      .filter(
+        (r) =>
+          r.purpose === 'BANK_PURCHASE' ||
+          r.purpose === 'BANK_OPTIN_AT_PROGRAMME' ||
+          // The trial writes an ordinary BANK_DURATION subscription, so the
+          // same read produces its end date — "Bank access until 11 September
+          // 2026", the one sentence a trial email most needs to carry.
+          r.purpose === 'BANK_TRIAL'
+      )
       .map((r) => r.payment_id);
     if (bankPaymentIds.length) {
       const { data: subs } = await admin
@@ -671,6 +682,12 @@ export async function buildPaymentReceiptEmail(
           ? `${APP_ORIGIN}${receipt.destinationHref}`
           : null,
       ctaLabel: setUpCta ? 'Set up your account' : showCta ? receipt.destinationLabel : null,
+      // ⭐ `every`, not `some`: a trial is written as a standalone order and
+      // can never share a checkout group with something bought, so the whole
+      // email is either a trial or it isn't. If that ever stopped being true
+      // the mixed case would read as an ordinary receipt, which is the safe
+      // way round — it would understate, never claim a payment was free.
+      isTrial: rows.length > 0 && rows.every((r) => r.purpose === 'BANK_TRIAL'),
     },
   };
 }
