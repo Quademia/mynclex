@@ -386,7 +386,7 @@ copy of the session log.
 - ✅ 7-day bank trial: zero-cost BANK_TRIAL order, guest + signed-in grant, two guards — 2026-09-04
 - ⬜ Student buying more access (needs a price)
 - ⬜ Admin-grant enrolment path
-- ⬜ Trial-expiry email (a trial ending in silence is a wasted conversion)
+- ⬜ Lapsed access says nothing: trial, paid and never-bought share one wall; `BankAccess` carries no reason
 - ⬜ Retry path for any order stranded by a failed `/welcome` activation (trials have one; other purposes do not)
 - ⏸ Per-student schedule control (due-date editing) — parked 2026-06-12
 
@@ -501,11 +501,13 @@ copy of the session log.
 - ✅ `progress.inactivity_nudge` — 2026-08-24
 - ⬜ `payment.failed`
 - ⬜ `enrolment.paused` / `resumed` / `cancelled` (the fourth condition, 2026-09-01)
-- ⬜ 2e Bank / readiness subscription expiry email
+- ⬜ Bank subscription expiry emails — expiring + expired, trial and paid; conversion copy, own session
 - ⬜ `waitlist.joined`, `payment.grace_set`, `payment.refunded`
 - ⬜ `session.rescheduled`, `session.cancelled`, `session.recording_available`
 - ⬜ `enquiry.received`, `enquiry.replied`
 - ⬜ `account.welcome`, `progress.milestone`, `curriculum.content_released`
+- ⬜ Dev-sent email links point at prod: `APP_ORIGIN` literal in 4 files, no env var reaches it
+- ⬜ `NEXT_PUBLIC_SITE_URL` unset in all 3 places, so 6 tutor-email URL builders fall back to prod
 - ✖ `enrolment.confirmed` — folded into `payment.received`
 - ✖ `tutor.invited` — retired for the `SET_UP` dial
 
