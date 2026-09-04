@@ -29,17 +29,43 @@ export const SUPPORT_EMAIL = 'support@quademia.com';
 /**
  * Where a link in an email points.
  *
- * ⚠ ALWAYS PROD, even in mail sent from dev. There is no request behind
- * a scheduled send — the drain runs on a cron — so an origin cannot be
- * derived the way an invite link derives one. Pre-existing behaviour
- * (footer.ts carried the same literal); exported here in slice 1b so the
- * reminder templates reuse it rather than adding a third copy.
+ * ⭐ THIS WAS A HARDCODED PROD LITERAL UNTIL 2026-09-04, and the reasoning
+ * on it was half right. The old note said: there is no request behind a
+ * scheduled send — the drain runs on a cron — so an origin cannot be
+ * derived the way an invite link derives one. True, and it does rule out
+ * headers(). It does NOT follow that the origin is unknowable: the
+ * templates render INSIDE THE WORKER (that is the whole reason
+ * app/cron/email-drain/route.ts exists — pg_cron cannot execute a .ts
+ * template), and a Worker with no visitor in front of it still knows
+ * perfectly well which deployment it is. It just has to be told once.
  *
- * ⓘ Consequence for testing: a button in a dev test email lands on prod,
- * where the enrolment does not exist. Fine for checking wording; not a
- * way to test the checkout it points at.
+ * ⚠⚠ WHAT IT COST. On 2026-09-04 a tutor being pitched followed the
+ * buttons in five emails sent from dev, landed on PROD where his account
+ * did not exist, and spent 34 minutes there: 18 failed sign-ins and three
+ * password resets that could never arrive (the reset form says "check your
+ * email" whether or not an account exists, by design). He did nothing
+ * wrong — every link he clicked told him to go there.
+ *
+ * ⚠ A FUNCTION, NEVER A MODULE-SCOPE CONST. Under OpenNext on Workers
+ * process.env is bound per request; a value read at module load can run
+ * before the environment is attached and would freeze `undefined` into the
+ * isolate for its whole life. Same hazard as the repo's rule about never
+ * building a Supabase client at module scope. footer.ts and
+ * tutor-notice.ts both HAD such a const and were changed with this.
+ *
+ * ⓘ Server-side only, so deliberately NOT a NEXT_PUBLIC_* variable: those
+ * are inlined at build time and must be declared in three places (see the
+ * Known Workaround in CLAUDE.md). This one is read at runtime, so it lives
+ * in .env.local and wrangler.jsonc only — no build-step entry, no redeploy
+ * to change it. app/layout.tsx's metadataBase keeps NEXT_PUBLIC_SITE_URL
+ * because an OG tag genuinely is baked in at build.
+ *
+ * ⓘ The prod literal remains the fallback on purpose: an unset variable
+ * degrades to exactly the old behaviour rather than to a broken link.
  */
-export const APP_ORIGIN = 'https://nclex.quademia.com';
+export function appOrigin(): string {
+  return process.env.APP_ORIGIN ?? 'https://nclex.quademia.com';
+}
 
 /** Brand colours, mirrored from styles/tokens.css (see rule 1 above). */
 export const BRAND = {

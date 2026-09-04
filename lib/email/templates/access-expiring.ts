@@ -37,7 +37,7 @@
 // ⚠ Every non-literal value must go through esc().
 
 import type { AccessExpiringPayload, EmailTemplate } from '../types';
-import { APP_ORIGIN, BRAND, button, esc, factRow } from './wrapper';
+import { appOrigin, BRAND, button, esc, factRow } from './wrapper';
 
 // ⭐ "4 September", not "04/09/2026" — the audience spans GH, UK and CA,
 // where 04/09 reads as two different days. Same reasoning, same helper
@@ -101,7 +101,7 @@ function body(p: AccessExpiringPayload): string {
       )} can extend your access — just ask. You can also enrol again at any point.`
     : `If you would like more time, get in touch with us and we will sort it out. You can also enrol again at any point.`;
 
-  const href = `${APP_ORIGIN}/student/programme/${encodeURIComponent(
+  const href = `${appOrigin()}/student/programme/${encodeURIComponent(
     p.programmeId,
   )}/curriculum`;
 

@@ -16,6 +16,7 @@ import 'server-only';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { formatCohortName } from '@/lib/cohorts/format';
 import { formatMinor } from '@/lib/products/money';
+import { appOrigin } from '@/lib/email/templates/wrapper';
 import { enqueueAndSend } from '@/lib/email/send';
 import type { PaymentReceiptPayload, ReceiptFraming, ReceiptLineItem } from '@/lib/email/types';
 import { buildSchedule } from './schedule';
@@ -368,8 +369,6 @@ async function assembleReceipt(rows: Row[], ref: string): Promise<PaymentReceipt
 // true to say yet, and a bank pass genuinely has no end date because
 // end_at is computed AT activation.
 
-const APP_ORIGIN = 'https://nclex.quademia.com';
-
 function formatDueDate(d: Date): string {
   return d.toLocaleDateString('en-GB', {
     day: 'numeric',
@@ -679,7 +678,7 @@ export async function buildPaymentReceiptEmail(
       ctaHref: setUpCta
         ? (setUpUrl as string)
         : showCta
-          ? `${APP_ORIGIN}${receipt.destinationHref}`
+          ? `${appOrigin()}${receipt.destinationHref}`
           : null,
       ctaLabel: setUpCta ? 'Set up your account' : showCta ? receipt.destinationLabel : null,
       // ⭐ `every`, not `some`: a trial is written as a standalone order and

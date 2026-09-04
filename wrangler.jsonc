@@ -54,6 +54,18 @@
     // noreply@ because these are auto-generated. Replies are caught by
     // the Reply-To header (support@quademia.com) in lib/email/send.ts.
     "EMAIL_FROM": "MyNclex <noreply@quademia.com>",
+    // Where a link inside an email points (lib/email/templates/wrapper.ts
+    // → appOrigin). Until 2026-09-04 this was a literal typed into four
+    // files, so EVERY dev-sent email pointed at prod — a tutor being
+    // pitched followed those buttons to the live site, where his account
+    // did not exist, and spent 34 minutes failing to sign in.
+    //
+    // ⓘ Deliberately NOT a NEXT_PUBLIC_* name. It is read server-side at
+    // RUNTIME, so unlike the three variables above it needs no entry in
+    // the build step's env: block in either deploy workflow, and changing
+    // it needs no rebuild. Set once per environment; unset falls back to
+    // the prod literal, which is the old behaviour rather than a break.
+    "APP_ORIGIN": "https://mynclex-dev.mybackpacc.workers.dev",
     "NEXT_PUBLIC_SUPABASE_URL": "https://xkqxfzfsllxyxpdtcrja.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrcXhmemZzbGx4eXhwZHRjcmphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjk4ODYsImV4cCI6MjA5MjgwNTg4Nn0.yRC-HClidhjdUELZETOo9ndyKzzkV7k6Dn_QlyCjx9E",
     // Turnstile site key — public by design, it ships to every browser
@@ -171,7 +183,15 @@
         // set there before this deploys, or Turnstile is off in prod.
         "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAEKcS2eMshf8RS_u",
         // Same value as dev, on purpose — see the note on the dev copy.
-        "EMAIL_FROM": "MyNclex <noreply@quademia.com>"
+        "EMAIL_FROM": "MyNclex <noreply@quademia.com>",
+        // ⚠ Same value as the fallback in appOrigin() — that is the point.
+        // Prod's behaviour is UNCHANGED by the 2026-09-04 origin work; only
+        // dev and localhost stop lying. Stated here so a future reader does
+        // not "tidy away" a variable that looks redundant: the day this
+        // Worker answers on a different hostname, this line is the one
+        // place that has to change, and silence here would send every
+        // customer to the old domain.
+        "APP_ORIGIN": "https://nclex.quademia.com"
       }
     }
   }

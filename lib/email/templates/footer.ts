@@ -16,10 +16,15 @@
 // need their own footer with a real preference link; that is the point
 // to split this file, not before.
 
-import { APP_ORIGIN, BRAND, SUPPORT_EMAIL, esc } from './wrapper';
+import { appOrigin, BRAND, SUPPORT_EMAIL, esc } from './wrapper';
 
 const SITE = 'https://quademia.com';
-const APP = APP_ORIGIN;
+
+// ⚠ `const APP = APP_ORIGIN` used to sit here, and this footer is on EVERY
+// email — so it was the single most-followed wrong link in the product
+// (2026-09-04). It is now read per render, not at module load: see the
+// module-scope warning on appOrigin(). SITE stays a literal because
+// quademia.com is the marketing site and has no per-environment twin.
 
 /**
  * @param context One line saying why this email reached them. Required —
@@ -42,7 +47,7 @@ export function footer(context: string): string {
       <a href="mailto:${SUPPORT_EMAIL}" style="color:${BRAND.accent};text-decoration:none;">${SUPPORT_EMAIL}</a>.
     </p>
     <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:12px;color:${BRAND.muted};">
-      <a href="${APP}" style="color:${BRAND.muted};text-decoration:underline;">MyNclex</a>
+      <a href="${appOrigin()}" style="color:${BRAND.muted};text-decoration:underline;">MyNclex</a>
       &nbsp;·&nbsp;
       <a href="${SITE}" style="color:${BRAND.muted};text-decoration:underline;">Quademia</a>
     </p>`;

@@ -24,7 +24,7 @@
 // ⚠ Every non-literal value must go through esc().
 
 import type { AccessExpiredPayload, EmailTemplate } from '../types';
-import { APP_ORIGIN, BRAND, button, esc, factRow } from './wrapper';
+import { appOrigin, BRAND, button, esc, factRow } from './wrapper';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -59,7 +59,7 @@ function body(p: AccessExpiredPayload): string {
       )} can give you more time — just ask. Enrolling again also works.`
     : `If you would still like to finish it, get in touch with us and we will sort it out. Enrolling again also works.`;
 
-  const href = `${APP_ORIGIN}/programmes/${encodeURIComponent(p.programmeId)}`;
+  const href = `${appOrigin()}/programmes/${encodeURIComponent(p.programmeId)}`;
 
   return `
     <p style="margin:0 0 8px;font-family:Helvetica,Arial,sans-serif;font-size:15px;

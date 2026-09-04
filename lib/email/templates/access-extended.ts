@@ -36,7 +36,7 @@
 // ⚠ Every non-literal value must go through esc().
 
 import type { AccessExtendedPayload, EmailTemplate } from '../types';
-import { APP_ORIGIN, BRAND, button, esc, factRow } from './wrapper';
+import { appOrigin, BRAND, button, esc, factRow } from './wrapper';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -68,7 +68,7 @@ function body(p: AccessExtendedPayload): string {
     ? `${tutor} has reopened your access to <strong>${title}</strong>. It had ended, and it is now live again until <strong>${until}</strong>.`
     : `${tutor} has given you more time on <strong>${title}</strong>. Your access now runs until <strong>${until}</strong>.`;
 
-  const href = `${APP_ORIGIN}/student/programme/${encodeURIComponent(
+  const href = `${appOrigin()}/student/programme/${encodeURIComponent(
     p.programmeId,
   )}/curriculum`;
 

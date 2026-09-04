@@ -21,7 +21,7 @@
 import 'server-only';
 import { formatCohortName } from '@/lib/cohorts/format';
 import { enqueueAndSend } from '@/lib/email/send';
-import { APP_ORIGIN } from '@/lib/email/templates/wrapper';
+import { appOrigin } from '@/lib/email/templates/wrapper';
 import type { EnrolmentApprovedPayload, EnrolmentRejectedPayload } from '@/lib/email/types';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
@@ -68,8 +68,8 @@ export async function sendEnrolmentApprovedEmail(enrolmentId: string): Promise<v
       // Mirrors the receipt's own destination logic: the cohort when
       // there is one, else the programme.
       actionUrl: f.cohortId
-        ? `${APP_ORIGIN}/student/cohort/${f.cohortId}`
-        : `${APP_ORIGIN}/student/programme/${f.programmeId}`,
+        ? `${appOrigin()}/student/cohort/${f.cohortId}`
+        : `${appOrigin()}/student/programme/${f.programmeId}`,
       actionLabel: f.cohortId ? 'Go to your cohort' : 'Go to your programme',
     };
 
