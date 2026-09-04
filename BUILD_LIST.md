@@ -383,10 +383,12 @@ copy of the session log.
 - ✅ Payment result screen + approve-confirm + `payment_gates_access` toggle — 2026-06-24
 - ✅ Global `/tutor/enquiries`; universal "Contact the tutor" — 2026-06-25
 - ✅ Access window speaks + tutor Extend access + roster Access column — 2026-08-24
+- ✅ 7-day bank trial: zero-cost BANK_TRIAL order, guest + signed-in grant, two guards — 2026-09-04
 - ⬜ Student buying more access (needs a price)
 - ⬜ Admin-grant enrolment path
+- ⬜ Trial-expiry email (a trial ending in silence is a wasted conversion)
+- ⬜ Retry path for any order stranded by a failed `/welcome` activation (trials have one; other purposes do not)
 - ⏸ Per-student schedule control (due-date editing) — parked 2026-06-12
-- ✖ Trial — removed by design 2026-09-01 (Starter's 10 seats replace it)
 
 ## Library
 
@@ -535,6 +537,7 @@ copy of the session log.
 - ⬜ §12/3 Setup-credit ledger + balance + request form
 - ⬜ §12/4 On-platform capability + seat check in `startPayment`
 - ⬜ §7 On-platform payments capability: subaccounts, approval surface
+- ✖ Tutor 30-day trial — removed by design 2026-09-01 (Starter's 10 seats replace it)
 - ⏸ Partner tier — trigger: three or more tutors holding the capability at Academy's band
 - ⏸ Payment splits / marketplace billing — deferred; we stay merchant of record otherwise
 

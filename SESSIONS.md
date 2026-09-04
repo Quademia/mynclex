@@ -38,6 +38,9 @@ extraction rule in CLAUDE.md.
 
 ## 2026-09 — [sessions/2026-09.md](sessions/2026-09.md)
 
+- 2026-09-04 — the 7-day bank trial goes live: an order that cost nothing, reusing the paid flow whole; plus the second dispatch that refused it
+  - ↳ BANK_TRIAL purpose · channel NONE · zero-cost order, no new table · PRODUCT_PURPOSES router missed · one trial EVER, two indexes · TRIAL_OVERLAY not new framing keys · /register grants nothing · trial1 stranded
+
 - 2026-09-03/04 — the record files: SESSIONS.md, BUILD_LIST.md and CLAUDE.md rebuilt to one purpose each. Docs only
   - ↳ one home per fact · index 414 KB → 30 KB, keyword lines · build list 373 → 31 KB, per plan doc, no next marker · CLAUDE.md 8k → 4.8k words · At-session-end checklist · status lives in git · six stale plan-doc ticks OPEN
 

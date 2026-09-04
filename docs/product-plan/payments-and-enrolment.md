@@ -691,7 +691,8 @@ misses the window, an admin re-sends the invite from the admin
 queue using Supabase's built-in resend — no custom token-refresh
 endpoint needed.
 
-**Trial card → sign-up-first flow:**
+**Trial card → sign-up-first flow** *(SUPERSEDED 2026-09-04 — see the
+build note below):*
 
 1. Student lands on the register page (MyNclex equivalent of
    Licensure's `register.html`).
@@ -704,6 +705,62 @@ endpoint needed.
    subscription with `source = 'SELF_TRIAL_SIGNUP'` (matching
    Licensure's convention).
 5. Logged in. Dashboard.
+
+### ✅ BUILD NOTE — the trial is an order that cost nothing (2026-09-04)
+
+Built, Sam-tested. The five steps above were **not** built, and the
+reason is worth keeping: they route the trial through `/register`, which
+Sam re-examined this session and found grants nothing —
+*"what are you registering for?"* Auto-assigning a trial there would
+also start the clock for everyone who registers for some other reason.
+
+**What ships instead: the trial is a `nclex_products` row that costs
+nothing, so it is also an ORDER that costs nothing.** It reuses the paid
+flow whole rather than running beside it.
+
+- The trial renders on the **existing `/checkout/bank`** page — same
+  chrome, same email field, same duplicate-account check (kept ON: an
+  address with an account must sign in, or the grant lands on an account
+  that may already hold a trial). Only the submit differs; no Paystack.
+- `lib/payments/trial.ts` writes a **`purpose = 'BANK_TRIAL'`** row,
+  already `PAID`, `amount_minor = 0`,
+  **`collection_channel = 'NONE'`** — nothing collected *by design*,
+  distinct from `OFF_PLATFORM`, which asserts money **was** collected,
+  just not by us. No `INIT`, no reference, no verify step.
+- It then calls `activatePendingForEmail`, and the existing engine
+  supplies both arrivals unchanged: **account exists → granted now**;
+  **guest → `/welcome` link, granted when they finish.** `/welcome`
+  needed no change at all.
+
+⭐ **A rejected design worth recording:** a separate
+`nclex_trial_requests` table with its own grant path, argued for on the
+belief that `nclex_payments` records MONEY. It does not — it already
+holds `INIT` (abandoned), `FAILED`, and `OFF_PLATFORM` rows, and has no
+amount>0 constraint. It is an **order ledger**, so a zero-priced order
+belongs in it, and the order row **is** the record of intent the extra
+table was invented to hold.
+
+⭐ **`BANK_TRIAL` is its own purpose, never `BANK_PURCHASE` at zero** —
+a trial recorded as a purchase reads as revenue in every report that
+does not check the amount.
+
+⭐ **The email is the existing receipt**, not a new template. Only the
+sentences that would be *false* are overridden (a `TRIAL_OVERLAY` beside
+`FRAMING`; the heading and the "Method" row). The amount stays `GHS
+0.00` — true, and dressing it up would be worse. It already prints
+"Bank access until &lt;date&gt;" off the subscription.
+
+⚠ **One trial EVER, not one ACTIVE trial**, guarded in two layers —
+unique on `lower(email)` where `purpose='BANK_TRIAL'`, and on
+`nclex_subscriptions(user_id)` where `source='SELF_TRIAL_SIGNUP'`.
+Neither filtered by status: otherwise the pass expires, the student asks
+again, and the bank is free forever.
+
+⚠ **`/welcome` activates once and its link is single-use**, so an order
+that fails to grant there is stranded for good. `startTrial` now re-runs
+activation for an existing unclaimed order and reads back whether it
+granted — the only retry path that exists. **Other purposes still have
+none.** Migration `20260924120000`.
 
 ### Post-payment experience (paid path)
 

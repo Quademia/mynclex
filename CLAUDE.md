@@ -390,6 +390,14 @@ of the day it was found is in `sessions/` under the date given.
   executing as the account (`set role authenticated` + JWT claim).
   ⚠ PostgREST has no `.eq()` until `.select()` has been called — the
   wrong order typechecks and fails at runtime. (2026-08-27)
+  ⚠ **An untyped ROUTING LIST is as silent as an untyped column.**
+  `PRODUCT_PURPOSES` in `lib/payments/activate.ts` was a plain
+  `string[]` gating which purposes reach the grant at all, so adding
+  `BANK_TRIAL` to `PaymentPurpose` raised no error and the trial was
+  refused with one console line and no grant. When adding a value to a
+  union, grep every list and `Record` that switches on it — and do not
+  trust a file's header narration of its own flow to be an inventory of
+  its branches. (2026-09-04)
 
 - **Production builds use webpack.** `build` and `cf:build` pass
   `--webpack`; `@opennextjs/cloudflare` 1.19.x cannot load Turbopack's
