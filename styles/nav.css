@@ -810,7 +810,12 @@
   position: relative;
   font-size: 13px;
   font-weight: 700;
-  color: #aab9cc;
+  /* ⚠ NOT var(--danger) (#dc2626). That red is tuned for dark-on-pale —
+     it is the text colour of .alert-error against #fef2f2 — and on this
+     navy gradient it drops to roughly 1.6:1 and reads as mud. This is the
+     same red lightened for a dark ground: ~5.9:1 on --primary, so it still
+     passes at 13px. (2026-09-04) */
+  color: #fca5a5;
   letter-spacing: 0.01em;
   margin-top: 14px;
 }
