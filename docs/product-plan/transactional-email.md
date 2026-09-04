@@ -440,6 +440,54 @@ value is a build error rather than a blank, there is no shared filler, and
 a `.ts` file is more intimidating to open than an `.html` one. `/admin/emails/preview`
 exists partly to soften that — every variant is visible without reading code.
 
+### ✅ BUILD NOTE — every link pointed at prod (fixed 2026-09-04)
+
+An email's links were built three different ways, and two of them ignored
+which environment had sent it:
+
+| How | Where | Result |
+|---|---|---|
+| `headers().get('origin')` | the setup / reset links only | ✅ followed the request |
+| `NEXT_PUBLIC_SITE_URL ?? prod` | 6 sites in `lib/tutors/actions.ts` | ❌ the variable was set **nowhere** — not `.env.local`, not `wrangler.jsonc`, not either workflow — so the fallback always ran |
+| a literal typed into 4 files | incl. `footer.ts`, i.e. **every email ever sent** | ❌ nothing could change it |
+
+The old justification was half right: a cron send has no request, so
+`headers()` is genuinely out. But the templates render **inside the
+Worker** — that is why `app/cron/email-drain/route.ts` exists at all,
+since pg_cron cannot execute a `.ts` template — and a Worker knows which
+deployment it is. It only had to be told once.
+
+⚠⚠ **The cost, on 2026-09-04.** A tutor being pitched followed the buttons
+in five emails sent from dev, landed on **prod** where his account does
+not exist, and spent 34 minutes there: 18 failed sign-ins and three
+password resets that could never arrive (the reset form says "check your
+email" whether or not an account exists — by design, and correct). Prod's
+`nclex_auth_events` holds all of it. He has not been back.
+
+**Now:** `appOrigin()` in `templates/wrapper.ts`, 23 call sites, reading
+`APP_ORIGIN` per environment and falling back to the prod literal, so an
+unset variable degrades to the old behaviour rather than to a broken link.
+
+- ⚠ **A function, never a module-scope const.** Under OpenNext on Workers
+  `process.env` binds per request, so a value read at module load can
+  freeze `undefined` in for the life of the isolate. `footer.ts`'s
+  `const APP` and `tutor-notice.ts`'s `const CTA_HREF` were both exactly
+  that; making the origin dynamic while leaving them would have baked in
+  the fallback and looked like it worked.
+- ⓘ **Deliberately not a `NEXT_PUBLIC_*` name.** Read server-side at
+  runtime, so it needs no entry in either workflow's build step and no
+  rebuild to change — sidestepping the three-places trap in CLAUDE.md.
+  `app/layout.tsx`'s `metadataBase` keeps `NEXT_PUBLIC_SITE_URL`, because
+  an OG tag genuinely is baked in at build.
+- ⭐ **The setup link joined them.** It read the request origin, justified
+  as *"or it is untestable on localhost"* — no longer true. That line is
+  what minted `redirect_to=http://localhost:3000/welcome` for the tutor
+  above: a link only the sender could open, inside an email whose every
+  other link went elsewhere. **One email can no longer hold two
+  addresses.**
+- ⓘ **Prod behaviour is unchanged.** Its `APP_ORIGIN` equals the fallback
+  on purpose, so the day the hostname moves there is one line to edit.
+
 ### Who writes the words
 
 **Sam does.** Claude builds the skeleton with placeholder wording; Sam

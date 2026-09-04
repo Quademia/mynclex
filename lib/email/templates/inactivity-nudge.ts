@@ -37,7 +37,7 @@
 // ⚠ Every non-literal value must go through esc().
 
 import type { EmailTemplate, InactivityNudgePayload } from '../types';
-import { APP_ORIGIN, BRAND, button, esc } from './wrapper';
+import { appOrigin, BRAND, button, esc } from './wrapper';
 
 function subject(p: InactivityNudgePayload): string {
   return p.reason === 'NOT_STARTED'
@@ -90,7 +90,7 @@ function body(p: InactivityNudgePayload): string {
          </p>`
       : '';
 
-  const href = `${APP_ORIGIN}/student/programme/${encodeURIComponent(
+  const href = `${appOrigin()}/student/programme/${encodeURIComponent(
     p.programmeId,
   )}/curriculum`;
 

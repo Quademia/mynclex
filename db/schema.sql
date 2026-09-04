@@ -1959,7 +1959,8 @@ CREATE TABLE nclex_payments (
   email                 TEXT NOT NULL,
   purpose               TEXT NOT NULL
                         CHECK (purpose IN ('BANK_PURCHASE','READINESS_PURCHASE',
-                          'PROGRAMME_INITIAL','PROGRAMME_INSTALLMENT','BANK_OPTIN_AT_PROGRAMME')),
+                          'PROGRAMME_INITIAL','PROGRAMME_INSTALLMENT','BANK_OPTIN_AT_PROGRAMME',
+                          'BANK_TRIAL')),  -- BANK_TRIAL: the free 7-day pass. Its own purpose, not BANK_PURCHASE at 0, so it never reads as revenue (20260924120000)
   product_id            TEXT REFERENCES nclex_products(product_id) ON DELETE RESTRICT,
   programme_id          UUID REFERENCES nclex_programmes(programme_id) ON DELETE RESTRICT,
   strategy_id           UUID REFERENCES nclex_programme_payment_strategies(strategy_id) ON DELETE RESTRICT,  -- FK added Slice 7a
@@ -1977,12 +1978,14 @@ CREATE TABLE nclex_payments (
   -- Reconciliation (Payments 7d follow-up, 2026-06-09): PAYSTACK = money into
   -- QAcademy via Paystack; OFF_PLATFORM = a tutor recorded a cash/transfer.
   -- recorded_by_user_id = the tutor who recorded an off-platform payment.
+  -- NONE (20260924120000) = nothing was collected BY DESIGN — the free trial.
+  -- Distinct from OFF_PLATFORM, which asserts money WAS collected, just not by us.
   collection_channel    TEXT NOT NULL DEFAULT 'PAYSTACK',
   recorded_by_user_id   UUID REFERENCES nclex_users(id) ON DELETE SET NULL,
   -- programme purposes carry a programme; bank/readiness carry a product
   CONSTRAINT nclex_payments_purpose_target CHECK (
     (purpose IN ('PROGRAMME_INITIAL','PROGRAMME_INSTALLMENT') AND programme_id IS NOT NULL AND product_id IS NULL)
-    OR (purpose IN ('BANK_PURCHASE','READINESS_PURCHASE','BANK_OPTIN_AT_PROGRAMME') AND product_id IS NOT NULL AND programme_id IS NULL)
+    OR (purpose IN ('BANK_PURCHASE','READINESS_PURCHASE','BANK_OPTIN_AT_PROGRAMME','BANK_TRIAL') AND product_id IS NOT NULL AND programme_id IS NULL)
   ),
   CONSTRAINT nclex_payments_programme_only_fields CHECK (
     purpose IN ('PROGRAMME_INITIAL','PROGRAMME_INSTALLMENT') OR (strategy_id IS NULL AND installment_index IS NULL)
@@ -1994,7 +1997,7 @@ CREATE TABLE nclex_payments (
     cohort_id IS NULL OR purpose = 'PROGRAMME_INITIAL'
   ),
   CONSTRAINT nclex_payments_collection_channel_check CHECK (
-    collection_channel IN ('PAYSTACK','OFF_PLATFORM')
+    collection_channel IN ('PAYSTACK','OFF_PLATFORM','NONE')
   ),
   CONSTRAINT nclex_payments_recorded_by_scope CHECK (
     recorded_by_user_id IS NULL OR collection_channel = 'OFF_PLATFORM'
@@ -2012,6 +2015,13 @@ CREATE UNIQUE INDEX idx_nclex_payments_one_settled_installment
   ON nclex_payments (enrolment_id, installment_index)
   WHERE purpose = 'PROGRAMME_INSTALLMENT' AND status IN ('PAID','ACTIVATED');
 CREATE INDEX idx_nclex_payments_channel ON nclex_payments (collection_channel);
+-- One trial per email, EVER (20260924120000). Not filtered by status: "one
+-- trial ever", not "one active trial" — otherwise the pass expires, the
+-- student asks again, and the bank is free forever. The order row doubles as
+-- the guard, which is why the trial needs no table of its own.
+CREATE UNIQUE INDEX idx_nclex_payments_one_trial_per_email
+  ON nclex_payments (lower(email))
+  WHERE purpose = 'BANK_TRIAL';
 
 -- nclex_subscriptions — bank + readiness entitlements only (programme
 -- access is the enrolment row). Stacks: new row per purchase, access = max(end_at).
@@ -2037,6 +2047,13 @@ CREATE INDEX idx_nclex_subscriptions_expiry ON nclex_subscriptions (end_at) WHER
 -- One subscription per payment (idempotent activation). Partial: trial /
 -- admin grants carry no payment_id. (migration 20260602120000)
 CREATE UNIQUE INDEX idx_nclex_subscriptions_payment ON nclex_subscriptions (payment_id) WHERE payment_id IS NOT NULL;
+-- One trial per ACCOUNT, ever (20260924120000). Layer 2 of the trial guard:
+-- layer 1 keys on the email (all a guest has), this one on the account once
+-- there is one — it catches the same person on a second address who lands,
+-- via Supabase's automatic identity linking, in an account already spent.
+CREATE UNIQUE INDEX idx_nclex_subscriptions_one_trial_per_user
+  ON nclex_subscriptions (user_id)
+  WHERE source = 'SELF_TRIAL_SIGNUP';
 
 
 -- nclex_readiness_credits — one row per readiness credit (§7). A credit

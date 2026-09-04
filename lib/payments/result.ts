@@ -16,6 +16,7 @@ import 'server-only';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { formatCohortName } from '@/lib/cohorts/format';
 import { formatMinor } from '@/lib/products/money';
+import { appOrigin } from '@/lib/email/templates/wrapper';
 import { enqueueAndSend } from '@/lib/email/send';
 import type { PaymentReceiptPayload, ReceiptFraming, ReceiptLineItem } from '@/lib/email/types';
 import { buildSchedule } from './schedule';
@@ -104,6 +105,9 @@ const BANK_PURPOSES: PaymentPurpose[] = [
   'BANK_PURCHASE',
   'READINESS_PURCHASE',
   'BANK_OPTIN_AT_PROGRAMME',
+  // A trial lands in the same place a bought pass does — the bank. Without
+  // this the receipt's button falls through to no destination at all.
+  'BANK_TRIAL',
 ];
 
 export async function getPaymentReceipt(reference: string): Promise<PaymentReceipt | null> {
@@ -365,8 +369,6 @@ async function assembleReceipt(rows: Row[], ref: string): Promise<PaymentReceipt
 // true to say yet, and a bank pass genuinely has no end date because
 // end_at is computed AT activation.
 
-const APP_ORIGIN = 'https://nclex.quademia.com';
-
 function formatDueDate(d: Date): string {
   return d.toLocaleDateString('en-GB', {
     day: 'numeric',
@@ -428,7 +430,15 @@ export async function buildPaymentReceiptEmail(
     // Bank passes: the end date lives on the subscription, which only
     // exists once activation has run.
     const bankPaymentIds = rows
-      .filter((r) => r.purpose === 'BANK_PURCHASE' || r.purpose === 'BANK_OPTIN_AT_PROGRAMME')
+      .filter(
+        (r) =>
+          r.purpose === 'BANK_PURCHASE' ||
+          r.purpose === 'BANK_OPTIN_AT_PROGRAMME' ||
+          // The trial writes an ordinary BANK_DURATION subscription, so the
+          // same read produces its end date — "Bank access until 11 September
+          // 2026", the one sentence a trial email most needs to carry.
+          r.purpose === 'BANK_TRIAL'
+      )
       .map((r) => r.payment_id);
     if (bankPaymentIds.length) {
       const { data: subs } = await admin
@@ -668,9 +678,15 @@ export async function buildPaymentReceiptEmail(
       ctaHref: setUpCta
         ? (setUpUrl as string)
         : showCta
-          ? `${APP_ORIGIN}${receipt.destinationHref}`
+          ? `${appOrigin()}${receipt.destinationHref}`
           : null,
       ctaLabel: setUpCta ? 'Set up your account' : showCta ? receipt.destinationLabel : null,
+      // ⭐ `every`, not `some`: a trial is written as a standalone order and
+      // can never share a checkout group with something bought, so the whole
+      // email is either a trial or it isn't. If that ever stopped being true
+      // the mixed case would read as an ordinary receipt, which is the safe
+      // way round — it would understate, never claim a payment was free.
+      isTrial: rows.length > 0 && rows.every((r) => r.purpose === 'BANK_TRIAL'),
     },
   };
 }

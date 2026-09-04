@@ -29,7 +29,12 @@ export const dynamic = 'force-dynamic';
 // question-card collage — warmth without displacing the product cards.
 const HERO_PHOTO = 'https://res.cloudinary.com/dbyufeays/image/upload/v1784117174/nurse_holding_books_myegne.jpg';
 
-const HERO_META = ['All NGN item types', 'Rationale on every question', 'Practice & exam modes', '7-day free trial'];
+// ⚠ The trial line is appended at render, from the catalogue — not listed
+// here. Until 2026-09-04 this array hardcoded "7-day free trial" while the
+// button under the plans was a disabled stub, so the page's loudest promise
+// was one the app could not keep. The rule now: nothing on this page mentions
+// a trial unless an active trial product exists to click through to.
+const HERO_META = ['All NGN item types', 'Rationale on every question', 'Practice & exam modes'];
 
 const FEATURES = [
   { n: '01', title: 'Every NGN item type', body: 'MCQ, SATA, matrix, cloze, drag-and-drop, bow-tie, highlight, ordering — the full Next-Gen format set, plus case studies and trend questions.', soon: false },
@@ -55,6 +60,26 @@ export default async function BankLandingPage() {
     .eq('status', 'ACTIVE')
     .order('sort_order', { ascending: true });
 
+  // The trial, read separately because it is deliberately NOT a plan card —
+  // it sits in its own strip under them. Read by kind, so retiring one trial
+  // and creating another needs no code change (the catalogue allows one at a
+  // time). Anon can see it: nclex_products_public_select is status-only.
+  //
+  // ⚠ Null is a real state, not an error — a catalogue with no active trial.
+  // Everything below treats it as "no trial on offer" and says nothing about
+  // seven free days, rather than advertising a door that would 404.
+  const { data: trial } = await supabase
+    .from('nclex_products')
+    .select('product_id, duration_days')
+    .eq('kind', 'TRIAL')
+    .eq('status', 'ACTIVE')
+    .maybeSingle();
+
+  const trialDays = trial?.duration_days ?? null;
+  const trialHref = trial
+    ? `/checkout/bank?product=${trial.product_id}&currency=${initialCurrency}`
+    : null;
+
   const plans: BankPlan[] = (products ?? []).map((p) => ({
     productId: p.product_id,
     days: p.duration_days ?? 0,
@@ -70,7 +95,9 @@ export default async function BankLandingPage() {
     { v: '100%', k: 'of questions carry a worked rationale' },
   ];
   if (plans.length > 0) stats.push({ v: String(plans.length), k: `durations — ${plans[0].days} to ${plans[plans.length - 1].days} days` });
-  stats.push({ v: '7 days', k: 'free trial — no card needed' });
+  if (trialDays) stats.push({ v: `${trialDays} days`, k: 'free trial — no card needed' });
+
+  const heroMeta = trialDays ? [...HERO_META, `${trialDays}-day free trial`] : HERO_META;
 
   return (
     <main className="bkc">
@@ -98,7 +125,7 @@ export default async function BankLandingPage() {
               <a className="bkc-btn bkc-btn-ghost" href="#builder">Try the builder</a>
             </div>
             <div className="bkc-hero-meta">
-              {HERO_META.map((m) => (
+              {heroMeta.map((m) => (
                 <span key={m}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2d7d72" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12l5 5L20 6" /></svg>
                   {m}
@@ -147,7 +174,12 @@ export default async function BankLandingPage() {
       </section>
 
       {/* ═══ PLANS (real purchasing surface) ═══ */}
-      <BankPlans plans={plans} initialCurrency={initialCurrency} />
+      <BankPlans
+        plans={plans}
+        initialCurrency={initialCurrency}
+        trialDays={trialDays}
+        trialProductId={trial?.product_id ?? null}
+      />
 
       {/* ═══ BUILDER DEMO (interactive sample) ═══ */}
       <BuilderDemo />
@@ -179,16 +211,34 @@ export default async function BankLandingPage() {
           <div className="bkc-cta-grid" />
           <div className="bkc-cta-copy">
             <h2>Start practising <span className="bkc-accent">today.</span></h2>
-            <p>Seven days free, no card needed. Then pick a duration — and if you buy more later, it stacks on what&apos;s left.</p>
+            <p>
+              {trialDays
+                ? `${trialDays} days free, no card needed. Then pick a duration — and if you buy more later, it stacks on what's left.`
+                : 'Pick a duration that fits your timeline — and if you buy more later, it stacks on what’s left.'}
+            </p>
             <div className="bkc-cta-ctas">
-              <a className="bkc-btn bkc-btn-primary bkc-cta-primary" href="#plans">Start free trial</a>
-              <a className="bkc-btn bkc-btn-ghost" href="#plans">See plans</a>
+              {/* ⚠ This used to be an anchor to #plans labelled "Start free
+                  trial" — the page's biggest promise scrolled you to the paid
+                  cards. It goes to the real trial now, or is not offered. */}
+              {trialHref && (
+                <a className="bkc-btn bkc-btn-primary bkc-cta-primary" href={trialHref}>
+                  Start free trial
+                </a>
+              )}
+              <a
+                className={`bkc-btn ${trialHref ? 'bkc-btn-ghost' : 'bkc-btn-primary bkc-cta-primary'}`}
+                href="#plans"
+              >
+                See plans
+              </a>
             </div>
           </div>
-          <div className="bkc-cta-fig">
-            <div className="v">7 days</div>
-            <div className="k">free · no card needed</div>
-          </div>
+          {trialDays && (
+            <div className="bkc-cta-fig">
+              <div className="v">{trialDays} days</div>
+              <div className="k">free · no card needed</div>
+            </div>
+          )}
         </div>
         <p className="bkc-trust">Secured by Paystack · pay by card or mobile money · GHS &amp; international cards accepted.</p>
       </section>

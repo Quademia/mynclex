@@ -1,6 +1,11 @@
 # CLAUDE.md — MyNclex
 
-Last updated: 2026-08-27 (Known Workarounds: the RLS union's THIRD member — `_admin_all` is `FOR ALL`, so a SUPER_ADMIN matches every row for reads *and* writes; the Supabase client here is untyped, which is why none of these bugs fail a build; and the orphaned-`next dev` port trap under the per-session loop)
+Last updated: 2026-09-04. This file holds **rules only** — what to do
+and what to avoid in this repo. What happened, and why a rule exists,
+lives in `SESSIONS.md` (the index) and `sessions/` (the log). What is
+built and what is queued lives in `BUILD_LIST.md`. What the product is
+designed to be lives in `docs/product-plan/`. Do not write session
+history into this file; if a RULE changes, change the rule.
 
 ## What This Is
 
@@ -17,32 +22,29 @@ Open to anyone internationally.
 
 ## Current Status
 
-**Planning + design phase. The landing page and Cloudflare Workers
-pipeline are live (see README). No application code written yet
-beyond the landing page. Do not generate further scaffolding,
-pages, or features unless explicitly asked.**
+**In build, pre-launch.** The bank (authoring, practice, CAT, readiness
+packs), tutored programmes (curriculum, quizzes, progress, payments,
+enrolment, live sessions), the tutor library, tutor onboarding,
+transactional email and auth are built and on `prod`
+(`nclex.quademia.com`). Prod holds little content by design; dev is
+where testing happens. The inventory of slices with status is
+`BUILD_LIST.md`; the tutor commercial model (`tutor-plans-and-billing.md`)
+is designed and not built. Build what Sam asks for in the session;
+nothing more.
 
-When the design phase completes and build begins, this file gets expanded.
-For now, keep it minimal.
-
-## Stack (Target)
+## Stack
 
 - Next.js 16 + TypeScript + React 19 (App Router)
 - Deployed to Cloudflare Workers via `@opennextjs/cloudflare`
-- Supabase for Postgres + Auth + Storage — MyNclex has its **own** dev/prod
-  Supabase projects, separate from the gamma products' pair (corrected
-  2026-08-05; this line previously claimed a "shared QAcademy instance",
-  which was never true — see `docs/product-plan/domain-and-identity.md`)
+- Supabase for Postgres + Auth + Storage — MyNclex has its **own** dev and
+  prod Supabase projects, separate from the gamma products' pair
 - `@supabase/ssr` for cookie-based server-side auth
-- Resend for email — **sent from the app itself** (Server Actions), not from a
-  separate worker (corrected 2026-08-10; this line previously said "via a
-  dedicated MyNclex email worker", copied from gamma's shape. Gamma needs one
-  because a static site on Pages has nowhere to run server code; we are Next.js
-  on Workers, so the extra hop buys nothing — and gamma's worker never achieved
-  what it existed for, since the secret needed to reach it ships to the
-  browser. `workers/` here holds only a `.gitkeep` and should stay that way.
-  See `docs/product-plan/transactional-email.md`)
-- Paystack for payments (GHS + international card)
+- Resend for email — **sent from the app itself** (Server Actions), never
+  from a separate worker; we run server-side on Workers, so a worker hop
+  buys nothing. `workers/` holds only a `.gitkeep` and stays that way.
+  See `docs/product-plan/transactional-email.md`
+- Paystack for payments (GHS + international card); Stripe USD is planned
+  for MyNclex at launch on a UK entity — see `company-registration.md`
 
 MyNclex is the first QAcademy product on this stack. MyNMCLicensure and
 MyTeacher will migrate to the same stack later, one at a time.
@@ -248,11 +250,10 @@ slice.
      (Sam, 2026-08-22). MyNclex has no logo of its own and is not
      getting one. The public nav's `M` tile is a letter, not a mark.
    - ⚠ **QAcademy is not a registered company name**, so it does not
-     survive in copyright lines either. See
-     `docs/product-plan/domain-and-identity.md` §2b–§2c.
-   - ⓘ It took three days and a full sweep for this to land after it was
-     decided, because the decision lived in one call site's comment. **A
-     rule recorded where one caller can see it is not a rule.**
+     survive in copyright lines either. Nothing user-facing may name the
+     company or a registration number until the certificate exists. See
+     `docs/product-plan/domain-and-identity.md` §2 and
+     `company-registration.md`.
 
 ## Non-Negotiable Rules
 
@@ -299,342 +300,146 @@ slice.
 
 ## Known Workarounds
 
-- **ProseMirror/Tiptap node `attrs` are dropped crossing a Server
-  Action boundary — deep-clone the doc before sending.** Tiptap's
-  `editor.getJSON()` returns each node's `attrs` as the *live*
-  ProseMirror attrs object, which ProseMirror builds with
-  `Object.create(null)` (null prototype). When such an object is
-  passed as a React Server Action argument, the serializer silently
-  drops it — so a `libImage` node arrived server-side as a bare
-  `{ type: 'libImage' }` and the saved image vanished on reload
-  (slice 11.6a). Fix: round-trip the doc through
-  `JSON.parse(JSON.stringify(doc))` before it crosses the boundary,
-  which rebuilds every object with the normal `Object.prototype`.
-  Done in `lib/library/body-tiptap.ts` → `tiptapToBody`. Apply the
-  same clone to any future editor doc / PM-derived structure sent to
-  a Server Action.
+Each entry is the rule, why, and where the full account lives. The story
+of the day it was found is in `sessions/` under the date given.
 
-- **Auth links: `?code=` and `#access_token=` need OPPOSITE handling, and
-  the browser client cannot be configured out of it.** Verified against
-  the installed `@supabase/ssr` 0.5.2 + `@supabase/auth-js` source on
-  2026-08-06, after `/reset-password` took three attempts.
-  - `createBrowserClient` sets `detectSessionInUrl`, `flowType`,
-    `storage`, `persistSession` and `autoRefreshToken` **after** spreading
-    the caller's options, so anything you pass for those keys is
-    **discarded silently**. It is also a module-level singleton — later
-    calls return the first client and ignore their arguments.
-  - **`?code=` (PKCE — what real auth emails send): the library owns it.**
-    It consumes the code the instant any client is constructed. The code
-    is single-use, so calling `exchangeCodeForSession` yourself races the
-    library and the loser reports failure for an operation that
-    succeeded. Only *wait* for the session (`onAuthStateChange` +
-    `getUser`).
-  - **`#access_token=` (implicit — admin-generated links): the library
-    refuses it.** `GoTrueClient` throws `"Not a valid PKCE flow url."`
-    for an implicit callback under `flowType:'pkce'`, and routes that
-    error to its own debug channel, so **nothing appears in the
-    console**. Here you MUST call `setSession()` yourself. (This is why
-    `/welcome` has always worked — it does exactly that.)
-  - Reference implementation: `app/reset-password/page.tsx`. The same
-    trap is waiting for slice 3's email-code login.
-  - ⚠ Debugging note: navigating between two URLs that differ **only in
-    the fragment does not reload the page**. Two wrong diagnoses that day
-    came from "tests" that never ran the new code and were showing the
-    previous attempt's screen. Change path, or force a reload.
+- **Deep-clone a Tiptap/ProseMirror doc before it crosses a Server
+  Action boundary.** ProseMirror builds node `attrs` with a null
+  prototype and the Server Action serialiser silently drops them, so an
+  image node arrives as a bare `{ type }`. `JSON.parse(JSON.stringify(doc))`
+  fixes it; done in `lib/library/body-tiptap.ts` → `tiptapToBody`. Apply to
+  any editor doc sent to a Server Action. (2026-05-29)
 
-- **`NEXT_PUBLIC_*` must exist at BUILD time — `wrangler.jsonc` vars are
-  RUNTIME only, and the gap is silent.** Cloudflare hands `vars` to the
-  Worker when it serves a request, so every server-side read works and
-  nothing looks wrong. But `NEXT_PUBLIC_*` is a *build-time substitution*:
-  webpack replaces each reference with a string literal while `next build`
-  runs, and anything missing at that moment is `undefined` in the browser
-  bundle **forever**. A runtime binding arrives hours too late.
-  Found 2026-08-08, after it had been true for as long as the deploy
-  workflows existed. Two symptoms, one cause:
-  - The Turnstile widget rendered **server-side** (runtime vars present)
-    and vanished on hydration (client bundle had no key) — a container in
-    the HTML and no widget on the page.
-  - ⚠ Worse and older: the deployed `/reset-password` bundle read
-    `createBrowserClient(n.env.NEXT_PUBLIC_SUPABASE_URL, …)` **unreplaced**,
-    so it and `/welcome` (invite acceptance) could not work on either
-    Worker. Both had only ever been tested on **localhost**, where
-    `.env.local` is present at build time — which is exactly why months of
-    sessions never caught it.
+- **Auth links: `?code=` and `#access_token=` need OPPOSITE handling.**
+  `?code=` (PKCE, what real auth emails send): the browser client consumes
+  it the instant it is constructed, the code is single-use, so never call
+  `exchangeCodeForSession` yourself — only wait for the session.
+  `#access_token=` (implicit, admin-generated links): the client refuses
+  it silently, so you MUST call `setSession()` yourself.
+  `createBrowserClient` overrides `detectSessionInUrl` / `flowType` after
+  spreading your options and is a module singleton, so it cannot be
+  configured out of this. Reference: `app/reset-password/page.tsx`.
+  ⚠ Two URLs differing only in the fragment do not reload the page —
+  change the path or force a reload when testing. (2026-08-06)
 
-  **Rule: any new `NEXT_PUBLIC_*` goes in THREE places** — `.env.local`
-  (local dev), `wrangler.jsonc` `vars` (server at runtime, dev + `env.prod`),
-  and the `env:` block of the **build** step in *both*
-  `.github/workflows/deploy-dev.yml` and `deploy-prod.yml`. ⚠ The build step
-  carries no `--env prod`; only the deploy does, so nothing else in the
-  pipeline supplies prod's values. The duplication is known debt, flagged in
-  comments on both sides (wrangler.jsonc is JSONC, so a workflow step cannot
-  just `jq` it out).
+- **`NEXT_PUBLIC_*` must exist at BUILD time.** `wrangler.jsonc` `vars`
+  arrive at runtime; a `NEXT_PUBLIC_*` reference is replaced by webpack
+  during `next build`, and anything missing then is `undefined` in the
+  browser forever, with no error. **Every new `NEXT_PUBLIC_*` goes in
+  three places:** `.env.local`, `wrangler.jsonc` `vars`, and the `env:` of
+  the **build** step in both `deploy-dev.yml` and `deploy-prod.yml` (the
+  build step carries no `--env prod`). To check a deployed environment,
+  grep the served chunk for the literal value. (2026-08-08)
 
-  **To check a deployed environment**, read the served bundle rather than
-  trusting the config — the value should appear as a literal:
-  `curl -s <origin>/login | grep -oE '/_next/static/chunks/app/login/[^"]+\.js'`
-  then grep that chunk for the expected value.
+- **Server-side config is a PLAIN env var, not `NEXT_PUBLIC_*` — and it
+  must be read inside a function.** If a value never reaches the browser,
+  giving it a `NEXT_PUBLIC_` name buys nothing and costs the three-places
+  rule above; a plain name is read at runtime, so it lives in `.env.local`
+  + `wrangler.jsonc` (**both** the dev block and `env.prod`) and needs no
+  build-step entry and no rebuild to change. ⚠⚠ **Never read
+  `process.env` at module scope.** Under OpenNext on Workers it binds
+  per-request, so a module-load read can freeze `undefined` in for the
+  life of the isolate — the same hazard as the module-scope Supabase
+  client in rule #4. Reference: `appOrigin()` in
+  `lib/email/templates/wrapper.ts`. ⭐ Give the fallback the PROD value,
+  so an unset variable degrades to the old behaviour rather than to a
+  broken link. ⚠ A constant built *from* such a value is the same bug
+  wearing a hat (`footer.ts` `const APP`, `tutor-notice.ts`
+  `const CTA_HREF`) — grep for those when making any config dynamic.
+  (2026-09-04)
 
-- **⚠ A dashboard "Variable" is DELETED BY THE NEXT DEPLOY. Server-side
-  values must be added as encrypted SECRETS.** Cloudflare stores the two
-  differently: `wrangler deploy` sets the Worker's plaintext variables to
-  exactly what `wrangler.jsonc` declares, so anything added in the dashboard
-  as a **Variable** and not present in that file is **wiped on the next
-  deploy**. **Secrets** are stored separately and survive. Found 2026-08-19
-  adding `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: both were set on
-  `mynclex-dev` before the merge, the deploy three minutes later removed
-  them, and the door reported itself unconfigured.
-  - **The value being public is not a reason to use a Variable.** The Google
-    client ID is public by design, but stored as a Variable it still
-    vanishes. Either put it in `wrangler.jsonc` `vars` (committed, and then
-    it survives) or make it a Secret — not the dashboard's Variable box.
-  - ⭐ **Give every new server-side config a distinct "not configured"
-    answer** and the diagnosis costs one click instead of a hunt. Here
-    `lib/auth/google-oauth.ts` returns null unless it sees **both** values,
-    which routes to `/login?error=google_unavailable` — visibly different
-    from a real Google failure, so "the secrets are missing" is
-    distinguishable from "the handshake broke" from outside, with no
-    dashboard access. Same idea as the email drain's 503-vs-401 split.
-  - ⓘ Secrets apply to the running Worker immediately (no redeploy) and are
-    one-time per Worker. See also the CRON_SECRET episode (2026-08-18): the
-    dashboard also has a save-without-deploy draft trap, where the first
-    attempt silently never lands and re-adding fixes it.
+- **An email links to the site that sent it.** `appOrigin()` is the one
+  answer to "what is our address" for anything a reader will click; do
+  not re-type the literal. Dev mail points at dev, local at localhost,
+  prod unchanged. ⚠ The dev Worker only picks up a `wrangler.jsonc`
+  change **on the next deploy**, which is any push to `main`. ⚠ Invite
+  and reset links minted from a laptop now follow `APP_ORIGIN` too, so
+  **do tutor invites from the dev site, not localhost**, or the recipient
+  gets a link only you can open. (2026-09-04)
 
-- **⚠ REAL TURNSTILE KEYS ON DEV MAKE `/login`, `/register` AND
-  `/forgot-password` UNREACHABLE TO CLAUDE — THE BROWSER PANE HANGS ON
-  THEM.** Not a bug and not fixable. Turnstile exists to detect an
-  automated browser; Claude's browser is one; so Cloudflare escalates to
-  its heaviest challenge on exactly that client and the pane stops
-  responding. **The product working correctly is the failure mode.**
-  Settled 2026-08-09 (`0d38cf3`): **dev runs on Cloudflare's published
-  testing pair** — sitekey `1x00000000000000000000AA` (visible, always
-  passes, no challenge) + secret `1x0000000000000000000000000000000AA`
-  (always passes validation). The widget still renders and every step
-  still runs — pass issued, forwarded, validated by Supabase, answer read
-  back — only the judgement is stubbed to yes. **Prod keeps the real pair**
-  (separate Cloudflare account, separate widget, separate Supabase
-  project) and was verified to genuinely validate, not merely demand, a
-  token.
+- **A Cloudflare dashboard "Variable" is deleted by the next deploy.
+  Server-side values are encrypted SECRETS.** `wrangler deploy` sets the
+  Worker's plaintext variables to exactly what `wrangler.jsonc` declares.
+  A value being public is not a reason to use a Variable. Secrets apply
+  immediately, no redeploy. ⭐ Give every server-side config a distinct
+  "not configured" answer (`lib/auth/google-oauth.ts` → `google_unavailable`)
+  so "missing" is diagnosable from outside. ⓘ The dashboard also has a
+  save-without-deploy trap: the first save can silently not land.
+  (2026-08-18, 2026-08-19)
 
-  **If those three pages start hanging again, check the dev keys first —
-  that is the cause, every time.** The real dev widget
-  (`0x4AAAAAAEKb3Z55nyB9Sipe`) is kept in the comments at every site,
-  since it is what a swap-back uses.
+- **Dev runs on Cloudflare's Turnstile TESTING keys, on purpose.** Real
+  keys make `/login`, `/register` and `/forgot-password` hang in Claude's
+  browser: Turnstile detects an automated browser and escalates. Dev:
+  sitekey `1x00000000000000000000AA` + secret
+  `1x0000000000000000000000000000000AA` (always pass). Prod keeps the
+  real pair. **Four places must agree or the front door is an outage:**
+  `wrangler.jsonc` `vars` · the build step's `env:` in `deploy-dev.yml` ·
+  the captcha secret on the dev Supabase project · `.env.local`, which
+  needs **both** keys (`lib/auth/turnstile.ts` switches off unless it
+  sees both). If those three pages hang again, check the keys first.
+  The real dev widget id is in the comments at each site. To force a
+  fail: `2x00000000000000000000AB` + `2x0000000000000000000000000000000AA`.
+  ⚠ `.env.local` copies into worktrees parent → child only; a key added
+  in a worktree dies with it. (2026-08-09)
 
-  **⚠ Four places, one truth, and a mismatch is an outage at the front
-  door** (a testing pass checked by the real secret is refused, and so is
-  the reverse): `wrangler.jsonc` `vars` · the build step's `env:` in
-  `deploy-dev.yml` · **the secret on the dev Supabase project's captcha
-  setting** (dashboard, not in the repo) · and `.env.local`, which needs
-  **both** keys — `lib/auth/turnstile.ts` treats Turnstile as switched off
-  unless it sees the secret *and* the site key, and "off" now means our
-  server drops the pass while Supabase still demands one.
+- **RLS is the floor, not the filter. Every tutor-side read names its
+  owner.** Postgres ORs permissive policies, so "readable" is the union
+  of `_self_select`, `_student_select` and `_admin_all`, and a query that
+  leans on RLS returns rows the caller does not own. The SQL is not the
+  bug and must not be "fixed" — a student reading a note IS allowed. The
+  fix is app-layer: `.eq('tutor_id', …)` on every tutor-side read/write
+  (`lib/library/tutor-scope.ts`, `lib/programmes/tutor-scope.ts`), and an
+  `!inner` embed on the parent for junction tables with no `tutor_id`.
+  ⭐ Before trusting RLS to narrow a list, ask what happens to those ids
+  next: if any cross into a service-role client, the app filter is the
+  only control. ⚠ It runs the other way too — a student screen can show
+  rows because the caller is a TUTOR; name `user_id`. ⚠ A DELETE matching
+  zero rows is not an error; read the affected row back before reporting
+  success. (2026-08-25, both sessions)
 
-  ⚠ `.env.local` is copied into worktrees **parent → child only**. A key
-  added inside a worktree dies with it — write it to the main checkout's
-  copy or it is gone next session. (That is exactly how localhost auth sat
-  broken from 08-08 to 08-09 without anyone noticing.)
+- **The admin is the union's third member.** `_admin_all` /
+  `_superadmin` policies are `FOR ALL` with a caller-level `USING`, so a
+  SUPER_ADMIN matches every row of ~50 tables for reads AND writes, and
+  `requireBankCurator('tutor')` admits that account on purpose. Admitting
+  someone is not scoping them. The question for a tutor surface is "who
+  else does this table let in, and is any of them on this screen?" Where
+  children have no `tutor_id`, prove ownership once at the top of the
+  action (`assertTutorOwnsCase` / `assertTutorOwnsTrend`,
+  `lib/bank/tutor-scope.ts`). Guard the loader AND the action. Verify a
+  guard in both directions: refuses the stranger, passes the owner. Do
+  not "fix" the SQL. ⏭ The other ~50 admin-`FOR ALL` tables have not
+  been walked. (2026-08-27)
 
-  ⓘ To make Turnstile **fail** on demand — the only practical way to test
-  the `LOGIN_BLOCKED`-vs-`LOGIN_FAIL` routing — swap dev to
-  `2x00000000000000000000AB` + `2x0000000000000000000000000000000AA`.
-  https://developers.cloudflare.com/turnstile/troubleshooting/testing/
+- **The Supabase client here is UNTYPED.** Table and column names are
+  strings, so a missing or wrong `.eq()` never fails a build. The
+  compiler is not a reviewer; the database is. Verify scoping by
+  executing as the account (`set role authenticated` + JWT claim).
+  ⚠ PostgREST has no `.eq()` until `.select()` has been called — the
+  wrong order typechecks and fails at runtime. (2026-08-27)
+  ⚠ **An untyped ROUTING LIST is as silent as an untyped column.**
+  `PRODUCT_PURPOSES` in `lib/payments/activate.ts` was a plain
+  `string[]` gating which purposes reach the grant at all, so adding
+  `BANK_TRIAL` to `PaymentPurpose` raised no error and the trial was
+  refused with one console line and no grant. When adding a value to a
+  union, grep every list and `Record` that switches on it — and do not
+  trust a file's header narration of its own flow to be an inventory of
+  its branches. (2026-09-04)
 
-- **⚠ RLS IS THE FLOOR, NOT THE FILTER — "readable" is a wider set than
-  "mine", and every tutor-side read must name its owner.** Postgres ORs
-  permissive policies together, so a table with a `_self_select` policy
-  AND a `_student_select` policy hands the caller the union of both. A
-  query that leans on RLS to do the narrowing therefore returns rows the
-  caller does not own. Found 2026-08-25: a test account holding **both**
-  TUTOR and STUDENT, enrolled on another tutor's programme, opened its own
-  tutor Library and saw **all 38 of that tutor's notes** — plus their
-  folders, shelves, memberships and attachments — because
-  `lib/library/queries.ts` asked for "the notes" and never said "…that are
-  mine". Every affected file had a comment saying RLS scoped it. It did
-  not.
-  - **The SQL is not the bug and must not be "fixed".** A student reading
-    that note IS allowed — that's what the student surfaces are for. The
-    mistake was a *tutor* surface asking a question whose answer legally
-    includes other people's rows. The fix is app-layer, in
-    `lib/library/tutor-scope.ts` (`getLibraryTutorId()`), and every
-    tutor-side read/write now carries `.eq('tutor_id', …)`.
-  - **Writes were never exposed** — UPDATE/DELETE carry only the self
-    policy, so a cross-tutor write was always refused (verified). Reads
-    were the whole leak. But `_admin_all` is `FOR ALL`, so a SUPER_ADMIN
-    walking a tutor surface *could* write another tutor's rows; the
-    explicit filter closes that too.
-  - **Junction tables have no `tutor_id`** (`_shelf_memberships`,
-    `_note_attachments`) — scope them through an explicit
-    ownership probe on the parent shelf/note, not through RLS.
-  - ⭐ **The same class of bug lived outside the library — ✅ SWEPT
-    2026-08-25 (13 call sites, three commits, no migration).** ⚠ Two
-    things this entry originally said were wrong, and both mattered:
-    - ⚠ **`_public_select` does not exist.** It was dropped in
-      migration `20260528120000` when public discovery moved to the
-      `nclex_public_programmes` view. `nclex_programmes` carries
-      `_self_select` · `_student_select` · `_admin_all`, and
-      `_student_select` alone is enough to cause this. **Verified
-      against the live dev catalogue, not the SQL files** — which is
-      the only way to be sure, since a dropped policy leaves its
-      `CREATE` behind in the migration that added it.
-    - ⚠⚠ **The scope was understated.** This said the leak "gates the
-      `/tutor/programme/[id]/…` subtree", implying you had to type a
-      URL. In fact **`getMyProgrammes()` had no owner filter at all**,
-      so other tutors' programmes were **listed on the tutor
-      dashboard**. Measured: `+mynclexstudent3`, who owns **zero**
-      programmes, was shown **2**; `benedictbless9` saw 4 for 2 owned.
-    - ⚠⚠ **AND IT WAS NOT READ-ONLY-ISH — SERVICE ROLE IS WHERE THIS
-      BITES.** The library leak was bounded by RLS. This one was not:
-      those programme ids are handed to `createServiceRoleClient()`
-      reads in `getTutorPayments`, `readRoster` and
-      `getMyProgrammesForList`, each commented "owner-proven". Service
-      role **ignores RLS by design**, so the app-layer filter is the
-      *only* control. Exposed on dev: **22 strangers' names + emails**
-      on the enrolments roster, and **3 of another student's payments**
-      (name, email, GHS 3,000) on the tutor Payments page.
-    - ⭐ **The shape of the fix:** `getProgrammeForShell` could not
-      take an owner filter — the **student** gate shares it, and there
-      *readable* is the correct question. So `getOwnedProgrammeForShell`
-      sits beside it and the seven tutor routes call that instead.
-      Everything else was tutor-only and took the filter directly.
-      Junction-style tables (units, cohorts) have no `tutor_id`, so
-      they filter through an `!inner` embed on the parent programme.
-    - ⭐ **`deleteUnit` reported SUCCESS while deleting nothing** — a
-      DELETE matching zero rows is not an error, so a refused write
-      fell through to `ok: true`. **RLS protecting the write does not
-      mean the screen tells the truth about it.**
-    - ⭐ **Rule of thumb worth more than the fix:** *before trusting
-      RLS to narrow a list, ask what happens to those ids next.* If
-      any of them cross into a service-role client, RLS was never the
-      control and the filter is load-bearing.
-    - Canonical: `lib/programmes/tutor-scope.ts`.
-  - ⭐ **It also runs the other way — a STUDENT screen showing rows
-    because the caller is a TUTOR.** `nclex_enrolments` carries
-    `_student_select` (`user_id = auth.uid()`) **and** `_tutor_select`
-    (I tutor that programme), so "my enrolments" returned a tutor's
-    **students'** rows: Steven, with **zero** enrolments of his own, got
-    **48**. Consequences, all fixed 2026-08-25 by naming `user_id`:
-    his student picker listed **5 programmes he teaches and is not on**;
-    `getMyProgrammeEnrolmentStatus` / `getMyCohortEnrolmentStatus`
-    answered ENROLLED off a stranger's row, so **entry was open** (a
-    code comment claiming "listing only — entry was never open" was
-    simply wrong); and the picker's next-payment panel rendered **a real
-    student's amount and due date**. Charging was never possible —
-    `lib/payments/init.ts` re-checks `user_id` against the service-role
-    client — so the money was visible, not chargeable.
-  - ⓘ **Fixing the enrolment question also shut the door** that
-    `getProgrammeForShell`'s looseness had opened: `require-programme-
-    access` and `require-cohort-access` both run a readability check
-    *then* a status check, and the status check is now genuinely
-    per-caller. The readability half is still wrong — see above — but it
-    is no longer load-bearing on that path.
-  - ⚠ **A tutor cannot fix this by enrolling in their own programme** —
-    the product refuses it ("You can't enrol yourself in your own
-    programme" / "...own cohort", `lib/enrolments/actions.ts`). The
-    sanctioned way to see a programme through a student's eyes is a
-    **preview**, and today one exists only for the **Library** tab.
-    Curriculum, quizzes, sessions and assignments have none. Closing the
-    leak removed an accidental substitute for that missing preview;
-    building the real thing is open work (Sam, 2026-08-25).
+- **Production builds use webpack.** `build` and `cf:build` pass
+  `--webpack`; `@opennextjs/cloudflare` 1.19.x cannot load Turbopack's
+  chunk layout (first SSR request throws `ChunkLoadError`). Dev keeps
+  Turbopack. Drop the flag when OpenNext supports Turbopack.
 
-- **⚠⚠ THE UNION HAS A THIRD MEMBER, AND IT IS THE ADMIN —
-  `_admin_all` / `_superadmin` IS `FOR ALL` WITH A ROW-INDEPENDENT
-  `USING` CLAUSE, SO FOR ONE ACCOUNT EVERY ROW OF EVERY TABLE MATCHES,
-  FOR READS *AND* WRITES.** The sibling of the entry above, found
-  2026-08-27 — and it is a different question, which is exactly why
-  three sweeps missed it. `nclex_user_has_role('SUPER_ADMIN')` is true
-  or false for the **caller**, never for the **row**, so it is not a
-  filter at all. ~50 tables carry one.
-  - ⭐ **The question to ask a tutor surface is not "could a STUDENT
-    read this?" but "WHO ELSE does this table let in, and is any of
-    them standing on this screen?"** The 08-25 sweeps taught everyone
-    to look for `_student_select`. On the tutor **bank** tables there
-    is no student policy at all — and every screen was still wrong.
-  - ⚠ **The gate lets them in on purpose.**
-    `requireBankCurator('tutor')` admits `TUTOR **or** SUPER_ADMIN`, so
-    such an account reaches a tutor surface legitimately and is then
-    handed the whole product. **Admitting someone is not scoping them.**
-  - **Measured on dev, as the real account under real RLS:**
-    `/tutor/bank/all` listed **118 questions to an account owning 8** —
-    110 of them two other tutors' work, full stems and rationales, with
-    the band cards reporting whole-product figures. No programme,
-    cohort or enrolment needed; only the role.
-  - ⭐⭐ **AND IT WRITES. Executed, then rolled back:** a DELETE of
-    another tutor's published question **SUCCEEDED**. The identical
-    delete as a tutor who is *not* an admin affected **0 rows** — RLS
-    was doing its job for everyone except the account coming through
-    both doors at once.
-  - ⭐ **The tell was two numbers on one surface.**
-    `/tutor/bank/cases` and `/tutor/bank/trends` have always carried
-    `.eq('tutor_id', user.id)` and correctly showed **0**, while their
-    neighbour showed **118**. *A surface contradicting itself is
-    evidence; nobody had put the two side by side.*
-  - ⭐ **Where a table's children have no `tutor_id`** (case tabs, slot
-    rows), do **not** bolt a filter onto all twenty writes — prove
-    ownership **once, at the top of the action**, and let everything
-    downstream be owner-proven by composition
-    (`assertTutorOwnsCase` / `assertTutorOwnsTrend`). A scripted edit
-    across twenty near-identical queries is what broke three cohort
-    actions on 08-25.
-  - ⚠ **A form post calls a server action, not the editor.** Fixing a
-    loader closes the way *in*; it does not gate the action. Both
-    layers, always.
-  - ⚠ **Verify a new guard in BOTH directions** — that it refuses the
-    stranger *and* passes the real owner. A guard that only ever says
-    no is not a working guard, and that is the half nobody checks.
-  - ⓘ **Do NOT "fix" the SQL.** A SUPER_ADMIN reading every tutor's
-    bank IS allowed — that is what `/admin/*` is for. The fix is
-    app-layer, same as the two leaks above.
-  - ⏭ **Open:** the ~50 other admin-`FOR ALL` tables have **not** been
-    walked. The four surfaces closed so far were found by asking the
-    question, not by exhausting it.
-  - Canonical: `lib/bank/tutor-scope.ts`.
+- **`npm install` can drop `lightningcss`'s native binary** (npm
+  optional-deps bug on Windows); `next dev` then 500s every page. Quick
+  fix: copy `node_modules/lightningcss-win32-x64-msvc/*.node` into
+  `node_modules/lightningcss/`, delete `.next`, restart. Proper fix:
+  delete `node_modules` + lockfile and reinstall. (2026-05-22)
 
-- **⚠ The Supabase client in this repo is UNTYPED — no generated
-  `Database` types — so table and column names are plain strings.**
-  This is why none of the RLS-scoping bugs above ever failed a build:
-  `tsc` cannot know that `.eq('tutor_id', …)` is missing, or that it is
-  invalid on the table you wrote it against. It also means a filter can
-  be chained onto a two-table union type without complaint. **The
-  compiler is not a reviewer here; the database is.** Verify scoping
-  changes by executing them (`set role authenticated` + the account's
-  JWT claim), not by trusting a green typecheck.
-  - ⚠ PostgREST's builder has **no `.eq()` until `.select()` has been
-    called** — `.from(t).eq(…).select(…)` is a runtime failure that
-    typechecks fine here. Caught once on 2026-08-27 by re-reading the
-    edit.
-
-- **Production builds use webpack, not Turbopack.** The `build` and
-  `cf:build` scripts pass `--webpack` to `next build`. Reason: Next.js 16
-  defaults to Turbopack for production builds, but
-  `@opennextjs/cloudflare` 1.19.x does not yet support Turbopack's chunk
-  layout — the Worker boots but the first SSR request fails with
-  `ChunkLoadError: Failed to load chunk server/chunks/ssr/[root-of-the-server]__*.js`.
-  Dev (`next dev`) still uses Turbopack (it is mature for dev).
-  Revisit and drop `--webpack` once OpenNext adds Turbopack support.
-
-- **`npm install` can break the dev server's CSS (lightningcss).** Running
-  `npm install` on Windows can trip the npm optional-dependencies bug and drop
-  Tailwind v4's native `lightningcss` binary, after which `next dev` throws
-  `Cannot find module '../lightningcss.win32-x64-msvc.node'` on every request
-  and pages render unstyled / 500. Quick fix: copy
-  `node_modules/lightningcss-win32-x64-msvc/lightningcss.win32-x64-msvc.node`
-  into `node_modules/lightningcss/`, delete `.next`, restart `npm run dev`.
-  Proper fix: delete `node_modules` + `package-lock.json` and reinstall. (Hit
-  2026-05-22 after installing vitest.)
-
-- **Keep using `middleware.ts` — do NOT rename to `proxy.ts`.** Next.js 16
-  prints a deprecation warning at `npm run dev` startup recommending the
-  rename, but `proxy.ts` is **Node.js-runtime only** in Next 16 (route
-  segment config — including `export const runtime = 'edge'` — is not
-  allowed on proxies). The current `@opennextjs/cloudflare` (1.19.x)
-  build pipeline rejects Node middleware with
-  `ERROR Node.js middleware is not currently supported. Consider switching
-  to Edge Middleware.`, breaking the dev deploy. Tracking issue:
-  cloudflare/workers-sdk#13755 (unresolved as of 2026-04). The cosmetic
-  rename was attempted in commit `2c66d46` (2026-05-26) and immediately
-  reverted the same day after the deploy of slice 11.2b failed. Re-rename
-  when OpenNext ships proxy.ts support via the Next 16.2 Build Adapters API.
+- **Keep `middleware.ts`; do not rename to `proxy.ts`.** Next 16 warns,
+  but `proxy.ts` is Node-runtime only and OpenNext 1.19.x rejects Node
+  middleware, breaking the deploy (tried and reverted 2026-05-26,
+  `2c66d46`). Tracking: cloudflare/workers-sdk#13755.
 
 ## Branching workflow
 
@@ -668,12 +473,9 @@ mapping is 1-to-1.
    already wired.
 
    ⚠ **Stopping a backgrounded `npm run dev` kills the npm wrapper, not
-   the `next dev` child.** The orphan keeps port 3000, so a replacement
-   starts on **3001** while the old process serves the old build — and
-   if you cleared `.next` (e.g. for a production build) that orphan
-   serves **500s** from a directory that no longer exists. Found
-   2026-08-27, mid-session, on a server Sam was using. **Check the port
-   holder, don't assume the stop worked:**
+   the `next dev` child.** The orphan keeps port 3000, a replacement
+   starts on 3001, and if `.next` was cleared the orphan serves 500s.
+   **Check the port holder, don't assume the stop worked:**
    `Get-NetTCPConnection -LocalPort 3000 -State Listen`, then
    `Stop-Process -Id <pid> -Force`.
 
@@ -718,24 +520,16 @@ mapping is 1-to-1.
    survives for whoever reads it next.
 
    ⚠ **Do not write the error count into this file or a session log.**
-   It goes stale the first time someone fixes something, and then it
-   quietly gives the wrong answer. The count lives in the baseline
-   file, which regenerates. If a session note describes lint at all,
-   it must say what was actually checked — "clean on the files I
-   touched" is not "clean", and describing the first as the second is
-   exactly how a 47-error backlog went unnoticed for four months.
+   It goes stale the first time someone fixes something. The count
+   lives in the baseline file. If a session note describes lint, it
+   must say what was actually checked — "clean on the files I touched"
+   is not "clean".
 
 3. Sam tests the change in the browser at `localhost:3000`.
 
-4. **Always ask Sam for explicit approval before merging to `main`.**
-   Never push to `main` without it. On approval:
-
-   ```powershell
-   git push origin claude/<random>           # optional: keep session branch on remote
-   git checkout main
-   git merge claude/<random> --ff-only
-   git push origin main
-   ```
+4. **Wrap up per *At session end* below** — the log first, then the
+   merge, and only with Sam's explicit approval. Never push to `main`
+   without it.
 
 **Releasing `main` → `prod`** (when ready to deploy, again with Sam's
 explicit approval):
@@ -770,13 +564,57 @@ files; reconcile any mismatch with a one-row `UPDATE` on
 with `keepalive_table`.)
 
 Never work directly in the `qacademy-mynclex` main checkout — always
-operate inside the session's `.claude/worktrees/<...>` worktree.
+operate inside the session's `.claude/worktrees/<...>` worktree. There
+is no shared `work` branch (retired 2026-05-09); the session branch is
+the working branch.
 
-**The old `work` branch was retired on 2026-05-09.** It used to be the
-single rolling branch Claude committed to, but each session already
-has its own isolated `claude/<random>` branch — `work` was a redundant
-hop and caused worktree-exclusivity collisions when more than one
-session was open.
+## At session end
+
+Sam says we are stopping ("let's wrap up" or similar). **Read this
+section first, then do it in this order.** Nothing else comes before it.
+
+1. **The log entry** in `sessions/<period>.md`, newest first. Ask
+   whether it goes in the current period file or a new one. It carries:
+   what was built or changed, with slice ids; what was decided and what
+   was rejected, with the reason; what went wrong and what it taught;
+   what is open. It records what was true when written — it does not
+   claim merge or release status.
+2. **Two lines in `SESSIONS.md`** under the period heading: the title
+   line (under 160 characters) and the keyword line (under 250). Count
+   the characters; every first draft so far has been over.
+3. **Ticks.** Every slice closed gets its date in `BUILD_LIST.md` **and**
+   in the plan doc's ladder, in the same commit. Anything built off-list
+   gets an `(unplanned)` line. Anything found and not done gets a ⬜ or ⏸
+   line with its reason.
+4. **This file, only if a rule changed** or a workaround was learned:
+   the rule, one line on why, the session date. The story stays in the
+   log.
+5. **Memory, only for how Sam works or a trap I would repeat.** Never
+   project status.
+6. **`npm run lint:check`** once, and the log says what was checked.
+7. **One docs commit** on the session branch for the above.
+8. **Ask for the merge.** On Sam's explicit yes:
+
+   ```powershell
+   git checkout main
+   git merge claude/<random> --ff-only
+   git push origin main
+   ```
+
+9. **Report:** what is committed, what is on `main`, what is open. Stop.
+
+**A session ends merged to `main`, or the log entry's first line says
+why not.** The only reasons: Sam has not tested it yet; the build is
+broken or a slice is half-done; or Sam said hold. Prefer ending a
+session at a slice boundary over leaving a half-built slice on the
+branch. Releasing `main` → `prod` is a separate decision and never part
+of the wrap-up.
+
+**If a session ends without a wrap-up**, the next session's first job is
+to log the previous one from the diff and say so in the entry.
+
+Commits on the session branch come **before** Sam's test; the test gates
+the merge, not the commit. A failed test is fixed by another commit.
 
 ## Working With Sam
 
@@ -788,37 +626,39 @@ session was open.
 
 ## Files To Read at Session Start
 
-- This file (`mynclex/CLAUDE.md`)
-- `mynclex/SESSIONS.md` — index of work sessions; then open the latest
-  period file in `mynclex/sessions/` (monthly, e.g. `sessions/2026-05.md`)
-  for recent detail. Don't read every archive — just the index + the
-  latest period file(s) relevant to the task.
-- `mynclex/BUILD_LIST.md` — current priorities (slice checklists)
-- Recent commits (`git log --oneline -10`)
+- This file.
+- `SESSIONS.md` — the index: one title line + one keyword line per
+  session, newest first. Then the **head** of the latest period file in
+  `sessions/` for recent detail (period files are newest-first; never
+  read the tail for current state). Search the period files by keyword
+  for anything older.
+- `BUILD_LIST.md` — the inventory: one line per slice, per plan doc,
+  with ✅ date / ⬜ / ⏸ / ✖. There is no "next" marker; Sam decides
+  each session.
+- `git fetch --prune`, then `git log --oneline -10` and the tips of
+  `origin/main` and `origin/prod` — merge and release status live in
+  git, not in any document.
+
+**At session end**, the summary is written ONCE, in the period file.
+`SESSIONS.md` gets its two lines; `BUILD_LIST.md` and the plan doc's
+ladder get the same tick and date in the same commit; this file changes
+only if a rule changed.
 
 ## Explicit Deferrals (Not v1)
 
-- NGN item types (case studies, bow-tie, drag-and-drop, extended multi-response)
-- ~~Public self-serve tutor signup (tutors are manually vetted in v1)~~ —
-  ⭐ **RE-OPENED 2026-08-21 (Sam), and ✅ BUILT 2026-08-22** as slice 2 of
-  the tutor-onboarding arc: `/for-tutors`, an application route, the
-  `/admin/applications` queue, and four emails. **Vetting is still a
-  human decision** — the change is that it is now made on a screen
-  instead of by hand-written SQL, and that a tutor can ask without
-  knowing somebody. ⚠ The register-as-tutor toggle named here was
-  **dropped** during design; the door lives on the tutors page, not on
-  `/register`. Canonical: `docs/product-plan/tutor-onboarding.md`.
-  Left in this list, struck through, so the reversal is visible rather
-  than silent.
-  ⭐ **The whole arc closed 2026-08-22** with slice 3 (invite by email),
-  so all four doorways exist: admin promotion · self-application ·
-  registration · invite. There is no longer any way of becoming a tutor
-  that needs somebody to write SQL.
-- Payment splits / marketplace billing between QAcademy and tutors
+- NGN item types beyond those the bank already has
+- **Payment splits / marketplace billing** — deferred on purpose: a
+  Paystack subaccount keeps us merchant of record, so tutor fees stay
+  off-platform at launch. The tutor commercial model around it (seats,
+  Starter · Pro · Academy, on-platform payments as an approved
+  capability, never on Starter) is designed and not built; **every price
+  is a proposal**. Canonical: `docs/product-plan/tutor-plans-and-billing.md`.
+- Cross-product SSO
 - Migration of MyNMCLicensure or MyTeacher onto this stack
 
-These are valid v2+ ideas. Do not build them in v1 unless Sam explicitly
-re-opens the scope.
+Do not build these unless Sam explicitly re-opens the scope. Public
+tutor self-signup was on this list and was re-opened and built in
+August 2026; `BUILD_LIST.md` and `tutor-onboarding.md` are canonical.
 
 ## Environment variables
 
@@ -839,13 +679,11 @@ It's used only by the registration rollback path — see
 `app/register/actions.ts`.
 
 ⚠ **The two Turnstile lines are not optional and not a placeholder.** Dev's
-Supabase project has its captcha switch ON, so a missing site key means no
-widget, no pass, and **every login, signup and password reset on
-`localhost:3000` refused** — which is precisely what happened, unnoticed,
-between 2026-08-08 and 08-09. They are Cloudflare's **testing** pair, on
-purpose; see the Turnstile entry under *Known Workarounds* for why, and for
-the warning about putting the real keys back. **Both lines or neither** —
-`lib/auth/turnstile.ts` switches itself off unless it sees both.
+Supabase project has its captcha switch ON, so a missing site key means
+every login, signup and password reset on `localhost:3000` is refused.
+They are Cloudflare's **testing** pair on purpose (see *Known
+Workarounds*). **Both lines or neither** — `lib/auth/turnstile.ts`
+switches itself off unless it sees both.
 
 Production values live as Cloudflare Worker secrets set via
 `wrangler secret put`. See `mynclex/CLONING.md` (future) for the

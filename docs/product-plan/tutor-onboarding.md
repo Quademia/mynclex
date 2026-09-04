@@ -12,9 +12,10 @@ what* and the admin permission model — its §4 "Users & tutor
 management" points here for everything tutor-onboarding. This doc owns
 the tutor record, the four ways in, and the lifecycle.
 
-⚠ **Not in this doc, deliberately:** tutor plans, quotas and billing
-(§12), and the shared account surface (§14). Both are named so nobody
-assumes they were forgotten.
+⚠ **Not in this doc, deliberately:** tutor plans, quotas and billing —
+**now owned by `tutor-plans-and-billing.md`**, with §12 left here as a
+pointer (moved 2026-08-27) — and the shared account surface (§14). Both
+are named so nobody assumes they were forgotten.
 
 ⭐ **Slice 2 was redesigned, built and Sam-tested on 2026-08-22.** One
 door instead of two, entered by **email first**; the register-as-tutor
@@ -1340,82 +1341,34 @@ make someone a tutor."*
 
 ---
 
-## 12. Out of scope — tutor plans and quotas <span>open, 2026-08-21</span>
+## 12. Tutor plans and quotas — MOVED <span>2026-08-27</span>
 
-**Not designed, deliberately.** The "$29/month" figure predates any
-real thinking and may not survive it.
+**This section has moved to `tutor-plans-and-billing.md`.** It is a
+pointer now, and deliberately holds no reasoning of its own — the
+argument it used to carry is load-bearing and must have exactly one
+home. (Duplicating a decision across two files is how the Quademia
+rename sat half-done for three days.)
 
-**Tutor plans are quota tiers, not durations** — e.g. free: 50
-students / 1 programme; mid: 100 students / 10 programmes; paid:
-unlimited. That does not fit what exists:
+That doc answers this section's questions and owns the whole commercial
+side: the Free / Pro / Plus proposal, the trial, whether a student's
+programme fee touches our merchant account, and the "we'll set your
+content up for you" service.
 
-- `nclex_products` is built entirely around consumer purchases —
-  `duration_days`, `readiness_credits`, dual-currency prices. Every
-  column that does real work answers *"how long"* or *"how many
-  credits"*. Nothing expresses a quota.
-- `nclex_subscriptions` answers *"does this person have access, until
-  when?"* — a boolean with a time window, one row per granted period.
-- **The free tier breaks the cardinality.** Subscription rows come
-  from a purchase or a grant and a user may hold zero. But **every
-  tutor is always on exactly one plan**, including one who never pays.
-  Either every tutor gets a FREE subscription row — at which point the
-  row stops being evidence of a transaction — or free tutors' limits
-  live nowhere and get hardcoded, which means you cannot change the
-  free tier or grandfather anyone without a deploy.
-- **Enforcement has no home.** "50 students, 1 programme" must be
-  checked at programme creation, cohort creation and every enrolment
-  path. That is an arc, not a column.
+⚠ **It is a PROPOSAL, not a decision.** Nothing there is ratified and
+no number in it is fixed.
 
-⚠ **Do not model a tutor plan as a `nclex_products` row just because
-products exist.** Adding `TUTOR_PRO` with a `duration_days` jams a
-quota tier into a duration model. That is the rebuild this doc exists
-to avoid.
+**What still holds from here, and constrains that doc:**
 
-### Settled principle — admission ≠ plan assignment
-
-**They are two operations. A UI may combine them ("Approve and set
-plan"); the model must not.**
-
-You cannot sell someone a plan before deciding to admit them: if a
-self-applicant picks a paid plan and is then rejected, either you owe
-a refund to someone you turned down, or the "selection" was never
-binding. So:
-
-- **approval puts everyone on the free tier automatically** — no plan
-  choice at any doorway
-- **upgrading is a separate, self-serve act** by the tutor, from a
-  billing page, at the moment a limit actually bites
-- **admin can grant a plan** to an existing tutor (comp, deal) — an
-  action *against a tutor*, not part of admitting one
-
-If *"which plan are you interested in?"* is ever wanted on the
-application form, it is a form field in the application payload — an
-intent, not an entitlement.
-
-This is the same axis separation as §7's status/subscription split.
-Every time the two were merged during design it produced a bug: the
-suspended tutor who pays and returns active, and the rejected
-applicant who paid.
-
-### Questions to answer before designing it
-
-1. What is metered — students, programmes, cohorts, quizzes, storage?
-2. Are limits **hard** (blocked) or **soft** (warned, then chased)?
-3. **The sharp one — what happens on downgrade?** A tutor with 200
-   students moves to the 100 plan. Block, grandfather, or force a cut?
-   Every quota model lives or dies on this, and it should be decided
-   before the schema.
-4. Subscription at all, or **revenue share** — a percentage of what
-   tutors collect? CLAUDE.md already defers "payment splits /
-   marketplace billing", so this is a live alternative, not a new
-   idea. A fixed monthly USD fee is a real barrier for a Ghanaian
-   tutor with no students yet; a cut of collected fees costs them
-   nothing until they earn, and aligns us with their success.
-
-**Nothing in this arc depends on the answer.** `nclex_tutors` holds no
-money, no expiry and no plan, so whatever model lands attaches to a
-tutor by `user_id` without touching this table, the grant, the
-application flow or the admin surfaces.
+- `nclex_tutors` holds **no money, no expiry and no plan**. Whatever
+  model lands attaches by `user_id` without touching this table, the
+  grant, the application flow or the admin surfaces. **Nothing in this
+  arc depends on the answer.**
+- **Admission ≠ plan assignment** — approval puts everyone on the free
+  tier; upgrading is a separate self-serve act; an admin may grant a
+  plan *against* a tutor. See §13, where the merged version is recorded
+  as rejected.
+- Vetting standing and commercial standing are **independent axes** —
+  §7, and why `EXPIRED` is not a `status` value (§13).
 
 ---
 

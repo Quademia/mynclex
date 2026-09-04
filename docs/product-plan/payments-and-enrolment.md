@@ -14,6 +14,20 @@ and the parallel paths for self-study vs tutored students. Future
 topics like refunds, upgrades, and discount codes will also live in
 this file.
 
+⚠ **How a TUTOR pays US is not in this doc** — that is
+`tutor-plans-and-billing.md` (created 2026-08-27), which owns the plan
+tiers and the commercial relationship. Two of its positions bear
+directly on this file and are **proposals, not decisions**:
+
+- **Tutor programme fees go off-platform at launch**, so
+  `payment_collection_mode = ON_PLATFORM` is deferred for programmes
+  (Quademia's own products — bank, readiness — are unaffected). The
+  reason is that on-platform makes us merchant of record, and Paystack
+  puts refunds and chargebacks on the merchant.
+- **Students keep access when a tutor lapses**, which contests the
+  access-window rule settled here on 2026-05-17. See the ⚠⚠ note
+  under *Programme access window → Pattern A*.
+
 ---
 
 ## Settled / open status
@@ -25,10 +39,18 @@ this file.
   decoupled (opt-in bank, tutor-mediated enrolment, flexible
   payment strategies). A handful of sub-topics still open — see
   "Still open" inside *Tutored enrolment → Settled 2026-05-17*.
-- **Programme access window — SETTLED 2026-05-17.** Pattern A
-  adopted: tutor-set per programme, all access contingent on
-  tutor maintaining their monthly platform subscription. Applies
-  to both tutored and self-paced.
+- **Programme access window — SETTLED 2026-05-17, ⚠ SECOND CLAUSE
+  REPLACED 2026-08-27, ⭐ THEN REINSTATED 2026-09-01.** Pattern A still
+  holds: tutor-set per programme, both tutored and self-paced. **The
+  second clause — *all access contingent on the tutor maintaining their
+  subscription* — is BACK, and is the live rule.** The 08-27
+  replacement (students keep access regardless) stood for four days and
+  was reversed: **we never took the student's money, so the promise is
+  not ours to guarantee.** It now comes with disclosure (terms at
+  enrolment + in the email) and a soft landing (warning, a window, the
+  tutor's contact). ⚠ The 24-month cap from 08-27 survives but **its
+  reason did not** and it is flagged for re-decision. Canonical:
+  `tutor-plans-and-billing.md` §5. ⚠ **Decided, not built.**
 - **Self-paced enrolment — SETTLED 2026-05-17.** Self-serve
   on-platform only, one access window per programme, same payment
   strategies as tutored but anchored to enrolment date.
@@ -669,7 +691,8 @@ misses the window, an admin re-sends the invite from the admin
 queue using Supabase's built-in resend — no custom token-refresh
 endpoint needed.
 
-**Trial card → sign-up-first flow:**
+**Trial card → sign-up-first flow** *(SUPERSEDED 2026-09-04 — see the
+build note below):*
 
 1. Student lands on the register page (MyNclex equivalent of
    Licensure's `register.html`).
@@ -682,6 +705,102 @@ endpoint needed.
    subscription with `source = 'SELF_TRIAL_SIGNUP'` (matching
    Licensure's convention).
 5. Logged in. Dashboard.
+
+### ✅ BUILD NOTE — the trial is an order that cost nothing (2026-09-04)
+
+Built, Sam-tested. The five steps above were **not** built, and the
+reason is worth keeping: they route the trial through `/register`, which
+Sam re-examined this session and found grants nothing —
+*"what are you registering for?"* Auto-assigning a trial there would
+also start the clock for everyone who registers for some other reason.
+
+**What ships instead: the trial is a `nclex_products` row that costs
+nothing, so it is also an ORDER that costs nothing.** It reuses the paid
+flow whole rather than running beside it.
+
+- The trial renders on the **existing `/checkout/bank`** page — same
+  chrome, same email field, same duplicate-account check (kept ON: an
+  address with an account must sign in, or the grant lands on an account
+  that may already hold a trial). Only the submit differs; no Paystack.
+- `lib/payments/trial.ts` writes a **`purpose = 'BANK_TRIAL'`** row,
+  already `PAID`, `amount_minor = 0`,
+  **`collection_channel = 'NONE'`** — nothing collected *by design*,
+  distinct from `OFF_PLATFORM`, which asserts money **was** collected,
+  just not by us. No `INIT`, no reference, no verify step.
+- It then calls `activatePendingForEmail`, and the existing engine
+  supplies both arrivals unchanged: **account exists → granted now**;
+  **guest → `/welcome` link, granted when they finish.** `/welcome`
+  needed no change at all.
+
+⭐ **A rejected design worth recording:** a separate
+`nclex_trial_requests` table with its own grant path, argued for on the
+belief that `nclex_payments` records MONEY. It does not — it already
+holds `INIT` (abandoned), `FAILED`, and `OFF_PLATFORM` rows, and has no
+amount>0 constraint. It is an **order ledger**, so a zero-priced order
+belongs in it, and the order row **is** the record of intent the extra
+table was invented to hold.
+
+⭐ **`BANK_TRIAL` is its own purpose, never `BANK_PURCHASE` at zero** —
+a trial recorded as a purchase reads as revenue in every report that
+does not check the amount.
+
+⭐ **The email is the existing receipt**, not a new template. Only the
+sentences that would be *false* are overridden (a `TRIAL_OVERLAY` beside
+`FRAMING`; the heading and the "Method" row). The amount stays `GHS
+0.00` — true, and dressing it up would be worse. It already prints
+"Bank access until &lt;date&gt;" off the subscription.
+
+⚠ **One trial EVER, not one ACTIVE trial**, guarded in two layers —
+unique on `lower(email)` where `purpose='BANK_TRIAL'`, and on
+`nclex_subscriptions(user_id)` where `source='SELF_TRIAL_SIGNUP'`.
+Neither filtered by status: otherwise the pass expires, the student asks
+again, and the bank is free forever.
+
+⚠ **`/welcome` activates once and its link is single-use**, so an order
+that fails to grant there is stranded for good. `startTrial` now re-runs
+activation for an existing unclaimed order and reads back whether it
+granted — the only retry path that exists. **Other purposes still have
+none.** Migration `20260924120000`.
+
+### ✅ BUILD NOTE — lapsed access says what ended (2026-09-04)
+
+`bankAccessForUser` filtered to passes that are **still valid**, so the one
+row that explains a refusal was precisely the row it excluded. "No access"
+was a single `active: false` shared by three different people:
+
+| Who | What they saw |
+|---|---|
+| trial just ended — 7 days in the bank, the warmest lead there is | "Get access" |
+| paid pass lapsed — a returning customer | "Get access" |
+| never bought anything, ever | "Get access" |
+
+The wall hedged to match — *"Your access may have expired, or you don't
+have a pass yet"* — because nothing below it knew which. And the picker's
+bank rail simply **went silent**: "7 days left" one morning, a blank space
+the next, with no sentence anywhere saying it had ended.
+
+**Now:** a second query, run **only** when the first comes back empty, for
+the most recent bank pass that has already ended. `BankAccess` gains
+`reason` (`ACTIVE` / `LAPSED_TRIAL` / `LAPSED_PAID` / `NEVER`) and
+`endedAt`, so the wall states a date and the rail keeps a line.
+
+- ⭐ **Ordered `end_at DESC` — the last pass to end wins.** Trial → paid →
+  lapsed reads as `LAPSED_PAID`, because the paid pass is the access she
+  actually lost (Sam's ruling).
+- ⚠ **Accepts `ACTIVE`-with-a-past-`end_at` AND `EXPIRED`.** Which one a
+  lapsed row is depends only on whether the nightly sweep (step 4c of
+  `nclex_enrolment_nightly_sweep`) has run since. `REVOKED` is excluded —
+  a refund is not an expiry, and "your access ended on the 9th" is the
+  wrong sentence for money we gave back.
+- ⓘ **Additive and free on the happy path.** `active` keeps its meaning,
+  no existing caller changed, and a student who has access never pays for
+  the second query.
+- ⓘ No migration: every fact was already in `nclex_subscriptions`.
+
+⬜ **The other half is still open** — a trial that ends while the student
+is away still reaches them in total silence. See the bank subscription
+expiry emails in `transactional-email.md`; Sam has reserved that for its
+own session because the copy is a resubscription magnet, not a notice.
 
 ### Post-payment experience (paid path)
 
@@ -2013,10 +2132,64 @@ policy has to honour both.
   or lapses, students enter a transition period (length TBD in
   build, e.g. 90 days) during which they retain access and
   can download materials, then access locks.
+
+  ⭐⭐ **THE CLAUSE ABOVE IS LIVE. It was superseded on 2026-08-27 and
+  REINSTATED on 2026-09-01 (Sam).** Canonical reasoning:
+  `tutor-plans-and-billing.md` §5.
+
+  **Settled twice, reversed once — the history, so this reads as a
+  decision rather than a wobble:**
+
+  - **2026-05-17** — the clause above: all student access contingent on
+    the tutor maintaining their subscription.
+  - **2026-08-27** — superseded. *"A student keeps access to what they
+    bought; a tutor whose card fails must not take 40 paying students
+    offline,"* with a 24-month cap bounding the resulting liability.
+  - **2026-09-01 — reinstated.** Sam: *"I think we are boxing ourselves
+    in taking accountability for the tutor. The tutor should be fully
+    accountable to students they enrol. We cannot take that
+    responsibility."*
+
+  ⭐ **Why the reversal, in one line: we never took the student's
+  money.** The programme fee is collected off-platform by the tutor, so
+  there is no contract between us and that student — and the 08-27 rule
+  described the enrolment as *"a contract between student and tutor"*
+  while making **us** honour it.
+
+  ⚠ **The clause returns with three conditions it never had** (all
+  settled 2026-09-01): terms accepted at enrolment naming the tutor as
+  provider; the same wording in the enrolment email; and a soft landing
+  — warning, a short window, and the tutor's contact so the student
+  chases the right person.
+
+  ⓘ **What the 08-27 rule got right, and what it got wrong.** It was
+  right about the *harm* — a student losing access she paid for is a
+  real harm, and the 90-day transition sketched above is the right
+  instinct. It was wrong about **who carries it**.
+
+  ⚠ **The 24-month cap survives but its reason did not.** It existed to
+  bound *our* liability for a lapsed tutor's students; that is no
+  longer our liability. Under the seat model a long window now costs
+  the **tutor** a seat for its whole length, so the economics enforce
+  what the rule was enforcing. Flagged for re-decision in
+  `tutor-plans-and-billing.md` §5 — **do not inherit it.**
+
+  ⚠ **DECIDED, NOT BUILT.** `access_window_days` still allows NULL and
+  NULL still means lifetime in code — **8 of 15 dev programmes and 33 of
+  48 dev enrolments** are in that state, because the form's blank box
+  defaults to it. Prod is empty, so the migration is free **now** and
+  would retroactively shorten paid-for access later.
 - "Lifetime" is therefore honestly described to students as
-  "lifetime of the tutor's subscription on QAcademy" — not
+  "lifetime of the tutor's subscription on Quademia" — not
   "lifetime regardless of platform status." Matches industry
   standard (Teachable, Thinkific, Kajabi all work this way).
+
+  ⭐ **This bullet is live again as of 2026-09-01**, and it is now the
+  *minimum* of what the student is told, not the whole of it — §5's
+  three conditions require it at enrolment **and** in the enrolment
+  email. ⓘ Brand: this quotes student-facing copy, so it says
+  **Quademia** (CLAUDE.md → *UI Conventions* §5). ⚠ Whether the word
+  "lifetime" survives at all depends on the cap re-decision above.
 - The access window covers **programme content only**. Bank pack
   access is governed by the student's bank subscription
   separately (see *Self-study enrolment → Pricing — Bank*).

@@ -32,6 +32,22 @@ import { TUTOR_APPLICATION_PATH } from '@/lib/tutors/types';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * "11 Sep 26" — compact enough for the rail, and carries the year so a
+ * pass that lapsed last year cannot read as one that lapsed last week.
+ * Same idiom as lib/audit/authorship-line.tsx.
+ *
+ * ⚠ Not exported: a page module may export only the default and route
+ * config, or the production build fails (dev does not catch it).
+ */
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: '2-digit',
+  });
+}
+
 export default async function PickerPage() {
   const chrome = await loadChromeData();
   if (!chrome.roles.includes('STUDENT')) redirect('/no-access');
@@ -57,6 +73,16 @@ export default async function PickerPage() {
       ? 'Lifetime access'
       : `${bankAccess.daysLeft} day${bankAccess.daysLeft === 1 ? '' : 's'} left`
     : null;
+  // ⭐ A pass running out used to leave this rail SILENT — "7 days left"
+  // one morning, a blank space the next, and nothing anywhere saying it
+  // had ended (2026-09-04). Its own line in its own weight, because the
+  // countdown is a headline and this is a note.
+  const bankLapsedLine =
+    !bankAccess.active && bankAccess.endedAt
+      ? `${bankAccess.reason === 'LAPSED_TRIAL' ? 'Trial' : 'Access'} ended ${shortDate(
+          bankAccess.endedAt,
+        )}`
+      : null;
   const bankCtaLabel = bankAccess.active ? 'Open the bank' : 'Get access';
 
   // Readiness door: ALWAYS shown (grouped with the bank rail, not a co-equal
@@ -159,6 +185,9 @@ export default async function PickerPage() {
                 <div className="bank-rail-title">Practise &amp; rehearse</div>
                 {bankStatusLine && (
                   <div className="bank-rail-status">{bankStatusLine}</div>
+                )}
+                {bankLapsedLine && (
+                  <div className="bank-rail-lapsed">{bankLapsedLine}</div>
                 )}
                 <p className="bank-rail-desc">
                   Thousands of NCLEX-style questions with full rationales —

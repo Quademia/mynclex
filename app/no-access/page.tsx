@@ -20,11 +20,57 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ownsReadinessForUser } from '@/lib/payments/entitlements';
+import { bankAccessForUser, ownsReadinessForUser } from '@/lib/payments/entitlements';
+import type { BankAccessReason } from '@/lib/payments/entitlements';
 import '@/styles/tokens.css';
 import '@/styles/dashboards.css';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * The bank wall used to say "your access may have expired, or you don't
+ * have a pass yet" — one hedged sentence for three different people,
+ * because nothing below it knew which (2026-09-04). It knows now.
+ *
+ * ⓘ 'ACTIVE' is unreachable here (a student with access is never
+ * redirected to this page) but is listed so the record stays total and a
+ * future reason cannot be forgotten.
+ */
+const BANK_COPY: Record<BankAccessReason, { title: string; body: (ended: string) => string }> = {
+  LAPSED_TRIAL: {
+    title: 'Your free trial has ended',
+    body: (ended) =>
+      `Your free trial ended on ${ended}. Choose a plan to pick up where you left off — ` +
+      'your access starts again the moment you pay.',
+  },
+  LAPSED_PAID: {
+    title: 'Your bank access has ended',
+    body: (ended) =>
+      `Your bank access ended on ${ended}. Choose a duration to carry on — ` +
+      'your access starts again the moment you pay.',
+  },
+  NEVER: {
+    title: 'Bank access needed',
+    body: () =>
+      'Practice, your dashboard and history are part of the question bank. ' +
+      "You'll need a pass to get in.",
+  },
+  ACTIVE: {
+    title: 'Bank access needed',
+    body: () =>
+      'Practice, your dashboard and history are part of the question bank. ' +
+      "You'll need a pass to get in.",
+  },
+};
+
+/** "11 September 2026" — long form, because this sits in a sentence. */
+function longDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
 
 export default async function NoAccessPage({
   searchParams,
@@ -40,15 +86,18 @@ export default async function NoAccessPage({
 
   // ── Actionable gap: bank access needed ──────────────────────────────
   if (need === 'bank') {
-    const ownsReadiness = await ownsReadinessForUser(supabase, user.id);
+    const [ownsReadiness, access] = await Promise.all([
+      ownsReadinessForUser(supabase, user.id),
+      bankAccessForUser(supabase, user.id),
+    ]);
+    const copy = BANK_COPY[access.reason];
     return (
       <main className="dash-main">
         <section className="dash-card">
           <div className="dash-header">
-            <h1 className="dash-title">Bank access needed</h1>
+            <h1 className="dash-title">{copy.title}</h1>
             <p className="dash-subtitle">
-              Practice, your dashboard, history and the Journey Tracker are part of the
-              question bank. Your access may have expired, or you don&apos;t have a pass yet.
+              {copy.body(access.endedAt ? longDate(access.endedAt) : '')}
             </p>
           </div>
 

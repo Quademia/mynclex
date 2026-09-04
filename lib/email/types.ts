@@ -670,7 +670,13 @@ export type ReceiptLineItem = {
     | 'READINESS_PURCHASE'
     | 'PROGRAMME_INITIAL'
     | 'PROGRAMME_INSTALLMENT'
-    | 'BANK_OPTIN_AT_PROGRAMME';
+    | 'BANK_OPTIN_AT_PROGRAMME'
+    // The free 7-day pass (2026-09-04). Spelled out here rather than
+    // aliased to PaymentPurpose on purpose: this union is what an email
+    // ALREADY QUEUED can contain, so it must only ever grow deliberately —
+    // widening it by import would let a new payment purpose reach the
+    // outbox with no label in PURPOSE_LABEL to render it.
+    | 'BANK_TRIAL';
   /** What she bought, in her words: "NCLEX Question Bank — 3 months". */
   label: string;
   amountMinor: number;
@@ -702,6 +708,17 @@ export type PaymentReceiptPayload = {
   /** Where to go next, when there is somewhere. Absolute URL. */
   ctaHref: string | null;
   ctaLabel: string | null;
+  /**
+   * The whole order was the free trial (2026-09-04) — every row
+   * BANK_TRIAL, nothing collected. Shifts the wording only: the money
+   * block, the grants and the setup link are the paid ones.
+   *
+   * ⚠ OPTIONAL, AND FALSY MEANS THE OLD BEHAVIOUR — deliberately. Rows
+   * already sitting in the outbox were serialised before this field
+   * existed, and a required field would make every one of them render
+   * as something other than what it was queued as.
+   */
+  isTrial?: boolean;
 };
 
 // ─────────────────────────────────────────────────────────────────────

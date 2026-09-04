@@ -21,7 +21,7 @@
 
 import { formatMinor } from '@/lib/products/money';
 import type { EmailTemplate, InstallmentDuePayload } from '../types';
-import { APP_ORIGIN, BRAND, button, esc, factRow } from './wrapper';
+import { appOrigin, BRAND, button, esc, factRow } from './wrapper';
 
 // ⭐ "1 October", not "01/10/2026" — the audience spans GH, UK and CA, and
 // 01/10 reads as two different days on two sides of an ocean. A named
@@ -90,7 +90,7 @@ function body(p: InstallmentDuePayload): string {
       ${factRow('Due', due)}
     </table>
 
-    ${button(`${APP_ORIGIN}/checkout/installment/${encodeURIComponent(p.enrolmentId)}`, 'Pay now')}
+    ${button(`${appOrigin()}/checkout/installment/${encodeURIComponent(p.enrolmentId)}`, 'Pay now')}
     ${consequence}
   `;
 }

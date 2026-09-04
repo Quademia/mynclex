@@ -18,7 +18,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
 import { createClient as createSbClient } from '@supabase/supabase-js';
 import { requireAdminPermission, PERM_TUTORS_MANAGE } from '@/lib/access';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
@@ -34,7 +33,7 @@ import type { TutorAddedEntry } from '@/lib/email/types';
 // ⓘ Imported rather than re-typed: a second copy of the address is a
 // second thing to change, and the one that gets missed is the one nobody
 // is reading.
-import { SUPPORT_EMAIL } from '@/lib/email/templates/wrapper';
+import { appOrigin, SUPPORT_EMAIL } from '@/lib/email/templates/wrapper';
 import { TUTOR_APPLICATION_PATH } from './types';
 import type { TutorSource } from './types';
 
@@ -251,7 +250,7 @@ export async function promoteUserToTutorAction(userId: string): Promise<AddTutor
   //
   // ⚠ `queued` is QUEUED, never delivered — the send runs after the
   // response under waitUntil. The toast must not claim it arrived.
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nclex.quademia.com';
+  const origin = appOrigin();
   const { queued } = await enqueueAndSend({
     eventKey: 'tutor.added_by_admin',
     subjectRef: userId,
@@ -334,14 +333,22 @@ export async function inviteTutorByEmailAction(
     };
   }
 
-  // ⚠ The SETUP link must point at the origin the request came from, or
-  // it is untestable on localhost. Deliberately asymmetric with the
-  // workspace links below, which always point at the real app — the same
-  // split lib/enrolments/enrol-email.ts documents, and for the same
-  // reason: the person reading the email is not the person who ran the
-  // code, EXCEPT on the one link that only exists to be clicked now.
-  const h = await headers();
-  const origin = h.get('origin') ?? 'http://localhost:3000';
+  // ⭐ THE SETUP LINK AND THE WORKSPACE LINKS NOW AGREE (2026-09-04). This
+  // used to read the REQUEST's origin, and the note explaining why said
+  // "or it is untestable on localhost" — a reason that no longer holds,
+  // because appOrigin() answers localhost when we are running locally.
+  //
+  // ⚠⚠ The asymmetry was not harmless. On 2026-09-04 a tutor was invited
+  // from a laptop, so this minted `redirect_to=http://localhost:3000` — a
+  // link only the SENDER could ever open — while every other link in the
+  // same email pointed at prod. One email, two destinations, neither of
+  // them where he was. He never got in.
+  //
+  // ⓘ One source of truth, so the two can no longer disagree: mint from
+  // the dev site and the whole email points at dev. It also makes the
+  // recipient's ability to open the link a matter of configuration rather
+  // than of which machine happened to run the code.
+  const origin = appOrigin();
 
   const { data: invite, error: inviteError } = await admin.auth.admin.generateLink({
     type: 'invite',
@@ -411,7 +418,6 @@ export async function inviteTutorByEmailAction(
     };
   }
 
-  const appOrigin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nclex.quademia.com';
   const { queued } = await enqueueAndSend({
     eventKey: 'tutor.added_by_admin',
     subjectRef: userId,
@@ -424,8 +430,8 @@ export async function inviteTutorByEmailAction(
       keepsStudentRole: false,
       entry: 'SET_UP' satisfies TutorAddedEntry,
       setUpUrl,
-      workspaceUrl: `${appOrigin}/tutor`,
-      profileUrl: `${appOrigin}/tutor/profile`,
+      workspaceUrl: `${origin}/tutor`,
+      profileUrl: `${origin}/tutor/profile`,
     },
   });
 
@@ -718,7 +724,7 @@ export async function reinstateTutorAction(
     .maybeSingle();
 
   if (person?.email) {
-    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nclex.quademia.com';
+    const origin = appOrigin();
     await enqueueAndSend({
       eventKey: 'tutor.reinstated',
       subjectRef: userId,
@@ -838,7 +844,7 @@ export async function submitApplicationAction(
     .eq('id', user.id)
     .maybeSingle();
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nclex.quademia.com';
+  const origin = appOrigin();
 
   // ⚠ Stage = the submission number, for the same reason the decision
   // emails carry a timestamp: subject_ref is a PERSON here, and §9 exists
@@ -1230,7 +1236,7 @@ export async function approveApplicationAction(
   // approval — the standing and the role are already written, and an
   // error now invites the admin to click again on something that worked.
   if (person?.email) {
-    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nclex.quademia.com';
+    const origin = appOrigin();
     await enqueueAndSend({
       eventKey: 'tutor.application_approved',
       subjectRef: userId,
@@ -1303,7 +1309,7 @@ export async function rejectApplicationAction(
     .maybeSingle();
 
   if (person?.email) {
-    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://nclex.quademia.com';
+    const origin = appOrigin();
     await enqueueAndSend({
       eventKey: 'tutor.application_rejected',
       subjectRef: userId,

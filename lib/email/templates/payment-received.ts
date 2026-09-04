@@ -138,7 +138,47 @@ const PURPOSE_LABEL: Record<ReceiptLineItem['purpose'], string> = {
   PROGRAMME_INITIAL: 'Programme',
   PROGRAMME_INSTALLMENT: 'Programme payment',
   BANK_OPTIN_AT_PROGRAMME: 'Question bank',
+  BANK_TRIAL: 'Free trial',
 };
+
+// ─────────────────────────────────────────────────────────────────────
+// The trial overlay — a second dimension, not more framings
+// ─────────────────────────────────────────────────────────────────────
+// ⭐ The free 7-day pass reuses this email whole (2026-09-04): same money
+// block, same grants list, same setup-link machinery, so the copy that
+// matters is fixed in ONE place rather than drifting across two files.
+//
+// ⭐ Why an overlay and not TRIAL_ACTIVATED / TRIAL_SETUP_REQUIRED keys:
+// FRAMING's keys describe the STATE of the grant, and trial-ness is a
+// property of the ORDER. They are independent, so folding them into one
+// enum multiplies its entries and invites a fourth that means nothing
+// (a trial can never be PENDING_APPROVAL — no tutor approves it).
+//
+// ⚠ Only the sentences that would be FALSE for a trial are overridden.
+// "Payment received" and "your payment went through" are the false ones:
+// nobody paid. The amount is not — GHS 0.00 is true, and dressing it up
+// would be worse than stating it (Sam, 2026-09-04).
+const TRIAL_OVERLAY: Partial<
+  Record<PaymentReceiptPayload['framing'], Partial<(typeof FRAMING)[keyof typeof FRAMING]>>
+> = {
+  ACTIVATED: {
+    heading: 'Your free trial is open',
+    lede: 'Your 7-day trial of the question bank is ready — everything below is yours to use now.',
+    grantsHeading: 'What you now have',
+  },
+  SETUP_REQUIRED: {
+    heading: 'Your free trial — one step left',
+    subjectTail: 'one step left',
+    lede:
+      'Your 7-day trial of the question bank is reserved. To reach it, you ' +
+      'need to finish setting up your account.',
+    grantsHeading: 'What your trial gives you',
+  },
+};
+
+function framingFor(p: PaymentReceiptPayload) {
+  return { ...FRAMING[p.framing], ...(p.isTrial ? TRIAL_OVERLAY[p.framing] : null) };
+}
 
 function lineItemRow(item: ReceiptLineItem, currency: PaymentReceiptPayload['currency']): string {
   return `
@@ -186,13 +226,18 @@ function formatPaidAt(iso: string): string {
 }
 
 function subject(p: PaymentReceiptPayload): string {
-  const f = FRAMING[p.framing];
-  const base = `Payment received — ${formatMinor(p.totalMinor, p.currency)}`;
+  const f = framingFor(p);
+  // ⚠ The trial's subject drops the amount entirely. "Payment received —
+  // GHS 0.00" in an inbox reads as a billing error, which is the one thing
+  // a free trial must not look like.
+  const base = p.isTrial
+    ? 'Your free 7-day trial of the question bank'
+    : `Payment received — ${formatMinor(p.totalMinor, p.currency)}`;
   return f.subjectTail ? `${base} (${f.subjectTail})` : base;
 }
 
 function body(p: PaymentReceiptPayload): string {
-  const f = FRAMING[p.framing];
+  const f = framingFor(p);
   const greeting = p.recipientName ? `Hi ${esc(p.recipientName)},` : 'Hi,';
   const grants = grantsList(p.lineItems);
   const hasCta = !!(p.ctaHref && p.ctaLabel);
@@ -229,7 +274,18 @@ function body(p: PaymentReceiptPayload): string {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
                  style="margin-top:14px;border-top:1px solid ${BRAND.line};padding-top:8px;">
             ${factRow('Date', formatPaidAt(p.paidAtISO))}
-            ${factRow('Method', p.method === 'CARD' ? 'Card' : 'Paid directly to your tutor')}
+            ${factRow(
+              'Method',
+              // ⚠ A trial's collection_channel is 'NONE' and maps to 'CARD'
+              // upstream, so without this the receipt would claim a card was
+              // charged. The amount can honestly read 0.00; the method cannot
+              // honestly read "Card".
+              p.isTrial
+                ? 'Free trial — no payment taken'
+                : p.method === 'CARD'
+                  ? 'Card'
+                  : 'Paid directly to your tutor'
+            )}
             ${p.reference ? factRow('Reference', p.reference) : ''}
           </table>
         </td>

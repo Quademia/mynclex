@@ -24,7 +24,7 @@
 
 import { formatMinor } from '@/lib/products/money';
 import type { EmailTemplate, InstallmentOverduePayload } from '../types';
-import { APP_ORIGIN, BRAND, button, esc, factRow } from './wrapper';
+import { appOrigin, BRAND, button, esc, factRow } from './wrapper';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -102,7 +102,7 @@ function body(p: InstallmentOverduePayload): string {
     </table>
 
     ${button(
-      `${APP_ORIGIN}/checkout/installment/${encodeURIComponent(p.enrolmentId)}`,
+      `${appOrigin()}/checkout/installment/${encodeURIComponent(p.enrolmentId)}`,
       p.paused ? 'Pay now and get back in' : 'Pay now'
     )}
 

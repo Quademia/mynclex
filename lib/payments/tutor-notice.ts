@@ -19,6 +19,7 @@
 
 import 'server-only';
 import { formatCohortName } from '@/lib/cohorts/format';
+import { appOrigin } from '@/lib/email/templates/wrapper';
 import { enqueueAndSend } from '@/lib/email/send';
 import type {
   ReceiptFraming,
@@ -30,18 +31,21 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { buildSchedule } from './schedule';
 import type { Currency } from './types';
 
-// Matches result.ts and enrol-email.ts — an emailed link points at the
-// real app, since the person reading it is not the person who ran the
-// code. See the note on APP_ORIGIN in lib/email/templates/wrapper.ts.
-const APP_ORIGIN = 'https://nclex.quademia.com';
-
 /**
  * The tutor's money ledger — every student payment across all their
  * programmes, already filtered to programme fees. Built 2026-06-12 as
  * the single global money surface (no per-programme money pages), which
  * is exactly what this email should open.
+ *
+ * ⚠ A FUNCTION, not the `const CTA_HREF` that used to sit here. The origin
+ * is read from the environment now, and a module-scope read can run before
+ * the Worker's env is bound — see appOrigin(). Making the origin dynamic
+ * while leaving a constant built FROM it would have baked the fallback in
+ * and looked like it worked. (2026-09-04)
  */
-const CTA_HREF = `${APP_ORIGIN}/tutor/payments`;
+function ctaHref(): string {
+  return `${appOrigin()}/tutor/payments`;
+}
 const CTA_LABEL = 'View payments';
 
 /** The only purposes that are the tutor's money. Everything else is ours. */
@@ -248,7 +252,7 @@ export async function buildTutorPaymentNotice(
       method: paymentMethod(first),
       planPosition: planPosition(rows, standing),
       standing,
-      ctaHref: CTA_HREF,
+      ctaHref: ctaHref(),
       ctaLabel: CTA_LABEL,
     },
   };

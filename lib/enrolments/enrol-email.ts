@@ -16,6 +16,7 @@
 //
 // Doc: docs/product-plan/transactional-email.md
 
+import { appOrigin } from '@/lib/email/templates/wrapper';
 import { enqueueAndSend } from '@/lib/email/send';
 import type { EnrolmentAddedPayload, EnrolmentReason } from '@/lib/email/types';
 import { buildSchedule } from '@/lib/payments/schedule';
@@ -26,11 +27,12 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 // Matches lib/payments/result.ts — an emailed link points at the real
 // app, since the person reading it is not the person who ran the code.
 //
-// ⚠ Asymmetric on dev, and worth knowing before testing: the SET_UP link
-// is minted by generateLink with the REQUEST's origin, so on localhost
-// it points at localhost (which is what makes the flow testable), while
-// this LOG_IN link points at production either way.
-const APP_ORIGIN = 'https://nclex.quademia.com';
+// ⓘ The asymmetry this note used to describe is GONE (2026-09-04). It read:
+// "the SET_UP link is minted by generateLink with the REQUEST's origin, so
+// on localhost it points at localhost, while this LOG_IN link points at
+// production either way." That split is exactly what stranded a tutor on
+// prod — one working link in an email whose every other link went
+// elsewhere. Both halves now follow the environment; see appOrigin().
 
 type AdminClient = ReturnType<typeof createServiceRoleClient>;
 
@@ -197,5 +199,5 @@ function entryLink(args: EnrolEmailArgs): { actionUrl: string; actionLabel: stri
   if (args.invited && args.setUpUrl) {
     return { actionUrl: args.setUpUrl, actionLabel: 'Set up your account' };
   }
-  return { actionUrl: `${APP_ORIGIN}/login`, actionLabel: 'Log in' };
+  return { actionUrl: `${appOrigin()}/login`, actionLabel: 'Log in' };
 }

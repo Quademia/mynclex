@@ -803,6 +803,23 @@
   margin-top: 14px;
 }
 
+/* A pass that has run out. Deliberately NOT .bank-rail-status: that is a
+   24px/800 headline for "7 days left", and the same weight on "Trial ended"
+   would shout the wrong news. Same slot, note-sized. (2026-09-04) */
+.bank-rail-lapsed {
+  position: relative;
+  font-size: 13px;
+  font-weight: 700;
+  /* ⚠ NOT var(--danger) (#dc2626). That red is tuned for dark-on-pale —
+     it is the text colour of .alert-error against #fef2f2 — and on this
+     navy gradient it drops to roughly 1.6:1 and reads as mud. This is the
+     same red lightened for a dark ground: ~5.9:1 on --primary, so it still
+     passes at 13px. (2026-09-04) */
+  color: #fca5a5;
+  letter-spacing: 0.01em;
+  margin-top: 14px;
+}
+
 .bank-rail-desc {
   position: relative;
   font-size: 12.5px;

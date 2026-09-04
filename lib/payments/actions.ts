@@ -9,7 +9,9 @@
 import { headers } from 'next/headers';
 import { emailHasAccount } from './dup-check';
 import { startPayment } from './init';
+import { startTrial } from './trial';
 import type { CheckoutTarget, StartPaymentResult } from './types';
+import type { StartTrialResult } from './trial';
 
 // Email dup-check — called as the buyer enters their email, before
 // they're sent to Paystack. exists=true → checkout should pause and ask
@@ -40,4 +42,12 @@ export async function startPaymentAction(args: {
     target: args.target,
     baseUrl,
   });
+}
+
+// Start the free 7-day bank trial. No Paystack round trip and so no
+// redirect to hand back — the result says what happened and the page
+// speaks. A signed-in caller's own email overrides the argument (see
+// startTrial).
+export async function startTrialAction(email: string): Promise<StartTrialResult> {
+  return startTrial(email);
 }

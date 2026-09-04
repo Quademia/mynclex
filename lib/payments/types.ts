@@ -11,7 +11,15 @@ export type PaymentPurpose =
   | 'READINESS_PURCHASE'
   | 'PROGRAMME_INITIAL'
   | 'PROGRAMME_INSTALLMENT'
-  | 'BANK_OPTIN_AT_PROGRAMME';
+  | 'BANK_OPTIN_AT_PROGRAMME'
+  /**
+   * ⭐ An order that cost nothing — the free 7-day bank pass (2026-09-04).
+   * Its own purpose rather than BANK_PURCHASE at amount 0, so it never
+   * reads as revenue and "how many trials started?" is countable without
+   * the heuristic `amount_minor = 0`. Never reaches Paystack: the row is
+   * written already PAID, with collection_channel 'NONE'.
+   */
+  | 'BANK_TRIAL';
 
 // What the buyer is paying for. Bank purchases pick their own currency;
 // a programme's currency is fixed by the programme itself. cohortId is the
