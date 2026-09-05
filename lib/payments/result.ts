@@ -639,6 +639,30 @@ export async function buildPaymentReceiptEmail(
   const method: PaymentReceiptPayload['method'] =
     first.collection_channel === 'OFF_PLATFORM' ? 'OFF_PLATFORM' : 'CARD';
 
+  // ⭐ THE TRIAL'S LENGTH, FROZEN WITH THE ORDER (2026-09-05). The public
+  // pages ask the catalogue "how long is the trial?" every time they
+  // render, which is right for a page — a page always shows now. An email
+  // is the opposite: written once, read forever. So it states what was
+  // true for THIS order. A live read at send time would promise 14 days to
+  // someone who started a 7-day trial four minutes earlier — a worse bug
+  // than the hardcoded "7-day" this replaces, because it would be wrong in
+  // the customer's favour and in writing.
+  //
+  // ⚠ Read OUT HERE, not in the grants block above, which skips
+  // SETUP_REQUIRED. That framing has no subscription yet and therefore no
+  // end date to quote, so the length is the ONLY thing its email can say
+  // about how long she gets — it is the branch that needs this most.
+  const trialRow = rows.find((r) => r.purpose === 'BANK_TRIAL' && r.product_id);
+  let trialDays: number | null = null;
+  if (trialRow) {
+    const { data: trialProduct } = await admin
+      .from('nclex_products')
+      .select('duration_days')
+      .eq('product_id', trialRow.product_id as string)
+      .maybeSingle();
+    trialDays = (trialProduct?.duration_days as number | null) ?? null;
+  }
+
   const lineItems: ReceiptLineItem[] = receipt.lines.map((l) => ({
     purpose: l.purpose as ReceiptLineItem['purpose'],
     // The line's name plus its qualifier — "NCLEX Intensive — Cohort 3 ·
@@ -687,6 +711,9 @@ export async function buildPaymentReceiptEmail(
       // the mixed case would read as an ordinary receipt, which is the safe
       // way round — it would understate, never claim a payment was free.
       isTrial: rows.length > 0 && rows.every((r) => r.purpose === 'BANK_TRIAL'),
+      // Null on every non-trial order, and on a trial whose product has no
+      // duration — the template drops the number rather than invent one.
+      trialDays,
     },
   };
 }

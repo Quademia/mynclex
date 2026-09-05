@@ -158,26 +158,56 @@ const PURPOSE_LABEL: Record<ReceiptLineItem['purpose'], string> = {
 // "Payment received" and "your payment went through" are the false ones:
 // nobody paid. The amount is not — GHS 0.00 is true, and dressing it up
 // would be worse than stating it (Sam, 2026-09-04).
-const TRIAL_OVERLAY: Partial<
-  Record<PaymentReceiptPayload['framing'], Partial<(typeof FRAMING)[keyof typeof FRAMING]>>
-> = {
-  ACTIVATED: {
-    heading: 'Your free trial is open',
-    lede: 'Your 7-day trial of the question bank is ready — everything below is yours to use now.',
-    grantsHeading: 'What you now have',
-  },
-  SETUP_REQUIRED: {
-    heading: 'Your free trial — one step left',
-    subjectTail: 'one step left',
-    lede:
-      'Your 7-day trial of the question bank is reserved. To reach it, you ' +
-      'need to finish setting up your account.',
-    grantsHeading: 'What your trial gives you',
-  },
-};
+// ⚠ A FUNCTION SINCE 2026-09-05, where it used to be a constant. It said
+// "7-day" in three places, so changing the trial's length in the admin
+// catalogue would have left the first email a new trialler ever receives
+// contradicting both the page she came from and the real end date printed
+// lower down the same email. The length now travels ON THE ORDER
+// (`trialDays`), so these sentences are built per payload.
+/**
+ * This order's trial length, or null when it did not carry one.
+ *
+ * ⚠ Null is a real state, not a gap — a row queued before `trialDays`
+ * existed has none, and neither would a trial product saved with no
+ * duration. Everything below drops the number rather than inventing one.
+ */
+function trialLengthDays(p: PaymentReceiptPayload): number | null {
+  return typeof p.trialDays === 'number' && p.trialDays > 0 ? p.trialDays : null;
+}
+
+function trialOverlay(
+  p: PaymentReceiptPayload,
+): Partial<(typeof FRAMING)[keyof typeof FRAMING]> | null {
+  const days = trialLengthDays(p);
+  // "14-day" when the order carried its length, "free" when it did not —
+  // so the sentence keeps a selling word either way rather than reading
+  // "Your trial of the question bank".
+  const length = days ? `${days}-day` : 'free';
+
+  switch (p.framing) {
+    case 'ACTIVATED':
+      return {
+        heading: 'Your free trial is open',
+        lede: `Your ${length} trial of the question bank is ready — everything below is yours to use now.`,
+        grantsHeading: 'What you now have',
+      };
+    case 'SETUP_REQUIRED':
+      return {
+        heading: 'Your free trial — one step left',
+        subjectTail: 'one step left',
+        lede:
+          `Your ${length} trial of the question bank is reserved. To reach it, you ` +
+          'need to finish setting up your account.',
+        grantsHeading: 'What your trial gives you',
+      };
+    // PENDING_APPROVAL: unreachable for a trial — no tutor approves one.
+    default:
+      return null;
+  }
+}
 
 function framingFor(p: PaymentReceiptPayload) {
-  return { ...FRAMING[p.framing], ...(p.isTrial ? TRIAL_OVERLAY[p.framing] : null) };
+  return { ...FRAMING[p.framing], ...(p.isTrial ? trialOverlay(p) : null) };
 }
 
 function lineItemRow(item: ReceiptLineItem, currency: PaymentReceiptPayload['currency']): string {
@@ -230,8 +260,14 @@ function subject(p: PaymentReceiptPayload): string {
   // ⚠ The trial's subject drops the amount entirely. "Payment received —
   // GHS 0.00" in an inbox reads as a billing error, which is the one thing
   // a free trial must not look like.
+  //
+  // ⭐ The subject KEEPS "free" and inserts the number when it has one —
+  // "Your free 14-day trial…". Both words earn their place in an inbox
+  // line, so unlike the lede this one adds rather than substitutes; with
+  // no number it falls back to "Your free trial…".
+  const trialDays = trialLengthDays(p);
   const base = p.isTrial
-    ? 'Your free 7-day trial of the question bank'
+    ? `Your free ${trialDays ? `${trialDays}-day ` : ''}trial of the question bank`
     : `Payment received — ${formatMinor(p.totalMinor, p.currency)}`;
   return f.subjectTail ? `${base} (${f.subjectTail})` : base;
 }
@@ -541,6 +577,94 @@ export const paymentReceivedTemplate: EmailTemplate<PaymentReceiptPayload> = {
         ],
         ctaHref: null,
         ctaLabel: null,
+      },
+    },
+    // ⚠⚠ THE TRIAL HAD NO FIXTURE AT ALL until 2026-09-05, though it is a
+    // whole second dimension over the framings above and ships the first
+    // email a new trialler ever receives. Exactly the gap the note at the
+    // top of this section warns about — three variants, none of them
+    // viewable, on the busiest door into the product. Three now: the two
+    // live states, plus the no-number fallback.
+    {
+      label: 'Trial · activated',
+      payload: {
+        framing: 'ACTIVATED',
+        recipientName: 'Ama',
+        currency: 'GHS',
+        totalMinor: 0,
+        paidAtISO: PAID_AT,
+        // A trial never reaches Paystack, so there is no reference to print.
+        reference: null,
+        method: 'CARD',
+        lineItems: [
+          {
+            purpose: 'BANK_TRIAL',
+            label: 'Free trial — 7 days',
+            amountMinor: 0,
+            grants: 'Bank access until 18 August 2026',
+          },
+        ],
+        ctaHref: 'https://nclex.quademia.com/student/bank',
+        ctaLabel: 'Start practising',
+        isTrial: true,
+        trialDays: 7,
+      },
+    },
+    {
+      // The trial's own pay-first branch: she asked for it while logged
+      // out, so nothing is granted yet and there is no end date to state.
+      // The LENGTH is therefore the only thing this email can say about how
+      // much time she is being offered — which is why it travels on the
+      // order rather than being read from the catalogue at send time.
+      label: 'Trial · setup required (asked for it logged out)',
+      payload: {
+        framing: 'SETUP_REQUIRED',
+        recipientName: null,
+        currency: 'GHS',
+        totalMinor: 0,
+        paidAtISO: PAID_AT,
+        reference: null,
+        method: 'CARD',
+        lineItems: [
+          {
+            purpose: 'BANK_TRIAL',
+            label: 'Free trial — 7 days',
+            amountMinor: 0,
+            grants: null,
+          },
+        ],
+        ctaHref: 'https://nclex.quademia.com/welcome#example-one-time-link',
+        ctaLabel: 'Set up your account',
+        isTrial: true,
+        trialDays: 7,
+      },
+    },
+    {
+      // ⚠ THE WORDING WITH NO NUMBER — what a row queued before
+      // `trialDays` existed renders as when it drains after this shipped,
+      // and what a trial product saved with no duration would produce.
+      // "free" stands in for the number: vaguer, never wrong. Same reason
+      // the buttonless setup receipt above has a fixture of its own.
+      label: 'Trial · no length on the order (pre-field row)',
+      payload: {
+        framing: 'ACTIVATED',
+        recipientName: 'Ama',
+        currency: 'GHS',
+        totalMinor: 0,
+        paidAtISO: PAID_AT,
+        reference: null,
+        method: 'CARD',
+        lineItems: [
+          {
+            purpose: 'BANK_TRIAL',
+            label: 'Free trial',
+            amountMinor: 0,
+            grants: 'Bank access until 18 August 2026',
+          },
+        ],
+        ctaHref: 'https://nclex.quademia.com/student/bank',
+        ctaLabel: 'Start practising',
+        isTrial: true,
       },
     },
     {

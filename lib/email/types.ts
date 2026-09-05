@@ -719,6 +719,23 @@ export type PaymentReceiptPayload = {
    * as something other than what it was queued as.
    */
   isTrial?: boolean;
+  /**
+   * How many days THIS trial ran for, frozen with the order (2026-09-05).
+   *
+   * ⭐ Not read from the catalogue at render time, on purpose. A page can
+   * ask "how long is the trial?" every time it draws, because a page
+   * always shows now; an email is written once and read forever, so it
+   * has to state what was true for this order. A live read would promise
+   * 14 days to someone who started a 7-day trial minutes earlier. Same
+   * principle as `end_at` and `cat_allowance` freezing onto the
+   * subscription at activation.
+   *
+   * ⚠ OPTIONAL, and absent means the sentence loses its number rather
+   * than inventing one — rows queued before this field existed carry no
+   * length, and neither would a trial product saved without a duration.
+   * Vaguer, never wrong. See TRIAL_OVERLAY in payment-received.ts.
+   */
+  trialDays?: number | null;
 };
 
 // ─────────────────────────────────────────────────────────────────────
