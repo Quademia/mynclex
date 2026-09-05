@@ -488,6 +488,43 @@ unset variable degrades to the old behaviour rather than to a broken link.
 - ⓘ **Prod behaviour is unchanged.** Its `APP_ORIGIN` equals the fallback
   on purpose, so the day the hostname moves there is one line to edit.
 
+### ✅ BUILD NOTE — the trial receipt said "7-day" in words (fixed 2026-09-05)
+
+The sibling of the note above, found the same way: by asking what happens
+when a setting changes. The `payment.received` trial overlay hardcoded
+**"7-day"** in three places — the subject and both ledes. Change the
+trial's length in the admin catalogue and the first email a new trialler
+ever receives would contradict both the page she came from and the real
+end date printed lower down the same email.
+
+⭐ **This is §"The payload is a SNAPSHOT, not a lookup" with a number
+instead of a date, and the fix had to resist the obvious one.** The public
+pages get the trial's length right by asking the catalogue every time they
+render — correct for a page, because a page always shows *now*. Copying
+that into the template would have been worse than the bug: an email is
+written once and read forever, so a live read at send time would promise
+14 days to someone who started a 7-day trial four minutes earlier — wrong
+in the customer's favour, in writing, and unrecallable.
+
+**Now:** `trialDays` travels **on the order**, resolved when the receipt is
+queued from the same product row the grant is computed from. The same
+freeze as `end_at` and `cat_allowance` on the subscription.
+
+- ⓘ **Optional, and absent loses the number rather than inventing one.**
+  Rows queued before the field existed carry no length; the lede swaps
+  "free" in for it and the subject drops it, so an old row degrades to a
+  vaguer true sentence. Per the standing rule that a new payload field
+  defaults to the OLD behaviour.
+- ⚠ **Read outside the grants block**, which skips `SETUP_REQUIRED`. That
+  framing has no subscription yet and therefore no end date to quote — so
+  the length is the *only* thing its email can say about how much time is
+  on offer. It is the branch that needs the field most, and the one an
+  incurious fix would have missed.
+- ⚠⚠ **The trial had no preview fixture at all**, though it is a whole
+  second dimension over the three framings and ships the busiest door into
+  the product — exactly the gap the previews exist to close. Three added:
+  both live states and the no-number fallback.
+
 ### Who writes the words
 
 **Sam does.** Claude builds the skeleton with placeholder wording; Sam

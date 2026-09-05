@@ -1469,6 +1469,37 @@ we get there — roughly the §10 gaps list):**
        Same advisory on the bank tiers' bundled credits.
      - **Slug**: format + uniqueness validated on create; immutable
        after. **No second trial** — creation guards against it.
+
+     **✅ The card badge became a field — 2026-09-05.** The public bank
+     page chose which plan to promote with `const popular = p.days === 90`
+     in a component: a marketing decision as a magic number, and a silent
+     one — change that tier's length by any route and the ribbon vanished
+     with no error anywhere.
+
+     - ⭐ **Text, not a boolean.** A boolean moves WHICH product wears the
+       badge and leaves WHAT IT SAYS in code, so every product would still
+       have claimed *"Most popular"* — a claim about what customers choose,
+       which pre-launch is not a fact anybody can support. **This is the
+       §7 honesty rule on struck-through prices, applied to words instead
+       of numbers.** With the claim in a field, "Best value" (an opinion,
+       always defensible) can stand until sales say otherwise, and swapping
+       it takes seconds instead of a deploy.
+     - ⓘ **No limit on how many carry one.** Two badges reading "Best
+       value" and "Longest access" is a legitimate layout; a unique index
+       would forbid it to prevent something merely untidy. Advise-don't-
+       block, and an advisory can come the day two collide.
+     - ⓘ **Both families from the start** (Sam: *"no need to do it
+       later"*). The ribbon is absolutely positioned across the top border,
+       so it costs the readiness card no layout — name, pricing block, the
+       derived −20% pill and the feature lines all stay put, measured at
+       107px clear. Its highlight is border + shadow only: the bank version
+       also flips the button from outline to solid, and every readiness
+       button is already solid. Same treatment, different baseline.
+     - ⚠ **24 characters, measured not guessed.** At 375px the cards are
+       331px and 335px wide; 24 of the widest possible character render at
+       301px and 297px, and 28 overflows. The ribbon is one non-wrapping
+       line with no truncation to catch it. DB CHECK, server guard and the
+       input's `maxLength` all agree.
   3. **Public readiness page ✅ BUILT + Sam-tested 2026-07-08.** Was
      drafted as "bank-access Section 2"; re-cut with Sam into a
      dedicated public `/readiness` page. Full shape + build notes below.

@@ -357,6 +357,22 @@ of the day it was found is in `sessions/` under the date given.
   **do tutor invites from the dev site, not localhost**, or the recipient
   gets a link only you can open. (2026-09-04)
 
+- **An email carries what was true for ITS ORDER, not what the catalogue
+  says now.** A page may read live data every time it renders, because a
+  page always shows *now*. An email is written once and read forever, so
+  reading live at send time is worse than a stale literal: it promises the
+  new terms to someone who bought under the old ones, in writing, an
+  unrecallable email. Resolve the fact at **enqueue**, from the same row
+  the grant is computed from, and freeze it on the payload — as
+  `end_at` and `cat_allowance` already freeze onto the subscription.
+  Reference: `trialDays` in `lib/payments/result.ts` →
+  `templates/payment-received.ts`. ⚠ A new payload field is **optional**
+  and its absence must degrade to the OLD behaviour — a queued row was
+  serialised before the field existed. ⚠ Check where the fact is read
+  from: grants are assembled in a block that skips `SETUP_REQUIRED`, the
+  framing that most needs a number, because it has no grant to quote yet.
+  (2026-09-05)
+
 - **A Cloudflare dashboard "Variable" is deleted by the next deploy.
   Server-side values are encrypted SECRETS.** `wrangler deploy` sets the
   Worker's plaintext variables to exactly what `wrangler.jsonc` declares.
@@ -573,8 +589,11 @@ the working branch.
 Sam says we are stopping ("let's wrap up" or similar). **Read this
 section first, then do it in this order.** Nothing else comes before it.
 
-1. **The log entry** in `sessions/<period>.md`, newest first. Ask
-   whether it goes in the current period file or a new one. It carries:
+1. **The log entry** in `sessions/<period>.md`, newest first — the
+   **current month's file**, without asking. Ask only when it is a real
+   question: the month has turned, or the file has grown big enough to
+   want splitting. (Tightened 2026-09-05 — asking mid-month produces a
+   question with one possible answer.) It carries:
    what was built or changed, with slice ids; what was decided and what
    was rejected, with the reason; what went wrong and what it taught;
    what is open. It records what was true when written — it does not

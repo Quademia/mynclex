@@ -38,6 +38,9 @@ extraction rule in CLAUDE.md.
 
 ## 2026-09 — [sessions/2026-09.md](sessions/2026-09.md)
 
+- 2026-09-05 — what the catalogue may say about a sale it already made: the product locks examined, the trial receipt, and the badge
+  - ↳ identity lock is app-layer, no trigger · duration safe by direct UPDATE · product_id FK refuses · price editable is the inconsistency · trialDays on the order · trial had no preview fixture · badge text not boolean · days===90 retired
+
 - 2026-09-04 (later) — the wall that could not say what ended, and the email that sent a tutor to the wrong website
   - ↳ BankAccess.reason LAPSED_TRIAL/PAID/NEVER · sweep 4c → EXPIRED · #fca5a5 not --danger · appOrigin 23 sites · APP_ORIGIN not NEXT_PUBLIC_ · module-scope env freeze · 18 prod attempts · setup link unified · turnstile dev keys hide it
 

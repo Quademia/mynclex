@@ -200,6 +200,8 @@ copy of the session log.
 - ✅ Lazy-expiry (`expired_at` on next touch) — 2026-07-13
 - ✅ Public `/readiness` cinematic redesign — 2026-07-13
 - ✅ Location-aware default currency on dual-currency pages — 2026-07-15
+- ✅ Card badge is a catalogue field, both public grids; `days === 90` retired — 2026-09-05 (unplanned)
+- ⬜ Bank card's CSS class is still `.popular` while driving a free-text badge
 
 ### [runner-mobile.md](docs/product-plan/runner-mobile.md)
 
@@ -508,6 +510,7 @@ copy of the session log.
 - ⬜ `enquiry.received`, `enquiry.replied`
 - ⬜ `account.welcome`, `progress.milestone`, `curriculum.content_released`
 - ✅ An email links to the site that sent it: `appOrigin()`, 23 sites, `APP_ORIGIN` per env — 2026-09-04
+- ✅ The trial receipt carries its own length: `trialDays` on the order, 3 previews added — 2026-09-05 (unplanned)
 - ✖ `enrolment.confirmed` — folded into `payment.received`
 - ✖ `tutor.invited` — retired for the `SET_UP` dial
 
