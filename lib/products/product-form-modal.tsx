@@ -73,6 +73,10 @@ export function ProductFormModal({
   const [fullGhs, setFullGhs]   = useState(minorToInput(product?.full_price_minor_ghs ?? null));
   const [fullUsd, setFullUsd]   = useState(minorToInput(product?.full_price_minor_usd ?? null));
   const [sortOrder, setSort]    = useState<number | ''>(product?.sort_order ?? 0);
+  // Card badge (2026-09-05). Free text, both product families — blank
+  // means the card renders plain. Words rather than a tick box on purpose:
+  // it moves the CLAIM, not just which product wears it.
+  const [badge, setBadge]       = useState(product?.badge ?? '');
 
   // Offer helper: a generator, never stored. Fills both full-price boxes
   // from one discount so the two currencies show the SAME % (they only
@@ -204,6 +208,7 @@ export function ProductFormModal({
     fd.set('full_price_ghs', fullGhs);
     fd.set('full_price_usd', fullUsd);
     fd.set('sort_order', String(sortOrder));
+    fd.set('badge', badge.trim());
     if (!isEdit) {
       fd.set('pack_type', packType);
       fd.set('kind', isTrial ? 'TRIAL' : 'PAID');
@@ -300,6 +305,30 @@ export function ProductFormModal({
             disabled={pending}
             autoFocus={isEdit}
           />
+        </label>
+
+        {/* Card badge — the ribbon on the public pricing card, and the
+            highlight that comes with it. Blank = a plain card.
+
+            ⚠ "Most popular" is a claim about what customers actually
+            choose. The words live here rather than in code precisely so a
+            claim can wait for the sales to support it — "Best value" is an
+            opinion and always defensible. Same honesty rule as the "was"
+            prices below. */}
+        <label className="pr-field">
+          Card badge (optional)
+          <input
+            value={badge}
+            onChange={(e) => setBadge(e.target.value)}
+            placeholder="e.g. Best value"
+            maxLength={24}
+            disabled={pending}
+          />
+          <span className="pr-hint">
+            Ribbon across the top of this product&apos;s card on the public
+            page, which also highlights the card. Blank = no ribbon. Keep it
+            short — it has to fit one line on a phone.
+          </span>
         </label>
 
         {/* Offer helper — frontend only, nothing stored. One discount

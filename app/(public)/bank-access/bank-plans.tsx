@@ -20,6 +20,8 @@ export interface BankPlan {
   readinessCredits: number;
   /** CATs the pass grants (§15.5): null = unlimited, 0 = none, N = N. */
   catAllowance: number | null;
+  /** Ribbon text from the catalogue, or null for a plain card. */
+  badge: string | null;
   ghsMinor: number;
   usdMinor: number;
 }
@@ -81,14 +83,20 @@ export function BankPlans({
       <div className="bkc-plan-grid bkc-reveal">
         {plans.map((p) => {
           const minor = currency === 'GHS' ? p.ghsMinor : p.usdMinor;
-          const popular = p.days === 90;
+          // ⚠ WAS `p.days === 90` UNTIL 2026-09-05 — which plan to promote,
+          // and the words on the ribbon, both hardcoded in this component.
+          // It broke silently: change that tier's length by any route and
+          // the ribbon vanished with no error. And "Most popular" is a
+          // claim about what customers choose, unprovable pre-launch and
+          // un-editable without a deploy. Both now come from the catalogue.
+          const popular = !!p.badge;
           const includes = bankPlanIncludes({
             catAllowance: p.catAllowance,
             readinessCredits: p.readinessCredits,
           });
           return (
             <div key={p.productId} className={`bkc-plan${popular ? ' popular' : ''}`}>
-              {popular && <div className="bkc-plan-badge">Most popular</div>}
+              {popular && <div className="bkc-plan-badge">{p.badge}</div>}
               <div className="bkc-plan-days">{p.days} days</div>
               <div className="bkc-plan-price">{money(minor, currency)}</div>
               <div className="bkc-plan-perday">{perDay(minor, p.days, currency)}</div>

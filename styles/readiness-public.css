@@ -571,12 +571,50 @@
 
 .rpc-plan-grid { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 20px; }
 .rpc-plan {
+  /* `relative` added 2026-09-05 so the badge below anchors to THIS card.
+     Without it an absolutely-positioned ribbon walks up to the nearest
+     positioned ancestor and lands somewhere else on the page entirely. */
+  position: relative;
   flex: 1 1 280px; max-width: 390px; display: flex; flex-direction: column;
   background: #fff; border: 1px solid var(--border); border-radius: 20px;
   box-shadow: 0 8px 30px rgba(30,58,95,0.07); padding: 30px;
   transition: transform 0.25s, box-shadow 0.25s;
 }
 .rpc-plan:hover { transform: translateY(-5px); box-shadow: 0 24px 55px rgba(30,58,95,0.14); }
+
+/* ── Card badge (2026-09-05) ────────────────────────────────────────────
+   A ribbon straddling the top border, plus a highlight on the card. Both
+   render only when the product carries badge text in the catalogue.
+
+   ⚠ NOT a copy of the bank page's treatment, on purpose. That one is
+   three things — border, shadow, AND the button flipping from outline to
+   solid. Here every card's button is already solid accent, so that third
+   element has nothing to do and the highlight is border + shadow only.
+   Different baseline, quieter result, deliberately.
+
+   ⓘ Costs the card no layout: `top: -13px` sits it over the border, so
+   the name, pricing block, the derived −20% pill and the feature lines
+   all stay exactly where they were. The grid's 20px row gap and the 34px
+   above it leave room for the overhang, and nothing clips it. */
+.rpc-plan.featured {
+  border-color: var(--accent);
+  box-shadow: 0 12px 40px rgba(45, 125, 114, 0.18);
+}
+.rpc-plan-badge {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+}
 .rpc-plan-name { font-size: 16px; font-weight: 800; color: var(--text); line-height: 1.3; }
 .rpc-plan-grants { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; }
 .rpc-plan-pricing { display: flex; align-items: baseline; gap: 9px; margin-top: 20px; flex-wrap: wrap; }

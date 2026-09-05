@@ -66,7 +66,7 @@ export default async function ReadinessLandingPage() {
     supabase
       .from('nclex_products')
       .select(
-        'product_id, name, readiness_credits, price_minor_ghs, price_minor_usd, full_price_minor_ghs, full_price_minor_usd',
+        'product_id, name, readiness_credits, price_minor_ghs, price_minor_usd, full_price_minor_ghs, full_price_minor_usd, badge',
       )
       .eq('pack_type', 'READINESS')
       .eq('kind', 'PAID')
@@ -88,6 +88,7 @@ export default async function ReadinessLandingPage() {
     usdMinor:     p.price_minor_usd,
     fullGhsMinor: p.full_price_minor_ghs,
     fullUsdMinor: p.full_price_minor_usd,
+    badge:        p.badge ?? null,
   }));
 
   const packs = (packRows ?? []) as PackListing[];

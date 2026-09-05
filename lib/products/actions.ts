@@ -46,6 +46,7 @@ interface ParsedEditable {
   fullPriceGhs:      number | null;
   fullPriceUsd:      number | null;
   sort_order:        number;
+  badge:             string | null;
 }
 
 /** The fields BOTH create and edit may write. Identity is not here. */
@@ -116,6 +117,21 @@ function parseEditable(
     }
   }
 
+  // Card badge (2026-09-05). Blank is NULL, not an empty string — the same
+  // convention the "was" prices above already use, so the catalogue has one
+  // way of saying "not set" rather than two. Both product families; the
+  // public grids render a ribbon and a highlight when it is present.
+  //
+  // ⚠ Mirrors the DB CHECK (1–24 characters, trimmed). The cap is not
+  // tidiness: the ribbon is one non-wrapping line straddling the top of a
+  // card that gets narrow on a phone, and there is no truncation to catch
+  // an over-long one. The form's input caps it too.
+  const badgeRaw = String(formData.get('badge') ?? '').trim();
+  if (badgeRaw.length > 24) {
+    return { error: 'A badge can be at most 24 characters — it has to fit one line on a phone.' };
+  }
+  const badge = badgeRaw === '' ? null : badgeRaw;
+
   return {
     name,
     readiness_credits: credits,
@@ -125,6 +141,7 @@ function parseEditable(
     fullPriceGhs,
     fullPriceUsd,
     sort_order: sortOrder,
+    badge,
   };
 }
 
@@ -178,6 +195,7 @@ export async function createProductAction(
     full_price_minor_usd: editable.fullPriceUsd,
     status:               'ACTIVE',
     sort_order:           editable.sort_order,
+    badge:                editable.badge,
   });
 
   if (error) {
@@ -230,6 +248,7 @@ export async function updateProductAction(
       full_price_minor_ghs: editable.fullPriceGhs,
       full_price_minor_usd: editable.fullPriceUsd,
       sort_order:           editable.sort_order,
+      badge:                editable.badge,
       updated_at:           new Date().toISOString(),
     })
     .eq('product_id', productId);

@@ -26,6 +26,8 @@ export interface ReadinessSku {
   usdMinor:     number;
   fullGhsMinor: number | null;
   fullUsdMinor: number | null;
+  /** Ribbon text from the catalogue, or null for a plain card. */
+  badge:        string | null;
 }
 
 interface Props {
@@ -77,7 +79,15 @@ export function ReadinessPlans({ skus, packCount, uniformLine, initialCurrency =
           const unit = s.credits >= 2 ? unitPriceMinor(price, s.credits) : null;
 
           return (
-            <div key={s.productId} className="rpc-plan">
+            <div key={s.productId} className={`rpc-plan${s.badge ? ' featured' : ''}`}>
+              {/* Ribbon (2026-09-05). Absolutely positioned across the top
+                  border, so it costs the card no layout — the pricing
+                  block, the −20% pill and the feature lines all sit exactly
+                  where they did. The −20% pill is derived from the two
+                  price columns and states a fact; this states whatever the
+                  catalogue was told to say, which is why the words are a
+                  field and not a constant. */}
+              {s.badge && <div className="rpc-plan-badge">{s.badge}</div>}
               <div className="rpc-plan-name">{s.name}</div>
               <div className="rpc-plan-grants">
                 {s.credits} pack credit{s.credits === 1 ? '' : 's'}

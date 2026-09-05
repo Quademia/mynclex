@@ -221,6 +221,10 @@ function ProductRowView({
         <span className="pr-name">
           {p.name}
           {isTrial && <span className="pr-pill free">Free</span>}
+          {/* The badge this product wears on the public card, shown here so
+              you can see which one is promoted without opening each editor
+              (2026-09-05). */}
+          {p.badge && <span className="pr-pill badge">{p.badge}</span>}
         </span>
         <span className="pr-mono pr-slug">{p.product_id}</span>
       </div>

@@ -54,7 +54,7 @@ export default async function BankLandingPage() {
 
   const { data: products } = await supabase
     .from('nclex_products')
-    .select('product_id, name, duration_days, readiness_credits, cat_allowance, price_minor_ghs, price_minor_usd')
+    .select('product_id, name, duration_days, readiness_credits, cat_allowance, price_minor_ghs, price_minor_usd, badge')
     .eq('pack_type', 'BANK_DURATION')
     .eq('kind', 'PAID')
     .eq('status', 'ACTIVE')
@@ -87,6 +87,11 @@ export default async function BankLandingPage() {
     catAllowance: p.cat_allowance,
     ghsMinor: p.price_minor_ghs,
     usdMinor: p.price_minor_usd,
+    // ⭐ Which plan gets promoted is a marketing decision, so it comes from
+    // the catalogue (2026-09-05). It used to be `days === 90` in the
+    // component — a magic number that lost the ribbon silently the moment
+    // that tier's length changed by any route.
+    badge: p.badge ?? null,
   }));
 
   // Evergreen, verifiable stats — no invented question count (see header).

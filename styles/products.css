@@ -118,6 +118,9 @@
 .pr-pill.active   { background: var(--primary-light); color: var(--accent-dark); }
 .pr-pill.archived { background: var(--bg-soft);       color: var(--text-faint); }
 .pr-pill.free     { background: var(--bg-soft);       color: var(--text-muted); }
+/* Card badge (2026-09-05) — mirrors the ribbon the public card wears, so
+   it reads as the promoted one rather than as another status pill. */
+.pr-pill.badge    { background: var(--accent);         color: #fff; }
 
 .pr-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .pr-btn-retire {

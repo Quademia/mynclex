@@ -32,6 +32,13 @@ export interface ProductRow {
   full_price_minor_usd: number | null;
   status:               ProductStatus;
   sort_order:           number;
+  /** Ribbon text on the public card, e.g. "Best value" (2026-09-05).
+   *  NULL = no ribbon and no highlight. Free text, not a boolean, so the
+   *  CLAIM is editable and not just which product wears it — "Most
+   *  popular" is a fact about what customers choose, and a field lets it
+   *  wait for sales rather than being asserted in code. Max 24 chars: the
+   *  ribbon is one non-wrapping line on a 375px card. */
+  badge:                string | null;
 }
 
 /** What the form posts (major-unit money strings; server converts). */
@@ -48,6 +55,7 @@ export interface ProductFormValues {
   fullPriceGhs:      number | null;
   fullPriceUsd:      number | null;
   sort_order:        number;
+  badge:             string | null;   // blank in the form → NULL
 }
 
 export interface ProductActionResult {
